@@ -33,7 +33,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import bots, world
+from ow174.game import bots, graviton, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
 from ow174.game.script import graph as graphs_data
@@ -360,7 +360,7 @@ class Projectiles:
             for delivery in shot.observers:
                 delivery.finish(self.match.tick, False, drain=True)
             return
-        if shot.spawn is not None or shot.release_at is not None:
+        if shot.spawn not in (None, graviton.FIELD_ENTITY) or shot.release_at is not None:
             return
         start = next((report.cmfd for report in shot.reports if report.received is not False), shot.frame)
         due = start + math.ceil(seconds * 1000 / FRAME_MS) + RELEASE_MARGIN
@@ -489,10 +489,11 @@ class Projectiles:
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
         # The opening tick has no heal, and the field ends before the expiry tick.
         # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        first, last = max(first_tick, start + 1), min(tick, expires - 1)
+        if last >= first:
+            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * (last - first + 1)
+            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount,
+                                  first_tick=first, last_tick=last)
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return

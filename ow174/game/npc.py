@@ -50,7 +50,8 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          autonomous: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -58,6 +59,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if type(autonomous) is not bool:
+        raise ValueError('NPC autonomous mode must be boolean')
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
@@ -66,6 +69,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if autonomous:
+        data['autonomous_targeting'] = True
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
@@ -88,34 +93,59 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     return bot
 
 
+def remove_body(match, bot) -> None:
+    """Retire one present combat body and its script, attacks and observer records."""
+    if bot not in match.bots:
+        return
+    if bot.control_mover is not None:
+        from ow174.game import body_entities
+
+        pilot = match._message_player(bot.source_body)
+        if pilot is not None and pilot.controlled_mech is bot:
+            body_entities.release_control(pilot)
+    bot.died(match.tick)
+    match.combat.clear_pins(bot.entity)
+    match.combat.zarya_bubbles.retire(bot.entity)
+    match.combat.hooks.retire(bot.entity)
+    match.combat.zarya_gravitons.release(bot)
+    script, bot.body_script = bot.body_script, None
+    if script is not None:
+        component = script.component
+        if component.world.match is not None:
+            component.world.match.unregister_body_component(component)
+        component.disconnect_foreign_watchers()
+        component.owner_dead = True
+        component.held.clear()
+        component.shots.clear()
+        for instance in list(component.instances.values()):
+            component.destroy(instance)
+        if hasattr(component.world, 'match'):
+            component.world.match = None
+            component.world.manual_target = None
+    for shot in list(match.combat.projectiles.shots):
+        if shot.player is bot:
+            match.combat.projectiles._end(shot, match.tick, False)
+    match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
+    match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
+    for table in (match.combat.vitals, match.combat.history,
+                  match.combat.replacement_ticks, match.combat.melee_seen,
+                  match.combat.booster_contacts, match.combat.stuns, match.combat.heal_modifiers,
+                  match.combat.ana_sleeps, match.combat.frost):
+        table.pop(bot.entity, None)
+    match._pending_bot_scripts = type(match._pending_bot_scripts)(
+        item for item in match._pending_bot_scripts if item is not bot)
+    match.bots.remove(bot)
+    for viewer in match.players:
+        if viewer.client is not None and viewer.slot in match.bots_shown:
+            viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
+
+
 def remove_spawned(match) -> tuple[int, ...]:
     """Explicitly remove only manual NPCs, including corpses and owned attacks."""
     removed = []
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
-        bot.died(match.tick)
-        script, bot.body_script = bot.body_script, None
-        if script is not None:
-            component = script.component
-            component.owner_dead = True
-            component.held.clear()
-            component.shots.clear()
-            for instance in list(component.instances.values()):
-                component.destroy(instance)
-        for shot in list(match.combat.projectiles.shots):
-            if shot.player is bot:
-                match.combat.projectiles._end(shot, match.tick, False)
-        match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
-        match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
-        for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen):
-            table.pop(bot.entity, None)
-        match._pending_bot_scripts = type(match._pending_bot_scripts)(
-            item for item in match._pending_bot_scripts if item is not bot)
-        match.bots.remove(bot)
-        for viewer in match.players:
-            if viewer.client is not None and viewer.slot in match.bots_shown:
-                viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
+        remove_body(match, bot)
         removed.append(bot.entity)
     return tuple(removed)

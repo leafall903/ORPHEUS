@@ -11,15 +11,23 @@ import random
 import types
 
 from ow174.game import replay_values
+from ow174.game.assassin_effect import ControllerWorld
 from ow174.game.script import (
     body_owner,
+    entity_link,
     entity_queries,
     expr,
     graph,
+    message_manager,
     message_receive,
+    message_receiver,
     message_scope,
+    message_state,
+    modifiers,
     nodes,
     runtime,
+    scopes,
+    spatial_queries,
 )
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -41,7 +49,7 @@ _INSTANCE = frozenset((
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
     "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 ))
 _STATE = frozenset((
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -57,8 +65,9 @@ _GRAPH = frozenset((
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
-_VAR = ("base", "key", "links", "partial", "resolving", "watchers")
+_VAR = ("base", "component", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.BodyPlacement: ((), ()),
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
@@ -70,6 +79,7 @@ _STATE_LAYOUTS = {
     nodes.VoiceStimulus: (("voice_handle", "voice_attempts", "voice_duration", "voice_part",
                            "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
                            "voice_submitted", "voice_failed"), ()),
+    nodes.LinkedTarget: (("linked_entity", "linked_cache", "mover_angles"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
@@ -80,13 +90,15 @@ _STATE_LAYOUTS = {
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.CallMechHandoffTimer: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
@@ -100,10 +112,14 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.TrackRay: ((), ()),
+    nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    entity_link.Context: ("owner", "instance_present", "environment_present", "lookup", "watch_environment",
+                          "watch_link", "retired"),
+    spatial_queries.Context: ("owner", "instance_present", "namespace_present", "query", "retired"),
     entity_queries.Context: ("owner", "namespace_present", "environment_present",
                              "possession_context_present", "lookup", "watch_environment",
                              "watch_possession", "retired"),
@@ -118,6 +134,17 @@ _VALUE_LAYOUTS = {
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
+    scopes.Registry: ("states",),
+    message_state.Context: ("component", "host", "policy", "frame", "priority", "timer_notify",
+                            "receiver_policy", "receiver_generation", "receiver_filter", "retired", "states"),
+    message_state.Host: ("contexts", "current", "manager"),
+    message_manager.Manager: ("notify", "consume_work", "validate", "channels", "frame", "next_sequence",
+                              "retired", "_busy", "_discard_revision"),
+    message_manager.Key: ("entity", "flags", "message"),
+    message_manager.Sender: ("state", "priority", "prefer_later", "frame", "sequence"),
+    message_manager._Channel: ("senders", "receivers"),
+    modifiers.NumericModifiers: ("_source_frame", "ready", "records"),
+    modifiers.Record: ("kind", "key", "start", "field", "operation", "value", "priority", "upper", "end"),
 }
 
 
@@ -167,6 +194,7 @@ class _Export:
         self.instances = {}
         self.states = {}
         self.variables = {}
+        self.external_components = {}
         self.graphs = {}
         self.node_owners = {}
         self.node_refs = {}
@@ -200,7 +228,7 @@ class _Export:
             raise BodyVMSnapshotError("unknown instance class")
         fields = _layout(obj, _INSTANCE)
         _containers(fields, ("vars", "states"), dict, "instance")
-        _containers(fields, ("queue", "ticking", "deferred", "params"), list, "instance")
+        _containers(fields, ("queue", "ticking", "deferred", "params", "join_inputs"), list, "instance")
         _containers(fields, ("disabled_start_entries", "disabled_message_entries"), set, "instance")
         source = fields["cached_source_entity"]
         if type(source) is not int or not 0 <= source <= 0xFFFFFFFF:
@@ -261,6 +289,8 @@ class _Export:
             raise BodyVMSnapshotError("missing variable storage field") from None
         _containers(data, ("links",), list, "variable")
         _containers(data, ("watchers",), dict, "variable")
+        if data["component"] is not None and data["component"] is not self.component:
+            raise BodyVMSnapshotError("foreign component variable reference")
         key = data["key"]
         if type(key) is not tuple or len(key) != 2 or any(type(value) is not int for value in key):
             raise BodyVMSnapshotError("invalid variable identity")
@@ -270,6 +300,31 @@ class _Export:
         elif self.variables[key] is not obj:
             raise BodyVMSnapshotError("distinct variables reuse a local variable identity")
         return ["var", *key]
+
+    def _foreign(self, obj):
+        """Declared subscription edges, not arbitrary foreign execution storage.
+
+        The enclosing server captures each namespace independently and bridges
+        this identity to that Component. A standalone VM capture names this
+        external dependency; it does not flatten the foreign VM into its own.
+        """
+        owner = obj.component if type(obj) is runtime.Var else obj.instance.component
+        probe = _Export(owner)
+        if type(obj) is runtime.Var:
+            scope, number = obj.key
+            instance = owner.instances.get(scope)
+            if instance is None:
+                instance = next((i for i in owner.destroyed if i.id == scope), None)
+            table = owner.vars if scope == 0 else instance.vars if instance is not None else None
+            if type(table) is not dict or table.get(number) is not obj:
+                raise BodyVMSnapshotError("foreign variable is outside its owner's storage")
+            suffix = ["external_var", scope, number]
+        else:
+            probe._state(obj)
+            suffix = ["external_state", obj.instance.id, obj.index]
+        reference = self.identity(owner)
+        self.external_components[id(owner)] = (owner, reference)
+        return [suffix[0], reference, owner.entity, *suffix[1:]]
 
     def _graph(self, obj):
         if type(obj) is not graph.Graph:
@@ -358,7 +413,8 @@ class _Export:
         for name, value in data.items():
             if name not in exclude:
                 scope = "model" if type(obj) is BodyScript and name == "record" else "vm"
-                result.append([name, self.value(value, scope=scope)])
+                external = name == "watched" and type(obj) in _STATE_LAYOUTS
+                result.append([name, self.value(value, scope=scope, external=external)])
         return result
 
     def _set_key(self, obj):
@@ -374,6 +430,8 @@ class _Export:
             return ["state", _integer(obj.instance.id, "set instance"), _integer(obj.index, "set state")]
         if kind is runtime.Var:
             return ["var", replay_values.encode(obj.key)]
+        if type(self.component.world) is ControllerWorld and obj is self.component.world.messages:
+            return ["controller_messages"]
         if kind is graph.Node:
             return self._node(obj)
         if kind in (expr.Asset, expr.Entity, expr.Vec3, expr.Handle):
@@ -386,12 +444,16 @@ class _Export:
             return [kind.__name__, values]
         raise BodyVMSnapshotError("set member has no supported stable ordering key")
 
-    def value(self, obj, *, scope="vm"):
+    def value(self, obj, *, scope="vm", external=False):
         kind = type(obj)
         if obj is None or kind in (bool, int, float, str, bytes):
             return obj
         if obj is self.component:
             return {"ref": ["component"]}
+        if external and ((kind is runtime.Var and obj.component is not None
+                          and obj.component is not self.component)
+                         or (kind in _STATE_LAYOUTS and obj.instance.component is not self.component)):
+            return {"ref": self._foreign(obj)}
         if kind is runtime.Instance:
             return {"ref": self._instance(obj)}
         if kind in _STATE_LAYOUTS:
@@ -402,23 +464,41 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             if kind is BodyWorld:
-                fields.update(("body", "throttles", "match", "_body_owner_context", "_entity_query_context"))
+                fields.update(("body", "throttles", "match", "_body_owner_context", "_entity_query_context",
+                               "_spatial_query_context"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "match", "body", "_body_owner_context",
+                               "_entity_query_context", "_spatial_query_context", "_entity_link_context",
+                               "controller_components", "manual_target"))
+            if kind is ControllerWorld:
+                fields.update(("entity", "health_absent", "mover_sample", "numeric", "scopes",
+                               "component", "messages"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
-                and type(obj.__self__) is BodyWorld
+                and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
-                                     BodyWorld._poll_body_owner)):
+                                     BodyWorld._poll_body_owner, BodyWorld._query_spatial,
+                                     BotWorld._lookup_entity_link)):
             return {"class": "builtins.method", "identity": self.identity(obj),
                     "owner": ["component", "world"], "function": _name(obj.__func__)}
+        world = self.component.world
+        if type(world) is ControllerWorld:
+            if kind is types.FunctionType and obj in (
+                ControllerWorld.message_policy, ControllerWorld.message_frame,
+                ControllerWorld.message_priority, message_receiver.notify,
+            ):
+                return {"class": "builtins.function", "function": _name(obj)}
+            if (kind is types.MethodType and obj.__self__ is world.messages.host
+                    and obj.__func__ in (message_state.Host._work, message_state.Host._check)):
+                return {"class": "builtins.method", "identity": self.identity(obj),
+                        "owner": self.value(obj.__self__), "function": _name(obj.__func__)}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -446,7 +526,10 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context,
+                        spatial_queries.Context, entity_link.Context, scopes.Registry,
+                        message_state.Context, message_state.Host, message_manager.Manager,
+                        message_manager.Sender, message_manager._Channel, modifiers.NumericModifiers):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}
@@ -471,14 +554,16 @@ class _Export:
             if kind is dict:
                 return {
                     "kind": "dict", "identity": reference,
-                    "items": [[self.value(key, scope=scope), self.value(value, scope=scope)]
+                    "items": [[self.value(key, scope=scope, external=external),
+                               self.value(value, scope=scope, external=external)]
                               for key, value in obj.items()],
                 }
             if kind in (set, frozenset):
                 ordered = sorted(obj, key=lambda item: json.dumps(self._set_key(item), sort_keys=True))
             else:
                 ordered = obj
-            result = {"kind": kind.__name__, "items": [self.value(value, scope=scope) for value in ordered]}
+            result = {"kind": kind.__name__,
+                      "items": [self.value(value, scope=scope, external=external) for value in ordered]}
             if reference is not None:
                 result["identity"] = reference
             return result
@@ -596,11 +681,17 @@ class _Export:
                 if type(table) is not dict or table.get(number) is not obj:
                     raise BodyVMSnapshotError("variable is outside its owner's storage")
                 record = {"ref": ["var", *obj.key], "class": _name(type(obj)),
-                          "fields": [[name, self.value(object.__getattribute__(obj, name))]
+                          "fields": [[name, self.value(object.__getattribute__(obj, name),
+                                                       external=name == "watchers")]
                                      for name in _VAR]}
             else:
                 record = self._graph_record(obj)
             self.records.append(record)
+        if self.external_components:
+            result["external_components"] = [
+                {"identity": reference, "entity": owner.entity}
+                for owner, reference in self.external_components.values()
+            ]
         return result
 
 

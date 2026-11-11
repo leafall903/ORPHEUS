@@ -38,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -135,10 +135,11 @@ class Link:
 class Var:
     """One variable: the stored (base) value, the links that override it, the states that watch it."""
 
-    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers")
+    __slots__ = ("base", "component", "key", "links", "partial", "resolving", "watchers")
 
-    def __init__(self, key: tuple) -> None:
+    def __init__(self, key: tuple, component: "Component | None" = None) -> None:
         self.key = key  # (instance id or 0 for the entity, var id)
+        self.component = component  # namespace identity for cross-body subscriptions, never a copied value.
         self.base = None
         self.links: list[Link] = []
         self.watchers: dict[State, None] = {}
@@ -326,10 +327,18 @@ class InstanceContext(Context):
             from ow174.game.script import play
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
+        from ow174.game.script import spatial_queries
+
+        if cfg.get("$") in spatial_queries.INTERFACES:
+            result = spatial_queries.evaluate(self, cfg)
+            if result is not NotImplemented:
+                return result
         self.poll_native(cfg)
-        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_link, entity_queries, entity_team
 
         result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_link.evaluate(self, cfg)
         if result is NotImplemented:
             result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
@@ -397,6 +406,9 @@ class World:
         self.hero = hero
         self.mode = mode
 
+    def state_condition(self, state):
+        return NotImplemented
+
     def ruleset(self, key: int):
         from ow174.game.script import rulesets
 
@@ -427,11 +439,27 @@ class World:
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def track_targets(self, state: "State"):
+        return NotImplemented
+
+    def tracked_ray(self, state: "State"):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
+        return NotImplemented
+
+    def linked_target_sample(self, entity: int):
+        """Known component-31 mover sample, None if absent, or unknown."""
         return NotImplemented
 
     def subgraph_scopes(self, entity: int):
@@ -472,6 +500,28 @@ class World:
 
     def body_owner_context(self, entity: int):
         """Explicit instance/lookup and direct component43 ownership services."""
+        return NotImplemented
+
+    def entity_link_context(self, entity: int):
+        """Explicit F76C486C component field/dependency service, distinct from direct ownership."""
+        return NotImplemented
+
+    def spatial_query_context(self, entity: int):
+        """Distinct native spatial helpers; unavailable engine context is explicit."""
+        return NotImplemented
+
+    def body_placement(self, state):
+        """Explicit placement engine service; Result(None) is a completed rejection."""
+        return NotImplemented
+
+    def create_body(self, instance, node):
+        """Explicit authored body creation service; no implicit entity allocation."""
+        return NotImplemented
+
+    def play_owned_script(self, instance, node):
+        return NotImplemented
+
+    def destroy_script_body(self, instance, node):
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
@@ -709,10 +759,34 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
-                state.instance.post(Event(self.now, 0, CHANGED, state=state))
+                state.instance.post(Event(state.instance.component.now, 0, CHANGED, state=state))
         return after
+
+    def disconnect_foreign_watchers(self) -> None:
+        """Retire subscriptions to this namespace without changing its retained history.
+
+        A receiver reevaluates at its existing clock and resolves the retired
+        body as absent. Its other watched variables and pending events survive.
+        """
+        variables = list(self.vars.values())
+        for instance in (*self.instances.values(), *self.destroyed):
+            variables.extend(instance.vars.values())
+            for state in instance.states.values():
+                for var in list(state.watched):
+                    if var.component is not self:
+                        var.watchers.pop(state, None)
+                        state.watched.pop(var, None)
+        for var in variables:
+            for state in list(var.watchers):
+                if state.instance.component is self:
+                    continue
+                var.watchers.pop(state, None)
+                state.watched.pop(var, None)
+                if state.active and not state.ending and not state.flags_changed:
+                    state.flags_changed = True
+                    state.instance.post(Event(state.instance.component.now, 0, CHANGED, state=state))
 
     def set(self, var: int, value) -> None:
         """Set an entity variable from outside the graphs (the server's own code)."""
@@ -777,7 +851,7 @@ class Component:
     def entity_var(self, var: int, create: bool = True) -> Var | None:
         found = self.vars.get(var)
         if found is None and create:
-            found = self.vars[var] = Var((0, var))
+            found = self.vars[var] = Var((0, var), self)
         return found
 
     # --- instances ---------------------------------------------------------------------------------
@@ -825,6 +899,7 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
 
@@ -981,6 +1056,8 @@ class Instance:
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
+        self.join_inputs: list[tuple[int, int, str]] = []  # target, producer, output plug path
+        self.plug_source: tuple[int, str] | None = None  # current native input traversal
 
     def __repr__(self) -> str:
         return f"<Instance {self.id} {self.graph.index:04X}>"
@@ -992,7 +1069,7 @@ class Instance:
             return self.component.entity_var(var, create)
         found = self.vars.get(var)
         if found is None and create:
-            found = self.vars[var] = Var((self.id, var))
+            found = self.vars[var] = Var((self.id, var), self.component)
         return found
 
     def context(self, watcher: "State | None" = None) -> InstanceContext:
@@ -1240,6 +1317,27 @@ class Instance:
                 event = self.queue.pop(0)
                 self.dispatch(event)
 
+    def stop(self) -> None:
+        """1B95240: stop the instance, then notify its still-matching parent state."""
+        if self.stopped or self.teardown:
+            return
+        self.teardown = True
+        self.initialization_pending = False
+        for state in list(self.states.values()):
+            state.end(False)
+        for state in list(self.states.values()):
+            state.on_destroyed()
+        self.states.clear()
+        self.queue.clear()
+        self.join_inputs.clear()
+        self.deferred.clear()
+        self.stopped = True
+        self.teardown = False
+        if self.parent is not None:
+            state = self.parent.states.get(self.parent_state)
+            if state is not None and state.active and not state.ending:
+                state.child_stopped(self)
+
     def dispatch(self, event: Event) -> None:
         state = event.state
         if event.kind == STATE_OP:
@@ -1266,6 +1364,8 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP:
+            self.stop()
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1329,8 +1429,50 @@ class Instance:
                 if state is not None:
                     taken = state.plug_enter(input_path) or taken
                 continue
-            taken = self.run_node(target, None if target.is_action else caller) or taken
+            previous = self.plug_source
+            self.plug_source = (node.pos, path)
+            try:
+                taken = self.run_node(target, None if target.is_action else caller) or taken
+            finally:
+                self.plug_source = previous
         return taken
+
+    def join(self, node: Node, caller: "State | None") -> bool:
+        """104319 1B6EED0/1B73BC0: join distinct input edges before following output."""
+        if self.plug_source is None:
+            self.component.unsupported(self, "join input origin", node.cls, node)
+        arrival = (node.pos, *self.plug_source)
+        if arrival in self.join_inputs:
+            return False
+        previous = sum(row[0] == node.pos for row in self.join_inputs)
+        self.join_inputs.append(arrival)
+        indexes = node.field("m_122DF0CA") or ()
+        if previous == 0:
+            for index in indexes:
+                self.component.consume_work("join completion check")
+                state = self.states.get(index)
+                if state is not None and state.active and state is not caller and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(self.component.now, 0, CHECK, state=state))
+            return False
+        if previous != expr.to_int(node.field("m_B24D1794")) - 1:
+            return False
+        # 1B700F0 removes this target's registrations by swapping with the tail.
+        index = 0
+        while index < len(self.join_inputs):
+            if self.join_inputs[index][0] == node.pos:
+                self.join_inputs[index] = self.join_inputs[-1]
+                self.join_inputs.pop()
+            else:
+                index += 1
+        if not self.follow(node, "m_outPlug", caller):
+            return False
+        for index in indexes:
+            self.component.consume_work("join state abort")
+            state = self.states.get(index)
+            if state is not None and state.active:
+                state.request(ABORT)
+        return True
 
     def follow_states(self, node: Node, path: str) -> list["State"]:
         """The states a subgraph plug lists (m_FF3DAF1E)."""
@@ -1480,6 +1622,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # These coalescing bits describe events that cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1537,6 +1681,9 @@ class State:
 
     def on_created(self) -> None:
         """1B91460: after insertion into the instance, before its first begin."""
+
+    def child_stopped(self, child: Instance) -> None:
+        """Parent-state hook for an authored child stop."""
 
     def on_destroyed(self) -> None:
         """Release object-lifetime services without following authored plugs."""

@@ -60,6 +60,12 @@ class FakeClient:
     def queue_bot_live(self, entity: int, snapshot) -> None:
         pass  # the combat model leaves NPC body decoding to the link tests
 
+    def queue_bot_death(self, entity: int, snapshot) -> None:
+        pass
+
+    def queue_bot_death_update(self, entity: int, snapshot) -> None:
+        pass
+
     def queue_combat_notice(self, entity: int | None, msg_id: int, value: dict) -> None:
         self.queue_reliable(msg_id, value)
 
@@ -88,6 +94,19 @@ def in_world(match: Match, player) -> None:
     player.spawned = True
     player.steps_done = 4
     match.bots_shown[player.slot] = 0
+
+
+def dva_pilot_input(player) -> None:
+    """Use the authored return message in fixtures that specifically exercise the pilot."""
+    from ow174.game.script import nodes
+
+    mech = player.controlled_mech
+    if mech is None:
+        return
+    instance = next(i for i in mech.body_script.component.instances.values() if i.graph.index == 0x276)
+    nodes.send(instance, instance.graph.node(5), None)
+    player.match.deliver_body_messages()
+    assert player.controlled_mech is None
 
 
 def aim(origin, target) -> tuple[int, int]:

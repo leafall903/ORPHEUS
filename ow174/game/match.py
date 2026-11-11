@@ -51,7 +51,7 @@ from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
-from ow174.game.statescript import Stream, owner_ack
+from ow174.game.statescript import Stream, owner_ack, owner_full_frame
 from ow174.game.world import (
     GAME_MODE_ENTITY,
     NO_INPUT,
@@ -214,6 +214,7 @@ class Player:
         self.mover = self.new_mover()
         self.commands = CommandQueue()
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
+        self.controlled_mech: bots.Bot | None = None
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
@@ -222,6 +223,8 @@ class Player:
         self.mode_script = Stream(GAME_MODE_ENTITY)  # the game mode entity's variables: the countdown
         self.next_countdown = 0.0
         self.select_open = True
+        self.controller_effect_next = 1
+        self.controller_effect_key = None
         self.controller_hero: int | None = None  # the hero (v940) the last controller frame named
         # The numbers his Tab board shows (stats.py); the combat code adds to them. His client gets them
         # in component 64 when they change.
@@ -294,6 +297,19 @@ class Player:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                if self.controlled_mech is not None:
+                    from ow174.game import body_entities, npc
+
+                    try:
+                        if body_entities.drive_mech(self, command, seconds):
+                            continue
+                    except Exception:
+                        log.exception("[game] %s: %s's controlled mech failed", self.match.label(), self.name)
+                        mech = self.controlled_mech
+                        body_entities.release_control(self)
+                        if mech is not None:
+                            npc.remove_body(self.match, mech)
+                        continue
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
@@ -321,9 +337,18 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        stunned = self.match.combat.is_stunned(self, tick=tick)
+        pulled = self.body in self.match.combat.zarya_gravitons.pulled
+        received = self.mover.last_command is command
+        admitted, blocked = self.match.combat.suppress_input(self, command, tick=tick, active=stunned)
+        if received and admitted is not command:
+            self.mover.last_command = admitted
+        command = admitted
+        if blocked and not pulled:
+            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None:
+        if script is not None and not blocked:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -332,7 +357,11 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        if len(requests) == 1:
+        if stunned and self.match.combat.hooks.step_actor(self, self.mover, command, seconds, tick):
+            pass  # Hook owns this posed frame.
+        elif pulled:
+            self.mover.step_pose(command, seconds, tick, world_driven=True)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
@@ -341,7 +370,7 @@ class Player:
                 movement_end = state, outcome
         else:
             self.mover.step_pose(command, seconds, tick)
-        self._advance_body_frame(command, movement_end=movement_end)
+        self._advance_body_frame(command, posed=not blocked, movement_end=movement_end)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
@@ -352,7 +381,8 @@ class Player:
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        active = statescript_mods(script.component) if script else {}
+        self.mover.track_mods(self.match.combat.movement_mods(self, active), command.frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -413,7 +443,10 @@ class Match:
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
-        self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict]] = []
+        self.body_components: dict[int, runtime.Component] = {}  # includes VMs during graph initialization.
+        self._body_messages: list[
+            tuple[BodyScript | BotScript, Player | bots.Bot, BodyScript | BotScript, int, dict]
+        ] = []
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -590,14 +623,21 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context, npc_control
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            combat_world = self if components is not None or (
+                npc_control.manual(bot) and bot.hero in npc_control.MELEE_GRAPHS
+            ) else None
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_components=components, match=combat_world,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -905,7 +945,8 @@ class Match:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world)
+                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                         paused_until=self.combat.stuns.get(bot.entity, 0))
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -924,8 +965,10 @@ class Match:
                 self._send_countdown(player, now)
             if player.steps_done >= 4:
                 self._send_board(player, now)
-                if (player.hero.guid if player.has_body else None) != player.controller_hero:
-                    self.send_controller(player)  # v940 follows the hero (a switch that kept the screen)
+                effect_data = self._controller_effect_data(player)
+                if ((player.hero.guid if player.has_body else None) != player.controller_hero
+                        or effect_data[2] != player.controller_effect_key):
+                    self.send_controller(player, effect_data=effect_data)
         self.notices.update(now)
         for viewer in self.players:
             if not viewer.spawned or viewer.client is None:
@@ -1007,7 +1050,15 @@ class Match:
         frame = player.commands.last_frame
         return self.tick if frame is None else frame
 
-    def send_controller(self, player: Player) -> None:
+    def _controller_effect_data(self, player: Player):
+        host = self.combat.assassin_effects.get(player.entity)
+        dynamic, bound_vars = host.owner_effect_wires() if host is not None else ((), {})
+        if not dynamic:
+            return dynamic, bound_vars, None
+        content = owner_full_frame(1, [], {}, dynamic=dynamic, bound_vars=bound_vars)
+        return dynamic, bound_vars, (content.value, content.count)
+
+    def send_controller(self, player: Player, *, effect_data=None) -> None:
         """A full frame of the controller's statescript, with hero select open or closed. The skin
         selector shows in the PvP modes while heroes are assembled, in the Practice Range whenever
         the screen is open."""
@@ -1018,14 +1069,19 @@ class Match:
         skins = player.select_open and (practice or self.assembling())
         switch = self.notices.presence(player)  # the last hero switch for the chat line (notices.py)
         hero = player.controller_hero = player.hero.guid if player.has_body else None
-        frame = heroselect.controller_frame(
-            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero,
+        instances, variables = heroselect.controller_instances(
+            self.controller, player.select_open, skins, practice, presence=switch, hero=hero,
             body=player.body if player.has_body else None,
         )
+        if effect_data is None:
+            effect_data = self._controller_effect_data(player)
+        dynamic, bound_vars, key = effect_data
+        frame = owner_full_frame(cmfd, instances, variables, dynamic=dynamic, bound_vars=bound_vars)
         update = player.script.full_frame(frame)
         # A switch notice is a separate event, even when the menu is already closed.
         update.controller_close = player.has_body and not player.select_open and not switch
         player.client.queue_entities([update])
+        player.controller_effect_key = key
         state = "open" if player.select_open else "closed"
         log.info("[game] %s: %s's controller sent (hero select %s)", self.label(), player.name, state)
 
@@ -1056,13 +1112,29 @@ class Match:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
         return next(shown, None)
 
+    def _message_actor(self, entity: int):
+        player = self._message_player(entity)
+        if player is not None:
+            return player
+        # Only explicitly match-bound, owned bodies participate. Ordinary NPC
+        # scripts keep their existing unsupported message-delivery boundary.
+        return next((bot for bot in self.bots if bot.entity == entity and bot.owner
+                     and bot.body_script is not None
+                     and bot.body_script.component.world.match is self), None)
+
+    def _message_script_live(self, script) -> bool:
+        actor = self._message_actor(script.component.entity)
+        return (actor is not None and actor.body_script is script
+                and not getattr(script, "retired", False) and script.component.fault is None)
+
     def queue_body_message(self, target: int, message: int, params: dict, sender: int) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
-        source, recipient = self._message_player(sender), self._message_player(target)
+        source, recipient = self._message_actor(sender), self._message_actor(target)
         if source is None or recipient is None:
             return False
         source_script, script = source.body_script, recipient.body_script
-        if source_script is None or source_script.retired or script is None or script.retired:
+        if (source_script is None or script is None
+                or not self._message_script_live(source_script) or not self._message_script_live(script)):
             return False
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
@@ -1074,21 +1146,35 @@ class Match:
         """Drain one match batch without advancing recipients' command frames."""
         if not self._body_messages:
             return
+        from ow174.game import body_entities
+
         pending, self._body_messages = self._body_messages, []
         # Messages emitted by a receiver enter the next batch, outside its VM call stack.
-        for source, player, script, message, params in pending:
-            if source.retired or source.component.fault is not None:
+        for source, actor, script, message, params in pending:
+            if not self._message_script_live(source):
                 continue
-            if player.body_script is not script or script.retired or not self._shown(player):
+            if actor.body_script is not script or not self._message_script_live(script):
                 continue
             try:
                 component = script.component
+                if (message == body_entities.RETURN_TO_PILOT and isinstance(actor, Player)
+                        and not body_entities.accepts_initial_return(self, actor, source)):
+                    continue
                 # An earlier message can start or stop a later message's entry state.
-                if runtime.send_message(component, message, params, source.entity):
+                if runtime.send_message(component, message, params, source.component.entity):
                     component.run_now()
+                if (message == body_entities.RETURN_TO_PILOT and isinstance(actor, Player)
+                        and actor.controlled_mech is not None
+                        and actor.controlled_mech.body_script is source):
+                    body_entities.complete_return(actor)
             except Exception:
-                log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
-                self.stop_body_script(player, failed=True)
+                log.exception("[game] %s: body %08X message handling failed", self.label(), component.entity)
+                if isinstance(actor, Player):
+                    self.stop_body_script(actor, failed=True)
+                else:
+                    from ow174.game import npc
+
+                    npc.remove_body(self, actor)
 
     def start_body_script(self, player: Player, create: EntityUpdate) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
@@ -1107,15 +1193,38 @@ class Match:
                 body_definition=player.hero.body,
             )
         except Exception as error:
+            from ow174.game import body_entities
+
+            body_entities.retire_source(self, player.entity, player.body)
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
         script.created(create)
         player.body_script = script
+        if player.hero.guid == 0x02E000000000007A:
+            from ow174.game import body_entities
+
+            body_entities.begin_initial_control(player)
         bodytrace.started(player, script)
+
+    def register_body_component(self, component: runtime.Component) -> None:
+        previous = self.body_components.get(component.entity)
+        if previous is not None and previous is not component:
+            raise ValueError("body already has a registered statescript component")
+        if component.world.match is not self:
+            raise ValueError("body component belongs to another match")
+        self.body_components[component.entity] = component
+
+    def unregister_body_component(self, component: runtime.Component) -> None:
+        if self.body_components.get(component.entity) is component:
+            self.body_components.pop(component.entity)
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
+        if player.controlled_mech is not None:
+            from ow174.game import body_entities
+
+            body_entities.release_control(player)
         script = player.body_script
         if script is not None:
             bodytrace.stopped(player, script)

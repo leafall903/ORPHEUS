@@ -1,0 +1,415 @@
+Actual manual NPC combat services against D.Va -- build1.74.0.0.104319
+UNCOMMITTED; complete D.Va static goal remains active.
+
+Manual NPC context is a declared server reconstruction. The producer marks
+Enforcer/Assassin manual spawns with controller component4B present/5C absent;
+it does not allocate a native AI controller or alias NPC ownership to a player.
+The scoped Enforcer13EB B96D3A98 predicate and9B7648C3 health query now receive
+that context and authoritative OWNER_HEALTH. Other unknown native predicates
+remain unsupported. These services were reviewed from the parent's npc_context
+and Assassin modules, then adapted to this lane's initialization registry and
+retirement rules. No parent source was edited.
+
+npc_control.engage binds a selected player controller explicitly. Each update
+resolves its current body, applies a reconstructed100m gun engagement/LOS/team
+policy, and delivers the actual slot0 logical input. Assassin1157 instead uses
+its authored logical36, a data-only Map target1650 and a reconstructed3m pin
+contact/LOS policy. Opt-in npc.spawn(..., autonomous=True) enables
+reconstructed stationary acquisition. It retains a visible enemy controller,
+or chooses the closest visible active body, and releases input for a tick
+before switching controllers. It resolves a controlled mech through its
+pilot's controller. Explicit engage and stop clear opt-in targeting.
+New acquisition runs only at the current world endpoint. Native AI and
+navigation remain open.
+Legacy direct logical-input fixtures remain available separately.
+
+The ten actual-resource first-hit cases now execute successfully:
+  NPC             pilot   mech    first damaging frame after engage
+  Trooper         20      15      29
+  Enforcer         2       1      68
+  Sniper         100      95     128
+  Assassin        25      20       1 (manual in-contact setup)
+  Heavy Assault    5       2.5     32
+These are first-hit/resource evidence, not full burst accuracy, native muzzle,
+pellet spread, difficulty, all special skills or autonomous AI acceptance.
+
+Assassin1157 node25 evaluates instant amount13230=25. Wait24 has timeout1s;
+node15 mode1 evaluates amount11984=100/s. ModifyHealth.last_applied implements
+the declared per-update damage clock. Existing armour applies per damage event,
+halving the small DoT ticks. Clock acceptance uses the authored Wait state's
+start, which precedes first observed damage by15ms in these fixtures. The first
+test incorrectly measured the delay from the observed damage frame and failed
+by1.5damage; the corrected scope-time calculation and31+49 frame catch-up and
+duplicate-update comparisons pass.
+
+Combat.pins maps source bodies to victim bodies and shares existing stun input/
+ability interruption. It clears on stop, removal, source death/failure, target
+leave/replacement and absent identities. Manual source target/input/pitch and
+BotWorld.controller_components/manual_target are persistent causal state.
+ModifyHealth.last_applied is in the VM field layout; pins and Bot fields are in
+the enclosing server layout. No fake controller entity is sent on the wire.
+NPC pitch now feeds shots, movement records and live spatial aim consistently.
+
+Rebinding exposed a real outgoing-event ordering bug: aborting the old pin
+queued release Anim31 BEGIN. Canceling Anim31 before draining that queue did
+nothing; it then activated and locked the new target forever. Bind now drains
+old exits before ending release for a fresh engagement. This ordering and the
+unresolved release animation duration remain explicit server reconstructions.
+The new body receives damage and the retired body's health stays unchanged.
+Queued old input also has a separate single-initial-hit regression.
+
+Stop releases input/pin scopes while an already launched Sniper projectile
+continues to hit. Explicit remove_body still retires attacks. Tests distinguish
+ordinary input release from administrative removal. Matrix absorbs actual
+Enforcer fire after its68-frame windup; an in-contact Assassin pin bypasses
+projectile absorption and interrupts Matrix. Actual McCree Flashbang releases
+pin control; manual pin and gun inputs recover after its deadline.
+
+Eleven focused tests pass111.749s, an additional projectile-stop case passes
+3.921s, and a four-gun automatic Flashbang recovery case passes9.911s. These
+counts overlap the final broad selection where included. Final536 combat/mover/
+physics tests PASS754.636s;53 storage tests PASS213.099s;Ruff/diffPASS. The later
+four-gun case ran separately from536. Initial53 storage tests pass171.131s.
+The active-pin server snapshot test forbids live variable reads and VM execution
+while proving clock, target, input and pin-map mutations change the digest.
+
+Fixture recovery retained: FakeClient lacks NPC death observer methods, so the
+isolated source-death test declares transport-result adapters. A gone player is
+removed from Run's command loop after real Match.leave. Recovery weapon shots
+aim at the actual Assassin capsule rather than a horizontal line over it. The
+first Matrix fixture ended before Enforcer's first shot; its80-frame protection
+window now includes a verified positive Matrix intersection. None of those
+fixtures claims original client transport or animation acceptance.
+
+External lane evidence:
+  dva-manual-five-npc-evidence.json / dva-manual-five-npc-final-probe.txt
+  assassin-dva-authored-fields.json
+  dva-assassin-rebind-frontier.json (initial failure)
+  dva-assassin-rebind-recovery-tests.txt
+  dva-assassin-clock-recovery.txt
+  dva-manual-npc-focused-final.txt
+  dva-manual-npc-projectile-stop.txt
+  dva-manual-npc-automatic-control-recovery.txt
+  dva-manual-npc-combat-final.txt / dva-manual-npc-storage-final.txt
+
+Assassin victim graph routing
+Authored 1157/45 names victim graph 1177 and takes its target from var 536.
+1157/18 and 1177/17 use message 08FE. The victim receiver has separate
+activation and release subgraphs. On release, 1177/39 selects either
+animation 4 or wait 45, and both routes reach action 22926252 at node 15.
+The only explicit logical button in 1157 and 1177 is the Assassin's button
+36 at 1157/3. The prepared catalog resolves 09DA from 1157/29 to 13C3/21.
+It supplies no explicit victim button for that message.
+
+Two live manual pin probes hit pilot for 25 and mech for 20 while graph
+1177 remains unmounted on either victim. The host pin map currently
+supplies the input lock. Victim graph mounting, stateful 08FE delivery,
+and the engine semantics of the final release action still need evidence
+before an authored escape input can be assigned.
+See ../dva-assassin-escape-routing-probe.txt.
+
+The mount probe executes 1157/45 against both pinned D.Va body types.
+Its target and resource resolve, but the permissive combat action
+does not submit the request. An explicit loaded-graph invocation
+starts 1177 in permissive mode. Strict startup stops at 1177/1 for
+component 31. With a declared NumericModifiers backend and fixture
+clock, each body writes six rows and reaches the unsupported linked
+target state 9935FBC8 at 1177/9. The raw payload codec does not supply
+that state's VM behavior. See ../dva-assassin-victim-mount-probe.txt.
+
+The 0200 lane has a scoped 1177 host and a linked-target State for
+node 9. Its verified host mounts the effect on a separate 000E player
+controller VM. The test profiles supply component presence, a numeric
+modifier clock, and an explicit mover sample when component 31 exists.
+Controller 1177 has its own namespace, scope registry and message
+context. Release retires the graph owned by the source Assassin.
+Both reference tests ran successfully with the retained presence
+sample. The first invocation skipped without a sample, then failed
+when pointed at the metadata instead of the native validation output.
+See ../dva-assassin-0200-linked-target-replay.txt for the corrected run.
+
+The initial 007A mount probe targeted the combat body because the
+manual selector mapped var 1650 to that body. The manual bridge now
+feeds the real player controller into 1157's selection and uses
+the bound combat body separately for health, contact and damage.
+A stale body binding cannot route damage through a controller after
+a form change. The 000E effect host, message delivery, escape input
+and original client acceptance remain open.
+
+The strict VM now implements the actual 1177/9 LinkedTarget State from
+the 0200 implementation. The prepared 007A graph omits its null optional
+field. An isolated controller VM rejects unknown mover inputs, accepts
+declared absence, and updates angles when a declared sample changes.
+The test encodes the State payload with the existing raw codec, captures
+active VM storage, and checks registration removal on destruction.
+See ../dva-assassin-linked-target-state-tests.txt (34 passed).
+
+A separate fixture explicitly starts 1177/16 on a strict controller VM.
+With a numeric backend and a scope registry, six numeric rows are written
+before the unsupported 1177/21 controller health query STU_9B7648C3.
+None of these branch probes calls the mover sample provider.
+See ../dva-assassin-linked-target-mount-probe.txt.
+
+An independent strict 000E sandbox now submits the authored 1157/45
+request through the loaded PlayScript queue. The host validates the empty
+controller definition. Its reconstructed request context uses the source
+Assassin, and its world requires an explicit health absence declaration.
+Mover absence or a supplied sample is declared separately. Health absence
+returns zero for the exact controller-owner query. Node 21 takes the
+authored false branch, so node 17 is not listening for 08FE on that path.
+
+The regression runs real manual pins against pilot and mech, checks
+25 and 20 initial damage, and explicitly submits each live attack's
+resolved target to the sandbox. Graph 1177 and flag 14695 exist on the
+controller while damage stays bound to the active combat body. In the
+isolated queue test, a body target is rejected, policy zero suppresses
+duplicates, and wrong-source retirement preserves the graph. Matching
+retirement clears scopes, message bindings, the linked state and flag.
+The live test calls retirement explicitly after manual stop. Normal
+combat submission and retirement, snapshot persistence, controller wire,
+and health-bearing 08FE delivery remain open. The 53-test run is in
+../dva-assassin-000e-live-pin-tests.txt.
+
+The live manual Assassin path now submits 1157/45 from the actual body
+action for D.Va targets. Combat advances the controller VM after NPC
+weapons at the same retained tick. The server model supplies the
+reconstructed 000E profile with no health or mover component because
+both services belong to the possessed body. The retained A0000100
+component mask has component 47 and lacks 31 and 51. The combat pin
+still binds the currently possessed body, and policy zero deduplicates
+1177 on the controller.
+
+Pin removal now also retires effects owned by the corresponding source.
+The regression covers stop, replacement and rebind, source removal,
+source death, source VM failure and target leave. The passive server
+snapshot includes the active controller VM, scope registry and message
+manager. A stored linked-state counter change changes the digest with
+live evaluation and execution patched to raise. This is a storage
+observation and does not restore sessions or publish owner frames.
+See ../dva-assassin-automatic-controller-focused.txt.
+
+Controller owner full frames now combine the existing hero-selection
+tree with the active 1177 instance and its bound entity flag 14695.
+Effect IDs start above the reserved controller tree IDs and increase
+across rebinds on the same player controller. The server sends a fresh
+full frame when the effect payload changes or retires. The 9935FBC8
+owner/full payload uses the verified layout. Generic body deltas keep
+their previous writer coverage.
+
+The static transport regression decodes the frames queued for both D.Va
+forms, including the absent mover fields, flag-to-state binding, stable
+effect frame suppression and omission on retirement. The combat fixture
+acknowledges queued records immediately. Original-client presentation
+and the positive-health 08FE path remain open.
+See ../dva-assassin-controller-owner-wire-regression.txt (54 passed).
+
+The parent source identifies STU_22926252's default form at native
+1B6C8F0 as a queued instance stop (operation 7). The lane now applies
+that action with ordinary state cleanup and parent-state notification.
+The actual 1177/45 two-second Wait reaches 1177/15 and stops on the
+authored deadline when explicitly activated. The stopped graph clears
+flag 14695, scopes and message registrations, and leaves owner frames.
+
+A separate strict fixture supplies positive health, local receiver
+authority, a generation and one shared persistent message host. It
+starts the actual 1157/18 state, registers 08FE for the victim controller,
+and advances the actual 1177/17 receiver. The receiver selects that
+sender and reaches 1177/15 on the next receiver frame. The trace and
+tests use the authored nodes with fixture-supplied engine services.
+The live absent-health profile keeps this receiver inactive. An
+authored victim escape input and native service policy remain open.
+See ../dva-assassin-positive-health-probe.txt and
+../dva-assassin-authored-stop-regression.txt (105 passed).
+
+Owned-body eliminations
+-----------------------
+Lethal Fusion Cannons from the normally controlled mech send one hit
+and one elimination to the owning pilot for each of the five NPCs.
+The detached Self-Destruct batch kills the five NPC types and a hostile
+player while Assassin has the pilot pinned. The fuse remains independent
+of the pin. Killing Assassin releases the pilot on the blast tick.
+
+The existing owner and source-body binding now supplies the elimination
+recipient and stat record. The death event, killer field and 25005
+source retain the actual mech entity. The simultaneous batch
+counts each victim once, with effective damage and no extra impulse on
+dead NPCs. Fatal primary fixtures use 1 HP. The blast fixture retains
+four NPC pools and seeds Heavy Assault and the hostile player at 750 HP.
+The ownership routing is a host rule. See
+../dva-owned-elimination-npc-final.txt and ../dva-owned-elimination-final.txt.
+
+Graviton during NPC attacks
+---------------------------
+An allied Zarya field can pull a live Assassin away from either D.Va form.
+The reconstructed contact check retires the pin and its controller effect
+when the Assassin moves beyond reach. The released body can fire again
+while the field remains active. A field that keeps Assassin in contact
+preserves the pin and its authored damage path.
+
+Graviton now owns Heavy Assault displacement while the NPC is captured.
+The host cancels the existing 1408 charge through its authored stop
+and cooldown path. A charge request during capture waits for release
+without spending cooldown. The field gates charge only, so the other manual attack
+routes retain their own admission. This movement priority and the pin
+contact geometry are host rules.
+
+During an interrupted windup, authored wait node137 follows its end
+plug to node71. The host discards that pending entry after the stop and
+cooldown actions. This prevents the canceled sequence from starting
+motion state33 on the next graph advance. The trace of the original
+queue is in ../dva-graviton-heavy-windup-queue-verified.txt.
+The final 13-test run covers both D.Va forms against Assassin and the
+three Heavy Assault entry cases, plus the existing charge regression.
+See ../dva-graviton-npc-cancel-final.txt. The earlier combined manual
+NPC and Heavy Assault run passed 39 tests before the windup queue fix.
+
+Sniper flight and interruption
+------------------------------
+The actual 1122 weapon emits 1E80 at 200 m/s. The 100 m authored reach
+limits the flight to 0.5 seconds. The tested difficulty fixture resolves
+100 direct damage and the authored critical multiplier is 1. A clear
+round deals 100 to the pilot and 95 through the mech's armour.
+
+Static cover denies the manual input before launch. Cover inserted after
+launch intercepts the independent flight. Actual Flashbang during the
+85 m flight suppresses further Sniper input while the released round
+continues. A controlled mech can raise Matrix after launch and erase the
+incoming round.
+
+Physical Deflect now spends only the elapsed fraction at contact and
+sweeps the rest of that world interval under the new owner. The 03A3
+output receives the original source and the payload evaluated at the
+contact. A reflected Sniper round protects either form and deals 100 to
+the Sniper. The aim attachment, sweep and same-frame ordering are host
+reconstruction.
+
+The flight range fixture repositions each body after emission in a clear
+world. A capsule centred 99 m along the launched ray takes the authored
+damage. A capsule centred at 102 m remains clear as the projectile
+expires at 0.5 seconds. The final 10-test suite also covers Enforcer,
+D.Va weapon and Graviton reflection. See ../dva-sniper-defense-final.txt.
+
+Call Mech entry protection
+--------------------------
+After actual Self-Destruct ejection, Call Mech's pilot entry rejects
+three Trooper hits, all 25 Enforcer pellets, one Sniper round and six
+Heavy Assault packets. The Assassin has 13 clear contact samples but
+cannot start a pin against the protected pilot. Pilot health stays
+at 150 in every case. A fresh manual input after transfer can damage
+the replacement mech for all five types. The replay schedules each
+NPC's input for the protection window and places it again for the
+post-handoff control. The entry immunity and manual contact policy
+remain server reconstructions. See ../dva-call-mech-npc-immunity-verified.txt.
+
+The same entry scope rejects an actual 30-damage Trooper melee,
+80-damage Heavy Assault melee and 175-damage Heavy Assault charge.
+The damage callbacks leave the protected pilot at 150 HP with no
+velocity change. Both melee swings can hit the separate unprotected
+replacement before possession. New melee inputs and a fresh charge
+after its cooldown can damage the controlled replacement. Melee
+attackers are positioned within contact range after the landing,
+and the NPC health fixture keeps the attacker available for the
+recovery check. See ../dva-call-mech-npc-specials-verified.txt.
+
+Flight allegiance at body handoff
+---------------------------------
+An emitted Sniper round retains its launch team if the manual NPC is
+reassigned. An actual Self-Destruct detaches the old mech before that
+round reaches it. The exposed pilot takes 100 damage and the old bomb
+is excluded from contact. The NPC's next input is gated by its new
+team. The same launch-team policy applies to Matrix and Deflect.
+After reflection, the return uses Genji's team and passes the now
+allied Sniper. Launch-team retention is reconstructed.
+Actual Projected Barrier spends 100 on the shot for either D.Va form.
+Reinhardt's Barrier Field also spends 100. Sigma records the 100-point
+payload and gains 60 temporary shields. In the reverse direction,
+D.Va's emitted Light Gun round deals 14 and earns 14 charge after the
+pilot changes team. The final 24-test run includes the earlier Enforcer
+handoff, Ana and Reinhardt regressions. See
+../dva-launch-team-defense-verified.txt.
+
+Detached fuse after NPC kills the pilot
+---------------------------------------
+Actual Self-Destruct input detaches the controlled mech, exposes the pilot
+and leaves the old mech out of damage targeting. Trooper, Enforcer, Sniper,
+Assassin and Heavy Assault each kill the pilot before the fuse. The two
+melee attacks and Heavy Assault charge also pass. The charge deals its
+authored 175 into the full-health pilot. Other pilot health is seeded at 1,
+and Heavy Assault is seeded at 750 HP so the blast is lethal. The detached
+mech remains at 600 HP and detonates 187 ticks after input in every case.
+The blast kills the attacker, keeps the detached mech as damage source,
+and awards one elimination and one notice to the dead pilot. The shell
+retires after the blast. Static ejection placement and NPC contact are host
+reconstructions. See ../dva-detached-npc-owner-death-verified.txt.
+
+Call Mech landing filters after Self-Destruct
+---------------------------------------------
+The actual detached fuse refills Call Mech. A fresh pilot command spends
+that refill and creates a replacement. Two mixed batches each contain
+45 stationary NPC samples, nine per Talon type. Clear targets take 250
+damage and survivors receive 25 planar velocity and 3 lift. The fixture
+checks the front and rear of the 2.5 m capsule-surface search at 1 cm on
+either side. The rear inner sample takes damage without impulse from
+the separate 3 m ring. Wall and out-of-range targets receive neither
+damage nor impulse. Same-team targets take damage only in free-for-all.
+Each lethal hit gives one notice and one elimination with the pilot
+body as the damage source. The pilot finishes entry into the 600 HP
+replacement in both modes. NPC health and poses are test fixtures.
+Capsule sampling, static cover and impulse routing are reconstructed.
+See ../dva-call-mech-npc-filters-verified.txt and
+../dva-call-mech-npc-filters-regression.txt.
+
+Lethal Talon interruption before Call Mech landing
+---------------------------------------------------
+The actual Self-Destruct fuse provides the Call Mech charge. All five
+Talon attack graphs and the two melee and one charge specials kill the
+pilot between allocation and landing. The replacement appears at cast
++12 and lethal hits arrive at +25 to +30. A full-health pilot takes the
+175-point charge. Other lethal cases use a one-health pilot. Passive gain
+is disabled after the actual refill to isolate meter payment. NPC manual
+input is timed to the cast. The observer NPC stands in range of landing
+and shares the attacker's team, so NPC splash cannot affect the reading.
+The staged body, its vitals and its VM retire on the death tick. The cast
+stays spent, no later landing damage or impulse occurs, and a different
+600 HP mech appears at the normal respawn deadline. NPC contact and
+ejection placement use the static host reconstruction.
+See ../dva-call-mech-npc-lethal-windup-teams.txt and
+../dva-call-mech-npc-lethal-windup-regression.txt.
+
+Call Mech protection and handoff under Talon fire
+------------------------------------------------
+The normal Self-Destruct fuse refills the pilot meter. Call Mech spends
+that charge through real pilot input. Four NPC weapon graphs deliver
+contacts to the pilot during protection. The host rejects every packet,
+including all 25 Enforcer pellets, and pilot health stays at 150.
+Assassin has visible contact during the same scope but starts no attack
+and creates no pin. At handoff the original pilot scope is still immune
+while the replacement has no protection. The same five NPCs damage
+that body after manual stop, fixture reposition and fresh engagement.
+Assassin pins the new body. Contact, protection admission and manual
+acquisition remain host reconstructions. This regression uses authored
+ability clocks and seeded initial Self-Destruct charge.
+See ../dva-call-mech-npc-protection-regression.txt (15 tests, including five NPC subcases).
+
+Talon counterattack after a replacement mech is destroyed
+--------------------------------------------------------
+Each Talon type attacks the actual 600 HP Call Mech replacement after
+fixture cover clears. A one-health fixture then lets the same live NPC
+deliver the lethal hit. The original pilot and body script return.
+Trooper, Enforcer, Sniper, Assassin and Heavy Assault then deal 20, 12,
+100, 25 and 10 first-hit damage to the pilot. Assassin clears the old
+body binding and pins the returned pilot. Explicit NPC stop releases
+the pin. One actual Light Gun press deals 14 to the same NPC.
+
+The test runs all five types through both manual input and the host's
+reconstructed autonomous acquisition. It seeds replacement health
+only after verifying the healthy replacement's first hit. It uses
+reconstructed static cover, ejection placement and NPC contact.
+See ../dva-npc-replacement-demech-regression.txt (5 tests, including
+ten replacement scenarios and separate initial-mech and charge checks).
+
+Still open: native controller allocation/binding and acquisition/leap/navigation;
+full gun/shotgun geometry/cadence/falloff/critical/defense matrix; pin escape/QTE/
+melee and immunity policies; every NPC special/difficulty interaction; D.Va's
+real controlled forms/demech/ults and complete static goal. Original client is
+separate and was not launched. No partial commit or parent integration.

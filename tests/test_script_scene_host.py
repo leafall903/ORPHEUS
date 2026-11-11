@@ -65,6 +65,26 @@ class SharedSceneTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             world.bind_script_component(123, None)
 
+    def test_child_stop_queues_parent_finish_and_preserves_output_order(self):
+        world = make_world()
+        parent_graph = graph([node(0, 'STU_37D754C8', state=0,
+                                   m_onFinishedPlug=plug((1, 'm_inPlug'))), setter(1, 31)])
+        owner, parent = component(world, A, parent_graph)
+        child_graph = graph([node(0, 'STU_22926252', m_outPlug=plug((1, 'm_inPlug'))), setter(1, 23)])
+        state = parent.state(0)
+        state.active = True
+        child = owner.create(child_graph, parent=parent, parent_state=0, init=False)
+        child.initialized = True
+        state.child = child
+        self.assertTrue(child.run_node(child_graph.node(0), None))
+        self.assertEqual(child.find_var(0, 7).value(), 23)
+        self.assertFalse(child.stopped)
+        owner.run_now()
+        self.assertTrue(child.stopped)
+        self.assertIsNone(state.child)
+        self.assertFalse(state.active)
+        self.assertEqual(parent.find_var(0, 7).value(), 31)
+
     def test_live_foreign_values_include_effective_links_and_subscribe_to_changes(self):
         world = make_world()
         _, caller = component(world, A, graph([node(0, 'STUStatescriptState', state=0)]))

@@ -1,53 +1,55 @@
-"""D.Va Fusion Cannon pellet geometry, reconstructed from build104319 rings.
-
-The authored graph supplies count, radii and spread. Degrees, tangent-plane
-projection and zero ring phase are reconstruction choices, pending native
-trajectory comparison. They must not be reported as verified client behavior.
-"""
-
-import math
+"""D.Va combat consumers for the 104319 graphs."""
 
 HERO = 0x02E000000000007A
+MECH = 0x0400000000000407
 FUSION_CANNONS = 0x050A
+LIGHT_GUN = 0x02B8
+LIGHT_GUN_PROJECTILE = 0x0400000000001000
 
 
-def pellet_directions(actor, state, direction):
-    """Expand only D.Va's authored Fusion Cannon volley into independent rays."""
-    if (getattr(getattr(actor, "hero", None), "guid", None) != HERO
-            or state.instance.graph.index != FUSION_CANNONS):
-        return (direction,)
-    cfg = state.node.field("m_5EC1EB38") or {}
-    if cfg.get("$") != "STU_613BDDB0":
-        raise ValueError("D.Va Fusion Cannons require their authored ring pattern")
-    count = state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False)
-    spread = state.evaluate(cfg.get("m_spread"), watch=False)
-    rings = []
-    for ring in cfg.get("m_0D30E40C") or ():
-        radius = state.evaluate(ring.get("m_6425FFB9"), watch=False)
-        size = state.evaluate(ring.get("m_B19BD35D"), watch=False)
-        if (type(radius) not in (float, int) or not math.isfinite(radius) or radius < 0
-                or type(size) is not int or size <= 0):
-            raise ValueError("invalid D.Va Fusion Cannon ring")
-        rings.append((radius, size))
-    if (type(count) is not int or not 1 <= count <= 256
-            or type(spread) not in (float, int) or not math.isfinite(spread) or spread < 0
-            or sum(size for _, size in rings) != count
-            or any(spread * radius >= 90 for radius, _ in rings)):
-        raise ValueError("invalid D.Va Fusion Cannon count/spread")
-    x, y, z = direction
-    right = (z, 0.0, -x) if abs(y) < 0.99 else (0.0, -z, y)
-    length = math.sqrt(sum(v * v for v in right))
-    right = tuple(v / length for v in right)
-    rx, ry, rz = right
-    up = (ry * z - rz * y, rz * x - rx * z, rx * y - ry * x)
-    rays = []
-    for radius, size in rings:
-        offset = math.tan(math.radians(spread * radius))
-        for pellet in range(size):
-            phase = 2 * math.pi * pellet / size
-            horizontal, vertical = offset * math.cos(phase), offset * math.sin(phase)
-            ray = tuple(d + horizontal * r + vertical * u
-                        for d, r, u in zip(direction, right, up, strict=True))
-            length = math.sqrt(sum(v * v for v in ray))
-            rays.append(tuple(v / length for v in ray))
-    return tuple(rays)
+def direct_hit_critical(actor, state):
+    """Reconstructed critical policy for D.Va's three weapon volleys."""
+    hero = getattr(actor, "hero", None)
+    if getattr(hero, "guid", hero) != HERO:
+        return None
+    site = state.instance.graph.index, state.node.pos
+    if site in ((FUSION_CANNONS, 6), (LIGHT_GUN, 10)):
+        return 2.0
+    if site == (0x1128, 10):
+        return 1.0
+    return None
+
+
+def self_destruct_running(component):
+    from ow174.game.script import nodes
+
+    return any(
+        (state := instance.states.get(0)) is not None and state.flags & nodes.Ability.RUNNING
+        for instance in component.instances.values() if instance.graph.index == 0x0B2F
+    )
+
+
+def charge_damage(player, shooter, damage):
+    """Credit effective enemy damage to the active D.Va body's own meter."""
+    if player.hero.guid != HERO:
+        return
+    mech = player.controlled_mech
+    if shooter is not (mech or player):
+        return
+    script = shooter.body_script
+    if script is None or script.component.owner_dead:
+        return
+    from ow174.game.script import expr, nodes
+    from ow174.game.script.driver import ULT_CHARGE, ULT_COST
+
+    component = script.component
+    if mech is not None:
+        if self_destruct_running(component):
+            return
+    elif (player.hero.body == MECH or script.retired
+          or any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
+        return
+    cost = expr.to_float(component.entity_var(ULT_COST).value())
+    charge = expr.to_float(component.entity_var(ULT_CHARGE).value())
+    if charge < cost:
+        component.set(ULT_CHARGE, expr.f32(min(cost, charge + damage)))

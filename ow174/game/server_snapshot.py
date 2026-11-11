@@ -20,16 +20,21 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    graviton,
     heroselect,
+    hook,
     notices,
     observers,
     projectiles,
     replay_values,
+    sigma_grasp,
     statescript,
     stats,
     voicelines,
     world,
+    zarya_barriers,
 )
+from ow174.game.assassin_effect import ControllerWorld, VictimEffect
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -38,7 +43,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
+from ow174.game.script import body_owner, driver, entity_link, entity_queries, expr, runtime, spatial_queries
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -81,21 +86,29 @@ FIELDS = {
                    "_display_notices _pending_possessions _confirmed_possessions"),
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update"),
     Match: _names("environment id game_map card skin_of tick controller assemble_ends assembled players "
-                  "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
+                  "body_components _body_messages started on_leave ended bots _pending_bot_scripts "
+                  "bots_shown notices combat "
                   "collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script body_script_failed controlled_mech seen shown script "
+                   "mode_script next_countdown "
+                   "select_open controller_hero controller_effect_next controller_effect_key "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice"
+        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen beam_seen "
+        "projectiles observers voice stuns pins assassin_effects booster_contacts "
+        "heal_modifiers zarya_bubbles ana_sleeps hooks grasp_grants grasp_shields frost zarya_gravitons "
+        "input_locks"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    VictimEffect: _names("component"),
+    hook.Hooks: _names("combat flights seen"),
+    graviton.Gravitons: _names("combat fields pulled npc_movers last_tick"),
+    zarya_barriers.Barriers: _names("fight live seen next_entity"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer temporary_shields"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -113,15 +126,21 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match _body_owner_context _entity_query_context"),
+    driver.BodyWorld: _names("hero mode body throttles match _body_owner_context _entity_query_context "
+                             "_spatial_query_context"),
+    spatial_queries.Context: _names("owner instance_present namespace_present query retired"),
     body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
                                "watch_owner retired"),
+    entity_link.Context: _names("owner instance_present environment_present lookup watch_environment "
+                                "watch_link retired"),
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
                                    "lookup watch_environment watch_possession retired"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position match body _body_owner_context "
+                     "_entity_query_context _spatial_query_context _entity_link_context "
+                     "controller_components manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -133,15 +152,25 @@ FIELDS = {
     world.Movement: _names("position yaw pitch velocity flags throttles input_frame input_throttles "
                            "air_ticks gravity frame crouch_frame spring spring_speed fall"),
     bots.Bot: _names(
-        "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
+        "entity owner pet_owner source_body clock_offset spawner hero_data hints dead body_script "
+        "records_from hero name body team "
+        "health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "impulse_mover charge_mover control_mover control_buttons detached_bomb"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    bots.Bot: _names("charge_mover"),
+    combat.Vitals: _names("temporary_shields"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    combat.Combat: _names("heal_modifiers zarya_bubbles ana_sleeps hooks grasp_grants grasp_shields"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.Frost,
+    zarya_barriers.Bubble, hook.Flight, combat.TemporaryShield, sigma_grasp.ShieldDecay, graviton.Field,
+    combat.InputLock,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -328,8 +357,10 @@ class _Graph:
         elif kind is runtime.Component:
             # Extra refs may be discovered later through callbacks/voice pending work.
             self.vm_nodes.append(number)
-            data = {"world": self.value(obj.world), "rng": self.value(obj.rng),
-                    "sequence": self.value(obj.seq), "component": None}
+            data = {"rng": self.value(obj.rng), "sequence": self.value(obj.seq), "component": None}
+            if type(obj.world) is not ControllerWorld:
+                data["world"] = self.value(obj.world)
+            # The private 000E world and its services live in the component artifact.
         elif kind is runtime.EventSequence:
             if tuple(kind.__slots__) != ("_next_value",):
                 _fail("unregistered event sequence storage")

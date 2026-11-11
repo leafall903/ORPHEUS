@@ -3,13 +3,14 @@
 import unittest
 from dataclasses import replace
 
-from test_game_combat import KANEZAKA_DM, Run
+from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game.collision import World
 from ow174.game.combat import Vitals
 from ow174.game.content import find_hero
 from ow174.game.mover import defined_mover_data
 from ow174.game.script import graph
+from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 from ow174.game.script.nodes import Ability
 
 MECH = 0x0400000000000407
@@ -36,13 +37,71 @@ class AuthoredMechTests(unittest.TestCase):
         match.combat.vitals[target.entity] = vitals
         return run, mech, victim, vitals
 
-    def step(self, run, mech, frames, buttons=0, yaw=0):
+    def step(self, run, mech, frames, buttons=0, yaw=0, pitch=0):
         for _ in range(frames):
-            run.step({mech: (yaw, 0, buttons)})
+            run.step({mech: (yaw, pitch, buttons)})
+
+    def aim_at_torso(self, run, mech, victim):
+        x, y, z = victim.mover.position
+        return aim(run.match.combat._eye(mech), (x, y + .8, z))
+
+    def test_self_destruct_needs_charge_and_consumes_it_before_the_authored_fuse(self):
+        run, mech, _, vitals = self.scenario()
+        script = mech.body_script
+        ability, = script.ultimates
+        self.assertEqual(script.component.entity_var(ULT_COST).value(), 1540)
+        self.step(run, mech, 2, 32)
+        self.assertFalse(ability.flags & Ability.RUNNING)
+        self.step(run, mech, 15)
+        script.set_ult_charge(1540)
+        self.step(run, mech, 1, 32)
+        self.assertTrue(ability.flags & Ability.RUNNING)
+        self.assertEqual(script.component.entity_var(ULT_CHARGE).value(), 0)
+        self.step(run, mech, 186)
+        self.assertEqual(vitals.total, 5000)
+        self.step(run, mech, 1)
+        self.assertEqual(vitals.total, 4000)
+        self.step(run, mech, 30)
+        self.assertEqual(vitals.total, 4000)
+
+    def test_self_destruct_graph_iterates_targets_with_falloff_and_static_filters(self):
+        from test_game_mover import FLOOR, wall
+
+        run = Run(KANEZAKA_DM, ("Mech", "Core", "Falloff", "BehindWall", "Out", "Ally"))
+        match = run.match
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        mech, core, falloff, cover, out, ally = run.players
+        match.game_map = replace(match.game_map, free_for_all=False)
+        match.collision_world = World(FLOOR + wall(3, -10, 3, 0))
+        self.assertTrue(match.switch_hero(mech, replace(find_hero("dva"), body=MECH)))
+        poses = [(0, 1, 0), (0, 1, 2), (0, 1, 10), (6, 1, -4), (0, 1, 25), (0, 1, -2)]
+        for player, pose in zip(run.players, poses, strict=True):
+            player.team = 0 if player in (mech, ally) else 1
+            player.mover.position = list(pose)
+            player.mover.body = None
+            match.combat.vitals[player.body] = Vitals(player.body, 5000)
+        self.step(run, mech, 100)
+        script = mech.body_script
+        ability, = script.ultimates
+        script.set_ult_charge(script.component.entity_var(ULT_COST).value())
+        self.step(run, mech, 1, 32)
+        self.step(run, mech, 187)
+        targets = ability.instance.vars[375].value()
+        distances = ability.instance.vars[9326].value()
+        measured = dict(zip((target.id for target in targets), distances, strict=True))
+        self.assertEqual(set(measured), {core.body, falloff.body})
+        self.assertAlmostEqual(measured[falloff.body], 9.5, delta=.05)
+        self.assertEqual(match.combat.vitals[core.body].total, 4000)
+        damage = 50 + 850 * (20 - measured[falloff.body]) / 16
+        self.assertAlmostEqual(match.combat.vitals[falloff.body].total, 5000 - damage, places=3)
+        for player in (cover, out, ally):
+            self.assertEqual(match.combat.vitals[player.body].total, 5000)
 
     def test_primary_uses_eleven_rays_and_actual_sustained_graph_cadence(self):
-        run, mech, _, vitals = self.scenario()
-        self.step(run, mech, 62, 1)
+        run, mech, victim, vitals = self.scenario()
+        yaw, pitch = self.aim_at_torso(run, mech, victim)
+        self.step(run, mech, 62, 1, yaw, pitch)
         self.assertEqual(vitals.total, 5000 - 154)
         self.assertEqual(len(mech.client.messages(25001)), 77)
         body = next(target for target in run.match.combat._targets() if target.owner is mech)
@@ -50,8 +109,9 @@ class AuthoredMechTests(unittest.TestCase):
         self.assertEqual(mech.mover.data.stand_radius, 0.7)
 
     def test_primary_armour_is_applied_to_each_authored_pellet(self):
-        run, mech, _, vitals = self.scenario(armour=True)
-        self.step(run, mech, 1, 1)
+        run, mech, victim, vitals = self.scenario(armour=True)
+        yaw, pitch = self.aim_at_torso(run, mech, victim)
+        self.step(run, mech, 1, 1, yaw, pitch)
         self.assertEqual(vitals.total, 10000 - 11)
 
     def test_primary_miss_wall_and_allies_are_excluded(self):

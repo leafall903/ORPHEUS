@@ -6,6 +6,108 @@ Hero GUID02E000000000007A enters through pilot body040A, not mech0407.
 The source-only lane starts from100c66c on main. Runtime inputs remain external
 and read only; generated bundles, logs and captures must stay outside Git.
 
+Zarya Graviton Surge
+--------------------
+Actual Zarya 025F ultimate input spends the initialized 2100 charge and emits
+the projectile carrying deployable 03E2. The authored direct hit is 5. The
+E1A5B579 motion scalar 9.8 is interpreted as vertical acceleration by the
+host sweep. Matrix can intercept that flight before landing and retire the
+prediction without an impact or field.
+
+Field graph 0260 supplies 4 seconds and a 6 m radius. The read-only build
+104319 extraction in ../../../0068/ULTIMATE_RESOURCE_EVIDENCE.json traces aura
+00A3.053 to 0261, with continuous damage 5 and a pull scalar of 3. The host
+interprets 3 as metres per second and integrates damage on the world clock.
+Graviton damage over time bypasses armour mitigation under the retail rule.
+https://eu.forums.blizzard.com/en/overwatch/t/overwatch-retail-patch-notes-march-19-2019/15547/3
+
+The host samples current capsules and static cover, targets the field centre
+minus eye height, and sweeps collision once per world interval. The active
+pilot and controlled mech keep their aim and weapon input. The pull
+filters directional input and jump on both forms and Boosters on the mech.
+Each body records the interval from first capture through last release, so
+delayed commands from that interval receive the same movement filter.
+Matrix only checks the projectile, so a deployed field continues while
+Matrix is active.
+Native force, aura admission, mobility arbitration, and field replication
+remain open.
+
+The delayed-command regression covers natural expiry, caster departure
+and two overlapping fields. Late commands still turn and fire on both
+forms, and the mech can activate Matrix. Directional input, jump and
+Boosters follow the reconstructed command admission rule. A fresh
+command at release can move or activate Boosters. See
+../dva-graviton-delayed-movement-final.txt, 8 tests passed.
+
+The actual cast and command regression verifies Matrix interception before
+landing, 20 field damage to either form over the full 4 seconds, aim and
+weapon input while pulled, no extra command displacement, blocked Boosters
+input and clean release at expiry. A direct hit deals 5 to the pilot. An
+already deployed field retains the original caster body for a kill after
+hero replacement. See ../dva-graviton-combat-final.txt, 3 tests passed.
+The passive snapshot digest changes with field creation, the consumed
+damage clock and the captured body set. See ../dva-graviton-snapshot.txt,
+1 test passed. The final adjacent suite also exercises deployable
+retirement, Helix, ordinary movement and controlled Fusion Cannons.
+See ../dva-graviton-adjacent-final.txt, 9 tests passed.
+
+The world field now releases the pull at body handoff. A self-destructing
+mech loses the pull velocity before it becomes the independent bomb. Its
+pilot enters the field as a fresh target on the next world tick, takes
+0.08 damage and can use the fuse refill for Call Mech. The replacement
+binds without inheriting the old mover. A separately tested lethal field
+tick credits Zarya and exposes a full-health pilot, who is sampled on the
+next tick. Both forms also verify exclusion outside the radius, behind
+static cover and on the caster's team.
+
+Capture stops an active Boosters scope through its own cleanup, with the
+authored 300 ms delay and 4 s cooldown. A fresh press after field expiry
+still respects the cooldown. This is the host interpretation of the
+retail mobility lock and leaves other abilities outside the stop.
+https://overwatch.blizzard.com/en-gb/news/patch-notes/live/2017/07/
+
+The final lifecycle and Boosters suite passed 12 tests. See
+../dva-graviton-lifecycle-boosters-final.txt. The earlier 66-test
+movement and snapshot run had one stored-profile error because
+projectiles.py changed while the run was in progress. The stored-profile
+case passed on fixed sources in ../dva-graviton-stored-profile-rerun.txt.
+
+Genji's authored 03A3 contact retires the original Zarya prediction, emits
+the 5-point Deflect output and transfers the projectile and resulting field
+to Genji's body and team. The ballistic sweep integrates the remaining
+fraction of the contact tick under the new ownership. It bounds repeated
+contacts within one tick to handle coincident defense volumes. Trajectory
+integration, contact ordering and the limit are host policies.
+
+Sigma's authored 1D02 path counts the 5-point projectile payload and grants
+3 temporary shields on Grasp exit. This uses the reflected source identity
+when Genji returns the projectile. Grasp and Matrix retire the flight
+before field creation.
+
+The final interception suite passed 9 tests. It includes reflected field
+damage through expiry on both D.Va forms, a reflected rocket erased by
+Matrix, Grasp on the original flight before either form, and Grasp on the
+return leg with Genji's identity. Existing Fusion Cannons, Light Gun,
+Micro Missiles and Enforcer reflection or absorption cases ran alongside.
+See ../dva-graviton-interception-final.txt.
+
+During Call Mech, the authored 026A entry immunity now releases the
+pilot's pull on the next world tick so the entry move can finish. The
+replacement mech is sampled independently while the same field is still
+live. This is the host's movement arbitration for that immunity scope.
+
+Projected Barrier spends its own pool on field damage while the D.Va
+body remains subject to pull. The packet that breaks the barrier cannot
+spill into body health or wake a sleeping target. The first admitted
+body packet beyond the authored half-second sleep grace starts the
+half-second wake. Later packets leave that wake deadline alone. A
+deployed field preserves its launch body in the barrier's 0146 energy
+message even after the caster changes heroes.
+The final protection suite passed 6 tests. It includes both forms through
+barrier break and natural expiry, actual Call Mech entry and recapture,
+and the existing Sleep Dart and Flashbang immunity checks. See
+../dva-graviton-protection-final.txt.
+
 Authored data evidence
 ---------------------
 The existing hero bundle has pilot026A and pistol02B8. Pilot026A nodes7/15
@@ -47,9 +149,67 @@ The authored050A graph also completes its first frame in a local probe, yielding
 spread4; its unchanged volley node then produces11 rays,22 close-range damage
 and11 hit notices. This probe uses a synthetic actor pose and directly invokes
 the volley consumer. It does not execute mech creation, player input, volley
-timing, cooldowns or possession. Degrees, zero phase and tangent-plane geometry
-are explicit reconstructions; other authored spread fields and native trajectory
-comparison remain open. Malformed rings fail instead of silently using one ray.
+timing, cooldowns or possession. The first version used a reconstructed
+tangent-plane pattern. The direction comparison below supersedes it for
+Fusion. Malformed rings fail explicitly.
+
+The 104319 launch resources distinguish 050A/6's 613BDDB0 ring pattern
+from Light Gun 02B8/10's 239B571E cone. The shared no-decay normalized
+formula from D80A50-D80A99 applies to Light Gun. With no ramp duration
+the first shot writes normalized spread 1 to variable 231. Its two
+launch angle variables 229 and 230 are initialized to zero by nodes
+13 and 14, so the round follows the command's aim. Node 20 waits one
+second, and node 16 chases 231 to zero. The baked ramp is part of
+passive VM storage. Actual controlled Fusion still reads spread 4
+and produces 11 independent body and critical hits from one volley.
+The synthetic pellet fixtures use the same 050A/6 site and aim at
+the torso for the noncritical cases. The wider regression passed 73
+cases and found five stale fixture failures. The corrected fixture and
+weapon spread tests pass all 16 cases in
+../dva-light-gun-spread-pellets-verified.txt.
+
+Build 104319's 613BDDB0 descriptor at 31D6340 maps the rings, spread,
+jitter and phase to resource offsets 38, 48, 50 and 58. The D886DD
+branch creates the runtime object and bakes those fields into the
+ring array and fields 28, 2C and 30. Its D80310 direction callback
+selects the ring by pellet index, offsets its arc by phase, and
+applies independent per-pellet jitter along two axes. Fusion uses
+spread 4 degrees, jitter 0.7 degrees, phase 0, and aspect one. The
+generated uniform table matches all 16,384 captured words. Production
+directions match 1,782 executions of D80310 with scalar sin and cos
+adapters to a maximum absolute component error of 1.2e-7.
+See ../dva-fusion-ring-native-verified.txt.
+
+The D74BAD seed caller uses the state word from runtime offset 70,
+the activation counter from 44 and the script instance word from 18.
+The allocator at 1B91484-1B914DD copies the authored m_states index
+from node offset E0. Fusion's state index is 3 and its node position
+is 6. The host uses index 3 and the counter on the volley report.
+D5EB70 reads the owner word at 98 and masks the counter to six bits.
+Offline execution verifies 256 input and arithmetic cases and 176
+composed pellet directions. See ../dva-fusion-native-seed-verified.txt.
+The body and script instance words still use reconstructed host
+identities. The host supplies eye origin and command aim.
+
+The launch wrapper D5EBA0 calls DB1050 to encode two unsigned
+16-bit angles and DB1360 to decode the direction. Its spread callback
+consumes that vector, and 5F3B30 normalizes the result. Both D.Va
+primaries now use those stages. The Light Gun's authored cone endpoints
+are zero. Its projectile still uses the quantized command direction.
+Offline D5EBA0 comparison verifies exact angle words and 205 Light Gun
+and 2,255 Fusion directions, including pole cases and the yaw seam.
+With scalar libm adapters the maximum absolute component error is
+1.8e-7. See ../dva-native-launch-aim-verified.txt. Native animated
+muzzle, upstream aim sampling and original-client trajectories remain open.
+Actual Light Gun fire uses a subframe click angle through the codec
+and reaches the expected pole direction. Actual Fusion fire uses all
+11 quantized and normalized rays. See
+../dva-native-launch-aim-combat-final.txt (38 passed).
+Actual controlled fire verifies 11 traced rays with a perturbed
+centre pellet and mixed body and critical hits. Further cases cover
+falloff, range, delayed view, Reinhardt and Zarya barriers, Genji,
+Sigma and elimination credit against all five NPCs. See
+../dva-fusion-ring-combat-final.txt (34 passed).
 
 Graph02CC declares secondary logical button29;047E declares button35;
 0B2F declares button37;1128 declares button36 and a missile volley with
@@ -72,6 +232,340 @@ initial mech spawn, either transformation, criticals or full pilot acceptance.
 See BODY_OWNER_QUERY.txt. Pure BodyScript probes without a declared world still
 retain the missing owner service; no owner is fabricated for unbound bodies.
 
+Light Gun flight lifetime
+-------------------------
+The 02B8/10 volley supplies 50 m/s projectile speed, 5 s lifetime and 100 m
+ray reach. D87F62, D87FD6 and D8804A bake these to +48, +4C and +50.
+D79B4D copies +50 into the hitscan query. D7FEFF compares projectile elapsed
+time against +4C and D790C9 uses the same lifetime to clamp the final step.
+Offline replay supplies projectile record fields and checks 192 cases each
+for the range copy, expiry branch and final-step clamp. Both elapsed-time
+branches execute. See ../dva-light-gun-native-lifetime-verified.txt.
+D72CBB-D72D83 also clips the sweep by the remaining range. The smaller
+of the lifetime and distance fractions governs. Native replay passes 768
+cases plus the Light Gun final step with supplied records. This supersedes
+the lifetime-only interpretation. See ../dva-native-projectile-range-verified.txt.
+Actual shots deal 14 at 99 m and end at 100 m after 2 s before a 101 m target.
+At 99 m all five Talon bodies take damage and award charge in clear lanes.
+A 90 m wall blocks both. Both cases spend one round. Flat collision fixtures.
+See ../dva-native-projectile-range-combat.txt (14 tests).
+
+D8C0A2-D8C123 resolves PC volley sync from baked inputs. With the authored
+default mode, 999 rounds per volley and 7/s, Light Gun takes the high-rate
+branch and writes mode 3 to +11C. Offline execution covers 3888 combinations
+with supplied bake records. The current boundary launches use the
+combat projectile without a lease definition or owner/observer shot record.
+Original-client presentation remains open. See
+../dva-light-gun-native-sync-verified.txt and
+../dva-light-gun-sync-combat-verified.txt (22 tests).
+
+Ordinary projectile body contact
+--------------------------------
+The original D76211-D763C9 path uses the positive projectile collision
+radius from WeaponVolley m_6396149F.m_57DAE1B5 for an additional query.
+D7B2E0 clears the preliminary shape mask, and D6F190 checks the returned
+entity. With component 0x39 and an indexed shape, the original gate
+consults the linked model from component 4. The shape's holder must have
+a positive signed group at +0x28 and a clear exclusion byte at +0x34.
+Without a shape index or model link, it tests the component 0x39 word
+at +0x60. Only absence of 0x39 permits the fallback to byte +0x4B1 of
+component 0x33. Twelve original cases exercise these branches with
+synthetic component records and an adapted key service. See
+../dva-native-body-eligibility.txt.
+
+The indexed table is populated from STUModel.m_breakable zones.
+At 1ABD214..1ABD251 the builder copies authored m_40FA35C6
+into holder words +0x28 and +0x2A and derives the +0x34 byte
+from m_06CC8602 and an initializer option. The raw D.Va and
+Cassidy body models and their linked models, plus all five
+Talon NPC body models, have physics shapes and no breakable
+damage zones. These physics shape counts do not identify the
+actual collider index returned in a live query.
+
+The eight authored STUHealthComponent records set m_CDB100D1
+to 1. Original BCC906..BCC919 copies the source bytes into
+component 0x33 +0x4B0/+0x4B1. In 48 D6F190 cases with a
+synthetic attachment and no component 0x39, the authored
+second byte and a high-bit control qualify, and zero rejects,
+for both 0x17 and 0xFFFF indices. D.Va's production component
+composition, later flag mutations and contact poses remain
+open. See ../dva-native-body-models.json and .txt.
+
+A follow-up uses real Match viewer create packets from normal D.Va
+selection. It runs 040A and script-created 0407 through the original
+descriptor and selected component factories at all eight starting
+bit offsets. Both descriptors request 0x33 and omit 0x39. The shared
+1853 definition also omits 0x39 when imported independently through
+both map layouts. The health replay passes BCC8B0 configuration
+with the authored bytes, decodes the actual pools, attaches 0x33,
+and observes D6F190 reading that attached component. In all 128
+checks the authored 1 and control 0x80 qualify, and zero rejects.
+For the mech the native getter reports the 300 base-health pool
+and the decoder separately verifies the 300 armour pool. The
+replay supplies resource lookup and selected factory services.
+Combined linked-definition construction, model cache, live flag
+mutations and scene contacts remain open. See
+../dva-native-body-create-descriptor.json and
+../dva-native-body-create-health.json.
+
+An accepted candidate replaces the previous contact only when
+its travel plus radius is strictly smaller than the previous travel
+plus its radius. An eligible result can win when the first query misses.
+Ten native cases execute this gate and ranking with supplied query and
+eligibility results. A separate branch reads m_61CD1F5B in an alternate
+context. The later collision query reads m_71A4B759. Both fields are
+unset for Light Gun, as are Fusion Cannon's three radius values. Four
+non-null alternate radii in the runtime bundles match their corresponding
+primary fields. The later query has five non-null radius values. See
+../dva-native-body-alternate-radius-audit.txt.
+
+At D7603E the original code retains an initial qualifying actor contact
+without issuing an alternate query. Twelve cases with the authored
+Light Gun and Micro Missiles inputs execute this early exit and the
+subsequent ranking against ownerless or unqualified contacts. The host
+now retains the ordinary actor hit under its capsule eligibility model.
+In a single chord a Light Gun round hits the direct target for 14 while
+an earlier wide-only candidate remains undamaged. Static cover is
+checked through the ranked distance across the current frame boundary.
+See ../dva-native-projectile-first-contact.json and
+../dva-first-contact-fixture-focused.txt.
+The final regression passed all 204 cases with the Reinhardt mesh.
+See ../dva-first-contact-final-regression.txt. Actual
+Light Gun input verifies a torso graze for 14 damage and 14 charge, a
+miss beyond the added 0.25 m, and a wall preserving the target when its
+contact falls between the wide hit and the ranked distance. A separate
+actual Mei spray case verifies that a pierced shot cannot skip the wall
+before the next target. Capsule shape, cross-frame cover and mapping the
+native entity gate to combat targets are host reconstructions. The
+alternate radius, world-only radius and native body-part geometry
+remain open. The five-NPC Micro Missiles fixture places the padded and
+ordinary contacts in the same chord and anchors splash to the ordinary
+contact. The NPC witnesses stay outside the projectile radius before
+that impact. The original .05 m sample still checks full inner-ring
+damage directly from the loaded volley. Live splash witnesses cover the
+inner edge, falloff, outer edge, miss and cover. The full rerun passed
+all 123 cases after the fixture correction. See
+../dva-body-radius-full-post-fixture.txt and
+../dva-native-body-radius-arbitration.txt, ../dva-native-body-radius-authored.txt,
+../dva-body-radius-cover-fixed.txt and ../dva-body-radius-micro-splash-fixed.txt.
+
+Group 1 in the 11 raw body and linked models provides 159 capsule and
+sphere records with MSKL bone IDs. Original primitive construction
+and casts agree with bind-pose inputs in 159 builds and 954 rays with
+radius 0, 0.1 or 0.25 m. Both D.Va body models and Cassidy have matching
+group-1 bone IDs, local shape geometry and bindings in their related
+models. Twelve original handle tests select the ready related model
+or use the main model for absent or stale references. A pending
+reference reaches its separate return. Resource readiness is supplied.
+The eight-actor grid demonstrates hit/miss differences against the host
+mover capsule at the same origin. Production collision dispatch and
+animation-driven transforms remain open. See
+../dva-native-bind-pose-hit-shapes.json,
+../dva-native-related-hit-model-selection.json and
+../dva-bind-versus-mover-capsule.json.
+
+Authored 02B8, 1128 and 050A omit m_C1903771. D8CC02 supplies the
+.097/0002 default. D7A829 and BEF121 forward it, and BEF368 packs
+model flag 1 and the 0x1000000000000 candidate mask from that resource.
+The native cache gate, candidate dispatch and eligibility branches
+pass 35 cases with supplied resource and candidate fields. BF0D6F calls
+the model sweep at 1B2E2E0. See
+../dva-native-projectile-model-query-gate.json.
+
+Native group-1 cache construction resolves 159 authored shapes to the
+real MSKL label indices. Another 954 checks run the bone-local query
+with supplied transforms. The complete shape arrays then pass 132
+nearest-contact cases with bone exclusion and pose-shift controls.
+An additional 264 cases execute 1B2E2E0 from its function entry. It reads
+the encoded ECS transform and reports the same winning bone and hit
+fraction for identity and for rotated, translated and scaled world rays.
+Cache backing, bind poses, candidate generation and the captured key
+service are fixture boundaries. The model reload code assigns the pose
+wrapper from 17B0C10 at 1AF5E6E. Animation evaluation, live cache
+publication and world candidate generation remain open. See
+../dva-native-model-cache.json, ../dva-native-model-sweep.json and
+../dva-native-model-sweep-full-entry.json.
+
+The original sweep returns the winning bone at hit +0x38 and the
+shape region resource at +0x40. The outer BF0D74 exclusion gate uses
+the caller's world target and that bone, with FFFF bypassing the bone
+exclusion check. 318 sweeps and 954 gate checks cover these fields.
+The preceding cache fixture left the region unset and supplied the
+additional words 17 and 3. Those two words cannot classify hit regions.
+See ../dva-native-model-hit-result-fields.json.
+
+Model STU shape detail m_EE483487 supplies the region to the original
+cache binding instructions. The native sweep returns it, BCC800 checks
+membership against the authored target health rows, and the projectile
+callsite at B2CEA4 runs D73020 and checks for a neutral scalar. Across
+159 isolated shapes and 954 whole-cache bind-pose sweeps, the original
+code resolves the target profile scalars 1, 2 and 4. Both Heavy Assault
+bones 2765 and 2769 win full-cache contacts in the 4x region 0015.05C.
+Region 000D.05C resolves to 2 for both D.Va forms and all five Talon
+NPCs. The projectile route selects B30110 for the neutral scalar,
+temporarily clearing the target, or B31C10 while retaining the target.
+The original code overwrites the scalar register before either writer.
+A separate ordinary queue replay copies the same hit region to the
+allocated row at +0x70. Native dispatch reaches the membership
+consumer, which sets region state 1 for recognized regions.
+The replay supplies target component and resource resolution, starts
+the projectile slice after eligibility, and intercepts both writers
+at entry. The queue replay starts at region extraction and ends at
+membership. Live pose, route eligibility and applied weapon damage
+remain open. See ../dva-native-authored-region-health.json.
+
+Raw MSKL bytes now reach the original 17ABE50 relocation and 17ABB90
+skeleton packing. The 17B0C10 constructor allocates and copies the
+bind pose consumed by the model sweep. Pilot model 1064 carries 270
+bones and allocates 197 pose rows. The mech allocates all 245 rows.
+All group-1 collider indices on the 11 models fit the allocated poses.
+In 132 full-entry sweeps, the native initialized pose gives the same
+contacts and bones as the earlier supplied bind-pose fixture.
+
+1AEA810 copies submitted local poses into +0x10 and advances the
+pose epoch. 17B14B0 consumes the dirty flag and composes the native
+parent hierarchy into +0x28. Recomposition reproduces the authored
+bind translations within 1 micrometre on these models. Across 396
+checks, baseline rays retain their hit results, rays shifted with the
+16 m root control retain them, and the old rays miss after that update.
+The root displacement, allocator, collider cache, and query context
+are fixture inputs. Selection and sampling of live animation clips
+remain open. See ../dva-native-initial-pose-loader.json and
+../dva-native-pose-publication.json.
+
+The 048A pilot and 0282 mech resources provide 39 and 49 parallel
+alias and blend-tree items. Eight scoped combat graphs supply 21
+animation references. Thirteen resolve in the primary sets. Their
+animation game-data records link 02B8 position 30 to clip 3234,
+0276 position 18 to 31C3, and 1128 position 24 to 33B7. The two
+050A Fusion Cannon positions request 00A5. The mech FirstPerson
+component links 0407 to entity 041F, which uses model 18B4 and
+animation set 019B. Its 00A5 item 181 points to tree 0519. The
+tree sequences clip 352D before a category branch reading data
+flow 01F9. The category branch contains clips 334B and 3174.
+
+The pilot FirstPerson component links 040A to 040B, which uses
+model 1D50 and animation set 0476. The two first-person sets
+account for six additional graph positions, including 026A/42
+(pilot 0433), 0276/45 (mech 0435) and 02CC/86-87 (mech 03F6).
+047E/24 and 02CC/85 both request 022A. A scan of all 596 tracked
+021 resources parsed every table and found no exact 022A key.
+The archive contains zero standalone 014 files. The raw alias
+type bits 0C80 decode as 014. The previously printed 007 suffix
+was a label error and raw-key comparisons used the original bits.
+The table matches establish authored asset ownership. See
+../dva-animation-alias-archive.json.
+
+The two 022A positions supply explicit durations of 0.1 s
+(047E/24) and 0.5 s (02CC/85). Native Anim entry 90DD90
+assembles a request in CC19A0 and schedules its timing in CC1E70
+before crossing the playback dispatch boundary. In 128 entry
+replays, explicit durations bypass the alias-duration lookup.
+050A/34 bypasses both scheduled events through m_37EE887D.
+050A/35 supplies category 0082 and a duration of 2.2 s. The host
+VM now honors the bypass. Native definition offset 0x128 reads
+m_2DEAE6A9 to suppress automatic finish independently of the timer.
+m_154DBA91 at 0x120 contributes to the playback request. The host
+now uses the verified field for automatic finish. The probe supplies
+config values, the
+eligibility gate and clock and records scheduler and dispatch
+calls. A second probe executes 32 cases through native elapsed-time
+calculation, event allocation call sites and queue insertion. A
+future finish precedes and cancels the same-time timer. At or past
+the deadline, the timer is clamped to now and precedes finish.
+The host reproduces both orders and deadlines on backdated entry.
+A 40-case playback request replay executes C17A90 and CC5810.
+The slot provider receives the original alias and category. A
+negative fixture slot clears the saved playback request while
+leaving the scheduled events intact. Replacing a valid slot
+calls the previous-slot retirement boundary. The slot provider,
+retirement and publication are fixture services. See
+../dva-native-anim-duration.json, ../dva-native-anim-event-queue.json
+and ../dva-native-anim-playback-request.json.
+
+CBF980 selects component 0x27 and uses 0x29 if the first is absent
+or decodes to null. Seventy-two native cases exercise both component
+bits, encoded pointers and missing-component rejection with supplied
+host state and keys. With the original BBA570 slot entry enabled,
+022A takes a hardcoded group-command branch before table lookup.
+Both D.Va callers use group 5 and authored priority 1.0 from
+008F.024, encoded as integer 1000. The native branch can retire
+strictly lower-priority records, retire flagged records under
+its priority bounds, and raise the group priority marker. Forty-eight
+cases compare the command with null and ordinary missing-alias keys,
+a positive override, metadata readiness and group normalization.
+Retirement, group-marker and publication callbacks use fixture sinks.
+
+Ninety-six native 1789B80 queries use packed fixtures built from the
+original parallel alias and item tables. A populated upper provider
+takes precedence unless the base-only key matches. Fusion Cannon
+00A5 resolves to the 019B item 181 and tree 0519 when that provider
+is installed. See ../dva-native-anim-component-selection.json,
+../dva-native-anim-022a-command.json and
+../dva-native-anim-alias-table-selection.json.
+
+Twenty-eight Fusion Cannon requests continue through native
+BBA570, C17B60 and BBAE50 to allocate a group-0 record from an
+authored provider fixture. The record stores alias index 00A5
+and either category zero (050A/34) or category 0082 (050A/35).
+Publication reconstructs the full typed keys. With competing
+providers, the higher index wins in the replay. A base-only
+request or a missing upper provider leaves the base 0282 miss
+with no record. Group storage, packed providers, and publication
+sinks are fixtures. The 0519 tree and 019B external references
+both name 01F9.013. Twenty-four native default reference checks
+resolve B0E0002D to 01F9.013 and reject mismatched references.
+The original 0082.015 resource is also present. Live provider
+assignment, data-flow evaluation and clip playback remain open.
+See ../dva-native-fusion-animation-slot.json and
+../dva-native-fusion-data-flow-default.json.
+
+TankLib decodes the original 006 clips. The offline sampler applies
+absolute channels by bone label and holds bind values for omitted
+tracks. Translation and scale use linear interpolation and rotation
+uses shortest normalized quaternion lerp. Those sampling choices
+are reconstructed. Native pose publication and the group-1 sweep
+run 6,900 rays over bind poses and three frames of each clip. The
+3234 and 31C3 samples change both hit classification and contact
+details. Clip 33B7 binds only two simple bones on the mech model
+and leaves the sampled hit classification unchanged. Live graph
+fallbacks, layering, retargeting, sampling and world candidate
+generation remain open. See ../dva-combat-animation-aliases.json
+and ../dva-authored-clip-model-sweeps.json.
+
+Micro Missiles sweep and retirement
+-----------------------------------
+Controlled 1128/10 launches the extracted 104319 1E8A.003 definition,
+with 1E99 child effect and contacts 5F5/015. The authored volley supplies
+zero lifetime, 40 m/s and 100 m. The host reconstructs a 2.5 s flight.
+The native D70841-D70853 dispatch calls D74EC0 for a clipped step or a
+subthreshold lifetime. Native execution passes 96 finalization cases
+with supplied records and callback adapters. Actual native dispatch
+and damage timing for 1E8A remain open.
+See ../dva-micro-asset-binding-verified.txt and
+../dva-micro-native-finalization-verified.txt.
+
+A controlled Micro Missiles launch tests 3 direct and 4 splash against a
+player and full, interpolated, outer-ring, out-of-range, and covered splash
+against each of the five Talon NPC types. The authored rings are 0.1 m
+at 1.0 and 1.5 m at 0.25. Distance to the capsule, linear interpolation
+and static cover are reconstructed. Per-impact Call Mech or Self-Destruct
+meter accounting is separate from passive gain; this fixture uses the
+controlled mech meter. See ../dva-micro-splash-rings-final.txt.
+
+The capture vtable at 2610570 maps +10 via B24E20 to the projectile update
+and +80 to B2BB10. Its conditional B333F0 callback uses the baked radii
+at B34141-B34176. Replay with supplied distances passes 263 radius gates.
+This branch selects the first ring strictly above the distance and does
+not read the ring scalar. Main damage interpolation and dispatch remain
+open. See ../dva-micro-native-ring-gate-verified.txt.
+
+Before that radius gate, B340D8-B34132 clamps blast height to the supplied
+target axis interval, measures length and subtracts the supplied radius.
+The host capsule-surface formula agrees after nonnegative clamping in
+514 offline cases. Native pose and radius providers remain unverified.
+See ../dva-micro-native-capsule-distance-verified.txt.
+
 Focused shared repair
 --------------------
 Projectile splash previously applied to every enemy capsule inside its rings,
@@ -88,6 +582,14 @@ It repairs the existing projectile explosion path, not Self-Destruct hosting.
 
 Required acceptance matrix
 --------------------------
+Control follow-up2026-11-09 (uncommitted): resource-backed Flashbang tests cover
+both forms' damage, suppression/recovery, Matrix absorption/rear interruption,
+Boosters first-pose stop and active missile burst/cooldown. Three actual NPC
+primary sources suppress/recover with explicit input. Shared input joins are
+modeled. Actual missile windup interruption leaves cooldown zero in the host;
+full native status/immunity/AI/lifecycle/ultimate/client scope stays OPEN. See
+DVA_CONTROL.txt. Complete static acceptance is required before further commits.
+
 Incoming NPC follow-up2026-11-09: actual Trooper/Sniper/Heavy Assault scripts
 now damage both forms through extracted primary inputs, respecting existing
 armour,miss,wall,team and Matrix/release checks. All five scripts/base pools and
@@ -123,10 +625,111 @@ partial evidence does not close the following full-scope Matrix row.
 Each row is OPEN separately for enemy players, Trooper, Enforcer, Sniper,
 Assassin and Heavy Assault, including original-client visuals and audio:
 
+Form-lifecycle follow-up2026-11-09: five required spatial scalar interfaces
+preserve native evaluation/failure/typing and distinguish the helper results.
+1,920 original scalar comparisons and actual026A creation/cast input tests
+pass under explicit engine-result adapters. Live Match pose reconstruction
+now uses native look/mover-origin arithmetic (440/180 byte-exact comparisons).
+Native hierarchy/state selection and actual placement/creation/possession
+remain OPEN;see DVA_FORM_LIFECYCLE.txt.
+Canonical026A/node38 now has a reconstructed static ground/clearance/body
+placement policy and authored success/failure routing, tested through charged
+ultimate input. The pilot still remains040A; creation/possession/landing damage,
+native filter/search/preview behavior and complete Call Mech remain OPEN.
+Owned0407 creation now executes during normal hero selection, with actual
+pools/graphs and scoped combat targeting.303B old-body cleanup and source
+retirement are connected. Native factory flags, complete cross-body VM
+services, possession/control/movement/ejection and full ultimates remain OPEN.
+
 Fusion Cannons: independent pellet directions/hits, armour, criticals, falloff,
 ammo semantics, sustained fire, barriers, reflect, absorption and invulnerability.
+Controlled Fusion Cannon shots now use the pilot command's view delay
+and click subframe on the existing retained-pose history. Zero delay
+and 8 ms miss the crossing target; 16 ms or an early click recover
+all 11 rays for 22 damage. A view earlier than a replacement's birth
+tick cannot hit the new body. Autonomous NPC shots use the world tick.
+The range fixture tests centre-pellet contact at 6, 15, 25 and 101 m.
+The 050A/6 resource supplies 2 damage, 10–20 m falloff, a 30% floor
+and 100 m reach. The host's linear scaling and ray geometry are
+reconstructions. See ../dva-fusion-view-range-final.txt.
+
+The loaded graph chain supplies the Fusion Cannon walk penalty.
+050A/43 starts the movement scope at 050A/42. Its index 7 row multiplies
+air deceleration by 10. Its subgraph starts 050A/54, which adds 0.4 to
+entity variable 23184. The live 01C7/152 speed row consumes the resulting
+slow stack. The controlled mover uses those rows through the existing
+bridge. The June 2020 retail notes also specify the 40% firing penalty.
+See https://overwatch.blizzard.com/en-us/news/patch-notes/live/2020/06/.
+
+Actual controlled commands walk at 5.5 m/s, drop to 3.3 while firing,
+and restore the base speed when primary is released. During Matrix,
+holding primary retains the slow stack while Matrix suppresses volley
+reports. Matrix alone walks at base speed. Boosters allows Fusion
+volleys, drops the slow stack and reaches 11.99 m/s. Canceling Boosters
+with primary held restores the slow; releasing primary restores 5.5.
+Pilot Light Gun fires without changing settled walk speed. The tests
+measure movement and emitted shots in the host. Native frame timing
+and original-client prediction remain open.
+See ../dva-fusion-manager-movement-row.txt and
+../dva-fusion-movement-verified.txt.
+
 Light Gun: projectile travel, criticals, reload, damage, cover and deflection.
+The 104319 weapon definitions at 050A/6 and 02B8/10 omit
+m_A872C70E. The native bake defaults it to -1 and preserves the
+explicit 1 at Micro Missiles 1128/10. Twelve bake and copy cases
+trace the field from direct definition +0x64 to queue +0x2C. Twelve
+more execute the D74BF1 read and D5ECB1 direction call with fixture
+records, helpers and provider. They observe the exact word at
+parameter block +0x28. The hitscan caller D79BA6 supplies a pellet
+ordinal to this same parameter, which ring provider D80310 uses for
+direction. The field's broader native role and final damage remain open.
+See ../dva-native-direct-config-direction-transfer.json.
+
+The server reconstructs a 2x critical factor for both primary sites
+and 1x for Micro Missiles. These sites use the reconstructed factors
+independently of m_A872C70E. Fusion Cannons classify each pellet at its contact. Light Gun classifies the 1000 projectile at impact,
+including after deflection. Armour and ultimate credit use effective damage.
+The critical region uses the existing capsule and eye-height approximation.
+
+Orisa's Fortify is tracked by the active 0CF4/4 combat filter. The server
+reads the authored -0.4 modifier and applies it before armour. Fusion and
+Light Gun hits on fortified Orisa use body damage and omit the critical flag.
+Boosters and both ultimate blasts still deal damage and skip radial impulse
+while the filter is active. These combat consumers are reconstructed.
+
+The September 2018 retail notes confirm per-pellet critical classification
+for Fusion Cannons. See ../dva-primary-critical-authored.json and
+https://overwatch.blizzard.com/en-gb/news/patch-notes/live/2018/09/.
+
 Melee in both forms: range, damage, walls, immunity, interruption and death.
+Quick melee on the normally possessed mech now evaluates the pilot
+command's view delay and click subframe against retained target poses.
+The actual 0043 damage state starts on the press frame in both forms.
+An on-axis prior pose and off-axis current pose produce 30 damage with
+a 16 ms rewind and zero at current time. The click aim is used and a
+duplicate command cannot apply a second hit. Actual Flashbang stops
+the running scope after the first contact. No late strike occurs, and
+fresh input after stun and cooldown applies 30 again. The capsule,
+occlusion and retained-pose policy are server reconstructions.
+See ../dva-melee-impact-clock-probe.txt and
+../dva-melee-command-view-and-flashbang-tests.txt.
+
+Actual Flashbang and Sleep Dart before the 0043 melee press suppress
+damage and the cooldown write. If melee lands first, control stops the
+200 ms recovery state and preserves the original one-second cooldown.
+Both forms clear cached held input when control lands and store neutral
+input while it is active. A command gap across control expiry cannot
+replay the suppressed melee. A fresh eligible press deals 30 damage.
+Forced-control input masking and gap replay are host reconstructions.
+See ../dva-melee-control-boundary-final.txt.
+
+Actual Projected Barrier spends 5 against Sleep Dart or 25 against
+Flashbang on either D.Va form. A 1 HP fixture consumes the breaking
+projectile and prevents both body damage and control. Projection after
+either control starts preserves its original expiry. The earlier
+antiheal cleanse and Assassin pin release cases pass in the same run.
+These are static host interactions. See ../dva-projected-barrier-control-final.txt.
+
 Boosters: movement, cancellation, collision damage/knockback and status effects.
 Defense Matrix: resource drain/regeneration, bounds, enemy bullet/projectile
 interception, friendly pass-through and non-absorbable beam/melee behavior.
@@ -149,3 +752,130 @@ Git artifact. No root-main merge, remote push, publication synchronization,
 service replacement or client control was performed for this lane's patch.
 The parent owns NPC creation/controls and patch integration. Full native
 entity creation/possession and original-client acceptance remain prerequisites.
+
+Uncommitted lifecycle follow-up: actual026A foreign charge/cost reads and its
+child842-watching Stack now resolve real slots across the two VMs. Notifications
+use the receiver clock; either-side retirement disconnects subscriptions. Passive
+server captures bridge Component identities instead of collapsing local IDs.
+Standalone VM captures explicitly name external dependencies. These mechanisms
+do not accept possession, native cross-body timing, complete charge return,
+nonlethal demech, either ultimate or the remaining full combat/client matrix.
+
+Uncommitted pet/initialization follow-up:1872 native F76 selector comparisons;
+separate reconstructed pet-owner storage and initialization Component registry
+now execute actual026A charge/cost save ->0276 charge-return consumers. Constructor
+failure/retirement withdraw exact namespaces and children.443 combined tests
+PASS423.246s;53 storage PASS168.930s;Ruff/diffPASS. Full transformation/control,
+native factory/pet wire ownership, primary-vs-controlled routing, ejection,
+complete charge/ultimates, NPC/status/flight and original client remain OPEN.
+
+Uncommitted shared-input review: Boosters/pilotCallMech early/near/held/fresh and
+Micro zero-window inputs now retain original press timestamps. Old melee reuse
+was345ms early and depended on the refreshed buffer; real readiness plus new
+both-form expired/near-window tests pass. Parent throttle review:245 validfloat32
+matches and1600 original native comparisons pass; actualBoosters reverse/strafe/
+next-frame restoration passes using the existing mover.452 combined regressions
+PASS481.490s;Ruff/diffPASS. Later Matrix forced-close and Micro Missiles
+windup tests distinguish their cooldown paths in DVA_CONTROL.txt.
+Native control/forms, ults/NPC/status/flight/client remain OPEN.
+
+Uncommitted flight research: Boosters C1BA7545 is native movement role16.
+Its isolated context helper matches864 original C4A4B0/C41AF0/16EBF00 cases
+with declared look/numeric result adapters (maximum error4.77e-7). Pitched
+forward is retained and parameter0 suppresses sideways input. The helper is
+not connected to Mover; full role scope, phases, collision/contact and static/
+client acceptance remain OPEN. See DVA_FLIGHT.txt.
+
+Uncommitted shared lifetime repair: reproduce canceled CHANGED markers and
+cleanup-write ending-state notifications; adopt parent State.end marker clear,
+ending guard and Ability.stop scope-before-arbitration order. Foreign receiving
+clock preserved; order remains a declared server reconstruction.3 minimal
+tests PASS; actualpilot two-empty20-round/reload/recovery1PASS7.462s;53 storage
+PASS169.237s; final454 combat/runtime PASS462.026s;Ruff/diffPASS. Counts overlap.
+Full forms/ults/status/NPC/flight/static/client remain OPEN; no commit/integration.
+
+Uncommitted live role16: existing Mod scopes now drive pitched3D motion,
+sideways suppression and capsule sweeps with normal gravity after exit.
+6048 original C42B70 post-phase comparisons max1.91e-5;864 context comparisons
+max4.77e-7, with declared engine result adapters.15 Boosters directed tests
+pass37.659s. Native role arbitration/quaternion/view, contact damage/knockback
+and full ability/status/death/NPC acceptance remain open.
+Authored0407 eyes1.74/1.74,040A1.32/.8 and enemy02A3 McCree1.425/.9975 now
+feed shooter origin and Target.eye. Four scalar/low-cover tests pass8.001s.
+Actual pilot crouch now passes after lethal and Self-Destruct returns from the
+initial and replacement mechs. Low cover blocks the crouched Light Gun shot and
+standing restores the hit. See ../dva-live-pilot-crouch-final.txt. Earlier
+523 combat/mover/physics PASS550.729s and 53 storage PASS177.339s.
+Ruff/diffPASS. Initial519 run's stale Genji15m fallback assertion was reproduced
+with HEAD mover before correction. Counts overlap; no original client run.
+All-five incoming nominal primary probes re-run: Trooper20/15, Sniper100/95,
+Heavy5/2.5; Enforcer/Assassin0 after300frames eachform at6m. Missing controller/
+pin context and actual Assassin skill remain OPEN, as do forms/ults/fullstatic.
+
+Uncommitted manual NPC context/skill follow-up: Enforcer now receives scoped
+controller-presence/aggregate-health input; Assassin1157 receives explicit
+target Map1650/logical36 and reconstructed3m pin/health clock. Actual incoming
+first hits against pilot/mech are20/15,2/1,100/95,25/20,5/2.5 for Trooper,
+Enforcer,Sniper,Assassin,Heavy. Authored instant25,1s delay and100/s DoT execute
+with existing armour; target input/channels are interrupted. Stop/removal/source
+death/failure/target leave/rebind, actual Flashbang recovery and active causal
+snapshot checks pass. A real rebind queued-animation bug was fixed with explicit
+outgoing cleanup ordering. Stop leaves launched Sniper projectiles flying.
+Final536 combat/mover/physics PASS754.636s;53 storage PASS213.099s; additional
+four-gun automatic recovery1PASS9.911s;Ruff/diffPASS. Counts overlap. Native AI
+allocation/acquisition/navigation, full gun geometry/pin-QTE/immunity/specials/
+difficulty and true DVa forms/ults/fullstatic remain OPEN. See DVA_MANUAL_NPCS.txt.
+
+The earlier single-ray Enforcer and Heavy Assault amounts above are historical.
+Enforcer 13EB/24 now launches the authored 25 pellets at 80 m/s in a 1/8/16
+ring pattern. Each pellet applies its own armour and uses the authored 8 m
+and 15 m falloff boundaries with a 20% floor. Heavy Assault 114F/47 resolves
+two authored 5-damage rays separately. The static host uses its reconstructed
+ring orientation, linear falloff and common eye origin for the two Heavy
+Assault hardpoints. Extra Enforcer pellets participate in server combat
+without individual projectile wire records. Native spread and muzzle
+transforms, difficulty tuning and original-client presentation remain open.
+
+Actual Zarya Projected Barrier takes the full 50 damage from Enforcer or
+10 from Heavy Assault without exposing either form. A barrier seeded at
+5 HP absorbs the first three Enforcer pellets, including the breaking
+pellet. A barrier seeded at 4 HP absorbs the first Heavy Assault ray.
+The remaining packets reach the body and apply armour independently.
+See ../dva-talon-volley-projected-barrier.txt.
+
+Projected Barrier tests at 11 m and 18 m verify per-pellet shield spending
+from distance to the barrier surface. The first case lands in the linear
+falloff region and the second reaches the 20% floor. Allied Kinetic Grasp
+absorbs all 25 pellets and converts 60% of their falloff-adjusted damage
+into temporary shields. Both D.Va forms remain unharmed in these host
+fixtures. See ../dva-enforcer-projected-barrier-falloff.txt and
+../dva-enforcer-grasp-falloff.txt.
+
+Allied Genji Deflect protects either D.Va form from an Enforcer volley.
+In the 11 m fixture all 25 pellets return to the Enforcer with partial
+falloff. In the 15 m fixture some pellets miss the Deflect volume and some
+reflected pellets miss the Enforcer. Returning hits reach the 20% damage
+floor and credit Genji. Total distance across both legs is a host rule.
+See ../dva-enforcer-reflect-falloff-focused.txt.
+
+An in-flight projectile with an established world tick now keeps the
+retained combat loop active after its source stops firing. An eight-frame
+update gap reproduces the continuous Enforcer volley against a one-health
+mech fixture. The mech dies and exposes the pilot five ticks after launch,
+then six trailing pellets reduce pilot health from 150 to 138. Repeating
+the endpoint update adds no damage. The host retains at most 64 combat
+ticks and uses current poses during replay. See
+../dva-enforcer-flight-gap-regression.txt.
+
+Uncommitted Boosters contact damage follow-up
+The active 047E target and health states now feed authored 10 damage through
+current capsule overlap and static LOS. The transformed local offset and
+once-per-target activation rule are reconstructed and stored causally.
+See DVA_FLIGHT.txt for the separate unresolved impulse expressions.
+
+Uncommitted Self-Destruct follow-up
+Actual explicit 0407 Match input drives 0B2F charge consumption, the 3 s fuse,
+and the authored target loop and damage curve. The host supplies reconstructed
+static capsule distances and cover. Focused evidence covers two player damage
+bands, range/team/cover rejection and all five Talon NPCs in one activation.
+See DVA_FORM_LIFECYCLE.txt for the controlled-form and defense gaps.

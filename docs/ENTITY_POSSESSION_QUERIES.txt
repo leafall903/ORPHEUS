@@ -85,3 +85,12 @@ possession-server-tests.log, entity-relation-component-selector.txt,
 entity-relation-secondary-selector.txt, entity-possession-lookup.txt,
 entity-relation-clean-spans.txt and component-key-context.txt are under external
 verification/retribution. Process contexts, game data and native exports stay off Git.
+
+D.Va lane Match relation integration (uncommitted)
+-----------------------------------------------
+BodyWorld and match-bound created BotWorld now resolve DB742151 against live
+controller/current-body relations. F726 direct ownership remains independent;
+an owned mech is not primary-possessed until actual control transfer exists.
+Typed first-scalar, identity conversion and departure/replacement tests pass.
+This does not implement CA861E44, full100B startup or SceneWorld snapshot scope.
+See DVA_FORM_LIFECYCLE.txt for executed evidence and remaining boundaries.

@@ -1,0 +1,130 @@
+D.Va Boosters flight frontier -- build 1.74.0.0.104319
+UNCOMMITTED; full static acceptance remains open.
+
+Authored047E/node62 STU_C1BA7545 supplies native movement role16. Its
+m_2166C07A scalar is0. Native D2D280 evaluates config+F0 into record+18;
+C22040 returns16; C433F0 selects the265AC08 movement-object vtable.
+Its pre-pose hook is C48A00; its post-velocity hook is C42B70.
+D307D0 registers through C33DA0 with source-frame+1. End/priority selection
+and complete scheduler integration still need executable acceptance.
+D30B30's recovered tail uses source-frame+1 and the matching generation key;
+normal retirement calls C35560 to write matching record+20, while reason7
+calls C3C090 to destroy/remove the matching record. Reason5 returns early.
+These are disassembly observations, not full native scope comparisons.
+
+C4A4B0 copies the incoming context using C41AF0, obtains native look, applies
+modified jump/crouch intents20/21, and scales sideways throttle by record+18.
+The incoming context+50 is the RIGHT axis. It is not the up vector. The
+function crosses look with negative right to obtain its normal, decomposes
+velocity into normal/remainder, and uses16EBF00 to create the flight basis.
+Thus pitched look survives into the forward axis. With D.Va's parameter0,
+sideways throttle becomes0 even though the graph has no numeric19 override.
+The previous horizontal numeric-row test proves only that partial backend.
+
+ow174.game.flight.context implements this arithmetic. The isolated
+original-instruction harness executes C4A4B0,
+C41AF0 and16EBF00 in864 cases across four looks, two incoming right axes,
+three role parameters, both throttle axes {-1,0,1}, and all four jump/crouch
+combinations. Explicit adapters supply look and identity numeric20/21 results;
+the original context/basis arithmetic runs unchanged. Source/native maximum
+absolute error4.76837158203125e-7 (<3e-6); all864 comparisons pass. Software
+rsqrt estimates are not claimed byte-exact. Velocity storage is unchanged.
+The incoming request throttles are unchanged.
+The harness first used an incorrect up-vector fixture; its jump/zero-forward
+case produced NaNs. Correcting incoming+50 to the real right axis resolved it.
+
+The complete original C42B70 post-velocity path now has6048 scalar/vector
+comparisons across standing/crouched state, four looks, seven initial velocities
+(including tiny/zero, falling40m/s and overspeed), both throttle axes {-1,0,1},
+two role parameters and two frame durations. Three data profiles cover actual
+live Boosters values, zero-gravity/full-velocity friction, and both normal drag
+directions. Original C316A0/C33090 friction, C34340/BBEF40 wish, C49820 and
+unparented C5DA60/C63D60 storage plus BC0370 execute unchanged. Maximum error
+1.9073486328125e-5 (<5e-5). Explicit adapters supply look, identity numeric20/21,
+frame seconds, position/query-point storage and constant world gravity-10.
+PC friction is true (capture byte128; harness true1), debug wish is false and
+CRT SSE is selected. Other cvar modes/parented branches remain untested.
+
+Mover now reads active C1BA7545 states into private FLIGHT_ROLE=-2 records in
+its existing Mod store. Keys include activation generation. Normal begin/end
+are source-frame+1, preserving command-gap recovery and raw command bytes.
+No persistent Mover/VM fields or snapshot schema were added. Overlapping role
+selection uses the existing priority/start/key ordering; native multi-role
+arbitration and exceptional deletion are not claimed. This is a legacy bridge,
+not a complete native movement extension manager.
+
+The live path stands the capsule, marks it airborne, clears ground-under, builds
+the flight context from command pitch/yaw, applies3D friction/acceleration and
+uses existing upright capsule sweeps. It omits normal walking gravity addition.
+The unparented command-look policy is reconstructed: full pre-pose quaternion,
+camera/view and prediction transport have not been restored. Floor collision
+checks the capsule's lowest point, which includes pogo above feet; it does not
+claim native feet-ground placement during pitched flight.
+
+Fifteen Boosters tests PASS37.659s: positive/negative pitch and two yaw axes,
+raw reverse/strafe bytes with sideways thrust suppressed, next-frame scope
+start/end and gravity restoration, mature cancel/duration/cooldown/reuse with
+fresh generation keys, floor/ceiling/tall-wall capsule blocking, causal stored
+role parameter/end and recovered command gaps. Existing native horizontal
+distance is now derived from the first air-acceleration step plus28 cruise
+steps on the1/1024 grid (5.466796875m), replacing the partial backend's5.4443m.
+Initial13-case run had5 failures: floor assertion ignored pogo; cancel asserted
+whole Ability.RUNNING instead of propulsion scope while animation was ending.
+Corrected physical capsule/propulsion assertions pass; failures are retained.
+Later38 eye/control/move-to/Boosters cases PASS67.813s. Final523 combat/mover/
+physics cases PASS550.729s;53 VM/alias/server storage PASS177.339s. Ruff/diff
+pass. Counts overlap; original client was not run.
+
+Evidence outside source:
+  probe_boosters_flight_context_native.py
+  boosters-flight-context-native-validation.json
+  boosters-property-scope-native.txt
+  boosters-record16-flight-native.txt
+  boosters-flight-context-full-native.txt
+  boosters-flight-orthobasis-native.txt
+  probe_boosters_flight_velocity_native.py
+  boosters-flight-velocity-native-validation.json
+  boosters-flight-velocity-expanded-native-tests.txt
+  dva-role16-live-and-eye-evidence.json
+  boosters-role16-focused-final.txt
+  boosters-role16-eye-control-focused.txt
+
+Not accepted: complete native role registration/priority/exceptional retirement,
+pre-pose quaternion/view/prediction, full engine ground/collision equivalence,
+lethal demech/ejection, full death/control immunity matrix, contact damage,
+knockback, full combat or original client. Executed unparented Match motion is
+server static evidence and does not establish those remaining items.
+
+Contact damage follow-up
+047E states 6 and 7, nodes 15 and 16, run during actual Boosters commands.
+Their track offset evaluates to (0, 1, 2) at unit scale and radius to 1.5.
+ModifyHealth supplies 10 damage and loadout 0B900000000000D0. The host rotates
+the local offset by the current mover look, tests current enemy capsules and
+static LOS, and consumes each target once per damage-state activation.
+This placement and filtering policy is reconstructed. It uses discrete
+command poses and does not reproduce native target-array or hitbox behavior.
+The target set is causal snapshot state and retires with the source body.
+
+The authored impulse expressions include 17 and 4 multiplied by ruleset
+10611 through the pet owner and possessed-body selectors. In the explicit
+0407 player fixture both expressions currently evaluate to 0 because that
+fixture has no pet-to-pilot link. In the separately probed 0407 created by
+normal D.Va selection, they evaluate to 17 and 4. See
+../boosters-impulse-evidence.json.
+
+Impulse follow-up
+The contact consumer evaluates both authored expressions. A local expression
+context lets a directly selected 0407 resolve its own ruleset when the authored
+pet-to-pilot selector fails. Ordinary entity queries still use their original
+lookup. Successful native-style lookup takes precedence. This adapter allows
+the explicit 0407 Match command path to exercise the authored scale and makes
+a zero override suppress the impulse while preserving the 10 damage.
+
+The host treats the values as additive radial horizontal and upward velocities,
+with current facing used for overlapping feet. This direction, units and
+dispatch order are reconstructed. Players use their existing mover. NPCs use
+the same collision mover temporarily and resume their route logic after coming
+to rest, with the temporary mover state included in server snapshots. A lethal
+contact uses normal death cleanup and a dead bot drops any active impulse mover.
+The target poses are still the current static host poses. Native ring semantics,
+immunity, prediction, late commands and controlled-form lifecycle remain open.

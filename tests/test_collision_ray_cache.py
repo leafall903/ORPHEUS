@@ -52,6 +52,22 @@ def placeable_chunk():
 
 
 class RayCacheTests(unittest.TestCase):
+    def test_legacy_holder_mask_remaps_only_model_shape_headers(self):
+        chunk = [(face(5), [(0, 1, 2, -1, -1, -1, 0x25, 0)])]
+        shape = ("mesh", 0x24, *chunk[0])
+        blob = collision.pack("legacy", chunk, [], {}, [[shape]])
+        size, = struct.unpack_from("<I", blob, 12)
+        header = json.loads(blob[16:16 + size])
+        self.assertEqual(header.pop("prop_holder_masks"), "native-104319")
+        encoded = json.dumps(header).encode()
+        legacy = blob[:12] + struct.pack("<I", len(encoded)) + encoded + blob[16 + size:]
+
+        _, meshes, _, models, _ = collision.unpack(legacy)
+        self.assertEqual(meshes[0][1][0][6], 0x25)
+        self.assertEqual(models[0][0][1], 0x2001)
+        self.assertEqual(models[0][0][3][0][6], 0x25)
+        self.assertEqual(collision.unpack(blob)[3][0][0][1], 0x24)
+
     def setUp(self):
         folder = self.enterContext(tempfile.TemporaryDirectory())
         self.enterContext(patch.object(collision, "CACHE_DIR", Path(folder)))

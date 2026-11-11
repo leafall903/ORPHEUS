@@ -14,6 +14,12 @@ POSSESSED = 'STU_0AC15F78'
 
 @dataclass
 class Possession:
+    """The identity read at component44+D8 by BD56F0.
+
+    `current` is the existing host API label; it does not establish the
+    relationship of this field to the distinct D0/D4 control/view fields.
+    """
+
     current: int
 
     def __post_init__(self):

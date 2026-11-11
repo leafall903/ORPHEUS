@@ -79,3 +79,12 @@ retirement, binding validation and legacy compatibility. The related regression
 group and server journal/snapshot/injection group are recorded in the changelog.
 Local evidence stays outside Git under verification/retribution/entity-queries-*.
 Game data, probes and captures are not included in the publication tree.
+
+D.Va transient-control naming boundary (uncommitted)
+The proved getter is specifically component44+D8 (BD5986..BD5992). Possession's
+legacy host field name current is not proof that this is the D0 field used for
+transient control. world.py serializes three distinct component44 slots and
+currently labels them current/view/primary; ordinary hero-switch captures set
+all three equal. Those captures cannot distinguish the identities during mech
+control. This step clarifies the API docstring without changing query behavior
+or inventing a control relationship. See control-return-routing-frontier.json.

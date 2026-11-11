@@ -1,0 +1,47 @@
+Shared state notification/ability exit repair -- uncommitted D.Va lane
+
+Parent report was reviewed read-only against ORPHEUS runtime.py, nodes.py,
+test_script_notification_lifetime.py and MCCREE_ROLL.txt. This lane reproduced
+both minimal failures before adapting the fix: canceled CHANGED left its
+coalescing marker true, and cleanup writes queued CHANGED for an ending state.
+Both could suppress future BooleanSwitch updates after state re-entry.
+
+State.end now clears flags_check/flags_changed immediately after canceling its
+events. Component.changed excludes ending watchers. The local foreign-variable
+notification path already had that exclusion; its receiving-component clock is
+preserved. No passive VM fields or arbitration phases were added.
+
+Ability.stop now queues outgoing running-scope exit, stop plugs and variable
+writes before unlinking arbitration. This prevents a newly unblocked consumer
+from sampling resources before outgoing cleanup. This is an explicit server
+reconstruction; complete native inter-object ordering is NOT established.
+State.end and Ability.stop match the reviewed parent method ASTs, excluding
+docstrings. No unrelated parent combat services were imported.
+
+Three resource-only regressions pass: CHANGED cancellation/re-entry/later
+updates, writes during cleanup, and canceled join CHECK marker lifetime.
+The parent's two original cases failed on the old lane. A first larger run
+omitted ORPHEUS_RUNTIME_DIR and failed22 resource loads; this is retained as
+setup failure, not a behavior regression. A direct TestCase helper import
+also accidentally discovered8 extra join tests, one needing runtime inputs;
+changed to a module import. Final focused selection is3PASS0.002s.
+Actual pilot input repeats two empty20-round/reload cycles, verifies blocked
+fire while empty, then one further shot (41*14 total damage,19ammo). This
+additional test passes7.462s. It is repeated reload recovery evidence, not
+proof of a D.Va equivalent to McCree's ability refill or full native ordering.
+All53 VM/alias/server snapshot checks pass169.237s.
+
+Evidence outside source:
+  notification-lifetime-initial-failure.txt
+  notification-lifetime-source-tests.txt (missing runtime setup)
+  notification-lifetime-focused-tests.txt (extra imported TestCase discovery)
+  notification-lifetime-focused-final.txt
+  notification-lifetime-parent-comparison.json
+  notification-lifetime-combat-regression.txt
+  notification-lifetime-storage-tests.txt
+  notification-lifetime-pilot-reload-tests.txt
+
+Final broad combat/runtime selection454PASS462.026s. The added CHECK and
+pilot tests were executed separately after that selection loaded its tests;
+counts overlap. Ruff/diff pass. Full D.Va static acceptance and original client remain open;
+no commit or parent integration is authorized before the complete static gate.

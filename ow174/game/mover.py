@@ -41,8 +41,8 @@ The hero's values are its body's STUCharacterMoverComponent (data/game_movers_17
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
 heroes whose statescript the server does not run, velocity mods (STU_FF3471E9
-states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
-other bodies.
+states), native knockback arbitration, phase hooks other than role16's unparented flight bridge,
+moving platforms and other bodies. Combat can supply an explicit velocity impulse.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
 
 Besides the pose it keeps what other clients animate the body from, as the client's own mover writes it
@@ -62,7 +62,7 @@ from dataclasses import dataclass, fields, replace
 from functools import cache
 from pathlib import Path
 
-from ow174.game import contacts
+from ow174.game import contacts, flight
 from ow174.game.collision import MOVER, NOT_GROUND, Ground, World, flat_world
 from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
@@ -275,6 +275,10 @@ MOVER_COMPONENT_FIELDS = {
     "D4A3C694": "character_collision",
 }
 
+# Private adapter record index, not a native numeric property. C1BA7545
+# contributes movement role16 through the same causal scope storage as mods.
+FLIGHT_ROLE = -2
+
 
 def component_data(value: dict) -> MoverData:
     """Read a full authored typed mover override; unsupported fields stay explicit."""
@@ -358,7 +362,9 @@ def quantise(value: float) -> float:
 class Mod:
     """A movement mod of the mover: index, op and value act on the ticks of command frames start..end - 1
     (end None: until the mod goes; 0x7FF789B42FFB). The mover keeps them sorted by priority, then start
-    (0x7FF789B3FAA0), and applies them in that order."""
+    (0x7FF789B3FAA0), and applies them in that order. Private FLIGHT_ROLE records
+    adapt C1BA7545 scopes without adding persistent mover fields; overlapping
+    role arbitration uses this legacy ordering and is not native-validated."""
 
     index: int
     op: int
@@ -483,10 +489,20 @@ def _number(instance, cfg, default: float) -> float:
 def statescript_mods(component) -> dict:
     """The movement mods of a body's statescript (a script.runtime.Component) that are on now:
     {(instance, state, slot): (index, op, value, priority)}. The client gives the mover each mod of a
-    MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end)."""
+    MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end).
+    C1BA7545 contributes a private FLIGHT_ROLE record keyed by activation
+    generation. Its normal source-frame+1 lifetime shares this legacy bridge;
+    native exceptional deletion and overlapping role arbitration remain open."""
     found = {}
     for instance in component.instances.values():
         for state in instance.states.values():
+            if state.active and state.node.cls == "STU_C1BA7545":
+                # Native D307D0/D30B30 includes activation generation in its key.
+                found[(instance.id, state.index, state.counter)] = (
+                    FLIGHT_ROLE, SET, _number(instance, state.node.fields.get("m_2166C07A"), 1.0),
+                    _number(instance, state.node.fields.get("m_priority"), 0.0),
+                )
+                continue
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
@@ -581,6 +597,15 @@ class Mover:
         lowest = max(data.stand_height + data.stand_pogo, data.crouch_height + data.crouch_pogo)
         self.spring_low = f32(-lowest)
         self.spring_high = f32(2.0 * data.step_down)
+
+    def apply_impulse(self, impulse: tuple[float, float, float]) -> None:
+        """Add a world-space velocity change for the next swept movement pose."""
+        vx, vy, vz = self.velocity
+        dx, dy, dz = impulse
+        self.velocity = (f32(vx + dx), f32(vy + dy), f32(vz + dz))
+        if dy > 0 and not self.flags_word & IN_AIR:
+            self.flags_word |= FELL
+            self.air_ticks = 0
 
     def use(self, data: MoverData | None = None, world: World | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
@@ -722,16 +747,18 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        world_driven: bool = False,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
-        if self.driven and move_to is None:
+        if self.driven and move_to is None and not world_driven:
             self.velocity = (0.0, 0.0, 0.0)
-        self.driven = move_to is not None
+        self.driven = world_driven or move_to is not None
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        flight_mod = next((mod for mod in reversed(active) if mod.index == FLIGHT_ROLE), None)
         selected = typed_data(self.data, active)
         override = None if selected is self.data else selected
         if override != self.override_data:
@@ -757,7 +784,14 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
-        self._transitions(ground, under, jump, crouch, active)
+        if flight_mod is None:
+            self._transitions(ground, under, jump, crouch, active)
+        else:
+            # C48A00/BC0370: remain airborne, stand, clear the ground-under bit.
+            if not self.flags_word & (JUMPED | FELL):
+                self.air_ticks = 0
+            self.flags_word = self.flags_word & ~(JUMPED | NOT_GROUND_UNDER) | FELL
+            self._stance(False)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
 
@@ -769,8 +803,26 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        if world_driven:
+            self.history.append(self.snapshot(frame))
+            return None
         outcome = None
-        if move_to is None:
+        if move_to is None and flight_mod is not None:
+            # Unparented Match pose policy: command aim drives the flight look;
+            # body quaternion/view/prediction transport is not reconstructed here.
+            angle = self.yaw * TURN
+            pitch = -f32(self.pitch*PITCH_RADIANS)
+            cosine = f32(math.cos(pitch))
+            look = contacts.v3(f32(math.sin(angle))*cosine, math.sin(pitch),
+                               f32(math.cos(angle))*cosine)
+            right_axis = contacts.v3(-math.cos(angle), 0.0, math.sin(angle))
+            ctx = flight.context(look, right_axis, self.velocity, right, forward,
+                                 flight_mod.value, jump,
+                                 intent(active, CROUCH_INTENT, 1.0 if crouch else 0.0) > .5)
+            self.velocity = flight.velocity(data, self.active_data.run_forward,
+                                           self.velocity, ctx, f32(dt), crouched=self.crouched)
+            self._fall_after(self._move(dt, (0.0, 1.0, 0.0)))
+        elif move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
             vx, vy, vz = self.velocity
             horizontal = (vx, 0.0, vz)

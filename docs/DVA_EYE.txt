@@ -1,0 +1,88 @@
+FirstPerson combat scalar correction -- build1.74.0.0.104319
+UNCOMMITTED; full static acceptance and original client remain open.
+
+Raw body XML STUFirstPersonComponent:
+  0407 mech: m_E29993A5=1.74, m_816B830F=1.74
+  040A pilot: standing1.32, crouched0.8
+  02A3 McCree: standing1.425, crouched0.9975
+Source paths and SHA256 hashes are recorded in the lane's external
+dva-role16-live-and-eye-evidence.json. All XML and parent source were read-only.
+
+Combat.eye_height now feeds both the shooter origin and player Target.eye,
+preserving Soldier crouched1.085 and the existing fallback for other bodies.
+McCree values match the parent review. No McCree critical multiplier policy
+was imported and no global critical default changed. Mapping these authored
+scalars to combat eye/head threshold is still an explicit server reconstruction;
+native camera/muzzle/bones and full hit geometry remain unproved.
+
+Four source tests PASS8.001s: both-form/McCree source and target eye contracts,
+actual pilot standing and McCree standing/crouched fire against low cover,
+mech fire over2.65-high cover that blocked its old1.55 default, and explicit
+static pilot crouched-eye occlusion below2.0-high cover. The static crouch case
+does not accept actual pilot crouch input.
+
+The original direct pilot fixture retained 026A state 38, a priority 99
+modifier setting gravity and ground deceleration to zero. The producer fields
+and its live modifier record are in the external evidence.
+
+The current host passes live crouch after an enemy rifle kills the possessed
+mech and after Self-Destruct detaches it. Both cases pass from the initial
+mech and from a replacement summoned through actual Call Mech input. Crouch
+changes the shooter and target eye to 0.8. A Light Gun round hits low cover
+and the next standing shot clears it and deals 14 damage. Ultimate charge
+and lethal-hit health were seeded to exercise those transitions. The tests
+use reconstructed static placement and cover, with native launch, muzzle
+and bone behavior still open. See ../dva-live-pilot-crouch-final.txt.
+
+Authored primary muzzle bindings
+--------------------------------
+Actual controlled Fusion reports select hardpoints 5, 7, 5, 7.
+050A/18 tests variable 58 and nodes 19 and 20 update it before
+starting 050A/6. Actual Light Gun fire resolves the entity-scope
+variable 49 to the active 02B8/71 CosmeticEntity handle. That
+state uses identifier 376A and parent hardpoint 0A. Body 040A
+declares that child as 0982, whose model 1E16 supplies muzzle 6.
+
+Three raw models came from the local 104319 archive. The offline
+reader separates hardpoints from bones because their IDs overlap.
+It follows the muzzle's parent through the bone table and records
+model-space bind transforms and source hashes. In mech model 11CE,
+hardpoints 5 and 7 are approximately at X +0.398 and -0.399 m,
+Y 1.197 m and Z 1.45 m. These are bind-space positions.
+See ../dva-muzzle-bindings-evidence.json.
+
+The D74478-D744E4 native transform scales a supplied local point,
+rotates it by the supplied quaternion and adds the parent translation.
+Its arithmetic matches 540 offline cases to within 9.54e-7 m.
+The probe supplies both frames. Animated pose sampling and native
+launch-origin selection remain open. Combat uses the host's eye
+origin. See ../dva-muzzle-native-transform-verified.txt and
+../dva-muzzle-selector-combat-verified.txt (4 passed).
+
+Initial test setup also used an unavailable localized McCree name lookup and
+a nonexistent ray helper; corrected to hero GUID42 and combat.ray_world. Those
+errors and the direct fixture's crouch failure remain in initial/recovery logs.
+Final523 combat/mover/physics cases PASS550.729s;53 VM/alias/server storage
+PASS177.339s;Ruff/diffPASS. Current NPC nominal primary-input probes still give
+Trooper20/15, Sniper100/95, Heavy5/2.5 and Enforcer/Assassin0 after300frames at6m;
+their missing controller/pin contexts remain separate open work.
+
+Evidence: dva-eye-authored-tests.txt, dva-eye-authored-recovery-tests.txt,
+dva-eye-authored-final-tests.txt, dva-role16-live-and-eye-evidence.json.
+
+Native origin record transfer
+-----------------------------
+D740C5-D74105 calls the actor transform provider at C62A50 and
+the vertical offset provider at D9F3F0. This path preserves the
+supplied X and Z and adds the supplied offset to Y in float32.
+D74C20 stores the result at projectile record offset 10.
+D79250 takes a hitscan context as its second argument. D79B00 and
+D79B3F copy that context's E0 origin to the shared ray query at
+90 before the pellet loop begins.
+
+Offline execution checks 256 projectile-origin transfers with
+explicit provider adapters and 256 hitscan field transfers. See
+../dva-native-origin-transfer-verified.txt. Live provider dispatch
+and animation sampling remain open. Actual Fusion and Light Gun
+checks record the host eye origins in the ray and projectile
+paths. See ../dva-native-origin-host-regression.txt (4 passed).

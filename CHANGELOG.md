@@ -4,7 +4,757 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+- Package the current D.Va server implementation for integration, including
+  both forms, owned-body handoff, combat and movement, cross-hero defenses,
+  and the Talon NPC paths with their shared runtime changes and tests.
+  The host regressions cover 397 distinct D.Va methods across four runs.
+  Discovery passed 385 methods. The 10 shield methods and the Sniper
+  launch-team method passed with the prepared Reinhardt mesh supplied.
+  The new pilot input method passed separately. Native ejection, hit
+  geometry, remaining NPC and cross-hero cases, and original-client
+  acceptance remain open.
+
+- End the parked movement modifiers before the next pilot frame when
+  a low ceiling keeps D.Va at her parked pose. Covers lethal and
+  Self-Destruct returns on the retained mover.
+
+- Cover Call Mech protection and handoff against all five Talon NPCs
+  in the regular combat tests. Self-Destruct supplies the Call Mech
+  charge, and the pilot's protection stays separate from the replacement.
+
+- Verify that all five Talon NPC types can destroy a one-health Call Mech
+  replacement, reacquire the pilot, and take 14 from the pilot's return fire.
+  The tests cover manual input and reconstructed autonomous acquisition.
+
+- Scope D.Va's reconstructed critical damage to the two primary volleys
+  and Micro Missiles. The original queue forwards m_A872C70E to a direction
+  callback. The D.Va damage path uses its reconstructed factors separately.
+  Thirteen focused combat regressions pass.
+
+### 2026-11-10
+
+- Honor the 104319 Anim timing bypass and automatic finish fields in
+  the host VM. Fusion Cannon graph 050A position 34 skips both events.
+  Automatic finish reads m_2DEAE6A9, independently of the playback flag.
+  Preserve authored deadlines and event order when animation states start late.
+
+- Preserve a qualifying ordinary projectile hit before ranking the expanded
+  candidate by travel plus the authored radius. The host reconstructs body
+  eligibility with its combat capsules and checks static cover across a frame.
+
+- Apply the authored WeaponVolley collision radius to in-flight projectile
+  contacts with Defense Matrix, Deflect and Kinetic Grasp. Light Gun input
+  verifies both sides of the expanded Matrix, Deflect and Grasp edges.
+
+- Correct three model-holder collision-mask bits against the original 104319
+  packer. Translate legacy cached holder masks as they are read. Cached
+  map-chunk and mesh-triangle masks retain their authored bits.
+
+- Match the native finite-segment parallel threshold and projectile incidence
+  for Defense Matrix, Deflect and Kinetic Grasp. Grasp uses its authored
+  180-degree angle directly. Probes verify the separate world query and
+  its selection of the 0002.097 profile.
+
+- Normalize Defense Matrix box endpoints per axis before contact tests.
+  The original DeflectProjectiles begin callback registers the four
+  authored Matrix boxes with this ordering. A static regression reverses
+  endpoints and checks both an in-range hit and an outside-width miss.
+
+- Verify the custom projectile-tag exclusion used by Matrix, Deflect and
+  Kinetic Grasp against build 104319's original membership code. Thirteen
+  fixture cases cover static tags, dynamic additions and removals, and the
+  any, all and exclusion slots. The probe supplies numeric tag indices
+  and adapts the key service. The .097 contact path remains open.
+
+- Route Sombra Hack and EMP to both D.Va forms through the authored status graphs.
+  Static command tests cover target exclusion, skill gates and expiry. Hack drops
+  a target when static cover enters its active ray. EMP tests cover active cast
+  interruption, primary fire, and detached Self-Destruct. Capsule LOS and receiver
+  classification are reconstructed. Original-client acceptance is open.
+
+- Route effective Fusion Cannon and Light Gun damage to Sombra's authored
+  0011 Hack interruption branch. Hits during windup cancel the cast and
+  start the two-second retry timer. Misses, absorbed shots and damage
+  after delivery leave the Hack effect intact. The damage notice and
+  ordinary-primary tag mapping are reconstructed.
+
+- Preserve authored D.Va damage tags through projectile contact, melee,
+  Boosters and both ultimate impacts. The Hack damage entry reads the
+  tags and applies its existing exclusion and cancel branches. Actual
+  direct and splash missile packets preserve their separate collections.
+
+- Include active TrackRay in passive VM snapshots for Hack and Chain Hook.
+  The exporter records the existing state fields without sampling the ray.
+
+- Route tagged Hack damage notices from the attacker at impact.
+  Genji can interrupt Hack with reflected D.Va projectiles. An airborne
+  missile retains its old mech source through either ejection path.
+
+- Retire Match-hosted Hack and EMP graphs when the affected D.Va body dies.
+  Static replays cover active effects on a lethal demech and on pilot death.
+  The old body releases its ability lock at death, and the returning pilot
+  or respawned mech starts without either graph.
+
+- Resolve Hack's ray from the combat target pose so it can sample a staged
+  Call Mech body before possession. Actual Hack and EMP replays cover
+  windup interruption, pilot immunity, replacement targeting, and retry.
+
+- Reuse Reinhardt and Zarya barrier collision for Hack. EMP removes exposed
+  enemy Reinhardt shields and projected Zarya barriers using the tagged
+  104319 pulse values. Static command tests cover both D.Va forms, static
+  cover, range, team filtering, and health and energy routing. The host
+  reconstructs shield pool mapping and the EMP energy policy.
+
+- Verify Projected Barrier order against Sombra on both D.Va forms.
+  Projection after Hack or EMP preserves the full lock duration in Match.
+  An EMP after Hack and projection breaks the barrier and replaces the Hack
+  lock while preserving body health. Native cleanse routing remains open.
+
+- Verify detached Self-Destruct after Talon kills the exposed pilot.
+  Eight Match replays cover all five NPC types, Trooper and Heavy Assault
+  melee, and Heavy Assault charge. The blast keeps its fuse and credits
+  the dead pilot for the attacking NPC's elimination.
+
+- Verify Call Mech against all five Talon NPC types after actual Self-Destruct.
+  Mixed team and free-for-all batches cover lethal and surviving damage,
+  static cover, team filtering, and front and rear capsule range boundaries.
+  The rear inner sample takes damage without impulse.
+
+- Verify lethal Talon interruption of Call Mech between allocation and landing.
+  Eight replays retire the staged body and its script, preserve the spent
+  meter, and suppress late landing damage. Respawn creates a new 600 HP mech.
+
+- Verify Sleep Dart contact inside the pilot's ejection weapon lock.
+  A dart already in flight reaches the pilot after either return from
+  the initial or replacement mech. Sleep outlasts the weapon lock.
+  Call Mech entry protection rejects the same attack in a separate replay.
+
+- Trace the authored 0276 damage-message branch to the pilot return.
+  Explicit message and flag inputs reach the one-second wait and send
+  016C once. Native action execution distinguishes the separate five-second
+  elapsed-state condition. The production lethal trigger remains reconstructed.
+
+- Apply 104319 launch angle encoding and normalization to D.Va Micro Missiles.
+
+- Verify the authored Light Gun range and lifetime limits against the native projectile sweep.
+
+
+- Verify D.Va's authored primary muzzle selectors and the static hardpoint chains used by both forms.
+
+- Round-trip D.Va primary launch directions through the 104319 angle codec and normalize the final rays.
+
+- Seed Fusion Cannon jitter from the authored state-table index and the reported activation.
+
+- Use the 104319 ring direction function and authored per-pellet jitter for Fusion Cannons.
+
+- Match the native normalized Light Gun spread output and capture its baked ramp in passive VM storage.
+
+- Verify Matrix resource through Talon fire and a Self-Destruct handoff.
+  Four gun types leave the matched drain, recovery and ultimate meters
+  unchanged. Call Mech starts a fresh 100-resource Matrix. Assassin pin
+  bypasses the box, closes it, and permits recharge after release.
+
+- Verify the Enforcer volley on both sides of Matrix exhaustion.
+  Continuous and batched ticks agree on the last full absorb, the later
+  lethal mech hit, pilot exposure, and the remaining projectile lifetime.
+
+- Recover Matrix's projected close and authored recharge deadline when an omitted command interval crosses them.
+
+- Preserve the projected Matrix hold and natural closure through long gaps inside retained command history.
+
+- Preserve Matrix's natural cooldown and recharge start when forced control arrives after a projected close.
+
+- Respect Matrix tap release and the first neutral recovery frame during missing commands.
+
+- End Matrix interception when the authored drain reaches zero during a bounded held-input gap.
+
+- Settle held Matrix drain through a bounded command gap at forced close, and start its recharge wait at impact.
+
+- Run Matrix's authored cooldown when forced control closes the live box early, and preserve its impact time across command gaps before and after the tap minimum.
+
+- Keep Graviton movement restrictions on delayed commands while admitting weapons and Matrix.
+
+- Preserve delayed-input suppression through Chain Hook release and the last overlapping Assassin pin.
+
+- Reject delayed D.Va attack and movement inputs from retained Flashbang, sleep and freeze windows.
+
+- Count retained neutral frames for controlled D.Va charge and cooldown while preserving posed-only combat and endpoint observer updates.
+
+- Use each in-flight projectile's launch team for body and defense admission, with Sniper coverage across Self-Destruct handoff.
+
+- Preserve the remaining world interval on physical Deflect and verify actual Sniper range, cover, Matrix and airborne interruption.
+
+- Give Graviton movement priority over Heavy Assault charge, verify nonlethal Assassin pin separation, and preserve ordinary projectile landing calls.
+
+- Credit owned-mech and detached-bomb eliminations to D.Va's pilot while retaining the combat source entity in death and elimination notices.
+
+- Give Call Mech entry movement priority under its immunity scope and verify Graviton damage, Projected Barrier and Ana sleep on both D.Va forms.
+
+- Preserve Graviton flight time and transfer field ownership on Deflect, with Matrix and Kinetic Grasp interception coverage.
+
+- Release Graviton pull at D.Va body handoffs and route active Boosters interruption through its authored cooldown.
+
+- Host actual Graviton Surge flight and field combat against both D.Va forms, including Matrix interception, world-clock pull and damage, and field expiry.
+
+- Verify overlapping Mei freeze and Flashbang deadlines and selective Projected Barrier cleanse on both D.Va forms.
+
+- Verify Mei freeze interrupts Boosters and Micro Missiles while preserving authored cooldown and launched missiles.
+
+- Clear frost at bomb detachment and verify frozen D.Va ultimate admission, independent fuse damage and Call Mech refill.
+
+- Consume source-configured Mei frost minimum, rate, freeze duration and stacking against both D.Va forms.
+
+- Preserve D.Va's aim while frozen and verify frost retirement across lethal ejection and Call Mech.
+
+- Apply Mei spray's default frost buildup, slow and freeze to both D.Va forms and verify Projected Barrier cleanse.
+
+- Resolve Mei's authored primary spray through multiple bodies and verify that its frost projectile bypasses Defense Matrix.
+
+- Verify Sleep Dart and Flashbang stop Zarya's beam against either D.Va form and prevent damage replay across control expiry.
+
+- Verify Zarya beam timing across D.Va demech and pilot exposure with a held primary input.
+
+- Resolve Zarya's authored primary beam through body and barrier damage and verify its bypass of an active Defense Matrix.
+
+- Verify Projected Barrier against Sleep Dart and Flashbang before contact, at shield break, and after control has started on either D.Va form.
+
+- Prevent movement replay from reusing input received before or during forced control. Verify quick melee damage and cooldown on both sides of a control hit in both D.Va forms.
+
+- Verify allied Genji Deflect against Enforcer volleys aimed at either D.Va form, including falloff across the outbound and reflected flight legs.
+
+- Verify Enforcer falloff at Projected Barrier and Kinetic Grasp contact while either D.Va form is the target.
+
+- Replay tracked projectile flights on retained combat ticks after the shooter stops firing, preserving Enforcer demech and pilot hit timing through a world update gap.
+
+- Resolve Enforcer's 25 projectile pellets with authored falloff and Heavy Assault's two hitscan packets independently against armour and defenses.
+
+- Verify Talon volley interception and break behavior on an allied Zarya's projected barrier in both D.Va forms.
+
+- Verify that actual Flashbang and Sleep Dart stop controlled Boosters, then gate held Shift on the authored cooldown and control expiry.
+
+- Verify live pilot crouch and Light Gun cover after lethal or Self-Destruct returns from either the initial mech or a Call Mech replacement.
+
+- Apply Orisa's active Fortify damage reduction before armour, suppress primary criticals, and block D.Va's radial knockback.
+
+- Resolve Assassin pin selection to the player controller and keep damage on the bound body.
+
+- Model the Assassin victim graph's linked-target State with an explicit controller mover sample.
+
+- Exercise the authored Assassin victim effect on an independent 000E controller for both D.Va forms.
+
+- Mount the D.Va Assassin victim effect from the live pin action and capture its controller VM in passive snapshots.
+
+- Send the active D.Va Assassin victim graph and its bound flag in the player controller's owner full frame.
+
+- Execute the Assassin victim graph's authored self-stop and verify its positive-health persistent release branch.
+
+- Use the pilot's command view delay for the controlled mech's Fusion Cannon hitscan.
+
+- Resolve critical damage per Fusion Cannon pellet and at Light Gun projectile impact.
+
+- Use the pilot's command view time for the controlled mech's quick melee.
+
+- Track when the retained D.Va pilot becomes targetable again after leaving a mech.
+
+- Verify D.Va's authored Fusion Cannon walk penalty through Matrix, Boosters and release.
+
+- Verify controlled Defense Matrix tap duration, cooldown re-entry, depletion and stun interruption.
+
+- Verify Micro Missiles windup cancellation and immediate retry after actual crowd control.
+
 ### 2026-11-09
+
+- Apply pilot-only immunity during the authored Call Mech entry scope.
+
+- Verify lethal damage cancels Micro Missiles before launch.
+
+- Verify a launched Micro Missile can hit after mech death without charging either form.
+
+- Verify Fusion Cannons and charge ownership after a second Call Mech.
+
+- Verify a returned pilot can earn and spend a second Call Mech through Light Gun damage.
+
+- Verify a lethal rifle hit on the replacement mech restores Light Gun fire.
+
+- Release Call Mech weapon arbitration on the authenticated return to the pilot.
+
+- Verify the pilot reload timer continues during Call Mech possession.
+
+- Verify Call Mech initializes an independent Matrix after the old mech depletes and self-destructs.
+
+- Verify Matrix stops intercepting after mech death or Self-Destruct.
+
+- Verify Heavy Assault charge cooldown and reuse after a Boosters interruption.
+
+- Verify Heavy Assault charge against Projected Barrier on both D.Va forms.
+
+- Verify Matrix and Assassin pin against five autonomously targeting Talon bodies.
+
+- Verify Boosters recontact during the same activation when Wraith Form,
+  Cryo-Freeze, or Transcendence protection expires.
+
+- Verify that a fresh Boosters activation can hit a target whose
+  barrier consumed the preceding activation's contact.
+
+- Verify same-activation Boosters recontact after a barrier break.
+
+- Verify Micro Missiles across Wraith and Cryo-Freeze expiry. Missile
+  damage and charge follow protection at impact.
+
+- Verify controlled Boosters contact against Wraith, Cryo-Freeze and
+  Transcendence, with no body damage, impulse, or charge.
+
+- Verify controlled Boosters contact against active Deflect and Grasp.
+  Damage, impulse, and charge still apply.
+
+- Verify Boosters against Zarya personal barrier, including a breaking
+  contact with no body damage, impulse, or charge.
+
+- Verify Micro Missiles breaking Reinhardt barrier. The breaking round
+  cannot hit the body, and later missiles credit effective armor damage.
+
+- Verify the Micro Missiles break boundary on Zarya personal barrier.
+  The breaking missile is consumed and the remaining missiles hit the body.
+
+- Verify Micro Missiles crossing the enemy Matrix depletion boundary.
+  Only rounds that hit the body contribute Self-Destruct charge.
+
+- Verify live allied and enemy Matrix handling of Micro Missiles and
+  the resulting Self-Destruct charge.
+
+- Verify detached Self-Destruct team filters for players and Talon
+  NPCs, including protection of the source pilot in free-for-all.
+
+- Verify Call Mech landing team filters in a mixed player and NPC batch.
+
+- Verify that an in-window Call Mech press released before the ejection
+  gate opens starts one activation without a second press.
+
+- Verify the authored Call Mech start gate after lethal ejection. An
+  early full-charge press expires and one fresh eligible press succeeds.
+
+- Verify that Call Mech retires the destroyed predecessor and its
+  remaining Micro Missiles before possession.
+
+- Exclude a pilot's owned combat body from hostile target selection.
+  An in-flight Light Gun round can pass through the new mech after Call Mech.
+
+- Retire in-flight damage projectiles on player body replacement even
+  when the projectile has no observer lease.
+
+- Verify Micro Missiles after lethal mech damage. Old projectiles still
+  hit without granting Call Mech charge to the restored pilot.
+
+- Verify that Sleep Dart interrupts Micro Missiles without canceling
+  missiles already in flight. Cooldown gates the next full burst.
+
+- Verify controlled Micro Missiles across a command gap at cooldown
+  expiry. Released input stays released, and held input starts one burst.
+
+- Verify detached Self-Destruct cleanup on hero switch and leave,
+  including a queued refill whose original pilot body retires.
+
+- Deliver queued body messages between retained combat ticks so a
+  detached Self-Destruct can refill the pilot before shell cleanup.
+
+- Verify detached Self-Destruct detonation and pilot refill across a
+  world tick gap, including duplicate endpoint updates.
+
+- Verify that Self-Destruct refills a sleeping pilot while Call Mech
+  remains gated until a fresh awake command.
+
+- Verify Self-Destruct charge and fuse behavior on either side of
+  detachment when Ana Sleep Dart hits.
+
+- Extend the Talon NPC damage and charge scenarios to pilot Light Gun
+  and quick melee after the authored return to pilot.
+
+- Verify effective-health charge on lethal Fusion Cannon and Light Gun
+  hits, and damage credit against all five Talon NPCs.
+
+- Verify Genji reflection damage and charge attribution, including
+  Matrix interception of reflected Micro Missiles.
+
+- Verify that Zarya barriers and Sigma Grasp deny combat charge for
+  D.Va attacks that never damage the body.
+
+- Credit controlled mech damage toward its own Self-Destruct meter,
+  capped at the authored cost.
+
+- Credit effective pilot damage toward Call Mech, capped at the
+  authored cost. The reconstructed conversion allows a fresh activation
+  after an interrupted entry.
+
+- Verify that Ana Sleep Dart interrupts Call Mech entry after landing
+  and that a later charged activation can enter a fresh mech.
+
+- Verify Call Mech interruption by a lethal rifle hit on either side
+  of landing. The pending replacement retires before possession and
+  any completed landing damage remains applied once.
+
+- Verify Call Mech landing at both edges of its 2.5 metre damage
+  range and the separate 3 metre knockback ring.
+
+- Verify the Call Mech impulse direction for active Matrix and Deflect.
+  Reset the controlled mech fixture collision body after repositioning.
+
+- Cover Call Mech landing against active Kinetic Grasp, Deflect,
+  and Defense Matrix with live ability graphs and player commands.
+
+- Verify Call Mech landing against Zarya personal and projected
+  barriers. Both break without passing damage or knockback to the body.
+
+- Use the same capsule contact check for Talon Assassin acquisition
+  and pin damage. Full cover prevents or ends the pin.
+
+- Skip protected targets when the Talon Assassin selects a target
+  autonomously. It can switch from a bubbled D.Va to another enemy and
+  acquire D.Va again after the barrier expires.
+
+- Release a Talon Assassin pin on a successful Boosters knockback.
+  The live victim regains control on impact and the Assassin retains
+  its knockback movement.
+
+- Allow a successful quick-melee hit to free a teammate from a Talon
+  Assassin pin. The server uses the authored two-second release wait
+  for the reconstructed recovery lockout.
+  Resolve the pinned teammate through their live combat body so a
+  normally controlled D.Va mech can be rescued.
+
+- Apply projected Zarya barriers to the live D.Va body during Talon
+  Assassin combat. The host clears an active pin, prevents a new pin
+  during protection, and resumes normal attack eligibility on expiry.
+
+- Stop Heavy Assault charge before applying D.Va Boosters knockback.
+  A lethal charge impact remains attached to the defeated mech.
+
+- Run Heavy Assault's actual 1408 charge through the NPC combat path.
+  The authored movement vector drives a swept capsule and the authored
+  impact state damages the live D.Va body. Cover and stop end movement.
+
+- Route actual Trooper and Heavy Assault melee against both D.Va forms.
+  The authored windup feeds a static contact check and stop cancels it.
+
+- Add opt-in stationary acquisition for the five authored Talon NPCs.
+  Their weapon inputs follow normally selected D.Va through mech death,
+  pilot return and Call Mech. Static cover and teams gate selection.
+
+- Verify all five Talon NPCs against normally selected D.Va. Actual
+  attacks can defeat the initial mech and acquire the pilot. The same
+  target controller can also resolve the Call Mech replacement.
+
+- Check static cover between the defender and each candidate Matrix,
+  Deflect or Grasp contact. Attacks on the other side of the wall
+  continue toward their targets.
+
+- Resolve D.Va's Fusion Cannons, Light Gun and Micro Missiles against
+  Sigma's active Kinetic Grasp. Absorption feeds the authored shield
+  conversion request, with a separate temporary pool and world-time decay.
+
+- Resolve Roadhog's actual Chain Hook launch against both D.Va forms.
+  The controlled mech and pilot use their existing collision movers
+  during the pull and regain input after release.
+
+- Apply Ana's actual Sleep Dart to the active D.Va body. World
+  deadlines drive full sleep and early wake, and the existing
+  input interruption paths stop active abilities.
+
+- Resolve Zarya's authored personal and projected barriers in static
+  combat. The projection can target either live D.Va form and remove
+  Ana's anti-heal so an active Biotic Field resumes healing.
+
+- Apply Ana's normal Biotic Grenade healing modifiers to the live D.Va
+  body. Biotic Field uses the modifier present on each retained world tick,
+  and detached or replaced bodies do not carry it into the next form.
+
+- Honor Wraith Form, Cryo-Freeze and Transcendence in static combat.
+  The build 104319 defensive cast scopes gate incoming D.Va damage and
+  knockback. Wraith allows shots through, while Cryo-Freeze and
+  Transcendence retain their shot collision.
+
+- Resolve D.Va's Fusion Cannons, Light Gun and Micro Missiles against
+  Reinhardt's active curved barrier in the prepared build 104319 runtime.
+  The authored barrier health and break message participate in the same
+  contact ordering as static cover, bodies, Matrix and Deflect.
+  Detached Self-Destruct applies its authored damage curve to the shield's
+  nearest visible surface and preserves cover for the blast that breaks it.
+
+- Resolve active Genji Deflect against D.Va's Fusion Cannons, Light Gun and
+  Micro Missiles through real Match inputs. The authored boxes and facing
+  angle gate reflection. A reflected missile can enter D.Va's active
+  Defense Matrix. Active Deflect also blocks frontal quick melee from
+  either D.Va form without applying damage to the attacker.
+
+- Advance Call Mech through its authored placement and replacement chain.
+  Reconstructed headless timers reach the existing owned-body factory, then
+  the authored landing search and health nodes use the new mech's position.
+- Run Call Mech's two pilot-entry MoveTo states through the swept player
+  mover using reconstructed duration-based speed. The first phase's
+  arrival starts the second through its authored finish plug.
+- Route static Match commands to the replacement mech after Call Mech entry.
+  The existing owned VM handles fire and the pilot VM keeps its clock. The
+  returning mech's authored 016C dispatch restores pilot input.
+- Bind the initial owned mech after normal D.Va selection. Manual Talon NPCs
+  target the player's active combat body. Lethal mech damage uses a
+  reconstructed trigger for authored 016C return and static pilot placement.
+- Use the initial controlled mech's VM and pose for Matrix, melee and
+  Boosters contact. Matrix uses the existing reconstructed box consumer
+  and projectile filter. The controlled mech receives its scale and throttle
+  inputs from its own body context.
+- Run Self-Destruct from the normal controlled mech. Its authored return
+  detaches the existing shell, and its graph resolves the fuse, radial
+  damage and retirement. The shell retains momentum and survives pilot death.
+- Apply Call Mech's authored landing impulse to surviving targets through the
+  swept mover. The host reconstructs the radial direction and shares the
+  existing velocity handling with Boosters.
+- Apply Self-Destruct's two authored impulse rings to survivors using the
+  shell's position and the same reconstructed radial velocity handling.
+- Advance the controlled mech VM on every recovered movement pose. A long
+  command gap advances neutral timers without applying unposed damage.
+
+- Feed D.Va Self-Destruct's authored target and distance arrays from static
+  capsule range, teams and cover. The 0B2F graph controls charge consumption,
+  fuse and per-target damage. Mech detachment and pilot ejection remain open.
+
+- Consume authored D.Va Boosters contact damage while 047E tracking and damage
+  states run. Reconstructed local-to-world placement, capsule overlap, static
+  visibility and per-activation target memory feed the shared health path.
+  The authored impulse expressions now drive collision-backed player and NPC
+  motion under a reconstructed direction and velocity policy.
+
+- Validate the initial D.Va return message against the live owned mech selected
+  by the pilot's authored control state. The static host checks the sender at
+  queued dispatch. Actual player input handoff and ejection remain open.
+
+#### D.Va five-NPC incoming services (uncommitted progress)
+
+- Adapt the reviewed Enforcer manual controller predicate/health context and
+  Assassin1157 target/pin/health clock into the private lane. Actual-resource
+  first hits now work against both bodies:20/15,2/1,100/95,25/20 and5/2.5 for
+  Trooper/Enforcer/Sniper/Assassin/Heavy. Native AI allocation/navigation and
+  complete weapon/special behavior remain open.
+- Share pin control with existing interruption; cover release, team/LOS/range,
+  source removal/death/failure, target leave/body replacement and real Flashbang
+  recovery. Fix a queued release-animation start that previously blocked a new
+  target forever. Declare the inter-object ordering as server reconstruction.
+- Register pin/context/input/pitch and health-clock causal storage. NPC aim pitch
+  is consistent between shots, spatial queries and movement. Ordinary stop keeps
+  launched Sniper projectiles; explicit removal retires them.
+- Eleven focused cases PASS111.749s; separate projectile stop PASS3.921s and
+  four-gun automatic control recovery PASS9.911s. Final536 combat/mover/physics
+  checks PASS754.636s;53 storage checks PASS213.099s. Counts overlap; the later
+  four-gun case ran separately. Ruff/diff pass. Initial failures and fixture adapters are
+  documented in `docs/DVA_MANUAL_NPCS.txt`. No commit or parent integration.
+
+#### D.Va live role16 flight and authored eyes (uncommitted progress)
+
+- Adapt C1BA7545 into existing causal Mod scope storage, keyed by activation
+  generation. Apply pitched3D flight friction/acceleration and upright capsule
+  sweeps, suppress authored sideways thrust and restore ordinary gravity after
+  scope exit. Native pre-pose quaternion/view and multi-role arbitration remain
+  explicit gaps; no persistent mover/VM fields were added.
+- Compare6048 complete native C42B70 velocity cases (max error1.91e-5) and864
+  native context cases (max error4.77e-7), with declared engine result adapters.
+  Fifteen Boosters tests PASS37.659s;38 eye/control/move-to cases PASS67.813s.
+- Correct mech/pilot/McCree combat eyes from raw FirstPerson XML for shooter
+  origins and player targets. Four scalar/low-cover cases PASS8.001s. Actual
+  pilot crouch remains blocked by026A state38's retained gravity0 scope;
+  preserve that failure as unresolved initial possession/lifecycle evidence.
+- Initial519-case broad run518pass/1 stale Genji miss-fallback assertion. HEAD
+  mover functions reproduce the same failure: earlier live spatial queries now
+  yield the authored15m endpoint. Correct the expected endpoint; final523
+  combat/mover/physics cases PASS550.729s and53 VM/alias/server storage cases
+  PASS177.339s. Ruff/diff pass; counts overlap. Initial flight/eye fixture
+  failures are retained. See `docs/DVA_FLIGHT.txt` and `docs/DVA_EYE.txt`.
+- Re-run all-five NPC nominal primary inputs against both bodies: Trooper20/15,
+  Sniper100/95 and Heavy5/2.5; Enforcer/Assassin remain0 after300frames at6m.
+  The private lane still lacks their manual controller/pin target services;
+  Assassin's nominal button20 probe is not acceptance of its actual pin skill.
+- Contact damage/knockback, complete forms/control/ults/NPC/status/defenses and
+  full static/client acceptance remain open. No commit or parent integration.
+
+#### Shared notification and ability exit lifetime (uncommitted progress)
+
+- Reproduce both parent-reported canceled-notification failures locally. Clear
+  canceled CHECK/CHANGED coalescing markers and skip ending variable watchers;
+  retain the lane's receiving-clock behavior for foreign body variables.
+- Queue outgoing Ability scope cleanup before arbitration unlink. This matches
+  the reviewed parent method and is explicitly a server reconstruction of
+  cross-object ordering. No new VM storage fields or arbitration phase.
+- Three focused lifetime regressions pass, including join CHECK cancellation.
+  Actual pilot two-empty-magazine/reload/recovery test PASS7.462s;53 VM/alias/
+  server storage tests PASS169.237s. Final454 combat/runtime cases PASS462.026s;
+  Ruff/diff pass. Counts overlap; the added CHECK/pilot cases ran separately.
+  Complete static/client gate remains open. See `docs/DVA_NOTIFICATION_LIFETIME.txt` for setup failures and
+  evidence boundaries. No staging, commit or parent integration.
+
+#### D.Va native flight context (uncommitted progress)
+
+- Identify Boosters' C1BA7545 state as movement role16, with pre-pose C48A00
+  and post-velocity C42B70. Recover context arithmetic into `game.flight`;
+  it is not wired into the live mover yet.
+- Compare864 original-instruction context cases with explicit look/numeric
+  result adapters: all pass, maximum error4.77e-7. Pitched forward is retained;
+  authored parameter0 suppresses sideways input. Clarify the older strafe test
+  covers only the partial numeric-row backend. See `docs/DVA_FLIGHT.txt`.
+- Complete role lifetime, movement phases, collision/contact and full static/
+  original-client acceptance remain open. No commit or parent integration.
+- Existing11 Boosters regressions PASS24.649s; Ruff and diff checks pass.
+
+#### D.Va expired ability presses (uncommitted progress)
+
+- Reproduce released Boosters input automatically recasting at cooldown expiry.
+  Adapt the reviewed parent fix: retain the original timestamp through unready
+  gates and consume only a selected press once starting is allowed.
+- Verify expired/near-ready/held/fresh input with actual Boosters and pilot Call
+  Mech resources, plus Micro Missiles' absent buffer window. Final55 focused
+  cases pass; the six resource tests cover nine scenarios. Complete abilities,
+  control/charge lifecycle and native input phase/prediction remain open.
+- Clarify that the verified possession getter reads component44+D8; normal
+  captures with three equal fields do not prove transient-control semantics.
+- Broad checking exposed a melee reuse fixture pressing345ms before readiness.
+  Keep its damage assertions, wait for the real cooldown, and add both-form
+  expired/near-window regressions.11 recovery cases pass; initial failures remain.
+- Review the parent throttle fix against this lane's existing implementation:
+  245float32 comparisons agree;1600 original native cases pass again. Actual
+  reverse/strafe/next-frame scope restoration passes without changing mover code.
+- Final452 combined cases PASS481.490s with the final selected-press guard and
+  corrected fixtures. Ruff/diff pass. Native/controller/lifecycle/full static and
+  original-client acceptance remain open; all changes remain uncommitted.
+
+#### D.Va pet selector and initialization registry (uncommitted progress)
+
+- Implement F76C486C with explicit linked-component inputs. Original scalar/helper
+  execution matches1872 cases; the native type table identifies STUPetComponent.
+  Keep its query/result/subscription semantics separate from direct ownership.
+- Declare the canonical reconstructed mech factory's pet-owner field separately.
+  Register both VMs before graph initialization, withdraw failed registrations,
+  and retire children after a late pilot initialization failure.
+- Execute actual pilot charge/cost save and mech charge-return consumers through
+  live components. Native factory writes/wire ownership, possession, complete
+  transformation/ultimates and full static/client acceptance remain open.
+- Validation:1872 native comparisons,443 combined cases PASS423.246s and53
+  storage cases PASS168.930s; focused12 body-variable cases PASS86.080s. Groups
+  overlap. Ruff/diff pass. Return-message routing during control remains open.
+
+#### D.Va foreign member variables and subscriptions (uncommitted progress)
+
+- Resolve live body entity-variable slots and target-hero ruleset defaults.
+  Actual pilot charge/cost expressions read the child VM, and its authored Stack
+  subscribes to the child's flag and updates its real output variable.
+- Keep cross-body watcher notifications in the receiver's clock domain. Retire
+  subscriptions on either side without overwriting retained variable history.
+- Preserve explicit component identities in passive snapshots and server bridges;
+  standalone VM captures name external dependencies. Arbitrary foreign storage
+  remains rejected. Possession, complete charge transfer, both ultimates and full
+  static/client acceptance remain open.
+- Validation:431 combined cases PASS363.363s; later failed-VM cleanup covered by
+  51 combat/VM cases PASS12.633s. Existing45 VM/alias and8 server snapshot tests
+  pass across the recorded groups. One uninitialized clock fixture was corrected;
+  initial failure logs remain. Ruff/diff pass; groups overlap.
+
+#### D.Va child queries and cross-body message delivery (uncommitted progress)
+
+- Bind owned mech VMs to live entity/current-body and spatial queries, including
+  passive storage and retirement. Unbound NPC query services remain unknown.
+- Collect the actual pilot message recipient group and route authored007A to the
+  mech; route the mech's016C through owner/current-body lookup back to the pilot.
+  Capture VM identities and discard deliveries after source or recipient retirement.
+- These lifecycle services preserve existing VM clocks. Possession, cross-body
+  variables, demech, full ultimates and complete static/client acceptance stay open.
+- Validation:384 combat regressions PASS291.062s;53 storage cases PASS187.077s;
+  63 focused cases PASS85.292s and1 failure-isolation case PASS1.809s. Groups
+  overlap. Ruff/diff pass. No client was started and no commit was created.
+
+#### D.Va child controller queries and clock domains (uncommitted progress)
+
+- Resolve direct ownership during child graph initialization and live primary
+  controller/current-body queries, preserving the distinction from possession.
+  Roll back a failed VM initialization before publishing the actor.
+- Preserve the creating VM frame domain through world updates and death using
+  an explicit offset. Verify authored cleanup waits with both earlier and later
+  command clocks; include new fields in both passive storage contracts.
+- 369 combat regressions and53 storage cases pass. Eight placement tests pass,
+  including all five actual NPCs; their mover records exactly match the parent
+  extraction. Possession, full static acceptance and client acceptance stay open.
+
+#### D.Va owned mech creation and cleanup (uncommitted progress)
+
+- Normal hero selection now executes the actual026A creation action, returning
+  a fresh0407 body with authored300 health/300 armour, mech graphs, explicit
+  controller/source identities and observer creation records. A normal enemy
+  rifle command damages its armour. Possession is not yet implemented.
+- Run the authored303B predecessor on the previous owned body before replacement;
+  preserve its immediate or flag84210s+3s cleanup. Reuse common body retirement
+  for pilot death, switch and departure; prevent stale damage/observer updates
+  after removal. Manual NPC cleanup retains its separate selection semantics.
+- Register ownership and the Match-bound lifetime world in passive storage.
+  Native factory flags, cross-body VM services, appearance/control, ejection,
+  landing damage and full lifecycle/ultimate/NPC acceptance remain OPEN. See
+  docs/DVA_FORM_LIFECYCLE.txt. All work remains uncommitted under the static gate.
+  Final359 combined cases,53 storage cases and the dedicated owned-body storage
+  check pass (counts overlap); Ruff/diff pass. The initial Matrix fixture failure
+  and its registration correction are recorded in the lifecycle evidence.
+
+#### D.Va static placement policy (uncommitted progress)
+
+- Execute actual026A/node38 placement input with authored cast/clearance values
+  and reconstructed static ground/slope/capsule/body-overlap checks. Write its
+  landing-point output and follow the authored success/failure plugs; preserve
+  previous output on rejection and gate inactive/ending/dead or retired owners.
+- Normal charged-ultimate input reaches the placement result. Full mech lifecycle,
+  possession, landing damage, native filters/preview/multi-probe behavior and
+  complete Call Mech acceptance remain OPEN. See DVA_FORM_LIFECYCLE.txt.
+  Seven focused placement tests and85 combined regressions pass; Ruff/diff pass.
+  Keep all changes uncommitted until complete static acceptance passes.
+
+#### D.Va creation/placement spatial queries (uncommitted progress)
+
+- Recover five distinct spatial scalar interfaces used by the actual pilot
+  creation and Call Mech placement inputs. Preserve failed destinations, null
+  selector fallback, uint32 identities and watcher ordering. Keep native engine
+  helper results explicit and reject retired contexts;021D01CD selects a
+  transform's third basis rather than its translation or a quaternion.
+- Pass1,920 original scalar comparisons with declared engine-result adapters,
+  eight source tests including actual026A inputs, and86 related query/VM/form/
+  control regressions. Counts overlap; Ruff/diff pass. See
+  docs/DVA_FORM_LIFECYCLE.txt for native scope and unresolved world operations.
+- Add live Match pose queries using an explicit unparented/unit-scale model-root
+  reconstruction and native mover-origin/look arithmetic. Current stance,
+  spring, yaw/pitch and target lifetime are read afresh; actual026A inputs and
+  five real NPC definitions are checked. Include the new context/callback in
+  both passive storage formats. Original look440 and mover-origin180 cases
+  match byte-for-byte; model hierarchy/state selection remain unproven.
+  The initial233-case group had one missing storage registration error; after
+  correcting it,53 storage cases and10 focused pose/control/recovery tests pass.
+  Retain the initial failure log; do not label that broad run all-green.
+- Placement collision, body creation and possession are not implemented.
+  Complete static and original-client acceptance remain
+  OPEN. This work remains uncommitted under the complete-static-before-commit gate.
+
+#### D.Va control resources and interruption timing (uncommitted progress)
+
+- Adapt reviewed64bf71c Flashbang hit-resource/deadline, input/channel stop,
+  route-pause and cleanup primitives. Run release callbacks before remaining
+  channel stops and synchronize ended Boosters movement rows before the next
+  pose, avoiding an extra forced-throttle frame. Keep parent console controls
+  and automatic NPC targeting outside this adaptation.
+- Reuse reviewed2ca9178 native distinct-input joins, nested producer tracking
+  and pending-state teardown. Preserve the lane's ruleset/ownership fields;
+  include join fields and control deadlines in passive storage observations.
+- Execute actual grenade inputs against both D.Va forms:damage/control,
+  suppression/recovery, Matrix absorption/rear-hit interruption, Boosters stop,
+  active missile-burst interruption/cooldown, range/wall/team, mode duration
+  and replacement. Three actual NPC primary sources suppress and recover after
+  explicit input; autonomous recovery and native immunity remain open.
+- Early windup/minimum-hold interruption still observes cooldown0 and is not
+  accepted as native-correct. Full224E/status/defense/NPC/lifecycle/ultimate and
+  original-client scopes remain OPEN. See docs/DVA_CONTROL.txt for proof limits.
+  Final217 combat/VM/hero/NPC/route regressions and52 passive storage tests pass;
+  a further actual-NPC control method passes3 source cases. Counts overlap.
+  Keep this work uncommitted until the user's complete static acceptance gate.
 
 #### Authored NPC primary attacks against both D.Va forms
 

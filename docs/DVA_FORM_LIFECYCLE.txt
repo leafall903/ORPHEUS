@@ -1,0 +1,858 @@
+D.Va form lifecycle: build104319, incomplete
+==========================================
+
+The complete static gate remains OPEN. No additional commit or integration is
+allowed before the complete hero/NPC matrix passes. Owned mech creation and
+static placement now have reconstructed consumers. Possession, controlled mech
+movement, ejection and complete native lifecycle fidelity remain open.
+
+Authored pilot026A path
+----------------------
+Node7 and node15 are B6E3C77D actions requesting entity0407, with direct
+component43 owner F7262B36 and output instance variable38. Node7's position is
+8CBDD81C(self) minus (0,.75,0); node15 reads instance6472. Both orientation
+inputs use021D01CD(self). Their incoming links are PlayScript nodes211/212.
+Initial creation therefore also depends on those invocations, not just the
+entity action. Do not replace this path by selecting0407 in a test fixture.
+
+Charged Call Mech reaches placement state43DB06B1 at node38. Its explicit
+m_6647ED22 input is linked from its on-begin output. Success/F6955E81 stops
+that state then follows node93; failure/425337C6 stops it then follows node100.
+The cast origin uses0BA27A07, body scale, and the normalized horizontal
+projection of2EDEE064. The primary cast direction is(0,-1,0), length4 times
+body scale; CDEB2148 uses021D01CD. The five spatial scalars below are distinct
+engine queries, not interchangeable aliases for the mover's feet or aim.
+
+Recovered scalar interfaces
+---------------------------
+Class          Scalar RVA  Engine helper RVA
+8CBDD81C       CE6430      D16460
+0BA27A07       CE62F0      D22D50
+2EDEE064       CE1710      D20320
+021D01CD       CCDD80      D1B5E0 (third transform basis, helper output+20)
+2200A66D       CC94D0      D18780
+
+All five first require a native instance and its+30 namespace. Unavailable
+context leaves the caller's destination unchanged and skips the selector and
+watcher mark. With context,1B7FD20 marks a present watcher before selector
+evaluation. Missing/failed m_entity falls back to null entity0; scalar arrays
+use their first element. Entity IDs narrow to uint32. Plain integers, assets
+and booleans are not entity handles. The distinct helper runs even for0.
+Only a successful helper writes a Vec3 result. In particular,021D01CD reads
+the third basis at+20 from its helper's four-vector transform. It does not
+return that transform's translation or a quaternion.
+
+spatial_queries.Context exposes these distinct engine helpers explicitly.
+Unknown service remains strict, known helper failure preserves destination,
+and teardown/context replacement during evaluation rejects stale output.
+Match-backed BodyWorld now reads live player poses and NPC standing poses.
+The unparented model root is reconstructed at stored feet, with the body's
+wire yaw quaternion;021D01CD returns its forward basis.2EDEE064/2200A66D use
+the current player mover pitch and quaternion; NPCs use their rounded wire yaw
+and zero pitch.8CBDD81C uses current stance pogo and spring with world up and
+unit scale.0BA27A07 returns the reconstructed model root. Queries read afresh,
+exclude gone/replaced/removed bodies and preserve destinations for missing
+targets. Retired BodyWorld instances lose the Match namespace.
+
+The native arithmetic below is separate from that host reconstruction. Native
+model/component lookup, parent transforms and query-specific state selection
+remain open. This mapping only describes currently represented unparented,
+unit-scale Match bodies, not native model/eye selection for every entity type.
+The new context and callback are included in both passive storage exporters.
+
+Native execution evidence
+-------------------------
+Lane-local probe_spatial_queries_native.py executes all five original scalar
+functions from the immutable client-memory capture.1,920 cases pass across
+instance/namespace availability, watched/unwatched, missing/failed/typed/array
+selectors, helper failure/success and two distinct vector results. A transform
+adapter fills all four bases with distinct values so an incorrect021D01CD
+offset cannot pass. Original scalar control/conversion/vector assignment runs;
+adapters supply the namespace getter, literal/failed selector, watcher storage,
+engine helper results and variant selector disposal. This is not execution
+proof for any of the engine helper coordinate calculations.
+
+Eight source tests pass, including the actual026A/node7 creation position and
+node38 cast origin/direction/orientation/length under explicit engine inputs.
+The larger86 query/expression/budget/both-form/control regression group passes.
+These counts overlap. Ruff and diff checks pass. No client was started.
+
+Live helper arithmetic follow-up
+-------------------------------
+C5E040 converts stored signed16 pitch to radians, negates it, makes
+(0,sin(angle),cos(angle)) and rotates by C62760's quaternion. C62760/C62CB0's
+unparented path and original CRT sine/cosine instructions execute unchanged in
+the new probe. The emulator selects the original CRT SSE dispatch via its CPU
+feature data; the AVX/FMA dispatch is not tested. All440 direction cases match
+production byte-for-byte across signed pitch limits and40 quaternions, including
+roll and non-axis rotations. No look-calculation adapter supplies an answer.
+
+C371D0's mover-state branch adds its position getter to BBF060's up-vector
+offset. BBF060 selects stand/crouch pogo, multiplies by min(scale,1), adds the
+state spring and scales mover up. All180 original branch cases match byte-for-
+byte, including crouch, spring, scale boundaries and nonvertical up vectors.
+Adapters supply only the obfuscated component1/component31 pointer extraction
+and the selected state's decoded position getter. Native selection outside
+that declared branch, other helper fallbacks and model hierarchy remain open.
+See lane-local spatial-pose-native-validation.json and probe_spatial_pose_native.py.
+
+Live source checks cover both forms' fresh model/mover/aim distinctions,
+stance/spring, unknown/controller/replaced identities, retirement, and actual
+026A creation/cast expressions using the current pose. All five real manual
+NPC definitions are queried from both forms; positions update and queries
+retire after explicit removal. These are pose-service checks, not landing,
+Call Mech, NPC attack/AI or original-client acceptance.
+
+Executed verification: the initial233-case combat/VM/pose group had232 passes
+and one storage error for the newly added BodyWorld context. Both exporters
+now register its complete fields and callback. The failed case and all live
+pose checks pass in a10-test recovery run (20.715s, including actual NPC control).
+All53 VM/alias/server storage cases pass (179.046s), including causal context
+availability. The original failing logs are retained; no233-case all-green run
+is claimed. An earlier30-case spatial/form group passed before the added
+five-NPC pose case. Counts overlap; lint/diff checks pass on current source.
+
+Remaining world frontier
+------------------------
+43DB06B1 has registrations594(priority1) and1706(priority2), constructors
+C8DCD0/8F5F10, base constructor8F2310 and derived8F23E0, tables261EEC8/261F0C0.
+Client initialization8E9830 resets preview results and installs seven output
+bindings through8FEA60.8E9A10 updates preview data usingCB65E0 andCA6560;
+8E9C60 exports preview slots. This does not recover authoritative server
+success/failure, all twelve authored output fields, or native collision filters.
+B6E3C77D is absent from the captured client's registered_records, consistent
+with its server action role; its action success/failure/lifetime semantics have
+not been accepted from client instructions.
+
+Next implementation must complete native model/pose and placement services,
+complete created-body services, actual possession and detachment.
+Then verify initial spawn, charged summon, landing damage, failed
+placement, cancel/control/death, nonlethal demech and Self-Destruct/ejection/fuse
+against players and all five NPCs. Fixture form selection remains separate.
+
+Reconstructed static placement
+------------------------------
+BodyPlacement consumes the actual026A/node38 m_6647ED22 input while active and
+alive. Its BodyWorld service evaluates the authored downward primary cast,
+length4, clearance radius.90000004, height2 and maximum slope45. The policy
+uses MOVER static collision, excludes NOT_GROUND surfaces, checks an upright
+clearance capsule against static shapes and rejects overlap with other upright
+player/NPC capsules. The owner and authored ignored entity IDs are excluded.
+Bodies on either team block; this is a declared policy, not native filter proof.
+
+An accepted result writes only m_2D3A077F(instance1626) then follows the authored
+F6955E81 success plug. A rejected result preserves the previous destination
+and follows425337C6. Both authored plugs first abort the placement state.
+Inactive/ending/dead owners do not query. Owner/context teardown during the
+service rejects stale results. The state adds no stored gameplay fields and
+is registered with the passive VM exporter, including pending abort capture.
+
+The native .097 filters, alternate casts, full multi-probe placement search,
+hardpoints, orientation-dependent shapes and the other server/preview outputs
+are not recovered. This policy supports the canonical026A/node38 primary cast
+only. It does not synthesize preview fields or possess a mech.
+Normal charged ultimate commands now reach and leave placement with a real
+floor point; the player still has040A afterward, explicitly proving that the
+complete Call Mech lifecycle is not accepted by this test.
+
+Verification:7 placement tests pass (10.449s), including clear floor, void/far
+ground, wall/ceiling clearance, both-team body overlap, authored ignore identity,
+inactive/dead gates, pending-abort passive storage and normal charged input.
+The combined85 placement/spatial/both-form/control/driver/ability tests pass
+(77.470s). Earlier18 placement/scalar/pilot tests pass. Counts overlap; Ruff
+and diff checks pass. The first fixture inherited spawn yaw and was corrected
+to explicit yaw0 before the successful execution; no production yaw was forced.
+
+Owned0407 creation and authored cleanup
+--------------------------------------
+B6E3C77D now dispatches to an explicit BodyWorld creation service. The factory
+supports the two canonical026A actions at7/15, evaluates their real definition,
+direct owner, position and forward vector, and requires prepared0407 graphs,
+mover and303B cleanup graph. Missing inputs refuse allocation. Identity comes
+from the match's monotonic body allocator; owner controller and creating body
+are separate stored Bot fields. Team follows the creating player; upright yaw
+follows the evaluated forward vector. Pools come from0407's actual0033 schema:
+300 health plus300 armour, with aggregate script health600.
+
+Normal D.Va hero selection now executes this action and creates one0407 actor.
+Its weapon manager and050A/047E/02CC/1128 graphs are mounted on a separate VM.
+The source pilot's direct component43 owner query resolves that actual actor's
+controller. The body joins health, target geometry, observer creates and VM
+timers; no fire input or AI is synthesized. A normal enemy rifle command deals
+15 armour damage to the newly created mech in a controlled body shot test.
+This does not accept mech-controlled weapons, input, movement or attribution.
+
+The actual211/212 PlayScript predecessors now invoke303B on the previous owned
+body using the existing loaded-graph invocation core. A reconstructed523EE38D
+consumer retires that body; its original server implementation is unverified.
+Flag842 false removes it before the replacement creation; flag842
+true runs the authored10s wait followed by3s before retirement. These timings
+come from303B, not from a factory timer. Conditional transition/early exit and
+actual Self-Destruct behavior remain unverified. The VM update loop tolerates
+self-removal and suppresses late observer snapshots of retired actors.
+
+Pilot death, hero switch and departure retire bodies with that exact controller
+and source-body identity. Common retirement destroys script state, flights,
+pending records, health/history/control maps and creates explicit destroy
+records. Manual NPC removal excludes these script-created bodies. A stale
+target batch cannot recreate their health after removal. Owned corpse cleanup
+and future detached ultimate lifetime still need their complete native policy.
+
+This is a reconstructed factory using the existing combat-body backend, not
+the absent original server action implementation. CA734729/E5312022 and other
+native factory flags, arbitrary definitions, skin/owner wire presentation,
+model hierarchy, cross-body message/variable services, possession, moving or
+detached actors, nonlethal demech, landing damage, full ultimates/resources and
+all-five-NPC bidirectional combat remain OPEN. The child uses BotWorld lifetime
+services; its complete native ownership/query/controlled-body services are not
+accepted merely because the actual graphs are mounted.
+
+Verification: the final359-case combat/placement/query/VM/NPC/PlayScript group
+passes (276.388s), plus53 VM/alias/server storage cases (180.927s). A dedicated
+owned-body storage test also passes (33.587s): it selects D.Va through the
+controlled encrypted-message root, observes owner mutation in the stored hash,
+then switches away and captures the retired graph. It does not start a client.
+The focused15 creation/placement tests pass; these counts overlap.
+
+The first358-case broad run had one Matrix fixture failure: its patched target
+list contained a Bot never registered in Match.bots. The fixture now registers
+that live body for the body-before-Matrix case. Damage liveness checks and the
+original assertions remain in place. The initial failure log is retained.
+An earlier creation position assertion used a helper that moved the pilot
+after creation; the initial-spawn test now compares at the actual birth pose.
+The storage test initially called a journal effect outside a root and now uses
+the real controlled message entry. Current Ruff and diff checks pass.
+
+Created-body controller queries and VM clock domains
+--------------------------------------------------
+The child joins the live body registry before BotScript initialization, so
+F726 direct-owner queries in its actual manager resolve the controller during
+initialization. Failed initialization removes the pending body before allocator,
+health or observer-create publication. BotWorld carries explicit body/match and
+lifetime-checked owner-query context; both passive exporters register it.
+
+DB742151 now resolves live controller/current-body relations in BodyWorld and
+created BotWorld. This reuses the documented CD1940/DA7F10 relation policy;
+no new original-instruction comparison was run in this step. Scalar selection,
+32-bit identity conversion, departure and replacement are tested. An owned,
+unpossessed mech returns Entity(0), while its F726 direct owner is the player.
+Actual026A/node20 CA861E44 inputs resolve controller and child respectively.
+CA861E44 remains an unsupported State: possession has NOT been implemented.
+Its server action was absent from the captured native registration inventory.
+
+The child VM is born in its source component frame domain. A stored clock_offset
+maps world ticks to that VM domain for live updates, death and death cleanup.
+Tests cover command frames500 and5000 against world tick1000, preserving actual
+303B10s+3s waits and separating script death_frame from world vitals.death_tick.
+Ordinary NPC offset remains zero. Offset mutation participates in storage hashes.
+Input/world/wire clock projection and epoch rollover still need full acceptance.
+
+Verification:369 combat/query/placement/VM/NPC/PlayScript cases PASS325.376s;
+53 storage/alias/server cases PASS200.628s. Earlier46 controller foundation cases
+PASS49.943s overlap. Eight placement cases PASS21.339s, including all five actual
+NPCs on both teams, near/far, authored ignore and retirement. The five explicit
+lane NPC mover records exactly equal the parent NPC-navigation extraction;
+../npc-mover-parent-comparison.json records body IDs and SHA256 provenance.
+The canonical38-record runtime was not modified. These are static fixtures;
+original hitbox/filter semantics, navigation/map deployment and client remain open.
+
+Two retained VMs, control/input transfer, owner/observer stream adoption,
+cross-body message/variable watchers, nonlethal demech and both ultimates still
+need implementation. These prerequisites do not accept the full hero lifecycle.
+
+Match-bound child queries and deferred cross-body messages
+--------------------------------------------------------
+Owned BotWorld now uses the same live Match entity/current-body and spatial
+contexts as BodyWorld. Its own capsule pose and the pilot's current pose resolve
+through actual scalar evaluators; source/target retirement removes availability.
+Ordinary unbound NPC worlds retain their unknown Match-query boundary. The
+bodyless BotWorld test/API form stores no invalid entity-query context.
+Both passive storage contracts include these contexts and callback identities.
+
+The actual026A/node43 recipient group [created mech, pilot] uses the collecting
+config interface in the compatibility message sender. Previously it went through
+the scalar evaluator and did not route the child. This reuses existing config
+iteration; it is not a new native implementation or full message-fidelity claim.
+
+Match delivery now captures the actual source/recipient wrappers for explicitly
+owned, match-bound bodies as well as shown player bodies. It validates registry,
+script identity and fault/lifetime at enqueue and delivery. Queued messages are
+drained outside the sending VM call stack and do not change either VM clock.
+Messages emitted during delivery stay in the next batch. Stale source/recipient
+bodies cannot deliver to a replacement. Failed child delivery retires that child;
+existing player failure handling remains in place. Ordinary NPC message routing
+and native cross-body variable services remain unsupported.
+
+Focused tests execute actual026A/node43 ->0276 message007A with parameter005B,
+observe its real receiving state, and execute actual0276/node5's
+owner->current-body selector ->026A message016C. They verify child removal on
+either side discards pending messages. The dedicated server snapshot also
+captures a pending player->child message and verifies its passive stable hash.
+Control transfer, two preserved body VMs, input/wire stream adoption, nonlethal
+demech, cross-body variable subscriptions and both complete ultimates remain OPEN.
+
+An inventory of the prepared runtime plus lane graph supplement found four
+CA861E44 uses:0232/node48 flags0/0/0;
+026A/node20 flags1/0/1;19EB/nodes3 and43 flags1/1/1 and1/1/0.
+The latter explicitly supplies a created body and self respectively. These uses
+are recorded in ../possession-authored-state-uses.json. They do not prove flag
+meanings, state-end restoration or native possession behavior; the class remains
+unsupported rather than silently treating hero reselection as control transfer.
+
+Intermediate verification:63 focused created-body/query/spatial/NPC-VM/message
+cases PASS85.292s;53 passive storage/alias/server cases PASS187.077s. A separate
+receiver-failure isolation test PASS1.809s. Ruff and diff checks pass. Final384-case combat/query/placement/VM/NPC/message/PlayScript regression
+PASS291.062s, including the pending owned-message server snapshot. These groups
+overlap; they do not constitute full static hero acceptance.
+
+The first51-case query run had one wrong typed-absence expectation and four
+errors: a test added a nonexistent Context field, and bodyless BotWorld fixtures
+could not construct a valid entity-query owner. The expectation now uses typed
+Entity(0), the context test uses namespace_present, and bodyless worlds retain
+no query context. The first63-case message run had two failures because026A's
+config-group recipients were not collected. The collector repair retained the
+actual node inputs/assertions; the corrected63-case group passes. Initial logs
+child-query-tests.txt and child-query-message-initial-failure.txt are retained.
+
+Foreign variable slots and native member consumers
+-------------------------------------------------
+BodyWorld and match-bound BotWorld now resolve member reads to actual live
+Component entity-variable slots. Watched reads register against the original
+Var rather than a copied value. Slots retain their Component identity, so equal
+local variable numbers in different VMs remain separate. Missing watched slots
+are allocated by the existing entity_var(create=True) policy. Unknown/retired
+bodies are known absent in a live Match; unbound worlds retain unknown services.
+Game-mode variables continue through the existing mode-variable service.
+Foreign ruleset defaults use the resolved body's hero/mode, after actual member
+storage fails, preserving the native-backed ruleset-target cache policy.
+
+Actual026A/node147 and148 expressions now read child #342 charge and #338 cost;
+actual026A/node208's Stack reads/watches child #842 and updates pilot #22319 when
+the child variable changes. These are the authored consumers, not substitute
+charge or ultimate handlers. Both VM snapshots name external subscription edges;
+the enclosing server capture bridges the namespaces and records both bodies.
+
+Variable-change notifications use each receiving component's existing time and
+retain FIFO/coalescing. This cross-domain timing policy is reconstructed; no
+original cross-body engine scheduler comparison was executed. Retirement drops
+foreign subscriptions on both sides, rechecks still-live receivers at their
+existing clock, and preserves retained source values/history. Player BodyScript
+retirement and common NPC/owned-body removal apply the same cleanup service.
+
+The storage format explicitly scopes standalone VM captures to their own stored
+values plus named external dependencies; it does not flatten or silently omit a
+foreign VM. See BODY_VM_SNAPSHOT_V1.txt. Existing strict rejection of arbitrary
+foreign object storage/extra roots remains in force. No value/output callbacks
+execute during capture, including the two-namespace server test.
+
+This does not accept possession, foreign writes/bindings, every native VM lookup,
+controller selector F76C486C used by0276's charge-return expressions, complete
+charge transfer across forms, state-end flags, demech, either ultimate or full
+static/client combat acceptance. The actual017/133 return path still requires
+its controller service; no guessed selector result was supplied.
+
+Native F76C486C frontier (offline capture only)
+Registration490: constructorD08720/in-placeD0B030 installs table2662E40;
+scalar+20 isCE2CF0 and its helper isD1BEE0. The scalar evaluates its configured
+entity, converts through originalF64C20 and wraps the helper result through
+F66C80. The helper resolves the entity through the engine registry; missing
+entity/component paths use the native fallback word and environment observation.
+A present component observes its+20 dependency object and returns uint32 at+D8.
+The component mask builderBD3DF0 writes100/FF/8/1. The component-table decryption
+and the actual meaning/producer of+D8 have not been recovered or validated.
+This is distinct from F7262B36's component43 encrypted owner getter and must not
+be aliased to it merely because current pilot/mech graphs have related uses.
+Disassembly evidence is in controller-selector-*-native.txt beside this lane;
+no emulated comparison or live Match binding forF76C486C is claimed here.
+
+Verification for foreign slots/subscriptions
+Final431 combat/query/placement/VM/NPC/message/PlayScript/runtime/expression/
+ruleset tests PASS363.363s. The later failure-path cleanup change is covered by
+51 combat/NPC-VM/failure tests PASS12.633s, including three controlled exception
+sites (live advance, death message and death timer); the failing VM disconnects
+its subscriptions before the backend drops it. These groups overlap.
+
+The initial49 body-variable/VM/alias cases passed65.044s. The subsequent14-case
+server/body-variable group had13 passes and1 clock-fixture error203.450s; the
+clock fixture had uninitialized instances, so its pending event correctly never
+drained and exhausted the component update budget. Initializing those instances
+fixed the fixture; the isolated clock case passes1.623s and the final431 group
+includes it. The failed14 and430-case logs remain, with the latter showing only
+that same fixture error349.732s. No budget guard or notification assertion was
+removed. A separate target-hero ruleset/override/retirement case PASS1.887s and
+is included in final431. Existing45 VM/alias storage cases passed in the49-case
+run, and all8 server snapshot cases passed in the14-case run. Full-static and
+original-client acceptance remain OPEN. Ruff and diff checks pass.
+
+F76C486C pet-component selector and initialization namespaces
+------------------------------------------------------------
+This supersedes the earlier unimplemented F76 frontier for the declared inputs
+below. entity_link.py implements scalarCE2CF0/helperD1BEE0 with explicit host
+context/lookup and separate component field/dependency callbacks. Missing
+instance/interface preserves output; missing entity or component writes typed
+Entity(0). A missing entity observes environment channel0 or fallback46 when a
+hub exists. A present component observes+20 and reads uint32+D8. This differs
+from F7262B36's missing-entity failure, +18 dependency and encrypted owner getter.
+
+The originalF52746-F5275D hash-to-component branch maps2BD49D74 to48hex. OWLib
+and0407 XML identify that hash as STUPetComponent; BD3DF0's original100/FF/8/1
+mask outputs address that same runtime index72. 040A lacks that pet definition.
+The query is therefore not silently aliased to component43/direct ownership.
+
+Original instruction validation:1872 selector/context/entity/component/watch/
+hub/value cases match the source result, success flag and dependency ordering.
+CE2CF0 executes1872 times, D1BEE0/F66C80 each936, F64C201008 and BD3DF0624.
+Adapters provide instance/engine/namespace/entity lookup, literal/failed config
+evaluation, encrypted component-table pointer storage, dependency hub storage
+and synthetic variant disposal. The original direct+D8 field load, presence
+branches, conversion and observer routing execute unchanged. This does not prove
+native component decryption, original factory writes, wire ownership or gameplay
+meaning of other component fields. entity-link-native-validation.json records it.
+
+The reconstructed canonical026A B6 factory now stores its evaluated owner input
+independently in bot.pet_owner before child initialization. This is an explicit
+host policy for0407's authored pet component, NOT recovered original server
+factory code. Unknown component fields on other bodies remain unsupported.
+BotWorld binds F76 only to declared pet field inputs. Changing direct bot.owner
+alone does not change this pet query. Ordinary NPC worlds remain unbound.
+pet-link-host-policy-evidence.json records XML/OWLib hashes and the native branch.
+
+Match.body_components registers match-bound VMs before graph initialization,
+then wrapper publication preserves those same Component identities. Foreign
+slot/default/VM-presence queries can resolve a creating pilot while its
+player.body_script is stillNone, or a child while bot.body_script is stillNone.
+Both constructors withdraw failed registrations; late pilot initialization
+failure also retires children created earlier in that initialization. Retirement
+and failed bot live/death/timer paths unregister exact component identities.
+The registry, separate pet field and BotWorld query context are registered in
+passive server/VM storage; no transport schema or create/possession wire changed.
+
+Actual static consumers now execute026A148->147 to save child338cost and342charge
+into pilot7351/2511, then0276/node133 restores the saved charge through
+F76->current body->foreign2511. The focused round trip321charge/999cost passes.
+The initialization test resolves parent and child before wrapper publication and
+reads saved77.5. Independent direct/pet ownership, changed pet target, child
+snapshot failure rollback and late parent failure cleanup are tested.
+These are selected authored consumers, not complete ejection/charge/ultimate
+lifecycle acceptance. CA861E44 possession/control/stream adoption, physical
+transformation, native factory producer/wire policy, ultimate timing/damage and
+full static/client combat acceptance remain OPEN.
+
+Final verification for pet selector/initialization registry
+443 combined combat/query/placement/VM/NPC/message/runtime/PlayScript/ruleset
+cases PASS423.246s, including all current pet/rollback/charge-roundtrip cases.
+53 passive VM/alias/server storage cases PASS168.930s. Focused12 body-variable
+cases PASS86.080s, earlier39 created/query cases PASS142.649s, source72 selector/
+query/expression/runtime cases PASS3.029s and strengthened charge-roundtrip1
+PASS1.848s. Counts overlap. Original1872 native comparisons pass. Ruff/diff pass.
+No client, commit, staging, patch export or parent integration occurred.
+
+Control-return routing boundary
+The initial child0276/node5 and0B2F/node17 send016C through direct owner ->
+current body. In the current unpossessed fixture they resolve the pilot body;
+026A/nodes21/31 receive that message. No016C receiver is mounted in the initial
+mech VM. Its58-graph static058-reference closure also has no receiver, but graph
+0F9C is missing and static closure is not runtime activation/engine routing proof.
+A primary-body replacement would change these selector results. Before accepting
+actual transient control, establish primary/current-body versus controlled-body
+identity, control-state message forwarding and the original relationship fields.
+Do not infer that primary possession stays fixed or changes solely from this
+partial closure. control-return-routing-frontier.json records the concrete graph
+and selector evidence. CA861E44/5AFB02C7 native semantics, two-VM control/input/
+stream transfer and full ejection/charge/ultimates remain OPEN.
+
+Control investigation follow-up
+CA861E44 and5AFB02C7 both lack entries in the captured registered-node catalog.
+Their OWLib state fields are known, not their original server implementations.
+The missing0F9C reference is common graph01C7/node93's server-only PlayScript;
+its contents remain absent, not safely assumed irrelevant. The verified0AC
+getter returns component44+D8, while the wire model has three slots. Normal
+hero-switch captures make all three equal, so API label current cannot establish
+transient primary/current/view semantics. Clarified entity_queries.Possession's
+docstring; did not change its value or claim any input/control transfer.
+A separate parent-requested shared cooldown defect was reproduced/fixed and
+verified on both D.Va resource forms; see DVA_ABILITY_BUFFER.txt. Full lifecycle
+and native control/message routing remain open.
+
+Initial control-state lifetime (static host)
+Normal D.Va selection activates 026A/node20, state11, generation1, at frame1000.
+Its controller query evaluates to the player controller and var38 to the actual
+created 0407. Both VM components stay registered through normal match steps.
+Invoking authored 0276/node5 queues 016C. The control state stays active until
+the next body-message delivery drains it. Both VM identities survive that
+delivery, and the host primary body still names 040A.
+
+A separate fresh fixture injects 016C directly into the pilot VM with another
+player's body as sender. That injection also ends the same state generation.
+This is a receiver-level result. The probe bypasses transport for the injected
+message and does not establish that another player can produce it during
+gameplay. State exit alone therefore cannot attest to the returning body's
+identity. An eventual host handoff needs its own source and lifetime checks.
+The authored send in the first fixture was invoked explicitly, so it does not
+establish which gameplay event emits 016C during a real ejection.
+
+See ../initial-possession-state-evidence.json and
+../probe_initial_possession_state.py in the D.Va lane artifacts.
+Actual controlled input, mover ownership, presentation and ejection remain OPEN.
+
+Self-Destruct static damage
+The explicit 0407 body accepts physical input 0x20 through logical button 37
+and 0B2F/state0. The normal fixture's authored cost is 1540. Action 32
+consumes charge, and node 16's authored 3 s wait starts the detonation.
+On a 16 ms command clock, the blast resolves 187 frames after the press.
+Node 8 takes a local offset of (0, 1.3, 0) and the body-scale-adjusted radius
+of 20. The host fills 375 and 9326 with target entity IDs and distances
+using reconstructed capsule range, opposing teams and nearest-surface
+static cover. The host also samples the prepared Reinhardt A3C shield
+mesh for Self-Destruct. Each opposing visible shield is selected by nearest
+surface distance and uses the original node 24 expression with only the
+distance variable supplied by the host. The barrier proxy receives this
+damage without entering the authored body arrays. Body visibility is
+sampled before applying shield damage so a shield that breaks still
+provides cover for that explosion. Nearest-point sampling and shield pose
+are reconstructed. Native trace masks, other dynamic barriers and Call Mech
+barrier policy remain open.
+
+The authored graph iterates those arrays and computes damage in node 24.
+The core extends to 4 m and deals 1000. Outside the core, the graph uses
+50 + 850 * (outer radius - distance) / (outer radius - core radius).
+Node 22 applies the computed amount through common damage/health/death,
+and its finish starts the next authored iteration. No separate host fuse or
+damage curve is used. The temporary target data already uses ordinary VM
+variables, with no extra world timer or state layout.
+
+This path currently uses the explicit active mech's live pose and player
+attribution. Detached mech ownership, propulsion transfer, ejection,
+retirement, interruption while changing form, barrier and immunity policy,
+knockback and original-client acceptance remain open.
+
+The match now validates queued 016C delivery while 026A/20 is active. The
+queued sender must still be the script of the owned 0407 named by the live
+state's target expression. It must also belong to the receiving pilot's
+controller and body. Existing queued script-identity checks cover retirement.
+This is reconstructed host dispatch policy. Direct VM injection still bypasses
+it. The focused regression sends 016C through the queue from another player,
+then sends it via authored 0276/5 and checks that only the latter ends the
+active scope. Later transformation scopes and real command ownership remain
+open.
+
+Call Mech input after the explicit return route
+A separate static probe dispatches the current authored 0276/5 return to the
+pilot, waits 100 command frames, sets the observed 319.1999816894531 charge,
+and presses the actual ultimate command. At frame 1101 the 026A ability
+consumes the charge and activates states 15 and 79. Through frame 1380 neither
+the landing TrackTargets state 19 nor ModifyHealth state 20 has activated.
+The Wait on node 186 expires, the instance event queue empties, and the
+existing child is still the only owned mech. The immediate press
+at frame 1001 did not start the ability. This fixture invokes return directly,
+so it does not establish ejection. See ../dva-call-mech-after-return-warm.txt.
+
+Call Mech placement, creation and landing follow-up
+The pre-fix halt is at 026A/64, reached through the authored 0.2 s wait
+at node 12. The captured STU_54FEB21C variants have main vtables at
+261E338 and 261D060. Method 8E5A90 reads the delay selector at +E8 with a
+zero fallback and posts timer 1 through 1B714E0. C880C0 handles timer 1
+by requesting operation 1 through 1B712E0. The second variant has a
+conditional timer receiver at 8E5F50. This is partial native evidence.
+The headless host combines the zero-delay post and unconditional completion
+only at the three parameterless 026A sites 64, 65 and 84. See the captured
+disassembly in ../call-mech-native.txt and ../call-mech-native-end.txt.
+
+After explicit return and a charged pilot command, node 64 now reaches
+node 72, the existing 212/303B cleanup and node 15 replacement factory.
+The replacement has its authored 600 aggregate health and a fresh entity
+and VM. The authored 0.7 s wait at node 123 reaches landing search node 35.
+The position selector 71A87E92 with var38 now resolves the live owned mech
+at its static model root. The graph adds 0.5 m vertically, searches within
+2.5 m and passes its target array to node 36. The shared radial host supplies
+reconstructed capsule range, static LOS and team selection, excluding the
+source's owned mechs. Node 36 applies its authored 250 damage once.
+
+This path starts from a fixture that explicitly dispatches the authored
+return message. Real ejection, transferred control, ability release, landing
+impulse and native/client presentation remain open.
+
+Call Mech pilot entry follow-up
+Nodes 85 and 200 have fixed world-space destination expressions and no
+explicit m_speed. The host interprets their m_5BEFF040 values (0.3 and
+0.5 s) as travel durations and m_717EAFE7 (10) as the speed cap. It
+derives a fixed speed when the state begins, then uses the existing
+swept mover and its arrival and obstruction events. Sub-grid arrivals
+complete directly. This is a reconstructed constant-speed policy.
+Native easing, axis filters, collision recovery and presentation are open.
+
+The live command fixture advances the pilot by about 0.23 m from the first
+entry state. Arrival starts node 200 through the authored finished plug.
+In the tested pose the second destination coincides with the first and
+completes immediately. A wall placed after creation blocks the first
+phase and leaves node 200 inactive. The control interruption test injects
+the Flashbang hit effect through the combat service during active entry.
+The actual grenade fixture did not deliver a hit during entry and is not
+part of this acceptance evidence. The pilot's mover entry does not switch
+player input or body streams to the replacement mech.
+
+Call Mech static command handoff
+Successful completion of 026A/200 now binds the live owned 0407 already
+created by the graph. The host checks the active Call Mech scope and the
+mech selected by var38, controller and creating-body identity. This
+completion point and the binding are reconstructed. The next Match
+command feeds the existing mech VM's logical input edges and a swept
+0407 mover. The NPC timer path is suspended while those commands drive
+the VM. The retained pilot receives neutral frames for timers, keeps its
+original primary-body identity for authored selectors, and is excluded
+from combat targets while parked.
+
+Actual primary input hits a player for 22 across 11 Fusion Cannon pellets,
+with player hit notices. Forward input moves the mech without moving the
+parked pilot. The same mech's authored 0276/5 return restores pilot input
+and queues releases for the mech's held buttons. A queued 016C from an
+unrelated sender cannot release it. The stored binding, mover and buttons
+are causal snapshot data. Initial selection control, automatic ejection,
+detached Self-Destruct, incoming manual NPC targeting, owner prediction,
+command-gap behavior and the full controlled-form kit remain open.
+
+Normal selection and lethal return
+Initial 026A/20 supplies the target after both scripts have published.
+The initial bind uses the same host input route as Call Mech entry and
+preserves the primary 040A relation for graph lookups. This host bind is
+reconstructed. Actual normal-selection primary input hits for 22 across
+11 pellets. Manual NPCs resolve the controller to its active combat target.
+Trooper, Enforcer, Sniper, Assassin and Heavy deal 15, 1, 95, 20 and 2.5
+first-hit damage against the initial mech. Assassin pins the mech entity.
+
+Before the fix, the lethal 003E dispatch did not emit 016C on its own in
+the host. The new death bridge invokes authored 0276/5 after lethal damage
+and normal death script dispatch. At authenticated delivery the pilot
+reappears at the defeated mech's feet if the pilot capsule fits, then
+resumes input on the retained VM. Static placement and the death-to-send
+trigger are reconstructed. Actual enemy rifle commands defeat a mech after
+it has moved, the pilot retains 150 health, and a subsequent actual pistol
+command deals 14. Native launch, airborne duration, invulnerability, full
+charge transfer, self-destruct detachment and owner streams remain open.
+
+Return placement and target exposure
+The retained pilot body ID becomes a combat target again when control
+returns from the mech. Its target history starts a new exposure interval
+on the server tick that releases control. A hitscan or melee view before
+that tick cannot hit the re-exposed pilot even if the new pose history is
+still empty. Lethal and Self-Destruct paths both verify a rifle miss at
+one millisecond before return and 20 damage at the return boundary.
+The active combat body stays separate from the parked pilot.
+
+A low-ceiling collision fixture rejects the pilot capsule at the moved
+mech's position. Lethal and Self-Destruct return both retain the pilot's
+parked pose and original health. The fallback keeps the existing mover,
+so message delivery now synchronizes its active modifier rows before
+the first returned command. Rows from the closed 026A/70 scope remain
+valid through the return tick and expire on the next movement frame.
+Both lethal and Self-Destruct cases reproduce the stale row before the
+fix with the authored parked rows already tracked. Normal unobstructed
+return uses the mech pose. Exposure and placement are reconstructed.
+
+Thirty-two original mover cases execute the native active-row filter,
+index dispatch, scalar operation and downstream stores. The authored
+scope sets 11 and 23 to zero at priority 99. Index 11 scales gravity.
+Index 23 compares strictly against 1.1920928955078125e-5 and stores a
+separate byte at mover +0x4D0. BBF500 gates on that byte and another
+eligibility byte. CA55AD writes its inverse into a query parameter.
+The probe supplies baseline mover values, row timing and auxiliary
+eligibility. Another 56 native cases verify BBF500 and two callers.
+Active auxiliary rows are checked in list order and any veto rejects.
+The earlier CA5A74 fixture used the mover as a synthetic frame base.
+The actual CA5550 prologue reads its fifth argument at frame +0x4D0.
+C9ECE8 passes a separate evaluated boolean from the definition's
++0x130 config. In 96 caller-to-contact controls, changing the mover
+byte has no effect. The inverted caller boolean controls the bit-0
+veto, alongside a strict contact threshold. The config evaluator,
+earlier query result and contact fields are fixtures.
+
+A third BBF500 caller belongs to FBFF5DE7. The original registration
+and constructor resolve that type to vtable 266F270 and slot +0x70.
+Sixteen native branch controls verify the separate boolean at
+definition +0x118. A true value admits the state after BBF500 rejects.
+A successful BBF500 result skips evaluation of the override. The
+probe supplies typed config results, and the original scalar
+conversion runs. FBFF5DE7 is absent from the eight scanned D.Va
+combat graphs, so the override is not part of the authored return.
+Scene sweep and host integration remain open.
+See ../dva-native-parked-mover-consumers.json.
+
+Twenty host regressions pass across both return paths, Call Mech,
+weapon handoff, and the five Talon NPCs. See
+../dva-form-handoff-and-talon-regression.txt. See ../dva-native-parked-mover-rows.json and
+../dva-parked-mover-regression.txt.
+Both authored 016C sends reach 026A/31, which ends possession and starts
+the 1-second Call Mech gate and 0.15-second weapon lock. Seven original
+factory replays distinguish the dedicated 316CFEF2 movement-mod and
+9935FBC8 entity-link constructors from five generic parent factories.
+The fixture supplies registry allocation and skips optional metadata
+constructors. Actual lethal and Self-Destruct inputs retire 026A/70,
+the parked pilot's movement-mod scope, on the return tick. Four host
+regressions pass. Native trajectory and ejection immunity remain open.
+See ../dva-native-ejection-route.json and
+../dva-ejection-scope-regression.txt.
+See ../dva-ejection-authored-motion-scan.txt,
+../dva-ejection-target-exposure-regression.txt (10 passed) and
+../dva-ejection-placement-and-npc-tests.txt (3 passed).
+
+Authored 0276 return branch
+---------------------------
+0276/4 accepts 0011 and starts 0276/131. That switch evaluates entity
+33688 AND NOT entity 842. A Match fixture submits 0011 directly to the
+active controlled-mech graph and supplies both flags. Only true/false
+starts the one-second 0276/15 wait. At +63 Match frames the wait reaches
+the owner switch 0276/89, and the host reaches 0276/90 and sends a single
+016C from 0276/5. The three other flag combinations leave the mech in
+control and send no return. The normal lethal producer still uses the
+reconstructed bridge while the native 0011 and 33688 producers are open.
+
+Native 4E2BCAAB slot +40, RVA 1B75730, compares elapsed state time with
+the evaluated duration converted to rounded milliseconds. Below the
+threshold with a caller, it clears the prior watch and requests a wake
+at caller start plus the duration. With only the instance fallback it
+compares without scheduling. The 150 native executions use adapters
+for expression conversion, elapsed time, watch and scheduler services.
+0276/90 supplies 5 seconds to this condition. That value is an elapsed
+state threshold. The fixture observes the wait and owner path with the
+existing relaxed false result for 0276/90. See ../dva-demech-0011-gate-final.txt,
+../dva-demech-0011-producer-scan.txt and ../dva-demech-4e2b-native-verified.txt.
+
+Ejection weapon lock and in-flight Sleep Dart
+The authored 026A/31 return message entry starts 026A/189, a 0.15-second
+wait owning stack 026A/190 on entity variable 33. The inspected
+D07EBF01 entry protection at 026A/45 begins through wait 026A/44 on the
+Call Mech path. Other D07EBF01 nodes on 0276 and 0B2F belong to the
+departing mech graph. Original definition registration at 2635A9
+and factory 1583D20 verify the class size 0xF8 and separate registered
+configuration offsets 0xE8 and 0xF0. The latter field, m_69603948,
+is null at all five D.Va sites.
+
+The original runtime registry initializes 1,687 unique keys from
+1,735 captured descriptors. D07EBF01 reaches the generic parent
+constructor through 1B902B0. Neither configuration slot is read
+during runtime construction, including controls with either or both
+slots populated. Allocation is supplied and the optional registry
+metadata constructor calls are intercepted.
+
+Twelve more cases execute native begin, finish and abort slices plus
+the generic active-bit cleanup. Base component callbacks are no-ops.
+The specialized component reaches begin and end journal sinks but
+does not reach the auxiliary history writer for this state. Neither
+path reads either protection config slot in the replay. The fixtures
+supply the world component, two graph array layouts, an empty transition
+list and the journal sinks. Child activation and final cleanup are
+outside these slices. Host Call Mech protection remains a reconstructed
+combat rule. Native damage admission and ejection motion remain open.
+See ../dva-native-protection-definition.json.
+
+On the static Match host, actual Ana Sleep Dart is in flight before
+lethal or Self-Destruct return from either the initial or replacement
+mech. It hits the pilot at return +3 for 5 damage. The weapon lock
+ends at return +9, but sleep independently blocks held Light Gun for
+313 ticks. A fresh press after sleep deals 14. The pilot capsule pose
+and the status clock are reconstructed. Ana is moved outside the
+detached blast after dart contact in the Self-Destruct fixture.
+A separate entry test verifies that the same dart cannot damage or
+sleep the pilot during Call Mech protection.
+See ../dva-ejection-protection-paths.txt, ../dva-ejection-dart-verified.txt
+and ../dva-ejection-dart-regression.txt.
+
+Controlled defensive and close-range combat
+The normally selected owned 0407 uses its own VM and mover for active
+Matrix boxes, melee and Boosters contact. Matrix uses the same authored
+02CC bounds and reconstructed attachment and projectile filters as the
+explicit mech. Actual Soldier rifle and Helix inputs are intercepted,
+and rifle damage returns after release. Trooper, Enforcer, Sniper and
+Heavy gun attacks are intercepted in the manual NPC fixtures. Assassin
+still pins and damages the mech through active Matrix.
+
+Actual normal-selection melee deals 30, and all 18 Micro Missiles deal
+126 total in the direct-and-splash fixture. Boosters advances the mech and
+applies 10 contact damage and reconstructed knockback. The controlled
+body reads unit scale and current raw throttle from its own context.
+The static server pose is used for controlled melee and Matrix attachment.
+Native collision/filter parity, owner prediction and full defensive
+interactions remain open.
+
+Detached Self-Destruct
+The controlled mech uses the same reconstructed 60 s passive fill policy
+as player body scripts. Actual ultimate input spends the authored 1540
+charge and sends 016C from 0B2F/17. When the authenticated return arrives
+with the graph fuse active, the original owned mech becomes the detached
+shell. The pilot resumes the original VM and is placed at the shell if
+its static capsule fits. The shell receives no further player commands.
+The host keeps it outside combat targeting and preserves its current
+velocity through the existing swept mover. This detachment, placement
+and coasting policy is reconstructed.
+
+The shell VM keeps its original clock and runs the authored 3 s fuse,
+target array, per-target falloff and health operations. The graph's
+0.3 s cleanup wait reaches 0B2F/13 and retires the shell. Pilot death
+does not remove an already armed shell. Actual command tests cover core
+damage, all five actual NPCs, retained momentum, wall collision and cover,
+and completion after an enemy rifle kills the pilot. After retirement the
+same pilot can call and control a fresh mech using actual commands.
+0B2F/18 sends 0592 to the pilot after the fuse. Its authored 026A/75–77
+path fills the pilot's charge to the Call Mech cost. Only the original
+Self-Destruct charge is filled by the fixture. Native launch dynamics,
+protection filters, other charge transfers, defensive interactions and
+owner streams remain open.
+
+Call Mech landing knockback
+026A/36 evaluates its authored impact origin as the pilot's model root
+plus 2 m forward. Its single 3 m ring has unit multipliers. Authored
+horizontal and vertical magnitudes are 25 and 3, scaled by ruleset 10876.
+The host uses the ring against the selected target's capsule and applies
+velocity away from that origin using the same reconstructed swept-mover
+policy as Boosters. It applies only to targets that survive the damage.
+Actual landing input moves a player and the surviving Talon NPCs. The
+native impulse arbitration and defensive immunity remain open.
+
+Self-Destruct impulse rings
+0B2F/22 supplies an impact origin at the shell's model root, authored
+magnitudes 20 and 10, and the pilot ruleset 10640 through the pet owner.
+The authored ring radii are 4 and 20 m. The host selects the first ring
+containing the nearest capsule surface. It interprets m_9102DA3F as the
+planar multiplier and m_10399AE7 as the lift multiplier. This mapping,
+the impact geometry and the swept velocity application are reconstructed.
+The role of the middle multiplier m_579D7CFF and native arbitration remain
+open. The original damage curve is applied independently by the graph.
+Actual detached blasts apply (20 horizontal, 10 up) to an inner Heavy
+and (15 horizontal, 2.5 up) to an outer Heavy. Setting the pilot's rule
+to zero leaves damage intact and cancels both impulses.
+
+Controlled command-gap recovery
+Each recovered movement pose now advances the same owned mech VM with that
+frame's input edges. The parked pilot advances on neutral input. The
+controlled mech consumes shot and contact reports after each pose and applies
+the resulting movement modifiers before the next pose. The shared mover
+keeps its existing bound of 64 command frames. When no pose is recovered,
+the host releases old input, advances the mech VM across the retained
+neutral command frames and discards their combat reports. The parked
+pilot advances on its own bounded path between the endpoints. Only the
+first release frame, final unposed frame and posed endpoint can publish
+observer snapshots during a long gap.
+
+At one authoritative world tick, continuous and recovered 24-frame input
+produce identical Fusion hits, Boosters pose/contact, Matrix resource,
+Micro Missile launches, passive charge and held-button state. The
+reconstructed passive charge clock uses the same retained command-frame
+budget on both bodies during long gaps. World-clock projectile flight
+continues independently. Cross-tick lag compensation and prediction
+remain open.
+
+The final regression checks all 99 frames of a short unposed gap and
+the 259-frame budget retained from a 350-frame gap. Both body clocks
+match per-frame float32 charge and ignore a duplicate endpoint. A
+launched missile deals 7 damage on the world clock. A press during
+cooldown produces no volley and a fresh press after readiness emits a
+new round. Only the observer endpoints can publish. See
+../dva-unposed-charge-cooldown-final.txt, 13 tests passed.
+
+Concurrent mech inputs after pilot return
+Actual lethal damage and Self-Destruct both return control to the pilot.
+Holding Matrix, Boosters and Micro Missiles together for 100 pilot frames
+produces the same movement and ultimate charge as paired neutral controls.
+No rockets launch. With all three buttons still held, Light Gun lands one
+14-damage hit. The test seeds lethal mech health or Self-Destruct charge and
+positions the opponent. See ../dva-pilot-simultaneous-mech-buttons-regression.txt.

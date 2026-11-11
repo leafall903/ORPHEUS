@@ -978,13 +978,19 @@ class BioticFieldTests(unittest.TestCase):
                     player.body_script.set_ult_charge(10000)
 
                 run.step({player: (0, 0, button)})
+                shot = None
                 for _ in range(45):
+                    if fight.projectiles.shots:
+                        shot, = fight.projectiles.shots
                     run.step({})
-                shot, = fight.projectiles.shots
+                self.assertIsNotNone(shot)
                 self.assertEqual(shot.spawn & 0xFFFF, spawn)
                 self.assertTrue(shot.created)
                 self.assertEqual(vitals.now[HEALTH_POOL], health)
                 self.assertFalse(shot.field_ids)
+                if button == ULTIMATE:
+                    self.assertNotIn(shot, fight.projectiles.shots)
+                    self.assertTrue(fight.zarya_gravitons.fields)
 
     def test_healing_and_expiry_are_independent_of_owner_acknowledgements(self):
         from test_server_journal import ServerJournalTests

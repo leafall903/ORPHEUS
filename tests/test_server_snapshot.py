@@ -17,7 +17,7 @@ from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, p
 
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
-from ow174.game.content import SOLDIER
+from ow174.game.content import SOLDIER, find_hero
 from ow174.game.link import SYN
 from ow174.game.match import Match
 from ow174.game.mover import Mover
@@ -76,6 +76,152 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(changed, initial)
         player.mover.corrected = 17
         self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+        before_control = snapshot_digest(self.capture(session))
+        player.match.combat.stuns[player.body] = session.server.tick + 50
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before_control)
+        before_modifiers = snapshot_digest(self.capture(session))
+        tick = session.server.tick
+        player.match.combat.heal_modifiers[player.body] = {"anti": [(tick, tick + 250)]}
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before_modifiers)
+        before_sleep = snapshot_digest(self.capture(session))
+        player.match.combat.ana_sleeps[player.body] = (tick, tick + 313, False)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before_sleep)
+        before_spatial = snapshot_digest(self.capture(session))
+        player.body_script.world._spatial_query_context.namespace_present = False
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before_spatial)
+
+    def test_active_authored_zarya_barrier_health_changes_stored_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        with mock.patch.object(player.match, "skin_of", return_value=player.skin):
+            self.assertTrue(player.match.switch_hero(player, find_hero("zarya")))
+        script = player.body_script
+        for _ in range(30):
+            script.command(script.frame + 1, 0)
+        script.command(script.frame + 1, 8)
+        barriers = player.match.combat.zarya_bubbles
+        barriers.sync(player)
+        barrier = barriers.for_target(player)
+        self.assertIsNotNone(barrier)
+        before = snapshot_digest(self.capture(session))
+        barrier.health -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_zarya_beam_consumed_clock_changes_stored_digest(self):
+        session, _, players = self.scene()
+        player = players[0]
+        with mock.patch.object(player.match, "skin_of", return_value=player.skin):
+            self.assertTrue(player.match.switch_hero(player, find_hero("zarya")))
+        fight = player.match.combat
+        script = player.body_script
+        for _ in range(30):
+            script.command(script.frame + 1, 0)
+        from ow174.game.commands import FIRE, Command
+
+        for _ in range(10):
+            command = Command(script.frame + 1, buttons=FIRE)
+            script.command(command.frame, command.buttons)
+            fight.command(player, command)
+        activation, consumed = fight.beam_seen[player.body]
+        before = snapshot_digest(self.capture(session))
+        fight.beam_seen[player.body] = activation, consumed + script.component.frame_ms
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_frost_progress_and_freeze_deadline_change_stored_digest(self):
+        from ow174.game.combat import Frost
+
+        session, _, players = self.scene()
+        player = players[0]
+        now = session.server.tick * 16
+        frost = Frost({0xA0000100: (.2, now, False)})
+        before = snapshot_digest(self.capture(session))
+        player.match.combat.frost[player.body] = frost
+        slowed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(slowed, before)
+        frost.frozen_until = now + 1300
+        frozen = snapshot_digest(self.capture(session))
+        self.assertNotEqual(frozen, slowed)
+        frost.frozen_aim = 1024, 512
+        self.assertNotEqual(snapshot_digest(self.capture(session)), frozen)
+
+    def test_expired_input_lock_changes_stored_digest_without_live_control(self):
+        from ow174.game.combat import FROST_SPRAY, InputLock
+
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        tick = fight.tick
+        before = snapshot_digest(self.capture(session))
+        lock = InputLock(FROST_SPRAY, tick - 10, tick - 1, (0, 0))
+        fight.input_locks[player.body] = [lock]
+        saved = snapshot_digest(self.capture(session))
+        self.assertNotEqual(saved, before)
+        self.assertFalse(fight.is_stunned(player))
+        lock.aim = 1024, 512
+        self.assertNotEqual(snapshot_digest(self.capture(session)), saved)
+
+    def test_graviton_field_clock_and_pull_change_stored_digest(self):
+        from ow174.game.graviton import Field
+
+        session, _, players = self.scene(two=True)
+        caster, recipient = players[:2]
+        host = caster.match.combat.zarya_gravitons
+        before = snapshot_digest(self.capture(session))
+        tick = session.server.tick
+        field = Field(caster, caster.body, caster.team, (2., 1., 0.), tick, tick + 250, 6.)
+        host.fields.append(field)
+        deployed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(deployed, before)
+        field.last_tick += 1
+        advanced = snapshot_digest(self.capture(session))
+        self.assertNotEqual(advanced, deployed)
+        host.pulled.add(recipient.body)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), advanced)
+
+    def test_temporary_shield_pool_and_decay_clock_change_stored_digest(self):
+        from ow174.game.sigma_grasp import SHIELD_TAG, ShieldDecay
+
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = fight.player_target(player)
+        health = fight.vitals_of(target)
+        initial = snapshot_digest(self.capture(session))
+        health.grant_temporary_shields(SHIELD_TAG, 60, 400)
+        granted = snapshot_digest(self.capture(session))
+        self.assertNotEqual(initial, granted)
+        fight.grasp_shields[player.body] = ShieldDecay(fight.now + 3, fight.now, 5)
+        scheduled = snapshot_digest(self.capture(session))
+        self.assertNotEqual(granted, scheduled)
+        fight.grasp_shields[player.body].last += 0.016
+        self.assertNotEqual(scheduled, snapshot_digest(self.capture(session)))
+
+    def test_active_hook_target_and_pull_clock_change_stored_digest(self):
+        from ow174.game.commands import Command
+        from ow174.game.hook import ROADHOG
+
+        session, peers, players = self.scene(two=True)
+        caster, target = players
+        peers[0].message(21616, pick(caster.entity, ROADHOG), now=100.8)
+        match = caster.match
+        fight = match.combat
+        x, y, z = caster.mover.position
+        target.mover.position[:] = (x, y, z + 10)
+        target.mover.body = None
+        peers[0].commands(caster.body_script.frame + 1, 1, 8)
+        for _ in range(50):
+            match.update(fight.now + 0.016, match.tick + 1, frames=False)
+            if fight.hooks.controlled(target.body):
+                break
+            caster.take_commands([Command(caster.body_script.frame + 1)])
+        flight = fight.hooks.flights[caster.body]
+        self.assertEqual(flight.target.entity, target.body)
+        before = snapshot_digest(self.capture(session))
+        flight.last_move_tick -= 1
+        shifted = snapshot_digest(self.capture(session))
+        flight.target = None
+        self.assertNotEqual(before, shifted)
+        self.assertNotEqual(shifted, snapshot_digest(self.capture(session)))
 
     def test_equal_world_content_with_different_match_mover_alias_is_distinguished(self):
         session, _, players = self.scene()

@@ -279,6 +279,8 @@ def _meaning(name: str, fields: dict, frame_time: int, frame_ms: int) -> dict:
         if get("has_sender"):
             sender = (0xA0000000 if fields["sender_kind"] else 0x80000000) | fields["sender"]
         out.update(sender=sender, stacked=bool(fields["stacked"]))
+    elif name == "linked_target":
+        out.update({key: fields[key] for key in ("has_entity", "entity", "values") if key in fields})
     elif name == "send":
         if get("has_reply"):
             out["reply"] = fields["reply"]

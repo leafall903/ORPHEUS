@@ -9,6 +9,66 @@ The actual mech0407 loads graph02CC. Its active DeflectProjectiles state3
 config expressions, including the existing entity-size service. Resource,
 minimum-hold, release, cooldown and exhaustion timing stay in that graph.
 
+The captured DeflectProjectiles begin callback at D5BBD0 acquires the
+owner collision service, selects container 0x29, and uses BDE640 to find
+the record keyed by two runtime handles. It writes each box as two
+vectors and sorts the corners independently on X, Y and Z. The native
+probe feeds the four evaluated 02CC/state3 boxes through the original
+callback, reusing a synthetic service record. Additional cases reverse
+individual axes, supply an empty list, and omit the collision service.
+The captured end callback D5BFC0 removes the record through BDE7F0.
+The probe verifies it clears those bounds and preserves a second record
+with the same first key and a different second key.
+The fixture adapts config evaluation, service access and handle
+resolution. The host applies the same per-axis ordering in its Matrix
+contact query. See ../dva-matrix-native-box-registration.txt.
+
+The native projectile update at D77212 obtains the same container 0x29.
+The D7B2F0 scan walks its 0x140-byte records and calls D70AF0 to prepare
+world-space boxes. D71519 writes the supplied owner basis, transformed
+center and half extents. D6EF90 casts a finite segment after transforming
+both endpoints into the box frame. Twelve probe cases cover authored
+bounds, rotation/translation, hit, miss, grazing, starting inside and
+the per-axis float32 displacement threshold. The host now uses the
+same threshold. The probe supplies the owner basis and an equal-endpoint
+random range. The native WeaponVolley builder stores evaluated
+m_6396149F.m_57DAE1B5 in collision record +0x28 at D8AFA8.
+D7B4BE reads it and the world-box builder adds it to all three half
+extents, minus the configured adjustment sample. Matrix, Deflect
+and Grasp leave the two sample endpoints unset. The host carries
+the authored radius through projectile flight and reflection and
+applies it to these three defense volumes. Light Gun uses 0.25 m.
+Native probes cover the config store and expanded Matrix geometry.
+Actual Light Gun commands cover both sides of the expanded Matrix
+Deflect and Grasp edges. Grasp grants 8.4 shields at 1.15 m and none
+at 1.26 m. Ordinary body sweeps now use the authored radius and native
+candidate ranking with reconstructed capsules. Owner pose and the
+world-only radius path remain open. See DVA_COMBAT.txt.
+See ../dva-native-projectile-radius-sweep.txt,
+../dva-light-gun-native-matrix-edge.txt and
+../dva-light-gun-native-radius-edge.txt and
+../dva-light-gun-native-grasp-edge.txt.
+
+After geometric contact, D5E8B0 compares the incoming direction with
+the negative box forward vector against cos(m_025D0C39), including
+equality. The probe ran the original cosine and branch at Matrix and
+Grasp's 180 degrees and Deflect's 90 degrees. The host now shares that
+comparison for projectile contact. Grasp's front box can intercept a
+ray coming from a rear angle when it crosses the box before the body.
+Fusion Cannon and Light Gun commands across that box granted Sigma
+13.2 and 8.4 shields. Neither shot damaged Sigma or credited D.Va
+with ultimate charge. See ../dva-matrix-native-incidence.txt and
+../dva-grasp-rear-incidence-combat.txt.
+
+At the accepted-contact entry D5C2D0, original code adds the float
+amounts from two nested projectile slots when their variant is type 1.
+Eight fixture cases exercised this prefix through its amount callback,
+including a secondary-only amount, a sum, invalid variants and zero.
+The host sums direct and secondary amounts for Kinetic Grasp. The
+native probe supplies synthetic projectile objects and observes the
+callback. It leaves live projectile slot construction and falloff
+unverified. See ../dva-matrix-native-contact-amount.txt.
+
 The field m_3D667CE3 references raw0x0690000000000002. Its decoded file type is
 .097, NOT .069: GUID type bits are reversed. The extracted0002.097 profile is
 STU8EFC337B with mask281474976710656, category4, selector9 and its authored
@@ -18,10 +78,132 @@ and m_27CF71D5=2. Tags are identifiers; a separate .06C STU catalog is absent
 from this client's tracked files. Do not mistake the raw0D60 bits for .0D6.
 
 Local003 XML gives tag0145 on Mei's frost08BE and Moira's1C70, while Soldier
-rifle03D4, Helix072C and D.Va projectiles lack it. Treating0145 as an exclusion
-is a reconstruction consistent with these definitions, NOT a native filter
-polarity comparison. Dynamic target tags and the other filter fields remain
-unverified. No numerical damage threshold is used to classify attacks.
+rifle03D4, Helix072C and D.Va projectiles lack it. Matrix (02CC), Deflect
+(03A3) and Kinetic Grasp (1D02) author identical m_filter and m_3D667CE3 values.
+The native field registry at RVA 10B2AF3 registers m_8B2A4DF3 at offset 0x68.
+The shared entity filter (D0DA20) delegates its custom tags to D0EC70, which
+passes offsets 0x58, 0x60 and 0x68 to the native DB2FD0 membership logic.
+The first slot requires any listed tag, the second requires all listed tags,
+and the third vetoes any listed tag. Empty slots impose no constraint.
+
+The original D0EC70, DB2FD0 and tag helpers ran against a synthetic target
+component in 13 cases. With the authored exclusion slot populated, the native
+predicate vetoed an eligible candidate with the static tag or a dynamic
+addition, and admitted it after a dynamic removal. The fixture supplies numeric
+tag indices at the DB2C10 config-evaluation boundary and adapts the encryption
+key service. The authored GUID-to-index translation, live dynamic tag sources,
+and profile collision-category evaluation remain open. D7B2F0 calls D5E8B0
+for incidence and the entity filter, then D5F050 for the anchor-to-contact
+world query. D5F050 passes m_3D667CE3 to BEFAA0 and excludes the resolved
+owner and source from that query. At BEF100, the native query uses an
+explicit override first, then m_C1903771 at filter offset 0x70, then
+falls back to 0001.097. Native 17A8FC0 packs the thirteen authored flags
+of the first category group to 0x1FDF. Disabling m_breakable clears bit 7.
+Native BEF234 and BEF719 carry 0x1FDF into the main filter and retain
+bits 0 and 7 (0x81) in the preliminary filter. The two filters carry
+the authored 64-bit values 0x1000000000000 and 4. A fixture supplies
+the second category group explicitly. Native E12360 then invokes
+DF77A0 to gate preliminary shape candidates before geometry. Fixtures
+cover ordinary and breakable categories, both directions of mask
+matching, and signed groups. The loaded second-group default and main
+query's live collision behavior remain open.
+
+The model-holder path at 1AC6B00 uses the same packer. Native one-hot
+cases place m_ED819119 at bit 2, m_B97596D2 at bit 13 and m_27CD5BF8 at
+bit 0. The host now uses this mapping. Its cache reader translates
+only legacy model-holder masks. The stored map chunk and mesh triangle
+masks already use the native representation. The existing Practice Range
+ray cache matches the freshly decoded holder masks in all 33 model
+slots after read-time translation. The host still uses a reconstructed
+static cover query and extracted .003 tags. See
+../dva-matrix-native-world-query-filter-build.txt and
+../dva-matrix-static-holder-cache-verified.txt.
+See ../dva-matrix-filter-comparison.txt, ../dva-matrix-native-filter-fields.txt
+and ../dva-matrix-native-tag-policy.txt.
+
+Controlled input and resource boundaries
+----------------------------------------
+Actual pilot commands on the normally selected mech enter 02CC/64's
+0.5 s minimum tap window. Releasing after one frame still intercepts a
+rifle shot. The first frame containing the deadline turns the box off
+at roughly 75.2 resource and starts the authored 1 s cooldown. A new
+press during cooldown can reactivate at expiry if still held. Releasing
+that press during cooldown leaves the box off. Actual rifle inputs
+distinguish the protected frames from the cooldown and released paths.
+
+After depletion, uninterrupted held input leaves the box inactive as
+resource reaches 10 and the 02CC/103 gate clears the low-resource
+stack from variable 416. Release and a fresh press restart it. A real
+Flashbang from behind interrupts both the active box and its 0.5 s wait
+before the natural deadline. Forced closure reuses 02CC/97 to spend
+the authored 1 s cooldown. The host maps impact to the command clock
+when the controlled mech has missing command frames. Native world/input
+phase order remains open. See ../dva-matrix-tap-resource-final.txt (6 passed)
+and ../dva-matrix-authored-recharge.txt.
+
+When forced control closes Matrix in a command gap of up to 32 frames
+with its input held, the host settles the active 02CC/104 drain through
+impact. The newly armed 02CC/53 recharge wait starts at that same
+boundary and runs for the authored 750 ms. The bounded hold and
+impact-to-command timing are host reconstructions. Actual Flashbang
+tests compare continuous input with a 26-frame gap before and after the
+tap minimum. The tests check resource at impact and after stun, the
+recharge start, and that a delayed command cannot charge drain again.
+See ../dva-matrix-resource-impact-final.txt (33 passed).
+
+During a bounded held-input gap, the contact query samples the active
+02CC/104 drain at the preceding command-phase boundary. This is a
+read-only projection. An actual rifle round is intercepted with resource
+left, and later rifle and Helix hits reach the mech after projected
+exhaustion. The next mech command replays the gap and closes the authored
+box at zero resource. See ../dva-matrix-gap-exhaustion-final.txt
+(32 passed).
+
+Contact also projects release while commands are missing. A known
+release during a tap closes the box at the authored 500 ms minimum.
+For a held button, contact uses the first neutral recovery frame
+after the host's 32-frame hold window, subject to the tap minimum.
+Actual rifle rounds verify both sides of each boundary. The next
+neutral mech command replays the bounded gap and starts the authored
+cooldown at the matching boundary with resource remaining. See
+../dva-matrix-gap-release-final.txt (8 passed).
+
+When a hard-control hit follows projected exhaustion or release
+within retained pose recovery, the host settles the drain at the
+natural close and preserves the cooldown and recharge anchor.
+Exhaustion uses the projected zero crossing. For release, the host
+samples drain at the preceding phase to match the graph's release
+event before the next resource poll. Actual front Flashbang after
+exhaustion, tap release or inferred release now matches continuous
+commands for cooldown start, recharge start and resource at contact
+and after stun. See ../dva-matrix-post-close-control-final.txt
+(9 passed). The timings are reconstructed.
+When a gap exceeds the 64-frame pose window but fits retained command
+history, the mech VM carries the already active Matrix button through
+the 32-frame hold and releases it on the following neutral frame.
+The recovered frames stay unposed. A Flashbang after the projected
+close can settle that close beyond the pose window. Continuous-input
+comparisons verify recovery after 100 missing-frame intervals and
+a Flashbang after more than 64 intervals. See
+../dva-matrix-long-gap-final.txt (9 passed).
+
+For a gap beyond retained command history, the host settles the
+already projected Matrix close before the neutral replay. If the
+authored recharge deadline falls in the skipped interval, the host
+runs that Matrix instance at the deadline. Retained replay then
+samples elapsed recharge normally. Continuous-command comparisons
+verify 350-frame intervals for exhaustion, released tap, inferred
+release and inferred release followed by actual Flashbang. See
+../dva-matrix-beyond-history-final.txt (10 passed). This clock recovery
+is reconstructed.
+
+On the normally controlled mech, the pilot's ruleset variable 9743
+governs admission through 02CC/74. A disabled press consumes no resource
+and allows the actual rifle hit. Enabling the gate allows the next press
+to intercept. Disabling while active blocks subsequent admission after
+the current activation exits. The active duration uses its own authored
+continuation condition. See ../dva-matrix-owned-ruleset-regression.txt
+(4 passed) and ../dva-matrix-owned-ruleset-probe.txt.
 
 Implementation
 --------------
@@ -48,8 +230,86 @@ Hitscan pellets each perform their own box intersection. Hitscan target poses
 still use existing history, but Matrix uses its CURRENT pose and active state.
 Historical Matrix poses/activation timing, scheduler/input ordering and retail
 lag compensation remain open. Melee and non-Volley beam consumers bypass this
-path. The tag test covers a reconstructed frost projectile; it does not accept
-the full Mei/Moira beam simulation.
+path. Actual Mei 05E6/state 13 now verifies the 08BE frost exclusion. Spray
+damages a controlled Matrix mech and the pilot at 5 m and misses at 12 m.
+The authored target limit is 99. The host sweeps the rest of the current
+flight after each body hit and remembers which bodies that packet has hit.
+An aligned ally behind the mech takes one hit in the open, and an intervening
+wall stops the same packet after the mech. The ray geometry is reconstructed.
+See ../dva-mei-spray-piercing-regression.txt.
+
+The 0B77 and 05E7 resource defaults start spray frost at 0.2, add 0.0285
+per later hit and freeze on hit 30 for 1.3 s. The host keeps per-source
+progress with a 1 s hit gap, takes the highest current source, caps the
+slow at 70% and leaves an active freeze deadline unchanged by new hits.
+Both forms lose weapon, forward and aim input while frozen. Matrix stops on
+freeze. Ordinary thaw restores speed, aim and weapon input. Projected Barrier
+cleanses the existing frost state and intercepts further packets.
+Lethal rifle fire retires the frozen mech's status. The returned pilot and
+the Call Mech replacement start without its frost. Source aggregation, aim
+lock, input masking and the body-local clock are reconstructed. Native
+status graph hosting, client ruleset routing and other cleanse cases remain open.
+See ../dva-mei-frost-and-cleanse-regression.txt and
+../dva-mei-frost-aim-lifecycle.txt.
+
+The host reads the explicit 0B77/05E7 source settings slots 2FE6, 2FEA,
+300D and 301F when populated. A 0.6 initial minimum, 2x accumulation
+rate and 0.5x duration yield a freeze on hit nine for 650 ms. Two actual
+sprays at a 0.55 minimum freeze after one hit each only with stacking
+enabled. The source that reaches the combined threshold sets the
+deadline. Bounds, aggregation and the source slot bridge are
+reconstructed. The fixtures seed those slots and preserve the extracted
+default fallback when they are absent.
+See ../dva-mei-frost-settings-regression.txt.
+
+Frozen D.Va retains full Self-Destruct or Call Mech charge. Fresh input
+after thaw casts the corresponding ultimate. Detaching with partial
+frost removes it from the bomb immediately, and the pilot has its own
+new frost state if hit again. The detached fuse deals 1000 on its existing
+deadline and refills Call Mech even while the pilot is frozen. Held
+ultimate input during freeze cannot spend that refill.
+See ../dva-frost-ultimate-final.txt and ../dva-frost-ultimate-regression.txt.
+
+An actual spray with the initial frost setting seeded at 1 freezes the
+controlled mech during Boosters or Micro Missiles. Boosters propulsion
+stops and the authored 300 ms wait starts its 4 s cooldown. Missiles
+aborted in windup spend no cooldown. Once the volley has launched,
+freeze ends it and preserves its cooldown while in-flight rounds hit.
+Fresh eligible input restarts each ability. See
+../dva-frost-ability-interrupt-final.txt and
+../dva-frost-ability-interrupt-regression.txt.
+
+Actual Flashbang and spray freeze overlap in either order. Expiring
+Flashbang leaves the longer freeze intact. Projected Barrier removes
+existing frost while the original Flashbang deadline still gates firing.
+Both forms fire after the remaining control ends. The spray fixture
+seeds a minimum of 1 to produce freeze on contact.
+See ../dva-overlapping-frost-flashbang-regression.txt.
+
+Actual Zarya primary input now consumes 0241/28 continuous damage and
+0241/81 TrackRay range and radius. Its beam hits through a live Matrix,
+deals damage to the pilot, and stops at an allied Projected Barrier.
+Range, cover, team, release and duplicate-command tests pass. The
+host reuses the 0068 lane's beam clock and uses its own capsule and
+shield queries. It integrates only posed command intervals and
+uses the retail 30% beam armour reduction. Eye origin, pose sampling,
+and continuous contact timing are reconstructed.
+See ../dva-zarya-beam-matrix-focused.txt and
+https://overwatch.blizzard.com/en-gb/news/patch-notes/live/2020/08/.
+
+The held beam also respects the D.Va exposure boundary. A lethal beam
+packet ends the mech, and a rewound command before the return tick deals
+no pilot damage. The next command whose view reaches the exposure tick
+deals one 1.2-damage packet to the pilot without a new trigger press.
+See ../dva-zarya-beam-exposure-regression.txt. The shared combat and
+snapshot regression passed 45 tests in ../dva-zarya-beam-matrix-regression.txt.
+The separate passive capture test distinguishes consumed beam clocks
+with otherwise identical state. See ../dva-zarya-beam-clock-snapshot.txt.
+
+Actual Sleep Dart and Flashbang stop the enemy Zarya beam against either
+D.Va form. The consumed beam clock stays fixed during control and through
+an input gap at expiry. A fresh press starts a new 0241 activation and
+spends only its posed intervals. See ../dva-zarya-beam-control-regression.txt.
 
 Evidence and remaining work
 ---------------------------
@@ -62,7 +322,7 @@ The extra collision target is a synthetic NPC fixture, NOT any of the five
 actual PvE NPC skill/AI acceptance cases. Authoritative health/no-hit notices
 are asserted; client rendering is not observed.
 
-The .097 evaluator, native attachment/filter polarity, all other eligible
+The .097 evaluator, native attachment and contact dispatch, other eligible
 projectiles and secondary payloads, dynamic status/interrupt/defense effects,
 historical Matrix simulation, death/retirement delivery, unconfirmed local
 predictions and all five NPC bidirectional skill cases remain open. No client

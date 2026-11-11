@@ -16,7 +16,7 @@ are left out of the data: they are dynamic bodies, which the mover does not meet
 
 A model's physics shapes are its STUModel m_CB4D298D list (MSTU chunk of the 00C model, an STUv2 blob):
 {shape, holder}. The holder's inline STUDominoFlags (STU_933AD0A9) is the shape's mask, packed as the
-client packs it (bits of fields 0..12: 0, 8, 12, 7, 6, 5, 2, 9, 1, 3, 4, 10, 11; a field left out keeps
+client packs it (bits of fields 0..12: 2, 8, 12, 7, 6, 13, 0, 9, 1, 3, 4, 10, 11; a field left out keeps
 its default, every field on but the sixth: 0x1FDF), which every mesh triangle also carries. A shape stops
 the mover when its mask has a team proxy bit (0x08, 0x10), as the static triangles do, and when the
 client makes it a static shape: the mover's filter (category 0x08/0x10, include 0x1481, 0x7FF789B463F0)
@@ -60,7 +60,7 @@ MOVER = 0x18  # the team proxy categories
 # STUDominoFlags fields in order and the mask bit each one sets (packed as in the model meshes' triangles).
 FLAG_FIELDS = (0xED819119, 0x34858FD7, 0x1E5EEC85, 0x7E48C526, 0xE552CFAA, 0xB97596D2, 0x27CD5BF8,
                0x61BB5D6E, 0xDEF2CFF6, 0xA4F2490B, 0xD7E9C136, 0x13F177D2, 0xD60821FE)  # fmt: skip
-FLAG_BITS = (0, 8, 12, 7, 6, 5, 2, 9, 1, 3, 4, 10, 11)
+FLAG_BITS = (2, 8, 12, 7, 6, 13, 0, 9, 1, 3, 4, 10, 11)
 DEFAULT_MASK = 0x1FDF
 SHAPES, SHAPE, HOLDER, FLAGS = 0xCB4D298D, 0xB7C8314A, 0x9B0424EB, 0xCBCB2AB9
 MESH, CONVEX, CAPSULE, SPHERE = 0x537E56E4, 0xB3800E70, 0x4C8D9F5E, 0x4614D0E5

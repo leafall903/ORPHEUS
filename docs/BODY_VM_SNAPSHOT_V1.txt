@@ -193,7 +193,7 @@ present-with-None must remain distinct.
   WaitForServerFrames      none
   WaitFrames               target
   ChaseVar                 cur reached remaining last var interrupted
-  WeaponVolley             offset volleys per_shot ammo0 rate spread0 links reported
+  WeaponVolley             offset volleys per_shot ammo0 rate spread0 spread_ramp links reported
                            max_shots min_shots
   Anim                     none
   Ability                  flags presses cur cooldown_rate last var stack_var
@@ -210,6 +210,7 @@ present-with-None must remain distinct.
                            var
   GamePadVibration         none
   TrackTargets             none
+  TrackRay                 none
   Effect                   none
   ClientOnlyPulser         pulses pulsed_at
   ActiveQuery              none
@@ -223,7 +224,7 @@ subclass. State type, graph node and state-index relationships must agree.
 
 Other exact stored records:
 
-  Var             key base links watchers
+  Var             component key base links partial resolving watchers
   Link            state slot priority above stack
   Event           time seq kind state op param node button pressed message assignment transient
   EventSequence   _next_value
@@ -348,3 +349,51 @@ same-time/nested FIFO, cross-instance sequence use and failure progression.
 The existing eight VM budget tests and sixteen native replay tests also pass.
 No game, UI or service is started by these checks; existing native trace code and
 the actual event dispatch/FIFO insertion call sites are unchanged.
+
+Cross-body subscription boundary (D.Va lane, uncommitted)
+
+Registered Vars retain their owning Component. Local Var records serialize this
+as the local component reference. Standalone Vars can retain component=None;
+they do not establish a foreign namespace or bypass registration checks.
+
+Only State.watched and Var.watchers may contain cross-component subscription
+edges. They use external_var / external_state refs containing an external
+Component storage identity, its entity identity and its local variable/state
+identity. An external_components manifest names those Component identities.
+The sidecar exposes each external Component identity for the enclosing server
+adapter's existing bridges; the server captures both component namespaces and
+the subscription relation independently. This avoids collisions between equal
+instance/variable numbers in separate VMs. Other foreign objects, extra roots,
+shot states and arbitrary parameter references remain rejected as before.
+
+A standalone component document names external dependencies but does not include
+their stored values or graphs; use the enclosing server export when causality
+spans bodies. No foreign variable getter, callback or state output is evaluated
+while capturing either side. Private mutable container alias checks remain active.
+This is an offline observation format, not a restorable multi-VM checkpoint.
+
+D.Va pet selector/initialization registry follow-up (uncommitted)
+BotWorld additionally stores entity_link.Context (owner, instance_present,
+environment_present, lookup, watch_environment, watch_link, retired). Its
+_lookup_entity_link callback is explicitly registered. The enclosing Match
+captures body_components before wrapper publication; Bot captures pet_owner
+independently from direct owner. These are stored causal inputs, not transport
+or native factory acceptance. Failed initialization/retirement unregisters the
+same Component identity without replacing either VM's namespace.
+
+Manual NPC health/control follow-up (uncommitted)
+BotWorld includes controller_components and manual_target. Bot stores explicit
+attack_target/attack_input/pitch; Combat stores source-to-victim pins. The VM
+ModifyHealth class stores last_applied independently of its existing state
+timers. The server captures these as ordinary causal fields without evaluating
+the reconstructed native context, health service or input policy. An active-pin
+capture explicitly forbids Var.value and Component.run_now and distinguishes
+clock/target/input/pin-map changes. This is not native controller allocation,
+transport parity or a restorable snapshot contract.
+
+The Assassin victim's 000E VM stores its world and private services in
+the component artifact. The server root reaches it through Combat's
+controller-keyed assassin_effects map. World storage includes the mover
+and health declarations, numeric rows, scope registry and persistent
+message manager. These records preserve the controller's private
+references and do not evaluate State or variable callbacks.

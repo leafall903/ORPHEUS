@@ -86,7 +86,9 @@ class FixedTargetMoveToTests(unittest.TestCase):
         state = instance.state(state_index)
         self.assertTrue(state.active)
         self.assertEqual(state.evaluate(state.node.field("m_speed")), speed)
-        self.assertIsNone(state.move_request())
+        # The stub supplies no hit point. The now-live body-position query
+        # resolves the authored miss fallback15m ahead rather than unsupported.
+        self.assertEqual(state.move_request(), (Vec3(0.0, 1.0, 15.0), speed))
 
     def test_genji_authored_miss_uses_the_world_body_position(self):
         hero_guid, graph_id, state_index, _, speed = AUTHORED_STATES[0]

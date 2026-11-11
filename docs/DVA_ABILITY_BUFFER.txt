@@ -1,0 +1,113 @@
+D.Va input buffering — selected static acceptance
+Build104319; uncommitted follow-up to parent cooldown defect review
+
+Observed defect
+The private lane had the same Ability.can_start pattern reported by the parent:
+take_press removed a valid press before start gates passed, then an unready
+frame reinserted that press with the current time. This renewed its authored
+age indefinitely. Actual047E Boosters commands reproduced a propulsion counter
+change1->2 at cooldown expiry after a short press had already been released,
+with no further input. ability-buffer-reproduction.json records the timestamps,
+frame and activation counters; the original failing test log is retained.
+
+Selected adaptation
+Ability.take_press(..., retain=True) checks the original event without consuming
+it. Unready cooldown, resource, continue/start or stack gates no longer rewrite
+its timestamp. Only a selected buffered press is consumed once all start gates
+pass; held-only starts do not consume another press. The default destructive
+call remains for existing stop-button behavior. Activation generation, window
+comparison, button latch and cooldown/resource expressions are unchanged.
+
+Two uncommitted parent methods were reviewed read-only: Ability.take_press and
+Ability.can_start in D:/overwatch 1.7.4/ORPHEUS/ow174/game/script/nodes.py.
+The final method ASTs match exactly; parent/source snippet hashes and the narrow
+review scope are recorded in ability-buffer-parent-review.json. No parent files
+were changed, and no other parent Roll/velocity implementation was imported.
+
+Actual D.Va resources and normal command evidence
+047E Boosters Ability/node4 (state0), physical Shift8, authored early window0.15s:
+- Released short press more than1s before readiness expires without auto-start.
+- Released short press within0.08s of readiness starts once at cooldown expiry.
+- Held Shift through cooldown starts once when ready.
+- A fresh Shift after cooldown completes starts once.
+The real propulsion state2 activation counter and RUNNING flag are checked;
+no replacement cooldown timer or synthetic Ability graph supplies the result.
+
+Actual Flashbang and Sleep Dart interrupt Boosters on the normally possessed
+mech. 047E/12 ends propulsion and follows node 13 into the 300 ms wait at
+node 14. Node 1 then copies v472 into v61, starting the default 4 s cooldown.
+Held Shift starts one new activation on the first command that clears both
+the control deadline and the cooldown. Flashbang expires first and Sleep Dart
+outlasts the cooldown. The server's forced-control bridge is reconstructed.
+
+026A pilot Call Mech Ability/node9 (state5), Q32, authored early window0.15s:
+the same four cases are checked against its actual charge/stack start condition
+and placement-state counter. Charge is seeded just below cost as an explicit
+fixture, then the existing passive charging service crosses the real graph gate.
+The fixture uses0.6s or0.08s of remaining charge. It does not accept native passive
+charge rate, complete Call Mech, possession or the transformation lifecycle.
+
+1128 Micro Missiles Ability/node3 (state0), E16, has no early-window config.
+A near-expiry short press does not buffer across frames; a fresh press after
+readiness still starts. This prevents extending Boosters' window to all skills.
+
+Verification
+Initial4 Boosters tests PASS10.186s; combined54 input/ability/driver/join cases
+PASS35.428s before the pilot extension. Both-form resource suite6 tests (nine
+input scenarios) PASS19.366s. Final55 focused input/ability/driver/join cases
+PASS38.648s after the selected-press consumption guard was aligned with parent.
+The broad regression is recorded separately; counts overlap.
+
+Limits
+This repairs one shared event-age defect. The original PC start check remains
+obfuscated and its complete phase ordering is not newly validated here. Native
+input loss/latency/prediction, other status/stack windows and complete skills are
+not accepted. Native minimum-hold/pre-volley stun interruption ordering is
+still open. Full D.Va/NPC/cross-hero/static/client acceptance,
+commit/integration and release gates remain open.
+
+Melee timing correction discovered by the broad regression
+The first449-case broad run had two failures, the same reuse assertion in each
+form. After the helper's first40 neutral frames, actual0043 Ability state6 still
+had0.344999969s cooldown remaining. The old second press was outside its150ms
+window and only appeared to be a successful recast because of the timestamp
+refresh bug. melee-buffer-timing-probe.json records both forms and the22 neutral
+frames needed for real readiness; a fresh strike then changes170->140 health.
+
+The existing reuse fixture now waits on the real Ability remaining value before
+the fresh press. Its30 damage and hit-count assertions are retained. Two new
+both-form methods explicitly reject the old too-early press without an extra
+hit, allow a later fresh press, and accept a near-expiry press within0.08s.
+11 combined melee/resource tests PASS82.916s. This corrects the earlier partial
+reuse evidence; it does not weaken the production guard or assert full melee
+geometry/status/native timing acceptance. Initial449 result:447pass, one method
+with two form-subtest failures548.048s; the original log remains.
+
+Parent mover-input review
+This lane already had throttle_mods for17 positive forward,18 backward magnitude
+and19 unsigned lateral, with sign restoration and post-subtraction clamping.
+245 validfloat32 input/mod cases agree byte-for-byte with the reviewed parent
+modified_throttles fragment. Both comparison helpers use the lane intent backend,
+so this is a split/sign/clamp comparison, not proof of native numeric lookup.
+The lane's existing originalC33960 probe was rerun:1600 cases pass with numeric
+property results and an empty direction-vector list supplied as explicit adapters.
+No production mover change or parent Roll/velocity backend was imported.
+
+The actual047E new command test supplies raw reverse and both strafe signs.
+First activation pose uses ordinary input; next pose applies authored17=1/18=0,
+forcing forward while raw throttle/input frame fields remain unchanged. There is
+no authored19 lock here, so lateral sign is preserved. Mature cancellation ends
+the graph scope; the cancel pose still uses its existing movement rows and the
+next pose restores normal values/input. The first fixture cancelled after22
+poses and failed the scope-end assertion; it now uses the existing verified
+mature42-pose phase. Recovery1 test/two signs PASS6.761s. The failed log is kept.
+The native minimum hold/cancel policy, direction modifiers, vertical flight,
+contact damage and complete original-client Boosters acceptance remain open.
+
+Final combined verification
+452 combat/input/both-form/placement/VM/NPC/message/runtime/ruleset/PlayScript
+cases PASS481.490s after the final selected-press guard, melee readiness correction
+and actual reverse/strafe scope test. ability-buffer-combat-final.txt records it.
+Ruff and diff checks pass. The initial449 run and earlier scope fixture failure
+remain as separate evidence. All current verification processes are terminal.
+No commits, staging, patch export, parent integration or client control occurred.

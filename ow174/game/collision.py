@@ -253,6 +253,7 @@ def pack(
         "triangles": sum(len(records) for _, records in meshes),
         "identifiers": [f"0x{value:016X}" for value in identifiers],
         **source,
+        "prop_holder_masks": "native-104319",
     }
     payload = lzma.compress(b"".join(out.parts))
     text = json.dumps(header, sort_keys=True).encode()
@@ -314,6 +315,14 @@ def _unpack_geometry(payload: bytes, header: dict) -> tuple[list, list, list, li
             else:
                 mask, *values = raw.get("H4f")
                 shapes.append(("sphere", mask, tuple(values[0:3]), values[3]))
+        if "prop_holder_masks" not in header:
+            # Older caches packed three holder fields into the wrong bits.
+            # Model mesh triangle masks and the map chunk already use native bits.
+            shapes = [
+                (kind, (mask & ~0x25) | ((mask & 1) << 2) | ((mask & 4) >> 2)
+                 | ((mask & 0x20) << 8), *geometry)
+                for kind, mask, *geometry in shapes
+            ]
         models.append(shapes)
     placements = []
     for _ in range(header["placements"]):

@@ -72,7 +72,7 @@ INSTANCE_FIELDS = {
     "disabled_start_entries", "disabled_message_entries", "cached_source_entity", "ruleset_target_entity",
     "auto_retire",
     "initialized_frame",
-    "retirement_pending",
+    "retirement_pending", "join_inputs", "plug_source",
 }
 STATE_FIELDS = {
     "instance", "node", "index", "active", "ending", "counter", "start", "ended_at", "ticked_at",
@@ -522,7 +522,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertIn("retired", body)
         world = dict(body["world"]["fields"])
         self.assertEqual(set(world), {"hero", "mode", "body", "throttles", "_body_owner_context",
-                                      "_entity_query_context"})
+                                      "_entity_query_context", "_spatial_query_context"})
         context = dict(world["_body_owner_context"]["fields"])
         self.assertEqual(context["owner"], script.entity)
         self.assertIs(context["instance_present"], True)
@@ -537,6 +537,14 @@ class BodyVMSnapshotTests(unittest.TestCase):
         script.unknown_execution_state = 1
         with self.assertRaises(BodyVMSnapshotError):
             export_body_vm(script)
+
+    def test_spatial_engine_context_availability_is_passive_causal_storage(self):
+        script = BodyScript(SOLDIER, 123, 1000)
+        baseline = snapshot_digest(export_body_vm(script))
+        script.world._spatial_query_context.namespace_present = False
+        with mock.patch.object(runtime.Instance, "evaluate", side_effect=AssertionError("query ran")):
+            # The stored bound callback is identified, never executed by capture.
+            self.assertNotEqual(baseline, snapshot_digest(export_body_vm(script)))
 
     def test_snapshot_envelope_rejects_unknown_missing_and_noncanonical_typed_fields(self):
         component, _ = fixture()

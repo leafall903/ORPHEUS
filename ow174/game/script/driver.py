@@ -24,11 +24,11 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import defenses, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import body_owner, entity_queries, expr, graph, nodes, runtime
+from ow174.game.script import body_owner, entity_queries, expr, graph, nodes, runtime, spatial_queries
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -100,6 +100,16 @@ POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
 # charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
+
+
+def charge_ultimate(component, seconds, running):
+    if seconds <= 0 or running:
+        return
+    cost = expr.to_float(component.entity_var(ULT_COST).value())
+    charge = expr.to_float(component.entity_var(ULT_CHARGE).value())
+    if cost > 0 and charge < cost:
+        step = f32(cost * component.frame_ms / (1000.0 * seconds))
+        component.set(ULT_CHARGE, min(cost, f32(charge + step)))
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -134,6 +144,93 @@ class BodyWorld(runtime.World):
             body, True, True, True, lookup=self._lookup_entity_query,
             watch_environment=self._poll_body_owner, watch_possession=self._poll_body_owner,
         )
+        self._spatial_query_context = spatial_queries.Context(body, True, True, query=self._query_spatial)
+
+    def spatial_query_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self._spatial_query_context
+
+    def body_placement(self, state):
+        from ow174.game.script import placement
+
+        if self.match is None or state.instance.component.entity != self.body:
+            return NotImplemented
+        return placement.place(self.match, state)
+
+    def track_targets(self, state):
+        from ow174.game import sombra_emp
+
+        site = state.instance.graph.index, state.node.pos
+        if self.match is None:
+            return
+        if site in ((0x0B2F, 8), (0x026A, 35)):
+            self.match.combat.dva_ultimate_targets(state)
+        elif site in ((0x025C, 11), (0x025C, 18)):
+            selected = self.match.combat.zarya_bubbles.query_targets(state)
+            state.instance.write(expr.dynamic(state.node.field("m_8A2905A0")), selected)
+            state.ticks()
+        elif sombra_emp.track(self.match, state):
+            state.ticks()
+
+    def tracked_ray(self, state):
+        from ow174.game import sombra_emp
+
+        if self.match is None or state.instance.component.strict:
+            return NotImplemented
+        return sombra_emp.tracked_ray(self.match, state)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import sombra_emp
+
+        result = sombra_emp.modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        site = state.instance.graph.index, state.node.pos
+        if self.match is None or site not in ((0x0B2F, 22), (0x026A, 36)):
+            return NotImplemented
+        if not elapsed_ms:
+            self.match.combat.dva_ultimate_damage(state)
+            state.request_finish()
+        return True
+
+    def create_body(self, instance, node):
+        from ow174.game import body_entities
+
+        if self.match is None or instance.component.entity != self.body:
+            return NotImplemented
+        return body_entities.create_mech(self.match, instance, node)
+
+    def play_owned_script(self, instance, node):
+        from ow174.game import body_entities, sigma_grasp, sombra_emp
+
+        if self.match is None:
+            return NotImplemented
+        if self.hero == sigma_grasp.HERO and sigma_grasp.grant(self.match.combat, self.body, instance, node):
+            return True
+        result = sombra_emp.dispatch(self.match, instance, node)
+        if result is not NotImplemented:
+            return result
+        return body_entities.play_cleanup(self.match, instance, node)
+
+    def _query_spatial(self, cls, entity):
+        from ow174.game.mover import mover_data
+        from ow174.game.script.spatial_pose import match_vector
+
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone or not player.has_body or player.body != entity:
+                continue
+            mover = player.mover
+            return match_vector(cls, mover.position, mover.yaw, mover.pitch,
+                                mover._pogo(), mover.spring)
+        for bot in match.bots:
+            if bot.entity == entity:
+                return match_vector(cls, bot.position, round(bot.yaw), round(bot.pitch),
+                                    mover_data(bot.body).stand_pogo)
+        return None
 
     def _poll_body_owner(self, *_):
         """Native dependency consumers refresh through the existing frame poll."""
@@ -151,7 +248,7 @@ class BodyWorld(runtime.World):
                 return body_owner.Target(entity, None)
         for bot in self.match.bots:
             if bot.entity == entity:
-                return body_owner.Target(entity, 0)
+                return body_owner.Target(entity, bot.owner)
         return None
 
     def body_owner_context(self, entity):
@@ -185,14 +282,44 @@ class BodyWorld(runtime.World):
     def script_component_present(self, entity):
         if self.match is None:
             return NotImplemented
+        return self._body_component(entity) is not None
+
+    def _body_component(self, entity):
+        if self.match is None:
+            return None
+        component = self.match.body_components.get(entity)
+        if component is not None:
+            return component if component.world.match is self.match and component.fault is None else None
+        script = self._body_script(entity)
+        return script.component if script is not None and script.component.fault is None else None
+
+    def _body_script(self, entity):
+        if self.match is None:
+            return None
         for player in self.match.players:
             if not player.gone and player.has_body and player.body == entity:
                 script = player.body_script
-                return script is not None and not script.retired
+                return script if script is not None and not script.retired else None
         for bot in self.match.bots:
             if bot.entity == entity:
-                return bot.body_script is not None
-        return False
+                return bot.body_script
+        return None
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        if self.match is None or entity == runtime.GAME_MODE_ENTITY:
+            return NotImplemented
+        component = self._body_component(entity)
+        if component is None:
+            return None
+        return component.entity_var(var, create=create)
+
+    def entity_ruleset(self, entity, key):
+        if self.match is None:
+            return NotImplemented
+        component = self._body_component(entity)
+        if component is None:
+            return None
+        return component.world.ruleset(key)
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -201,8 +328,39 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def state_condition(self, state):
+        from ow174.game import reinhardt_barrier
+
+        return reinhardt_barrier.condition(self, state)
+
     def native(self, cfg: dict, instance):
+        from ow174.game import body_entities, reinhardt_barrier, sombra_emp
+
+        result = sombra_emp.filter_body(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
+
+        barrier = reinhardt_barrier.native(self, cfg, instance)
+        if barrier is not NotImplemented:
+            return barrier
+
+        primary = body_entities.primary_query(self, cfg, instance)
+        if primary is not NotImplemented:
+            return primary
         cls = cfg.get("$")
+        if (cls == "STU_71A87E92" and self.match is not None and instance is not None
+                and instance.graph.index in (0x026A, 0x0B2F)):
+            target = cfg.get("m_entity") or {}
+            if target.get("$") == "STU_B5A0CAF0":
+                position = self.match.script_body_position(self.body, self.body)
+                return position if position is not None else expr.EVALUATION_FAILED
+            if instance.graph.index == 0x026A and expr.dynamic(target) == (runtime.INSTANCE, 38):
+                # Resolve the new owned body's static model root at its feet.
+                entity = expr.to_entity(instance.evaluate(target))
+                bot = next((bot for bot in self.match.bots
+                            if bot.entity == entity and bot.source_body == self.body
+                            and bot.body == body_entities.MECH and not bot.dead), None)
+                return Vec3(*bot.position) if bot is not None else expr.EVALUATION_FAILED
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -355,7 +513,16 @@ class BodyScript(ReplicatedBody):
         self.report_count = 0  # owner frames sent so far
         initial_pools = (pools.body_pools(hero) if body_definition is None
                          else pools.active_pools(hero, body_definition))
-        self._spawn(start_frame, sum(initial_pools) if health is None else health)
+        if match is not None:
+            match.register_body_component(self.component)
+        try:
+            self._spawn(start_frame, sum(initial_pools) if health is None else health)
+        except Exception:
+            if match is not None:
+                match.unregister_body_component(self.component)
+            self.component.disconnect_foreign_watchers()
+            self.world.match = None
+            raise
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -419,6 +586,7 @@ class BodyScript(ReplicatedBody):
 
     def _run(self, frame: int, edges: list) -> None:
         self.component.run_frame(frame, edges)
+        defenses.advance_entry(self)
         self._report_shots()
         self._charge_ult()
 
@@ -427,13 +595,8 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
-            return
-        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
-        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        if cost > 0 and charge < cost:
-            step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
+        charge_ultimate(self.component, self.ult_seconds,
+                        any(state.flags & nodes.Ability.RUNNING for state in self.ultimates))
 
     # --- what the client gets ----------------------------------------------------------------------
 
@@ -603,6 +766,9 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if self.world.match is not None:
+            self.world.match.unregister_body_component(self.component)
+        self.component.disconnect_foreign_watchers()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False
