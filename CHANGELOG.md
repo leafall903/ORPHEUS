@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered additive NPC force adapter
+
+- Retain the delivered validated additive `Bot.apply_impulse` interface and its
+  exact-body mover initialization. Pause active navigation when physical force
+  takes ownership, as required by the combined movement pipeline.
+- Route delivered Helix/manual radial force through that adapter while keeping
+  existing callers of the older impulse interface intact.
+- All 43 external-motion, training-route and Soldier-force checks passed. Six
+  of seven prepared five-body PvE force cases passed; the remaining melee
+  backstop case retains four missing-radius fixture assertions. Keep that
+  implementation and check in source independently of complete acceptance.
+  No original-client acceptance is claimed.
+
+
 ### Restore delivered manual NPC melee and target-query bridge
 
 - Restore the delivered manual Trooper/Heavy Assault one-shot strike and the

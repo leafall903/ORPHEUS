@@ -48,7 +48,7 @@ from functools import cache
 
 from ow174.game.collision import MOVER, TEAM0, TEAM1
 from ow174.game.commands import Command
-from ow174.game.mover import GRAVITY_SCALE, IN_AIR, Mod, Mover, encode_spring, modded, mover_data
+from ow174.game.mover import FELL, GRAVITY_SCALE, IN_AIR, Mod, Mover, encode_spring, modded, mover_data
 from ow174.game.ice_wall import route_stride
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
@@ -195,6 +195,32 @@ class Bot:
                 active = tuple(pillar for pillar in pillars
                                if pillar.created_tick <= at < pillar.expires_tick)
                 self._tick(at, seconds, collision, pace_limits, active)
+
+    def apply_impulse(self, impulse, tick: int, collision, *, category: int) -> None:
+        """Reconstructed external-force adapter using this body's actual mover data."""
+        impulse = tuple(impulse)
+        if len(impulse) != 3 or not all(math.isfinite(value) for value in impulse):
+            raise ValueError("invalid external impulse")
+        if self.dead:
+            return
+        if self.impulse_mover is None:
+            if self.navigation is not None:
+                from ow174.game import npc_navigation
+
+                npc_navigation.stop(self)
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision,
+                                       mover_data(self.body), category=category)
+            self.impulse_mover.velocity = self.velocity
+            self.impulse_mover.last_command = Command(tick)
+            self.last_tick = tick
+        mover = self.impulse_mover
+        mover.velocity = tuple(a + b for a, b in zip(mover.velocity, impulse, strict=True))
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.fall = 0.0
+        self.velocity = mover.velocity
+        self.pace, self.held = 0.0, (0, 0)
+        self.moved_tick = tick
 
     def impulse(self, velocity: tuple, tick: int, collision=None, *, free_for_all=False) -> None:
         """Temporarily give external motion to the shared capsule solver.

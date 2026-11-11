@@ -5712,8 +5712,10 @@ class Combat:
         if not any(impulse):
             return
         if isinstance(target.owner, bots.Bot):
-            target.owner.impulse(impulse, self.tick, self._collision(),
-                                 free_for_all=self.match.game_map.free_for_all)
+            from ow174.game.collision import TEAM0, TEAM1
+
+            category = MOVER if self.match.game_map.free_for_all or target.team not in (0, 1) else (TEAM0, TEAM1)[target.team]
+            target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
         else:
             mover = target.owner.mover
             mover.add_external_impulse(impulse)
