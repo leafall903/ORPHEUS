@@ -11,7 +11,7 @@ import test_mccree_flashbang as flash
 import test_soldier_combat_lane as lane
 from test_game_combat import aim, in_world
 
-from ow174.game import combat, defenses, projectiles, stats, winston_barrier, zarya_barrier
+from ow174.game import combat, defenses, projectiles, stats, winston_barrier, zarya_barriers as zarya_barrier
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes

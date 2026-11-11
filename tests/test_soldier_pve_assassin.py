@@ -6,7 +6,7 @@ import unittest
 import test_soldier_pve_static as fixture
 from test_game_combat import aim, in_world
 
-from ow174.game import assassin, combat, defenses, npc, npc_control, projectiles, stats, zarya_barrier
+from ow174.game import assassin, combat, defenses, npc, npc_control, projectiles, stats, zarya_barriers as zarya_barrier
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
 from ow174.game.collision import World
 from ow174.game.commands import Command

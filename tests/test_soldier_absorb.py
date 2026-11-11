@@ -9,7 +9,7 @@ from pathlib import Path
 
 from test_game_combat import Run, aim, in_world
 
-from ow174.game import combat, deflection, projectile_tags, projectiles, replay_manifest, sigma_grasp, stats
+from ow174.game import combat, deflection, projectile_tags, projectiles, replay_manifest, absorption as sigma_grasp, stats
 from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes

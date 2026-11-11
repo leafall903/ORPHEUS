@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered manual NPC melee and target-query bridge
+
+- Restore the delivered manual Trooper/Heavy Assault one-shot strike and the
+  existing console backend key. Keep primary engagement and current controller
+  policies intact; a standalone strike does not require sustained firing.
+- Publish these NPC searches through the combined linked-target contract,
+  preserve Heavy's own melee search/position query, and apply the delivered
+  manual health/force inputs through current recipient and mover interfaces.
+- Adapt imported Soldier fixtures to the moved Sigma/Zarya module names; their
+  original health, control and geometry assertions remain intact.
+- All 33 existing NPC-control/HTTP and original manual Trooper/Heavy cooldown,
+  health and displacement checks passed with prepared external NPC inputs.
+  Other cross-service fixtures and original-client acceptance remain pending.
+
+
 ### Integrate delivered Helix self splash and external force
 
 - Preserve the delivered self-damage scalar, force fields and enemy/own ring

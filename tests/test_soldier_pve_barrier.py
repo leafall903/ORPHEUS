@@ -7,7 +7,7 @@ import test_soldier_barrier as barrier_fixture
 import test_soldier_pve_static as fixture
 from test_game_combat import aim, in_world, first_canister_sweep
 
-from ow174.game import combat, defenses, projectiles, reinhardt_barrier, stats, winston_barrier, zarya_barrier
+from ow174.game import combat, defenses, projectiles, reinhardt_barrier, stats, winston_barrier, zarya_barriers as zarya_barrier
 from ow174.game.commands import Command
 from ow174.game.content import heroes
 

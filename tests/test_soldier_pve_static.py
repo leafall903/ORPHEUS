@@ -26,7 +26,7 @@ from ow174.game import (
     projectiles,
     stats,
     ultimate,
-    zarya_barrier,
+    zarya_barriers as zarya_barrier,
 )
 from ow174.game.collision import World, flat_world
 from ow174.game.commands import JUMP, Command

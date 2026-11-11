@@ -344,21 +344,33 @@ class BotWorld(runtime.World):
                 # As with wall contact, check the authored drive transition before the capture watcher.
                 drive.try_complete()
 
-    def track_targets(self, state: runtime.State) -> None:
+    def linked_tracked_targets(self, state: runtime.State):
         if self.match is None:
-            return
+            return NotImplemented
         if self.hero == TROOPER_HERO and state.instance.graph.index == 0x1422 and state.node.pos == 5:
             target = self.match.combat.trooper_melee_target(state)
             targets = (expr.Entity(target.entity),) if target is not None else ()
+        elif (self.hero == HEAVY_ASSAULT_HERO and state.instance.graph.index == 0x140E
+              and state.node.pos == 6):
+            fight = self.match.combat
+            attacker = fight._npc_melee_attacker(state)
+            targets = (() if attacker is None else tuple(expr.Entity(target.entity) for target in
+                       fight._npc_melee_candidates(attacker, state, state.node)))
         elif (self.hero == HEAVY_ASSAULT_HERO and state.instance.graph.index == 0x1408
               and state.node.pos in (32, 85, 96, 100, 134)):
             combat = self.match.combat
             targets = (combat.heavy_cone_targets(state) if state.node.pos in (96, 134)
                        else combat.heavy_filtered_targets(state))
         else:
-            return
-        slot = expr.lvalue(state.node.field("m_8A2905A0"))
-        state.instance.write(slot, targets)
+            return NotImplemented
+        return targets
+
+    def track_targets(self, state: runtime.State) -> bool:
+        targets = self.linked_tracked_targets(state)
+        if targets is NotImplemented:
+            return False
+        state.publish_targets(targets)
+        return True
 
     def stop_tracking_targets(self, state: runtime.State) -> None:
         instance = state.instance
@@ -498,8 +510,9 @@ class BotWorld(runtime.World):
             # this value; no global/foreign-entity health lookup is inferred.
             health = instance.component.entity_var(OWNER_HEALTH, create=False)
             return health.value() if health is not None else None
-        if (self.hero == TROOPER_HERO and self.match is not None and instance is not None
-                and instance.graph.index == 0x1422 and cfg.get("$") == "STU_71A87E92"):
+        if (self.match is not None and instance is not None and cfg.get("$") == "STU_71A87E92"
+                and (self.hero, instance.graph.index) in
+                ((TROOPER_HERO, 0x1422), (HEAVY_ASSAULT_HERO, 0x140E))):
             entity = instance.evaluate(cfg.get("m_entity"))
             if isinstance(entity, expr.Entity):
                 targets = self.match.combat._targets()
@@ -600,6 +613,23 @@ class BotWorld(runtime.World):
                 controls.drain(state)
                 state.request_finish()
             return True
+        if (self.match is not None and (self.hero, state.instance.graph.index, state.node.pos) in
+                ((TROOPER_HERO, 0x1422, 4), (HEAVY_ASSAULT_HERO, 0x140E, 5))):
+            attacker = self.match.combat._npc_melee_attacker(state)
+            if attacker is not None and attacker.spawner.get("manual_spawn") is True and not attacker.firing:
+                if elapsed_ms == 0:
+                    self.apply_modify_health(state)
+                    settings = state.node.field("m_modifyHealth") or {}
+                    origin = state.evaluate(settings.get("m_C0139FA6"), watch=False)
+                    recipients = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
+                    if isinstance(origin, expr.Vec3) and isinstance(recipients, tuple):
+                        horizontal = expr.to_float(state.evaluate(settings.get("m_E33EFEE1"), watch=False))
+                        upward = expr.to_float(state.evaluate(settings.get("m_10399AE7"), watch=False))
+                        fight = self.match.combat
+                        for target in fight._enemies(attacker):
+                            if expr.Entity(target.entity) in recipients and not fight.vitals_of(target).dead:
+                                fight._radial_impulse(target, tuple(origin), horizontal, upward)
+                return True
         value = heavy_assault.modify_health(self, state, elapsed_ms)
         if value is NotImplemented and self.match is not None and elapsed_ms == 0:
             value = self.match.combat._npc_melee(state, health=True)

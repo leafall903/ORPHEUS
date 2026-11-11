@@ -72,6 +72,20 @@ def start(match, player):
     return bot.entity
 
 
+def strike(match, player):
+    """Request one authored melee from the selected manual NPC."""
+    bot = selected(match, player)
+    if bot is None or bot.hero not in (heavy_assault.TROOPER, heavy_assault.HERO) or bot.body_script is None:
+        raise ValueError('Select a living manual Trooper or Heavy Assault for melee')
+    fight = match.combat
+    if match.ended or fight.is_dead(player) or fight.is_stunned(bot):
+        raise ValueError('NPC melee requires an eligible attacker and player')
+    x, _, z = player.mover.position
+    bot.yaw = float(bots.heading(x - bot.position[0], z - bot.position[2]))
+    bot.body_script.component.edges([(31, True), (31, False)])
+    return bot.entity
+
+
 def stop(match):
     count = 0
     for bot in match.bots:

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import test_soldier_combat_lane as lane
 from test_game_combat import Run, aim, in_world, first_canister_sweep
 
-from ow174.game import combat, defenses, projectiles, reinhardt_barrier, stats, winston_barrier, zarya_barrier
+from ow174.game import combat, defenses, projectiles, reinhardt_barrier, stats, winston_barrier, zarya_barriers as zarya_barrier
 from ow174.game.collision import World, flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes
