@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Merge Soldier original-language delivery
+
+- Merge the original Soldier delivery c5607bc4 after mounting its Visor,
+  resource-backed Field flight/healing, body clocks, charge/mode policy,
+  Skirmish queries, FirstPerson inputs, Helix self/force and manual NPC inputs
+  in focused integration commits. Preserve its original verification sources.
+- Keep the combined shared implementations for Genji/Matrix/Grasp, finite
+  Reinhardt/Orisa/Winston/Zarya barriers, selected-form pools and NPC charge,
+  sleep/biotic control. The delivered barrier_mesh, sigma_grasp and zarya_barrier
+  responsibilities live in barrier_geometry/reinhardt_barrier, absorption/
+  interception and barriers/world_bubbles in this host.
+- The implementation commits record the passing focused checks and remaining
+  older cross-service fixture differences. This ancestry merge changes no
+  runtime implementation. Incomplete acceptance does not withhold delivery.
+  Original-client acceptance and remaining line integration are still open;
+  no Rust runtime cutover, appearance merge or publication is included.
+
+
 ### Preserve delivered additive NPC force adapter
 
 - Retain the delivered validated additive `Bot.apply_impulse` interface and its
