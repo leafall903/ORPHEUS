@@ -2778,6 +2778,12 @@ class Combat:
             for player in self.match.players:
                 if player.hero.guid == lucio.HERO:
                     lucio.advance_passive_charge(player, at)
+            from ow174.game.script import charge as mercy_charge
+
+            for player in self.match.players:
+                script = player.body_script
+                if script is not None and not script.retired and script.hero == 0x02E0000000000004:
+                    mercy_charge.advance_passive(script, at)
             self._advance_timed_hits()
             if self.lucio_auras.leases or self.lucio_auras.healing:
                 self.lucio_auras.update(at)
@@ -3387,7 +3393,11 @@ class Combat:
                 or isinstance(target.owner, actors.Deployable)):
             return 0.0
         identifiers = tuple(tag.guid for tag in tags or ())
-        return self._heal_target(healer, target, amount, source_entity=healer.body, tags=identifiers)
+        given = self._heal_target(healer, target, amount, source_entity=healer.body, tags=identifiers)
+        from ow174.game.script import charge
+
+        charge.healed(healer.body_script, entity, given, tags, frame=frame)
+        return given
 
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
                      end_tick=None):

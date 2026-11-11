@@ -382,6 +382,39 @@ class BodyWorld(runtime.World):
             return False
         return self.match.combat.resurrect_player(caster, target.id, instance)
 
+    def subgraph_scopes(self, entity):
+        if entity == self.body and hasattr(self, "scope_host"):
+            return self.scope_host
+        return NotImplemented
+
+    def ability_resource_available(self, state) -> bool:
+        if self.hero != regeneration.MERCY or state.instance.graph.index != 0x10DA or state.index != 9:
+            return True
+        if getattr(self, "advancing_valkyrie_clock", False):
+            return False
+        pending = getattr(self, "pending_ult_credits", ())
+        return not pending or state.now >= pending[-1][0]
+
+    def entity_value(self, instance, state, identifier: int, value):
+        from ow174.game.script import charge
+
+        if identifier != 842:
+            return value
+        index = instance.graph.index
+        if state is None and index == charge.PASSIVE_GRAPH and getattr(self, "historical_boost_award", False):
+            return True
+        if state is None or (index != 0x006D and (index, state.node.pos) != (0x006B, 169)):
+            return value
+        expiry = self.historical_valkyrie_deadline()
+        if expiry is None or state.now >= expiry:
+            return value
+        # An observer first bound by late input missed the original 842 change.
+        # Queue the same rebind at expiry without changing the live entity slot.
+        if not any(event.kind == runtime.CHANGED and event.state is state and event.time == expiry
+                   for event in state.instance.queue):
+            state.instance.post(runtime.Event(expiry, 0, runtime.CHANGED, state=state))
+        return True
+
     def historical_valkyrie_deadline(self):
         if self.hero != regeneration.MERCY or self.match is None:
             return None
@@ -390,6 +423,8 @@ class BodyWorld(runtime.World):
         return history.expires_ms if history is not None else None
 
     def ability_start_allowed(self, state) -> bool:
+        if not self.ability_resource_available(state):
+            return False
         # The hosted projection supplies its overlap gate while the native
         # 025C recipient effect/tag system is unimplemented.
         if (self.match is not None and self.hero == 0x02E0000000000068
@@ -690,6 +725,26 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
+
+        if self.hero == regeneration.MERCY and self.match is not None and instance is not None:
+            cls = cfg.get("$")
+            if instance.graph.index == 0x01C7:
+                if cls == "STU_4A101787":
+                    return True
+                if cls == "STU_9622CAD6":
+                    return Entity(runtime.GAME_MODE_ENTITY)
+                if cls == "STU_ABB6C23E":
+                    return Asset(0)
+            if cls == "STU_F7262B36" and instance.graph.index in (0x0B8B, 0x006B):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_801B298F")))
+                owner = next((p for p in self.match.players
+                              if p.has_body and not p.gone and p.body == entity), None)
+                return Entity(owner.entity if owner is not None else 0)
+            from ow174.game.script import charge
+
+            result = charge.damage_native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
 
         if (self.match is not None and self.hero == regeneration.MERCY and instance is not None
                 and instance.graph.index == 0x00CA and not instance.component.strict):
@@ -1619,6 +1674,11 @@ class BodyScript(ReplicatedBody):
                 raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
             setattr(self.world, name, slots)
         self.component = runtime.Component(entity, self.frame_ms, self.world)
+        if hero == regeneration.MERCY:
+            from ow174.game.script import scopes
+
+            self.world.scope_host = scopes.ForwardHost(self.component)
+            self.world.scope_host.set_frame(start_frame)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
         self.stream = BodyStream(entity)
@@ -1683,7 +1743,10 @@ class BodyScript(ReplicatedBody):
                     event for event in instance.queue
                     if not (event.kind == runtime.ENTRY and event.node.pos == 2)
                 ]
-        component.run_frame(frame)
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.run_frame(frame)
+        else:
+            component.run_frame(frame)
         if self.hero == lucio.HERO and self.world.match is not None:
             lucio.stop_passive_timer(component)
         self.server_only = self.initial_exclusions()
@@ -1760,7 +1823,11 @@ class BodyScript(ReplicatedBody):
                 common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
                 if common is not None and not common.node_state(common.graph.node(77)).active:
                     runtime.send_instance_message(common, lucio.CHARGE_ACTIVE, {}, player.entity)
-        self.component.run_frame(frame, edges)
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.set_frame(frame)
+            self.world.scope_host.run_frame(frame, edges)
+        else:
+            self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
         from ow174.game.script import support
 
@@ -1844,6 +1911,8 @@ class BodyScript(ReplicatedBody):
         return after - before
 
     def _charge_ult(self) -> None:
+        if self.hero == regeneration.MERCY and self.world.match is not None:
+            return  # The delivered 0B8B graph owns Mercy passive charge.
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             return
         if self.hero == baptiste.HERO and self.ult_seconds is None:
@@ -2081,6 +2150,11 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        from ow174.game.script import charge
+
+        charge.set_pending_credits(self.world, ())
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.clear()
         self.world.velocity_requests.clear()
         for instance in list(self.component.instances.values()):
             for state in list(instance.states.values()):

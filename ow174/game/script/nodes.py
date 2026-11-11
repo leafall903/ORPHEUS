@@ -5148,8 +5148,10 @@ def join_inputs(instance: Instance, node, caller) -> bool:
 @handler("STU_3387AB5D")
 def condition_bool(instance: Instance, node, caller) -> bool:
     """Condition_Bool: m_condition, evaluated with the calling state as the watcher."""
-    if (not instance.component.strict and (instance.graph.index, node.pos) == (0x00CA, 22)):
-        # The compatibility server owns the resurrection action on this split.
+    if (not instance.component.strict and ((instance.graph.index, node.pos) == (0x00CA, 22)
+            or ((instance.graph.index, node.pos) == (0x01C7, 78)
+                and instance.component.world.hero == 0x02E0000000000004))):
+        # The compatibility server owns the resurrection and Mercy eligibility branches.
         # Strict CEF730 evaluation keeps its captured client-role result.
         result = instance.component.world.native(node.field("m_condition"), instance)
         if type(result) is bool:

@@ -526,6 +526,11 @@ class Player:
                 wraith.advance(self)
                 self.match.combat.command(self, command if posed else None)
         script = self.body_script
+        if script is not None and (pending := getattr(script.world, "pending_ult_credits", ())):
+            from ow174.game.script import charge
+
+            charge.set_pending_credits(script.world, tuple(credit for credit in pending
+                                                          if credit[0] > script.component.now))
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
 
 

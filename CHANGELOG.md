@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy passive and healing charge integration
+
+- Retain the delivered Python charge and relationship modules. Mount Mercy's
+  original 01C7 eligibility and 0B8B timer through the forward subgraph scope
+  host, including idle world ticks, retained dead bodies, cost caps and mode
+  changes. Retire the host and pending credit with the body.
+- Deliver actual capped tagged staff healing to the authored healing award.
+  Historical healing rebases future passive credit before applying the cap;
+  late ultimate commands cannot spend credit from a newer world frame.
+- Register scope history and pending credit in body/server snapshots. The
+  original 14 passive tests, one server-storage regression, nine selected
+  original healing-award tests, three support-effect checks, and 80 targeted
+  staff/Guardian Angel/Resurrection/combat/snapshot checks passed.
+- The broader snapshot run also exposed two Assassin state-factory expectations
+  and two legacy Orisa/Winston barrier-service attributes that fail identically
+  on pre-change 45ecb850. Preserve the implementations and record these pending
+  integration mismatches rather than withholding the merge. Healing-effect
+  checks use the prepared external effect graph bundle; game data is not added
+  to Git. Valkyrie world-clock/movement, damage/boost charge producers and
+  remaining Mercy delivery work and client acceptance are still pending.
+
 ### Mercy Resurrection integration
 
 - Mount the delivered 00CA engine action in the Python host. On authored

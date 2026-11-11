@@ -221,7 +221,10 @@ class InstanceContext(Context):
         return var.value()
 
     def var(self, scope: int, var: int):
-        return self._read(self.instance.find_var(scope, var, create=self.watcher is not None))
+        value = self._read(self.instance.find_var(scope, var, create=self.watcher is not None))
+        if scope == ENTITY:
+            return self.instance.component.world.entity_value(self.instance, self.watcher, var, value)
+        return value
 
     def proxy_var(self, levels: int, scope: int, var: int):
         instance = self.instance
@@ -390,6 +393,11 @@ class InstanceContext(Context):
         )
 
         component = self.instance.component
+        if (not component.strict and component.world.hero == 0x02E0000000000004
+                and cls == body_owner.CLASS and self.instance.graph.index in (0x0B8B, 0x006B)):
+            result = component.world.native(cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
@@ -760,6 +768,9 @@ class World:
     def native_state_factory_miss(self, cls: str) -> bool:
         """Whether an explicit host catalog establishes an empty native state slot."""
         return False
+
+    def entity_value(self, instance, state, identifier: int, value):
+        return value
 
     def subgraph_scopes(self, entity: int):
         """Known auxiliary-interface registration service, known no service, or unknown."""

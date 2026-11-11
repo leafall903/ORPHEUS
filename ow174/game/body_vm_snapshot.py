@@ -33,6 +33,7 @@ from ow174.game.script import (
     nodes,
     play,
     runtime,
+    scopes,
 )
 from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
@@ -149,7 +150,11 @@ _STATE_LAYOUTS = {
     nodes.DataFlowSnapshotState: (("scope_registry", "snapshot_registration"), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
+
 _VALUE_LAYOUTS = {
+    scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
+    scopes.History: ("records", "initial", "dispatched"),
+    scopes.Edge: ("frame", "active"),
     data_flow.Snapshot: ("mapping", "value"),
     data_flow.SnapshotRegistry: ("entries",),
     health_queries.StateCounter: ("value",),
@@ -509,6 +514,7 @@ class _Export:
             fields = {"hero", "mode"}
             optional = ()
             if kind is BodyWorld:
+                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context"))
@@ -539,7 +545,7 @@ class _Export:
             if kind is PhotonWorld:
                 fields.add("actor")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
+                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,

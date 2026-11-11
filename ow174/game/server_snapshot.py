@@ -61,7 +61,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import support_effects
+from ow174.game.script import scopes, support_effects
 from ow174.game import knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -102,6 +102,7 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
                        "on_leave on_join on_clock_ready "
                        "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
@@ -243,6 +244,7 @@ FIELDS = {
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
@@ -271,6 +273,7 @@ DATACLASSES = (
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
+    scopes.History, scopes.Edge,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
