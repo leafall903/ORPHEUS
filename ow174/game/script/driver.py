@@ -2042,6 +2042,9 @@ class BodyScript(ReplicatedBody):
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+            if self.world.hero == 0x02E0000000000020 and self.ult_seconds == ULT_SECONDS:
+                # Retain the Zenyatta delivery's five-point passive rate.
+                step = f32(5.0 * self.frame_ms / 1000.0)
             self._gain_ult_points(cost, charge, step)
 
     # --- what the client gets ----------------------------------------------------------------------

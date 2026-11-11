@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered Zenyatta passive and admitted-flight clocks
+
+- Restore the source lane's five-point-per-second passive ultimate policy at
+  its default setting, while retaining explicit diagnostic refill settings.
+- Stamp posed0164 launches with their admitted world tick so a subsequent
+  scheduler gap does not defer an already launched orb to the endpoint.
+  Preserve the original source-lane combat record with its historical scope.
+- The33-check weapon/passive run passed except the skipped fifth-orb impact
+  timestamp. After restoring admission stamps, all four original targeted
+  Transcendence/Discord/competing-heal/shield-regeneration impact checks passed.
+  Broader cross-hero reconciliation and original-client acceptance remain open.
+
 ### Mount delivered Zenyatta support and weapon services
 
 - Retain the original Zenyatta service, scoped defense timing helper and33

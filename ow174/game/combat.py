@@ -4244,6 +4244,10 @@ class Combat:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
+                elif (getattr(shooter.hero, "guid", None) == 0x02E0000000000020
+                      and state.instance.graph.index == 0x0164
+                      and command is not None and command.frame == self.tick):
+                    projectile_tick = self.tick
                 for pellet, launch in enumerate(directions):
                     model = pulse_bomb.Bomb if pulse else Rocket
                     rocket = model(
