@@ -6,6 +6,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Wine and Proton plaintext relay hook compatibility
+
+- Lower the `inHeap()` address floor to `0x10000`, accepting Wine and Proton
+  socket and byte-stream structures allocated in the lower 4 GB virtual address
+  space (`0x1DD10000`–`0x25000000`).
+- Replace raw pointer dereferencing in `scan()` with chunked 64 KB `ReadProcessMemory`
+  calls. Recover from Wine partial-read copy errors (`ERROR_PARTIAL_COPY` with
+  `nread = 0`) via a 4 KB page fallback, preserving adjacent valid pages.
+- Advance the scan offset by `off` instead of the chunk length to preserve candidate
+  byte-stream structures that span across 64 KB chunk boundaries.
+- Log first-fault memory attributes (`VirtualQuery` region base, size, state, protection
+  and `GetLastError`) directly to `wfd.log`.
+- Use safe memory wrappers (`ReadProcessMemory` / `WriteProcessMemory`) on non-MSVC
+  builds while preserving native zero-overhead `__try / __except` paths for MSVC on Windows.
+- Export `worker()` with `__declspec(dllexport)` and an atomic `InterlockedCompareExchange`
+  guard preventing duplicate thread execution when invoked via `CreateRemoteThread`.
+- Add an adaptive polling throttle (125 Hz during startup and for 4 seconds after any swap,
+  relaxing to 20 Hz upon quiescence).
+- Passed clean cross-compilation with `x86_64-w64-mingw32-g++` and 4-suite synthetic memory
+  fault testing under Proton 11.0. Manual acceptance confirmed with original client 104319
+  connecting to Battle.net relay (`21119`) and lobby (`3724`) without timeouts or access violations.
+
 #### Wrecking Ball reticle and Piledriver movement
 
 - Notify linked graph variables as Quad Cannons spread grows during sustained fire.
