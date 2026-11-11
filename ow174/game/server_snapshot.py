@@ -17,18 +17,26 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    ashe,
     bots,
     combat,
     correction,
+    earthshatter,
     heroselect,
+    mei_blizzard,
+    mei_wall,
     notices,
     observers,
+    orisa_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma_barrier,
     statescript,
     stats,
     voicelines,
     world,
+    world_bubbles,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -38,8 +46,11 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, message_manager, message_state, modifiers, runtime, scopes
 from ow174.game.script.bot import BotScript, BotWorld
+from ow174.game.script.controller_filter import ControllerFilterInputs
+from ow174.game.script.npc_context import NpcContext
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld, PinEffectServices
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
 
@@ -86,15 +97,42 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script body_script_failed controller_vm seen shown script mode_script "
+                   "next_countdown "
+                   "select_open controller_hero controller_effect_key "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
+    ControllerVM: _names("definition retired component reserved_wire_ids"),
+    ControllerFilterInputs: _names("owner component_masks current_bits replicated_bits primary_status "
+                                   "health_status flags28 provenance revision retired bound_host"),
+    ControllerWorld: _names("hero mode readers filter_inputs pin_services linked_target_inputs "
+                            "numeric_modifiers"),
+    modifiers.NumericModifiers: _names("_source_frame ready records"),
+    PinEffectServices: _names("registry messages"),
+    scopes.Registry: _names("states"),
+    message_state.Host: _names("contexts current manager"),
+    message_state.Context: _names("component host policy frame priority timer_notify receiver_policy "
+                                  "receiver_generation receiver_filter retired states"),
+    message_manager.Manager: _names("notify consume_work validate channels frame next_sequence "
+                                    "retired _busy _discard_revision"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice stuns"
+        "match vitals history replacement_ticks rockets earthshatters respawns next_bot now tick melee_seen "
+        "projectiles observers voice stuns sleeps sleep_views frost_hits freezes "
+        "blizzard dynamite companions impulses personal_barriers "
+        "world_barriers sigma_barriers orisa_barriers reinhardt_barriers ice_walls"
     ),
+    world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    orisa_barrier.Barriers: _names("fight geometry flights actors"),
+    reinhardt_barrier.Barriers: _names("fight geometry states"),
+    orisa_barrier.BarrierWorld: _names("hero mode actor"),
+    mei_wall.Walls: _names("fight pieces inputs building"),
+    mei_blizzard.Blizzard: _names("combat flights areas next_id"),
+    sigma_barrier.Barriers: _names("fight actors mesh triangles"),
+    sigma_barrier.BarrierWorld: _names("hero mode actor"),
+    ashe.Dynamite: _names("combat grenades burns last_tick"),
+    ashe.Companions: _names("combat active unavailable_reason"),
+    ashe.Impulses: _names("combat pending npcs"),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
@@ -115,9 +153,14 @@ FIELDS = {
     ),
     driver.BodyWorld: _names("hero mode body throttles match"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior "
+        "control_context"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position control_context match"),
+    NpcContext: _names(
+        "body controller definition body_component controller_component position retired "
+        "target_entity target_host"
+    ),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -134,15 +177,23 @@ FIELDS = {
         "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    bots.Bot: _names("combat_owner movement_flags movement_gravity"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    mei_blizzard.Flight, mei_blizzard.Area, world_bubbles.FixedBubble, earthshatter.Wave,
+    mei_wall.Pillar, mei_wall.Input, sigma_barrier.Shield, orisa_barrier.Flight, orisa_barrier.Shield,
+    reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
+    ashe.Grenade, ashe.Burn, ashe.Bob, ashe.Impulse, ashe.NpcMotion,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
     statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map,
+    message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record,
 )
 
 
@@ -289,7 +340,14 @@ class _Graph:
         elif kind in (set, frozenset):
             # Registered game sets here are membership sets of immutable plain keys.
             # Causal VM watcher/state sets are handled by the component adapter.
-            encoded = [replay_values.encode(value) for value in obj]
+            if obj and all(type(value) is message_state.Context for value in obj):
+                encoded = [self.value(value) for value in sorted(obj, key=lambda item: item.component.entity)]
+            elif obj and all(isinstance(value, runtime.State) for value in obj):
+                encoded = [self.value(value) for value in sorted(
+                    obj, key=lambda item: (item.instance.component.entity, item.instance.id, item.index),
+                )]
+            else:
+                encoded = [replay_values.encode(value) for value in obj]
             data = sorted(encoded, key=_json)
         elif kind in (weakref.WeakKeyDictionary, weakref.WeakSet):
             values = list(obj.items()) if kind is weakref.WeakKeyDictionary else list(obj)
@@ -333,6 +391,25 @@ class _Graph:
         elif kind is random.Random:
             data = {"fields": self._fields(obj, frozenset(("gauss_next",))),
                     "rng_state": replay_values.encode(random.Random.getstate(obj))}
+        elif kind is ControllerVM:
+            # Validate storage directly; passive export must not call host
+            # methods or evaluate VM variables to discover this reservation.
+            reserved = object.__getattribute__(obj, "reserved_wire_ids")
+            component = object.__getattribute__(obj, "component")
+            if type(component) is not runtime.Component:
+                _fail("invalid controller wire namespace component")
+            instances = object.__getattribute__(component, "instances")
+            next_id = object.__getattribute__(component, "next_id")
+            if (type(instances) is not dict or type(next_id) is not int
+                    or any(type(item) is not int or item <= 0 for item in instances)):
+                _fail("invalid controller wire namespace storage")
+            if (type(reserved) is not tuple or not reserved
+                    or any(type(item) is not int or not 0 < item < 0x10000 for item in reserved)
+                    or tuple(sorted(set(reserved))) != reserved):
+                _fail("invalid controller wire namespace reservation")
+            if any(item in reserved for item in instances) or next_id <= max(reserved):
+                _fail("controller VM overlaps the reserved controller wire namespace")
+            data = self._fields(obj, FIELDS[kind])
         elif kind in FIELDS:
             data = self._fields(obj, FIELDS[kind], OPTIONAL_FIELDS.get(kind, frozenset()))
         elif kind in DATACLASSES:
@@ -341,6 +418,33 @@ class _Graph:
         else:
             _fail(f"unregistered stored domain type: {label}")
         self.nodes[number] = {"id": number, "type": label, "state": data}
+
+    def _npc_vm_boundaries(self, component):
+        """Known pair/target links are owned by the enclosing graph, never dropped."""
+        from ow174.game.body_vm_snapshot import (
+            BodyVMSnapshotError,
+            _controller_service_objects,
+            _vm_couplings,
+        )
+
+        try:
+            contexts, peers = _vm_couplings(component)
+            services = _controller_service_objects(component)
+        except BodyVMSnapshotError as error:
+            raise ServerSnapshotError(str(error)) from error
+        if not contexts and not services:
+            return None
+        result = {id(item): (item, self.value(item)) for item in (*contexts, *services)}
+        for other in peers:
+            variables = list(other.vars.values())
+            for instance in (*other.instances.values(), *other.destroyed):
+                result[id(instance)] = (instance, self.value(instance))
+                for state in instance.states.values():
+                    result[id(state)] = (state, self.value(state))
+                variables.extend(instance.vars.values())
+            for var in variables:
+                result[id(var)] = (var, ["vm_var", self.value(other), *var.key])
+        return result
 
     def finish(self):
         index = 0
@@ -353,7 +457,9 @@ class _Graph:
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            boundaries = self._npc_vm_boundaries(component)
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras, domain_boundaries=boundaries)
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))

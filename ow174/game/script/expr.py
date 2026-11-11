@@ -444,6 +444,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        resolve = getattr(ctx, "referenced_ruleset", None)
+        value = resolve(key) if resolve is not None else NotImplemented
+        if value is not NotImplemented:
+            return value
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
@@ -718,7 +722,9 @@ def run(cfg: dict, ctx: Context, *, max_steps: int = MAX_EXPRESSION_STEPS):
                 stack.append(evaluate(configs[arg] if arg < len(configs) else None, ctx))
             elif op in (15, 16):
                 key = stack.pop()
-                key = key.guid & 0xFFFF if isinstance(key, Asset) else to_int(key)
+                # Native member op15/16 passes AX to 1B80C30, including
+                # signed/wide integer selectors. It is a uint16 identifier.
+                key = (key.guid if isinstance(key, Asset) else to_int(key)) & 0xFFFF
                 stack.append(_member(stack.pop(), key, ctx))
             elif op == 17:
                 index = stack.pop()

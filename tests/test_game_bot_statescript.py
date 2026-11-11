@@ -17,6 +17,7 @@ from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
 from ow174.game.script import decode, expr, graph, runtime
 from ow174.game.script.bot import DIED, FIRING_GRAPH, RESET, BotScript, BotWorld
 from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS, BodyStream, Snapshot
+from ow174.game.script.player_controller import DEFINITION as PLAYER_DEFINITION
 from ow174.game.server import BOT_DESTROY_GRACE_TICKS, LEAVE_GAME, Client
 
 GRAPH = 0xF0FE
@@ -957,9 +958,12 @@ class BotStatescriptTests(unittest.TestCase):
         batch = [bots.respawned(self.bot, self.bot.entity + offset, 0) for offset in range(3)]
         scripts = [SyntheticScript(self.graph) for _ in batch]
         bot_ids = [bot.entity for bot in batch]
+        controller_record = graph.entity_body(PLAYER_DEFINITION)
         with (
             patch.object(bots, "make", return_value=batch),
-            patch("ow174.game.match.graph.entity_body", return_value={"graphs": []}),
+            # Synthetic body definitions do not replace the independent000E controller.
+            patch("ow174.game.match.graph.entity_body", side_effect=lambda definition:
+                  controller_record if definition == PLAYER_DEFINITION else {"graphs": []}),
             patch("ow174.game.match.BotScript", side_effect=scripts) as prepare,
         ):
             _, client, player, _ = connection()

@@ -337,11 +337,11 @@ class Bot:
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else getattr(self, "movement_flags", 0),
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
-            gravity=GRAVITY_SCALE,
+            gravity=getattr(self, "movement_gravity", GRAVITY_SCALE),
         )
 
 

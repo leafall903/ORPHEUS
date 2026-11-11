@@ -278,6 +278,12 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def referenced_ruleset(self, selector):
+        world = self.instance.component.world
+        resolve = getattr(world, "referenced_ruleset_key", None)
+        key = resolve(self.instance, selector) if resolve is not None else None
+        return NotImplemented if key is None else self.ruleset(key)
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
@@ -302,13 +308,15 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import controller_heroes, entity_queries, entity_team, filter_game
 
         result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = filter_game.evaluate_native(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -395,6 +403,18 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        """Deliver a health request. True continues ticking, False stops, and NotImplemented rejects."""
+        return NotImplemented
+
+    def animation_duration(self, state: "State") -> float | None:
+        """Return a known duration for an authored animation binding."""
+        return None
+
+    def linked_target_sample(self, entity: int):
+        """Declared controller sample, known mover absence, or unknown."""
+        return None if self.property_modifiers(entity) is None else NotImplemented
+
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented
@@ -445,6 +465,9 @@ class World:
 
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
+
+    def entity_filter_context(self, entity: int):
+        return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
@@ -562,8 +585,9 @@ class Component:
         self.seq = EventSequence()
         self.next_id = 1
         self.destroyed: list[Instance] = []
-        # Volley state, shot number, time, and the frozen activation counter and start.
-        self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
+        # State, shot number, time, activation identity, and optional frozen Viper cone/seed.
+        self.shots: list[tuple[State, int, int, tuple[int, int]]
+                         | tuple[State, int, int, tuple[int, int], tuple[float, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
@@ -670,7 +694,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1471,6 +1495,10 @@ class State:
         self.ticked_at = self.now
         self.on_begin()
         self.on_enter()
+        if not self.instance.component.strict:
+            bridge = getattr(self.instance.component.world, "permissive_state_enter", None)
+            if bridge is not None:
+                bridge(self)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1485,6 +1513,10 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Native1B70610/1B70CA0 clear coalesced CHECK/CHANGED bits after
+        # cancelling their queued events. A later activation must enqueue anew.
+        self.flags_check = False
+        self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

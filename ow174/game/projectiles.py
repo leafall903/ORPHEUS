@@ -360,6 +360,11 @@ class Projectiles:
         # Start the delivery window no earlier than this simulation update.
         shot.release_at = max(due, self.match.tick)
 
+    def cancel(self, shot: Shot) -> None:
+        """Retire confirmed copies and pending deliveries without an explosion release."""
+        if shot in self.shots:
+            self._end(shot, self.match.tick, explode=False)
+
     def update(self, tick: int, *, first_tick: int | None = None) -> None:
         first_tick = tick if first_tick is None else first_tick
         for shot in list(self.shots):

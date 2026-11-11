@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Ashe integration handoff
+
+- Deliver the existing build 104319 Ashe server implementation and its shared
+  dependencies, including the prepared-data tool and existing regression tests.
+- The 64 graph, mover, controller, and script regression tests passed with the
+  lane's external runtime inputs. The staged whitespace check passed.
+- Full static acceptance and original-client acceptance remain open. The
+  outstanding checks include native hit and health ordering, NPC behavior,
+  and the complete defense and cross-hero interaction matrix.
+- Integration uses the existing seven dependency commits through 2ca9178 and
+  the external build 104319 runtime and matching prepared extensions.
+
 ### 2026-11-09
 
 #### Native state-input joins and Deadeye timing
@@ -70,6 +84,305 @@ This log records tested changes and their acceptance status. Entries are grouped
   lacks target/charged damage acceptance. Roll motion, complete skills/cooldowns,
   five-NPC AI/navigation/specials and original-client combat remain open. Normal
   inputs/services and original working changes are preserved; no hero lane merged.
+
+#### Ashe Assassin target boundary and parent join reuse (partial)
+
+- Deliver Assassin's authored contact and delayed health amounts to the body
+  of the explicitly admitted controller. Reconstruct the manual pin input,
+  contact range and damage clock. Verify lethal damage, cancellation, delayed
+  body replacement and passive storage. Pass129 Ashe,865 script and66 adjacent
+  checks plus the stored journal. Effect1177 and reengagement remain open.
+- Apply the native aim-word quantization to Viper hip and zero-cone ADS rays.
+  The quantization and sampler match 662 native cases, including both pitch
+  poles. The native shot-record transform passes with declared pose inputs.
+  All 28 configured tests and both 21-root stored replays passed. The static
+  server supplies command direction and eye origin.
+- Use the native key-49 factory's zero initializer as the static Viper owner
+  seed contribution. A read-only player body confirms the zero value. Twelve
+  factory, four copy and 16 publication-to-bake probes pass. In-match Ashe
+  mutations and client parity remain open.
+- Verify Viper's authored sampling provider, null aspect default and mode-zero
+  dispatch at native boundaries. Verify the volley seed bake and absent-owner
+  contribution in 128 native cases. Historical capture ranges leave the live
+  WeaponComponent seed word open.
+- Seed Viper spread with authored States 7 and 122. All 125 Ashe tests pass.
+  The Ashe stored journal matches seed 1319, the spread ray, 80 damage and
+  11 rounds. Native probes verify the activation-counter and instance-key
+  field reads at their tested boundaries.
+- Capture the Viper cone and reconstructed seed per queued shot. Deferred
+  consumption across three State activations now reproduces the immediate rays.
+  Pass 125 Ashe and 865 script tests plus the general stored journal. A separate
+  Ashe journal verifies a matching Viper ray, critical hit and ammo count.
+  Native State constructor probes identify the seed index discrepancy for Viper.
+- Apply actual Viper cone inputs to real hitscan rays with reviewed native table/
+  transform math and explicitly reconstructed seed identities/uniform mode.
+  Pass125 Ashe,105 gameplay and the source-frozen two-player journal; record33
+  cases/198 rays with10 off-axis spread-hit cases across all five actual NPCs.
+  Native seed/mode parity and retained-shot context remain open: three real
+  activations reproduce a changed first-event vector after State reuse. Freeze
+  per-report launch inputs before accepting deferred/reentry behavior.
+- Integrate reviewed WeaponVolley no-decay normalized spread and causal snapshot
+  field. Actual Viper hip uses ramp6 and ADS null ramp; twelve command shots
+  verify output/ammo at reported shot time. Match native integer-to-float rounding.
+  Pass252 native ramp/20 angle comparisons,120 Ashe,865 script,42 snapshot cases
+  and the source-frozen two-player journal. Damage-ray dispersion remains open.
+- Execute128 native linked-target post-lookup absence suffix cases with declared
+  notification adapter. Record native seed caller component49/word+98 storage;
+  full runtime/writer, live presence and RNG identity mapping remain unproved.
+- Reproduce cleanup writes requeuing the ending State after abort/finish; exclude
+  ending watchers while preserving live-peer notifications and reentry. Keep
+  complete native watcher/unwatch ordering open; add no new persistent fields.
+- Execute Viper partial/empty reload interruptions with exact shell-grant/shot/
+  remaining-ammo accounting and fresh-input recovery. Retain existing stop order;
+  native held-fire cadence and complete reload interlocks remain open.
+- Pass116 Ashe,858 script and the frozen two-player stored journal; refresh native
+  end/source fingerprints. Integrate immutable FirstPerson offsets for Ashe251C
+  (standing1.445/crouched1.0115) and McCree02A3 (1.425/0.9975) through shared
+  shooter/target eye lookup. Verify four pose/history offsets, eight real low-cover
+  shots and existing fallbacks. Animated camera/muzzle/skeletal behavior stays open.
+- Place the armed-Dynamite ray-stop test enemy at spawn beyond the inner blast
+  radius, replacing its late public-pose edit and boundary-dependent expectation.
+  Keep production blast damage unchanged and retain the failed verification log.
+- Pass119 Ashe tests,14 focused eye/Dynamite tests,105 gameplay tests and the
+  source-frozen two-player stored journal. Full static acceptance remains open;
+  no commit, patch or original-client acceptance is claimed.
+- Derive controller wire reservations from the same tree builder as existing
+  frames. Preserve32 frozen encoder outputs; start auxiliary VM allocation after
+  reserved PvP1..4/Practice1..5 IDs and reject overlap/rewind around VM advance.
+  Capture reservation policy in passive server state with direct invariant checks.
+  Actual allocation/hero-change and callback-free storage cases pass. Frame
+  composition, linked-target full payload, queue/ACK and effect delivery stay open.
+- Execute1030 original linked-target owner/full suffix cases with native bit,
+  entity and optional-float readers; verify exact fields/defaults, cursor and
+  notification gating with linked-base/notification adapters. No engine field
+  meaning or full composed frame is accepted by this probe.
+- Pass115 Ashe,26 focused and14 final reservation/storage guard cases. The48-case
+  storage/journal attempt has46 passes and2 retained failures; correct the
+  temporary-base extension fixture, then pass it and the source-frozen two-player
+  journal separately. Preserve all loader/manifest checks and complete static gate.
+- Apply reviewed parent input properties17/18/19 to acceleration in private mover,
+  preserving unsigned lateral/sign, forward/back split, clamp and raw bytes.
+  Pass120 native-prefix comparisons with a declared scalar-modifier adapter and
+  a physical next-frame activation/exit test. Full native mover fidelity stays open.
+- Exercise actual01C7/node152 ADS speed modifier through real Ashe commands in
+  five directions: exact -0.25 modifier/profile, physical slowdown and release
+  recovery. Forward5.5 ->4.125 ->5.5m/s; air/crouch/status scope stays open.
+- Pass113 Ashe and105 gameplay/NPC regressions, plus4 final ADS/modifier checks.
+  Mover/physics selection:56 pass,9 skip without parent collision caches; all9
+  map checks pass separately on the existing canonical read-only cache. Keep
+  full static acceptance, original-client and controller wire integration open.
+- Supply PlayScript request context from each exact bound NPC VM and cached
+  inherited source, with lifecycle checks before/after callback-capable reads.
+  Actual1157/node45 now constructs1177's controller-target request and stops at
+  unsupported submission. Native source core passes294+7+7 comparisons; queue,
+  effect delivery, controller health and wire-ID ownership remain open.
+- Review and reproduce the parent's Ability press-timestamp defect in a declared
+  nonzero-window fixture; retain original timestamps until start gates pass.
+  Verify actual Coach/Dynamite null windows still reject released near-expiry
+  input, while held and fresh post-cooldown inputs work. Full native start-check
+  fidelity remains open; no authored Ashe buffer was changed.
+- Pass112 full Ashe tests,857 script tests,90 gameplay regressions and28 focused
+  NPC/context/input checks on the current source. No client run, commit, patch,
+  shared runtime/source modification or complete static acceptance is claimed.
+- Verify the captured ModifyHealth State has no specialized record among1735
+  native registrations:24 parent-factory cases and96 generic no-op hook calls
+  pass. This client fallback supplies no server damage/completion semantics.
+  Actual1157/node51 resolves the manually selected controller into536; strict
+  health construction and1177 request-context failures preserve the target.
+  All13 Assassin boundary tests pass; incoming damage/effect delivery stay open.
+- Bind optional, explicitly supplied controller filter inputs to one controller
+  host identity. Validate updates atomically, retire replaced/removed/faulted
+  inputs and reject cross-namespace reuse. No default historical profile is
+  installed. Capture all profile fields and host identity in passive snapshots.
+- Route actual13C2/node10 through a source-independent value path only when the
+  manual target has valid bound inputs. Preserve live candidate14695 watches;
+  reject unknown reached payloads and unsupported relationship/rule/filter
+  shapes. Native per-component observers remain open; current reevaluation uses
+  the existing reconstructed per-frame native polling. No Assassin damage claim.
+- Fix a shared State restart bug found by actual repeated manual stop/start:
+  cancelling queued CHECK/CHANGED events left their coalescing flags set, so
+  later variable changes could be ignored. Clear both flags after cancellation,
+  matching native abort1B70610/finish1B70CA0. Pass520 original reset-stage cases
+  and the actual controller-flag restart scenario. Broader queue fidelity stays open.
+- Pass3718 native pipeline comparisons, including1086 comparisons of the
+  source-independent path across source/self/absent states. Pass855 script
+  regressions. These checks prove the declared-input value path and reset stage,
+  not automatic live attachment, effect/health delivery or complete static acceptance.
+- Pass108 Ashe,89 related controller/NPC/snapshot and90 gameplay regressions.
+  A final component47 consistency guard rejects contradictory bindings/updates
+  without changing the previous profile;26 focused tests pass after that guard.
+- Audit the parent43-row NPC mover reference against the lane extension: all34
+  fields match for each of the five NPCs. Add25 executed Viper capsule upper/side
+  hit/miss and wall checks, asserting loaded body-row identity and one-round
+  spending. Place off-axis NPCs at spawn; do not move an already-created physics
+  body's public position field. Pass105 Ashe tests in202.639s on the lane pack.
+- Add native presence-word queries and lazy status payload selection. Pass1408
+  original182C470 comparisons with independently reread historical headers and
+  random masks. The captured controller lacks57/51/28, deriving status10=false
+  for that sample without payload assumptions. The body sample requires its
+  Health payload; unknown mask words/payloads reject. Pass96 related checks.
+  Future attachment/lifetime and live filter admission remain open.
+- Regenerate a matching additive extension with the existing preparation tool
+  against the parent's670-graph/43-mover base and use its catalog/graph directory
+  consistently. All105 Ashe tests pass in135.060s directly on that data, including
+  the25 edge cases. Earlier mixed graph fingerprints/fixture directory failed
+  closed; correct the test configuration without weakening validation or writing
+  shared inputs. Original-client map collision/deployment remains unaccepted.
+- Recover the actual13C2 empty callback-rule path: DA8BD0/BDF100/BDF420 returns
+  enum2 without consulting a nonzero registry list when inline rules and the key
+  expression are absent. Pass192 original-instruction cases, including populated
+  cached lists, lock release and empty-array layouts. The coordinator now uses
+  this proved result; nonempty/keyed filters still require an explicit service.
+- Recover component57's D8F180 predicate through decoded component4/config inputs.
+  Missing component4/collection returns true; otherwise config suppression,
+  bypass and collection byte16D8 bit2 control the result. Pass1060 native cases
+  including actual BC9310/1AC6FC0 instructions. These are storage semantics,
+  not inferred health/team status. Live component attachment remains open.
+- Expand pipeline comparisons to2638 and pass82 related source checks plus27
+  focused cases. Actual Assassin filter/controller-flag integration uses the
+  proved empty callback path, with remaining engine inputs explicitly declared.
+  Live AC829876 admission, Assassin damage and full static acceptance remain open.
+- Map151 definition component occurrences across14 lane entities through original
+  F525E0, resolving30 unique keys. Health is native51 and Model is4; controller000E
+  declares76/29/73/47. Do not infer dynamic component absence from definitions.
+  Recover BCBF00's two getter calls and exact float32 epsilon/NaN behavior with
+  225 native comparisons. Getter-to-pool and live component bindings remain open.
+- Pass104 full Ashe tests in195.514s after empty-callback integration. The final
+  additional unmounted Health predicate is covered by the related source/native
+  group; complete static, original-client and merge-ready gates remain open.
+- Recover D0DA20 stage ordering in an unmounted coordinator with explicit engine
+  services. Pass2620 original-instruction return/call-order comparisons, including
+  native empty-script-filter acceptance, zero-mask/wildcard guards, candidate
+  scope retirement, callback result1 veto and the optional extension branch.
+  Nonempty script-filter internals, engine callbacks and extension collections
+  remain declared adapters; live AC829876 still does not admit a target.
+- Recover status10 composition: component57's predicate overrides both fallback
+  components even when false; otherwise component51 and component28 flag2000
+  contribute. Pass81 native return/lookup-order comparisons with explicit child
+  predicate/component adapters. Do not infer these inputs from health or team.
+  Pass103 Ashe tests and80 related source checks; rerun132 condition,4572 mask
+  and272 projection comparisons. Actual filter services and damage remain open.
+- Bind manual NPC target member reads to the exact live independent player
+  controller VM. Validate rebinding atomically and keep body/controller flags
+  separate. Reconstructed stop/retarget/NPC retirement removes only its own
+  foreign watches; host retirement clears every reader and reciprocal edge.
+- Capture reciprocal target/reader edges with qualified foreign VM boundaries.
+  Reject standalone coupled export, malformed reverse bindings and boundaries
+  hiding local storage. Two actual Assassin roots share one target flag without
+  losing each other's watches; passive snapshots detect controller mutations.
+  Pass75 affected regressions and9 final Assassin/shared-target checks. This
+  isolates actual1177's flag writer; full filter/effect/health/wire acceptance
+  and original-client acceptance remain open.
+- Add optional actual000E controller metadata and an independent strict player
+  controller VM, with reconstructed world-frame scheduling and player lifetime.
+  Keep controller variables separate from body death/hero replacement; retire
+  on removal and contain strict query faults. Reject bad metadata atomically.
+  Register the host/namespace in passive causal server snapshots. No controller
+  wire/effect/health integration or full Assassin/filter acceptance is claimed.
+- Fix member-expression keys to the native uint16 boundary; negative/wide keys
+  previously disagreed with native instructions. Pass216 original opcode15/16
+  and member-selector comparisons after fixing6 initial mismatches. Native member
+  lookup selects the target's own component47 VM, with no implicit body redirect.
+  Actual controller/body flag isolation and94 Ashe/87 regressions pass. The
+  effect/health/filter completion remains open after the later host increment.
+- RecoverB8B020's replicated-to-native filter-bit projection and pass272 original
+  prefix executions. Correct manual14365 input to the selected player's controller
+  entity using actual Match record categories and the authored40000 filter.
+  Rename causal target storage to target_entity. Unknown status/filter stages
+  remain explicit and rejected; controller-to-body variable/health routing and
+  Assassin damage remain open.
+- Recover1B8D970 candidate-parameter scope and90BFC0/F64940 condition conversion.
+  Add isolated authored-condition evaluation with nested scope cleanup and strict
+  unknown-service refusal. Pass132 original-instruction comparisons and32 related
+  source checks. An actual13C2 condition observes actual1177/node46 flag14695 on
+  Ashe and its retirement. Full filter admission and Assassin damage remain open.
+- Recover actual game component filter dispatch266AFE0/+150 ->D0DA20 and its
+  BCAAE0 bit/relation stage. Add a standalone exact uint64 mask primitive with
+  declared native relationship answers; do not admit unknown filter services.
+  Pass4572 original-helper execution comparisons, five original early-guard
+  executions with explicit adapters and25 related source checks. Full filter
+  stages, actual category/status bits and Assassin incoming damage remain open.
+- Add explicit manual selection for the actual13C2 AIBehavior, preserving its
+  authored possessed-body criterion and selected-subgraph cleanup. Supply only
+  override14365; actual node7 writes1650, then the unsupported entity filter
+  clears it. Actual Assassin boundary tests verify this path, stop cleanup and
+  absence of damage. Native selection/filter services and attack remain open.
+- Resolve primary possessor only through the declared body/controller pair,
+  with native scalar input conversion and typed invalid output. Preserve unknown
+  foreign relationship handling; no native predicate is forced true. Include
+  target and selection fields in causal storage observations.
+- Review and import parent2ca9178 into the private lane. Pass91 Ashe tests and
+  126 related regressions including parent join checks and focused snapshots.
+  Additional conversion/storage checks are recorded in the lane evidence.
+  No complete static acceptance, original-client evidence or merge readiness.
+
+#### Ashe NPC controllers, Enforcer pellets and Flashbang interaction (partial)
+
+- Mount declared associated NPC AI definitions on separate Components/identities.
+  Add scoped paired root/body lookup, live foreign-variable slots, health/position
+  and ordinary messages; retire controllers on death/removal. Preserve actual
+  Enforcer13EA/node31 eligibility Stack instead of forcing a native predicate.
+- Resolve the actual Enforcer25-projectile volley with individual80m/s sweeps,
+  base2 damage per pellet,100m range and authored travel falloff. Close volley50,
+  in-flight walls, distant misses/falloff, stop/allies and precise controller
+  cleanup have six executed actual-data tests. Ring geometry and pair lookup
+  are explicit reconstruction; native engine/pattern/difficulty fidelity remains open.
+- Add five context/watch/lifecycle tests and explicit enclosing-server snapshot
+  links for coupled NPC VMs. Preserve both full namespaces and foreign watches;
+  standalone coupled export fails closed. Actual controller snapshot mutation
+  passes without getters or gameplay callbacks. Fix the BotWorld layout regression.
+- Before the next parent update, pass85 Ashe and105 related tests. Review and
+  fast-forward the private clone only to parent64bf71c. Reuse resource-backed
+  Flashbang control; Ashe and B.O.B. gun/charge have actual enemy-input pause/
+  resume checks, and existing burn continues through owner stun. Timers keep
+  world time; paused charge is not misclassified as a wall.
+- Final current checks pass89 Ashe tests and114 related regression/snapshot
+  tests, plus the strengthened per-pellet0.4 falloff assertion. Ruff/diff pass.
+- Full static acceptance remains OPEN: Assassin selection/targeted damage,
+  all NPC AI/specials, broad cross-hero statuses and native control/physics
+  semantics are incomplete. No own commit, patch, merge to parent or push.
+
+#### Ashe NPC return fire and controller metadata (partial)
+
+- Review and fast-forward only the private lane clone through parent7cd1ed7:
+  reuse authored NPC weapon-root mounting, native array selection and shared
+  melee static-wall occlusion. Preserve both parent and Ashe working changes;
+  the shared original source/runtime/services are not modified by the lane.
+- Execute Sniper's actual sparse-slot weapon against Ashe:100 damage and no late
+  damage for80 ticks after manual stop. Route existing return-fire fixtures
+  through npc_control. Explicitly omit observer projectile transport in this
+  damage fixture; no native-client visual acceptance is claimed.
+- Pass75 Ashe combat/ability/NPC checks after the base update, plus separate
+  melee visible/wall tests against all five real NPCs and player visibility,
+  wall, ally and range cases. Pass107 NPC/control/array/combat/projectile/
+  extension/focused-snapshot regressions. Geometry remains a server reconstruction.
+- Add optional external NPC AI-root metadata preparation and additive association
+  guards. Two actual-data tests preserve five body/AI pairs and execute the real
+  Enforcer13EA/node31 eligibility Stack writer; three loader guards pass. The
+  separate extension has21 added graphs,7 entities and66383 compressed bytes.
+  No original query is forced true. Actual controller/body/root services,
+  damaging Enforcer/Assassin paths and broad hero controls/statuses remain OPEN.
+
+#### Ashe B.O.B. charge and uppercut (partial, reconstructed)
+
+- Replace stationary deployment with physical capsule charge using extracted
+  build104319 movement profiles: node61 charge and node97 idle. Stop at the first
+  enemy contact, blocking wall or authored four-second limit; integrate gravity,
+  collision and later external impulses through one actor mover.
+- Apply actual120 uppercut damage through shared health/credit/kill handling;
+  reconstruct contact selection, additive upward15 launch and one-second settle.
+  Mount the actual gun loop after settling. Resolve owner-world ruleset13032 for
+  the ten-second base gun lifetime and preserve local14669 for graph continuation.
+- Thirteen charge tests pass, including five real NPCs, shield pools, walls,
+  misses/allies, expiry, owner death, lethal uppercut, actual enemy rifle death,
+  replacement, ruleset scaling and first-tick/deduplication. Existing12 gun and
+  four NPC gun tests use real charge-wall stops before isolating the gun phase.
+- Register charge/phase/mover state in passive snapshots. Two focused server
+  snapshots and two external mover/profile guard tests pass;77 baseline mover,
+  NPC, bot-script and extension checks also pass. Native phase graph,
+  exact contact/launch semantics, controls/statuses, missed-time ordering and
+  original-client acceptance remain open. Full hero static acceptance is OPEN;
+  no commit, patch, merge or push is produced before that gate.
 
 ### 2026-11-08
 
@@ -179,6 +492,60 @@ This log records tested changes and their acceptance status. Entries are grouped
   McCree abilities/ultimate and complete sandbox acceptance remain open. Parallel
   hero goals require complete executed static acceptance before serial integration.
   See docs/PVE_COMBAT_SANDBOX.txt. The required publication helper is still absent.
+
+#### Ashe weapons and ability resources (partial, reconstructed)
+
+- Resolve the authored Coach Gun volley as fifteen separate rays instead of one.
+  Apply each pellet's occlusion, armour, shield pools, health and death notices.
+  Limit this increment to 1513/state16; other weapon patterns keep their baseline.
+- Add an explicit reconstructed 2x Viper critical scalar for its omitted field;
+  verify 80/150 hip/ADS headshots and critical notice flags, plus body hits.
+- Restore ordinal state-switch mode used by per-round Viper reload; verify empty
+  magazine shot rejection, partial reload and refill to twelve rounds.
+- Add reconstructed Ashe damage-to-ultimate generation from actual pool loss,
+  capped at current cost. Verify both skills' 10/12-second cooldown start, spam
+  rejection and reuse, and B.O.B.'s 2240-point gate/consumption without an actor.
+- Reconstruct dynamite curved flight, static bounce, two-second fuse, hit-scan
+  shot detonation, ranged/occluded blast and five-second burn. Replace incorrect
+  direct75 contact damage. Use scalar facts from local 1502/150F research, keep
+  native aura/physics/status presentation and broader interactions open.
+- Verify half self damage without hit/ultimate awards, ally exclusion, expiry,
+  owner-death persistence and hero-replacement cleanup. Eleven dynamite tests
+  pass, including duplicate-tick rejection and skipped-update burn catch-up.
+- Reuse the parent's actual five-NPC catalog/bundle read-only. Five NPC tests
+  cover32 subcases:25 outgoing weapon/skill cases, five ally cases and controlled
+  Trooper/Heavy incoming fire. The other three native attack triggers remain open.
+- Add an optional fingerprint-bound graph extension and external preparation
+  tool: only two entity definitions and three missing graphs, not a runtime copy.
+  Reject wrong-base, graph/entity replacement and unresolved references.
+- Bridge the actual Ashe summon action to the actual1200-health B.O.B. body and
+  authored153B gun input/rate loop. Reconstruct stationary targeting/arming/lifetime,
+  owner stat/hit/kill credit, FFA ownership, active ultimate charge lock, duplicate
+  cast gate, expiry/death/hero-change retirement and precise actor-only removal.
+- Pass12 B.O.B. tests and four B.O.B.-versus-real-NPC tests, plus two extension
+  guard tests. The NPC checks include five gun targets, two controlled incoming
+  weapons, persistent manual corpse and manual clear retaining the companion.
+- Bridge actual Coach Gun velocity action to queued physical owner recoil and
+  per-volley enemy impulse. Integrate the existing capsule mover for players and
+  NPCs, replicate NPC air/velocity state, and retire effects on removal/death/
+  replacement. Eleven impulse tests pass, including wall collision, landing, cooldown
+  spam and all five actual NPCs. Force interpretation/resistance remain inferred.
+- Add optional fingerprint-bound, add-only actual body mover metadata: B.O.B.
+  plus five PvE capsules, without runtime copies. Two loader guard tests pass.
+  Aim NPC fixtures at their torso rather than assuming identical body heights.
+- Register new effect/actor state in controlled-server snapshots rather than
+  omitting it. Active B.O.B. owner/gun/expiry/pitch snapshot mutation passes;
+  14 standard snapshot checks pass, plus the separately executed active-actor
+  metadata case. The original unregistered-Combat regression is resolved.
+- Pass 18 Ashe combat checks with no expected failures. Pass 28 existing combat,
+  37 projectile tests and
+  22 bot statescript, 13 script runtime and 23 body VM snapshot tests; Ruff and
+  diff checks pass. Complete static combat acceptance remains OPEN.
+- Ring azimuth and full-cone interpretation are reconstructed, not native-proven.
+  No client acceptance is claimed. Native knockback semantics, full dynamite fidelity, B.O.B.
+  charge/uppercut/native controls, barrier/reflect/
+  absorb/invulnerability and the five-PvE-NPC matrix remain open. See
+  docs/ASHE_COMBAT.txt. No merge or push; publication helper is absent locally.
 
 #### Optional persistent NPC corpses
 

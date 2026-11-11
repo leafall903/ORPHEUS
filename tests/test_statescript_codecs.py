@@ -45,6 +45,7 @@ SAMPLES = {
     "message": [{"stacked": True}, {"stacked": False}],
     "send": [{}],
     "link": [{}],
+    "linked_target": [{"link": None}],
     "hits": [{"flag": True}, {"flag": False}],
     "flags13": [{"value": 0}, {"value": 63}, {"value": 64}, {"value": 8191}],
     "frames": [{"target": 9199}],
@@ -204,18 +205,32 @@ class EncoderTests(unittest.TestCase):
                 self.assertEqual(frame.instances[7].states[7], (True, {"targets": targets}))
 
     def test_unwritable_classes_are_never_sent_on(self):
-        self.assertFalse(statescript.sendable("STU_9935FBC8", True))
-        self.assertTrue(statescript.sendable("STU_9935FBC8", False))
         self.assertFalse(
             statescript.sendable("STU_2F07848F", False)
         )  # StEC: its payload goes with X even off
         self.assertTrue(statescript.sendable("STU_691BFA55", True))
 
+    def test_linked_target_owner_full_suffix_has_exact_presence_and_length(self):
+        cls = "STU_9935FBC8"
+        visor = graphs.graph(0x0259)
+        for mask in range(128):
+            values = [{"set": 1, "value": float(index + 1)} if mask & (1 << index)
+                      else {"set": 0} for index in range(7)]
+            payload = {"link": (7, 7), "has_entity": 1, "entity": 0xA0000201, "values": values}
+            out = BitWriter()
+            statescript.write_payload(out, cls, payload, FRAME_TIME, FRAME_MS, graphs={7: visor}, full=True)
+            reader = BitReader(out.getvalue())
+            decoded = decode.read_payload(
+                reader, cls, FRAME_TIME, FRAME_MS, full=True, graphs={7: visor.index},
+            )
+            self.assertEqual(decoded, payload)
+            self.assertEqual(reader.pos, out.count)
+
     def test_coverage_report(self):
         rows = {row.cls: row for row in coverage.missing("soldier")}
-        self.assertEqual(set(rows), {"STU_9935FBC8", "STU_861D9015"})
+        self.assertEqual(set(rows), {"STU_861D9015"})
         self.assertIn((0x02CF, 1), rows["STU_861D9015"].states)
-        self.assertIn("2 state classes the encoder cannot write", coverage.report(0x02E000000000006E))
+        self.assertIn("1 state classes the encoder cannot write", coverage.report(0x02E000000000006E))
         for record in graphs.bodies().values():
             for row in coverage.missing(int(record["hero"], 16)):
                 self.assertEqual(statescript.family(row.cls), "unknown")

@@ -184,8 +184,8 @@ POOLS = 16  # pools per type
 HEALTH_POOL, ARMOUR_POOL, SHIELDS_POOL = 0, 1, 2
 
 
-def pool(pool_id: int, kind: int, most: float, now: float) -> bytes:
-    return struct.pack("<IffI4B", pool_id, most, now, kind, 0, 1, 0, 1)
+def pool(pool_id: int, kind: int, most: float, now: float, *, temporary: bool = False) -> bytes:
+    return struct.pack("<IffI4B", pool_id, most, now, kind, 0, 1, int(temporary), 1)
 
 
 def health(now: float, most: float, armour: float = 0.0, shields: float = 0.0) -> dict:

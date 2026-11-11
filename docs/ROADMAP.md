@@ -14,6 +14,155 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 
 ## Project-wide checklist
 
+- [ ] Verify Ashe bidirectional player/five-NPC combat and all abilities in the
+  original client. Coach Gun fixed-ring pellets have partial offline damage,
+  armour, shield-pool and death coverage; spread geometry is reconstructed.
+  Viper 2x critical damage is reconstructed; dynamite, B.O.B., control, full
+  critical eligibility and client presentation remain open.
+  Per-round reload, damage charge, cooldown rejection/expiry and ultimate
+  resource gates have partial offline evidence; no complete static acceptance.
+  Dynamite has reconstructed throw/fuse/blast/burn and eleven lifecycle checks;
+  five actual NPC definitions pass outgoing weapon/skill and ally checks, with
+  controlled Trooper/Heavy incoming fire plus actual Sniper100 damage and stop.
+  Enforcer now has actual AI-root-driven25-projectile/50 close damage plus
+  wall/stop/falloff checks. Assassin manual selection and authored target writer
+  execute, but its unsupported entity filter clears the target without damage.
+  The native filter bit/relation stage matches4572 original-helper executions;
+  five original guard probes and25 source checks pass. Full filter stages and
+  native category/status inputs are still open; this does not admit a target.
+  Candidate-condition scoping/conversion additionally matches132 native cases;
+  the actual condition observes the target's actual14695 Stack and retirement.
+  Effect acquisition/full lifecycle and Assassin damage remain unaccepted.
+  Native bit projection matches272 prefix executions; actual record categories
+  now select the controller for the manual override. Full controller-to-body
+  routing, dynamic statuses and filter admission remain open.
+  Native member selection now proves independent target component47 namespaces;
+  216 opcode/member comparisons verify the uint16 key fix. Player-controller000E
+  has no initial graphs. Optional normal-base metadata enables an independent strict controller
+  VM with reconstructed lifetime/clock and causal snapshot capture. Controller
+  member reads now bind to that live controller VM with scoped foreign watches
+  and reciprocal snapshot boundaries. Stop/NPC retirement removes only its own
+  watches; host retirement removes all bindings. Controller wire/effect/health
+  integration and full filter remain open.
+  An unmounted native-order coordinator matches2620 return/service-order cases,
+  and status10 precedence/fallback matches81 cases. Live engine-service inputs,
+  nonempty script filters, callback registry and extension collections remain
+  explicit adapters; these checks do not admit an Assassin target.
+  Actual13C2 has no inline rules or key expression:192 native cases prove its
+  enum2 callback result even with populated registries. The coordinator uses
+  that path; generic keyed/nonempty rules stay unsupported. Component57's child
+  predicate matches1060 native storage-input cases. Live attachment/status
+  inputs, effect/health delivery and full Assassin admission remain open.
+  With an explicit admitted controller, the manual Assassin pin now executes
+  authored1157 contact25 and delayed100/s damage against the bound body.
+  Release, wall, death and body replacement stop damage. Rate clock and body
+  binding are stored causally. Manifest-verified clip508A supplies the
+  reconstructed manual Anim31 release clock. A fresh request after release
+  delivers a second contact even during the authored two-second wait. Native dynamic
+  playback, pin control and1177 effect delivery remain open.
+  NativeF525E0 maps151 component occurrences/30 unique types in14 lane definitions;
+  Health51/Model4 and controller76/29/73/47 are identified. Definition absence
+  does not establish native automatic/dynamic absence. Health predicate225-case
+  epsilon/NaN evidence exists; live getter/pool mapping remains open.
+  Parent43-row NPC mover reference matches all34 fields for five lane bodies;
+  25 executed Viper upper/side capsule hit/miss/wall cases verify exact loaded
+  rows and ammo spending.105 Ashe checks pass on the canonical lane data.
+  Native presence1408-case evidence derives status10=false for a retained
+  controller sample; future dynamic attachment and full filter remain open.
+  The same105 checks also pass directly on the parent's43-row runtime with a
+  matching670-graph/catalog base and regenerated additive metadata extension.
+  Optional controller inputs now drive actual13C2/node10, with atomic/lifetime
+  guards, live14695 watches and passive snapshots; default service remains
+  unavailable.3718 native comparisons include1086 source-independent values.
+  Repeated stop/start exposed stale CHECK/CHANGED flags after event cancellation;
+  both end modes now clear them, matching520 native cases;855 script tests pass.
+  Current boundary also passes108 Ashe,89 related and90 gameplay checks; final
+  component47 consistency rejection passes26 focused checks after that full run.
+  All13 Assassin checks now include actual1157 target536 resolution and strict
+  health/effect failure boundaries.24 native factory cases/96 hooks verify the
+  captured ModifyHealth class inherits generic client State behavior; server
+  health ownership and timing/completion remain open.
+  Bound NPC VMs now supply caller/owner/inherited source with lifecycle checks;
+  actual1177 request construction reaches the unsupported submission boundary.
+  Source core passes294+7+7 native comparisons. Ability buffering retains the
+  original press timestamp; actual Coach/Dynamite null windows retain their
+  released-input rejection, held-input and fresh-recast behavior. Native start
+  fidelity, target queues, wire IDs, health ownership and delivery remain open.
+  Current source passes112 Ashe,857 script,90 gameplay and28 focused checks.
+  Input properties17/18/19 now affect acceleration, with120 native-prefix
+  comparisons and next-frame/raw-byte restoration evidence. Five actual ADS
+  direction cases verify01C7/node152's -0.25 speed modifier and release recovery;
+  native movement/control scope remains open. Controller wire IDs/full-frame
+  ownership still need coordination before queued1177 effect delivery.
+  Latest113 Ashe/105 gameplay checks pass;56 mover/physics cases pass on the
+  parent data and9 skipped map cases pass on canonical caches, with4 final
+  ADS/modifier checks. No broader native or original-client acceptance implied.
+  Controller reservations now come from the actual owner-tree builder: PvP1..4,
+  Practice1..5, monotonic VM allocation afterwards, collision/rewind rejection and
+  passive causal storage.32 pre-refactor fixture frames stay byte-identical.
+  Full-frame composition,9935FBC8 linked-target payload and actual1177 delivery
+  remain open; reserved IDs alone are not complete wire integration.
+  Native9935FBC8 owner/full suffix passes1030 cases with actual bit/entity/float
+  readers and declared linked-base/notification adapters.115 Ashe,26 focused and
+  14 final guard cases pass;48-case storage/journal attempt passes46, with both
+  errors corrected and verified separately. Runtime linked-target services and
+  final frame composition remain open, as does ending-cleanup notification review.
+  Ending cleanup now excludes the ending watcher and preserves live peers/reentry;
+  exact Viper shell/shot accounting passes through partial/empty reload input.
+  Current116 Ashe/858 script and the frozen two-player journal pass. Complete
+  native watcher/stop/cadence behavior remains open. Immutable FirstPerson heights
+  now feed shooter/target/history eyes: Ashe251C1.445/1.0115 and McCree02A3
+  1.425/0.9975. Four pose cases and eight low-cover shot cases pass, with ammo and
+  fallback checks. Animated camera/muzzle/skeletal hit regions remain open.
+  Reviewed no-decay WeaponVolley spread now bakes its ramp and stores it causally.
+  Actual Viper hip ramp6/ADS null ramp pass twelve command shots;252 native ramp
+  and20 angle cases pass, including native integer conversion. Current120 Ashe,
+  865 script,42 snapshot cases and the frozen two-player journal pass. Actual
+  damage-ray dispersion/RNG caller identities remain open. Linked-target absent
+  post-lookup suffix passes128 native cases; full runtime/writer remains open.
+  Viper now applies its actual hip cone/ADS zero cone to real rays using native
+  generated tables/math with declared server seed/mode reconstruction.125 Ashe,
+  105 gameplay and the frozen journal pass;33 cases/198 rays include10 off-axis
+  spread hits across all five NPCs. Queued shots now carry a fixed cone and seed
+  through State reuse, verified with delayed real-shot consumption. An Ashe
+  stored journal matches the ray, damage and ammo. Native State indices 7 and
+  122 are verified at the constructor boundary and used in the queued seed.
+  Native counter and instance-key probes support the existing mappings at their
+  tested boundaries. Both authored Viper nodes select the native transform
+  provider, with aspect 1.0 and mode zero on the tested dispatch path. The
+  native seed bake uses the packed key-49 word and stores State +2A4.
+  The live manager identifies factory 64E600 and a verified player body has
+  word zero. Both factory branches clear the word, and the real publisher and
+  reader compose in 16 fixture cases. Static Viper uses the zero initializer.
+  The firing caller's native aim quantization now feeds the hip and ADS rays.
+  A 662-case native probe also verifies the local-to-world origin transform
+  and shot-record store with declared pose inputs. A separate read-only player
+  snapshot selects the native component-28 origin path. Forty variations
+  verify stance height, adjustments and scale, and two cases verify origin
+  fallbacks. Another 272 cases exercise attached fallback transforms, socket
+  selection and scale inheritance with declared records. Live animated pose,
+  later mutations, allocator parity and full native Viper fidelity stay open.
+  Native observers, automatic profile acquisition, effects/health and full AI
+  remain open. Per-frame reevaluation is explicitly reconstructed.
+  Native selection/filter services and Assassin incoming attack,
+  full status/physics semantics and the complete B.O.B. scope remain open.
+  Actual B.O.B. body/gun metadata now mount through a small external extension;
+  12 gun/lifecycle tests and four actual-NPC interaction tests pass after actual
+  charge-wall stops. Physical charge now uses actual charge/idle mover profiles;
+  13 charge tests cover120 uppercut damage, five actual NPC launches, walls, misses,
+  expiry and death/replacement. Native phase/contact/launch/control fidelity and
+  broad cross-hero statuses remain open; this does not complete the static matrix.
+  Coach Gun has eleven physical recoil/knockback checks including walls, landing,
+  cooldown spam and five actual NPCs using their external native body movers.
+  Force magnitude/aggregation and native resistance/control semantics remain
+  reconstructed; native B.O.B. phase-graph mounting remains open.
+  Separate actual AI components now expose paired body/root lookups and live
+  variable watches; native registry semantics and full AI remain open. Actual
+  Flashbang input pauses/resumes Ashe and B.O.B. gun/charge; the broad status
+  and resistance matrix remains open.
+  Ashe melee visible/wall checks pass for all five actual NPCs.
+  See [Ashe combat lane](ASHE_COMBAT.txt).
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,

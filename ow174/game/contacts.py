@@ -2458,7 +2458,9 @@ def quaternion_product(a, b) -> tuple:
     return tuple(f32(f32(f32(first[k] + own[k]) + second[k]) + third[k]) for k in range(4))
 
 
-def mesh_sweep(shape, start, end, points, radius: float, category: int, t_max: float = 1.0):
+def mesh_sweep(
+    shape, start, end, points, radius: float, category: int, t_max: float = 1.0, *, hit_touching=False,
+):
     """A convex sweep against a mesh (0x7FF789CF3B20): `points` (radius `radius`, no rotation) at `start`
     moved to `end`. In the mesh's frame (turned back by its rotation, times the inverse scale) the points
     are recentred on their box; each triangle the swept box meets is cast (0x7FF789CECE40: the GJK ray
@@ -2494,25 +2496,30 @@ def mesh_sweep(shape, start, end, points, radius: float, category: int, t_max: f
     radius_b = maxps(SKIN, r)
     best = None
     for number in mesh.query(box_low, box_high, category):
-        hit = shape_cast(mesh.raw_corners(number), SKIN, moved, radius_b, translation, t_max, False, False,
-                         None, frame_b, full=True)  # fmt: skip
-        if hit is not None:
+        hit = shape_cast(
+            mesh.raw_corners(number), SKIN, moved, radius_b, translation, t_max,
+            hit_touching=hit_touching, shrink=False, frame_b=frame_b, full=True,
+        )
+        if hit is not None and (not hit_touching or hit[0] > 0 or dot(translation, hit[2]) < 0):
             t_max = hit[0]
             best = (hit, number)
+            if hit_touching and t_max == 0:
+                break
     if best is None:
         return None
     (fraction, point, normal), number = best
     return fraction, add(rotate(q, mul(point, mesh.scale)), t), rotate(q, normal), number
 
 
-def scene_sweep(world: StaticWorld, start, end, points, radius: float, category: int):
+def scene_sweep(world: StaticWorld, start, end, points, radius: float, category: int, *, hit_touching=False):
     """The probe's convex sweep through the world (0x7FF789D25900 -> 0x7FF789D1D7E0 -> 0x7FF789D22360 ->
     0x7FF789D05490): `points` (radius `radius`) in a frame at `start` with no rotation, moved to `end`,
     against each shape the swept box meets whose mask has the category: meshes by mesh_sweep, polytopes,
     capsules and spheres by the GJK ray cast in their frames (0x7FF789CE9A00, 0x7FF789CEBEB0,
     0x7FF789CEC7F0; no shrink). The broadphase hands the best fraction on as the next shape's limit, so a
     later shape counts only when it is strictly closer (unverified: proxy order for the tree's, which matters
-    only for equal fractions). (fraction, point, normal, shape, triangle or -1) or None."""
+    only for equal fractions). With hit_touching, include approaching contacts at the start.
+    (fraction, point, normal, shape, triangle or -1) or None."""
     translation = sub(end, start)
     reach = max(max(abs(p[0]), abs(p[1]), abs(p[2])) for p in points) + radius + SWEEP_REACH
     low = tuple(min(start[k], end[k]) - reach for k in range(3))
@@ -2526,10 +2533,12 @@ def scene_sweep(world: StaticWorld, start, end, points, radius: float, category:
             continue
         geometry = shape.geometry
         if shape.kind == MESH:
-            hit = mesh_sweep(shape, start, end, points, radius, category, t_max)
+            hit = mesh_sweep(shape, start, end, points, radius, category, t_max, hit_touching=hit_touching)
             if hit is not None:
                 t_max = hit[0]
                 best = (*hit[:3], shape, hit[3])
+                if hit_touching and t_max == 0:
+                    break
             continue
         if shape.kind == HULL:
             corners, own = geometry.vertices, SKIN
@@ -2537,11 +2546,15 @@ def scene_sweep(world: StaticWorld, start, end, points, radius: float, category:
             corners, own = (geometry.a, geometry.b), geometry.radius
         else:
             corners, own = (geometry.centre,), geometry.radius
-        hit = shape_cast(corners, own, points, radius_b, translation, t_max, False, False, shape.matrix,
-                         frame_b, full=True)  # fmt: skip
-        if hit is not None:
+        hit = shape_cast(
+            corners, own, points, radius_b, translation, t_max,
+            hit_touching=hit_touching, shrink=False, frame_a=shape.matrix, frame_b=frame_b, full=True,
+        )
+        if hit is not None and (not hit_touching or hit[0] > 0 or dot(translation, hit[2]) < 0):
             t_max = hit[0]
             best = (*hit, shape, -1)
+            if hit_touching and t_max == 0:
+                break
     return best
 
 

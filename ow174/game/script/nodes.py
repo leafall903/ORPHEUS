@@ -12,6 +12,7 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from types import NotImplementedType
 
+from ow174.game import ashe
 from ow174.game.script import (
     animation_alias,
     array_actions,
@@ -246,6 +247,129 @@ class AuxiliaryEffect(ScopedSubgraph):
         super().on_destroyed()
 
 
+def _next_registered_link(state, instance_ids=None):
+    states = state.instance.component.state_registries.get(state.node.cls, ())
+    if state in states:
+        for following in states[states.index(state) + 1:]:
+            instance_id = following.instance.id
+            if not following.node.server_only and (instance_ids is None or instance_id in instance_ids):
+                return instance_id, following.index
+    return None
+
+
+@state_class("STU_9935FBC8")
+class LinkedTarget(State):
+    """1177 node 9 backed by a declared component-31 sample source."""
+
+    # Captured binary32 constants from CAC810 and C88319.
+    _LIMIT = 174532.90625
+    _PITCH_LIMIT = 1.5533430576324463
+    _RADIANS = 0.01745329238474369
+    _DEFAULTS = (0.0, 0.0, -_LIMIT, -_LIMIT, _LIMIT, _LIMIT, 0.0)
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.linked_entity = None
+        self.linked_cache = self._DEFAULTS
+        self.mover_angles = None
+
+    def on_begin(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        sample = component.world.linked_target_sample(component.entity)
+        if self.instance.graph.index == 0x224E and self.node.pos == 34:
+            if (sample != (None, 0.0, None, None)
+                    or _field(self, "m_93CDFD2F") != 1
+                    or _field(self, "m_4BE66EFF") is not None):
+                component.unsupported(self.instance, "sleep view resource", self.node.cls, self.node)
+            fields = ("m_A53161C8", "m_AB37A892", "m_D6119DFB", "m_C33684DE", "m_83221709", "m_8FA7FF85")
+            angles = (f32(f32(to_float(self.evaluate(_field(self, name), watch=False))) * self._RADIANS)
+                      for name in fields)
+            self.mover_angles = self.compose_angles(*angles)
+            return
+        if (self.instance.graph.index != 0x1177 or self.node.pos != 9
+                or self.node.fields.get("m_4BE66EFF", NotImplemented) is not None
+                or sample is NotImplemented):
+            component.unsupported(self.instance, "linked target", self.node.cls, self.node)
+        self.linked_entity = None
+        self.linked_cache = self._DEFAULTS
+        states = component.state_registries.setdefault(self.node.cls, [])
+        states.append(self)
+        if sample is not None:
+            for state in states[:-1]:
+                if state.active and state in state.instance.ticking:
+                    state.update_mover(sample, refresh=False)
+            self.update_mover(sample, refresh=True)
+            self.ticks()
+
+    def update_mover(self, sample, *, refresh):
+        entity, angle, heading, packed = sample
+        delta, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch, last_angle = self.linked_cache
+        if refresh:
+            delta, pitch = (f32(f32(value or 0.0) * self._RADIANS) for value in (heading, packed))
+            lower_yaw = lower_pitch = upper_yaw = upper_pitch = last_angle = 0.0
+        if (None if refresh else self.linked_entity) != entity:
+            delta = f32(f32(last_angle - angle) + delta)
+        yaw = f32(angle + delta)
+        self.linked_entity = entity
+        self.linked_cache = (delta, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch, angle)
+        self.mover_angles = self.compose_angles(yaw, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch)
+
+    @classmethod
+    def compose_angles(cls, yaw, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch):
+        def clamp_pitch(value):
+            return max(-cls._PITCH_LIMIT, min(cls._PITCH_LIMIT, value))
+
+        return (
+            yaw, pitch, f32(max(-cls._LIMIT, lower_yaw) + yaw),
+            clamp_pitch(f32(max(-cls._LIMIT, lower_pitch) + pitch)),
+            f32(min(cls._LIMIT, upper_yaw) + yaw),
+            clamp_pitch(f32(min(cls._LIMIT, upper_pitch) + pitch)),
+        )
+
+    def tick(self):
+        component = self.instance.component
+        sample = component.world.linked_target_sample(component.entity)
+        if sample is NotImplemented:
+            component.unsupported(self.instance, "linked target sample", self.node.cls, self.node)
+        if sample is None:
+            self.mover_angles = None
+        else:
+            self.update_mover(sample, refresh=False)
+
+    def on_end(self, finished):
+        self.mover_angles = None
+
+    def on_cleanup(self):
+        registries = self.instance.component.state_registries
+        states = registries.get(self.node.cls)
+        if states is not None and self in states:
+            states.remove(self)
+            if not states:
+                del registries[self.node.cls]
+
+    def on_destroyed(self):
+        self.on_cleanup()
+        super().on_destroyed()
+
+    def on_failed(self):
+        self.mover_angles = None
+
+    def payload(self, *, linked_instances=None):
+        if not self.instance.component.strict:
+            return None
+        payload = {
+            "link": _next_registered_link(self, linked_instances),
+            "has_entity": self.linked_entity is not None,
+            "values": tuple({"set": False} if value == default else {"set": True, "value": value}
+                            for value, default in zip(self.linked_cache, self._DEFAULTS, strict=True)),
+        }
+        if self.linked_entity is not None:
+            payload["entity"] = self.linked_entity
+        return payload
+
+
 @state_class("STU_316CFEF2")
 class NumericPropertyModifiers(State):
     """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
@@ -362,13 +486,8 @@ class RegisteredState(State):
 
     def payload(self) -> dict:
         # 1B72A80 skips +C1, copied from authored +7B (m_serverOnly) by 1B91460.
-        states = self.instance.component.state_registries.get(self.node.cls, ())
-        if self not in states:
-            return {}
-        for following in states[states.index(self) + 1:]:
-            if not following.node.server_only:
-                return {"link": (following.instance.id, following.index)}
-        return {}
+        link = _next_registered_link(self)
+        return {"link": link} if link is not None else {}
 
 
 @state_class("STU_33A46033")
@@ -624,7 +743,11 @@ class Stack(State):
                 self.top, self.under = True, False
                 self.instance.exit_subgraph(self.node, "m_underSubgraphPlug")
                 self.instance.follow(self.node, "m_topSubgraphPlug", self)
-        elif not self.under:
+        else:
+            self.become_under()
+
+    def become_under(self) -> None:
+        if not self.under:
             self.top, self.under = False, True
             self.instance.exit_subgraph(self.node, "m_topSubgraphPlug")
             self.instance.follow(self.node, "m_underSubgraphPlug", self)
@@ -759,13 +882,27 @@ class LogicalButton(State):
 class AIBehavior(State):
     """A behavior candidate. The world decides when its selected subgraph runs."""
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.selected = False
+
     def on_enter(self) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        self.refresh_selection()
+
+    def refresh_selection(self):
+        selected = bool(self.instance.component.world.selects_ai_behavior(self.instance))
+        if not self.active or selected == self.selected:
+            return
+        self.selected = selected
+        if selected:
             self.instance.follow(self.node, "m_6F92F4BD", self)
+        else:
+            self.instance.exit_subgraph(self.node, "m_6F92F4BD")
 
     def on_end(self, finished: bool) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        if self.selected:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
+        self.selected = False
 
 
 @state_class("STU_D7F9E1C3")
@@ -1022,6 +1159,33 @@ class ChaseVar(State):
         return {"cur": self.cur, "reached": self.reached, "remaining": self.remaining, "last": self.last}
 
 
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Health delivery requires an explicit owning-world service."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+        self.target_body = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        self.target_body = 0
+        result = self.instance.component.world.modify_health(self, 0)
+        if result is NotImplemented:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+        elif result:
+            self.ticks()
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            if self.instance.component.world.modify_health(self, elapsed) is not True:
+                self.end(False)
+
+
 @state_class("STUStatescriptStateWeaponVolley")
 class WeaponVolley(State):
     """A burst of shots: shot k at start + R((k / rate) * 1000);
@@ -1039,6 +1203,7 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
 
@@ -1062,7 +1227,9 @@ class WeaponVolley(State):
             time = start + shot_time(self.reported, self.rate)
             if time > until:
                 break
-            self.instance.component.shots.append((self, self.reported, time, activation))
+            report = (self, self.reported, time, activation)
+            launch = ashe.viper_launch(self, time - start, activation[0])
+            self.instance.component.shots.append(report if launch is None else (*report, launch))
             self.reported += 1
 
     def _config(self, name: str, default):
@@ -1079,6 +1246,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1129,12 +1302,21 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """104319 D80A50 normalized output; optional decay remains unmodeled."""
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        count = f32(max(0, self.shots_at(elapsed) + 1))
+        return min(1.0, f32(f32(count / self.spread_ramp) + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
@@ -1184,16 +1366,20 @@ class MoveTo(State):
 class Anim(State):
     """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
     follows m_A3B86BB0 (animation finished), and unless m_clientAnimRemovesSelf (m_154DBA91) the state
-    finishes at start + d. Without it the duration is the animation asset's: not known here."""
+    finishes at start + d. Without it the world may provide an asset-derived duration."""
 
     family = "anim"
 
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+            seconds = self.instance.component.world.animation_duration(self)
+            if seconds is None:
+                expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
+                return
+        else:
+            seconds = self.evaluate(duration, watch=False)
+        ms = seconds_to_ms(seconds)
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1303,13 +1489,14 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, retain: bool = False) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if not retain:
+                    self.presses.remove(item)
                 return True
         return False
 
@@ -1360,7 +1547,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, retain=True)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1371,14 +1558,16 @@ class Ability(State):
             return False
         ready = (
             self.remaining() <= 0
+            and (not callable(getattr(self.instance.component.world, "ability_start_allowed", None))
+                 or self.instance.component.world.ability_start_allowed(self.instance, self.node))
             and self.condition("m_150F0D92")
             and self.condition("m_F495731F")
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
+        if pressed:
+            self.take_press(start)  # Consume after start gates pass; retain the original timestamp.
         if start:
             self.flags |= self.HELD
         return True
@@ -1567,7 +1756,14 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
+        cases = _field(self, "m_05706D1C") or []
+        # Reconstructed ordinal mode, used by Ashe's reload graph 14FC/node132.
+        # These authored cases omit m_value; treating each as null makes every
+        # nonzero reload stage select the empty default instead of loading a round.
+        if _field(self, "m_F0F0720B") == 1:
+            number = to_int(value)
+            return f"m_05706D1C[{number}]" if 0 <= number < len(cases) else "m_A5EF385D"
+        for number, case in enumerate(cases):
             if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
@@ -1813,12 +2009,43 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Link target arrays supplied by an explicit world query."""
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.var = None
+
+    def on_begin(self):
+        query = getattr(self.instance.component.world, "track_targets", None)
+        if query is None:
+            return
+        targets = query(self)
+        if targets is NotImplemented:
+            return
+        self.targets = targets
+        target = lvalue(self.node.field("m_8A2905A0"))
+        self.var = self.link(target) if target is not None else None
+        self.ticks()
+
+    def tick(self):
+        before, self.targets = self.targets, self.instance.component.world.track_targets(self)
+        if self.var is not None and before != self.targets:
+            self.instance.changed(self.var, before)
+
+    def on_end(self, finished):
+        if self.var is not None:
+            var, self.var = self.var, None
+            self.unlink(var)
+        self.targets = ()
+
+    def output(self, slot):
+        return self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets)}
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -2190,10 +2417,47 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
-    if instance.component.strict:
+    handler = getattr(instance.component.world, "reconstructed_play_script", None)
+    handled = callable(handler) and handler(instance, node)
+    if not handled and instance.component.strict:
         instance.component.world.play_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
+
+
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller) -> bool:
+    bridge = getattr(instance.component.world, "reconstructed_velocity_action", None)
+    if not (callable(bridge) and bridge(instance, node)) and instance.component.strict:
+        instance.component.unsupported(instance, "velocity modifier action", node.cls, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def stop_bob_victim(instance: Instance, node, caller):
+    if instance.component.strict or (instance.graph.index, node.pos) != (0x17F6, 3):
+        return NotImplemented
+    instance.component.destroy(instance)
+    return True
+
+
+@handler("STU_523EE38D")
+def destroy_world_entity(instance: Instance, node, caller) -> bool | NotImplementedType:
+    handler = getattr(instance.component.world, "destroy_entity", None)
+    result = handler(instance, node) if handler is not None else NotImplemented
+    if result is True:
+        instance.follow(node, "m_outPlug", None)
+    return result
+
+
+@handler("STU_B6E3C77D")
+def create_world_entity(instance: Instance, node, caller) -> bool | NotImplementedType:
+    create = getattr(instance.component.world, "create_world_entity", None)
+    result = create(instance, node) if create is not None else NotImplemented
+    if result is True:
+        instance.follow(node, "m_outPlug", None)
+    return result
 
 
 def no_op(instance: Instance, node, caller) -> bool:

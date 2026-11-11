@@ -5,7 +5,14 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
+from ow174.game.script.driver import (
+    OWNER_HEALTH,
+    ReplicatedBody,
+    Snapshot,
+    create_body_graphs,
+    create_initial_graphs,
+)
+from ow174.game.script.npc_context import NpcContext
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -35,15 +42,109 @@ class BotWorld(runtime.World):
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.control_context = None
+        self.match = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))
 
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, heavy_charge, npc_melee, sombra_hack
+
+        if self.match is not None:
+            result = sombra_hack.emp_health(self.match.combat, state, elapsed_ms)
+            if result is not NotImplemented:
+                return result
+
+        if self.hero == 0x02E00000000001BB and self.match is not None:
+            return assassin.modify_health(self, state, elapsed_ms)
+        result = heavy_charge.modify_health(self, state, elapsed_ms)
+        if result is not NotImplemented:
+            return result
+        return npc_melee.modify_health(self, state, elapsed_ms)
+
+    def track_targets(self, state):
+        from ow174.game import heavy_charge, npc_melee
+
+        result = heavy_charge.track_targets(self, state)
+        if result is not NotImplemented:
+            return result
+        return npc_melee.track_targets(self, state)
+
+    def animation_duration(self, state):
+        if self.hero != 0x02E00000000001BB or self.match is None:
+            return None
+        from ow174.game.assassin import release_duration
+
+        return release_duration(self, state)
+
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
+        if self.control_context is not None and self.control_context.selects(instance):
+            return True
         # Reconstruction policy for the single authored firing placement behavior.
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
+    def entity_var_slot(self, entity, var, *, create=False):
+        if self.control_context is not None:
+            result = self.control_context.variable(entity, var, create=create)
+            if result is not NotImplemented:
+                return result
+        return super().entity_var_slot(entity, var, create=create)
+
+    def entity_filter_context(self, entity):
+        context = self.control_context
+        if context is not None and entity in (context.body, context.controller):
+            return context
+        return NotImplemented
+
+    def play_script_context(self, instance, node):
+        if self.control_context is not None:
+            return self.control_context.play_script_context(instance, node)
+        return super().play_script_context(instance, node)
+
+    def reconstructed_play_script(self, instance, node):
+        from ow174.game import assassin, sombra_hack
+
+        if self.match is not None and sombra_hack.invoke(self.match.combat, instance, node):
+            return True
+
+        if assassin.effect_host(self, instance, node) is None:
+            return False
+        self.play_script(instance, node)
+        return True
+
+    def submit_script_request(self, instance, node, request):
+        from ow174.game import assassin
+
+        if not assassin.submit_pin_effect(self, instance, node, request):
+            super().submit_script_request(instance, node, request)
+
+    def send_message(self, target, message, params, sender):
+        if self.control_context is not None and self.control_context.send(target, message, params, sender):
+            return
+        super().send_message(target, message, params, sender)
+
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import npc_melee, sombra_hack
+
+        if self.match is not None and instance is not None:
+            result = sombra_hack.predicate(self.match.combat, instance, cfg)
+            if result is not NotImplemented:
+                return result
+
+        if self.control_context is not None:
+            result = self.control_context.native(cfg, instance)
+            if result is not NotImplemented:
+                return result
+        result = npc_melee.native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
+        if self.hero == 0x02E00000000001BB and self.match is not None:
+            from ow174.game.assassin import target_health
+
+            result = target_health(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -77,7 +178,8 @@ class BotScript(ReplicatedBody):
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, controller_entity: int | None = None,
+        body_position: tuple | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -91,6 +193,25 @@ class BotScript(ReplicatedBody):
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
+        self.control_context = None
+        if controller_entity is not None:
+            association = graph.npc_controller(body)
+            controller_record = (graph.entity_body(int(association["definition"], 16))
+                                 if association is not None else None)
+            if controller_record is None:
+                raise ValueError("NPC controller identity requires actual associated AI metadata")
+            context = self.control_context = NpcContext(entity, controller_entity,
+                                                       int(association["definition"], 16), component)
+            if body_position is not None:
+                context.position = expr.Vec3(*body_position)
+            world.control_context = context
+            controller_world = BotWorld(hero, mode, buttons)
+            controller_world.control_context = context
+            root = context.controller_component = runtime.Component(controller_entity, world=controller_world)
+            root.frame, root.now = frame, frame * root.frame_ms
+            for instance in create_initial_graphs(root, controller_record):
+                instance.init()
+            root.run_frame(frame)
         for instance in create_body_graphs(component, record):
             instance.init()
         component.run_frame(frame)
@@ -124,6 +245,8 @@ class BotScript(ReplicatedBody):
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
+        if self.control_context is not None:
+            self.control_context.advance(frame, position)
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
@@ -147,6 +270,8 @@ class BotScript(ReplicatedBody):
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
+        if self.control_context is not None:
+            self.control_context.retire()
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None

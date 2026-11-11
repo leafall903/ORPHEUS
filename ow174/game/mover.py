@@ -40,8 +40,9 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
-states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
+heroes whose statescript the server does not run, the throttle mods (17-19), general velocity mods
+(STU_FF3471E9 states) and native knockback semantics (Ashe has a scoped reconstructed impulse bridge),
+abilities that take over the move (the tick's phase hooks), moving platforms,
 other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
 
@@ -51,8 +52,11 @@ command that had any; and for each command frame the state the owner's client pr
 field for field as the client compares it with the server's (0x7FF789B73E00, see correction.py).
 """
 
+import gzip
+import hashlib
 import json
 import math
+import os
 import struct
 import threading
 from collections import deque
@@ -93,12 +97,36 @@ THROTTLE_UNIT = f32(1.0 / 127)  # dword_7FF78B523B58
 TWO_PI = f32(6.28318548)  # dword_7FF78B51FCAC
 
 
+def _angle_units(radians: float) -> int:
+    scaled = f32(radians * PITCH_UNITS)
+    return int(f32(scaled - 0.5) if scaled < 0.0 else f32(scaled + 0.5))
+
+
+def clamp_linked_target_command(command: Command, angles: tuple[float, ...]) -> Command:
+    """BBD370 applies the linked-target limits to the command's primary angle pair."""
+    reference, _, yaw_low, pitch_low, yaw_high, pitch_high = angles
+    yaw = f32(command.yaw * PITCH_RADIANS)
+    pitch = f32(command.pitch * PITCH_RADIANS)
+    pi = f32(math.pi)
+    if f32(yaw + pi) < reference:
+        yaw = f32(yaw + TWO_PI)
+    elif f32(yaw - pi) > reference:
+        yaw = f32(yaw - TWO_PI)
+    # The native lower branch takes precedence when the bounds are inverted.
+    held_yaw = yaw_low if yaw < yaw_low else min(yaw, yaw_high)
+    held_pitch = pitch_low if pitch < pitch_low else min(pitch, pitch_high)
+    if (held_yaw, held_pitch) == (yaw, pitch):
+        return command
+    packed_yaw = (_angle_units(held_yaw) + 0x8000) % 0x10000 - 0x8000
+    packed_pitch = (_angle_units(held_pitch) + 0x8000) % 0x10000 - 0x8000
+    return replace(command, yaw=packed_yaw, pitch=packed_pitch)
+
+
 def turned_pitch(units: int) -> tuple[int, bool]:
     """(the state's pitch, whether it was held to the limit) of a command's pitch."""
     radians = f32(units * PITCH_RADIANS)
     held = max(-PITCH_LIMIT, min(PITCH_LIMIT, radians))
-    scaled = f32(held * PITCH_UNITS)
-    return int(f32(scaled - 0.5) if scaled < 0.0 else f32(scaled + 0.5)), held != radians
+    return _angle_units(held), held != radians
 
 
 def throttle_byte(value: int) -> tuple[float, int]:
@@ -168,7 +196,9 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
+KNOCKBACK_SCALE = 26
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
@@ -254,19 +284,57 @@ _mover_table: dict[int, MoverData] | None = None
 _mover_table_lock = threading.Lock()
 
 
+def load_movers(path, extension=None) -> dict[int, MoverData]:
+    return load_mover_bundle(path, extension)[0]
+
+
+def load_mover_bundle(path, extension=None) -> tuple[dict[int, MoverData], dict[str, MoverData]]:
+    """Load immutable base values and optional fingerprint-bound, add-only bodies."""
+    raw = path.read_bytes() if path.is_file() else b""
+    table = json.loads(raw) if raw else {}
+    names = {field.name for field in fields(MoverData)}
+    result = {
+        int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
+        for body, entry in table.items()
+    }
+    profiles = {}
+    if extension:
+        from pathlib import Path
+
+        extra = json.loads(gzip.decompress(Path(extension).read_bytes()))
+        if extra.get("format_version") != 1:
+            raise ValueError("unsupported mover extension format")
+        if extra.get("base_mover_sha256") != hashlib.sha256(raw).hexdigest():
+            raise ValueError("mover extension does not match base")
+        def checked(entry):
+            if set(entry) != names or any(
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+                for value in entry.values()
+            ):
+                raise ValueError("mover extension requires complete finite fields")
+            for key in ("ground_circle_rays", "character_collision"):
+                if not isinstance(entry[key], int):
+                    raise ValueError("mover extension requires integer flags/counts")
+            if not 0 <= entry["ground_circle_rays"] <= 64 or entry["character_collision"] not in (0, 1):
+                raise ValueError("invalid mover flags/counts")
+            if any(entry[key] < 0 for key in names):
+                raise ValueError("negative mover extension field")
+            return MoverData(**entry)
+
+        for body, entry in extra.get("movers", {}).items():
+            guid = int(body, 16)
+            if guid in result:
+                raise ValueError("mover extension cannot replace a body")
+            result[guid] = checked(entry)
+        profiles = {name: checked(entry) for name, entry in extra.get("mover_profiles", {}).items()}
+    return result, profiles
+
+
 def _movers() -> dict[int, MoverData]:
     global _mover_table
     with _mover_table_lock:
         if _mover_table is None:
-            if not MOVERS_PATH.is_file():
-                _mover_table = {}
-            else:
-                names = {field.name for field in fields(MoverData)}
-                table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
-                _mover_table = {
-                    int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
-                    for body, entry in table.items()
-                }
+            _mover_table = load_movers(MOVERS_PATH, os.environ.get("ORPHEUS_MOVER_EXTENSION"))
         return _mover_table
 
 
@@ -386,6 +454,24 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def knockback_scale(mods) -> float:
+    """Reduce active category-26 mover records in priority and start order."""
+    rows = sorted((mod for mod in mods if mod.index == KNOCKBACK_SCALE), key=Mod.order)
+    return max(0.0, intent(rows, KNOCKBACK_SCALE, 1.0))
+
+
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A8D: split forward/back, unsigned lateral, restore sign, clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -393,7 +479,7 @@ def _number(instance, cfg, default: float) -> float:
     return f32(float(value)) if isinstance(value, (bool, int, float)) else default
 
 
-def statescript_mods(component) -> dict:
+def statescript_mods(component, *, category=None) -> dict:
     """The movement mods of a body's statescript (a script.runtime.Component) that are on now:
     {(instance, state, slot): (index, op, value, priority)}. The client gives the mover each mod of a
     MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end)."""
@@ -403,13 +489,16 @@ def statescript_mods(component) -> dict:
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
-                kind = MOD_OPS.get(mod.get("$")) if isinstance(mod, dict) else None
-                if kind is None or mod.get("m_A9561CA0") is None:
+                if not isinstance(mod, dict):
+                    continue
+                kind = MOD_OPS.get(mod.get("$"))
+                index = mod.get("m_A9561CA0")
+                if kind is None or index is None or (category is not None and index != category):
                     continue
                 op, empty = kind
                 value = _number(instance, mod.get("m_9B7A63EA"), empty)
                 priority = _number(instance, mod.get("m_priority"), 0.0)
-                found[(instance.id, state.index, slot)] = (int(mod["m_A9561CA0"]), op, value, priority)
+                found[(instance.id, state.index, slot)] = (int(index), op, value, priority)
     return found
 
 
@@ -518,6 +607,22 @@ class Mover:
 
     # ---- what the movement records and the match read
 
+    def add_impulse(self, vector) -> None:
+        """Add an external velocity before a posed frame; collision still owns the displacement.
+
+        Reconstructed impulse application, not native FF3471E9 axis/modifier semantics.
+        No teleport or new physics storage is introduced. Upward impulses must lift
+        off rather than be projected back onto the ground plane on this frame.
+        """
+        vector = tuple(float(value) for value in vector)
+        if len(vector) != 3 or not all(math.isfinite(value) for value in vector):
+            raise ValueError("impulse must have three finite components")
+        self.velocity = tuple(f32(self.velocity[index] + vector[index]) for index in range(3))
+        if self.velocity[1] > 0 and not self.airborne:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        self.driven = False
+
     @property
     def flags(self) -> int:
         return self.flags_word
@@ -623,6 +728,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        ground_at: Callable[[float, float, float, float, float], Ground | None] | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -650,7 +756,7 @@ class Mover:
         was_crouched = self.crouched
         self.landed = False
 
-        ground, under = self._probe(dt)
+        ground, under = self._probe(dt, ground_at)
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -664,6 +770,7 @@ class Mover:
             self.input_frame = frame
 
         outcome = None
+        right, forward = modified_throttles(active, right, forward)
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
             vx, vy, vz = self.velocity
@@ -702,7 +809,7 @@ class Mover:
 
     # ---- 3. the ground probe
 
-    def _probe(self, dt: float):
+    def _probe(self, dt: float, ground_at=None):
         """(ground, under): the ground the feet stand on or land on (None if none), and whether the probe
         met a surface that is not ground (flag 0x80000)."""
         data = self.values
@@ -717,6 +824,10 @@ class Mover:
             reach = max(data.step_down, self.slope_tan * dt * speed * PROBE_FACTOR)
         bottom = y - reach
         hit = self.world.ground(x, z, top, bottom, self.category)
+        if ground_at is not None:
+            support = ground_at(x, z, top, bottom, radius)
+            if support is not None and (hit is None or support.y > hit.y):
+                hit = support
         under = bool(hit is not None and hit.surface & NOT_GROUND)
         if data.gravity_scale <= 0.0:
             return None, under

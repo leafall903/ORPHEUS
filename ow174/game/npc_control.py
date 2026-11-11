@@ -1,12 +1,12 @@
 """Manual NPC attack selection and input policy, reconstructed for the sandbox.
 
-Slot0 comes from each body's extracted AI definition. This is manual targeting,
-not restored native autonomous acquisition, navigation or enemy special behavior.
+Slot0 comes from each body's extracted AI definition. This policy also selects
+authored close-range actions for supported manual NPCs.
 """
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, heavy_charge, npc_melee
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -41,11 +41,12 @@ def selected(match, player):
     if best is None:
         return None
     distance, target = best
-    wall = combat.ray_world(match.collision_world, origin, direction, distance)
-    if wall is not None and wall < distance:
-        return None
     if (not isinstance(target.owner, bots.Bot) or not manual(target.owner)
             or (not match.game_map.free_for_all and target.team == player.team)):
+        return None
+    walls = fight.ice_walls if target.owner.hero == assassin.HERO else None
+    wall = combat.ray_world(match.collision_world, origin, direction, distance, ice_walls=walls)
+    if wall is not None and wall < distance:
         return None
     return target.owner
 
@@ -55,6 +56,8 @@ def start(match, player):
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
     button(bot)  # validate before changing policy
+    if player.controller_vm is not None and assassin.pin_button(bot) is not None:
+        player.controller_vm.configure_manual_pin(player.controller_filter_bits)
     bot.attack_target = player.entity
     bot.firing = True
     return bot.entity
@@ -68,12 +71,20 @@ def stop(match):
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
+        heavy_charge.stop(match, bot)
         if bot.body_script is not None:
+            context = getattr(bot.body_script, 'control_context', None)
+            if context is not None:
+                context.set_target()
             component = bot.body_script.component
+            npc_melee.stop(component)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
                 values.add(primary)  # also cancel a down edge queued before the next VM update
+            pin = assassin.pin_button(bot)
+            if pin is not None:
+                values.add(pin)
             component.edges([(value, False) for value in sorted(values)])
             component.shots.clear()
         for shot in list(match.combat.projectiles.shots):
@@ -91,6 +102,7 @@ def update_input(fight, bot):
                and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
+    engaged = enabled
     if enabled:
         origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
         point = fight._eye(target)
@@ -99,14 +111,35 @@ def update_input(fight, bot):
         enabled = 0 < distance <= AIM_RANGE
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
-            wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
+            walls = fight.ice_walls if bot.hero == assassin.HERO else None
+            wall = combat.ray_world(fight.match.collision_world, origin, direction, distance, ice_walls=walls)
             enabled = wall is None or wall >= distance
             bot.yaw = float(bots.heading(dx, dz))
             bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
             bot.moved_tick = fight.tick
     value = button(bot)
+    context = getattr(bot.body_script, 'control_context', None)
+    if context is not None:
+        host = target.controller_vm if enabled else None
+        if host is not None and (host.retired or host.component.fault is not None):
+            host = None
+        context.set_target(target.entity if enabled else None, host=host)
     component = bot.body_script.component
-    if bot.attack_input != enabled or (value in component.held) != enabled:
-        component.edges([(value, bool(enabled))])
-    bot.attack_input = bool(enabled)
-    return bool(enabled)
+    special = heavy_charge.update(fight, bot, component, target, engaged, enabled)
+    special = special or npc_melee.update(fight, bot, component, enabled)
+    primary = bool(enabled and not special)
+    if bot.attack_input != primary or (value in component.held) != primary:
+        component.edges([(value, primary)])
+    pin = assassin.pin_button(bot)
+    if pin is not None:
+        # Selection admits contact. An active pin uses its authored local
+        # target and the body hit at contact for reconstructed input holding.
+        pin_enabled = bool(enabled and distance <= assassin.PIN_RANGE
+                           and (assassin.selected_controller(context) == target.entity
+                                or assassin.holds_pin(bot, target)))
+        if (pin in component.held) != pin_enabled:
+            component.edges([(pin, pin_enabled)])
+        if not pin_enabled and context is not None:
+            assassin.retire_pin_effect(context.target_host, bot.entity)
+    bot.attack_input = primary
+    return bool(enabled and not special)

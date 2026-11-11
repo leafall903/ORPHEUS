@@ -200,7 +200,13 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     """
     if type(quanta_us) is not int or quanta_us <= 0 or type(run_options) is not dict:
         raise ManifestError("explicit positive quanta_us and run_options mapping are required")
+    from ow174.game.orisa_barrier import descriptor_sha256
+    from ow174.game.reinhardt_barrier import configured_geometry
+
     values = {"run.quanta_us": quanta_us, "run.options": run_options}
+    values["ow174.game.orisa_barrier.geometry_sha256"] = descriptor_sha256()
+    geometry = configured_geometry()
+    values["ow174.game.reinhardt_barrier.descriptor_sha256"] = geometry.fingerprint if geometry else None
     for name in _CONFIG_MODULES:
         module = importlib.import_module(name)
         required = _REQUIRED_CONFIG.get(name, set())

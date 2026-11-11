@@ -150,6 +150,22 @@ def controller_frame(
     hero: int | None = None,
     body: int | None = None,
 ):
+    """Encode the controller tree built by controller_instances."""
+    instances, variables = controller_instances(
+        controller, select_open, skins, hide_assemble, presence, hero, body,
+    )
+    return owner_full_frame(cmfd, instances, variables)
+
+
+def controller_instances(
+    controller: Controller | FixedController,
+    select_open: bool,
+    skins: bool = False,
+    hide_assemble: bool = False,
+    presence: dict[int, Value] | None = None,
+    hero: int | None = None,
+    body: int | None = None,
+):
     """The owner full frame for the player's entity: the controller (1) with hero select 288A (2) ->
     288B (3) under it, 13C1's HUD 20E4 (4), and 288A's team list entry 288D (the next index).
     `skins` turns on v25377, which shows the skin selector; `hide_assemble` hides the assemble title
@@ -164,7 +180,7 @@ def controller_frame(
         instance = Instance(1, controller.graph)
         if body is not None:
             instance.extra[8370] = Entity(body)  # 13A4's Hero state reads its possessed body here.
-        return owner_full_frame(cmfd, [instance], variables)
+        return [instance], variables
     root = 2 if controller.parent is not None else 1
     host_id, screen_id = root + 1, root + 2
     active = {controller.hero_select_bit: None, controller.select_bit: subscript(host_id)}
@@ -195,7 +211,13 @@ def controller_frame(
     variables: dict[int, Value] = {OPEN_SELECT: Bool(select_open), SELECT_SHOWN: Bool(select_open)}
     if hero:
         variables[CURRENT_HERO] = Asset(hero)
-    return owner_full_frame(cmfd, instances, variables)
+    return instances, variables
+
+
+def controller_wire_ids(controller: Controller | FixedController) -> tuple[int, ...]:
+    """The exact persistent instance IDs already owned by the controller encoder."""
+    instances, _ = controller_instances(controller, False)
+    return tuple(sorted(instance.index for instance in instances))
 
 
 def team_entry_frame(hero: int | None) -> BitWriter:

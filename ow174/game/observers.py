@@ -51,6 +51,8 @@ def snapshot(script) -> Snapshot:
                 expr.warn_once(f"observe{cls}", "remote state class %s has no H=0 payload", cls)
                 continue
             payload = state.payload() if codec != "none" else {}
+            if payload is None:
+                continue
             snap.states[(instance.id, index)] = (cls, state.active, tuple(sorted(payload.items())))
     _add_vars(snap, 0, script.replicated_vars())
     return snap

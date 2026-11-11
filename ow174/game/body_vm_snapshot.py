@@ -10,9 +10,26 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.orisa_barrier import BarrierWorld as OrisaBarrierWorld
+from ow174.game.orisa_barrier import Shield as OrisaShield
+from ow174.game.script import (
+    expr,
+    graph,
+    message_manager,
+    message_receive,
+    message_scope,
+    message_state,
+    modifiers,
+    nodes,
+    runtime,
+    scopes,
+)
 from ow174.game.script.bot import BotWorld
+from ow174.game.script.controller_filter import INPUT_FIELDS, ControllerFilterInputs
 from ow174.game.script.driver import BodyScript, BodyWorld
+from ow174.game.script.npc_context import NpcContext
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld, PinEffectServices
+from ow174.game.sigma_barrier import BarrierWorld, Shield
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -60,19 +77,21 @@ _STATE_LAYOUTS = {
                            "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
                            "voice_submitted", "voice_failed"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
+    nodes.LinkedTarget: (("linked_entity", "linked_cache", "mover_angles"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
-    nodes.AIBehavior: ((), ()),
+    nodes.AIBehavior: (("selected",), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
+    nodes.ModifyHealth: (("last_applied", "target_body"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
@@ -89,10 +108,11 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var"), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    message_manager.Key: ("entity", "flags", "message"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -137,8 +157,75 @@ def _digest(value) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _controller_service_objects(component):
+    world = component.world
+    if type(world) is not ControllerWorld or world.pin_services is None:
+        return ()
+    services = world.pin_services
+    if (type(services) is not PinEffectServices or type(services.registry) is not scopes.Registry
+            or type(services.messages) is not message_state.Context
+            or services.messages.component is not component):
+        raise BodyVMSnapshotError("invalid controller pin service ownership")
+    return services, services.registry, services.messages
+
+
+def _vm_couplings(component):
+    """Declared foreign storage edges; no gameplay getters run here."""
+    if type(component.world) is OrisaBarrierWorld:
+        actor = component.world.actor
+        if (type(actor) is not OrisaShield or actor.component is not component
+                or actor.body != component.entity):
+            raise BodyVMSnapshotError("invalid Orisa barrier VM ownership")
+        return [actor], []
+    if type(component.world) is BarrierWorld:
+        actor = component.world.actor
+        if (type(actor) is not Shield or actor.component is not component or actor.body != component.entity
+                or type(actor.source) is not runtime.Instance or actor.source.graph.index != 0x1B55
+                or actor.source.component is component or type(actor.source.component.world) is not BodyWorld
+                or actor.source.component.world.body != actor.source.component.entity):
+            raise BodyVMSnapshotError("invalid Sigma barrier VM ownership")
+        return [actor], [actor.source.component]
+    if type(component.world) is BotWorld:
+        context = component.world.control_context
+        contexts = [] if context is None else [context]
+    elif type(component.world) is ControllerWorld:
+        if type(component.world.readers) is not list:
+            raise BodyVMSnapshotError("controller readers must be a plain list")
+        contexts = list(component.world.readers)
+    else:
+        contexts = []
+    if len({id(item) for item in contexts}) != len(contexts):
+        raise BodyVMSnapshotError("duplicate VM coupling")
+    peers = []
+    for context in contexts:
+        if type(context) is not NpcContext:
+            raise BodyVMSnapshotError("invalid NPC coupling context")
+        pair = (context.body_component, context.controller_component)
+        for peer, entity in zip(pair, (context.body, context.controller), strict=True):
+            if (type(peer) is not runtime.Component or peer.entity != entity
+                    or type(peer.world) is not BotWorld
+                    or peer.world.control_context is not context):
+                raise BodyVMSnapshotError("invalid coupled NPC identity or world")
+        host = context.target_host
+        target = None
+        if host is not None:
+            if (type(host) is not ControllerVM or host.retired
+                    or type(host.component) is not runtime.Component
+                    or type(host.component.world) is not ControllerWorld
+                    or host.component.entity != context.target_entity
+                    or host.component.world.readers.count(context) != 1):
+                raise BodyVMSnapshotError("invalid coupled target controller")
+            target = host.component
+        if component not in pair and component is not target:
+            raise BodyVMSnapshotError("VM coupling does not own this component")
+        for peer in (*pair, target):
+            if peer is not None and peer is not component and peer not in peers:
+                peers.append(peer)
+    return contexts, peers
+
+
 class _Export:
-    def __init__(self, component):
+    def __init__(self, component, domain_boundaries=None):
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
@@ -148,6 +235,39 @@ class _Export:
         _containers(fields, ("parameter_scopes",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
+        if domain_boundaries is not None and type(domain_boundaries) is not dict:
+            raise BodyVMSnapshotError("enclosing-domain boundaries must be a plain identity map")
+        self.domain_boundaries = domain_boundaries or {}
+        allowed = {}
+        contexts, peers = _vm_couplings(component)
+        if self.domain_boundaries:
+            services = _controller_service_objects(component)
+            if not contexts and not services:
+                raise BodyVMSnapshotError("enclosing-domain boundaries require declared VM couplings")
+            allowed.update((id(context), context) for context in contexts)
+            allowed.update((id(service), service) for service in services)
+            for other in peers:
+                variables = list(other.vars.values())
+                for instance in (*other.instances.values(), *other.destroyed):
+                    allowed[id(instance)] = instance
+                    allowed.update((id(state), state) for state in instance.states.values())
+                    variables.extend(instance.vars.values())
+                allowed.update((id(var), var) for var in variables)
+            # A foreign storage alias must never allow a boundary to hide local state.
+            local = list(component.vars.values())
+            for instance in (*component.instances.values(), *component.destroyed):
+                allowed.pop(id(instance), None)
+                for state in instance.states.values():
+                    allowed.pop(id(state), None)
+                local.extend(instance.vars.values())
+            for var in local:
+                allowed.pop(id(var), None)
+        for identity, entry in self.domain_boundaries.items():
+            if type(entry) is not tuple or len(entry) != 2 or type(entry[1]) is not list:
+                raise BodyVMSnapshotError("invalid enclosing-domain boundary entry")
+            obj, _ = entry
+            if identity != id(obj) or allowed.get(identity) is not obj:
+                raise BodyVMSnapshotError("invalid enclosing-domain boundary")
         self.instances = {}
         self.states = {}
         self.variables = {}
@@ -371,6 +491,9 @@ class _Export:
         kind = type(obj)
         if obj is None or kind in (bool, int, float, str, bytes):
             return obj
+        boundary = self.domain_boundaries.get(id(obj))
+        if boundary is not None and boundary[0] is obj:
+            return {"enclosing_domain": boundary[1]}
         if obj is self.component:
             return {"ref": ["component"]}
         if kind is runtime.Instance:
@@ -383,17 +506,46 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, BarrierWorld, OrisaBarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            if kind in (BarrierWorld, OrisaBarrierWorld):
+                fields.add("actor")
+                if id(obj.actor) not in self.domain_boundaries:
+                    raise BodyVMSnapshotError("barrier VM requires enclosing server-domain boundaries")
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
+                fields.update(("weapon_buttons", "owner_position", "control_context", "match"))
+                if obj.control_context is not None and id(obj.control_context) not in self.domain_boundaries:
+                    raise BodyVMSnapshotError("coupled NPC VM requires enclosing server-domain boundaries")
+            if kind is ControllerWorld:
+                fields.update(("readers", "filter_inputs", "pin_services",
+                               "linked_target_inputs", "numeric_modifiers"))
+                if any(id(context) not in self.domain_boundaries for context in obj.readers):
+                    raise BodyVMSnapshotError(
+                        "coupled controller VM requires enclosing server-domain boundaries")
+                if obj.pin_services is not None and id(obj.pin_services) not in self.domain_boundaries:
+                    raise BodyVMSnapshotError(
+                        "controller pin services require enclosing server-domain boundaries")
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
+        if kind is modifiers.NumericModifiers:
+            world = self.component.world
+            if type(world) is not ControllerWorld or world.numeric_modifiers is not obj:
+                raise BodyVMSnapshotError("foreign controller numeric modifiers")
+            return {"class": _name(kind), "fields": self.fields(obj, {"_source_frame", "ready", "records"})}
+        if kind is modifiers.Record:
+            fields = {"kind", "key", "start", "field", "operation", "value", "priority", "upper", "end"}
+            return {"class": _name(kind), "fields": self.fields(obj, fields)}
+        if kind is ControllerFilterInputs:
+            world = self.component.world
+            if type(world) is not ControllerWorld or world.filter_inputs is not obj:
+                raise BodyVMSnapshotError("foreign controller filter inputs")
+            fields = set(INPUT_FIELDS) | {"owner", "revision", "retired", "bound_host"}
+            return {"class": _name(kind), "fields": self.fields(obj, fields, exclude={"bound_host"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")
@@ -579,12 +731,12 @@ class _Export:
         return result
 
 
-def _document(component, extra_roots, script=None):
+def _document(component, extra_roots, script=None, domain_boundaries=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
         source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
-        exporter = _Export(component)
+        exporter = _Export(component, domain_boundaries)
         raw = exporter.capture(extra_roots, script)
         document = {
             "schema": SCHEMA if script is not None else COMPONENT_SCHEMA,
@@ -601,14 +753,17 @@ def export_component_vm(component, *, extra_roots=()) -> dict:
     return _document(component, extra_roots)[0]
 
 
-def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
+def export_component_vm_with_identities(component, *, extra_roots=(), domain_boundaries=None) -> tuple:
     """Return one capture plus ephemeral (storage id, original object, scope tag) bindings.
 
     Scope tags are vm, model or vm+model. The sidecar is not serializable replay
     data; an outer adapter can detect unsupported sharing across artifact scopes.
-    No identity callback or gameplay function is invoked.
+    The enclosing server may supply a plain map for a declared NPC pair's
+    context/foreign VM objects. They become qualified enclosing-domain references;
+    that server separately captures both complete namespaces. Standalone coupled
+    exports fail closed. No identity callback or gameplay function is invoked.
     """
-    return _document(component, extra_roots)
+    return _document(component, extra_roots, domain_boundaries=domain_boundaries)
 
 
 def export_body_vm(script) -> dict:

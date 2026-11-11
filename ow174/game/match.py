@@ -32,8 +32,21 @@ import math
 from collections import deque
 from copy import deepcopy
 from dataclasses import replace
+from functools import partial
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    sombra_hack,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -46,13 +59,21 @@ from ow174.game.collision import (
 from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
-from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
+from ow174.game.mover import (
+    CROUCHED,
+    GRAVITY_SCALE,
+    Mover,
+    clamp_linked_target_command,
+    mover_data,
+    statescript_mods,
+)
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.player_controller import ControllerVM
 from ow174.game.script.runtime import ScriptBudgetError
-from ow174.game.statescript import Stream, owner_ack
+from ow174.game.statescript import Stream, owner_ack, owner_full_frame
 from ow174.game.world import (
     GAME_MODE_ENTITY,
     NO_INPUT,
@@ -216,6 +237,8 @@ class Player:
         self.commands = CommandQueue()
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
+        self.controller_vm: ControllerVM | None = None
+        self.controller_effect_key = None
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
         self.shown: dict[int, ShownController] = {}  # other players' controller entities on this client
@@ -237,6 +260,10 @@ class Player:
         if self.match.game_map.free_for_all:
             return TEAM_BIT << FREE_FOR_ALL_TEAM
         return TEAM_BIT << self.team
+
+    @property
+    def controller_filter_bits(self) -> int:
+        return PLAYER_FILTER | self.team_bit
 
     @property
     def player_id(self) -> tuple[int, int]:
@@ -291,6 +318,7 @@ class Player:
         )
         if fresh:
             self.mover.use(mover_data(self.hero.body), collision)
+            simulate_pose = partial(self._step_body_pose, end_frame=fresh[-1].frame)
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
@@ -298,14 +326,22 @@ class Player:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
+                if not dead:
+                    angles = (
+                        self.controller_vm.linked_target_angles() if self.controller_vm is not None else None
+                    )
+                    if angles is None:
+                        angles = self.match.combat.sleep_view_angles(self.body)
+                    if angles is not None:
+                        command = clamp_linked_target_command(command, angles)
                 if not dead and self.body_script is not None:
                     self.mover.step(
                         command, seconds, self.match.tick,
-                        simulate_pose=self._step_body_pose,
+                        simulate_pose=simulate_pose,
                     )
                 else:
                     if not dead:  # a dead body lies where it fell
-                        self.mover.step(command, seconds, self.match.tick)
+                        self.match.combat.ice_walls.step(self.mover, command, seconds, self.match.tick)
                     self._advance_body_frame(command)
         if movelog.ENABLED:
             movelog.snapshots(self)
@@ -321,10 +357,25 @@ class Player:
         if first_missing < first_pose - 1:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
-    def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+    def _step_body_pose(self, command: Command, seconds: float, tick: int, *, end_frame: int) -> None:
+        from ow174.game import heavy_charge
+
+        ice_walls = self.match.combat.ice_walls
+        carry = heavy_charge.carry_move(self.match, self, self.body)
+        # Anchor the newest command to this world tick and count back for retained poses.
+        impulse_tick = tick - (end_frame - command.frame)
+        self.match.combat.impulses.apply_player(self, impulse_tick, command.frame, carried=carry is not None)
+        if carry is not None:
+            command = replace(command, forward=0, right=0, buttons=0, action=0)
+            ice_walls.step_pose(self.mover, command, seconds, tick, move_to=carry)
+            self._advance_body_frame(command)
+            return
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
+            freeze_angles = self.match.combat.freeze_angles(self.body, tick)
+            if freeze_angles is not None:
+                command = replace(command, yaw=freeze_angles[0], pitch=freeze_angles[1])
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
@@ -339,13 +390,13 @@ class Player:
         movement_end = None
         if len(requests) == 1:
             state, (target, speed) = requests[0]
-            outcome = self.mover.step_pose(
-                command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
+            outcome = ice_walls.step_pose(
+                self.mover, command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
             )
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            ice_walls.step_pose(self.mover, command, seconds, tick)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
@@ -357,7 +408,9 @@ class Player:
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        active = statescript_mods(script.component) if script else {}
+        active = self.match.combat.frost_movement_mods(self.body, active, self.match.tick)
+        self.mover.track_mods(active, command.frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -478,6 +531,9 @@ class Match:
         hero = heroes().get(fixed or hero_guid) or heroes()[SOLDIER]
         quanta = TOURNAMENT_QUANTA if tournament else RETAIL_QUANTA
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
+        if graph.entity_body(PLAYER_DEFINITION) is not None:
+            player.controller_vm = ControllerVM(
+                player.entity, player.hero.guid, self.game_map.mode_guid, self.tick)
         self.players.append(player)
         return player
 
@@ -603,7 +659,11 @@ class Match:
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                controller_entity=bot.spawner.get("ai_controller_entity"),
+                body_position=bot.position,
             )
+            if bot.hero == 0x02E00000000001BB and bot.spawner.get("manual_spawn") is True:
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -690,7 +750,7 @@ class Match:
         (_show_players)."""
         frame = player.card.get("+0x28") or None
         components = {
-            26: [PLAYER_FILTER | player.team_bit],
+            26: [player.controller_filter_bits],
             29: self._player_info(player),
             74: [frame, None, player.slot, None, None, player.role or None, 1, 1, None],
         }
@@ -899,6 +959,14 @@ class Match:
         if frames is None:
             frames = sends(tick)
         self.tick = tick
+        for player in self.players:
+            host = player.controller_vm
+            if host is not None and not player.gone and not host.retired:
+                try:
+                    host.advance(tick, player.hero.guid)
+                except Exception:
+                    log.exception("[game] %s: %s's controller VM failed", self.label(), player.name)
+                    host.retire()
         ready = self._refresh_collision()
         if self.collision_state.status == "unavailable":
             self._collision_failure(now)
@@ -911,7 +979,7 @@ class Match:
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                         paused_until=self.combat.control_until(bot.entity))
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -922,6 +990,10 @@ class Match:
                 continue
             if player.loaded_at is not None:
                 self._spawn_steps(player, client, now)
+            if frames and player.steps_done >= 4 and client.controller_ready:
+                dynamic, bound_vars, key = self._controller_effect_data(player)
+                if key != player.controller_effect_key:
+                    self.send_controller(player, effect_data=(dynamic, bound_vars, key))
             if player.script.data_last and now >= player.script.next_ack:
                 self._owner_ack(player, player.script, now)
             if player.body_script is not None and player.spawned and frames:
@@ -1013,7 +1085,16 @@ class Match:
         frame = player.commands.last_frame
         return self.tick if frame is None else frame
 
-    def send_controller(self, player: Player) -> None:
+    @staticmethod
+    def _controller_effect_data(player):
+        host = player.controller_vm
+        dynamic, bound_vars = host.owner_effect_wires() if host is not None else ((), {})
+        if not dynamic:
+            return dynamic, bound_vars, None
+        content = owner_full_frame(1, [], {}, dynamic=dynamic, bound_vars=bound_vars)
+        return dynamic, bound_vars, (content.value, content.count)
+
+    def send_controller(self, player: Player, *, effect_data=None) -> None:
         """A full frame of the controller's statescript, with hero select open or closed. The skin
         selector shows in the PvP modes while heroes are assembled, in the Practice Range whenever
         the screen is open."""
@@ -1024,14 +1105,19 @@ class Match:
         skins = player.select_open and (practice or self.assembling())
         switch = self.notices.presence(player)  # the last hero switch for the chat line (notices.py)
         hero = player.controller_hero = player.hero.guid if player.has_body else None
-        frame = heroselect.controller_frame(
-            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero,
+        instances, variables = heroselect.controller_instances(
+            self.controller, player.select_open, skins, practice, presence=switch, hero=hero,
             body=player.body if player.has_body else None,
         )
+        if effect_data is None:
+            effect_data = self._controller_effect_data(player)
+        dynamic, bound_vars, key = effect_data
+        frame = owner_full_frame(cmfd, instances, variables, dynamic=dynamic, bound_vars=bound_vars)
         update = player.script.full_frame(frame)
         # A switch notice is a separate event, even when the menu is already closed.
         update.controller_close = player.has_body and not player.select_open and not switch
         player.client.queue_entities([update])
+        player.controller_effect_key = key
         state = "open" if player.select_open else "closed"
         log.info("[game] %s: %s's controller sent (hero select %s)", self.label(), player.name, state)
 
@@ -1122,12 +1208,16 @@ class Match:
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
+        from ow174.game import heavy_charge
+
         script = player.body_script
         if script is not None:
             bodytrace.stopped(player, script)
             initial = script.stream.initial_owner
             if initial is not None and player.client is not None:
                 player.client.cancel_entity_record(initial)
+            if script.component.fault is None:
+                heavy_charge.retire_victim(script.component)
             script.retire()
             player.body_script = None
         player.body_script_failed = failed
@@ -1137,13 +1227,17 @@ class Match:
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
+        from ow174.game import bob_victim
+
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            bob_victim.sample(player, script.component)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
+            command = sombra_hack.prepare_input(self.combat, player, command)
             script.command(command.frame, command.buttons, command.action, command.forward, command.right)
         except Exception as error:
             bodytrace.failed(script, error)
@@ -1280,6 +1374,8 @@ class Match:
         player.client = None
         player.spawned = False
         self.stop_body_script(player)
+        if player.controller_vm is not None:
+            player.controller_vm.retire()
         if player.has_body:
             self.combat.retire_player_body(player)
             self.destroy_for_others(player, player.body)
