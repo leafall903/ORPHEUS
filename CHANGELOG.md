@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile owned-body hostility and retained Self-Destruct messages
+
+- Restore the delivered exclusion of an owned bot's source body and of the
+  player's own created bodies from hostile targeting, including free-for-all.
+  This prevents detached Self-Destruct from hitting its retained pilot and
+  prevents in-flight pilot shots from hitting the new owned mech.
+- Deliver body messages between retained combat ticks before a later tick can
+  retire the sender. Keep owned-body death and terminal timers in their command
+  clock domain using the delivered clock offset.
+- All three original checks for detonation/retirement/replacement, skipped-frame
+  single detonation/refill and in-flight own-mech exclusion passed. All25 further
+  ultimate/early-press/refill, retired-source, moving/obstructed bomb, existing NPC
+  and runtime checks passed. The previous skipped-fuse and post-blast replacement
+  failures are resolved; blocked-placement fallback remains open. No whole-line
+  or original-client acceptance is claimed.
+
 ### Mount delivered D.Va foreign-body services and retirement
 
 - Connect the owned mech VM to live foreign entity variable slots, component

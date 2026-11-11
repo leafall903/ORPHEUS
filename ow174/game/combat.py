@@ -3336,6 +3336,9 @@ class Combat:
             if at != tick and self.baptiste.fields:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
+            if at < tick:
+                # A retained tick may send before a later tick retires its VM.
+                self.match.deliver_body_messages()
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -3677,6 +3680,11 @@ class Combat:
         found = []
         for target in self._targets():
             if target.owner is shooter or target.entity == source:
+                continue
+            if (isinstance(target.owner, bots.Bot) and target.owner.owner == shooter.entity
+                    and target.owner.source_body == source):
+                continue
+            if isinstance(shooter, bots.Bot) and shooter.owner and target.entity == shooter.source_body:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
                 continue
@@ -7407,7 +7415,7 @@ class Combat:
         try:
             params = self._death_parameters(killer, critical, loadout, source=source)
             if isinstance(script, BotScript):
-                tick = max(tick, script.frame)
+                tick = max(tick + bot.clock_offset, script.frame)
             event = script.die(tick, params, source)
             if bot.owner:
                 from ow174.game import body_entities
@@ -7429,7 +7437,7 @@ class Combat:
         if script is None:
             return
         try:
-            events = script.advance_death(tick, int(BOT_RESPAWN / TICK))
+            events = script.advance_death(tick + bot.clock_offset, int(BOT_RESPAWN / TICK))
         except Exception:
             script.retire()
             bot.body_script = None
