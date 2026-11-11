@@ -52,7 +52,10 @@ def load_profile(path: Path, *, reconstructed_rates: bool = False) -> Profile:
     """Require the caller to declare the per-second interpretation of0118 amounts."""
     if not reconstructed_rates:
         raise ValueError("dragon damage-rate units require an explicit reconstructed policy")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    return profile_from_data(json.loads(path.read_text(encoding="utf-8")))
+
+
+def profile_from_data(data) -> Profile:
     if data.get("format_version") != 1 or data.get("hero") != f"0x{HANZO:016X}":
         raise ValueError("unsupported Hanzo profile")
     initial, dragon = data["initial"], data["dragon"]
@@ -127,7 +130,7 @@ def _rate(flight: Flight, target, at: float) -> float:
     return profile.core_rate if radial < profile.radius * profile.core_factor else profile.outer_rate
 
 
-def advance(combat, flight: Flight, tick: int) -> bool:
+def advance(combat, flight: Flight, tick: int, *, poses=None) -> bool:
     """Advance bounded16ms doses; return false after expiry, match end or source leave."""
     if combat.match.ended or getattr(flight.shooter, "gone", False):
         return False
@@ -150,7 +153,8 @@ def advance(combat, flight: Flight, tick: int) -> bool:
                 continue
             if combat.vitals_of(target).dead:
                 continue
-            rate = _rate(flight, target, at)
+            pose = poses.get((target.entity, damage_tick), target) if poses else target
+            rate = _rate(flight, pose, at)
             if rate:
                 combat._damage(flight.shooter, target, rate * part, False, LOADOUT, damage_tick,
                                world_tick=damage_tick, source_entity=flight.source_entity)

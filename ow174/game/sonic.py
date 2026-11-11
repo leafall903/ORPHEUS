@@ -29,7 +29,10 @@ class Profile:
 def load_profile(path, *, reconstructed_geometry=False):
     if not reconstructed_geometry:
         raise ValueError("Sonic attachment/search requires explicit reconstructed policy")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    return profile_from_data(json.loads(path.read_text(encoding="utf-8")))
+
+
+def profile_from_data(data) -> Profile:
     if data.get("format_version") != 1 or data.get("hero") != f"0x{HANZO:016X}":
         raise ValueError("unsupported Sonic profile")
     duration, radius, record = data["duration"], data["radius"], data["status_graph"]

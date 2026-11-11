@@ -14,7 +14,7 @@ import test_game_hanzo_sonic as sonic_tests
 from test_game_combat import KANEZAKA_DM, Run, in_world
 
 from ow174 import cli
-from ow174.game import bodytrace, movelog
+from ow174.game import bodytrace, matrix, movelog
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.server import GameServer
@@ -29,7 +29,7 @@ HANZO = 0x02E0000000000005
 class ProfileArgumentTests(unittest.TestCase):
     def test_default_does_not_load_test_environment_profiles(self):
         with patch.dict(os.environ, ORPHEUS_HANZO_PROFILE="missing",
-                        ORPHEUS_HANZO_SONIC_PROFILE="missing"):
+                        ORPHEUS_HANZO_SONIC_PROFILE="missing", ORPHEUS_MATRIX_TAGS="missing"):
             self.assertIsNone(cli._combat_profiles(cli.parse_args(["--mode", "server"])))
 
     def test_bad_profile_fails_before_client_profile_or_service_work(self):
@@ -45,6 +45,45 @@ class ProfileArgumentTests(unittest.TestCase):
                 for name in ("find_game", "ensure_requirements", "load_or_create_profile",
                              "LobbyServer", "_bind", "_start_game_server"):
                     mocks[name].assert_not_called()
+
+    def test_bad_projectile_catalog_fails_before_services(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "bad-projectiles.json"
+            path.write_text('{"version":1,"build":"wrong","entities":{}}', encoding="utf-8")
+            with cli_tests.NoLaunchTests().host_services("server", options=(
+                "--reconstructed-projectile-tags", str(path),
+            )) as (args, mocks, _):
+                with self.assertRaisesRegex(LaunchError, "Invalid reconstructed projectile tag catalog"):
+                    cli.run(args)
+                mocks["LobbyServer"].assert_not_called()
+                mocks["_bind"].assert_not_called()
+
+    def test_projectile_catalog_requires_local_game_server(self):
+        for flags in (["--mode", "join"], ["--mode", "server", "--game-port", "0"]):
+            with self.subTest(flags=flags):
+                args = cli.parse_args([*flags, "--reconstructed-projectile-tags", "missing.json"])
+                with self.assertRaisesRegex(LaunchError, "local game server"):
+                    cli.run(args)
+
+    def test_lobby_server_loads_catalog_into_each_new_match(self):
+        path = os.environ.get("ORPHEUS_MATRIX_TAGS")
+        if not path:
+            self.skipTest("prepared build 104319 projectile tags required")
+        definitions = matrix.load_admitted_definitions(Path(path))
+        with cli_tests.NoLaunchTests().host_services("server", options=(
+            "--reconstructed-projectile-tags", path,
+        )) as (args, mocks, _):
+            cli.run(args)
+            settings = mocks["LobbyServer"].call_args.args[0]
+        lobby = SimpleNamespace(settings=settings, game_left=None, skin_of=lambda *_: (0, False),
+                                game_joined=None, game_clock_ready=None)
+        with patch.object(GameServer, "start"):
+            LobbyServer.start_game_server(lobby)
+        for _ in range(2):
+            lobby.game.create_match(KANEZAKA_DM, [])
+        self.assertEqual([match.combat.matrix_definitions for match in lobby.game.matches],
+                         [definitions, definitions])
+        self.assertIn(0x04000000000002A7, definitions)
 
     def test_local_profiles_are_refused_for_join_or_disabled_game_server(self):
         for mode, flags in (("join", []), ("join-tournament", []), ("server", ["--game-port", "0"])):

@@ -2,7 +2,9 @@
 
 import copy
 import dataclasses
+import json
 import logging
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -123,10 +125,10 @@ class Peer:
         self.reliable += 1
         self.send(payload=payload.getvalue(), now=now)
 
-    def commands(self, first, count, buttons, *, forward=0, now=100.8):
+    def commands(self, first, count, buttons, *, forward=0, yaw=0, pitch=0, now=100.8):
         if count > 32:
-            self.commands(first, 32, buttons, forward=forward, now=now)
-            return self.commands(first + 32, count - 32, buttons, forward=forward, now=now)
+            self.commands(first, 32, buttons, forward=forward, yaw=yaw, pitch=pitch, now=now)
+            return self.commands(first + 32, count - 32, buttons, forward=forward, yaw=yaw, pitch=pitch, now=now)
         body, payload = BitWriter(), BitWriter()
         body.bits(0, 24)
         body.bits(count, 8)
@@ -137,7 +139,8 @@ class Peer:
             body.bit(0)  # unchanged right
             body.bit(1)  # forward follows
             body.signed(forward, 8)
-        body.bits(0, 32)
+        body.signed(yaw, 16)
+        body.signed(pitch, 16)
         body.bits(buttons, 24)
         body.bits(0, 24)
         for _ in range(count - 1):
@@ -208,6 +211,32 @@ class ServerJournalTests(unittest.TestCase):
                 peer.drain()
                 peer.send(now=100.816 + tick * 0.016)
         return peers, players
+
+    def test_hanzo_profile_root_replays_both_and_rejects_partial_mount(self):
+        paths = tuple(os.environ.get(key) for key in ("ORPHEUS_HANZO_SONIC_PROFILE", "ORPHEUS_HANZO_PROFILE"))
+        if not all(paths):
+            self.skipTest("explicitly extracted Hanzo profiles required")
+        sonic_data, dragon_data = (json.loads(Path(path).read_text(encoding="utf-8")) for path in paths)
+        session, _ = self.make()
+        session.create_match(MAP, [])
+        match, = session.server.matches
+        args = {"match_id": match.id, "sonic": sonic_data, "dragon": dragon_data}
+        session.apply("configure_hanzo_profiles", args)
+        self.assertIsNotNone(match.combat.sonic_profile)
+        self.assertIsNotNone(match.combat.dragon_profile)
+        replay = _ReplaySession(session.finish(), session.registry.resolve)
+        replay.run()
+        copied, = replay.server.matches
+        self.assertEqual(copied.combat.sonic_profile, match.combat.sonic_profile)
+        self.assertEqual(copied.combat.dragon_profile, match.combat.dragon_profile)
+
+        bad, _ = self.make()
+        bad.create_match(MAP, [])
+        match, = bad.server.matches
+        with self.assertRaisesRegex(ServerJournalError, "invalid Hanzo profile"):
+            bad.apply("configure_hanzo_profiles", {**args, "match_id": match.id, "dragon": {}})
+        self.assertIsNone(match.combat.sonic_profile)
+        self.assertIsNone(match.combat.dragon_profile)
 
     def verify(self, session):
         document = session.finish()

@@ -10,12 +10,17 @@ from test_game_combat import aim
 
 from ow174.game import combat, npc
 from ow174.game.commands import Command
+from ow174.game.content import heroes
 from ow174.game.script import graph, nodes
 
 
 class FlashbangTests(unittest.TestCase):
     arena = melee_tests.McCreeMeleeTests.arena
     health = melee_tests.McCreeMeleeTests.health
+
+    @staticmethod
+    def aim_at_caster(fight, player, caster):
+        return aim(fight._eye(player), fight._eye(caster))
 
     def step(self, run, caster, target, *, cast=0, target_buttons=0, forward=0):
         run.frame += 1
@@ -28,7 +33,7 @@ class FlashbangTests(unittest.TestCase):
             if player is caster:
                 command = Command(run.frame, yaw=yaw, pitch=pitch, buttons=cast)
             else:
-                y, p = aim(match.combat._eye(player), match.combat._eye(caster))
+                y, p = self.aim_at_caster(match.combat, player, caster)
                 command = Command(run.frame, yaw=y, pitch=p, buttons=target_buttons, forward=forward)
             player.take_commands([command])
 
@@ -56,6 +61,37 @@ class FlashbangTests(unittest.TestCase):
                 while run.frame < end:
                     self.step(run, caster, target)
                 self.assertNotIn(entity, fight.stuns)
+
+    def test_orisa_fortify_blocks_stun_but_keeps_flashbang_damage(self):
+        for active, damage in ((True, 10), (False, 20)):
+            with self.subTest(active=active):
+                run, caster, orisa = self.arena(distance=3)
+                position = tuple(orisa.mover.position)
+                self.assertTrue(run.match.switch_hero(orisa, heroes()[0x02E000000000013E]))
+                orisa.mover.position[:] = position
+                orisa.mover.body = None
+                for _ in range(25):
+                    self.step(run, caster, orisa)
+                self.step(run, caster, orisa, target_buttons=8)
+                instance = next(i for i in orisa.body_script.component.instances.values()
+                                if i.graph.index == 0x0CF4)
+                state = instance.states[4]
+                self.assertTrue(state.active)
+                if not active:
+                    for _ in range(260):
+                        if not state.active:
+                            break
+                        self.step(run, caster, orisa)
+                    self.assertFalse(state.active)
+                before = self.health(run, orisa)
+                self.step(run, caster, orisa, cast=16)
+                for _ in range(50):
+                    if self.health(run, orisa) < before:
+                        break
+                    self.step(run, caster, orisa)
+                self.assertAlmostEqual(self.health(run, orisa), before - damage, places=4)
+                self.assertEqual(state.active, active)
+                self.assertEqual(run.match.combat.is_stunned(orisa), not active)
 
     def test_player_cannot_fire_move_or_start_sprint_then_recovers(self):
         run, caster, target = self.arena(distance=3)

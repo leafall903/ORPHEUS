@@ -37,16 +37,17 @@ _CONFIG_MODULES = (
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
-    "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
+    "ow174.game.orisa_barrier", "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.statescript",
-    "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",
+    "ow174.game.stats", "ow174.game.voicelines", "ow174.game.winston_barrier", "ow174.game.world",
     "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.runtime",
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
+    "ow174.game.orisa_barrier": {"GEOMETRY_SHA256"},
     "ow174.game.script.runtime": {
         "EVENTS_PER_TIME", "MAX_INSTANCE_UPDATES", "MAX_COMPONENT_UPDATES",
         "MAX_SCRIPT_WORK", "MAX_FOLLOW_DEPTH",
@@ -213,6 +214,10 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
                 values[f"{name}.{field}"] = value
+    from ow174.game import sigma_barrier
+
+    geometry = sigma_barrier.configured_geometry()
+    values["ow174.game.sigma_barrier.geometry"] = geometry.fingerprint if geometry is not None else None
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)
@@ -246,6 +251,15 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    from ow174.game.mover import MOVERS_SUPPLEMENT_PATH
+    from ow174.game.script.graph import GRAPH_SUPPLEMENT_PATH
+
+    for path, logical in (
+        (GRAPH_SUPPLEMENT_PATH, "supplements/graphs"),
+        (MOVERS_SUPPLEMENT_PATH, "supplements/movers"),
+    ):
+        if path is not None:
+            files.append(_file(path.parent, path.name, logical))
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

@@ -56,13 +56,14 @@ from ow174.game.collision import (
     default_collision_provider,
 )
 from ow174.game.commands import Command, CommandQueue
+from ow174.game import dva_owned
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import BodyScript, CommandEpochError
+from ow174.game.script.driver import ULT_SECONDS, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -227,6 +228,7 @@ class Player:
         self.mover = self.new_mover()
         self.commands = CommandQueue()
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
+        self.controlled_mech: bots.Bot | None = None
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
@@ -307,6 +309,13 @@ class Player:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                if self.controlled_mech is not None:
+                    try:
+                        if dva_owned.drive(self, command, seconds):
+                            continue
+                    except Exception:
+                        log.exception("[game] %s: %s's owned mech input failed", self.match.label(), self.name)
+                        self.match.stop_body_script(self, failed=True)
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 self._advance_body_gap(first_pose)
@@ -315,6 +324,7 @@ class Player:
                         command, seconds, self.match.tick,
                         simulate_pose=self._step_body_pose,
                     )
+                    self.match.combat.observe_dragon_pose(self, command.frame, first_pose == command.frame)
                 else:
                     if not dead:  # a dead body lies where it fell
                         self.mover.step(command, seconds, self.match.tick)
@@ -337,10 +347,11 @@ class Player:
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+            if not self.mover.external_impulse:
+                self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
         requests = []
-        if script is not None and not stunned:
+        if script is not None and not stunned and not self.mover.external_impulse:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -349,11 +360,18 @@ class Player:
             ]
         # Arbitration between simultaneous world-target states is unresolved.
         movement_end = None
-        climb = hanzo_movement.climb_request(self, command, seconds, superseded=bool(requests))
-        if climb is not None:
+        climb = hanzo_movement.climb_request(
+            self, command, seconds, superseded=bool(requests) or self.mover.external_impulse,
+        )
+        from ow174.game import sigma_flux
+
+        flight = sigma_flux.flight_data(self) if not stunned else None
+        if flight is not None:
+            self.mover.step_pose(command, seconds, tick, flight=flight)
+        elif climb is not None:
             start_y = self.mover.position[1]
-            self.mover.step_pose(command, seconds, tick, move_to=climb)
-            hanzo_movement.climbed(self, start_y)
+            outcome = self.mover.step_pose(command, seconds, tick, move_to=climb)
+            hanzo_movement.climbed(self, start_y, outcome, command.frame)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
@@ -370,7 +388,18 @@ class Player:
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         if self.body_script is not None:
+            script = self.body_script
+            previous_frame = script.frame
+            previous_fortify = combat._active_fortify(self) if posed else None
+            previous_cast = previous_fortify.counter if previous_fortify is not None else None
             self.match.body_command(self, command, movement_end=movement_end)
+            if posed and self.body_script is script and script.frame > previous_frame:
+                self.match.combat.zarya_barriers.observe_pose(self, self.match.tick)
+                fortify = combat._active_fortify(self)
+                if fortify is not None and fortify.counter != previous_cast:
+                    script.orisa_fortify_pending = True
+                if self.match.combat.orisa_barriers.pending(self) or fortify is not None:
+                    script.orisa_pose_anchor = (self.match.tick, script.frame)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -612,15 +641,25 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import assassin, enforcer, npc_melee, sniper_special
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            manual_spawn = bot.spawner.get('manual_spawn') is True
+            manual_assassin = bot.hero == assassin.HERO and manual_spawn
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None,
+                manual_assassin=manual_assassin,
+                controller_components=enforcer.controller_components(bot),
             )
+            if manual_spawn and (
+                manual_assassin or bot.hero in npc_melee.SWINGS or bot.hero in (enforcer.HERO, sniper_special.HERO)
+            ):
+                bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -668,7 +707,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -1082,10 +1121,18 @@ class Match:
     def queue_body_message(self, target: int, message: int, params: dict, sender: int) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
         source, recipient = self._message_player(sender), self._message_player(target)
+        if source is None and message in (dva_owned.RETURN_TO_PILOT, dva_owned.BOMB_FINISHED, dva_owned.BOMB_DETONATED) and recipient is not None:
+            mech = recipient.controlled_mech
+            if message == dva_owned.RETURN_TO_PILOT and mech is not None and mech.entity == sender:
+                source = mech
+            elif message in (dva_owned.BOMB_FINISHED, dva_owned.BOMB_DETONATED):
+                bomb = dva_owned.owned_body(self, sender)
+                if bomb is not None and bomb.detached_bomb and bomb.control_owner is recipient:
+                    source = bomb
         if source is None or recipient is None:
             return False
         source_script, script = source.body_script, recipient.body_script
-        if source_script is None or source_script.retired or script is None or script.retired:
+        if source_script is None or getattr(source_script, "retired", False) or script is None or script.retired:
             return False
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
@@ -1100,15 +1147,22 @@ class Match:
         pending, self._body_messages = self._body_messages, []
         # Messages emitted by a receiver enter the next batch, outside its VM call stack.
         for source, player, script, message, params in pending:
-            if source.retired or source.component.fault is not None:
+            if getattr(source, "retired", False) or source.component.fault is not None:
                 continue
             if player.body_script is not script or script.retired or not self._shown(player):
                 continue
             try:
                 component = script.component
+                returning = message == dva_owned.RETURN_TO_PILOT and player.hero.guid == dva_owned.DVA
+                mech = player.controlled_mech
+                if returning and (mech is None or mech.body_script is not source
+                                  or not (mech.dead or dva_owned.fuse_active(mech))):
+                    continue
                 # An earlier message can start or stop a later message's entry state.
-                if runtime.send_message(component, message, params, source.entity):
+                if runtime.send_message(component, message, params, source.component.entity):
                     component.run_now()
+                    if returning:
+                        dva_owned.return_to_pilot(player, mech)
             except Exception:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
                 self.stop_body_script(player, failed=True)
@@ -1127,18 +1181,28 @@ class Match:
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
                 health=HEALTH,
+                ult_seconds=None if player.hero.guid == 0x02E0000000000005 else ULT_SECONDS,
                 match=self,
+                body_definition=player.hero.body,
             )
         except Exception as error:
+            if player.hero.guid == dva_owned.DVA:
+                dva_owned.retire(player)
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
         script.created(create)
         player.body_script = script
+        if player.hero.guid == dva_owned.DVA:
+            dva_owned.bind_initial(player)
+            if player.controlled_mech is None:
+                dva_owned.retire(player)
         bodytrace.started(player, script)
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
+        if player.hero.guid == dva_owned.DVA:
+            dva_owned.retire(player)
         script = player.body_script
         if script is not None:
             bodytrace.stopped(player, script)
@@ -1157,7 +1221,10 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            from ow174.game import sigma_flux
+
             hanzo_movement.sync(player)
+            sigma_flux.sync_airborne(script.component, player.mover)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
@@ -1265,6 +1332,8 @@ class Match:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            if old_hero == dva_owned.DVA:
+                dva_owned.retire(player)
             self.combat.retire_player_body(player)
             player.new_body(entity)
             self.combat.record_replacement(entity)

@@ -445,6 +445,10 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
         found = dynamic(key)
+        if found is None:
+            resolved = ctx.native(cfg)
+            if resolved is not NotImplemented:
+                return resolved
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)

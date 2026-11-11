@@ -402,6 +402,18 @@ class World:
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def state_raycast(self, state: "State"):
+        return NotImplemented
+
+    def search_position(self, state: "State"):
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
+
     def subgraph_scopes(self, entity: int):
         """Known auxiliary-interface registration service, known no service, or unknown."""
         return NotImplemented
@@ -688,7 +700,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1179,7 +1191,7 @@ class Instance:
             for _ in range(MAX_INSTANCE_UPDATES):
                 self.drain()
                 for state in list(self.ticking):
-                    if state.active and state.ticked_at != self.component.now:
+                    if state.active and state.start <= self.component.now and state.ticked_at != self.component.now:
                         self.component.consume_work("state tick")
                         state.ticked_at = self.component.now
                         state.tick()
@@ -1333,7 +1345,8 @@ class Instance:
             for index in indexes:
                 self.component.consume_work("join completion check")
                 state = self.states.get(index)
-                if state is not None and state.active and state is not caller and not state.flags_check:
+                if (state is not None and state.active and not state.ending
+                        and state is not caller and not state.flags_check):
                     state.flags_check = True
                     self.post(Event(self.component.now, 0, CHECK, state=state))
             return False
@@ -1504,6 +1517,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        self.flags_changed = False
+        self.flags_check = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

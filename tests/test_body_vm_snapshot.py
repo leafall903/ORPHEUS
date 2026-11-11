@@ -1,7 +1,6 @@
 """Full VM storage observations preserve causality without executing the VM."""
 
 import copy
-import hashlib
 import math
 import random
 import sys
@@ -42,6 +41,7 @@ STATE_MODELS = (
     ("STU_D74D4F47", nodes.WaitFrames),
     ("STUStatescriptStateChaseVar", nodes.ChaseVar),
     ("STUStatescriptStateWeaponVolley", nodes.WeaponVolley),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STUStatescriptStateAnim", nodes.Anim),
     ("STUStatescriptStateAbility", nodes.Ability),
     ("STU_9C9A422A", nodes.Defer),
@@ -54,6 +54,7 @@ STATE_MODELS = (
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
+    ("STU_431F3FCC", nodes.TargetEffects),
     ("STU_691BFA55", nodes.Effect),
     ("STU_B9898052", nodes.ClientOnlyPulser),
     ("STU_01178155", nodes.ActiveQuery),
@@ -162,7 +163,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 35)
+        self.assertEqual(len(STATE_MODELS), 37)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -382,7 +383,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
         component, instance = fixture()
         original = export_component_vm(component)
         original_graph = record(raw(original), ["graph", 1])
-        source_hash = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
+        source_hash = graph.source_digest()
         self.assertEqual(original["graph_data_sha256"], source_hash)
         instance.graph.fields["stored_definition"] = [1, 2]
         changed = export_component_vm(component)

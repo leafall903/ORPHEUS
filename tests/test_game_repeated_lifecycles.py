@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import test_game_server as server_tests
 import test_game_to_game as transition_tests
-from test_game_projectiles import read_shot
+from test_game_projectiles import read_projectile_state, read_shot
 from test_game_world import read_movement
 from test_script_driver import ClientModel, server_on
 
@@ -127,7 +127,9 @@ def wire_frame(packet):
         if not reader.bit():  # ch2: a chunk can end the entity here
             records.append((update, {}))
             continue
-        if reader.bit():
+        ch2_start = reader.pos
+        events = reader.bit()
+        if events:
             first = True
             while reader.bit():
                 if first:
@@ -138,7 +140,14 @@ def wire_frame(packet):
                 else:
                     reader.bits(32 if reader.bit() else 8)
                 read_shot(reader)
-        assert not reader.bit()  # these scenarios use no projectile release state
+        state = reader.bit()
+        if state:
+            read_projectile_state(reader)
+        if events or state:
+            ch2 = BitWriter()
+            size = reader.pos - ch2_start
+            ch2.bits(BitReader(packet.payload, ch2_start).bits(size), size)
+            update.ch2 = ch2
         assert reader.bit() == 1  # ch3
         if reader.bit():
             start = reader.pos

@@ -2,12 +2,14 @@
 
 import math
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 import test_game_hanzo as hero_tests
+from test_game_combat import aim
 from test_game_mover import box, wall
 
-from ow174.game import bodytrace, hanzo_movement, movelog
+from ow174.game import bodytrace, combat, hanzo_control, hanzo_movement, movelog, projectiles
 from ow174.game.collision import World
 from ow174.game.commands import JUMP, Command
 from ow174.game.content import SOLDIER, heroes
@@ -60,6 +62,335 @@ class HanzoLungeTests(unittest.TestCase):
                 moved = tuple(b - a for a, b in zip(start, hero.mover.position, strict=True))
                 self.assertGreater(moved[0] * expected[0] + moved[2] * expected[1], 3)
                 self.assertGreater(hero.mover.position[1], before[1])
+
+    def test_lunge_preserves_full_draw_and_arrow_launches_from_moved_body(self):
+        self.verify_lunge_held_draw()
+
+    def test_lunge_preserves_sonic_until_release_from_moved_body(self):
+        self.verify_lunge_held_draw(sonic_prepared=True)
+
+    def verify_lunge_held_draw(self, *, sonic_prepared=False):
+        run, hero, victim, _ = self.arena()
+        fight = run.match.combat
+        if sonic_prepared:
+            import test_game_hanzo_sonic as sonic_tests
+
+            fight.configure_sonic(sonic_tests.profile())
+            self.step(run, hero, buttons=8)
+            self.step(run, hero)
+            instance = next(i for i in hero.body_script.component.instances.values() if i.graph.index == 0xC1)
+            selected = instance.component.entity_var(627)
+            self.assertEqual(selected.value(), 1)
+        start_x = hero.mover.position[0]
+        for _ in range(70):
+            self.step(run, hero, buttons=1)
+        self.step(run, hero, buttons=JUMP | 1)
+        for _ in range(14):
+            self.step(run, hero, buttons=1)
+        self.step(run, hero, buttons=JUMP | 1, yaw=16384)
+        self.assertEqual(hero.mover.velocity[:2], (15, 4.5))
+        self.assertAlmostEqual(hero.mover.velocity[2], 0)
+        for _ in range(6):
+            self.step(run, hero, buttons=1, yaw=16384)
+        self.assertFalse(fight.rockets)
+        if sonic_prepared:
+            self.assertEqual(selected.value(), 1)
+            self.assertEqual(instance.vars[61].value(), 0)
+        self.assertGreater(hero.mover.position[0] - start_x, 1)
+
+        x, y, z = victim.mover.position
+        yaw, pitch = aim(fight._eye(hero), (x, y + 1, z))
+        self.step(run, hero, yaw=yaw, pitch=pitch)
+        arrow, = fight.rockets
+        self.assertIs(arrow.shooter, hero)
+        self.assertEqual(arrow.source_entity, hero.body)
+        self.assertEqual(arrow.direct.amount, 125)
+        self.assertEqual(arrow.speed, 110)
+        if sonic_prepared:
+            self.assertEqual(arrow.shot.definition, 0x0400000000000149)
+            self.assertEqual(selected.value(), 0)
+            self.assertGreater(instance.vars[61].value(), 11.9)
+        self.assertGreater(arrow.position[0] - start_x, 1)
+        self.assertAlmostEqual(arrow.position[0], fight._eye(hero)[0], delta=0.3)
+        for _ in range(15):
+            self.step(run, hero)
+        self.assertEqual(fight.vitals[victim.body].total, 75)
+        self.assertEqual(len(hero.client.messages(combat.HIT)), 1)
+        if sonic_prepared:
+            beacon, = fight.sonars
+            self.assertEqual(beacon.attached, victim.body)
+            self.assertTrue(fight.revealed_to(hero, victim))
+
+    def test_lunge_allows_storm_volley_and_normal_cooldown(self):
+        run, hero, victim, _ = self.arena()
+        fight = run.match.combat
+        storm = next(i for i in hero.body_script.component.instances.values() if i.graph.index == 0x146A)
+        self.step(run, hero, buttons=16)
+        self.step(run, hero)
+        self.arm(run, hero)
+        start_x = hero.mover.position[0]
+        self.step(run, hero, buttons=JUMP, yaw=16384)
+        self.assertAlmostEqual(hero.mover.velocity[0], 15)
+        self.assertTrue(storm.states[0].flags & 1)
+        self.assertEqual(storm.find_var(0, 61).value(), 0)
+
+        x, y, z = victim.mover.position
+        first = None
+        with patch.object(fight.projectiles, "fired", wraps=fight.projectiles.fired) as fired:
+            for _ in range(100):
+                yaw, pitch = aim(fight._eye(hero), (x, y + 1, z))
+                self.step(run, hero, buttons=1, yaw=yaw, pitch=pitch)
+                if first is None and fight.rockets:
+                    first, = fight.rockets
+                    self.assertTrue(hero.mover.airborne)
+                    self.assertGreater(first.position[0], start_x)
+                    self.assertEqual(first.direct.amount, 70)
+            self.assertEqual([call.args[3] for call in fired.call_args_list], [0x040000000000270F] * 5)
+
+        self.assertIsNotNone(first)
+        self.assertGreater(storm.find_var(0, 61).value(), 9)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in hero.client.messages(combat.HIT)], [70, 70, 60])
+        self.assertEqual(fight.vitals[victim.body].killer, hero.body)
+
+    def test_dragonstrike_can_start_airborne_after_lunge_and_launch_from_moved_body(self):
+        from test_game_hanzo_dragons import prepared_profile
+
+        run, hero, victim, _ = self.arena()
+        fight = run.match.combat
+        fight.configure_dragonstrike(prepared_profile())
+        body = hero.body_script
+        body.set_ult_charge(1680)
+        charge = body.component.entity_var(combat.ULT_CHARGE)
+        start_x = hero.mover.position[0]
+        x, y, z = victim.mover.position
+        victim.mover.position[:] = (x + 4, y, z)
+        victim.mover.body = None
+        point = (x + 4, y + 1, z)
+
+        self.arm(run, hero)
+        self.step(run, hero, buttons=JUMP, yaw=16384)
+        self.assertAlmostEqual(hero.mover.velocity[0], 15)
+        for _ in range(6):
+            self.step(run, hero)
+        self.assertTrue(hero.mover.airborne)
+        self.assertGreater(hero.mover.position[0] - start_x, 1)
+        yaw, pitch = aim(fight._eye(hero), point)
+        self.step(run, hero, buttons=32, yaw=yaw, pitch=pitch)
+        self.assertTrue(hanzo_control.casting(body))
+        self.assertEqual(charge.value(), 0)
+        self.assertFalse(fight.rockets)
+
+        for _ in range(100):
+            yaw, pitch = aim(fight._eye(hero), point)
+            self.step(run, hero, yaw=yaw, pitch=pitch)
+            if fight.rockets:
+                break
+        arrow, = fight.rockets
+        self.assertEqual(arrow.direct.amount, 125)
+        self.assertGreater(arrow.position[0] - start_x, 1)
+        self.assertEqual(arrow.source_entity, hero.body)
+        for _ in range(50):
+            if fight.dragons:
+                break
+            self.step(run, hero)
+        flight, = fight.dragons
+        self.assertEqual(flight.source_entity, hero.body)
+        self.assertEqual(fight.vitals[victim.body].total, 75)
+
+    def test_quick_melee_during_lunge_uses_moved_body_and_does_not_repeat(self):
+        run, hero, victim, _ = self.arena()
+        fight = run.match.combat
+        x, y, z = hero.mover.position
+        victim.mover.position[:] = (x, y, z + 3.5)
+        victim.mover.body = None
+        point = (x, y + 1, z + 3.5)
+        target = next(t for t in fight._targets() if t.owner is victim)
+        pool = fight.vitals_of(target)
+
+        self.arm(run, hero)
+        self.step(run, hero, buttons=JUMP)
+        self.assertEqual(hero.mover.velocity, (0, 4.5, 15))
+        for _ in range(7):
+            self.step(run, hero)
+        self.assertTrue(hero.mover.airborne)
+        self.assertGreater(hero.mover.position[2] - z, 1.5)
+        self.assertGreater(hero.mover.velocity[2], 0)
+        yaw, pitch = aim(fight._eye(hero), point)
+        self.step(run, hero, buttons=0x800, yaw=yaw, pitch=pitch)
+        self.assertEqual(pool.total, 170)
+        for _ in range(80):
+            yaw, pitch = aim(fight._eye(hero), point)
+            self.step(run, hero, buttons=0x800, yaw=yaw, pitch=pitch)
+        self.assertEqual(pool.total, 170)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in hero.client.messages(combat.HIT)], [30])
+        self.assertFalse(hero.mover.airborne)
+        x, y, z = hero.mover.position
+        victim.mover.position[:] = (x, y, z + 1.5)
+        victim.mover.body = None
+        yaw, pitch = aim(fight._eye(hero), (x, y + 1, z + 1.5))
+        for _ in range(8):
+            self.step(run, hero, buttons=0x800, yaw=yaw, pitch=pitch)
+        self.assertEqual(pool.total, 170)
+        self.step(run, hero, yaw=yaw, pitch=pitch)
+        self.step(run, hero, buttons=0x800, yaw=yaw, pitch=pitch)
+        self.assertEqual(pool.total, 140)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in hero.client.messages(combat.HIT)], [30, 30])
+        self.assertFalse(fight.rockets)
+
+    def test_side_lunge_evades_actual_enemy_rifle_aimed_at_jump_lane(self):
+        for lunge, tracked, health, dealt in (
+            (False, False, 200, 20), (True, False, 200, 0),
+            (True, True, 200, 20), (True, True, 20, 20),
+        ):
+            with self.subTest(lunge=lunge, tracked=tracked, health=health):
+                run, hero, soldier, instance = self.arena()
+                fight = run.match.combat
+                x, y, z = hero.mover.position
+                target = next(t for t in fight._targets() if t.owner is hero)
+                pool = fight.vitals_of(target)
+                pool.damage(200 - health)
+                old_body, old_script = hero.body, hero.body_script
+                self.arm(run, hero)
+                self.step(run, hero, buttons=JUMP if lunge else 0, yaw=16384)
+                for _ in range(10):
+                    self.step(run, hero)
+                self.assertTrue(hero.mover.airborne)
+                if lunge:
+                    self.assertGreater(hero.mover.position[0] - x, 2)
+                else:
+                    self.assertAlmostEqual(hero.mover.position[0], x)
+                point = (x, y + 1.6, z)
+                if tracked:
+                    px, py, pz = hero.mover.position
+                    point = (px, py + 1, pz)
+                angles = aim(fight._eye(soldier), point)
+                with patch.object(fight, "_hitscan", wraps=fight._hitscan) as shot:
+                    for _ in range(10):
+                        run.step({soldier: (*angles, 1)})
+                        if shot.called:
+                            break
+                shot.assert_called_once()
+                self.assertIs(shot.call_args.args[0], soldier)
+                self.assertEqual(pool.total, health - dealt)
+                hits = soldier.client.messages(combat.HIT)
+                self.assertEqual([hit["+0x78"]["+0x4"] for hit in hits], [dealt] if dealt else [])
+                if pool.dead:
+                    self.assertEqual(pool.killer, soldier.body)
+                    self.assertGreater(instance.vars[61].value(), 0)
+                    dead_pose = tuple(hero.mover.position)
+                    for _ in range(5):
+                        self.step(run, hero, buttons=JUMP)
+                    self.assertEqual(tuple(hero.mover.position), dead_pose)
+
+                    run.frame += math.ceil(combat.respawn_seconds(run.match) / combat.TICK) + 2
+                    run.match.update(run.frame * combat.TICK, run.frame)
+                    self.assertNotEqual(hero.body, old_body)
+                    self.assertTrue(old_script.retired)
+                    hero.mover.position[:] = (x, y, z)
+                    hero.mover.body = None
+                    self.step(run, hero)
+                    fresh = next(i for i in hero.body_script.component.instances.values() if i.graph.index == 0x010C)
+                    self.assertEqual(fresh.vars[61].value(), 0)
+                    self.assertEqual(hero.mover.velocity[0], 0)
+                    self.arm(run, hero)
+                    self.step(run, hero, buttons=JUMP, yaw=16384)
+                    self.assertAlmostEqual(hero.mover.velocity[0], 15)
+
+    def test_lunge_can_avoid_helix_direct_hit_and_then_its_wall_splash(self):
+        point = None
+        for lead, expected in ((None, "direct"), (0, "splash"), (14, "clear")):
+            with self.subTest(lead=lead):
+                run, hero, soldier, _ = self.arena()
+                fight = run.match.combat
+                x, y, z = hero.mover.position
+                run.match.collision_world = World(
+                    box(x - 20, x + 20, y - 1, y, z - 20, z + 20)
+                    + wall(x - 8, z - 0.7, x + 8, z - 0.7, y0=y, y1=y + 8),
+                )
+                target = next(t for t in fight._targets() if t.owner is hero)
+                pool = fight.vitals_of(target)
+                self.arm(run, hero)
+                if lead is None:
+                    self.step(run, hero)
+                    point = (x, hero.mover.position[1] + 1, z)
+                else:
+                    self.step(run, hero, buttons=JUMP, yaw=16384)
+                    self.assertAlmostEqual(hero.mover.velocity[0], 15)
+                    for _ in range(lead):
+                        self.step(run, hero)
+                angles = aim(fight._eye(soldier), point)
+                run.step({soldier: (*angles, 2)})
+                rocket, = fight.rockets
+                self.assertIs(rocket.shooter, soldier)
+                self.assertEqual(rocket.shot.definition, 0x040000000000072C)
+                self.assertEqual((rocket.direct.amount, rocket.blast.amount), (40, 80))
+                for _ in range(30):
+                    if rocket not in fight.rockets:
+                        break
+                    run.step({})
+                self.assertFalse(rocket in fight.rockets)
+                hits = [hit["+0x78"]["+0x4"] for hit in soldier.client.messages(combat.HIT)]
+                if expected == "direct":
+                    self.assertEqual(hits, [40, 80])
+                    self.assertEqual(pool.total, 80)
+                else:
+                    self.assertAlmostEqual(rocket.position[2], z - 0.7, places=4)
+                    if expected == "splash":
+                        loss, = hits
+                        self.assertGreater(loss, 0)
+                        self.assertLess(loss, 80)
+                        self.assertAlmostEqual(pool.total, 200 - loss, delta=0.5)
+                    else:
+                        self.assertFalse(hits)
+                        self.assertEqual(pool.total, 200)
+
+    def test_lunge_exits_allied_biotic_field_and_hostile_field_never_heals(self):
+        for allied in (False, True):
+            with self.subTest(allied=allied):
+                run, hero, soldier, _ = self.arena()
+                run.match.game_map = replace(run.match.game_map, free_for_all=False)
+                soldier.team = hero.team if allied else 1 - hero.team
+                fight = run.match.combat
+                x, y, z = origin = tuple(hero.mover.position)
+                soldier.mover.position[:] = (x - 1, y, z)
+                soldier.mover.body = None
+                target = next(t for t in fight._targets() if t.owner is hero)
+                pool = fight.vitals_of(target)
+                pool.damage(160)
+                run.step({soldier: (0, 0, 16)})
+                for _ in range(100):
+                    run.step({})
+                    if any(shot.field_tick is not None for shot in fight.projectiles.shots):
+                        break
+                field, = [shot for shot in fight.projectiles.shots if shot.field_tick is not None]
+                self.assertIs(field.player, soldier)
+                self.assertEqual(field.definition, 0x040000000000072D)
+                self.assertEqual(pool.total, 40)
+                dose = projectiles.HEAL_PER_SECOND * combat.TICK
+                for _ in range(4):
+                    self.step(run, hero)
+                self.assertAlmostEqual(pool.total, 40 + (4 * dose if allied else 0))
+
+                self.arm(run, hero)
+                self.step(run, hero, buttons=JUMP)
+                self.assertEqual(hero.mover.velocity, (0, 4.5, 15))
+                for _ in range(45):
+                    self.step(run, hero)
+                self.assertGreater(hero.mover.position[2] - z, projectiles.HEAL_RADIUS + 0.5)
+                outside = pool.total
+                if allied:
+                    self.assertGreater(outside, 40 + 4 * dose)
+                else:
+                    self.assertEqual(outside, 40)
+                for _ in range(8):
+                    self.step(run, hero)
+                self.assertEqual(pool.total, outside)
+
+                hero.mover.position[:] = origin
+                hero.mover.body = None
+                self.step(run, hero)
+                self.assertLess(run.frame - field.field_tick, projectiles.FIELD_TICKS)
+                self.assertAlmostEqual(pool.total, outside + (dose if allied else 0))
 
     def test_held_ground_jump_and_early_repress_do_not_lunge(self):
         for held in (False, True):

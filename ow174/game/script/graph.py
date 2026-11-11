@@ -39,15 +39,20 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 from ow174.game.script.expr import Asset
 from ow174.paths import DATA_DIR
 
 GRAPHS_PATH = DATA_DIR / "game_graphs_174.json.gz"
+_supplement_path = os.environ.get("ORPHEUS_GRAPH_SUPPLEMENT")
+GRAPH_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -284,7 +289,46 @@ def _collect_graphs(value, found: set) -> None:
 
 @cache
 def _data() -> dict:
-    return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    base = json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    if GRAPH_SUPPLEMENT_PATH is None:
+        return base
+    extra = json.loads(gzip.decompress(GRAPH_SUPPLEMENT_PATH.read_bytes()))
+    return add_supplement(base, extra)
+
+
+def add_supplement(base: dict, extra: dict) -> dict:
+    """Add prepared inputs without replacing any accepted graph or entity."""
+    if (type(extra) is not dict or type(extra.get("version")) is not int or extra["version"] != 1
+            or set(extra) - {"version", "graphs", "entities"}
+            or type(extra.get("graphs", [])) is not list or type(extra.get("entities", {})) is not dict):
+        raise ValueError("graph supplement requires version 1 and only graphs/entities")
+    records = {record["index"]: record for record in base["graphs"]}
+    supplied = set()
+    for record in extra.get("graphs", []):
+        index = record.get("index") if type(record) is dict else None
+        if type(index) is not int or not 0 <= index <= 0xFFFF or index in supplied:
+            raise ValueError("invalid or duplicate supplemental graph index")
+        supplied.add(index)
+        if index in records and records[index] != record:
+            raise ValueError(f"supplement conflicts with graph {index:04X}")
+        records[index] = record
+    entities = dict(base.get("entities") or {})
+    for key, record in extra.get("entities", {}).items():
+        identifier = guid(key)
+        if identifier is None or identifier >> 48 != 0x0400 or type(record) is not dict:
+            raise ValueError("supplement requires full 003 entity definitions")
+        if key in entities and entities[key] != record:
+            raise ValueError(f"supplement conflicts with entity {key}")
+        entities[key] = record
+    return {**base, "graphs": list(records.values()), "entities": entities}
+
+
+def source_digest() -> str:
+    base = hashlib.sha256(GRAPHS_PATH.read_bytes())
+    if GRAPH_SUPPLEMENT_PATH is None:
+        return base.hexdigest()
+    extra = hashlib.sha256(GRAPH_SUPPLEMENT_PATH.read_bytes()).digest()
+    return hashlib.sha256(b"ow174.graph-sources.v1\0" + base.digest() + extra).hexdigest()
 
 
 @cache
@@ -312,6 +356,13 @@ def bodies() -> dict[int, dict]:
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")
+
+
+def mech_form(hero: int, definition: int | None) -> dict | None:
+    """Resolve the prepared D.Va mech form for a selected player body."""
+    if hero == 0x02E000000000007A and definition == 0x0400000000000407:
+        return entity_body(definition)
+    return None
 
 
 def entity_script_component(definition: int):

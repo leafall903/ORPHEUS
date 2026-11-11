@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Deliver the current Hanzo combat implementation
+
+- Package the private Hanzo lane for server integration. Includes the current
+  bow, melee, Sonic Arrow, Storm Arrows, Lunge, climb, mantle and Dragonstrike
+  behavior, along with the Talon combat paths, cross-hero defenses, shared
+  statescript and replay changes, and their existing tests.
+- The immediate parent is e623212. The lane's checkpoint history is based on
+  100c66c. Local origin/main has separate manual NPC lifecycle and
+  catalog commits with overlapping scope. Integrate the lane with its parent
+  history and reconcile the shared NPC and combat changes.
+- Runtime data, extracted profiles and optional graph, mover, projectile and
+  collision inputs remain external. The current code and tests use build
+  104319 and explicit reconstruction where native behavior is unresolved.
+- Delivery verification passed 31 existing tests across profile startup,
+  projectile delivery, Sonic cooldown and ultimate charge. Earlier scoped
+  runs passed 30 Dragonstrike and charge tests and 25 ricochet and Deflect
+  tests. The full static matrix and original-client acceptance remain pending.
+
 ### 2026-11-09
 
 #### Apply authored directional movement input modifiers

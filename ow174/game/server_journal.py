@@ -12,10 +12,11 @@ import json
 from collections import deque
 from contextlib import nullcontext
 
-from ow174.game import replay_values
+from ow174.game import dragon, replay_values, sonic
 from ow174.game.collision import CollisionProvider, LoadState
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.collision_tape import RecordingCollisionProvider, ReplayCollisionProvider
+from ow174.game.combat_profiles import Profiles
 from ow174.game.content import GameMap, Spawn, heroes
 from ow174.game.environment import ExecutionEnvironment
 from ow174.game.environment_tape import RecordingEnvironment, ReplayEnvironment
@@ -36,6 +37,9 @@ OPERATIONS = {
     "datagram": {"data", "address", "now"},
     "tick": {"now", "missed"},
     "switch_hero": {"account", "hero"},
+    "configure_startup_projectile_absorption": {"definitions"},
+    "configure_projectile_absorption": {"match_id", "definitions"},
+    "configure_hanzo_profiles": {"match_id", "sonic", "dragon"},
     "skin_changed": {"account", "hero"},
     "send_home": {"account"},
     "take_out": {"player", "reason"},
@@ -240,6 +244,13 @@ class _Session:
         match, slot = self._match(key[0]), _integer(key[1], "player slot")
         return next((p for p in match.players if p.slot == slot), None) or self._fail("unknown player slot")
 
+    def _absorption_definitions(self, definitions):
+        if (type(definitions) is not tuple
+                or any(type(guid) is not int or guid >> 48 != 0x0400 for guid in definitions)
+                or tuple(sorted(set(definitions))) != definitions):
+            self._fail("absorption definitions must be sorted unique 003 GUIDs")
+        return frozenset(definitions)
+
     def _dispatch(self, operation, args):
         if operation == "create_match":
             result = self.server.create_match(_game_map(args["game_map"]), args["players"], args["card"])
@@ -265,6 +276,37 @@ class _Session:
             if hero is None:
                 self._fail("unknown hero")
             return self.server.switch_hero(args["account"], hero)
+        if operation == "configure_startup_projectile_absorption":
+            profiles = self.server.combat_profiles or Profiles()
+            if self._matches or profiles.projectile_absorption is not None:
+                self._fail("startup absorption must be configured once before the first match")
+            definitions = self._absorption_definitions(args["definitions"])
+            self.server.combat_profiles = dataclasses.replace(profiles, projectile_absorption=definitions)
+            return None
+        if operation == "configure_projectile_absorption":
+            fight = self._match(args["match_id"]).combat
+            definitions = self._absorption_definitions(args["definitions"])
+            if fight.rockets or fight.matrix_definitions:
+                self._fail("absorption definitions must be configured before projectiles")
+            fight.matrix_definitions = definitions
+            return None
+        if operation == "configure_hanzo_profiles":
+            fight = self._match(args["match_id"]).combat
+            sonic_data, dragon_data = args["sonic"], args["dragon"]
+            if sonic_data is None and dragon_data is None:
+                self._fail("a Hanzo profile must be supplied")
+            if (fight.rockets or (sonic_data is not None and (fight.sonic_profile or fight.sonars))
+                    or (dragon_data is not None and (fight.dragon_profile or fight.dragons))):
+                self._fail("Hanzo profiles must be configured once before projectiles")
+            try:
+                profiles = Profiles(
+                    sonic.profile_from_data(sonic_data) if sonic_data is not None else None,
+                    dragon.profile_from_data(dragon_data) if dragon_data is not None else None,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as error:
+                self._fail(f"invalid Hanzo profile: {error}")
+            profiles.configure(fight)
+            return None
         if operation == "skin_changed":
             return self.server.skin_changed(args["account"], args["hero"])
         if operation == "send_home":

@@ -11,6 +11,7 @@ import random
 import types
 
 from ow174.game import hanzo_movement, replay_values
+from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.script import body_owner, expr, graph, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
@@ -40,7 +41,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
-    "reports", "report_count",
+    "reports", "report_count", "passive_charge_ms", "orisa_pose_anchor", "orisa_fortify_pending",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -70,13 +71,17 @@ _STATE_LAYOUTS = {
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.FixedDurationPhase: ((), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "links", "reported"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported"),
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.PositionSearch: ((), ()),
+    nodes.ModifyHealth: (("last_applied",), ("heavy_contacts",)),
+    nodes.StateRaycast: (("hit", "hit_var"), ()),
     nodes.Anim: ((), ()),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
@@ -90,13 +95,16 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
+    nodes.CompatiblePet: ((), ("pet_entity",)),
+    nodes.CompatiblePlacement: ((), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "var"), ()), nodes.Effect: ((), ()),
+    nodes.TargetEffects: (("children",), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
     body_owner.Context: ("owner", "instance_present", "environment_present", "lookup",
                          "watch_environment", "watch_owner", "retired"),
-    hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal"),
+    hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal", "mantle"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
@@ -387,7 +395,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode", "health_pools"}
@@ -395,10 +403,13 @@ class _Export:
                 fields.update(("body", "throttles", "match", "hanzo_climb", "_body_owner_context",
                                "body_owner_relations"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "manual_assassin",
+                               "match", "manual_target", "controller_components"))
+            if kind is BarrierWorld:
+                fields.add("actor")
+            # The match and barrier actor belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "actor"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._poll_body_owner)):
@@ -593,7 +604,7 @@ def _document(component, extra_roots, script=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
-        source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
+        source = graph.source_digest()
         exporter = _Export(component)
         raw = exporter.capture(extra_roots, script)
         document = {

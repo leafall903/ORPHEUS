@@ -84,6 +84,40 @@ def read_shot(r: BitReader) -> dict:
     return out
 
 
+def read_projectile_state(r: BitReader) -> dict:
+    """Read the emitted blank-baseline release shape, not arbitrary projectile deltas."""
+    baseline, delta = r.var_b(), r.var_b()
+    assert baseline == projectiles.NO_BASELINE
+    assert r.bit() == 0  # alive
+    assert r.bit() == 0  # no +260
+    position = tuple(struct.unpack('<f', struct.pack('<I', r.bits(32)))[0] for _ in range(3))
+    assert r.bits(5) == 0  # baseline velocity/+88/lists96/176/208
+    assert r.bit() == 1  # impact count
+    count = r.bits(4) if r.bit() else r.bits(8) if r.bit() else r.bits(32)
+    assert r.bits(6) == 0  # no hits/S/+368/+432/+436/tail
+    return {'frame': (baseline + delta) & 0xFFFFFFFF, 'position': position, 'count': count}
+
+
+class ReleaseWorldCodecTests(unittest.TestCase):
+    def test_release_counts_and_frame_wrap_preserve_following_entity_channels(self):
+        from test_game_repeated_lifecycles import wire_frame
+
+        for frame, count in ((33, 1), (1024, 17), (0xFFFFFFFF, 300)):
+            with self.subTest(frame=frame, count=count):
+                first = world.EntityUpdate(0xA0100000, OP_DESTROY)
+                first.ch2 = projectiles.release(frame, count)
+                second = world.EntityUpdate(0xA0100001, OP_DESTROY)
+                packet = SimpleNamespace(payload=world.frame(100, 88, entities=[first, second]))
+                _, records = wire_frame(packet)
+                self.assertEqual([(item.entity, item.op) for item, _ in records],
+                                 [(first.entity, OP_DESTROY), (second.entity, OP_DESTROY)])
+                self.assertIsNone(records[1][0].ch2)
+                reader = bits_of(records[0][0].ch2)
+                self.assertEqual((reader.bit(), reader.bit()), (0, 1))
+                self.assertEqual(read_projectile_state(reader),
+                                 {'frame': frame, 'position': projectiles.RELEASE_POS, 'count': count})
+
+
 class LeaseTests(unittest.TestCase):
     def test_soldiers_predicted_definitions_and_ids(self):
         run = Run()
@@ -100,6 +134,42 @@ class LeaseTests(unittest.TestCase):
         self.assertIsNone(
             fights.lease_id(player, 0x04000000000003D4, frame)
         )  # the rifle: sync NONE, no lease
+
+    def test_hanzo_can_lease_all_five_predicted_definitions_without_id_overlap(self):
+        run = Run()
+        player, = run.players
+        self.assertTrue(run.match.switch_hero(player, heroes()[0x02E0000000000005]))
+        service = run.match.combat.projectiles
+        expected = [0x0400000000000000 | guid for guid in (0x0144, 0x020B, 0x270F, 0x0149, 0x020D)]
+        self.assertEqual(projectiles.definitions(player.body_script), expected)
+        clock = SimpleNamespace(last_frame=projectiles.MAX_LEASE_FRAME - 1)
+        ranges = []
+        for slot in range(32):
+            owner = SimpleNamespace(slot=slot, body_script=player.body_script, commands=clock)
+            blocks = service.lease(owner)
+            self.assertEqual(len(blocks), 10)
+            self.assertEqual([block[0] for block in blocks[::2]], expected)
+            for index, (first, second) in enumerate(zip(blocks[::2], blocks[1::2], strict=True)):
+                guid, start, stop, base, per_frame = first
+                span = stop - start
+                self.assertEqual(second, (guid, stop, stop + span, base, 1))
+                self.assertLessEqual(second[2], 0xFFFFFFFF)
+                self.assertEqual(per_frame, 1)
+                self.assertEqual(span, projectiles.LEASE_SPAN)
+                if index < 4:
+                    self.assertEqual(base, 0x00100000 + (slot * 4 + index) * (1 << 22))
+                self.assertEqual(service.lease_id(owner, guid, start), 0xA0000000 | base)
+                self.assertEqual(service.lease_id(owner, guid, stop - 1), 0xA0000000 | (base + span - 1))
+                self.assertEqual(service.lease_id(owner, guid, stop), 0xA0000000 | base)
+                ranges.append((base, base + span))
+        ranges.sort()
+        self.assertGreaterEqual(ranges[0][0], 0x00100000)
+        self.assertLess(ranges[-1][1], 0x1FFFFFFF)
+        for (_, end), (start, _) in zip(ranges, ranges[1:]):
+            self.assertLessEqual(end, start)
+        owner.slot = 32
+        self.assertIsNone(service.lease(owner))
+        self.assertIsNone(service.lease_id(owner, expected[-1], clock.last_frame))
 
     def test_the_lease_rides_in_the_owners_body_create_only(self):
         run = Run(KANEZAKA_DM, ("A", "B"))
@@ -520,6 +590,8 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
         script = player.body_script
         reports = {}
         created = []
+        self.emitted_shots = {}
+        self.observed_releases = {}
 
         for command in commands:
             frame = command.frame
@@ -532,6 +604,10 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
                 for item, _ in wire_frame(packet)[1]:
                     if item.op == OP_CREATE:
                         created.append(item.entity)
+                    if item.op == OP_DESTROY and item.ch2 is not None:
+                        reader = bits_of(item.ch2)
+                        self.assertEqual((reader.bit(), reader.bit()), (0, 1))
+                        self.observed_releases[item.entity] = read_projectile_state(reader)
                     if item.entity == player.body and item.chunk is not None:
                         owner = read_chunk(item.chunk.getvalue(), item.chunk.count, known)
                         self.assertTrue(owner.owner)
@@ -541,6 +617,9 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
                 sequence += 1
                 server._datagram(cipher.seal(ack), client.address, now)
             player.take_commands([command])
+            # Retired shots can leave the active list before this protocol run
+            # ends. Preserve their actual objects without extending their life.
+            self.emitted_shots.update({shot.frame: shot for shot in match.combat.projectiles.shots})
         return player, reports, created
 
     def test_rapid_arrows_use_only_their_own_delivered_volley_activation(self):
@@ -552,7 +631,7 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
         player, reports, _ = self.play(0x02E0000000000005, commands)  # Hanzo
 
         delivery = player.match.combat.projectiles
-        arrows = {shot.frame: shot for shot in delivery.shots}
+        arrows = self.emitted_shots
         self.assertEqual(set(arrows), set(releases))
         for activation, frame in enumerate(releases, 1):
             with self.subTest(frame=frame):
@@ -564,6 +643,26 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
                 lease = delivery.lease_id(player, shot.definition, frame)
                 self.assertIsNotNone(lease)
                 self.assertEqual(set(shot.created), {lease})
+        first = delivery.lease_id(player, arrows[releases[0]].definition, releases[0])
+        self.assertIn(first, self.observed_releases)
+        self.assertEqual(self.observed_releases[first]['count'], 1)
+
+    def test_short_sonic_volley_is_confirmed_and_released_on_the_owner_lease(self):
+        release_frame = 1025
+        commands = [
+            Command(frame, buttons=ABILITY_1 if frame == 1017 else FIRE if 1020 <= frame < release_frame else 0)
+            for frame in range(1017, 1080)
+        ]
+        player, reports, created = self.play(0x02E0000000000005, commands)
+        self.assertEqual(set(self.emitted_shots), {release_frame})
+        shot = self.emitted_shots[release_frame]
+        self.assertEqual(shot.definition, 0x040000000000020D)
+        self.assertIn(shot.state, reports[release_frame].instances[shot.instance].states)
+        lease = player.match.combat.projectiles.lease_id(player, shot.definition, release_frame)
+        self.assertIsNotNone(lease)
+        self.assertIn(lease, created)
+        self.assertEqual(set(shot.created), {lease})
+        self.assertEqual(self.observed_releases[lease]["count"], 1)
 
     def test_mercy_stop_of_an_acknowledged_volley_adds_no_alternate_lease(self):
         commands = [

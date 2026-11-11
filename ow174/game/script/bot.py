@@ -1,6 +1,6 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from ow174.game import assassin, enforcer, heavy_assault, npc_melee, observers, sniper_special
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -38,10 +38,43 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, manual_assassin: bool = False, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.manual_assassin = manual_assassin
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target: int | None = None
+
+    @property
+    def combat(self):
+        return self.match.combat if self.match is not None else None
+
+    def track_targets(self, state):
+        targets = heavy_assault.targets(self, state)
+        return npc_melee.targets(self, state) if targets is NotImplemented else targets
+
+    def state_raycast(self, state):
+        return heavy_assault.wall_hit(self, state)
+
+    def search_position(self, state):
+        return sniper_special.search(self, state)
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        if self.hero == heavy_assault.HERO and self.match is not None and var == 2024:
+            for player in self.match.players:
+                if player.has_body and player.body == entity and player.body_script is not None:
+                    return player.body_script.component.entity_var(var, create=create)
+        return super().entity_var_slot(entity, var, create=create)
+
+    def position(self, entity):
+        if self.hero in (heavy_assault.HERO, sniper_special.HERO) and self.match is not None:
+            value = self.match.script_body_position(entity, entity)
+            if value is not None:
+                return value
+        return super().position(entity)
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return self.weapon_buttons.get(str(slot))
@@ -51,6 +84,18 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        value = sniper_special.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = heavy_assault.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = enforcer.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -78,13 +123,32 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def modify_health(self, state, elapsed_ms):
+        value = enforcer.modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+        value = heavy_assault.secondary_damage(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+        if elapsed_ms == 0:
+            value = npc_melee.modify_health(self, state)
+            if value is not NotImplemented:
+                return value
+            heavy_assault.entry_damage(self, state)
+        return assassin.modify_health(self, state, elapsed_ms)
+
+    def end_health(self, state) -> None:
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
-        *, firing_position: tuple | None = None,
+        *, firing_position: tuple | None = None, manual_assassin: bool = False,
+        controller_components: tuple[int, ...] | None = None,
+        body_world=None, frame_ms: int = 16,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -93,8 +157,10 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
-        component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
+        world = body_world if body_world is not None else BotWorld(
+            hero, mode, buttons, position, manual_assassin=manual_assassin,
+            controller_components=controller_components)
+        component = self.component = runtime.Component(entity, frame_ms, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
         weapons = record.get("weapons") or []
@@ -138,14 +204,15 @@ class BotScript(ReplicatedBody):
     def replicated_instances(self):
         return (instance for instance in super().replicated_instances() if instance is not self.behavior)
 
-    def advance_live(self, frame: int, position: tuple | None = None) -> Snapshot | None:
+    def advance_live(self, frame: int, position: tuple | None = None, *, edges=()) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
-        self.component.run_frame(frame)
+        self.component.run_frame(frame, edges)
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -162,6 +229,7 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)

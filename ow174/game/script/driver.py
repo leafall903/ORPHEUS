@@ -24,7 +24,9 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import hanzo_control, hanzo_movement, pools, world
+from ow174.game import hanzo_charge, hanzo_control, hanzo_movement, pools, sigma_accretion, sigma_flux, world
+from ow174.game import mccree_deadeye
+from ow174.game import dva_owned
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -134,11 +136,62 @@ class BodyWorld(runtime.World):
             watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
         )
 
+    def body_placement(self, state):
+        from ow174.game.script import placement
+
+        if (self.match is None or self.hero != dva_owned.DVA or state.instance.component.entity != self.body
+                or (state.instance.graph.index, state.node.pos) != (dva_owned.ROOT, 38)):
+            return NotImplemented
+        if not dva_owned.available():
+            return placement.Result(None)
+        return placement.place(self.match, state)
+
+    def refresh_compatible_placement(self, state, *, confirm):
+        return sigma_flux.place(self, state, confirm=confirm)
+
+    def track_targets(self, state):
+        if self.match is None:
+            return NotImplemented
+        bomb = dva_owned.bomb_actor(self, state.instance)
+        if bomb is not None and bomb.detached_bomb and state.node.pos == 8:
+            return self.match.combat.dva_bomb_targets(bomb, state)
+        if (state.instance.graph.index, state.node.pos) == (dva_owned.ROOT, 35):
+            return self.match.combat.dva_call_targets(self, state)
+        targets = self.match.combat.zarya_barriers.query_targets(state)
+        if targets is NotImplemented:
+            targets = sigma_flux.targets(self, state)
+        return mccree_deadeye.targets(self, state) if targets is NotImplemented else targets
+
+    def target_effects(self, state):
+        return mccree_deadeye.effects(self, state)
+
+    def create_owned_body(self, instance, node):
+        return dva_owned.create_mech(self, instance, node)
+
+    def host_play_script(self, instance, node):
+        if self.match is not None:
+            self.match.combat.grasp.play_script(self.body, instance, node)
+            self.match.combat.sigma_barriers.play_script(self.body, instance, node)
+            sigma_accretion.play_control(self, instance, node)
+            sigma_flux.deliver(self, instance, node)
+            dva_owned.cleanup_predecessor(self, instance, node)
+
+    def create_compatible_pet(self, state):
+        if self.match is None:
+            return NotImplemented
+        return self.match.combat.sigma_barriers.create(self, state)
+
+    def retire_compatible_pet(self, entity):
+        self.match.combat.sigma_barriers.actors.pop(entity, None)
+
     def _lookup_body_owner(self, entity):
         if self.match is not None:
             for player in getattr(self.match, "players", ()):
                 if not player.gone and player.has_body and player.body == entity:
                     return body_owner.Target(entity, player.entity)
+            bot = dva_owned.owned_body(self.match, entity)
+            if bot is not None and not bot.control_owner.gone:
+                return body_owner.Target(entity, bot.control_owner.entity)
         else:
             for body, controller in self.body_owner_relations or ():
                 if body == entity:
@@ -162,10 +215,58 @@ class BodyWorld(runtime.World):
         return super().position(entity)
 
     def native(self, cfg: dict, instance):
+        owned = dva_owned.native(self, cfg, instance)
+        if owned is not NotImplemented:
+            return owned
+        health = mccree_deadeye.native(self, cfg, instance)
+        if health is not NotImplemented:
+            return health
+        if self.match is not None and instance.graph.index == 0x1B55:
+            barrier = self.match.combat.sigma_barriers.native(self, cfg, instance)
+            if barrier is not NotImplemented:
+                return barrier
+        effect = sigma_flux.effect_native(self, cfg, instance)
+        if effect is not NotImplemented:
+            return effect
+        flux = sigma_flux.native(self, cfg, instance)
+        if flux is not NotImplemented:
+            return flux
+        accretion = sigma_accretion.native(self, cfg, instance)
+        if accretion is not NotImplemented:
+            return accretion
         movement = hanzo_movement.native(self, cfg, instance)
         if movement is not NotImplemented:
             return movement
         cls = cfg.get("$")
+        if (cls in ("STU_3832D36C", "STU_F76C486C", "STU_0AC15F78") and self.match is not None
+                and instance.graph.index in (0x0276, 0x02CC) and instance.component.entity == self.body):
+            # The prepared player mech binds its pet-owner and possession queries to the live pair.
+            player = next((p for p in self.match.players if p.has_body and not p.gone
+                           and p.body == self.body and p.hero.body == 0x0400000000000407), None)
+            if player is None:
+                bot = dva_owned.owned_body(self.match, self.body)
+                if bot is not None:
+                    player = bot.control_owner
+            if player is not None:
+                if cls == "STU_3832D36C" and instance.graph.index == 0x02CC:
+                    selector = cfg.get("m_value") or {}
+                    code = selector.get("m_expression") or {}
+                    variables = code.get("m_dynamicVars") or ()
+                    configs = selector.get("m_configVars") or ()
+                    defaults = {0x260F: True, 0x2631: 1.0, 0x2632: 1.0}
+                    if (code.get("m_opcodes") == [14, 0, 7, 0, 15, 0] and len(variables) == len(configs) == 1
+                            and (key := variables[0].get("m_identifier")) in defaults
+                            and instance.evaluate(configs[0]) == Entity(self.body)):
+                        value = instance.evaluate(selector)
+                        # D.Va ruleset schema 0015 supplies the absent Matrix settings.
+                        return defaults[key] if value is None else value
+                if (cls == "STU_F76C486C" and instance.graph.index == 0x02CC
+                        and instance.evaluate(cfg.get("m_D63CBEC2")) == Entity(self.body)):
+                    return Entity(player.entity)
+                if cls == "STU_0AC15F78" and instance.evaluate(cfg.get("m_entity")) == Entity(player.entity):
+                    if instance.graph.index == 0x0276 and cfg is instance.graph.node(5).field("m_targets"):
+                        return Entity(player.body)
+                    return Entity(self.body)
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -191,8 +292,32 @@ class BodyWorld(runtime.World):
             return False
         return super().native(cfg, instance)
 
+    def modify_health(self, state, elapsed_ms):
+        bomb = dva_owned.bomb_actor(self, state.instance)
+        if bomb is not None and bomb.detached_bomb and state.node.pos == 22:
+            if not elapsed_ms:
+                self.match.combat.dva_bomb_damage(bomb, state)
+                state.request_finish()
+            return True
+        if self.match is not None and (state.instance.graph.index, state.node.pos) == (dva_owned.ROOT, 36):
+            if not elapsed_ms:
+                self.match.combat.dva_call_damage(self, state)
+                state.request_finish()
+            return True
+        return sigma_flux.modify_health(self, state, elapsed_ms)
+
+    def destroy_entity(self, instance, node):
+        bomb = dva_owned.bomb_actor(self, instance)
+        if (bomb is None or not bomb.detached_bomb or node.pos != 13
+                or instance.evaluate(node.field("m_entity")) != Entity(self.body)):
+            return NotImplemented
+        # Retire after the VM finishes this dispatch.
+        bomb.bomb_cleanup = True
+        return True
+
     def velocity_action(self, instance, node):
-        return hanzo_movement.velocity_action(self, instance, node)
+        result = sigma_flux.velocity(self, instance, node)
+        return hanzo_movement.velocity_action(self, instance, node) if result is NotImplemented else result
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
@@ -290,14 +415,17 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = ULT_SECONDS,
         *,
         match: "Match | None" = None,
         body_owner_relations=None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        record = graph.mech_form(hero, body_definition)
+        if record is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -312,12 +440,15 @@ class BodyScript(ReplicatedBody):
         )
         self.component = runtime.Component(entity, self.frame_ms, self.world)
         self.frame = start_frame  # the last command frame run
+        self.orisa_pose_anchor: tuple[int, int] | None = None
+        self.orisa_fortify_pending = False
         self.buttons = 0
         self.stream = BodyStream(entity)
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
         self.ult_seconds = ult_seconds
+        self.passive_charge_ms = 0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
@@ -368,6 +499,7 @@ class BodyScript(ReplicatedBody):
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
         if health <= 0 and self.world.hanzo_climb is not None:
             self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
             self.component.set(1204, False)
 
     # --- running -----------------------------------------------------------------------------------
@@ -406,15 +538,29 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
-        if (self.ult_seconds <= 0
+        if (self.retired or self.component.owner_dead
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)
-                or hanzo_control.casting(self)):
+                or hanzo_control.casting(self) or dva_owned.pending_bomb(self)):
+            self.passive_charge_ms = 0
+            return
+        if self.ult_seconds is None:
+            if self.hero == hanzo_control.HANZO:
+                hanzo_charge.passive(self)
+            return
+        self.passive_charge_ms = 0
+        if self.ult_seconds <= 0:
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
             self.set_ult_charge(min(cost, f32(charge + step)))
+
+    def gain_ult_damage(self, actual_loss: float) -> None:
+        if (self.ult_seconds is None and self.hero == hanzo_control.HANZO
+                and not self.retired and not self.component.owner_dead and not hanzo_control.casting(self)
+                and actual_loss > 0):
+            hanzo_charge.damage(self, actual_loss)
 
     # --- what the client gets ----------------------------------------------------------------------
 
@@ -587,6 +733,7 @@ class BodyScript(ReplicatedBody):
         self.world._body_owner_context.retired = True
         if self.world.hanzo_climb is not None:
             self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

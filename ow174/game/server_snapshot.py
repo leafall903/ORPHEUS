@@ -17,6 +17,7 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barrier_mesh,
     bots,
     combat,
     combat_profiles,
@@ -26,13 +27,20 @@ from ow174.game import (
     heroselect,
     notices,
     observers,
+    orisa_barrier,
     projectiles,
+    reinhardt_barrier,
     replay_values,
+    sigma_barrier,
+    sigma_grasp,
+    sigma_hypersphere,
     sonic,
     statescript,
     stats,
     voicelines,
     world,
+    winston_barrier,
+    zarya_barrier,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -90,17 +98,24 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
+                   "body_script controlled_mech body_script_failed seen shown script mode_script next_countdown "
                    "select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
+        "match vitals history replacement_ticks dragon_pose_anchors rockets respawns next_bot now tick melee_seen "
         "projectiles observers voice dragon_profile dragons stuns sonic_profile sonars "
-        "reconstructed_volley_patterns"
+        "reconstructed_volley_patterns pins matrix_definitions barriers grasp orisa_barriers winston_barriers zarya_barriers sigma_barriers"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    reinhardt_barrier.ReinhardtBarriers: _names("fight geometry states"),
+    sigma_barrier.Barriers: _names("fight geometry actors"),
+    sigma_grasp.SigmaGrasp: _names("fight conversions last_tick"),
+    orisa_barrier.Barriers: _names("fight geometry flights actors"),
+    winston_barrier.Barriers: _names("fight actors seen pending"),
+    zarya_barrier.Barriers: _names("fight pools projected frame_anchors new_activations"),
+    orisa_barrier.BarrierWorld: _names("hero mode health_pools actor"),
+    combat.Vitals: _names("entity most now ids changed died_at death_tick killer bonus_shields bonus_shields_max"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -116,14 +131,16 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame server_only ult_seconds ultimates reports report_count passive_charge_ms "
+        "orisa_pose_anchor orisa_fortify_pending"
     ),
     driver.BodyWorld: _names("hero mode body throttles match hanzo_climb health_pools _body_owner_context "
                              "body_owner_relations"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position health_pools"),
+    BotWorld: _names("hero mode weapon_buttons owner_position health_pools "
+                     "manual_assassin match manual_target controller_components"),
     runtime.World: _names("hero mode health_pools"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -137,14 +154,18 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch reposition_body "
+        "control_owner control_mover control_buttons detached_bomb bomb_cleanup"
     ),
 }
 OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
 DATACLASSES = (
+    barrier_mesh.Geometry, reinhardt_barrier.BarrierState,
+    sigma_barrier.Geometry, sigma_barrier.Barrier,
+    orisa_barrier.Flight, orisa_barrier.Shield, winston_barrier.Bubble,
     body_owner.Context, body_owner.Target,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, sigma_hypersphere.Motion,
     dragon.Profile, dragon.Flight, hanzo_movement.Climb, sonic.Profile, sonic.Beacon,
     combat_profiles.Profiles,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,

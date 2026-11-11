@@ -123,8 +123,14 @@ class Bot:
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.reposition_body = None  # opt-in Sniper search, bound to the engaged body
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.control_owner = None
+        self.control_mover = None
+        self.control_buttons = 0
+        self.detached_bomb = False
+        self.bomb_cleanup = False
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -160,6 +166,12 @@ class Bot:
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
+            return
+        from ow174.game import heavy_assault, sniper_special
+
+        if heavy_assault.drive(self, tick, seconds, collision, paused_until):
+            return
+        if sniper_special.drive(self, tick, seconds, collision, paused_until):
             return
         if not self.route:
             if tick < paused_until:
@@ -296,6 +308,7 @@ class Bot:
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
         self.dead = True
+        self.reposition_body = None
         self.attack_target = None
         self.attack_input = False
         self.keys = False

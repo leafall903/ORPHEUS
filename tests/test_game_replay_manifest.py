@@ -14,9 +14,9 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import correction, match, mover
 from ow174.game import replay_manifest as manifest
-from ow174.game.script import driver, runtime
+from ow174.game.script import driver, graph, runtime
 from ow174.paths import DATA_DIR, ROOT
 
 RUNTIME = {
@@ -51,6 +51,48 @@ class ReplayManifestTests(unittest.TestCase):
         }
         options.update(changes)
         return manifest.capture_manifest(**options)
+
+    def test_external_supplements_are_sealed_without_local_paths(self):
+        graphs, movers = self.base / "private-graphs.gz", self.base / "private-movers.json"
+        graphs.write_bytes(b"graph supplement")
+        movers.write_bytes(b"mover supplement")
+        original = self.capture()
+        with (mock.patch.object(graph, "GRAPH_SUPPLEMENT_PATH", graphs),
+              mock.patch.object(mover, "MOVERS_SUPPLEMENT_PATH", movers)):
+            first = self.capture()
+            graph_digest = graph.source_digest()
+            rows = {row["path"]: row for row in first["files"]}
+            self.assertNotEqual(first["sha256"], original["sha256"])
+            self.assertEqual(rows["supplements/graphs"]["sha256"], hashlib.sha256(graphs.read_bytes()).hexdigest())
+            self.assertEqual(rows["supplements/movers"]["sha256"], hashlib.sha256(movers.read_bytes()).hexdigest())
+            graphs.write_bytes(b"changed graph supplement")
+            self.assertNotEqual(self.capture()["sha256"], first["sha256"])
+            self.assertNotEqual(graph.source_digest(), graph_digest)
+
+    def test_graph_supplement_is_additive_and_rejects_conflicts(self):
+        key = "0x0400000000000407"
+        base = {"graphs": [{"index": 1, "data": "base"}], "entities": {key: {"name": "base"}}}
+        supplement = {"version": 1, "graphs": [{"index": 2, "data": "extra"}]}
+        self.assertEqual([row["index"] for row in graph.add_supplement(base, supplement)["graphs"]], [1, 2])
+        self.assertEqual(len(base["graphs"]), 1)
+        with self.assertRaisesRegex(ValueError, "conflicts with graph 0001"):
+            graph.add_supplement(base, {**supplement, "graphs": [{"index": 1, "data": "different"}]})
+        with self.assertRaisesRegex(ValueError, "conflicts with entity"):
+            graph.add_supplement(base, {**supplement, "entities": {key: {"name": "different"}}})
+
+    def test_mover_supplement_keeps_base_and_rejects_replacement(self):
+        base, extra = self.base / "base-movers.json", self.base / "more-movers.json"
+        base.write_text('{"0x04000000000003CF":{"stand_radius":0.5}}', encoding="utf-8")
+        extra.write_text('{"0x0400000000000407":{"stand_radius":0.7}}', encoding="utf-8")
+        self.addCleanup(mover._movers.cache_clear)
+        mover._movers.cache_clear()
+        with mock.patch.object(mover, "MOVERS_PATH", base), mock.patch.object(mover, "MOVERS_SUPPLEMENT_PATH", extra):
+            self.assertEqual(mover.mover_data(0x04000000000003CF).stand_radius, 0.5)
+            self.assertEqual(mover.mover_data(0x0400000000000407).stand_radius, 0.7)
+            mover._movers.cache_clear()
+            extra.write_text('{"0x04000000000003CF":{"stand_radius":0.7}}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "conflicts with body"):
+                mover._movers()
 
     def test_source_table_bytes_and_complete_file_inventory_are_sealed(self):
         captured = self.capture()
@@ -156,6 +198,22 @@ class ReplayManifestTests(unittest.TestCase):
             {"path": "configuration/quanta", "kind": "missing"},
             {"path": "configuration/ratio", "kind": "missing"},
         ])
+
+    def test_orisa_barrier_geometry_is_bound_to_replay_identity(self):
+        def capture_with_geometry(digest):
+            with mock.patch("ow174.game.orisa_barrier.GEOMETRY_SHA256", digest):
+                configuration = manifest.runtime_configuration(quanta_us=16000, run_options={})
+            return self.capture(configuration=configuration)
+
+        recorded = capture_with_geometry("a" * 64)
+        manifest.assert_compatible(recorded, capture_with_geometry("a" * 64))
+        for digest in (None, "b" * 64):
+            with self.subTest(digest=digest):
+                with self.assertRaises(manifest.ManifestMismatch) as caught:
+                    manifest.assert_compatible(recorded, capture_with_geometry(digest))
+                self.assertEqual(caught.exception.differences, [
+                    {"path": "configuration/ow174.game.orisa_barrier.GEOMETRY_SHA256", "kind": "changed"},
+                ])
 
     def test_all_typed_values_are_detached_and_unsupported_objects_fail(self):
         config = {"none": None, "bool": True, "int": 1 << 20000, "float": -0.0, "bytes": b"\x00\xff",

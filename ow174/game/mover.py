@@ -53,12 +53,14 @@ field for field as the client compares it with the server's (0x7FF789B73E00, see
 
 import json
 import math
+import os
 import struct
 import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from functools import cache
+from pathlib import Path
 
 from ow174.game import contacts
 from ow174.game.collision import MOVER, NOT_GROUND, Ground, World, flat_world
@@ -66,6 +68,8 @@ from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
 
 MOVERS_PATH = DATA_DIR / "game_movers_174.json"  # tools/extract_game_movers.py
+_supplement_path = os.environ.get("ORPHEUS_MOVERS_SUPPLEMENT")
+MOVERS_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 SOLDIER_BODY = 0x04000000000003CF
 
 RUN_SPEED = 5.5  # m/s, most heroes
@@ -259,11 +263,22 @@ def _movers() -> dict[int, MoverData]:
     global _mover_table
     with _mover_table_lock:
         if _mover_table is None:
-            if not MOVERS_PATH.is_file():
+            if not MOVERS_PATH.is_file() and MOVERS_SUPPLEMENT_PATH is None:
                 _mover_table = {}
             else:
                 names = {field.name for field in fields(MoverData)}
                 table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
+                if MOVERS_SUPPLEMENT_PATH is not None:
+                    extra = json.loads(MOVERS_SUPPLEMENT_PATH.read_text(encoding="utf-8"))
+                    if type(extra) is not dict:
+                        raise ValueError("mover supplement requires a body mapping")
+                    for body, entry in extra.items():
+                        identifier = int(body, 16)
+                        if body != f"0x{identifier:016X}" or identifier >> 48 != 0x0400 or type(entry) is not dict:
+                            raise ValueError("mover supplement requires canonical 003 body records")
+                        if body in table and table[body] != entry:
+                            raise ValueError(f"mover supplement conflicts with body {body}")
+                        table[body] = entry
                 _mover_table = {
                     int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
                     for body, entry in table.items()
@@ -467,6 +482,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.external_impulse = False
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -636,6 +652,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        flight: MoverData | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -646,7 +663,7 @@ class Mover:
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
-        self.values = data = modded(self.data, active)
+        self.values = data = modded(self.data if flight is None else flight, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:
@@ -655,6 +672,13 @@ class Mover:
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
+        if flight is not None:
+            vx, _, vz = self.velocity
+            vertical = int(bool(command.buttons & JUMP)) - int(crouch)
+            self.velocity = (vx, vertical * data.run_forward, vz)
+            if vertical > 0:
+                self.flags_word |= FELL
+            jump = crouch = False
         stood_up = self.crouch_end
         if crouch and not self.crouched and stood_up is not None:
             crouch = (frame - stood_up) * dt >= CROUCH_AGAIN
@@ -696,7 +720,17 @@ class Mover:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
         self.history.append(self.snapshot(frame))
+        if not self.airborne:
+            self.external_impulse = False
         return outcome
+
+    def add_external_impulse(self, impulse):
+        """Keep the supplied momentum in the normal collision solver."""
+        self.velocity = tuple(f32(v + delta) for v, delta in zip(self.velocity, impulse, strict=True))
+        self.driven = False
+        self.external_impulse = True
+        if self.velocity[1] > 0.0:
+            self.flags_word |= FELL
 
     def _fall_after(self, vertical: float) -> None:
         """The state's +832 after the move (0x7FF789B4F530): gravity's part of the velocity, added up in the

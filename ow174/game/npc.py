@@ -9,7 +9,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-from ow174.game import bots, combat, world
+from ow174.game import assassin, bots, combat, world
 
 
 @dataclass(frozen=True)
@@ -88,34 +88,46 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     return bot
 
 
+def remove_body(match, bot: bots.Bot) -> None:
+    """Retire one explicitly managed body and its combat state."""
+    bot.died(match.tick)
+    bot.control_mover = None
+    script, bot.body_script = bot.body_script, None
+    if script is not None:
+        component = script.component
+        assassin.bind(component.world, component, None)
+        if getattr(component.world, 'manual_assassin', False):
+            component.world.match = None
+        if bot.control_owner is not None:
+            component.world._body_owner_context.retired = True
+            component.world.match = None
+        component.owner_dead = True
+        component.held.clear()
+        component.shots.clear()
+        for instance in list(component.instances.values()):
+            component.destroy(instance)
+    for shot in list(match.combat.projectiles.shots):
+        if shot.player is bot:
+            match.combat.projectiles._end(shot, match.tick, False)
+    match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
+    match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
+    for table in (match.combat.vitals, match.combat.history,
+                  match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+        table.pop(bot.entity, None)
+    match.combat.clear_pins(bot.entity)
+    match._pending_bot_scripts = type(match._pending_bot_scripts)(
+        item for item in match._pending_bot_scripts if item is not bot)
+    match.bots.remove(bot)
+    for viewer in match.players:
+        if viewer.client is not None and viewer.slot in match.bots_shown:
+            viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
+
+
 def remove_spawned(match) -> tuple[int, ...]:
     """Explicitly remove only manual NPCs, including corpses and owned attacks."""
     removed = []
     for bot in tuple(match.bots):
-        if bot.spawner.get('manual_spawn') is not True:
-            continue
-        bot.died(match.tick)
-        script, bot.body_script = bot.body_script, None
-        if script is not None:
-            component = script.component
-            component.owner_dead = True
-            component.held.clear()
-            component.shots.clear()
-            for instance in list(component.instances.values()):
-                component.destroy(instance)
-        for shot in list(match.combat.projectiles.shots):
-            if shot.player is bot:
-                match.combat.projectiles._end(shot, match.tick, False)
-        match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
-        match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
-        for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
-            table.pop(bot.entity, None)
-        match._pending_bot_scripts = type(match._pending_bot_scripts)(
-            item for item in match._pending_bot_scripts if item is not bot)
-        match.bots.remove(bot)
-        for viewer in match.players:
-            if viewer.client is not None and viewer.slot in match.bots_shown:
-                viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
-        removed.append(bot.entity)
+        if bot.spawner.get('manual_spawn') is True:
+            remove_body(match, bot)
+            removed.append(bot.entity)
     return tuple(removed)
