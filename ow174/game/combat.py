@@ -90,7 +90,7 @@ from ow174.game import (
     world,
     world_bubbles,
 )
-from ow174.game import lucio, orisa, orisa_charge, sombra_control, sound_barrier
+from ow174.game import knockback, lucio, orisa, orisa_charge, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -1022,6 +1022,20 @@ class Target:
 
 
 @dataclass(frozen=True)
+class Soundwave:
+    player: object
+    body: int
+    frame: int
+    view_tick: float
+    origin: tuple
+    direction: tuple
+    radius: float
+    threshold: float
+    hit: HitDef
+    impulse: expr.Vec3 | None
+
+
+@dataclass(frozen=True)
 class SplitVolley:
     directions: tuple
     speed: float
@@ -1209,6 +1223,8 @@ class Combat:
         self.sombra_controls = sombra_control.Controls(self)
         self.sound_barriers = sound_barrier.SoundBarriers(self)
         self.lucio_auras = lucio.Auras(self)
+        self.knockbacks = knockback.Knockbacks(self)
+        self.soundwaves = []
         self.health_packs, self.health_pack_digest = health_packs.mount(match, match.tick)
         # Bounded flight results for ability impact/deployable consumers.
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
@@ -1375,6 +1391,8 @@ class Combat:
         self.sombra_controls.retire(player.body)
         self.sound_barriers.retire(player.body)
         self.lucio_auras.retire(player.body)
+        self.knockbacks.retire(player.body)
+        self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != player.body]
         self.baptiste.retire_body(player.body)
         self.healing.retire(player.body)
         self.absorption.retire(player.body)
@@ -1582,6 +1600,8 @@ class Combat:
         self.sombra_controls.interrupt(target.owner, hack_only=True)
         self.recalls.interrupt(target.entity)
         self.sound_barriers.interrupt(target.entity)
+        if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
+            wall_ride.cancel(target.owner)
         self.breathers.retire(target.entity)
         self.orisa.interrupt_supercharger_cast(target.owner)
         self.brigitte.interrupted(target.entity)
@@ -1992,8 +2012,8 @@ class Combat:
 
         Radius and damage come from the target build's st10/st11 configuration.
         Reconstruction: st10's angle 70 is treated as a full cone angle, with
-        capsule-centre angular selection and static line of sight. Native filter
-        semantics, knockback and cross-hero interception remain unverified.
+        capsule-centre angular selection, fallback-height visibility and
+        authored impulse through the mover. Native target filters remain open.
         """
         if player.hero.guid != 0x02E0000000000079:
             return
@@ -2014,27 +2034,54 @@ class Combat:
             angle = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
             if hit is None or hit.amount <= 0 or radius <= 0 or not 0 < angle <= 360:
                 continue
+            impulse = state.evaluate(state.node.field("m_modifyHealth.m_1376B4DF"), watch=False)
             origin, direction = self._eye(player), aim(*command.aim())
             threshold = math.cos(math.radians(angle / 2))
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
-            for target in self._enemies(player):
-                shown = self.seen(target, view_tick)
-                if shown is None:
-                    continue
-                a, b = shown.segment()
-                if segment_distance(origin, a, b) - shown.radius > radius:
-                    continue
-                centre = (shown.feet[0], shown.feet[1] + shown.height / 2, shown.feet[2])
-                offset = _sub(centre, origin)
-                length = math.sqrt(_dot(offset, offset))
-                if length > EPSILON:
-                    toward = tuple(value / length for value in offset)
-                    if _dot(toward, direction) < threshold:
-                        continue
-                    wall = ray_world(self._collision(), origin, toward, length)
-                    if wall is not None and wall < length:
-                        continue
-                self._damage(player, target, hit.amount, False, hit.loadout, command.frame, hit_tags=hit.tags)
+            wave = Soundwave(player, script.entity, command.frame, view_tick, origin, direction, radius,
+                             threshold, hit, impulse if isinstance(impulse, expr.Vec3) else None)
+            if wave.frame > self.tick:
+                self.soundwaves.append(wave)
+            else:
+                self._resolve_soundwave(wave)
+
+    def _resolve_soundwave(self, wave):
+        player = wave.player
+        if not player.has_body or player.gone or player.body != wave.body or self.is_dead(player):
+            return
+        origin, direction = wave.origin, wave.direction
+        view_tick, radius, threshold = wave.view_tick, wave.radius, wave.threshold
+        hit, impulse = wave.hit, wave.impulse
+        for target in self._enemies(player, damageable=True):
+            shown = self.seen(target, view_tick)
+            if shown is None:
+                continue
+            a, b = shown.segment()
+            if segment_distance(origin, a, b) - shown.radius > radius:
+                continue
+            x, y, z = shown.feet
+            offset = _sub((x, y + shown.height / 2, z), origin)
+            length = math.hypot(*offset)
+            if length > EPSILON and _dot(offset, direction) < threshold * length:
+                continue
+            # CA38D5/CA4240 use these fallback points on the historical body.
+            for fraction in (0.3, 0.6):
+                offset = _sub((x, y + fraction * shown.height, z), origin)
+                reach = math.hypot(*offset)
+                if reach <= EPSILON:
+                    break
+                ray = tuple(value / reach for value in offset)
+                terrain = self.ray_obstruction(origin, ray, reach)
+                if ((terrain is None or terrain >= reach)
+                        and self._barrier_contact(player, origin, ray, reach) is None
+                        and self.brigitte.barrier_ray(player, origin, ray, reach) is None):
+                    break
+            else:
+                continue
+            landed = self._damage(player, target, hit.amount, False, hit.loadout,
+                                  wave.frame, hit_tags=hit.tags, world_tick=self.tick, source_body=wave.body)
+            if landed and not self.orisa._immune(target.owner):
+                self.knockbacks.apply(target, impulse, impact_frame=wave.frame)
 
     def _tesla(self, player, command, script) -> None:
         """Reconstruct 00FE's continuous ModifyHealth using the actual active states.
@@ -2489,7 +2536,9 @@ class Combat:
                 state.evaluate(modify.get("m_loadout"), watch=False) if modify.get("m_loadout") else None
             )
             loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            centre = _along(self._eye(player), aim(*command.aim()), reach)
+            origin, direction = self._eye(player), aim(*command.aim())
+            ring = knockback.quick_melee_ring(state) if player.hero.guid == lucio.HERO else None
+            centre = _along(origin, direction, reach)
             protected = self.barriers.area(player, centre, radius, amount)
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
             for target in self._enemies(player, damageable=True):
@@ -2504,8 +2553,11 @@ class Combat:
                     if (deflections.blocks_melee(self, player, target, state, modify)
                             or self._genji_deflects(target, aim(*command.aim()))):
                         continue
-                    self._damage(player, target, amount, False, loadout, command.frame,
-                                 hit_reaction=player.hero.guid == mccree.HERO)
+                    landed = self._damage(player, target, amount, False, loadout, command.frame,
+                                          hit_reaction=player.hero.guid == mccree.HERO)
+                    if landed and ring is not None and not self.orisa._immune(target.owner):
+                        impulse = knockback.quick_melee_impulse(ring, origin, shown, direction)
+                        self.knockbacks.apply(target, impulse, impact_frame=command.frame)
                     assassin.rescue_with_melee(self, player, target)
 
     def _echo_beam(self, player, command, script) -> None:
@@ -2626,7 +2678,7 @@ class Combat:
             self.timed_hits or self.recalls.phases or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
-            or self.lucio_auras.healing
+            or self.lucio_auras.healing or self.soundwaves
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
@@ -2667,6 +2719,11 @@ class Combat:
             for body, wave in list(self.shatters.items()):
                 if earthshatter.advance(self, wave):
                     self.shatters.pop(body, None)
+            if self.soundwaves:
+                due = sorted((wave for wave in self.soundwaves if wave.frame <= at), key=lambda wave: wave.frame)
+                self.soundwaves[:] = [wave for wave in self.soundwaves if wave.frame > at]
+                for wave in due:
+                    self._resolve_soundwave(wave)
             self._bot_weapons(at)
             self._advance_timed_hits()
             if self.lucio_auras.leases or self.lucio_auras.healing:
@@ -2679,6 +2736,7 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
         self.projectiles.update(tick, first_tick=retained)
+        self.knockbacks.update()
         self._flush_deadeye_notices()
         health_packs.advance(self, tick)
         for actor in list(self.deployables.values()):
@@ -5873,6 +5931,7 @@ class Combat:
         self.sombra_controls.retire(bot.entity)
         self.sound_barriers.retire(bot.entity)
         self.lucio_auras.retire(bot.entity)
+        self.knockbacks.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
         self.clear_pins(bot.entity)
@@ -5937,6 +5996,9 @@ class Combat:
         self.sombra_controls.retire(victim.body)
         self.sound_barriers.retire(victim.body)
         self.lucio_auras.retire(victim.body)
+        self.knockbacks.retire(victim.body)
+        self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != victim.body]
+        wall_ride.cancel(victim)
         assassin_victim.retire_target(self, victim.body)
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)

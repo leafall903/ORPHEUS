@@ -552,6 +552,8 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.external_impulse = False
+        self.velocity_changes = []
+        self.wall_contact = None
         self.driven = False  # the previous pose used a statescript world-target velocity
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
@@ -749,6 +751,7 @@ class Mover:
         speed_scale: float = 1.0,
         ground_override: Ground | None = None,
         world_driven: bool = False,
+        wall_ride: tuple[int, bool] | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -767,6 +770,8 @@ class Mover:
         if held:
             self.flags_word |= TURN_HELD
         if world_driven:
+            self.wall_contact = None
+            self.velocity_changes[:] = [change for change in self.velocity_changes if change.frame > frame]
             self.throttles = (0, 0)
             self.history.append(self.snapshot(frame))
             return None
@@ -796,6 +801,14 @@ class Mover:
             self.input_frame = frame
 
         right, forward = modified_throttles(active, right, forward)
+        wall_velocity = False
+        if wall_ride is not None and not grounded and move_to is None:
+            from ow174.game.wall_ride import advance
+
+            controller_frame, backwards = wall_ride
+            wall_velocity = advance(self, frame, dt, jump, controller_frame, backwards)
+        else:
+            self.wall_contact = None
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -803,13 +816,23 @@ class Mover:
             horizontal = (vx, 0.0, vz)
             angle = self.yaw * TURN
             axes = (math.sin(angle), math.cos(angle))  # forward (x, z); right is (-cos, sin)
-            self._friction(dt, horizontal, vy, grounded)
-            self._accelerate(dt, right, forward, axes, grounded)
-            self._cap(horizontal, axes)
-            if not grounded:
-                vx, vy, vz = self.velocity
-                self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
-                self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
+            if not wall_velocity:
+                self._friction(dt, horizontal, vy, grounded)
+                self._accelerate(dt, right, forward, axes, grounded)
+                self._cap(horizontal, axes)
+                if not grounded:
+                    vx, vy, vz = self.velocity
+                    self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
+                    self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
+            if any(change.frame == frame for change in self.velocity_changes):
+                from ow174.game.velocity import consume
+
+                before_vertical = self.velocity[1]
+                self.velocity = consume(self.velocity, data.jump_speed, self.velocity_changes, frame)
+                if f32(self.velocity[1] - before_vertical) > f32(.004):
+                    if not self.flags_word & IN_AIR:
+                        self.air_ticks = 0
+                    self.flags_word = self.flags_word & ~JUMPED | FELL
             if fall_limit is not None:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, max(vy, -max(0.0, fall_limit)), vz)
@@ -817,6 +840,7 @@ class Mover:
         else:
             target, speed = move_to
             outcome = self._move_to(dt, target, speed)
+        self.velocity_changes[:] = [change for change in self.velocity_changes if change.frame > frame]
         self.history.append(self.snapshot(frame))
         if not self.airborne:
             self.external_impulse = False

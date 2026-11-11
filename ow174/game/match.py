@@ -401,7 +401,7 @@ class Player:
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
-        from ow174.game import mccree
+        from ow174.game import mccree, wall_ride
 
         mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
@@ -451,7 +451,17 @@ class Player:
                 movement_limit = self.match.combat.brigitte.bash_movement_limit(self)
             fall_limit = echo_movement.glide_limit(self, command)
             speed_scale = max(0.3, 1.0 - frost)
-            if fall_limit is not None:
+            if self.hero.guid == 0x02E0000000000079:
+                controller = wall_ride.controller(script)
+                state = controller.states.get(wall_ride.STATE) if controller is not None else None
+                wall_control = None
+                if not stunned and not self.mover.external_impulse and state is not None and state.active:
+                    setting = script.component.entity_var(wall_ride.BACKWARDS, create=False)
+                    backwards = bool(setting.value()) if setting is not None else False
+                    wall_control = (state.start // script.frame_ms + 1, backwards)
+                self.mover.step_pose(command, seconds, tick, speed_scale=speed_scale,
+                                     movement_limit=movement_limit, wall_ride=wall_control)
+            elif fall_limit is not None:
                 self.mover.step_pose(
                     command, seconds, tick, movement_limit=movement_limit,
                     fall_limit=fall_limit, speed_scale=speed_scale,
@@ -1193,13 +1203,17 @@ class Match:
                 npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
                 if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
                     continue
-                if bot.spawner.get('manual_spawn') is True and getattr(bot, "pursuit", None) is None:
+                if (bot.spawner.get('manual_spawn') is True and getattr(bot, "pursuit", None) is None
+                        and not bot.route and not self.combat.knockbacks.affecting(bot.entity)
+                        and not self.combat.knockbacks.has_pending(bot.entity)):
                     npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
                                         plan_budget=budgets.get(bot.entity, 0))
                     continue
                 mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars)
+                self.combat.knockbacks.step_npc(
+                    bot, tick, RETAIL_QUANTA / 1e6, self.collision_world,
+                    paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars,
+                )
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1478,6 +1492,13 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            if posed and script.hero == 0x02E0000000000079:
+                from ow174.game import wall_ride
+
+                controller = wall_ride.controller(script)
+                contact = player.mover.wall_contact
+                if controller is not None and (contact is not None or 14980 in controller.vars):
+                    wall_ride.feedback(controller, contact)
             if posed and self.collision_world is not None:
                 earthshatter.prepare(self.combat, player)
             if movement_end is not None:

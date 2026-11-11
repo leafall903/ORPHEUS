@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Lucio wall movement and knockback integration
+
+- Mount the delivered 0263 wall-contact controller and next-frame velocity
+  operations in the Python mover, including wall-jump settings, release timing,
+  and stored contact and velocity state.
+- Route Soundwave and Lucio's quick-melee impulses through the shared collision
+  mover. Soundwave retains impact-frame admission, cover and Fortify checks.
+  Pending impulses are retired on death, body replacement, or NPC removal.
+- Headless checks cover authored direction and velocity, wall attachment and
+  release, and displacement of players and all five manual NPC archetypes.
+  Native moving-surface and resistance behavior and original-client acceptance
+  remain open.
+
 ### Lucio aura and Sound Barrier integration
 
 - Mount the delivered Crossfade and Amp status controller, including recipient
@@ -14,9 +27,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   temporary shield. EMP removes it, Adaptive Shield retains damage precedence,
   and Biotic Rifle can heal injured teammates under temporary shields.
 - The combined test runtime mounts the external 0267, 073B and 07C7 graphs
-  with the existing ORPHEUS_GRAPH_SUPPLEMENT setting. Lucio's remaining
-  movement, knockback and ultimate-rule changes and original-client
-  acceptance remain pending.
+  with the existing ORPHEUS_GRAPH_SUPPLEMENT setting. The ultimate-rule
+  changes and original-client acceptance remain pending.
 
 ### Sombra control integration
 

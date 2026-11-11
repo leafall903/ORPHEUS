@@ -662,7 +662,11 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import mccree, sombra_control
+        from ow174.game import lucio_movement, mccree, sombra_control
+
+        movement_value = lucio_movement.query(self, cfg, instance)
+        if movement_value is not NotImplemented:
+            return movement_value
 
         if (self.match is not None and self.hero == sombra_control.HERO
                 and instance is not None and not instance.component.strict
@@ -1199,8 +1203,10 @@ class BodyWorld(runtime.World):
         del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
     def velocity_action(self, instance, node):
-        from ow174.game import mccree
+        from ow174.game import lucio_movement, mccree
 
+        if self.hero == lucio_movement.HERO:
+            return lucio_movement.action(instance, node)
         return mccree.velocity_action(self, instance, node)
 
     def tracked_targets(self, state):
@@ -1587,6 +1593,11 @@ class BodyScript(ReplicatedBody):
         component.now = frame * self.frame_ms
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
+        from ow174.game import lucio
+
+        if self.hero == lucio.HERO and self.world.match is not None:
+            for identifier, value in lucio.SETTING_DEFAULTS.items():
+                component.set(identifier, value)
         if self.hero == GENJI and self.world.match is not None:
             # Normal server profile, not a claim about original server-only
             #01C7 initialization/mode flags. Authored mode/ultimate gates still run.

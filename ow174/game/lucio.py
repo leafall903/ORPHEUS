@@ -6,6 +6,8 @@ from ow174.game import actors
 from ow174.game.script import expr, graph, runtime
 
 HERO = 0x02E0000000000079
+# Authored 0126.054 defaults for Hold to Crossfade, Backwards Wall Ride and Wall Jump on Release.
+SETTING_DEFAULTS = {7766: False, 9473: False, 32856: True}
 CROSSFADE = 0x0267
 
 

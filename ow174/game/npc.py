@@ -132,6 +132,10 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         match.combat.clear_pins(bot.entity)
+        match.combat.knockbacks.retire(bot.entity)
+        match.combat.sound_barriers.retire(bot.entity)
+        match.combat.lucio_auras.retire(bot.entity)
+        match.combat.sombra_controls.retire(bot.entity)
         bot.died(match.tick)
         bot.navigation = None
         match.combat._end_npc_hit_reaction(bot.entity)
