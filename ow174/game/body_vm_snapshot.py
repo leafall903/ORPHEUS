@@ -51,7 +51,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
-    "ultimates", "reports", "report_count",
+    "ult_gain_bonus", "ultimates", "reports", "report_count",
 ))
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -60,6 +60,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.TargetEffects: (("children",), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     runtime.State: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),

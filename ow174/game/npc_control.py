@@ -2,7 +2,7 @@
 
 import math
 
-from ow174.game import assassin, bots, combat, heavy_assault, npc_context, npc_navigation
+from ow174.game import assassin, bots, combat, heavy_assault, immunity, npc_context, npc_navigation
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 SNIPER_WEAPON, SNIPER_TRIGGER, SNIPER_AIM = 0x1122, 4, 34
@@ -82,7 +82,11 @@ def stop(match):
             assassin.bind(component.world, component, None)
             heavy_assault.stop(component)
             stop_sniper_aim(component)
-            component.edges([(value, False) for value in sorted(set(component.held))])
+            values = set(component.held)
+            primary = component.world.ai_weapon_button(0)
+            if type(primary) is int:
+                values.add(primary)  # also cancel a down edge queued before the next VM update
+            component.edges([(value, False) for value in sorted(values)])
             stop_enforcer_windup(component)
             component.shots.clear()
         match.combat.cancel_npc_projectiles(bot)
@@ -171,6 +175,8 @@ def update_input(fight, bot):
     previous_target = bot.attack_target
     target = target_player(fight, bot) if active else None
     enabled = target is not None
+    if enabled and bot.hero == assassin.HERO and immunity.control_immune(target.owner, target.entity):
+        enabled = False
     if enabled:
         origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
         distance = math.dist(origin, fight._eye(target.owner))

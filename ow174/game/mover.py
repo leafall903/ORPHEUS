@@ -702,6 +702,7 @@ class Mover:
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
         movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
+        fall_limit: float | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -757,6 +758,9 @@ class Mover:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                 self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
+            if fall_limit is not None:
+                vx, vy, vz = self.velocity
+                self.velocity = (vx, max(vy, -max(0.0, fall_limit)), vz)
             self._fall_after(self._move(dt, normal, movement_limit))
         else:
             target, speed = move_to

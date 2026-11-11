@@ -2558,6 +2558,13 @@ class Ability(State):
 
     def timer(self, param: int) -> None:
         if param in (1, 2):
+            if param == 2:
+                # Cooldown output reaches zero without a variable write.
+                if self.remaining() > 0.0:
+                    self.timer_at(1, 2)
+                    return
+                if self.var is not None:
+                    self.instance.changed(self.var, self.cur)
             self.activate()
 
     def plug_enter(self, input_path: str) -> bool:
@@ -2596,7 +2603,7 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
-        pressed = False
+        pressed = None
         if start:
             pressed = self.take_press(start, retain=True)
             if not pressed:
@@ -4448,6 +4455,16 @@ def create_entity(instance: Instance, node, caller) -> bool:
         instance.write(target, created)
     instance.follow(node, "m_outPlug", None)
     return True
+
+
+@handler("STU_B6E3C77D")
+def create_world_entity(instance: Instance,node,caller) -> bool | NotImplementedType:
+    result = instance.component.world.create_world_entity(instance,node)
+    if result is NotImplemented:
+        return NotImplemented
+    if result is True:
+        instance.follow(node,"m_outPlug",None)
+    return result
 
 
 def no_op(instance: Instance, node, caller) -> bool:

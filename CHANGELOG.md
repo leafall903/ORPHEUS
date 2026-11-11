@@ -12,6 +12,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Pass 103 scene, PvE entrance, Arcade, combat, and Brigitte tests with the
   combined 104319 runtime. Original-client verification remains open.
 
+### Echo server integration
+
+- Integrate Echo's Tri-Shot, Sticky Bombs, Focusing Beam, Flight, Glide, and
+  Duplicate with the shared combat and StateScript implementation. Share
+  Reinhardt Barrier Field health and Sigma's temporary shield pool with
+  the existing authoritative state.
+- Pass 18 targeted projectile, reflection, absorption, and shield tests
+  with the 104319 runtime. Pass 83 tests after combining Echo and the PvE
+  changes. Recheck four findings on the merge result for Sticky Bomb gravity
+  and catch-up, Sigma shield decay, and NPC projectile launch. All four
+  pass. Original-client verification remains open.
+
 #### Combined hero server intake
 
 - Bring the Brigitte combat bridge and its shared barrier, impulse and body

@@ -137,6 +137,31 @@ def authored_ring_directions(state, forward, base, shot, *, volley=None):
     return ring_directions(forward, math.radians(spread), base, shot, rings)
 
 
+def _right(forward):
+    right = _cross(forward, (0, 1, 0))
+    # D8025A compares squared length against captured25E1860. A camera at
+    # exactly90 degrees can still have cos(pi/2)~=6e-17: normalize that vector
+    # rather than switching its axis to the true-zero fallback.
+    squared = f32(sum(f32(value * value) for value in right))
+    return (tuple(value / math.sqrt(squared) for value in right)
+             if squared >= 1.1754943508222875e-36 else (1, 0, 0))
+
+
+def single_ring_directions(forward, radius, count, spread, base, shot):
+    """D80310 single ring with default sampled phase, zero jitter and aspect 1."""
+    forward = tuple(f32(value) for value in forward)
+    right = _right(forward)
+    phase_index = (base + (shot & 0xffff) * 7) & 0x3fff
+    phase = f32(f32(f32(uniform_table()[phase_index]) * f32(math.tau)) * 2.0 ** -32)
+    radial = f32(max(0.0, f32(f32(spread) * f32(math.pi / 180))) * f32(radius))
+    result = []
+    for pellet in range(count):
+        angle = f32(f32(f32(pellet / count) * f32(math.tau)) + phase)
+        axis = _rotate(right, forward, angle)
+        result.append(tuple(f32(value) for value in _rotate(forward, axis, radial)))
+    return tuple(result)
+
+
 def direction(forward, cone: float, base: int, shot: int, pellet: int = 0,
               *, gaussian: bool = False) -> tuple[float, float, float]:
     """D80090/884090 circular spread (aspect1), excluding input/muzzle quantization."""
@@ -147,11 +172,5 @@ def direction(forward, cone: float, base: int, shot: int, pellet: int = 0,
     radius = (f32(f32(float_table()[(seed + 1) & 16383] * cone) * f32(1 / 3))
               if gaussian else f32(f32(f32(values[(seed + 1) & 16383]) * cone) * 2.0 ** -32))
     forward = tuple(f32(value) for value in forward)
-    right = _cross(forward, (0, 1, 0))
-    # D8025A compares squared length against captured25E1860. A camera at
-    # exactly90 degrees can still have cos(pi/2)~=6e-17: normalize that vector
-    # rather than switching its axis to the true-zero fallback.
-    squared = f32(sum(f32(value * value) for value in right))
-    right = (tuple(value / math.sqrt(squared) for value in right)
-             if squared >= 1.1754943508222875e-36 else (1, 0, 0))
+    right = _right(forward)
     return tuple(f32(value) for value in _rotate(forward, _rotate(right, forward, angle), radius))

@@ -35,7 +35,7 @@ class McCreeSpreadTests(unittest.TestCase):
             for count in range(128):
                 vector = weapon_spread.direction(forward, math.radians(6), count, 0)
                 self.assertAlmostEqual(sum(v*v for v in vector), 1, delta=5e-7)
-                self.assertGreaterEqual(sum(a*b for a,b in zip(forward, vector)),
+                self.assertGreaterEqual(sum(a*b for a,b in zip(forward, vector, strict=True)),
                                         math.cos(math.radians(6)) - 1e-7)
 
     def test_ninety_degree_camera_keeps_native_tiny_horizontal_basis(self):
@@ -81,7 +81,8 @@ class McCreeSpreadTests(unittest.TestCase):
         self.assertEqual(len({vector for vector, _, _ in samples}), 6)
         for vector, forward, _ in samples:
             self.assertNotEqual(vector, forward)
-            self.assertGreater(sum(a*b for a,b in zip(vector,forward)), math.cos(math.radians(6.001)))
+            self.assertGreater(sum(a*b for a,b in zip(vector, forward, strict=True)),
+                               math.cos(math.radians(6.001)))
         self.assertFalse(any(hit['+0x78']['+0x8'] & combat.CRITICAL
                              for hit in shooter.client.messages(combat.HIT)))
         return before - health.total, samples
@@ -113,7 +114,8 @@ class McCreeSpreadTests(unittest.TestCase):
         activation = state.counter, state.start
         first = mccree.fan_direction(shooter, state, (0, 0, 1), 0, state.start, activation)
         state.counter += 20
-        self.assertEqual(first, mccree.fan_direction(shooter, state, (0, 0, 1), 0, state.start, activation))
+        later = mccree.fan_direction(shooter, state, (0, 0, 1), 0, state.start, activation)
+        self.assertEqual(first, later)
         self.assertNotEqual(first, mccree.fan_direction(
             shooter, state, (0, 0, 1), 0, state.start, (activation[0] + 1, activation[1])))
 

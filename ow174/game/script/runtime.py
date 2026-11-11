@@ -477,6 +477,10 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def track_targets(self, state):
+        """An explicit target-query provider; unsupported graphs retain the legacy empty result."""
+        return NotImplemented
+
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
@@ -743,6 +747,12 @@ class World:
         return None
 
     def finish_wheel_emote(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def create_world_entity(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def play_static_actor(self, instance: "Instance", node: Node):
         return NotImplemented
 
     def play_script(self, instance: "Instance", node: Node) -> None:
