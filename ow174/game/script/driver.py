@@ -370,6 +370,18 @@ class BodyWorld(runtime.World):
             return () if self.match is None else nano.targets(self.match.combat, self.body, state)
         return immunity.transcendence_targets(self, state)
 
+    def respawn_body(self, instance, node):
+        if (self.match is None or self.hero != regeneration.MERCY or instance.component.strict
+                or (instance.graph.index, node.pos) != (0x00CA, 20)):
+            return NotImplemented
+        target = instance.evaluate(node.field("m_targets"))
+        while isinstance(target, tuple):
+            target = target[0] if target else None
+        caster = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        if caster is None or not isinstance(target, Entity):
+            return False
+        return self.match.combat.resurrect_player(caster, target.id, instance)
+
     def historical_valkyrie_deadline(self):
         if self.hero != regeneration.MERCY or self.match is None:
             return None
@@ -424,7 +436,11 @@ class BodyWorld(runtime.World):
         # owns its slots and must not acquire watchers from this component.
         component = self._body_component(entity)
         slot = component.entity_var(var, create=False) if component is not None else None
-        return slot.value() if slot is not None else None
+        value = slot.value() if slot is not None else None
+        if (self.hero == regeneration.MERCY and var == 653 and value is None
+                and component is not None and entity != self.body):
+            return component.owner_dead
+        return value
 
     def entity_ruleset(self, entity, key):
         if self.match is None:
@@ -675,6 +691,33 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
 
+        if (self.match is not None and self.hero == regeneration.MERCY and instance is not None
+                and instance.graph.index == 0x00CA and not instance.component.strict):
+            cls = cfg.get("$")
+            if cls == "STU_4A101787":
+                return True
+            if cls in ("STU_9B7648C3", "STU_E72F6348", "STU_71A87E92", "STU_21A13145",
+                       "STU_F7FD94F9", "STU_FDBB0B67"):
+                value = instance.evaluate(cfg.get("m_entity"))
+                while isinstance(value, tuple):
+                    value = value[0] if value else None
+                entity = expr.to_entity(value)
+                target = next((t for t in self.match.combat._targets() if t.entity == entity), None)
+                if cls == "STU_E72F6348":
+                    return target is not None
+                if cls == "STU_9B7648C3":
+                    return self.match.combat.vitals_of(target).total if target is not None else 0.0
+                if target is not None:
+                    if cls == "STU_71A87E92":
+                        return Vec3(*target.feet)
+                    if cls == "STU_21A13145":
+                        return Vec3(target.feet[0], target.feet[1] + target.eye, target.feet[2])
+                    if cls == "STU_F7FD94F9":
+                        return f32(target.radius)
+                    script = target.owner.body_script
+                    override = script.component.entity_var(BODY_SCALE_OVERRIDE, create=False) if script else None
+                    scale = override.value() if override is not None else None
+                    return UNIT_ENTITY_SCALE if scale is None else scale
         if self.hero == lucio.HERO:
             charge_value = lucio.damage_charge_query(self, cfg, instance)
             if charge_value is not NotImplemented:

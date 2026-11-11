@@ -463,6 +463,9 @@ class World:
     entities, config vars the server cannot compute, and game messages to other entities. The base
     answers like an empty world."""
 
+    def respawn_body(self, instance, node):
+        return NotImplemented
+
     def movement_flag_projection(self, instance, node):
         """Explicitly supported (known-bit mask, value), or unknown engine input."""
         return None

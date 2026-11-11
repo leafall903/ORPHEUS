@@ -4974,6 +4974,16 @@ def set_var(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_621AF478")
+def respawn_body(instance, node, caller):
+    result = instance.component.world.respawn_body(instance, node)
+    if result is NotImplemented:
+        return NotImplemented
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
     if target is None:
@@ -5138,6 +5148,12 @@ def join_inputs(instance: Instance, node, caller) -> bool:
 @handler("STU_3387AB5D")
 def condition_bool(instance: Instance, node, caller) -> bool:
     """Condition_Bool: m_condition, evaluated with the calling state as the watcher."""
+    if (not instance.component.strict and (instance.graph.index, node.pos) == (0x00CA, 22)):
+        # The compatibility server owns the resurrection action on this split.
+        # Strict CEF730 evaluation keeps its captured client-role result.
+        result = instance.component.world.native(node.field("m_condition"), instance)
+        if type(result) is bool:
+            return branch(instance, node, caller, result)
     if instance.graph.index == 0x0C87 and node.pos == 21:
         # A server-owned route can supply the guard that falls back to a
         # no-output B40ACFBA config on the 104319 client.

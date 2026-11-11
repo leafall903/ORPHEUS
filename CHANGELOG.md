@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy Resurrection integration
+
+- Mount the delivered 00CA engine action in the Python host. On authored
+  completion, restore the same allied player body's normal pools, cancel its
+  automatic respawn, and start the extracted 00CB immunity and rising lock.
+  Retire stale support, control, and knockback state on the revival boundary.
+- Preserve the strict client-role config evaluation while supplying the
+  selected server-side action branch. Rewind and late healing commands use
+  the body's new lifetime boundary.
+- All 18 original cast, cooldown, pool, immunity and movement checks passed.
+  The additional same-body late-healing regression passed. Client animation
+  and transport acceptance and the rest of Mercy's delivery remain pending.
+
 ### Mercy staff and Guardian Angel integration
 
 - Mount the delivered staff selection, healing reports, and support-effect
@@ -15,7 +28,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   three weapon-effect checks also passed.
 - The extracted effect pack supplies the original healing and damage-boost
   graphs. Weapon launches capture the strongest active boost and keep it
-  through projectile flight. Resurrection, Valkyrie clock and pose, expanded
+  through projectile flight. Valkyrie clock and pose, expanded
   charge attribution, and original-client acceptance remain in progress.
 
 ### Lucio passive timer ownership

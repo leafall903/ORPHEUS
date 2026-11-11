@@ -151,7 +151,7 @@ FIELDS = {
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
-        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until adaptive_activation"),
+        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"

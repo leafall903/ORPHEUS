@@ -554,6 +554,7 @@ class Vitals:
         self.sleep_wake_floor = 0
         self.sleep_view = None
         self.nano_until = 0.0
+        self.invulnerable_until = 0.0
 
         self.bonus_armour: list[TemporaryArmour] = []
         self.bonus_declared = False
@@ -1342,6 +1343,46 @@ class Combat:
         vitals = self.vitals.get(player.body) if player.has_body else None
         return vitals is not None and vitals.dead
 
+    def resurrect_player(self, caster, entity, instance):
+        if (caster.hero.guid != regeneration.MERCY or self.is_dead(caster)
+                or self.match.game_map.free_for_all or caster.body == entity
+                or caster.body_script is None or caster.body_script.component is not instance.component):
+            return False
+        target = next((target for target in self._targets() if target.entity == entity), None)
+        if (target is None or target.team != caster.team or target.owner not in self.match.players
+                or not self.vitals_of(target).dead):
+            return False
+        helper = graph.graph(0x00CB)
+        if helper is None:
+            return False
+        immune_seconds = _number(instance.evaluate(helper.node(1).field("m_timeout")), 0.0)
+        control_seconds = _number(instance.evaluate(helper.node(3).field("m_timeout")), 0.0)
+        vitals = self.vitals_of(target)
+        for kind, maximum in vitals.most.items():
+            vitals.now[kind] = maximum
+            vitals.changed.add(kind)
+        vitals.died_at = vitals.death_tick = vitals.killer = None
+        vitals.invulnerable_until = self.now + immune_seconds
+        vitals.clear_sleep()
+        vitals.ult_healing_deficit = 0.0
+        self.sombra_controls.retire(entity)
+        self.knockbacks.retire(entity)
+        self.support_effects.retire(entity)
+        self.healing.retire(entity)
+        self.respawns[:] = [(when, owner) for when, owner in self.respawns if owner is not target.owner]
+        self.record_replacement(entity)
+        self.stuns[entity] = self.tick + math.ceil(control_seconds / TICK)
+        self._sync_body_health(target.owner, vitals)
+        component = getattr(getattr(target.owner, "body_script", None), "component", None)
+        if component is not None:
+            component.set(478, False)
+            component.world.notify_entity_filter_change(entity)
+        subject = graph.graph(0x01C7)
+        if subject is not None:
+            for statistic in subject.node(29).field("m_stats") or ():
+                caster.stats.add(expr.guid_of(statistic), 1.0)
+        return True
+
     def kill_feed_allowed(self, viewer, entity: int) -> bool:
         """First playback waits for the mode UI and uses the death's world clock."""
         vitals = self.vitals.get(entity)
@@ -1470,7 +1511,9 @@ class Combat:
         return max(sleep, pull, self.stuns.get(entity, 0))
 
     def damage_immune(self, owner):
-        return (self._invulnerable(owner) or moira.fading(owner) or self.recalls.active(owner)
+        vitals = self.vitals.get(_source_entity(owner))
+        return ((vitals is not None and self.now < vitals.invulnerable_until)
+                or self._invulnerable(owner) or moira.fading(owner) or self.recalls.active(owner)
                 or immunity.wraith_active(owner, _source_entity(owner)))
 
     def frost_progress(self, actor, *, tick: int) -> float:
@@ -5797,7 +5840,7 @@ class Combat:
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         vitals = self.vitals_of(target)
-        if (vitals.dead or amount <= 0.0 or self._invulnerable(target.owner)
+        if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
                 or immunity.wraith_active(target.owner, target.entity) or moira.fading(target.owner)
                 or self.recalls.active(target.owner) or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
             return False
