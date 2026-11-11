@@ -2572,6 +2572,11 @@ class ConditionalTimer(State):
         duration = self.evaluate(_field(self, "m_ED97A97C"), watch=False)
         self.timer_at(seconds_to_ms(duration), 1)
 
+    def on_end(self, finished: bool) -> None:
+        from ow174.game import tracer_recall
+
+        tracer_recall.end_phase(self, finished)
+
     def timer(self, param: int) -> None:
         condition = _field(self, "m_7C8AD485")
         if param == 1 and condition is not None and truthy(self.evaluate(condition, watch=False)):
@@ -2590,6 +2595,11 @@ class RecallRewind(State):
             self.request_finish(seconds_to_ms(self.evaluate(_field(self, "m_FAF3B2D3"), watch=False)))
         elif self.instance.component.strict:
             self.instance.component.unsupported(self.instance, "state execution", self.node.cls, self.node)
+
+    def on_end(self, finished: bool) -> None:
+        from ow174.game import tracer_recall
+
+        tracer_recall.end_phase(self, finished)
 
 
 @state_class("STUStatescriptStateWait")

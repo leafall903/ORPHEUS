@@ -25,6 +25,7 @@ class Phase:
     starts: float
     ends: float
     cleansed: bool = False
+    later_positions: tuple = ()
 
 
 def matches(state, position):
@@ -95,14 +96,16 @@ class Recalls:
             sample = next((item for item in reversed(history) if item.now <= now - lookback), history[0])
         else:
             sample = Sample(now, target.feet, vitals.now[HEALTH_POOL])
-        self.phases[entity] = Phase(sample, now + windup, now + windup + duration)
+        later_positions = tuple(item.feet for item in (history or ()) if item.now > sample.now)
+        self.phases[entity] = Phase(sample, now + windup, now + windup + duration,
+                                    later_positions=later_positions)
 
     def locked(self, actor):
         return getattr(actor, "body", None) in self.phases
 
     def active(self, actor):
         phase = self.phases.get(getattr(actor, "body", None))
-        return phase is not None and phase.starts <= self.fight.now < phase.ends
+        return phase is not None and self.fight.now < phase.ends
 
     def retire(self, entity):
         self.interrupt(entity)
@@ -127,13 +130,19 @@ class Recalls:
                 phase.cleansed = True
             if self.fight.now >= phase.ends:
                 del self.phases[entity]
-                self.finish(target, phase.sample)
+                self.finish(target, phase.sample, later_positions=phase.later_positions)
 
-    def finish(self, target, sample):
+    def finish(self, target, sample, *, later_positions=()):
         player = target.owner
         vitals = self.fight.vitals_of(target)
-        if self.fight.body_clearance(player, sample.feet):
-            self.fight.teleport_body(target, sample.feet)
+        destination = sample.feet
+        if not self.fight.body_clearance(player, destination):
+            destination = next((point for point in later_positions
+                                if self.fight.body_clearance(player, point)), target.feet)
+        if destination != target.feet:
+            self.fight.teleport_body(target, destination)
+        player.mover.velocity = (0.0, 0.0, 0.0)
+        player.mover.fall = 0.0
         health = min(vitals.most[HEALTH_POOL], sample.health)
         if health > vitals.now[HEALTH_POOL]:
             vitals.now[HEALTH_POOL] = health
@@ -152,3 +161,15 @@ def prelude(state):
         match.combat.recalls.start(state, windup, duration, lookback)
     state.request_finish(round(windup * 1000))
     return True
+
+
+def end_phase(state, finished):
+    """Retain the delivered cancellation/cooldown bridge for either Recall phase."""
+    if finished or not (matches(state, 4) or matches(state, 1)):
+        return
+    instance = state.instance
+    match = getattr(instance.component.world, "match", None)
+    if match is None or instance.component.entity not in match.combat.recalls.phases:
+        return
+    match.combat.recalls.interrupt(instance.component.entity)
+    instance.write((expr.INSTANCE, 61), instance.find_var(expr.INSTANCE, 472).value())

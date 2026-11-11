@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered Recall protection and cancellation
+
+- Apply Tracer's delivered untargetable/protected interval across warmup and
+  playback. Cancelling either phase retires the pending restore and writes the
+  authored cooldown; retain the combined world-clock restore without new input.
+- Capture later positions at cast time and choose the first clear recorded
+  candidate when the original rewind point becomes occupied. Preserve the
+  current position when every candidate is blocked and clear restore momentum.
+- All nine original Recall checks passed; targeted blocked-destination probes
+  passed, as did the existing idle-world restore and inert-server-snapshot checks.
+  The18-check mixed run now retains two older Ana expectations of vulnerable
+  warmup (Sleep and lethal contact), conflicting with the delivered Tracer
+  policy. Keep those failures visible while preserving the implementations.
+  Pulse integration and original-client acceptance remain open.
+
+
 ### Restore delivered Tracer head region and viewed stance
 
 - Mount the delivered standing bind-head offset/radius and its aim rotation.
