@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Merge Lucio original-language delivery
+
+- Merge delivery17da4f0f after restoring moving-recipient world ticks, optional
+  status inputs, grounded Sound Barrier transitions, deferred cast-origin grants
+  and same-frame slam admission. Preserve its remaining original verification
+  sources and the existing input/priority/movement implementations.
+- Keep the combined aura/healing, pool/receiver, wall-ride and projectile hosts.
+  The delivered experimental barrier, Grasp and Mercy-boost responsibilities
+  remain in sigma_barrier, absorption/interception and support/support_effects.
+- The focused integration entries retain test evidence and current cross-service
+  fixture limits. This ancestry commit changes no runtime implementation; full
+  acceptance does not withhold the delivered code. Original-client acceptance,
+  remaining line integration and the ongoing broad check remain open.
+  Appearance work, Rust runtime cutover and publication are outside this merge.
+
+
 ### Preserve delivered same-frame slam admission
 
 - Reuse the combined pending-attack queue for a hitscan/melee contact whose
