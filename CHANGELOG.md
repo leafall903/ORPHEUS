@@ -5,6 +5,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Mount delivered Soldier Tactical Visor targeting
+
+- Mount delivery c5607bc4's active 0259 search, capsule aim samples, resource
+  range/cone and view-space ranking for the ordinary Soldier rifle. Preserve
+  Echo's separate copied-Soldier consumer and manual Helix direction.
+- Connect the delivered ranked target list to the combined linked-query host;
+  restore its three-frame refresh cadence and clear its bindings at expiry.
+  Keep Deadeye's baked arrays and register the refresh cursor in VM snapshots.
+- Preserve the delivered Soldier combat fixture and defense helper module.
+  All five existing Visor checks, 48 shared Deadeye/copied-Soldier/entity-query
+  checks and three inert snapshot checks passed. Other Soldier delivery work,
+  including the authored Field flight/healing path, remains to be integrated.
+  No client or full Soldier acceptance is claimed.
+
+
+
 ### Echo delivery history integration
 
 - Merge delivery fe787730. The dedicated Echo movement/duplicate modules match

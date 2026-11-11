@@ -4188,10 +4188,13 @@ class TrackTargets(State):
         self.targets = ()
         self.managed = False
         self.target_var = None
+        self.last_refresh = None
 
     def on_enter(self) -> None:
         targets = self.instance.component.world.linked_tracked_targets(self)
         if targets is not NotImplemented:
+            if self.instance.graph.index == 0x0259 and self.node.field("m_DD792FF0") == 1:
+                self.last_refresh = self.instance.component.frame
             self.targets = () if targets is None else self.linked_entities(targets)
             target = lvalue(self.node.field("m_8A2905A0"))
             if target is not None:
@@ -4219,6 +4222,11 @@ class TrackTargets(State):
         return tuple(target.id for target in targets)
 
     def tick(self) -> None:
+        if self.last_refresh is not None:
+            frame = self.instance.component.frame
+            if frame - self.last_refresh < 3:
+                return
+            self.last_refresh = frame
         targets = self.instance.component.world.linked_tracked_targets(self)
         if targets is NotImplemented:
             self.refresh()
@@ -4249,10 +4257,11 @@ class TrackTargets(State):
     def on_end(self, finished: bool) -> None:
         if self.target_var is not None:
             var, self.target_var = self.target_var, None
-            self.unlink(var, bake=True)
+            self.unlink(var, bake=self.instance.graph.index != 0x0259)
         # Deadeye stops searching before iterating the baked target arrays.
         # Its authored ability exit resets those entity variables.
         self.targets = ()
+        self.last_refresh = None
 
     def on_cleanup(self) -> None:
         self.instance.component.world.stop_tracking_targets(self)

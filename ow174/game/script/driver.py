@@ -337,6 +337,10 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if (self.hero == 0x02E000000000006E and self.match is not None
+                and not state.instance.component.strict and state.instance.graph.index == 0x0259
+                and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
+            return self.track_targets(state)
         if self.hero == regeneration.MERCY and self.match is not None and not state.instance.component.strict:
             targets = self.match.combat.script_targets(self.body, state)
             if targets is not NotImplemented:
@@ -650,6 +654,10 @@ class BodyWorld(runtime.World):
         return barriers.create(self, state)
 
     def track_targets(self, state):
+        if (self.hero == 0x02E000000000006E and self.match is not None
+                and state.instance.graph.index == 0x0259
+                and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
+            return self.match.combat.visor_targets(state)
         from ow174.game import barriers
 
         barriers.track_projected_target(self, state)

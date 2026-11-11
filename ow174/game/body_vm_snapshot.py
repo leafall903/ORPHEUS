@@ -139,7 +139,7 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed", "target_var"), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed", "target_var", "last_refresh"), ()),
     nodes.CompatiblePet: (("pet_entity", "pet_var", "linked_pet"), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied",), ()),

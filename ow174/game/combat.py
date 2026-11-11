@@ -4035,6 +4035,8 @@ class Combat:
         view_tick = self.tick if launch_tick is None else launch_tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
+            if not npc and shooter.hero.guid == 0x02E000000000006E:
+                direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
         if (npc and shooter.hero == 0x02E0000000000002 and state.instance.graph.index == 0x0019
                 and node.pos == 10 and self._scene_component(shooter) is state.instance.component):
@@ -4269,6 +4271,112 @@ class Combat:
         )
         if landed:
             self._hit_effect(target, direct.effect, shooter=shooter)
+
+    def _soldier_visor_direction(self, shooter, volley, origin, direction, view_tick):
+        """Reconstructed Soldier rifle acquisition using active 0259 search data.
+
+        The authored graph gates this search after the activation animation and
+        removes it at expiry/death. Radius and cone come from that node. The
+        host supplies the view basis, target poses and capsule aim samples.
+        """
+        if volley.instance.graph.index != 0x0254:
+            return direction
+        script = shooter.body_script
+        if script is None or script.component.owner_dead:
+            return direction
+        searches = [
+            state for instance in script.component.instances.values()
+            if instance.graph.index == 0x0259
+            for state in instance.states.values()
+            if state.active and isinstance(state, nodes.TrackTargets)
+            and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337
+        ]
+        candidates = (
+            candidate for search in searches
+            for candidate in self._visor_candidates(search, shooter, origin, direction, view_tick)
+        )
+        best = min(candidates, key=lambda candidate: candidate[0], default=None)
+        return direction if best is None else best[1]
+
+    def visor_targets(self, search):
+        """Publish the sandbox ranking from current poses for the lock list."""
+        component = search.instance.component
+        shooter = next(
+            (player for player in self.match.players
+             if player.has_body and player.spawned and player.body == component.entity),
+            None,
+        )
+        if shooter is None or component.owner_dead:
+            return ()
+        origin = self._eye(shooter)
+        direction = aim(shooter.mover.yaw, shooter.mover.pitch)
+        ranked = sorted(self._visor_candidates(search, shooter, origin, direction))
+        return tuple(expr.Entity(entity) for (_, entity), _ in ranked)
+
+    def _visor_candidates(self, search, shooter, origin, direction, view_tick=None):
+        radius = _number(search.evaluate(search.node.field("m_radius"), watch=False), 0.0)
+        cone = _number(search.evaluate(search.node.field("m_A30B383E"), watch=False), 0.0)
+        if radius <= 0.0 or not 0.0 < cone <= 180.0:
+            return
+        threshold = math.cos(math.radians(cone))
+        horizontal = math.hypot(direction[0], direction[2])
+        right = ((direction[2] / horizontal, 0.0, -direction[0] / horizontal)
+                 if horizontal > EPSILON else (1.0, 0.0, 0.0))
+        up = (direction[1] * right[2], horizontal, -direction[1] * right[0])
+        for target in self._enemies(shooter):
+            shown = target if view_tick is None else self.seen(target, view_tick)
+            if shown is None:
+                continue
+            centre = (shown.feet[0], shown.feet[1] + shown.height / 2, shown.feet[2])
+            offset = _sub(centre, origin)
+            distance = math.sqrt(_dot(offset, offset))
+            if distance <= EPSILON or distance > radius:
+                continue
+            candidate = tuple(value / distance for value in offset)
+            alignment = _dot(direction, candidate)
+            if alignment < threshold:
+                continue
+            a, b = shown.segment()
+            # Verify the same ray the rifle will fire. Prefer centre mass,
+            # then the upper and lower ends of the capsule's axis.
+            for point in (centre, b, a):
+                offset = _sub(point, origin)
+                length = math.sqrt(_dot(offset, offset))
+                if length <= EPSILON or length > radius:
+                    continue
+                candidate = tuple(value / length for value in offset)
+                if _dot(direction, candidate) < threshold:
+                    continue
+                contact = ray_capsule(origin, candidate, a, b, shown.radius)
+                if contact is None:
+                    continue
+                wall = ray_world(self._collision(), origin, candidate, contact)
+                if wall is None or wall >= contact:
+                    score = self._visor_score(shown, origin, direction, right, up)
+                    yield (score, target.entity), candidate
+                    break
+
+    @staticmethod
+    def _visor_score(target, origin, direction, right, up):
+        """0259's two score terms using the host view basis and mover extents."""
+        feet = _sub(target.feet, origin)
+        if target.radius > 0 and target.height > 0:
+            lower = _along(feet, right, -target.radius)
+            upper = _along((feet[0], feet[1] + target.height, feet[2]), right, target.radius)
+        else:
+            lower = upper = feet
+        lower_depth, upper_depth = _dot(lower, direction), _dot(upper, direction)
+        if min(lower_depth, upper_depth) <= EPSILON:
+            screen = 100.0
+        else:
+            # At 90 degrees the projected offsets from the cursor are x/(2z) and y/(2z).
+            gaps = []
+            for axis in (right, up):
+                lo = _dot(lower, axis) / (2 * lower_depth)
+                hi = _dot(upper, axis) / (2 * upper_depth)
+                gaps.append(max(0.0, min(lo, hi), -max(lo, hi)))
+            screen = min(1.0, math.sqrt(2) * math.hypot(*gaps))
+        return screen + .01 * min(1.0, math.sqrt(_dot(feet, feet)) / 15)
 
     def _copied_visor_direction(self, shooter, command, volley, origin, direction):
         """Reconstruct copied Soldier's active0259/st7 target consumer.
