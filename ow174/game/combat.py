@@ -106,7 +106,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, REPEAT, STEP, Mov
 from ow174.game.props import ModelPose
 from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
+from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -2485,9 +2485,20 @@ class Combat:
             self.genji_strikes.pop(player.body, None)
             self.genji_blades.pop(player.body, None)
         healing, script.self_healing = script.self_healing, 0.0
+        repairs, script.self_repairs[:] = list(script.self_repairs), []
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
+        if (repairs and not self.is_stunned(player)
+                and not (command is not None and script.controlled_at(command.frame))
+                and player.body not in self.sombra_controls.locks):
+            target = next((target for target in self._targets() if target.owner is player), None)
+            if target is not None:
+                vitals = self.vitals_of(target)
+                given = vitals.heal(sum(repairs) * vitals.healing_factor(self.now))
+                player.stats.add(stats.HEALING, given)
+                self._sync_body_health(player, vitals)
+                script.report_self_healing(given)
         if healing > 0.0:
             target = next((target for target in self._targets() if target.owner is player), None)
             if target is not None:
@@ -6655,6 +6666,18 @@ class Combat:
         if not math.isfinite(scalar):
             scalar = fallback
         return amount * max(0.0, scalar)
+
+    @staticmethod
+    def _bastion_damage_scalar(owner) -> float:
+        """Delivered Ironclad query; incoming8243 already applies it once."""
+        if isinstance(owner, bots.Bot) or owner.hero.guid != BASTION or owner.body_script is None:
+            return 1.0
+        for instance in owner.body_script.component.instances.values():
+            state = instance.states.get(124) if instance.graph.index == 0x012F else None
+            if state is not None and state.active:
+                modifier = _number(state.evaluate(state.node.field("m_50530EAB"), watch=False), 0.0)
+                return max(0.0, 1.0 + modifier) if math.isfinite(modifier) else 1.0
+        return 1.0
 
     def _charge_echo_health_event(self, player, amount: float, *, source_body=None) -> None:
         """Mount health-event charge for Echo and the hero body currently copied by Echo."""

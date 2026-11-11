@@ -4,6 +4,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Bastion Self-Repair and ultimate gates
+
+- Retain the original0153 repair sampler, bounded per-frame reports and0044
+  actual-restored-health notification. Combat consumes reports once, applies
+  the existing healing factor/cap, records healing and sends authored charge
+  tags. Clear reports at death, retirement and control entry; preserve the
+  delivered delayed-control interval APIs and bridge existing input history.
+- Use Bastion's original mode4/5/6/7 suppression,2426/842 admission and0B8B
+  damage/healing arithmetic. Its accepted-frame bridge owns passive cadence,
+  including an explicit zero-rate override; the native passive gate is stopped
+  without removing damage/healing message entries. Default passive gain is the
+  authored five points per second, not the generic diagnostic fill.
+- Preserve the original Ironclad query but reuse the combined incoming8243
+  consumer, which already applies its0.8 before armour. Do not multiply it twice.
+  Register repair/control storage in VM and enclosing server snapshots.
+- Preserve the source's combat and charge check files unchanged. The baseline37
+  combat checks recorded9 failures and10 errors. All seven focused repair,
+  resource, death/gap and Tank-gate checks now pass; all four passive/damage/
+  qualified-healing charge checks and14 runtime/storage checks pass.
+- Recon/Sentry spread, static rear-core pose/critical consumer, Tank splash and
+  cross-hero interlocks still need reconciliation. This batch preserves existing
+  implementation without waiting for whole-line/client acceptance. No gameplay
+  feature or acceptance matrix is added; see INTEGRATION_WORKER_C.md for resume.
+
 ### Mount delivered Death Blossom clocks and idle Reaper bodies
 
 - Retain0044/0045's34-damage, five-per-second pulses, authored channel duration
