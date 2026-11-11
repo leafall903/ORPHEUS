@@ -262,6 +262,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +284,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -302,9 +327,11 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -366,6 +393,24 @@ class World:
 
     raycast: Callable[[RaycastRequest], RaycastResult | None] | None = None
 
+    def track_targets(self, state):
+        """Optional explicit target-array provider; unknown searches remain unimplemented."""
+        return NotImplemented
+
+    def create_entity(self, instance, node):
+        """Selected authoritative entity hosts; unknown definitions keep existing policy."""
+        return NotImplemented
+
+    def destroy_entity(self, instance, node):
+        return NotImplemented
+
+    def play_script_selected(self, instance, node):
+        """Optional selected host in the compatibility player VM."""
+        return NotImplemented
+
+    def apply_velocity(self, instance, node):
+        return NotImplemented
+
     def heal_self(self, entity: int, amount: float) -> None:
         """Optional authoritative self-heal consumer; the empty world has no pools."""
 
@@ -389,8 +434,29 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
+
+    def set_health_pool(self, state: "State", active: bool):
+        """Optional host for a selected authored pool state."""
+        return NotImplemented
+
+    def animation_seconds(self, state: "State") -> float | None:
+        return None
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
@@ -432,6 +498,10 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Direct component43 lookup service, distinct from primary possession."""
         return NotImplemented
 
     def entity_query_context(self, entity: int):
@@ -653,10 +723,10 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, force: bool = False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
-        changed = not expr.same(before, after)
+        changed = force or not expr.same(before, after)
         above_source = None
         if stack_source is not None:
             # A Stack value change can only affect the inputs of entries above it.
@@ -673,7 +743,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -844,14 +914,16 @@ class Component:
     # --- time --------------------------------------------------------------------------------------
 
     def next_event_time(self) -> int | None:
-        times = [item.queue[0].time for item in self.instances.values() if item.queue and not item.stopped]
+        times = [item.queue[0].time for item in self.instances.values()
+                 if item.queue and not item.stopped and item.external_time is None]
         return min(times) if times else None
 
     def edges(self, buttons: list[tuple[int, bool]]) -> None:
         """Button edges at now, on every instance (0x7FF789C66AA0 queues each on all the instances)."""
         for button, pressed in buttons:
             for instance in list(self.instances.values()):
-                instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
+                if instance.external_time is None:
+                    instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
     def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = (), *, end_phase=None) -> None:
         """Command frame `frame`: its edges at 16F, then an update at every due event time in [16F, 16F+15]
@@ -915,7 +987,7 @@ class Component:
     def _update_instances(self) -> None:
         self.consume_work("component update")
         for instance in list(self.instances.values()):
-            if instance.id in self.instances:
+            if instance.id in self.instances and instance.external_time is None:
                 instance.update()
 
 
@@ -939,8 +1011,10 @@ class Instance:
         self.initialized = False
         self.initialization_pending = False
         self.start = 0
+        self.external_time: int | None = None  # A host-driven receiver can use a separate clock.
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
+        self.ruleset_target_entity = 0  # Native Instance+230, last resolved member VM.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
@@ -996,8 +1070,8 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None, force: bool = False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, force=force)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1030,6 +1104,9 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These bits coalesce queued work. A canceled event cannot clear them
+        # during dispatch; retaining them would suppress the next activation.
+        state.flags_changed = state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1154,6 +1231,27 @@ class Instance:
                 self.post(Event(self.component.now, 0, ENTRY, node=node))
                 count += 1
         return count
+
+    def run_external(self, end: int) -> None:
+        """Advance this receiver without advancing its component's command clock."""
+        if self.external_time is None or end < self.external_time:
+            raise ValueError("invalid external instance time")
+        component = self.component
+        saved = component.now
+        try:
+            with component.operation():
+                for _ in range(MAX_COMPONENT_UPDATES):
+                    due = self.queue[0].time if self.queue else end
+                    component.now = self.external_time = min(end, max(self.external_time, due))
+                    self.update()
+                    if self.stopped or (self.external_time == end and (
+                        not self.queue or self.queue[0].time > end
+                    )):
+                        break
+                else:
+                    component.budget_exceeded(f"external instance {self.id} update budget exhausted")
+        finally:
+            component.now = saved
 
     def update(self) -> None:
         """One update at the component's now (0x7FF78AAA27C0)."""
@@ -1433,7 +1531,7 @@ class State:
 
     @property
     def now(self) -> int:
-        return self.instance.component.now
+        return self.instance.component.now if self.instance.external_time is None else self.instance.external_time
 
     # --- requests (events at now) ------------------------------------------------------------------
 
@@ -1448,6 +1546,9 @@ class State:
 
     def plug_enter(self, input_path: str) -> bool:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
+        if ((self.instance.graph.index, self.node.pos, input_path) == (0x156B, 57, "m_6647ED22")
+                and getattr(self.instance.component.world, "confirm_photon_barrier", lambda _: False)(self)):
+            return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1474,6 +1575,8 @@ class State:
         self.ticked_at = self.now
         self.on_begin()
         self.on_enter()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.create_entity(self.instance, self.node)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1490,6 +1593,8 @@ class State:
         self.instance.cancel(self)
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.destroy_entity(self.instance, self.node)
         self.on_cleanup()
         self.unwatch()
         self.polled = False
@@ -1629,10 +1734,13 @@ class State:
 
     def unlink(self, var: Var, bake: bool = False) -> None:
         before = var.value()
+        linked = any(item.state is self for item in var.links)
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        # 1BA4550 invalidates readers after removing an output, including when
+        # the time-derived value already equals the baked value.
+        self.instance.changed(var, before, force=linked)
         for state in var.stack_states():
             state.stack_changed(var)
 

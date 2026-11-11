@@ -309,7 +309,7 @@ class NativeReplayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Body definition"):
             replay_document(document)
 
-    def test_match_external_first_access_is_not_mistaken_for_a_constructor_only_trace(self):
+    def test_match_external_first_access_and_queries_are_not_a_constructor_only_trace(self):
         from test_game_combat import Run
 
         run = Run()
@@ -330,7 +330,9 @@ class NativeReplayTests(unittest.TestCase):
         for snapshot, orders in ((actual_snapshot, actual_order), (initial_snapshot, initial_order)):
             for instance in snapshot["instances"]:
                 orders.append(instance.pop("state_order"))
-        self.assertEqual(actual_snapshot, initial_snapshot)
+        # Live Match possession queries also cache actual entities. The body-only
+        # constructor has no namespace and must not pretend to reproduce those reads.
+        self.assertNotEqual(actual_snapshot, initial_snapshot)
         self.assertNotEqual(actual_order, initial_order)
         original = run.match.body_command
 

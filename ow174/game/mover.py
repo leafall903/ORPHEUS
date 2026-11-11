@@ -454,6 +454,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.launching = False  # a self-launch still has to clear its starting floor
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -554,6 +555,17 @@ class Mover:
             self.fall,
         )
 
+    def launch(self, vector):
+        """Set the reconstructed self-launch pose before the next movement step."""
+        x, y, z = vector
+        self.velocity = (f32(x), f32(y), f32(z))
+        self.driven = False
+        self.launching = True
+        self.flags_word = self.flags_word & ~JUMPED | FELL
+        self.air_ticks, self.fall, self.landed = 0, 0.0, False
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
     # ---- the body's shape
 
     def _pogo(self, crouched: bool | None = None) -> float:
@@ -622,9 +634,18 @@ class Mover:
 
     def step_pose(
         self, command: Command, seconds: float, tick: int,
-        *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        *, move_to: tuple[tuple[float, float, float], float] | None = None, world_driven: bool = False,
+        ground_override: Ground | None = None,
     ) -> bool | None:
-        """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
+        """Advance a pose or record input aim after the world clock moved the body."""
+        if world_driven:
+            self.yaw = command.yaw
+            self.pitch, held = turned_pitch(command.pitch)
+            if held:
+                self.flags_word |= TURN_HELD
+            self.throttles = (0, 0)
+            self.history.append(self.snapshot(command.frame))
+            return None
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
         if self.driven and move_to is None:
@@ -651,6 +672,8 @@ class Mover:
         self.landed = False
 
         ground, under = self._probe(dt)
+        if ground_override is not None and (ground is None or ground_override.y > ground.y):
+            ground, under = ground_override, False
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -828,6 +851,10 @@ class Mover:
             vx, vy, vz = self.velocity
             nx, ny, nz = ground.normal if ground is not None else (0.0, 0.0, 0.0)
             limit = intent(active, LAND_LIMIT_MOD, LAND_LIMIT) if active else LAND_LIMIT
+            if self.launching and vy > 0:
+                limit = min(limit, LAND_LIMIT)
+            if ground is None or vy <= 0:
+                self.launching = False
             if ground is not None and vx * nx + vy * ny + vz * nz < limit:
                 if flags & (JUMPED | FELL):  # 0x7FF789AD0400
                     flags &= ~(JUMPED | FELL)
@@ -1066,6 +1093,18 @@ class Mover:
             vy = 0.0
         self.velocity = (quantise(vx), quantise(vy), quantise(vz))
         return vy
+
+    def displace(self, velocity, dt):
+        """Reconstructed external-velocity channel; preserve ordinary locomotion."""
+        body = self._engine_body()
+        vector = contacts.v3(*velocity)
+        final, planes, touching = body.move(contacts.v3(*(v*f32(dt) for v in vector)), f32(dt), ROUNDS)
+        before = self.position[1]
+        self._place(body, final, touching)
+        if self.position[1]-before > STEP and not self.airborne:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return tuple(contacts.clip_velocity(vector, planes))
 
     def _move_to(self, dt: float, target, speed: float) -> bool | None:
         """Sweep a speed-limited displacement toward a resolved world-space feet position."""

@@ -1,0 +1,57 @@
+Roadhog versus Winston fixed barrier, build104319
+
+Selected hosting, not native entity/wire acceptance
+-------------------------------------------------
+The actual00FA/node26 CreateEntity action allocates a private server actor for
+01C3 and writes its identity to instance38. Its output invokes the actual
+00FA/node2 PlayScript configuration. The existing native-backed request/schema
+and loaded-graph queue bind parameters0044/0494 into00FC variables587/567.
+The original active HealthPool supplies700; original ChaseVar state11 starts
+at9 seconds and invokes node28 to destroy the actor. The graph's entity478
+death branch runs the existing two-server-frame wait then node12 destruction.
+The sphere radius5 is from the01C3-referenced D02.00C collision model.
+
+Reconstructed services and limits
+--------------------------------
+Creation position is fixed at caster feet+(0,.1,0) at the actual creation action.
+Transform/orientation native configs are not generally implemented. Team at
+deployment is retained. Owner/team shots pass; enemy rays block only when they
+cross the sphere shell. Both entry from outside and exit from inside block.
+Targets inside the same dome remain hittable. Projectile sweeps use expanded
+entry/contracted exit radii. Health is a finite whole-impact pool; no same-hit
+spill, body hit feedback or health-damage ultimate credit on a shield impact.
+Later impacts after depletion may hit a body. The aggregate253/death478 bridge,
+overkill, team/filter/credit and contact ordering policies require native parity
+comparison. Melee damages a visible overlapping shell independently of bodies;
+the dome does not apply blanket body invulnerability or pin immunity.
+
+An already-created actor survives owner death, disconnect or hero replacement
+until its own resource lifetime ends. Original pending waits disappear on body
+or instance teardown; death also rejects creation. Stopping an Ability alone is
+not treated as equivalent to canceling an independently running deployment wait.
+The authored0053 death message is queued to its captured source script, using
+the actor identity as sender; replacement scripts never receive stale messages.
+Actor teardown happens after scheduler dispatch. Other native receiver/filter,
+pet/entity ownership, effects, diagnostics, replication and original-client
+visuals remain unaccepted. This host is deliberately selected for00FA/00FC.
+
+Causal storage covers actor identity/team/position/pool, source script, native
+request/context/parameters, pending death messages and the full actor VM clock,
+states/timers/variables. Read-only export executes no simulation or evaluation.
+Server storage owns manager/actor references; component-only storage excludes
+those enclosing-domain references, just as it excludes BodyWorld.match.
+
+A newly deployed dome cuts an existing Hook when its shell crosses the link.
+Actual player and five-NPC pulls release without additional damage or shield
+pool loss. Released NPC velocity clears. An off-axis dome leaves the player
+pull active. Shell/link crossing uses the reconstructed server geometry.
+
+Verification
+------------
+See the external WINSTON_TEST_SOURCE.json / WINSTON_RESOURCE_VALIDATION.json
+for exact frozen source, inputs, test logs and scope. Earlier phase logs do not
+verify later source changes. No full-static completion, client acceptance or
+merge readiness is implied by selected barrier evidence.
+
+Final verification: 604 broad combat/runtime/hero/five-NPC checks +105 storage/replay checks pass on frozen44-Python-file source with explicit43-mover/graph/catalog/tag/mech/Reinhardt/eye inputs; no skips.
+Frozen Python fingerprint: d1f68b18273cf7fe559cdb7cbd4193bb4a81fe1891230e7179ba56b72d813a73.

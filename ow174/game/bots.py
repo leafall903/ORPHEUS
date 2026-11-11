@@ -122,7 +122,8 @@ class Bot:
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # manual NPC's selected player controller; no automatic acquisition yet
-        self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.attack_input = False  # last queued attack input, including unconsumed edges
+        self.attack_action = "primary"
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)

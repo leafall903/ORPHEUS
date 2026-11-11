@@ -1,0 +1,128 @@
+Roadhog lane: manual Assassin1157 pin -- partial104319 reconstruction
+
+Reuse of the parent's reviewed assassin.py bridge supplies data-only target
+context and an authoritative health/control consumer. Manual Assassin01BB slot0
+uses authored pin button36, not13B8/1460's primary20 path. DB742151(owner) returns
+an explicit Map1650->engaged living player body so actual1157 entry writes536.
+No controller entity is aliased, allocated or replicated; controller/foreign
+namespace/wire and autonomous acquisition remain open. Contact limit3m and LOS
+are reconstructed policy. No parent navigation implementation is imported here.
+
+Only1157 ModifyHealth positions25/15 use this service. Original resources supply
+contact amount25, continuous amount100, phase delay and scoped control23. Mode1
+is reconstructed as damage/second; default mode applies once on entry. The
+last_applied VM timestamp prevents duplicate-frame damage and is causal storage.
+This shared health-state consumer coexists with Roadhog0240/node18 TimedSelfHeal;
+the latter retains its original amount300/windup/duration/end handling. Unknown
+strict health services fail explicitly. Native health-mode/order/clock semantics
+and arbitrary gaps are not proved by these tests.
+
+Combat.pins maps source body to victim body separately from timed Flashbang
+stuns. Entry releases held inputs and running abilities through authored exits,
+including Breather and Whole Hog, and cancels an already-launched outgoing Hook.
+Pinned input suppresses horizontal movement/actions/attacks while existing look
+and gravity policy continues. Source Hook control, stun, death, removal, stop,
+target death/replacement, scope exit, geometry/team loss and script failure
+release pins. Hook's interruption now invokes the same cleanup for an Assassin
+source; held-source health cannot keep damaging the released victim.
+
+Damage/control ordering at contact follows the shared reconstructed bridge.
+Native simultaneous-event priority, immunity/cleanse and other hero defenses
+remain open. A new explicit contact engagement may interrupt release Anim31
+through authored exits because its native duration is unresolved; no duration
+is fabricated. Full cooldown/recovery/counterplay/teammate melee escape, lunge,
+QTE/camera/poses/animation/effects/audio/HUD and original-client acceptance remain
+open. No full Assassin or Roadhog static completion is claimed.
+
+Actual NPC bundle and actual43-table mover inputs are required. Roadhog tests
+execute real1157 contact/continuous clock, stop/restart, charged Whole Hog abort
+without refund, attack/movement suppression, active Breather heal/reduction abort
+with cooldown retained, outgoing Hook cancellation, supporting Hook rescue and
+supporting primary-fire source kill with retained corpse/no late pin damage.
+They also check victim death, wall/range/team loss, body replacement, removal and
+read-only full-server export of an actual active pin/clock. Source health is
+retained at20000 only for the charged-ultimate interruption fixture so it cannot
+kill the pin source first. Other source-kill checks use actual catalog pools.
+Eight inherited shared tests use a synthetic1157 graph to isolate clock and
+lifetime contracts. A strict unknown-service guard and mid-pin immunity/storage
+check extend that unit scope to ten tests, separate from actual-resource input.
+
+Mapped control-immunity policy follow-up
+---------------------------------------
+Actual defensive-cast diagnostics found that the initial shared bridge could
+stop solid Mei/Zen protection and Fortify before dealing contact damage. This
+lane now checks the existing mapped control-immunity policy before interruption.
+Wraith/Fade/Cryo/Transcendence retain protection and take no contact damage;
+Fortify retains its scope and takes one reduced25->15 contact hit in an unarmored
+fixture, without pin or continuous damage. Exact native pin filters/contact
+ordering remain unproved; this is explicit reconstruction shared with the lane's
+other damage/control distinctions, not a general native immunity interpretation.
+
+The rejected instance/scope-counter pair is causal BotWorld storage. The same
+attempt cannot acquire control or deal DPS when immunity later expires. A real
+release frame plus a fresh engagement starts a new authored scope normally.
+This avoids repeated-contact damage and latent capture from an old rejected
+health scope. Immunity arriving during an existing pin similarly releases its
+registry and suppresses the remainder of that attempt. No cooldown duration or
+native release-animation timing is invented. Actual five-cast/expiry/repress
+checks and an isolated mid-pin immunity/causal-storage test cover this policy.
+
+Final corrected frozen-source validation:382 related combat/hero/NPC/shared
+runtime checks and105 storage/replay checks pass with explicit actual NPC
+graphs/movers and no skips. Earlier380/105 results preceded the discovered
+solid-defense gap and are historical. Actual defense/expiry/fresh-repress tests
+and the mid-pin causal unit check verify its correction. Ruff/diff and current
+cumulative candidate reverse-check pass; no new commit is made.
+
+Projected finite-bubble checkpoint (later source)
+-----------------------------------------------
+The earlier mid-pin unit exercised health callbacks, not the delay between them.
+An actual Zarya projected cast exposed a stale pin registry in that interval.
+refresh_control now validates the recipient and mapped protection during the
+whole active pin phase, latching its generation on invalidation. Actual1157
+pre-contact and mid-pin fixtures both release/control-block and suppress latent
+DPS/regrab after the finite shield expires. Resource pin phase/animations are
+not forcibly completed, and native priority/cleanse/counterplay stay open.
+See ROADHOG_ZARYA.txt and current external verification; prior382/105 is historical.
+
+
+Allied quick-melee rescue and release
+-------------------------------------
+An allied quick-melee hit with loadout 2F5 reaches the normal damage
+path. After effective damage to the Assassin, the server ends the live
+1157 pin through its authored exit. Ordinary weapon damage leaves the
+pin active. Static cover rejects the melee hit. Free-for-all matches
+have no allied rescue.
+
+Node 31 uses alias 0561 and category 0082. The build 104319 Wrecking Ball
+lane resolved this pair to 508A.006 with a 1.4666667 second header
+duration. The scoped BotWorld hook supplies it at unit playback rate.
+The ordinary animation timer runs its graph exit at 1467 ms. The manual
+engagement holds input up during that interval, then checks current
+range, cover and team. Actual Roadhog and Wrecking Ball melee rescue
+both pass. The damage notification route and manual selection policy
+are server reconstructions. Native controller signals, playback
+modifiers and original-client presentation remain open.
+
+Delayed victim input and rescue
+-------------------------------
+Manual Assassin pin ticks project an inclusive command cutoff from the
+victim's last pre-pin command and its corresponding world tick. Commands
+observed while pinned are also covered. The cutoff survives pin release and
+masks delayed commands and their reconstructed held-input frames, including
+movement. The first newer command follows normal admission. Body retirement
+discards the cutoff, and server snapshots hash it without evaluation.
+
+An actual 1157 pin advances damage while the victim sends no commands.
+A live allied Sleep Dart releases it. A delayed full-charge Whole Hog press
+from the last pinned frame previously started the ultimate after rescue.
+The cutoff now discards that press and its movement, preserves the meter
+and accepts a fresh Whole Hog press. Clock projection and replay policy
+are reconstructed. Original-client timing remains separate.
+
+The same hard-control cutoff covers timed stuns and sleep. It projects only
+through the last controlled world tick. Hack and EMP retain their narrower
+ability mask. The mover stores the masked buttons so recovered frames
+cannot repeat a discarded skill press across expiry. Actual late commands
+verify that Sleep Dart and Flashbang suppress movement and weapon input,
+while Hack and EMP preserve both. Fresh Whole Hog input works after expiry.

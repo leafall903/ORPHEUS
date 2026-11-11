@@ -100,6 +100,8 @@ class NpcConsoleHttpTests(unittest.TestCase):
         self.player.mover.yaw, self.player.mover.pitch = aim(
             self.match.combat._eye(self.player), (x, y + 1, z))
         self.assertEqual(self.request('0')[0], 400)  # synthetic fixture intentionally has no weapon script
+        self.assertEqual(self.request('0', attack_action='charge')[0], 400)
+        self.assertEqual(self.request('0', attack_action=None)[0], 400)
         self.assertFalse(bot.firing)
         self.assertEqual(self.request('{')[1]['count'], 1)
         self.player.gone = True

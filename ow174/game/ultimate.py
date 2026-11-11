@@ -36,6 +36,22 @@ def combat_points(script, amount: float, kind: str) -> float:
     return max(0.0, expr.to_float(value) - before)
 
 
+def damage_received_multiplier(script) -> float:
+    if getattr(script, "hero", None) == ROADHOG:
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x01C7:
+                continue
+            # 01C7/111 is a client-only stack. Evaluate its authored value
+            # for the server's victim-side damage credit without starting it.
+            node = instance.graph.node(111)
+            if node is not None and (node.field("m_out_Var") or {}).get("m_identifier") == 15586:
+                value = instance.evaluate(node.field("m_value"))
+                if type(value) in (int, float):
+                    return value
+            break
+    return 1.0
+
+
 def passive_points(script) -> None:
     instance = instance_of(script)
     if instance is None:

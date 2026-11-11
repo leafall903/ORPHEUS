@@ -17,6 +17,259 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
 - [ ] Verify Roadhog (02E0000000000040) against players and all five manual PvE
   enemy types: primary/secondary/melee, hook, Breather, Whole Hog, incoming
   damage, defenses/status interactions and original-client presentation.
+  The server integration checkpoint includes the current reconstructed
+  combat paths and tests. The latest Steel Trap change passed focused
+  regressions after the previous checkpoint's full Roadhog suite.
+  Actual inputs now cover projectile, melee, Hook and Whole Hog contact limits.
+  Both phases of Scrap Gun secondary fire pass through a teammate in the
+  reconstructed team filter. Aimed misses spend one round with no damage
+  or charge.
+  Repeated Rocket Punch hits fill Doomfist's temporary shield to its
+  150-point cap. A close Scrap Gun secondary hit then spends only that
+  pool, with no damage charge.
+  Seismic Slam uses its live damage chase at short aerial contact and
+  caps at 125 on long falls. Breather cuts the capped hit to 62.5.
+  Hand Cannon uses the teams at impact and preserves the firing body's
+  kill attribution across a simultaneous team swap and body replacement.
+  Ice Wall placement over an armed mine blocks its view without
+  triggering it. Placement around a flying mine preserves its flight.
+  A mine blast with covered and exposed targets gives the same results
+  in both tested orders, including when the shared Winston barrier breaks.
+  Prepared 104319 Practice Range and King's Row collision caches also
+  pass all six attack forms, rifle damage followed by Breather, and
+  map-cover rejection for an incoming slug and Hook.
+  Deflect, Kinetic Grasp and Defense Matrix are checked at projectile
+  contact. Actual casts after secondary launch or fragmentation verify
+  this ordering. Matrix release can expose D.Va to the same fragments.
+  Whole Hog resolves overlapping Experimental Barrier and Kinetic Grasp per
+  pellet. The same channel can spend Grasp's granted shields and apply force
+  after both defenses stop protecting the target.
+  Whole Hog remains active through Ana antiheal, a projected-barrier
+  cleanse, and Sleep Dart contact with the barrier. Starting Whole Hog
+  cancels an antihealed Breather. Its cooldown survives the cleanse and
+  a later held press starts Breather at expiry.
+  Actual Orisa Halt presses now trigger the authored Roadhog pull graph.
+  The reconstructed host rejects allies, range and static cover. Roadhog can
+  use Hook, Take a Breather and Whole Hog while being pulled. Defense Matrix
+  and Kinetic Grasp remove the orb and trigger cooldown. Deflect changes the
+  orb's team. Four NPC types can be pulled. Heavy Assault triggers the
+  authored victim refusal. To run the targeted tests,
+  set `ORPHEUS_ORISA_HALT` to the Orisa lane's prepared `orisa_halt_174.json`.
+  Steel Trap, Graviton and incoming Hook take precedence over Halt on the
+  tested player paths. A live Halt resumes after release. The NPC path
+  also yields to Graviton. An Ice Wall stops and detonates Halt before it
+  reaches covered Roadhog. Encrypted tests verify the victim graph, caster
+  and victim disconnects, retransmitted body removal and a new cast after
+  rejoin. A missed detonation input can be retried with a fresh press.
+  Halt flies through energy barriers. At detonation the pull checks enemy
+  barrier cover without dealing damage. Raised Reinhardt shields and Winston
+  domes verify the reconstructed visibility policy, as do Brigitte's shield
+  and the deployed Orisa, Sigma and Symmetra barriers. Reflected Halt uses
+  the deflector's team when checking cover.
+  Real Scrap Gun kills cover pre-launch cancellation, post-death contact,
+  victim cleanup and natural respawn. Reflected flight and pulls retire
+  with the deflector's body under the reconstructed server policy.
+  Roadhog's Halt receiver uses the reconstructed world clock. Its horizontal
+  path and release are independent of victim command cadence, and returning
+  input skips movement already simulated by the world at both encrypted
+  command rates. Reflected ownership survives original caster disconnect
+  and is cleaned up on deflector disconnect even with a dropped destroy
+  packet. Projected barriers prevent acquisition and end active pulls.
+  Whole Hog and Halt share a single displacement owner per tick in the
+  tested Roadhog and Trooper cases. Whole Hog keeps dealing damage
+  and can push again once Halt stops moving the target.
+  Earthshatter locks Roadhog's actions while existing or new Whole Hog
+  force still moves him. Halt's graph keeps its timers during knockdown.
+  A live pull resumes on the recovery tick without victim commands.
+  A pull that has already expired stays retired.
+  The Assassin pin overrides Halt in both hit orders. A live pull resumes
+  on the first world tick after an allied Roadhog melee rescue. Halt also
+  yields to Heavy Assault Charge and takes over after a manual stop.
+  A projected Zarya barrier prevents a new Heavy Assault pin. Applied
+  during an established carry, it absorbs the wall impact while the
+  reconstructed carry runs to the wall.
+  An allied Sleep Dart or Flashbang on the charging NPC releases Roadhog
+  before the wall impact. Fresh Breather works immediately after release.
+  Reinhardt Charge takes movement priority in both contact orders.
+  Halt resumes on the first world tick after a 300-damage wall impact
+  if the pull is still live. Open Charge can outlast the pull.
+  Other control and defense combinations remain open.
+  Hook moves player targets on the combat clock and releases them at the
+  same tick whether they send continuous, intermittent or no commands.
+  Delayed packets suppress Hook-period movement and actions while retaining
+  fresh input after release at both command rates, including a target's
+  first packet. The initial body frame supplies the first clock anchor.
+  Steel Trap and Graviton can overlap in either order. The reconstructed
+  trap root takes movement priority until expiry. Hook, Take a Breather
+  and Whole Hog remain usable, and the live field resumes its pull at release.
+  A trap clears external motion on capture. Whole Hog and Soundwave still
+  deal damage during the root. Whole Hog applies force again on the first
+  damaging volley after the trap or Graviton releases the victim.
+  Reinhardt and Heavy Assault Charge and the Assassin pin retain
+  displacement control during Whole Hog damage. Assassin contact clears
+  existing force, and Whole Hog applies force again after release.
+  Baptiste field and Enforcer spread use documented server reconstructions.
+  Whole Hog applies force on the hit that reaches the field's health floor.
+  Further hits at that floor add no force. Breaking the device during the
+  same channel restores lethal damage.
+  Hook cancels a manual Enforcer's pending volley before ammo is spent.
+  The existing reload timer completes even when the NPC is being pulled.
+  Sleep, cover and manual stop also cancel the pending volley. A pellet
+  released before Flashbang can still hit during the stun.
+  A manual Trooper's three-round burst spends only the rounds already
+  released when Hook, stop or a switch to melee interrupts it.
+  A canceled last round defers reload until the magazine is actually
+  empty. Hook or manual stop after the last shot preserves the refill.
+  Sniper reposition suppresses pending rifle fire and preserves an
+  already launched projectile. Fresh fire uses the same post-move delay
+  in the windup, release-frame, and in-flight cases.
+  The field restores health before Breather on the antiheal expiry tick.
+  Only the remaining eligible healing funds Breather's charge. Two fields
+  share a floor, and destroying one leaves the other protecting Roadhog.
+  Roadhog's body graph reduces enemy damage charge to 75 percent of eligible
+  pool loss. Damage and his healing deficit retain their resolved values.
+  Quad Cannons and Wrecking Ball quick melee confirm the same victim
+  multiplier while Roadhog is pulling each of the five NPC types.
+  A primary volley that breaks Projected Barrier verifies this charge
+  reduction on the remaining pellets after Breather mitigation.
+  A real rifle hit through a nearly depleted Sound Barrier credits Breather
+  only for the damage to base health. The reconstructed shield decays and
+  absorbs damage without increasing the healing deficit.
+  Wrecking Ball Minefield now deploys, arms and retires 2578/151A entities
+  from the real ultimate. Roadhog can damage the mines, reduce blast damage
+  with Breather and continue Whole Hog or a clear Hook pull after a hit.
+  Actual Wrecking Ball Grappling Claw reaches a static anchor and triggers
+  Fireball during a reconstructed swing. Roadhog can break the tether with
+  Hook or a lethal shot. Allied Sleep Dart also ends the swing before contact.
+  Breather mitigation and the five NPC cases pass. Encrypted flight and
+  attachment disconnects retire the old body, reject stale commands and
+  let the rejoined Ball land a fresh Fireball.
+  Actual Quad Cannons uses its twenty-shot ramp, automatic reload and
+  effective damage charge. Tests cover Roadhog's mitigation, Hook and
+  incoming damage, Roll's critical eligibility and five NPC interactions.
+  Mine contact, cover and force use the reconstructed server model.
+  Encrypted tests cover dropped landing updates, mine owner disconnect,
+  observer rejoin and fresh casts. Practice Range and King's Row caches
+  verify static terrain contact and one hit to Roadhog. Static side
+  walls deflect the mines' flight along the surface until they land.
+  In the server model, deployed Ice Wall pillars also deflect side hits
+  and support mines that land on top. Wall cancel, expiry and destruction
+  drop the same mine to the floor and preserve its original arming timer.
+  Real mine flight crosses deployed Winston, Orisa, Sigma and Symmetra
+  surfaces and raised Reinhardt and Brigitte shields without changing
+  their pools. The crossed mines still arm. After arming, direct contact
+  with a hostile energy shield can trigger the authored blast independently
+  of nearby bodies. The contact and visibility checks are reconstructed.
+  Server tests cover standalone contact for the four deployed barriers,
+  both raised shields and Zarya's projected bubble. An armed mine touching
+  overlapping Orisa and Photon barriers spends each shield's pool once.
+  A shared Winston
+  dome takes one blast for two covered targets. Deflected Scrap Gun hits
+  use the deflector's team when selecting mines. Wraith Form defers mine
+  acquisition until protection expires. Actual airborne mines cross live
+  Matrix, Deflect and Grasp boxes, retain ownership, and can still arm
+  and hit Roadhog. The selected tag filter and flight policy are recorded
+  as a server reconstruction. Enemy EMP suspends a deployed mine for
+  10 seconds through its authored hack stack, including across landing.
+  The same mine can trigger
+  again after expiry. A deployed Ice Wall blocks EMP selection and mine
+  acquisition across its surface. Canceling the wall reopens acquisition.
+  Lethal interactions with all five manual NPCs are verified in both directions.
+  Team checks cover all six outgoing attacks through each allied NPC and
+  the reverse case of an active NPC order as team eligibility changes.
+  Static cover blocks all six attacks against each NPC. It also pauses
+  active orders from all five NPCs and stops in-flight Sniper and Enforcer
+  projectiles.
+  The actual five NPC capsules pass centimetre-level contact tests for
+  primary pellets, secondary fragments, melee, Hook and Whole Hog.
+  Manual NPC orders recheck the reconstructed engagement limit separately
+  from the range of the attack they admit.
+  Four manual NPC guns pass through Wraith Form and stop at Cryo-Freeze
+  when the defender is between the NPC and Roadhog. The projectile cases
+  cast after release and verify the reconstructed state at impact.
+  Actual Deflect returns each of the four NPC guns to its source and
+  credits Genji on lethal hits, with Roadhog protected behind him.
+  A retained manual attack stays idle while Roadhog is dead and resumes on
+  his replacement body when the original sight line is restored.
+  The five NPCs' difficulty-indexed pool operands and base-pool damage
+  are verified. An explicit sandbox difficulty exercises reconstructed
+  additive pools, depletion, component 51 identity and teardown. Live
+  mission difficulty binding and native pool lifetime remain open.
+  Actual Sombra Hack and EMP can reach Roadhog's authored receiver timer.
+  Reconstructed ability lock, range and LOS cases are verified.
+  Hack and EMP preserve an already buffered melee until its normal recovery.
+  Sleep Dart clears the same buffer and requires a fresh press after waking.
+  EMP checks energy barrier surfaces and leaves Ice Wall intact. Actual
+  casts protect Roadhog and his projected barrier behind the ice while
+  an exposed Mei receives the lock.
+  An allied EMP locks an eligible enemy player and leaves the five active
+  manual NPC attack paths unchanged under the current receiver selector.
+  The pulse also leaves Heavy Assault's charge and wall impact, and
+  Sniper's reposition and resumed fire, unchanged in paired live trials.
+  Native EMP receiver selection for NPCs remains open.
+  Brigitte has actual NPC bidirectional barrier and Flashbang coverage.
+  Actual Shield Bash stops Whole Hog without a refund and cancels flying
+  Chain Hook or releases an established pull on a player or any of the
+  five NPC bodies. The reconstructed interrupt preserves Hook cooldown.
+  Two allied Roadhogs casting simultaneously at one enemy player or any of
+  the five NPC bodies resolve to one damaging contact and one pull. Both
+  cooldowns keep counting down, and reversed processing order changes the
+  winner under the reconstructed rule.
+  Live Sleep Dart and Shield Bash verify the sleep minimum, late wake
+  replacement, and a fresh sleep during Bash stun. Hook and Breather
+  presses during control expire without replay.
+  Shield Bash uses a reconstructed forward ray to stop at hostile
+  barriers. The projected Zarya test preserves Breather and bubble
+  durability, then verifies independent cooldowns and fresh casts.
+  Lowering Reinhardt's shield before Bash contact permits a hit. Lowering
+  it on or after contact leaves the intercepted dash finished.
+  Encrypted disconnect and same-account rejoin exercise live Hook release,
+  Breather cancellation, and the end of Whole Hog damage. The server gives
+  the returning account a fresh body and rejects commands from its old link.
+  The observer recovers a lost body-removal packet for both active channels.
+  Fresh Breather heals normally, earns charge only from the new body's
+  eligible damage and ignores duplicate input. Whole Hog needs fresh charge.
+  In-flight Roadhog scrap and buffered melee retire with the old body, while reflected
+  scrap follows its current owner. This is the reconstructed server rejoin
+  policy. Original-client rejoin remains open.
+  Sleep and Flashbang now arbitrate a single deadline with a reconstructed
+  minimum sleep period and damage wake recovery. The target-build hero
+  loadout inventory and passive charge checks are recorded separately.
+  Actual Symmetra preview, cancel, rotation and placement now reach a
+  156C pet with a finite 6880 wall. Map-width selection is reconstructed.
+  Brigitte's actual raised-state graph now controls the attached 5DA0 mesh.
+  Finite pool, body placement and break recovery are reconstructed.
+  New Zarya barriers clear existing Ana healing denial and block later
+  Ana projectile effects. A projected barrier leaves existing sleep in place.
+  A Sleep Dart that breaks a projected barrier leaves buffered melee
+  intact. An unshielded dart clears it.
+  Actual Ana hostile casts now interrupt Roadhog through a reconstructed
+  sleep deadline or deny healing during a separate grenade deadline.
+  Sleep Dart cancels flying Hook or releases its already-hooked target.
+  Waking leaves the original Hook cooldown in force, and a fresh cast
+  can hit again after it expires.
+  Primary pellets, secondary burst pellets and Whole Hog now have a
+  scoped reconstructed critical default. Actual inputs distinguish the
+  unburst slug and active Fortify from eligible head contacts.
+  Sigma's 1B55 pet and 1A2A graph now drive a moving and recallable C015 shield.
+  Its server pose, world clearance and damage routing are reconstructed.
+  The authored break condition disables the deployed mesh at one health.
+  A real Whole Hog volley broke the near Sigma mesh, then the far Orisa
+  mesh, before later pellets damaged and pushed the player behind them.
+  With Projected Barrier on Sigma behind his deployed mesh, the first
+  pellet broke the mesh and the next broke the bubble. Later pellets
+  damaged Sigma and applied one impulse under the reconstructed rules.
+  The Orisa path now uses a real 0BD7 throw and 0BD8 lifetime graph with the
+  4062 collision mesh. The launch pose, world contacts and interception
+  policy are reconstructed on the server.
+  Whole Hog now has a selected resource-backed external motion model, with
+  per-volley aggregation, finite velocity caps and swept player/five-NPC movers.
+  Its semantics are reconstructed; docs/ROADHOG_KNOCKBACK.txt separates actual
+  movement checks from native parity and the remaining full-scope audit.
+  Selected Winston00FA/00FC creation, finite fixed sphere and original graph
+  lifetime are hosted with explicit reconstructed policies; see
+  ROADHOG_WINSTON_BARRIER.txt and external frozen-source verification. Remaining
+  barrier/control/knockback/full-static and original-client gates stay open.
   Lane 0040 repairs shared direct-projectile falloff/critical application with
   pool-damage regressions and reconstructs the authored timed self-heal consumer.
   The lane incorporates native distinct-input joins and includes pending arrivals
@@ -32,6 +285,14 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   hits/ammo use or finish reload. Native timing agreement and wider loss remain open.
   Whole Hog's16-pellet path now executes charge consumption, repeated damage,
   end, uncharged rejection and death cancellation with miss/team/wall regressions.
+  Starting Whole Hog cancels manual reload, preserves the existing Hook
+  cooldown and stops Hook before latch. An established pull finishes.
+  Whole Hog refills a partial magazine on its own timeline, and presses
+  for reload or Hook during the channel create no delayed action.
+  Actual Flashbang before or on the refill frame preserves the partial
+  magazine. Flashbang after the refill preserves the five rounds.
+  Command recovery across the channel end completes the refill once
+  without replaying damage.
   Roadhog now bridges actual damage/eligible Breather healing into shared0B8B
   charge expressions and uses its default passive interval/amount/multipliers.
   Full-cost combat gain, Q spend, active/dead suppression and post-end resumption
@@ -43,8 +304,36 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   reverse damage into Roadhog and respects stop; NPC weapon-manager startup restores
   Sniper's100-damage projectile. Heavy stops while hooked and resumes without a
   catch-up burst; Breather reduces its real input damage. Autonomous AI, remaining
-  Enforcer/Assassin attacks, specials and full two-way interaction remain open;
+  Enforcer full pellets/Assassin pin fidelity, specials and complete two-way interaction remain open;
   base pools are not complete authored difficulty totals.
+  Shared declared manual Enforcer context now admits actual reverse2-damage
+  shots; Breather halves a live hit and Hook control suppresses/release resumes
+  fire. Five-NPC tests now require actual43-table mover inputs and recheck
+  capsules/range/static walls; older generic-fallback geometry is historical.
+  Full Enforcer pellets/controller lifecycle, Assassin pin fidelity and native AI remain
+  open; see [Enforcer context](ENFORCER_MANUAL_CONTEXT.txt).
+  Roadhog028F standing/crouched view heights now use original1.6/1.12;
+  enemy McCree02A3 uses1.425/.9975. Shot origins, target metadata/history and actual
+  narrow-cover/crouch inputs share that data. Native bones/camera/muzzle and other
+  bodies' unlisted viewpoint fields remain open; generic defaults are not proof.
+  Finite Zarya0244/025C spheres now receive Roadhog primary/secondary/fragments/Q/
+  Hook/melee and projected ally/NPC selectors, with actual cooldown/last-hit/energy,
+  Hook rescue, Breather/Flashbang, phase-delay pin release and read-only storage.
+  Five actual NPC bodies and all five manual reverse admissions are covered in
+  explicit scoped fixtures; native Pet/filter/credit/clock/cleanse/AI remain open.
+  Actual Reinhardt mesh now intercepts primary/secondary/fragments/Whole Hog and
+  Hook; melee mesh/body policy, walls/allies/lowering, dynamic raise/tether,
+  Deflect/Grasp order, break/regeneration/re-raise/death/replacement and causal
+  snapshots have scoped reconstruction checks. Five actual NPCs receive shield
+  protection; four manual NPC guns damage an allied shield before Roadhog.
+  Native pose/filter/priority, all other barriers and original-client gates remain open.
+  Manual Assassin1157 now targets and pins Roadhog through the shared scoped
+  bridge: actual contact/continuous damage, skill interruption, supporting
+  Hook/primary rescue, death/stop/replacement/geometry cleanup and causal clock
+  storage have direct checks. Damaging allied melee also releases a live pin.
+  Manual reengagement uses the resource-timed release and checks eligibility.
+  Full native controller, control priority and navigation remain open.
+  See [pin](ASSASSIN_PIN_BRIDGE.txt).
   Secondary node29's embedded25-pellet expiry volley now causes real player and
   five-NPC damage, preserves one-ammo consumption, rejects prior wall/body impact
   emission and matches skipped-tick flight. Callback timing remains reconstructed.
@@ -63,7 +352,37 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   primary/slug/fragments/melee/Hook/Whole Hog, in-flight cast, expiry, Mei cancel,
   replacement, Flashbang immunity and passive snapshot checks execute. This is
   reconstructed filter/collision policy, not complete native defenses/cleanse.
+  Starting any of the four casts during Whole Hog clears existing external
+  motion. The shorter protections allow a fresh impulse from the same
+  channel after expiry. Transcendence covers its remaining fire.
+  A projected Zarya bubble also clears an existing Whole Hog impulse.
+  The breaking pellet applies no damage or force to the recipient.
+  Subsequent hits create fresh impulses after depletion or natural expiry.
   See [defense evidence](ROADHOG_DEFENSES.txt).
+  The uncommitted worktree adds reconstructed Genji/Sigma projectile and hitscan
+  interception, reflected slug fragments/credit/death, melee parry/Hook bypass
+  and time-remainder tests, including reflected primary against all five NPCs.
+  Reflected Whole Hog reverses its impulse and gives Genji the hit notices.
+  A projected barrier on Roadhog absorbs the return before body movement.
+  Real shots also verify nearest-contact ordering with a deployed Winston dome,
+  Deflect, Kinetic Grasp and Defense Matrix. Whole Hog rays that miss Deflect
+  can hit the dome in the same volley as reflected rays.
+  Native box/filter/bounce policy, Sigma shield conversion and complete defense
+  coverage stay open. Further commits wait for the entire static goal to pass.
+  Configured actual0407/02CC Matrix now absorbs Roadhog projectile/ray003s
+  using external tags and resource boxes. Selected-body script initialization
+  and native-backed ruleset/body-owner helpers allow real graph activation.
+  Hook interruption reuses the authored Matrix release cooldown and rejects
+  early reopening. Attachment/filter polarity and mech lifecycle/pools
+  remain open. Allied Matrix absorbs all four NPC guns; Assassin still pins.
+  Enemy Matrix shields all five NPCs from Scrap Gun and Whole Hog, while
+  Hook and quick melee still connect. See [Matrix](DVA_MATRIX.txt).
+  The worktree also consumes Orisa Fortify's scoped9161 control flag: Hook/
+  Flashbang preserve damage but cannot pull/stun/interrupt; actual Q, other
+  attacks, in-flight onset, expiry and replacement are tested. Native control
+  filters/cleanse/knockback remain open. Enforcer still lacks an established
+  controller query; Assassin1460 requests controller message09AC and contains
+  no gun volley/direct health state, so a fabricated gun is not a valid repair.
   Breather's live0.5 incoming damage multiplier now affects actual hits/death,
   restores at end/interrupt and applies to in-flight player and actual NPC shots.
   Fortify/Ironclad share the consumer. Combined caps/armor-order fidelity remain open.

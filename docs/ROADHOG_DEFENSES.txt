@@ -44,3 +44,71 @@ lag compensation, cleanse, every control type, all barriers/reflect/absorb and
 other immunity sources remain open. NPCs receive no inferred protection from
 these human hero mappings. Other heroes' complete kits are not accepted here.
 No original-client HUD, effects, animation, sound or prediction acceptance.
+
+Additional Deflect/Grasp host model (full static acceptance still open)
+- Live Genji03A3/mode0 and Sigma1D02/mode1 DeflectProjectiles states provide
+  their authored boxes. Placement is reconstructed at the capsule eye with yaw;
+  native pitch/muzzle/filter behavior is not established. Solid world/body
+  contacts before the box take priority. Friendly gates are not candidates.
+- Genji redirects to his current aim and becomes damage/notices/killer owner;
+  Sigma consumes the projectile/ray without an impact or expiry fragment burst.
+  Primary, close slug, expired fragments and Whole Hog hitscan use the policy.
+- Reflected slugs retain remaining lifetime, frozen damage/child-volley data
+  and accumulated flight. Child directions are reoriented to the new axis. The
+  unused scheduler interval carries through reflection, expiry and child flight.
+  Reflected hitscan retains remaining range and cumulative falloff distance.
+- Hook bypasses these gates and interrupts the actual defensive ability.
+  Front Genji boxes parry melee at the capsule front; Sigma does not. This is
+  scoped reconstructed filtering, not a general native attack-tag implementation.
+- Up to8 chained interceptions are processed per ray/flight recursion. This
+  host work bound is not a recovered native bounce rule; overlapping-box
+  priority and behavior at the bound remain explicitly unaccepted.
+- Grasp feeds the absorbed amount through 1D02. Its exit request adds a
+  separate temporary shield pool using the authored 1D03 amount and cap.
+  The reconstructed pool takes damage before base pools, then decays at five
+  points per second after three seconds. The temporary portion of damage
+  contributes zero ultimate charge and zero healing deficit. Pool service
+  and presentation on the original client still require verification.
+- Reflected visual entity/lease transport, native cone redistribution and exact
+  native filters remain open.
+
+Fortify control bridge (also uncommitted pending the full static gate)
+- Actual Orisa0CF4 sets entity9161 true in its active Stack scope while8243
+  evaluates to0.6. It also sets10467; that token alone therefore cannot mean
+  damage invulnerability. This adapter requires the matching hero/graph/active
+  Stack and live9161, with retired/dead-body checks.
+- Reconstructed control policy rejects incoming Hook pull and Flashbang stun
+  but permits ordinary reduced damage. A solid fortified body intercepts Hook;
+  it does not allow the Hook to pass into an enemy behind it. Hook contact does
+  not stop Fortify. In-flight Fortify onset is checked at contact.
+- Actual primary, slug, melee and Whole Hog damage remain enabled. Tests use
+  retained high health without armor to isolate the0.6 multiplier; this does
+  not establish combined armor/reduction ordering. Actual Flashbang deals
+  reduced damage without interrupting Fortify; expiry restores normal Hook
+  catch/pull/recovery and body replacement cannot retain immunity.
+- Native control-tag/filter combinations, cleanse, stacking/competing controls
+  and actual knockback consumption remain open. No general9161 immunity is
+  inferred for other heroes or NPCs.
+
+Verification of this worktree:219 related combat/hero/NPC/join checks and17
+snapshot/manifest checks pass. All8 Fortify tests pass after adding the active
+read-only snapshot case; export does not evaluate control policy or Var.value.
+Ruff/diff checks pass. The219 run contained the first7 Fortify tests; the8-test
+rerun is overlapping evidence, not8 additional distinct acceptance cases.
+
+Configured D.Va0407 Matrix is now separately exercised versus Roadhog; see
+DVA_MATRIX.txt for actual02CC resource activation,003 metadata, reconstructed
+box/filter policy, confirmed-copy teardown and remaining limits. This does not
+close the full barrier/absorber/reflector or native control matrix.
+
+Baptiste Immortality Field (104319)
+Actual 1761/21 releases 29A8 with speed 60, gravity 20 and lifetime 60.
+Landing hosts 29A9/1762. Entity graph 0033/C7 supplies its 150 base health.
+The authored tracking radius is 10. The server reconstructs team and static
+LOS selection, the 1763 coefficient as 10 percent of total maximum health,
+and device collision as a compact sphere. Actual primary, secondary and Hook
+respect the floor. Hook retains its pull and release. Melee, secondary and
+Whole Hog damage the device. Natural retirement uses 1762/1. A fresh cast
+succeeds after the authored cooldown and an earlier repress is refused.
+Original-client targeting cadence, damage operand and collision remain
+separate from these server tests.

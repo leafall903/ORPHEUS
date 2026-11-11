@@ -1,0 +1,80 @@
+Whole Hog external motion, build104319
+
+Resource inputs and declared reconstruction
+------------------------------------------
+01C6/node33's ModifyHealth contains four expressions evaluating to14,10,1.8,14
+under the original10619 ruleset metadata default. An explicit receiver-independent
+source override10619 scales the expressions; no replacement default is injected.
+Distance rings are5/20/100, with three scales1/1/.1. The existing native member
+descriptor evidence binds the four field offsets, not their combat meanings.
+
+The selected server model interprets these fields as horizontal impulse,
+horizontal velocity cap, upward boost and upward boost cap. Ring columns scale
+horizontal force, lift and caps, with linear interpolation and zero beyond the
+last ring. This interpretation, interpolation and all following physics are
+RECONSTRUCTED; the native combat consumer has not been executed or established.
+
+Each successful living-body health hit contributes once per original volley
+activation/time and recipient. Sixteen actual damage rays still run separately;
+only effective body hits enter the force service. A volley can hit multiple
+recipients; one recipient does not get16 accumulated impulses from its pellets.
+The128-world-tick dedupe window survives ordinary damping completion; body
+retirement/removal clears it. A late duplicate cannot reacquire force merely
+because the recipient has already stopped moving.
+Horizontal external velocities add, then clamp to the evaluated distance cap;
+upward boost adds and clamps separately. No normal weapon gets a force spec.
+Reflected Whole Hog retains its force spec and packet identity, uses the reflected
+direction and can push the original shooter. Absorption or an intercepted shield
+impact does not deliver a body force; later independent hits after a shield breaks
+can. Dead recipients and mapped control immunity reject force. Hook's established
+forced movement takes priority and retires conflicting external motion.
+
+Movement and lifetime
+---------------------
+External motion is independent of ordinary locomotion velocity, so the next input
+does not erase it with the normal run-speed cap. Every world tick sweeps the real
+character capsule through Mover.displace / CharacterBody.move and clips against
+contact planes. It does not teleport through walls. Player movement records expose
+the sum of ordinary and external velocity. NPCs use their actual body mover data,
+an independent Mover for neutral gravity/contact progression, and publish their
+updated authoritative position and velocity.
+
+Horizontal external velocity uses linear damping from decel_ground_base times
+run_forward (the mover's base acceleration units). Applying that ground-base rule
+to external velocity in air is reconstructed. Upward boost damps by the mover's
+gravity scale times world gravity; ordinary movement still owns its normal fall.
+The channel is substepped at16ms, with a bounded128-step recovery per update.
+For the authored default caps it stops inside that bound. Repeated world ticks
+spend no extra movement. Input-free external-channel catch-up matches continuous
+world updates. Normal player gravity/prediction under arbitrary command loss is
+not established by that narrow equivalence test.
+
+Source channel cancellation does not revoke inertia already delivered. Receiver
+death, body retirement, removal, control immunity and Hook takeover retire the
+motion. Knockback alone adds no stun or ability cancellation; real receiver
+Breather/Whole Hog scopes are checked independently. Native per-hit caps,
+aggregation, mass, tank reductions, control-tag priorities, friction/airborne
+combination, history/clock ordering and client prediction remain parity work.
+
+Verification and existing fixture changes
+----------------------------------------
+Actual Q tests cover evaluated force/rings/override,16 traced rays with per-body
+aggregation, displacement/lift/caps/damping, real double-sided wall contacts,
+distance scaling, miss/LOS/Fortify, death/replacement, receiver ability scopes,
+all five NPC movers/removal, continuous versus skipped world progression and
+read-only causal velocity/dedupe storage. External records pin exact source,
+runtime inputs, logs and the reconstructed policy; see FORCE_TEST_SOURCE.json.
+
+Old fixed-aim Whole Hog tests cannot assume an immortal body remains stationary
+for six seconds. The weapon recovery fixture restores its close target position
+after Q ends before checking primary ammo and damage. The duration test retains
+per-hit damage/accounting, multiple hits, end and recast refusal; the dedicated
+first-volley test traces16 actual rays and verifies aggregation without assuming
+all16 spread rays hit a finite body. No movement service is disabled for tests.
+
+Full static scope and all original-client acceptance remain open. No new commit
+is permitted until the complete static goal passes.
+
+Final verification: Composed615-case broad coverage:614 passed in the initial batch; isolated charge fixture correction then complete9-test charge module passed; 105 storage/replay passed, no skips. Production and all other test code unchanged; current48-file Python fingerprint sealed..
+Frozen Python fingerprint: 337e70d26612ac274f98d3028b269cd49a739f68553f70358e8cde4f1b113b67.
+Supplemental nine-source actual-Q cap stress: external velocity(0,14,10), nine unique packet/recipient keys, production fingerprint unchanged across the isolated charge-fixture correction. This high-health/team fixture proves the declared server caps, not native semantics.

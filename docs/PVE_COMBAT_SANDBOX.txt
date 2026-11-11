@@ -98,7 +98,7 @@ External enemy catalog:
 - tools/extract_pve_npcs.py reads selected hero/body XML and the directly wired
   base HealthPool schema setters. It preserves pool kinds, literal defaults and
   body overrides, source SHA256 and exact pool/setter/variable evidence.
-- Difficulty/conditional pool nodes are listed as unapplied. These are base
+- The default manual spawn uses the base catalog. These are base
   sandbox definitions, not mission-scaled enemy totals or complete health logic.
   Output must remain outside the repository; npc.load_catalog validates selection
   keys, full GUIDs and explicit pool values before constructing definitions.
@@ -109,6 +109,46 @@ External enemy catalog:
   This probe uses a flat-collision fixture, adapter transport and permissive body
   VMs. It does not prove enemy AI, complete skills/ultimate or original-client
   presentation. Normal runtime inputs have not been replaced.
+
+Conditional pool routing audit
+
+The Roadhog lane executes mode graph 100B/77 through its four difficulty
+cases. The mode writers store indices 0 through 3 in variable 9948.
+Each enemy body loads 143A. Its body selector routes to the operands below
+when a declared host supplies the definition and mode query. A declared
+controller choice takes precedence over the mode index.
+
+Enemy          Health operands       Shield operands
+Trooper        none                  none
+Enforcer       0,150,250,250         0,50,100,200
+Sniper         0,150,200,100         0,0,100,400
+Assassin       0,350,600,400         0,0,0,300
+Heavy Assault  2000,3000,5000,7000   none
+
+The empty 100B/322 config leaves integer zero in selector 6751 and the
+blank case leaves 9948 unset. An unmatched nonzero identifier follows
+the explicit default to index 1. The original ActionSwitch missing-case
+operand path at 1B6CEAA..1B6CEC8 uses integer zero in this switch mode.
+
+Actual manual creates and Roadhog secondary damage verify the five base
+health and shield pools. Without an explicit host, a diagnostic selector
+can activate Heavy Assault's 7000 operand while combat still uses its
+4000 base maximum.
+
+The server-side sandbox call npc.spawn(..., difficulty_index=0..3)
+supplies the body definition and controller difficulty to 143A. Each
+nonzero operand adds a separate pool to the base catalog. Component 51
+uses a stable ID in slot one for each conditional kind. The server
+drains conditional pools before base pools of the same kind and heals
+base pools first. The end of a pool state clears its wire record with
+the same ID. Death and manual removal also retire the scope. Actual
+Roadhog secondary tests exercise all twenty selected profiles. At
+difficulty index 3, all six lethal Roadhog inputs kill each of the five
+bodies and clear the conditional pool maxima on the retained corpse.
+
+Addition, depletion order, healing, slot assignment and teardown are
+server reconstructions. Native allocation versus override, live mission
+binding and original-client difficulty presentation remain open.
 
 Parallel hero work:
 Each hero lane must create its own goal for complete static acceptance of attacks,

@@ -50,7 +50,8 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          difficulty_index: int | None = None) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -58,6 +59,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if difficulty_index is not None and (type(difficulty_index) is not int or not 0 <= difficulty_index <= 3):
+        raise ValueError("NPC pool difficulty index must be 0..3")
     position = tuple(position)
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
@@ -66,6 +69,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if difficulty_index is not None:
+        data["difficulty_index"] = difficulty_index
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
@@ -74,11 +79,15 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     from ow174.game.match import BOT_RECORD_DELAY
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
-    match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    if difficulty_index is not None and bot.body_script is None:
+        del match.combat.vitals[entity]
+        raise ValueError("NPC difficulty requires the authored body graph")
+    match.combat.next_bot += 1
+    match.bots.append(bot)
+    match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -89,11 +98,18 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
 def remove_spawned(match) -> tuple[int, ...]:
     """Explicitly remove only manual NPCs, including corpses and owned attacks."""
+    from ow174.game import sniper_reposition
+
     removed = []
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        sniper_reposition.cancel(match.combat, bot)
         match.combat.hooks.retire(bot.entity)
+        match.combat.impulses.retire(bot.entity)
+        match.combat.clear_pins(bot.entity)
+        match.combat.clear_statuses(bot.entity)
+        match.combat.zarya_bubbles.retire(bot.entity)
         bot.died(match.tick)
         script, bot.body_script = bot.body_script, None
         if script is not None:
@@ -103,13 +119,16 @@ def remove_spawned(match) -> tuple[int, ...]:
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            component.world.match = None
+            component.world.manual_target = None
+            component.world.rejected_pin_attempt = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+                      match.combat.replacement_ticks, match.combat.melee_seen):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

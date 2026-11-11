@@ -39,6 +39,7 @@ class Flight:
     caught_at: float = 0.0
     arrived_at: float | None = None
     npc_mover: object = None
+    player_driven: bool = False
 
 
 class Hooks:
@@ -46,6 +47,8 @@ class Hooks:
         self.combat = combat
         self.flights = {}
         self.seen = {}
+        self.player_pose_ticks = {}
+        self.player_command_cutoffs = {}
 
     def command(self, player, command):
         if command is None or self.controlled(player.body):
@@ -101,12 +104,19 @@ class Hooks:
             # Retire its velocity too, rather than leaving a moving wire pose.
             flight.target.owner.velocity = (0.0, 0.0, 0.0)
             flight.target.owner.moved_tick = self.combat.tick
+        elif flight is not None and flight.player_driven:
+            target = flight.target.owner
+            if target.body == flight.target.entity:
+                target.mover.velocity = (0.0, 0.0, 0.0)
+                target.mover.driven = False
 
     def retire(self, entity):
         for body, flight in list(self.flights.items()):
             if body == entity or (flight.target is not None and flight.target.entity == entity):
                 self.cancel_owner(body)
         self.seen = {key: value for key, value in self.seen.items() if key[0] != entity}
+        self.player_pose_ticks.pop(entity, None)
+        self.player_command_cutoffs.pop(entity, None)
 
     def destination(self, flight):
         owner = flight.owner.mover.position
@@ -119,14 +129,8 @@ class Hooks:
         scale = flight.separation / max(length, 1e-9)
         return (owner[0] + dx * scale, owner[1], owner[2] + dz * scale)
 
-    def forced_move(self, entity):
-        for flight in self.flights.values():
-            if flight.target is not None and flight.target.entity == entity:
-                return self.destination(flight), flight.pull_speed if flight.arrived_at is None else 0.0
-        return None
-
-    @staticmethod
-    def interrupt(target):
+    def interrupt(self, target):
+        self.combat._interrupt(target)
         script = target.owner.body_script
         if script is None:
             return
@@ -173,6 +177,14 @@ class Hooks:
                     if distance is not None and distance <= step and (best is None or distance < best[0]):
                         best = (distance, target)
                 wall = combat.ray_world(fight._collision(), origin, flight.direction, step)
+                limit = min(best[0] if best else step, wall if wall is not None else step)
+                shield = fight._barrier_contact(
+                    flight.owner, origin, flight.direction, limit, flight.radius,
+                )
+                if shield is not None and (wall is None or shield[0] < wall):
+                    fight._damage_barrier(shield, flight.damage.amount, shooter=flight.owner)
+                    self.cancel_owner(body)
+                    continue
                 if wall is not None and (best is None or wall < best[0]):
                     self.cancel_owner(body)
                     continue
@@ -189,9 +201,10 @@ class Hooks:
                                         targets[body].radius + flight.target.radius + flight.gap)
                 fight._damage(flight.owner, flight.target, flight.damage.amount, False,
                               flight.damage.loadout, tick, world_tick=tick)
-                if fight.vitals_of(flight.target).dead:
+                if fight.vitals_of(flight.target).dead or defenses.control_immune(flight.target.owner):
                     self.cancel_owner(body)
                     continue
+                fight.impulses.retire(flight.target.entity, forget=False)
                 self.interrupt(flight.target)
                 if isinstance(flight.target.owner, bots.Bot):
                     bot = flight.target.owner
@@ -210,7 +223,10 @@ class Hooks:
                 direction = tuple(axis / length for axis in delta)
                 wall = combat.ray_world(fight._collision(), fight._eye(flight.owner), direction,
                                         max(0.0, length - target.radius))
-                if wall is not None:
+                shield = fight._barrier_contact(
+                    flight.owner, fight._eye(flight.owner), direction, max(0.0, length - target.radius),
+                )
+                if wall is not None or shield is not None:
                     self.cancel_owner(body)
                     continue
             destination = self.destination(flight)
@@ -219,9 +235,44 @@ class Hooks:
                 mover.step_pose(Command(tick), elapsed, tick, move_to=(destination, flight.pull_speed))
                 flight.target.owner.position = tuple(mover.position)
                 flight.target.owner.velocity = mover.velocity
+            elif not isinstance(target.owner, bots.Bot):
+                self.move_player(flight, target, destination, tick, elapsed)
             feet = (flight.target.owner.position if flight.npc_mover is not None
                     else flight.target.owner.mover.position)
             if flight.arrived_at is None and math.dist(feet, destination) < 0.15:
                 flight.arrived_at = fight.now
             if flight.arrived_at is not None and fight.now - flight.arrived_at >= flight.recovery:
                 self.cancel_owner(body)
+
+    def move_player(self, flight, target, destination, tick, elapsed):
+        from ow174.game import reinhardt_charge
+        from ow174.game.combat import TICK
+
+        fight = self.combat
+        player = target.owner
+        # Project from the pre-pull clock anchor. Late windows cannot re-anchor
+        # their covered prefix to a post-release receipt tick.
+        if player.command_clock is not None:
+            frame, received = player.command_clock
+            elapsed_us = (tick - received) * round(TICK * 1_000_000)
+            cutoff = frame + elapsed_us // player.quanta
+            self.player_command_cutoffs[target.entity] = max(
+                cutoff, self.player_command_cutoffs.get(target.entity, -1),
+            )
+        if (fight.traps.rooted(target.entity, tick)
+                or reinhardt_charge.pinned(fight, target.entity)):
+            return
+        mover = player.mover
+        flight.player_driven = True
+        self.player_pose_ticks[target.entity] = tick
+        mover.throttles = (0, 0)
+        if elapsed > 0 and flight.arrived_at is None:
+            before = tuple(mover.position)
+            mover.use(world=fight._collision())
+            mover.driven = True
+            mover._move_to(elapsed, destination, flight.pull_speed)
+            fight.walls.move_player(player, before)
+            fight.revise_world_pose(target.entity, mover.position)
+        if math.dist(mover.position, destination) < 0.15 or flight.arrived_at is not None:
+            mover.velocity = (0.0, 0.0, 0.0)
+            mover.driven = False

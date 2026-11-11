@@ -1,0 +1,83 @@
+Roadhog versus reconstructed Reinhardt barrier104319
+==================================================
+
+Inputs and boundary
+-------------------
+Explicit ORPHEUS_REINHARDT_COLLISION selects an external descriptor; no game
+assets are copied into Git. Reused selected barrier service from lane01A2,
+which records original lane0007 provenance. External descriptor has192 model
+triangles and model concatenation fingerprint, owner bind hardpoint29 and child
+bone8C. Resource0095 supplies1600 maximum,200/s regeneration,2s regeneration
+wait and5s break cooldown. This lane seals descriptor bytes at module import,
+rejects changed input on configuration and includes its SHA256 in replay config.
+
+The raised attachment clears the owner capsule and aligns to current aim.
+This is an explicit reconstructed pose, not native animation playback. Static
+fixture walls are not original-map collision acceptance. Native target tags,
+contact priorities, mesh/hardpoint phase and observer pet replication stay open.
+
+Combat consumers
+----------------
+Actual primary and Whole Hog rays stop on nearest enemy mesh, spend damage
+without critical amplification/body damage/ultimate charge, and keep ordinary
+ammo and ultimate spending. Close secondary slug ends on contact without its
+lifetime-expiry child volley; post-expiry fragments use their own nearest
+contacts. Reflection/absorption boxes compete by distance with barriers and
+static walls; no whole-body target should bypass a nearer shield. Same-distance
+priority is host policy, not native proof. Shared Helix direct+blast consumes
+shield resource without splash spilling through that impact, even on break.
+
+Quick melee overlaps actual triangle witnesses with static LOS. Its existing
+body sphere can damage a nearby enemy through the mesh; this is declared host
+policy, not complete native melee/filter acceptance. Hook sweeps with its
+resource radius: a shield takes30, blocks catch/pull/interrupt, retains cooldown.
+A newly raised supporting enemy shield also breaks an established tether with
+no second contact hit. Exact native link/filter priority remains open.
+
+Shield state follows actual0095 pet/ability graph and owner lifetime. Lowering
+starts regeneration delay; zero health lowers the graph and refuses re-raise
+until the break deadline. Death, disconnect, source control and body retirement
+remove active collision. Resource, geometry, timestamps and active flag are
+registered server snapshot storage; exporting does not evaluate VM getters.
+
+Shared runtime defects exposed by this composition
+-------------------------------------------------
+Ability linked cooldown output previously changed as a getter without waking
+variable-dependent gates, so0095's cooldown predicate remained stale at zero.
+A stored last_sample now delivers clock changes on host ticks and timer edges.
+Host sampling cadence remains reconstructed. It is causal read-only VM storage.
+
+Instance.cancel removed queued CHANGED/CHECK work but retained their coalescing
+bits. Reused BooleanSwitch states could then ignore later real input changes.
+Cancellation now clears both bits. Regression cases cover canceled notifications,
+state restart, completion bits, real break/recovery and read-only clock export.
+No native implementation equivalence is claimed for these host bookkeeping fixes.
+
+Verification and remaining scope
+--------------------------------
+Actual commands exercise primary, close slug, lifetime fragments, Whole Hog,
+Hook, melee, walls, allied/lowered/off-mesh paths, mid-flight raise, supporting
+shield tether break, Deflect/Grasp order, actual break/regeneration/re-raise,
+low-health owner death, replacement, and active controlled-server storage.
+Five actual NPC bodies are protected against primary/secondary/Hook/Q. Four
+actual manual NPC guns hit an allied shield before Roadhog; stop has no late
+projectile damage. Assassin pin is a separate contact/control path and its
+barrier eligibility is not established by gun tests.
+
+Roadhog Hook also rechecks original150ms input buffering: early short press
+expires, near-expiry short press starts once, holding cannot bypass cooldown,
+and release plus a fresh press works. Existing original-timestamp restoration
+is retained; no repeated timestamp refresh was imported from parent.
+
+No initial Roadhog-loaded MovementMod entries17/18/19 were found in the18
+instances inspected after the parent's throttle-fix notice. This narrow inventory
+does not prove dynamically loaded children or other heroes never use those mods;
+no mover implementation was imported in this phase.
+
+Final exact source fingerprints, commands, input and log hashes live outside Git
+in BARRIER_TEST_SOURCE.json, BARRIER_SHARED_INPUTS.json, WORKTREE_VERIFICATION.json
+and MERGE_READY.json. Full Roadhog static and original-client goals remain open.
+No commit is permitted until the complete static goal passes.
+
+Final current-source verification: 565 broad +105 storage checks pass, no skips.
+Frozen37-Python-file fingerprint: 025edee10dc32fedc6610a0b2e50a97899f95229c0bc35a9ef0d9e74a6d1b709.

@@ -309,7 +309,7 @@ class Client:
             if script.death_frames is not None:
                 self._flush_bot_frames(script)
 
-    def queue_body_health(self, entity: int, components: dict) -> None:
+    def queue_body_health(self, entity: int, components: dict, *, movement=None) -> None:
         """Keep the latest complete pool snapshot for a current body, including before create ACK."""
         if entity not in self._combat_notices or entity in self._body_destroy_wait:
             return
@@ -317,7 +317,8 @@ class Client:
         if previous is not None:
             # Each viewer owns its record. Supersession must not disable another client's resend.
             self.cancel_entity_record(previous)
-        update = world.EntityUpdate(entity, world.OP_UPDATE, lambda origin: world.update(origin, components))
+        update = world.EntityUpdate(entity, world.OP_UPDATE, lambda origin: world.update(origin, components),
+                                    movement=movement)
         self._body_health[entity] = update
         if self.bot_create_acked(entity):
             self.queue_entities([update])
@@ -697,6 +698,8 @@ class Client:
     def _track_body_create(self, entity: int) -> None:
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
+        if bot is None:
+            bot = match.combat.mines.entities.get(entity)
         if bot is None:
             if not any(player.has_body and player.body == entity for player in match.players):
                 return
@@ -1187,7 +1190,8 @@ class GameServer:
                         return match.switch_hero(player, hero)
         return False
 
-    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:
+    def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False,
+                attack_action: str = "primary") -> dict:
         """Serialize debug-console actions with the ordinary game tick."""
         from ow174.game.npc_console import Console
 
@@ -1205,7 +1209,7 @@ class GameServer:
             player = self.player_of(account_lo)
             if player is None:
                 raise ValueError('The selected account has no active match')
-            return console.press(key, player.match, player)
+            return console.press(key, player.match, player, attack_action=attack_action)
 
     def skin_changed(self, account_lo: int, hero_guid: int) -> bool:
         """The lobby equipped an item of a hero (24500): a player in a match who plays that hero gets the

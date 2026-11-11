@@ -33,7 +33,15 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
-    "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
+    "ow174.game.winston_barrier", "ow174.game.zarya_barriers",
+    "ow174.game.knockback",
+    "ow174.game.orisa_barrier",
+    "ow174.game.sigma_barrier",
+    "ow174.game.sombra",
+    "ow174.game.symmetra_barrier",
+    "ow174.game.barriers", "ow174.game.bots", "ow174.game.casc",
+    "ow174.game.collision",
+    "ow174.game.combat", "ow174.game.commands",
     "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
     "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
@@ -41,11 +49,18 @@ _CONFIG_MODULES = (
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
     "ow174.game.server", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world", "ow174.game.ultimate",
-    "ow174.game.defenses",
-    "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.runtime",
+    "ow174.game.defenses", "ow174.game.deflection", "ow174.game.npc_context", "ow174.game.assassin",
+    "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.graph",
+    "ow174.game.script.runtime",
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.winston_barrier": {"RADIUS"},
+    "ow174.game.barriers": {"GEOMETRY_SHA256", "BRIGITTE_SHA256"},
+    "ow174.game.orisa_barrier": {"GEOMETRY_SHA256"},
+    "ow174.game.sigma_barrier": {"GEOMETRY_SHA256"},
+    "ow174.game.symmetra_barrier": {"GEOMETRY_SHA256"},
+    "ow174.game.deflection": {"TAGS_SHA256", "EXCLUDED_TAG"},
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
     "ow174.game.script.runtime": {
@@ -53,6 +68,7 @@ _REQUIRED_CONFIG = {
         "MAX_SCRIPT_WORK", "MAX_FOLLOW_DEPTH",
     },
     "ow174.game.script.expr": {"MAX_EXPRESSION_STEPS"},
+    "ow174.game.script.graph": {"HALT_GRAPHS_SHA256"},
     "ow174.game.script.driver": {"MAX_GAP", "MAX_SHOTS", "MAX_REPORTS", "ULT_SECONDS", "SETTLE_FRAMES"},
 }
 _HEX256 = re.compile(r"[0-9a-f]{64}\Z")

@@ -26,7 +26,7 @@ from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.link import ACK, FIN, KIND_FRAME, SYN, Packet, ReceiveWindow, peek_connection
 from ow174.game.match import SEND_CONTROLLER, SEND_EVERY, SEND_WORLD
-from ow174.game.script import decode, expr
+from ow174.game.script import decode, expr, graph
 from ow174.game.server import PING, GameServer
 from ow174.game.world import OP_CREATE, OP_DESTROY, EntityUpdate
 
@@ -75,6 +75,7 @@ def components(reader):
 
 
 def entity_record(reader, op):
+    definition = None
     length = reader.bits(14)
     end = reader.pos + length
     if op == OP_CREATE:
@@ -82,7 +83,7 @@ def entity_record(reader, op):
             reader.bits(32)
             assert not reader.bit()
         else:
-            reader.bits(12 if reader.bit() else 20 if reader.bit() else 32)
+            definition = 0x0400000000000000 | reader.bits(12 if reader.bit() else 20 if reader.bit() else 32)
             flags = reader.bits(8)
             if flags & world.WITH_SKIN:
                 assert flags & world.SKIN_THEME
@@ -95,7 +96,7 @@ def entity_record(reader, op):
                 read_movement(reader, world.CREATE_BASE)
     result = components(reader)
     assert reader.pos == end, (reader.pos, end)
-    return result
+    return definition, result
 
 
 def wire_frame(packet):
@@ -138,19 +139,28 @@ def wire_frame(packet):
                 else:
                     reader.bits(32 if reader.bit() else 8)
                 read_shot(reader)
-        assert not reader.bit()  # these scenarios use no projectile release state
+        if reader.bit():  # projectile release state against a blank baseline
+            assert reader.var_b() == 0xFFFFFFFF
+            reader.var_b()  # frame delta
+            assert reader.bits(2) == 0  # alive, no optional field
+            reader.bits(96)  # release position
+            assert reader.bits(5) == 0  # velocity and optional lists
+            assert reader.bit()
+            count_bits = 4 if reader.bit() else 8 if reader.bit() else 32
+            assert reader.bits(count_bits) > 0
+            assert reader.bits(6) == 0  # optional hit and tail fields
         assert reader.bit() == 1  # ch3
         if reader.bit():
             start = reader.pos
             length = reader.bits(12)
             assert not reader.bit()  # reference movement record
-            read_movement(reader, tick)
+            update.movement = read_movement(reader, tick)
             assert reader.pos == start + length
         if not reader.bit():
             records.append((update, {}))
             continue
         update.op = reader.bits(2)
-        fields = {} if update.op == OP_DESTROY else entity_record(reader, update.op)
+        update.definition, fields = (None, {}) if update.op == OP_DESTROY else entity_record(reader, update.op)
         assert reader.bit() == 0  # ch5
         records.append((update, fields))
     assert reader.left() < 8 and reader.bits(reader.left()) == 0
@@ -162,7 +172,8 @@ class ModelLink(transition_tests.Link):
         super().__init__(game, handoff)
         self.window = ReceiveWindow()
         self.reliable = 0
-        self.models = {}  # entity -> ClientModel; removed at the body's wire destroy
+        self.models = {}  # entity -> ClientBody; removed at the body's wire destroy
+        self.actor_definitions = set()
         self.fields = {}  # entity -> latest replicated component fields
         self.chunks = []  # (datagram seq, entity, decoded Frame)
         self.records = []  # the wire records, including reliable retransmissions
@@ -183,8 +194,12 @@ class ModelLink(transition_tests.Link):
                 continue
             for index, values in fields.items():
                 self.fields.setdefault(update.entity, {}).setdefault(index, {}).update(values)
-            if update.op == OP_CREATE and 123 in fields and update.entity not in self.models:
-                self.models[update.entity] = ClientModel(fields[123][0])
+            if update.op == OP_CREATE and update.entity not in self.models:
+                if 123 in fields:
+                    self.models[update.entity] = ClientModel(fields[123][0])
+                elif update.definition in self.actor_definitions:
+                    record = graph.entity_body(update.definition)
+                    self.models[update.entity] = decode.ClientBody(row["graph"] for row in record["graphs"])
             model = self.models.get(update.entity)
             if update.chunk is not None and model is not None:
                 first = decode.w_u32(BitReader(update.chunk.getvalue()))

@@ -803,7 +803,8 @@ class DashboardService:
             raise ApiError('NPC catalog is unavailable or invalid.', 409) from error
         account = self.account(data.get('name'))
         return game.npc_key(account.account_lo, data.get('key'), catalog,
-                            menu_open=data.get('menu_open', False))
+                            menu_open=data.get('menu_open', False),
+                            attack_action=data.get('attack_action', 'primary'))
 
     def reconnect(self) -> dict:
         self.lobby.reconnect_own_game()

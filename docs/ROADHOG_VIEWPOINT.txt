@@ -1,0 +1,26 @@
+Selected104319 FirstPerson viewpoint checkpoint
+===============================================
+
+Original body028F's STUFirstPersonComponent supplies standing1.6 and crouched1.12;
+body02A3 supplies1.425/.9975 for the enemy McCree. The previous generic1.55/1.15
+values are incorrect for these bodies. Keep existing Soldier crouch1.085 and
+explicit fallback for unlisted bodies. EYE_INPUTS.json pins both external XML
+inputs and field values. No original asset is copied into source.
+
+One eye_height helper now serves both Combat._eye projectile/ray origins and
+player Target.eye/history/critical-band input. Actual crouch commands verify
+standing -> crouched -> standing and both consumers/history. Narrow floor/wall
+fixtures distinguish Roadhog standing1.6 clearing1.575 cover from the old1.55,
+and crouched1.12 hitting1.135 cover that old1.15 would clear. Enemy McCree1.425
+is blocked by1.48 cover; its former generic1.55 would have cleared that cover.
+
+These correct authored offsets in the existing fixed-eye server model. Native
+skeletal hitboxes/head threshold, camera/muzzle animation, body-specific fields
+not yet read and arbitrary history/phase ordering remain open. NPC origin fallback
+is not silently replaced with a player FirstPerson height. No general critical
+default or McCree weapon policy is changed by this patch. Previous586+105 Zarya
+results are the prior frozen source; use EYE_TEST_SOURCE.json and external current
+verification for final current-source results. Full-static/client gates stay open.
+
+Final current-source verification: 591 broad +105 storage/replay, no skips.
+Frozen42-Python-file fingerprint: 1a105586b83af348c310a8739168e52ecc279357e31c4a683610b588bebdd319.

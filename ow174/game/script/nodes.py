@@ -68,7 +68,29 @@ REEVALUATE = 1  # BooleanSwitch / Switch / Watch timer param
 
 @state_class("STUStatescriptStateModifyHealth")
 class ModifyHealth(self_heal.TimedSelfHeal):
-    """Only the documented Roadhog timed self-heal subset has an engine consumer."""
+    """Roadhog timed heal plus an explicit world's scoped health-state service."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict and not self.heal_duration:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        super().tick()
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
 
 
 def _field(state: State, name: str):
@@ -863,6 +885,17 @@ class Wait(State):
             self.request_finish()
 
 
+@state_class("STU_54FEB21C")
+class EarthshatterRelease(State):
+    """Selected reconstructed Reinhardt release markers."""
+
+    def on_begin(self):
+        if (self.instance.graph.index, self.node.pos) in ((0xBE, 92), (0x7D, 89)):
+            self.request_finish()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+
 @state_class("STU_E3CEF6B9")
 class WaitForServerFrames(State):
     """Finishes after its number of server frames (unverified: one frame = one command frame)."""
@@ -1036,6 +1069,7 @@ class WeaponVolley(State):
     variable keeps the value one ms later (the +1 ms rule, 0x7FF78A07F310)."""
 
     family = "volley"
+    _discard_unreleased = False
 
     def __init__(self, *args) -> None:
         super().__init__(*args)
@@ -1045,6 +1079,7 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
 
@@ -1085,6 +1120,13 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if ((self.instance.graph.index, self.node.pos) == (0x1514, 24)
+                and isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1135,12 +1177,37 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        return self.spread0
+        return self.spread_at(self.now - self.start - self.offset)
+
+    def spread_at(self, elapsed: int) -> float:
+        """Captured104319 D80A50 ramp; D5F979 passes completed shots plus one.
+
+        The output is normalized, not an angle. Optional native decay and other
+        launch classes retain their previous behavior until separately restored.
+        """
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
+
+    def cancel_pending(self) -> None:
+        """End an input-gated volley with only its reported shots committed."""
+        self._discard_unreleased = True
+        try:
+            self.end(False)
+        finally:
+            self._discard_unreleased = False
 
     def on_end(self, finished: bool) -> None:
-        self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
+        if self._discard_unreleased:
+            ammo = max(0, self.ammo0 - self.per_shot * self.reported)
+        else:
+            self.report(self.now)
+            ammo = self.ammo_at(elapsed + 1)
+        values = {0: ammo, 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
@@ -1186,20 +1253,33 @@ class MoveTo(State):
         self.movement = None
 
 
+@state_class("STUStatescriptStateHealthPool")
+class HealthPool(State):
+    def on_enter(self):
+        component = self.instance.component
+        if component.world.set_health_pool(self, True) is NotImplemented and component.strict:
+            component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+    def on_end(self, finished):
+        self.instance.component.world.set_health_pool(self, False)
+
+
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
     """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
     follows m_A3B86BB0 (animation finished), and unless m_clientAnimRemovesSelf (m_154DBA91) the state
-    finishes at start + d. Without it the duration is the animation asset's: not known here."""
+    finishes at start + d. The world can provide an asset duration when the field is absent."""
 
     family = "anim"
 
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
-        if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
+        seconds = (self.instance.component.world.animation_seconds(self) if duration is None
+                   else self.evaluate(duration, watch=False))
+        if duration is None and seconds is None:
+            expr.warn_once("anim", "an Anim state without a known duration does not end on its own")
             return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+        ms = seconds_to_ms(seconds)
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1241,6 +1321,7 @@ class Ability(State):
         self.presses: list[tuple[int, int, int]] = []  # (time, button, activation)
         self.cur = 0.0
         self.cooldown_rate = 1.0
+        self.last_sample = 0.0  # last cooldown output delivered to dependency watchers
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
@@ -1271,6 +1352,7 @@ class Ability(State):
         self.cooldown_rate = self.rate()
         self.last = self.now
         self.var = self.link(target)
+        self.last_sample = self.remaining()
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
         if self.cur > 0 and self.cooldown_rate > 0:
@@ -1325,10 +1407,22 @@ class Ability(State):
     # starting and stopping
 
     def tick(self) -> None:
+        self.sample_cooldown()
         self.activate()
+
+    def sample_cooldown(self) -> None:
+        """Wake variable-dependent gates as the linked clock changes, including expiry.
+
+        Host tick sampling is reconstructed; reading the getter alone must remain
+        read-only and cannot deliver dependency notifications.
+        """
+        before, self.last_sample = self.last_sample, self.remaining()
+        if self.var is not None:
+            self.instance.changed(self.var, before)
 
     def timer(self, param: int) -> None:
         if param in (1, 2):
+            self.sample_cooldown()
             self.activate()
 
     def plug_enter(self, input_path: str) -> bool:
@@ -1439,18 +1533,23 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue the running scope's cleanup before releasing its arbitration link.
+
+        This server ordering prevents a newly unblocked weapon from sampling old
+        ammo before the outgoing scope's refill message. Native inter-object
+        ordering is not yet proven by the static stop/delta-guard instructions.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1576,8 +1675,16 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
+        # Native 1B9B3C0 uses integer positions for null cases in mode 1.
+        # The selected 0B27 phase switch relies on these implicit case values.
+        indexed = ((self.instance.graph.index, self.node.pos) == (0x0B27, 20)
+                   and _field(self, "m_F0F0720B") == 1)
         for number, case in enumerate(_field(self, "m_05706D1C") or []):
-            if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
+            if not isinstance(case, dict):
+                continue
+            config = case.get("m_value")
+            expected = number if indexed and config is None else self.evaluate(config, watch=False)
+            if equal(value, expected):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
 
@@ -1822,12 +1929,93 @@ class GamePadVibration(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Explicit world-provided target arrays; unimplemented searches still find nothing.
+
+    Array linking/update and zero wire age are reconstructed. Native weighted
+    selection, target history/age and full engine-query scheduling stay open.
+    """
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.var = None
+
+    def on_begin(self):
+        targets = self.instance.component.world.track_targets(self)
+        if targets is NotImplemented:
+            return
+        self.targets = tuple(targets)
+        target = lvalue(self.node.field('m_8A2905A0'))
+        self.var = self.link(target) if target is not None else None
+        identity = self.instance.graph.index, self.node.pos
+        if identity in ((0xBE, 114), (0x0C51, 19)):
+            if self.targets or identity == (0x0C51, 19):
+                self.instance.follow(self.node, "m_transitionPlug[0]", self)
+            self.request_finish()
+            return
+        self.start_tracking()
+
+    def start_tracking(self):
+        self.ticks()
+
+    def tick(self):
+        targets = self.instance.component.world.track_targets(self)
+        if targets is NotImplemented:
+            targets = ()
+        before, self.targets = self.targets, tuple(targets)
+        if self.var is not None and before != self.targets:
+            self.instance.changed(self.var, before)
+
+    def on_end(self, finished):
+        if self.var is not None:
+            var, self.var = self.var, None
+            self.unlink(var)
+        self.targets = ()
+
+    def output(self, slot):
+        return self.targets
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets)}
+
+
+@state_class("STUStatescriptStateShockwave")
+class EarthshatterWave(TrackTargets):
+    """Selected server front and retained contacts for Reinhardt's 00BE."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.origin = None
+        self.forward = None
+        self.speed = 0.0
+        self.reach = 0.0
+        self.launch_tick = None
+
+    def on_begin(self):
+        if (self.instance.graph.index, self.node.pos) != (0xBE, 1):
+            if self.instance.component.strict:
+                self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+            return
+        self.speed = to_float(self.evaluate(self.node.field("m_speed"), watch=False))
+        self.reach = to_float(self.evaluate(self.node.field("m_6A79BD98"), watch=False))
+        super().on_begin()
+
+    def start_tracking(self):
+        # Combat owns propagation after release, even without owner commands.
+        pass
+
+    def advance(self, tick, seconds_per_tick):
+        with self.instance.component.operation():
+            super().tick()
+            if (tick - self.launch_tick) * seconds_per_tick * self.speed >= self.reach:
+                self.end(True)
+
+    def on_end(self, finished):
+        super().on_end(finished)
+        self.origin = self.forward = None
+        self.launch_tick = None
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1992,6 +2180,10 @@ def set_var(instance: Instance, node, caller) -> bool:
 
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
+    if target is None and index_cfg is None and key_cfg is None and instance.graph.index == 0x160A:
+        indexed = expr.indexed_lvalue(out_cfg)
+        if indexed is not None:
+            target, index_cfg = indexed
     if target is None:
         return
     if key_cfg is not None:
@@ -2199,8 +2391,33 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
-    if instance.component.strict:
+    selected = instance.component.world.play_script_selected(instance, node)
+    if selected is NotImplemented and instance.component.strict:
         instance.component.world.play_script(instance, node)
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_B6E3C77D")
+def create_entity(instance: Instance, node, caller):
+    if instance.component.world.create_entity(instance, node) is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_FF3471E9")
+def apply_velocity(instance: Instance, node, caller):
+    if instance.component.world.apply_velocity(instance, node) is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_523EE38D")
+def destroy_entity(instance: Instance, node, caller):
+    if instance.component.world.destroy_entity(instance, node) is NotImplemented:
+        return NotImplemented
     instance.follow(node, "m_outPlug", None)
     return True
 

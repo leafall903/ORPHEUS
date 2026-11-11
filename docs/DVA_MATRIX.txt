@@ -1,0 +1,84 @@
+D.Va Matrix versus Roadhog -- build1.74.0.0.104319, partial static worktree
+
+This lane adapts007A's deflection.py and native-backed ruleset/body-owner helpers.
+The real0407 mech is explicit fixture input. Match now passes the selected body
+003 definition to BodyScript instead of always selecting the first record with
+that hero ID. The original body records and02CC graph are not modified.
+
+Inputs remain external: ORPHEUS_GRAPH_BUNDLE selects a baseline-preserving union
+with the extracted0407 entity; ORPHEUS_PROJECTILE_TAGS supplies the version1,
+build104319003 target-tag catalog. Tests mount original0407 mover data through
+ORPHEUS_TEST_MECH_MOVERS into a temporary fixture table. No runtime/archive data
+is changed, and no supplement is silently installed into normal service data.
+MATRIX_INPUTS.json records input hashes and add-only merge policy.
+
+The unchanged02CC graph initializes100 resource, activates its DeflectProjectiles
+state3, drains by elapsed use, releases/starts cooldown, regenerates and ends on
+exhaustion. The resource gate now uses3832D36C scalar semantics: preserve a
+non-null selector value and otherwise fall back through config metadata plus the
+last resolved member VM. This cache is passive uint32 instance storage, included
+in VM/server snapshots and command-trace hashes. Direct component43 body-owner
+queryF7262B36 is distinct from the primary possession query0AC15F78; BodyWorld
+mounts their existing native-backed services with declared live Match identities.
+Native comparison scopes/adapters remain explicit in the two external reports:
+1296CCFAC0 cases and1056CDBDE0/D15520 cases, rerun against this lane source.
+Those helper comparisons do not establish native controller allocation or AI.
+
+Matrix boxes come from live authored02CC/st3 and are placed at the current eye
+in an aim yaw/pitch frame. Known003 definitions lacking tag0145 are absorbable;
+unknown/tag0145 definitions pass through. This exclusion polarity and attachment
+are reconstructed; the complete native.097/filter evaluator is not restored.
+Hook and melee bypass this projectile gate. Original projectile definitions are
+retained on flights, reflected flights and expiry fragments so child eligibility
+is not guessed from its parent's damage. Whole Hog hitscan carries its own003.
+
+Interceptions compare nearest enemy gates against body/static collision. The
+absorbed flight is retired without damage, splash or a child expiry volley. A
+confirmed transport shot is ended with explode=False, including Genji/Sigma
+interceptions; normal impact/lifetime paths retain their previous release.
+Client rendering and local unconfirmed predictions have not been observed.
+
+Current Roadhog actual-command checks cover primary, close slug, before/after
+slug-expiry interception, Whole Hog, ammo/charge/no-hit notices, current facing,
+release/cooldown repress, depletion, friendly gates, earlier walls, melee and
+Hook interruption. High retained health without armor isolates interception;
+this does not accept D.Va form lifecycle, mech pool initialization or armor.
+Active ruleset cache export is read-only and hash-sensitive. The Trooper,
+Enforcer, Sniper and Heavy Assault authored weapon graphs produce actual
+incoming shots that allied Matrix absorbs before they reach Roadhog. After
+Matrix releases, each weapon can damage Roadhog again. Assassin can pin
+Roadhog and apply contact and sustained damage inside the active allied box.
+Actual Minefield chords cross the live box, remain Ball-owned, arm and
+deal 130 to Roadhog. The same chord satisfies the gate with an eligible
+Scrap Gun projectile definition. Mine entity 2578 carries tag 0145.
+Genji 03A3/18 and Sigma 1D02/7 select that same tag and policy value as
+02CC/9. Their real casts also allow the selected airborne mines through.
+Pitch/boundary sweeps, full transport matrix, dynamic tags, native filter
+and geometry timing, and complete cross-hero defenses remain open.
+Forced combat interruption of an active Matrix reuses 02CC/node68's normal
+release write from variable 472 to cooldown 61. This server reconstruction
+prevents held or newly pressed Matrix from reopening early after Hook.
+Both actors can land primary fire after Hook recovery during that cooldown.
+A fresh Matrix activation after expiry again absorbs actual secondary fire. Whole Hog knockback remains open.
+No original-client session, acceptance, publication or new commit is claimed.
+
+Regression integration also registers the two new query Contexts and bound
+callbacks with the full server exporter. Stored Match query results intentionally
+differ from a constructor-only native-body trace; that trace remains incomplete
+unless its external Match activity is captured. This is not silently normalized.
+
+The external tag content SHA256 is sealed as a required model configuration
+value. A cold load rejects changed file bytes; loaded tables retain their
+canonical identity. Full-server snapshots observe the loaded catalog directly
+without invoking its loader or reading the file. Catalog mutations change the
+stored digest. Confirmed-copy teardown is checked using a flight produced by
+actual primary input plus an explicitly injected acknowledged owner-copy record.
+This fixture proves the server destroy has no explosion-release ch2; it is not
+original-client or complete prediction/observer-ACK acceptance.
+
+Final validation on frozen current source:268 related combat/hero/NPC/expression
+checks and105 native-trace/VM/driver/query/manifest/server-storage checks pass,
+without skipped cases. The prior22 targeted Matrix/catalog/owner checks overlap
+these groups. Ruff/diff pass. Earlier snapshot registration/constructor-only
+assertion failures were corrected before both final runs. Source fingerprints,
+commands, external input hashes and exact result logs are recorded outside Git.

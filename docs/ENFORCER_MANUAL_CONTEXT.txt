@@ -1,0 +1,52 @@
+Roadhog lane reuse of shared manual Enforcer context -- partial104319
+
+The parent canonical npc_context.py is reused unchanged. Only an explicitly
+manual_spawn body receives declared controller components(4B,), with5C absent.
+The shared manual Assassin context now feeds the scoped1157 pin bridge described
+in ASSASSIN_PIN_BRIDGE.txt. Native controller allocation, full pin semantics and
+client acceptance remain open. Stock placements keep unknown controller services.
+
+Enforcer13EB owner9B7648C3 reads authoritative aggregate OWNER_HEALTH, and
+B96D3A98 checks4B present/5C absent. Scope/foreign-query fallthrough are preserved.
+Initial NPC health, armor and shields now synchronize into the VM after spawn.
+The declared component tuple is causal BotWorld storage in VM/server snapshots.
+
+Eight original CC9F61 predicate-tail/182C470 bit-reader cases match this lane's
+predicate. DA6910 lookup and F66AF0 result storage are adapters. Choosing the
+manual component set is reconstructed policy, not native allocation/ownership.
+No native NPC controller entity, replicated components or foreign namespace is
+created, and no native predicate is replaced with a constant in the tests.
+
+Actual13EB input now damages Roadhog: one admitted close shot removes2 HP,
+stop prevents further damage and explicit engagement resumes. Scheduling E
+before the actual observed impact yields1 HP damage while its live scale is0.5.
+Actual Hook stops attacks during control and release recovers incoming damage.
+This does not restore the full authored25-pellet spread or accept native timing.
+
+All five Talon NPC mover records are now required by this lane's five-NPC tests.
+They come from the shared read-only npc-navigation-runtime43-record input,
+with source XML/hashes in mover-preparation.json. Missing entries fail instead
+of passing with the generic mover fallback. Capsule sizes, attacks/fragments,
+reflected damage/death, Hook pulls/range/static-wall rejection and retained
+corpses are rechecked. Older results using runtime104319's38 movers are historical
+partial evidence and do not prove the original NPC geometry. Static triangles
+are fixtures; the new runtime has no real-map collision cache/deployment claim.
+
+Enforcer full pellet/cadence/reload/projectile/muzzle/difficulty/native controller
+and autonomous AI/specials remain open. Remaining Assassin pin fidelity and all
+complete static/client gates remain open. No shared-tree edit or new commit is made.
+
+Final frozen-source verification:341 combat/hero/NPC/bot/context checks and105
+storage/replay checks pass on the43-record mover runtime with no skips. The25
+NPC/context targeted checks overlap these groups. Eight original predicate-tail
+comparisons pass. Source/input hashes and logs are pinned in external records.
+Ruff/diff/cumulative reverse-patch checks pass. Full static/client remains open.
+
+Current Enforcer volley and reload coverage
+Runtime 13EB/24 emits the authored 1/8/16 rings with spread variable 230.
+The server reconstructs tangent-cone angles. One actual 2 m volley emitted
+25 distinct directions and dealt 50 damage. Active Take a Breather reduced
+the same volley to 25. Holding manual input spent four rounds, refilled once,
+then released and landed a fifth volley. Cadence, pool loss, and the flight
+delay were observed in the server. This supersedes the one-pellet probe above.
+Original-client muzzle, random phase, timing and AI remain separate.

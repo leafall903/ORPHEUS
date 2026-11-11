@@ -31,12 +31,20 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
+        self.rejected_pin_attempt = None
+        self.pool_profile = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +52,25 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_context, orisa_halt
+
+        value = orisa_halt.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = assassin.native(self, cfg, instance)
+        if value is NotImplemented:
+            value = npc_context.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        if self.pool_profile is not None and instance is not None and instance.graph.index == 0x143A:
+            body, tier = self.pool_profile
+            if (
+                cfg.get("$") == "STU_1A3FA5B0"
+                and instance.evaluate(cfg["m_entity"]) == expr.Entity(instance.component.entity)
+            ):
+                return expr.Asset(body)
+            if cfg.get("$") == "STU_C3619A38":
+                identifier = (0x195E, 0x195F, 0x26DF, 0x1960)[tier]
+                return expr.Asset(0x0D80000000000000 | identifier)
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +98,54 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def set_health_pool(self, state, active):
+        instance = state.instance
+        if self.pool_profile is None or instance.graph.index != 0x143A:
+            return NotImplemented
+        from ow174.game import world
+
+        owner = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
+        if owner != expr.Entity(instance.component.entity):
+            raise ValueError("NPC conditional pool must target its own body")
+        kind = state.node.field("m_7E8B666C")
+        if kind not in (world.HEALTH_POOL, world.SHIELDS_POOL):
+            raise ValueError("unsupported NPC conditional pool kind")
+        vitals = self.match.combat.vitals[owner.id]
+        amount = (expr.to_float(state.evaluate(state.node.field("m_amount"), watch=False))
+                  if active and not vitals.dead else 0)
+        vitals.set_conditional_pool(kind, amount)
+        instance.component.set(OWNER_HEALTH, float(vitals.total))
+        return True
+
+    def animation_seconds(self, state: runtime.State) -> float | None:
+        from ow174.game import assassin
+
+        if not assassin.scoped(self, state.instance) or state.node.pos != 31:
+            return None
+        alias = state.node.field("m_11E0A658") or {}
+        category = state.node.field("m_22326315") or {}
+        if (graph.guid(alias.get("m_animAlias")) == 0x0C80000000000561
+                and graph.guid(category.get("m_category")) == 0x0280000000000082):
+            # Alias 0561 and category 0082 resolve to the 508A.006 clip.
+            return 1.4666666984558105
+        return None
+
+    def track_targets(self, state):
+        from ow174.game import npc_melee
+
+        return npc_melee.track(self, state)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, npc_melee
+
+        value = npc_melee.apply(self, state, elapsed_ms)
+        return assassin.modify_health(self, state, elapsed_ms) if value is NotImplemented else value
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +153,8 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
+        pool_match=None, difficulty_index=None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,12 +163,18 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
+        if difficulty_index is not None:
+            world.pool_profile = body, difficulty_index
+            world.match = pool_match
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms
         self.set_health(health, health)
-        for instance in create_body_graphs(component, record):
+        instances = create_body_graphs(component, record)
+        if difficulty_index is not None and not any(instance.graph.index == 0x143A for instance in instances):
+            raise ValueError("NPC difficulty requires body graph 143A")
+        for instance in instances:
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -127,6 +210,9 @@ class BotScript(ReplicatedBody):
         if self.behavior is not None and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
         self.component.run_frame(frame)
+        from ow174.game import assassin
+
+        assassin.refresh_control(self.component.world, self.component)
         self._report_shots()
         snapshot = self._changed_snapshot()
         if snapshot is not None:
@@ -143,6 +229,9 @@ class BotScript(ReplicatedBody):
             raise ValueError("bot death predates its script")
         # A terminal graph may remove instances needed to encode the last live baseline.
         self._initial_payload()
+        from ow174.game import assassin
+
+        assassin.bind(component.world, component, None)
         # A bot can die in the tick that created it. Its initial frame is already
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
@@ -153,6 +242,12 @@ class BotScript(ReplicatedBody):
         component.shots.clear()
         component.run_frame(self.frame)
         component.held.clear()
+        if component.world.pool_profile is not None:
+            for instance in tuple(component.instances.values()):
+                if instance.graph.index == 0x143A:
+                    for state in tuple(instance.states.values()):
+                        if state.active and state.node.cls == "STUStatescriptStateHealthPool":
+                            state.end(False)
         component.set(OWNER_HEALTH, 0.0)
         if not runtime.send_message(component, DIED, params, sender):
             return None

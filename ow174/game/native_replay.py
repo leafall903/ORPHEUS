@@ -8,12 +8,13 @@ import dataclasses
 import hashlib
 import json
 import math
+import types
 from functools import cache
 
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
 from ow174.game.script import graph, runtime
-from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript
+from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, BodyScript, BodyWorld
 from ow174.paths import DATA_DIR, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
@@ -31,6 +32,7 @@ MODEL_FILES = (
     "ow174/game/native_replay.py", "ow174/game/commands.py", "ow174/game/pools.py",
     "ow174/game/script/driver.py", "ow174/game/script/runtime.py", "ow174/game/script/expr.py",
     "ow174/game/script/nodes.py", "ow174/game/script/graph.py", "ow174/game/script/rulesets.py",
+    "ow174/game/script/body_owner.py", "ow174/game/script/entity_queries.py",
     "ow174/game/script/codecs.py", "ow174/game/statescript.py",
 )
 MODEL_DATA = (
@@ -76,6 +78,10 @@ def _stored(value):
             return {"map": [[key, _stored(value[key])] for key in sorted(value)]}
         return {"map": sorted(([_stored(key), _stored(item)] for key, item in value.items()),
                               key=lambda pair: _json(pair[0]))}
+    if (isinstance(value, types.MethodType) and type(value.__self__) is BodyWorld
+            and value.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                   BodyWorld._poll_body_owner)):
+        return {"world_method": value.__func__.__name__}
     if dataclasses.is_dataclass(value):
         return {"type": type(value).__name__,
                 "fields": {item.name: _stored(getattr(value, item.name))
@@ -114,6 +120,7 @@ def _snapshot(script: BodyScript, encode) -> dict:
             "vars": _variables(instance.vars, encode), "states": states,
             "queue": encode(instance.queue), "deferred": encode(instance.deferred),
             "ticking": encode(instance.ticking), "params": encode(instance.params),
+            "ruleset_target_entity": instance.ruleset_target_entity,
             "join_inputs": encode(instance.join_inputs), "plug_source": encode(instance.plug_source),
         })
     return {
@@ -144,6 +151,8 @@ def stored_snapshot(script: BodyScript) -> dict:
 def _runtime_json(value):
     # JSON's C encoder handles scalar state fields directly; Python visits only native references.
     # This avoids thousands of small JSON encodes per observed command without evaluating the VM.
+    if isinstance(value, types.MethodType):
+        return _stored(value)
     if isinstance(value, (runtime.State, runtime.Instance, runtime.Var, graph.Node, bytes, set, frozenset)):
         return _stored(value)
     if dataclasses.is_dataclass(value):

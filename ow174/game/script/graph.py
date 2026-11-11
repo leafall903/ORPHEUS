@@ -39,6 +39,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -51,6 +52,10 @@ from ow174.paths import DATA_DIR
 
 _graph_bundle = os.environ.get("ORPHEUS_GRAPH_BUNDLE")
 GRAPHS_PATH = Path(_graph_bundle).resolve() if _graph_bundle else DATA_DIR / "game_graphs_174.json.gz"
+_halt_graphs_path = Path(os.environ.get("ORPHEUS_ORISA_HALT", DATA_DIR / "orisa_halt_174.json")).resolve()
+HALT_GRAPHS_SHA256 = (
+    hashlib.sha256(_halt_graphs_path.read_bytes()).hexdigest() if _halt_graphs_path.is_file() else None
+)
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -292,7 +297,21 @@ def _data() -> dict:
 
 @cache
 def _records() -> dict[int, dict]:
-    return {record["index"]: record for record in _data()["graphs"]}
+    records = {record["index"]: record for record in _data()["graphs"]}
+    if HALT_GRAPHS_SHA256 is None:
+        return records
+    raw = _halt_graphs_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != HALT_GRAPHS_SHA256:
+        raise ValueError("Halt graph input changed after model initialization")
+    data = json.loads(raw)
+    if (data.get("schema") != "orpheus-orisa-halt-v1"
+            or data.get("build") != "1.74.0.0.104319"):
+        raise ValueError("Halt metadata has wrong schema/build")
+    supplement = data["graphs"]
+    if len(supplement) != 2 or {record["index"] for record in supplement} != {0xCCC, 0xCCE}:
+        raise ValueError("Halt supplement must contain 0CCC and 0CCE")
+    records.update((record["index"], record) for record in supplement)
+    return records
 
 
 @cache

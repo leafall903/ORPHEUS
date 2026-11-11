@@ -1,0 +1,89 @@
+Roadhog versus finite Zarya personal/projected barriers104319
+=============================================================
+
+Resource boundary
+-----------------
+0244/st2 owns13F4 personal pet;025C/st10 owns03DA projected pet. Both extracted
+003 definitions reference model10D7. Its explicit sphere radius is1.5; the
+0256 health-pool amount has baseline200 and ruleset1D43. Actual phase graphs
+supply2s lifetime and10s/8s personal/projected cooldown. Resource/model XML
+bytes remain external, with hashes in ZARYA_RESOURCE_VALIDATION.json.
+
+Reused selected finite-pool service from lane0206; did not merge that lane.
+Sphere centre follows the current stand/crouch capsule centre, including actual
+NPC movers. Private static identities, target ranking/cone/default multiplier,
+whole-hit overkill absorption and pool break -> Pet phase completion are explicit
+reconstruction. No native Pet actor or output-entity/wire creation is fabricated.
+0256 HealthPool/PlayScript hosting and upstream0011 receiver/damage filters,
+full ruleset/receiver overrides, model-bone attachment and native entity history
+remain open. The local World target-array provider handles only025C searches4/7;
+other searches retain their unimplemented path. Array linking and zero wire age
+are reconstructed; native weighted selection/scheduling are not established.
+
+Combat
+------
+Primary/slug/expiry fragments and Whole Hog use the nearest sphere, Reinhardt
+mesh, static wall or mapped interception box. Blocked damage consumes a separate
+finite pool, without body damage or health-damage ultimate charge. Actual
+clamped pool loss sends0146 to the caster's original0242 energy graph; its own
+expression owns gain/cap/decay. Native energy/credit eligibility is unaccepted.
+
+Melee can overlap only the outer sphere. The impact that breaks the last few
+shield HP is fully absorbed; later pellets/attacks can damage the recipient.
+Generic direct damage is also routed to an attached finite bubble before the
+recipient's armour/reduction. Breather therefore does not halve shield damage,
+and its ordinary self-heal continues. Hook consumes30 pool HP without catch,
+pull or channel interrupt. A projected bubble can break an established tether
+without another contact hit. Shared Flashbang depletion cannot spill damage or
+stun through that same impact. Friendly/outgoing recipient attacks pass.
+
+Protection/control is a scoped host policy for a live finite bubble, not a
+body-wide invulnerability flag or a general native cleanse implementation.
+Projecting onto a Roadhog already pinned by Assassin exposed stale input control
+during the authored damage delay. The pin scope now validates target/range/LOS
+and mapped protection every live frame, independently of ModifyHealth ticks.
+Invalid/protected attempts release control and latch their existing scope token,
+so expiry cannot silently reactivate old damage or regrab. Actual pre-contact
+shield consumes25 contact HP; a mid-pin shield receives no repeated contact hit.
+Native Assassin/bubble priority, QTE/counterplay and all-status cleanse stay open.
+
+Lifetime, storage and shared runtime review
+------------------------------------------
+Actual release/expiry/repress/cooldown/fresh reuse and recipient/caster body
+replacement/removal retire the finite record. Active pool, caster/recipient
+identity, phase token, seen generation and allocator state are registered causal
+server snapshot storage. Target-array/link fields are VM storage. Exporting
+cannot synchronize bubbles, evaluate getters, run selectors or simulate combat.
+
+Retain prior cooldown last_sample and canceled CHANGED/CHECK marker fixes.
+Review parent's additional ending-state notification guard: cleanup writes must
+not enqueue work for an ending state. Ability.stop now queues outgoing scope
+cleanup/refill before releasing arbitration, so an unblocked weapon sees updated
+resources. This cross-object order is declared host reconstruction, not native
+instruction equivalence. Parent notification regressions and local actual input
+resource checks execute. Full/partial/empty magazines all accept fresh primary
+input after Whole Hog and authored normal-weapon recovery. The earlier30-frame
+probe was insufficient to establish readiness;100 idle frames plus actual fresh
+input pass. Exact native held-input/cooldown clocks remain separate fidelity work.
+
+Verification
+------------
+Actual Roadhog primary/close slug/fragments/Q/Hook/melee, last-hit absorption,
+wall/team/miss/rear/outer paths, energy routing, selector refusal, cooldown reuse,
+active snapshots, supporting Hook rescue, Breather and Flashbang are exercised.
+Five real NPC bodies receive projected primary/slug/fragments/Hook/melee/Q; later
+Q pellets reach the body after finite-pool break. Four real manual NPC guns hit
+Roadhog's projected pool and stop cleanly; Sniper is shielded after its actual
+charge on an in-flight projectile. Assassin pre-contact and mid-pin projected
+protection release/control/no-stale-regrab are real authored1157 cases.
+
+These are static fixtures with explicit graph/mover/catalog/tag/mesh inputs.
+No autonomous NPC AI, native pet replication, original-map/client transport,
+complete status/overlap/filter/clock matrix or original-client acceptance passes.
+All other barrier types and native Whole Hog knockback/caps/aggregation remain
+open. Full original static goal and no-new-commit gate are unchanged. Exact final
+commands, source/input/log hashes and cumulative candidate remain external in
+ZARYA_TEST_SOURCE.json, WORKTREE_VERIFICATION.json and MERGE_READY.json.
+
+Final frozen-source verification: 586 broad +105 storage/replay, no skips.
+41-Python-file fingerprint: d12404491fb4779f88e8dab6546e881a952b243e3a726c4bba359c7309469a68.
