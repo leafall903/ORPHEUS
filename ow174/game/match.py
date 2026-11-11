@@ -30,6 +30,7 @@ How a player gets into the world:
 import logging
 import math
 from collections import deque
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import replace
 
@@ -42,10 +43,12 @@ from ow174.game import (
     echo_movement,
     heroselect,
     ice_wall,
+    moira,
     movelog,
     notices,
     orisa_charge,
     pools,
+    sigma_barrier,
     stats,
     world,
     wraith,
@@ -59,7 +62,7 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import Command, CommandQueue
+from ow174.game.commands import CROUCH, JUMP, Command, CommandQueue
 from ow174.game.content import (
     JUNKENSTEIN_MAP,
     JUNKENSTEIN_MODES,
@@ -74,7 +77,7 @@ from ow174.game.content import (
 from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.genji import GENJI, Mobility
-from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
+from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
@@ -328,7 +331,10 @@ class Player:
             if self.has_body:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
-                self._advance_body_gap(first_pose)
+                script = self.body_script
+                retained = (sigma_barrier.barrier_gap_buttons(script, command.buttons)
+                            if not dead and script is not None and command.frame > script.frame + 1 else 0)
+                self._advance_body_gap(first_pose, retained_buttons=retained)
                 aim_lock = getattr(self.match.scene_host, 'player_aim_lock', None)
                 if not dead and aim_lock is not None and (locked := aim_lock(self)) is not None:
                     yaw, pitch = locked
@@ -338,25 +344,25 @@ class Player:
                 if not dead and (self.body_script is not None or hooked):
                     self.mover.step(
                         command, seconds, self.match.tick,
-                        simulate_pose=self._step_body_pose,
+                        simulate_pose=self._step_body_pose, retained_buttons=retained,
                     )
                 else:
                     if not dead:  # a dead body lies where it fell
-                        self.mover.step(command, seconds, self.match.tick)
+                        self.mover.step(command, seconds, self.match.tick, simulate_pose=self._move_pose)
                     self._advance_body_frame(command)
         if movelog.ENABLED:
             movelog.snapshots(self)
         return boundary
 
-    def _advance_body_gap(self, first_pose: int) -> None:
+    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
+        self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False)
         if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+            self._advance_body_frame(Command(first_pose - 1, buttons=retained_buttons), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
         fight = self.match.combat
@@ -364,12 +370,19 @@ class Player:
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
             return
         stunned = self.match.combat.is_stunned(self, tick=tick)
-        frost = self.match.combat.frost_progress(self, tick=tick)
+        frost = fight.frost_progress(self, tick=tick)
+        command = fight.clamp_sleep_command(self, command)
+        pulled = self.body in fight.zarya_gravitons.pulled
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             impact = self.match.combat.punch_impacts.get(self.body)
-            if not self.mover.external_impulse and (impact is None or tick >= impact.deadline):
+            if not pulled and not self.mover.external_impulse and (impact is None or tick >= impact.deadline):
                 self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        elif pulled:
+            blocked = JUMP | CROUCH
+            if self.hero.guid == moira.MOIRA:
+                blocked |= 8  # Fade input during the pull
+            command = replace(command, forward=0, right=0, buttons=command.buttons & ~blocked)
         elif (self.body_script is not None
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
@@ -384,7 +397,7 @@ class Player:
             self._advance_body_frame(command)
             return
         requests = []
-        if script is not None and not stunned and not self.mover.external_impulse:
+        if script is not None and not stunned and not pulled and not self.mover.external_impulse:
             requests = [
                 (state, movement)
                 for instance in script.component.instances.values()
@@ -396,7 +409,7 @@ class Player:
         data = echo_movement.effective_data(self)
         if data != self.mover.data:
             self.mover.use(data)
-        if echo_request is not None:
+        if echo_request is not None and not pulled:
             self.mover.step_pose(command, seconds, tick, move_to=echo_request)
             self._advance_body_frame(command)
             return
@@ -409,9 +422,11 @@ class Player:
         ) else None
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
-        if len(requests) == 1:
+        if pulled:
+            self.mover.step_pose(command, seconds, tick, world_driven=True)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
-            outcome = self.mover.step_pose(
+            outcome = self._move_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
             )
             if outcome is not None:
@@ -439,11 +454,33 @@ class Player:
             command, movement_end=movement_end, charge_start=charge_start, seconds=seconds,
         )
 
+    def _move_pose(self, command, seconds, tick, *, move_to=None):
+        fight = self.match.combat
+        command = fight.clamp_sleep_command(self, command)
+        walls = fight.walls
+        if not walls.pieces:
+            return self.mover.step_pose(command, seconds, tick, move_to=move_to)
+        before = tuple(self.mover.position)
+        outcome = self.mover.step_pose(
+            command, seconds, tick, move_to=move_to, ground_override=walls.ground(self.mover),
+        )
+        blocked = walls.move_mover(self.mover, before)
+        if move_to is not None and blocked:
+            self.mover.velocity = (0.0, 0.0, 0.0)
+            self.mover.driven = False
+            self.mover.history[-1] = self.mover.snapshot(command.frame)
+            return False
+        return outcome
+
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        script = self.body_script
+        if script is not None and command.frame <= script.frame and script.hero == moira.MOIRA:
+            # A late movement pose cannot resample an ability on an already evaluated body frame.
+            return
         if self.body_script is not None:
             if posed:
                 self.match.combat.prepare(self, command)
@@ -456,12 +493,17 @@ class Player:
                 script = self.body_script
                 self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
                 return
-            self.match.body_command(self, command, movement_end=movement_end, posed=posed)
-            wraith.advance(self)
-            self.match.combat.command(self, command if posed else None)
-        # Modifier changes take effect on the next movement frame.
+            grasp = (
+                moira.grasp_command(self.match.combat, self, command)
+                if posed and script.hero == moira.MOIRA and command.buttons & 2 else nullcontext()
+            )
+            with grasp:
+                self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+                wraith.advance(self)
+                self.match.combat.command(self, command if posed else None)
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
+
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -832,7 +874,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.active_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.most)
@@ -1117,7 +1159,7 @@ class Match:
                     continue
                 mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0), movement_mods=mods, pillars=pillars)
+                         paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars)
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
@@ -1255,12 +1297,17 @@ class Match:
 
     # --- the body's statescript (ow174/game/script) ------------------------------------------------
 
+    def script_player_body(self, entity: int, owner: int) -> Player | None:
+        """Resolve a live player body, including the owner during its own create."""
+        return next((player for player in self.players
+                     if player.body == entity and player.has_body and player.client is not None
+                     and not player.gone and (player.spawned or entity == owner)), None)
+
     def script_body_position(self, entity: int, owner: int) -> expr.Vec3 | None:
         """The current match pose of a body, including the owner during its own create."""
-        for player in self.players:
-            if (player.body == entity and player.has_body and player.client is not None
-                    and (player.spawned or entity == owner)):
-                return expr.Vec3(*player.mover.position)
+        player = self.script_player_body(entity, owner)
+        if player is not None:
+            return expr.Vec3(*player.mover.position)
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
@@ -1349,7 +1396,6 @@ class Match:
                 self._newest_frame(player) if start_frame is None else start_frame,
                 quanta=player.quanta,
                 mode=self.game_map.mode_guid,
-                health=HEALTH,
                 match=self,
                 body_definition=player.hero.body,
                 emote_aliases=self.emote_aliases_of(player.account_lo, player.hero.guid, **emote_args),
@@ -1398,6 +1444,8 @@ class Match:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
+            if script.hero == moira.MOIRA and self._shown(player) and not self.assembling():
+                moira.start_charge(player, script)
             script.command(
                 command.frame, command.buttons, command.action, command.forward, command.right,
                 grounded=not player.mover.airborne,
@@ -1551,6 +1599,18 @@ class Match:
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
         the later records wait for acknowledgement of their prerequisites."""
+        record = graph.bodies().get(hero.body) or graph.entity_body(hero.body)
+        if record is not None and record.get("hero") not in (None, f"0x{hero.guid:016X}"):
+            return False
+        canonical = next((body for body, row in graph.bodies().items()
+                          if int(row["hero"], 16) == hero.guid), None)
+        if canonical is not None and canonical != hero.body:
+            if record is None or defined_mover_data(hero.body) is None:
+                return False
+            try:
+                pools.active_pools(hero.guid, hero.body)
+            except ValueError:
+                return False
         pose = None
         if preserve_pose and player.has_body:
             mover = player.mover

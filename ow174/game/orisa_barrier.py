@@ -229,6 +229,18 @@ class Barriers:
                 nearest = distance, barrier
         return nearest
 
+    def melee(self, shooter, origin, centre, radius, amount):
+        from ow174.game.combat import capsule_visible
+
+        if self.geometry is None:
+            return
+        for barrier in self.opponents(shooter):
+            point = self.geometry.closest(barrier.position, barrier.yaw, centre)
+            if (math.dist(point, centre) <= radius
+                    and capsule_visible(self.fight._collision(), origin, point, point, 0.0,
+                                        walls=self.fight.walls)):
+                self.damage(barrier, amount)
+
     def damage(self, barrier, amount, distance=None, *, multiplier=1.0):
         if distance is not None:
             amount = amount.amount * amount.scale(distance) * multiplier

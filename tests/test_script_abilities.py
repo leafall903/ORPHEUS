@@ -115,6 +115,19 @@ class RifleTests(unittest.TestCase):
 
 
 class CooldownTests(unittest.TestCase):
+    def test_rejected_press_does_not_refresh_until_cooldown_end(self):
+        session = Session()
+        session.run(1, SECONDARY)
+        volley = session.ability(RIFLE, 16)
+        first = volley.counter
+        session.run(1, 0)
+        session.run(1, SECONDARY)  # rejected early; releasing must let this input expire
+        session.run(400, 0)
+        self.assertEqual(session.var(RIFLE, 61), 0)
+        self.assertEqual(volley.counter, first)
+        session.run(1, SECONDARY)
+        self.assertEqual(volley.counter, first + 1)
+
     def test_helix_rockets_start_their_cooldown(self):
         session = Session()
         self.assertEqual(session.var(RIFLE, 472), 6.0)  # the cooldown's length: AbilityCooldownDuration

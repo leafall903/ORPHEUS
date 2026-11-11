@@ -100,6 +100,24 @@ def array_item(instance, cfg, *, watcher=None):
     return values[index] if isinstance(values, tuple) and 0 <= index < len(values) else None
 
 
+def array_reduce(instance, cfg, *, watcher=None):
+    """1B77D80/1B76A60: materialize items, then evaluate a scoped accumulator."""
+    items = tuple(_iter_values(instance, cfg.get("m_814F8EC3"), watcher=watcher))
+    accumulator = None
+    params = {12: 0, 1050: len(items), 1293: accumulator}
+    with instance.component.parameter_scope(params):
+        if items:
+            params[1294] = items[0]
+            accumulator = evaluate_scalar(instance, cfg.get("m_418D9D9D"), watcher=watcher)
+        for index, item in enumerate(items):
+            params.update({12: index, 1293: accumulator, 1294: item})
+            accumulator = evaluate_scalar(
+                instance, cfg.get("m_C239F989"), initial=accumulator, watcher=watcher)
+        params.update({12: len(items), 1293: accumulator})
+        params.pop(1294, None)
+        return evaluate_scalar(instance, cfg.get("m_8054375D"), initial=accumulator, watcher=watcher)
+
+
 def _iter_values(instance, cfg, *, _depth=0, watcher=None):
     """1B803D0/1B7F700: ordered config groups and recursive value arrays.
 

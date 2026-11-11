@@ -86,3 +86,12 @@ class NpcContextTests(unittest.TestCase):
             bot.spawner = {}
             run.match._prepare_bot_script(bot)
             self.assertNotIn("controller_components", prepare.call_args.kwargs)
+
+    def test_only_supported_manual_bodies_declare_the_sandbox_controller(self):
+        for hero, spawner, expected in ((npc_context.ENFORCER, {"manual_spawn": True}, (75,)),
+                                        (0x02E00000000001BB, {"manual_spawn": True}, (75,)),
+                                        (npc_context.ENFORCER, {}, None),
+                                        (npc_context.ENFORCER, {"manual_spawn": 1}, None),
+                                        (0, {"manual_spawn": True}, None)):
+            self.assertEqual(npc_context.manual_components(SimpleNamespace(hero=hero, spawner=spawner)),
+                             expected)

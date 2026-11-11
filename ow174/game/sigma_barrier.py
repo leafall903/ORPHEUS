@@ -9,7 +9,7 @@ from functools import cache
 from pathlib import Path
 
 from ow174.game import bots, contacts, props
-from ow174.game.collision import MOVER, World
+from ow174.game.collision import AX, BX, CX, NX, MOVER, World
 from ow174.game.script import expr, graph
 
 HERO = 0x02E000000000023B
@@ -100,7 +100,10 @@ class Barrier:
             self.basis = view_basis(self.owner.mover.yaw, self.owner.mover.pitch)
             forward = self.basis[2]
             eye = combat._eye(self.owner)
-            self.position = tuple(a + b * 0.9 for a, b in zip(eye, forward, strict=True))
+            offset = 0.9
+            if combat._collision().cast_ray(eye, forward, offset) is not None:
+                offset = 0.0
+            self.position = tuple(a + b * offset for a, b in zip(eye, forward, strict=True))
             self.last = combat.now
         elapsed = max(0.0, combat.now - self.last)
         if wanted == 1:
@@ -129,12 +132,19 @@ class Barrier:
                 step = max(0.0, hit.distance - clearance)
             self.position = tuple(a + b * step for a, b in zip(self.position, self.basis[2], strict=True))
 
-    def intersection(self, origin, direction, reach):
+    def local(self, origin):
         delta = tuple(a - b for a, b in zip(origin, self.position, strict=True))
-        point = tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in self.basis)
+        return tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in self.basis)
+
+    def intersection(self, origin, direction, reach, radius=0.0):
+        point = self.local(origin)
         vector = tuple(sum(a * b for a, b in zip(direction, axis, strict=True)) for axis in self.basis)
-        hit = self.geometry.cast_ray(point, vector, reach)
-        return hit.distance if hit is not None else None
+        if radius <= 0:
+            hit = self.geometry.cast_ray(point, vector, reach, MOVER)
+            return hit.distance if hit is not None else None
+        end = tuple(a + b * reach for a, b in zip(point, vector, strict=True))
+        hit = contacts.scene_sweep(self.geometry.engine, point, end, ((0.0, 0.0, 0.0),), radius, MOVER)
+        return hit[0] * reach if hit is not None else None
 
     def closest_visible_distance(self, combat, shooter, origin, reach):
         from ow174.game.combat import ray_world
@@ -229,7 +239,7 @@ def play_barrier_request(combat, body, instance, node):
 
 def update_barriers(combat):
     for entity, barrier in list(combat.sigma_barriers.items()):
-        if (barrier.instance.stopped or barrier.instance.component.owner_dead
+        if (barrier.owner.gone or barrier.instance.stopped or barrier.instance.component.owner_dead
                 or barrier.owner.body != barrier.owner_body or combat.match.ended):
             del combat.sigma_barriers[entity]
             state = barrier.instance.states.get(4)
@@ -241,16 +251,7 @@ def update_barriers(combat):
 
 
 def barrier_intersection(combat, shooter, origin, direction, reach):
-    best = None
-    for barrier in combat.sigma_barriers.values():
-        barrier.update(combat)
-        if (not barrier.active or barrier.owner is shooter
-                or (not combat.match.game_map.free_for_all and barrier.owner.team == shooter.team)):
-            continue
-        distance = barrier.intersection(origin, direction, reach)
-        if distance is not None and (best is None or distance < best[0]):
-            best = distance, barrier
-    return best
+    return trace(combat, shooter, origin, direction, reach)
 
 
 def damage_barrier(combat, barrier, amount):
@@ -275,3 +276,51 @@ def blast_contacts(combat, shooter, origin, blast, *, struck=None):
             if amount > 0:
                 found.append((barrier, amount))
     return found
+
+
+def barrier_gap_buttons(script, buttons):
+    """Preserve a confirmed continuous deployment across reconstructed command frames."""
+    from ow174.game.commands import SECONDARY
+
+    if (script is None or script.hero != HERO or script.component.strict
+            or not script.buttons & buttons & SECONDARY):
+        return 0
+    phase = script.component.entity_var(19777, create=False)
+    return SECONDARY if phase is not None and phase.value() == 2 else 0
+
+
+def enemies(combat, shooter):
+    for barrier in combat.sigma_barriers.values():
+        barrier.update(combat)
+        if (not barrier.active or barrier.owner is shooter
+                or (not combat.match.game_map.free_for_all and barrier.owner.team == shooter.team)):
+            continue
+        yield barrier
+
+
+def trace(combat, shooter, origin, direction, reach, radius=0.0):
+    nearest = None
+    for barrier in enemies(combat, shooter):
+        distance = barrier.intersection(origin, direction, reach, radius)
+        if distance is not None and (nearest is None or distance < nearest[0]):
+            nearest = distance, barrier
+    return nearest
+
+
+def melee(fight, shooter, origin, centre, radius, amount):
+    from ow174.game.combat import capsule_visible
+
+    for barrier in enemies(fight, shooter):
+        local = barrier.local(centre)
+        for index, mask in enumerate(barrier.geometry.masks):
+            if not mask & MOVER:
+                continue
+            face = barrier.geometry._triangle(index)
+            point = contacts.closest_on_triangle(face[AX:BX], face[BX:CX], face[CX:NX], local)
+            if math.dist(point, local) > radius:
+                continue
+            witness = tuple(value + sum(axis[k] * v for axis, v in zip(barrier.basis, point, strict=True))
+                            for k, value in enumerate(barrier.position))
+            if capsule_visible(fight._collision(), origin, witness, witness, 0., walls=fight.walls):
+                damage_barrier(fight, barrier, amount)
+                break

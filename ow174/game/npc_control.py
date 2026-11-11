@@ -229,3 +229,40 @@ def update_input(fight, bot):
             stop_enforcer_windup(component)
     bot.attack_input = bool(enabled)
     return bool(enabled)
+
+
+def autonomous(bot):
+    return manual(bot) and bot.spawner.get('autonomous_targeting') is True
+
+def _aim_sample(fight, bot, target):
+    if (target is None or not target.spawned or not target.has_body or target.gone
+            or target.client is None or fight.is_dead(target)
+            or (not fight.match.game_map.free_for_all and target.team == bot.team)):
+        return None
+    if bot.hero == assassin.HERO and fight.barriers.for_target(target) is not None:
+        return None
+    origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
+    delta = tuple(b - a for a, b in zip(origin, fight._eye(target), strict=True))
+    distance = math.sqrt(sum(axis * axis for axis in delta))
+    reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+    if not 0 < distance <= reach:
+        return None
+    direction = tuple(axis / distance for axis in delta)
+    wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
+    return distance, delta, (wall is None or wall >= distance) and (
+        fight.walls.cast(origin, direction, distance) is None)
+
+def acquire(fight, bot):
+    """Keep a visible opponent, or acquire the nearest after releasing old input."""
+    candidates = []
+    if not fight.match.ended and not fight.is_stunned(bot):
+        for player in fight.match.players:
+            sight = _aim_sample(fight, bot, player)
+            if sight is None or not sight[2]:
+                continue
+            if player.entity == bot.attack_target:
+                bot.firing = True
+                return
+            candidates.append((sight[0], player.entity))
+    bot.attack_target = min(candidates)[1] if candidates and not bot.attack_input else None
+    bot.firing = bot.attack_target is not None

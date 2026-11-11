@@ -9,7 +9,8 @@ replication remain open. This is a finite collision target, not body invulnerabi
 import math
 from dataclasses import dataclass
 
-from ow174.game import barrier_geometry, bots, reinhardt_barrier, world_bubbles
+from ow174.game import barrier_geometry, bots, contacts, reinhardt_barrier, world_bubbles
+from ow174.game.reinhardt_barrier import Geometry, configured_geometry, frame, intersect, load_geometry, mesh
 from ow174.game.mover import mover_data
 from ow174.game.script import expr, graph, play, play_queue, runtime
 
@@ -759,3 +760,26 @@ def damage(fight, barrier, amount, *, attacker=0):
     if not _live(fight, barrier):
         retire(fight, barrier.entity)
     return dealt
+
+
+def overlap_points(geometry: Geometry, feet, yaw, pitch, a, b, radius, owner_radius, owner_height):
+    """World-space triangle witnesses touched by a melee query capsule."""
+    position, axes = frame(geometry, feet, yaw, pitch, owner_radius, owner_height)
+    points = tuple(tuple(sum((p[k] - position[k]) * axis[k] for k in range(3)) for axis in axes)
+                   for p in (a, b))
+    low = tuple(min(points[0][k], points[1][k]) - radius for k in range(3))
+    high = tuple(max(points[0][k], points[1][k]) + radius for k in range(3))
+    for triangle in geometry.triangles:
+        corners = tuple(tuple(triangle[n:n + 3]) for n in (0, 3, 6))
+        if any(max(v[k] for v in corners) < low[k] or min(v[k] for v in corners) > high[k]
+               for k in range(3)):
+            continue
+        distance = contacts.gjk(corners, points, reach=radius)
+        if distance.distance <= radius:
+            yield tuple(position[k] + sum(axis[k] * distance.point_a[n]
+                                           for n, axis in enumerate(axes)) for k in range(3))
+
+def overlaps(geometry: Geometry, feet, yaw, pitch, a, b, radius, owner_radius, owner_height) -> bool:
+    """A melee query capsule against the actual model's triangle mesh."""
+    return next(overlap_points(geometry, feet, yaw, pitch, a, b, radius, owner_radius, owner_height),
+                None) is not None

@@ -14,21 +14,24 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import test_server_journal as journal_tests
+from test_game_combat import aim
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import assassin_victim, combat, messages
 from ow174.game import earthshatter, reinhardt_charge
+from ow174.game import absorption, barriers, mei_wall, orisa_barrier, photon_barrier, sigma_barrier, winston_barrier
 from ow174.game import mover as mover_module
 from ow174.game.bits import BitReader
 from ow174.game.collision import StaticCollisionProvider, flat_world
-from ow174.game.combat import HitDef, ProjectedBarrier, TemporaryShield
+from ow174.game.combat import HitDef, ProjectedBarrier, TemporaryShield, Rocket, Vitals
 from ow174.game.commands import FIRE, SECONDARY, Command
 from ow174.game.content import SOLDIER
 from ow174.game.link import KIND_FRAME, SYN, peek_connection
 from ow174.game.match import Match
+from ow174.game.moira import MOIRA, Orb, SprayHeal, SprayTrace
 from ow174.game.mover import Mover
 from ow174.game.script import runtime
-from ow174.game.script.driver import BodyScript, Snapshot
+from ow174.game.script.driver import ULT_CHARGE, ULT_COST, ULT_GAIN_ENABLED, BodyScript, Snapshot
 from ow174.game.server_journal import RecordingServerSession, ServerJournalError, _ReplaySession
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state, snapshot_digest
 from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
@@ -133,6 +136,208 @@ class ServerSnapshotTests(unittest.TestCase):
             changed = snapshot_digest(self.capture(session))
             mutate()
             self.assertNotEqual(snapshot_digest(self.capture(session)), changed)
+
+    def test_photon_barrier_child_and_health_change_causal_digest(self):
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        manager = owner.match.combat.photon_barriers
+        if manager.geometry is None or photon_barrier.body_definition() is None:
+            self.skipTest("verified Photon Barrier mesh and actor definition required")
+        peers[1].message(21616, pick(owner.entity, photon_barrier.HERO), now=100.8)
+        script = owner.body_script
+        script.set_ult_charge(script.component.entity_var(ULT_COST).value())
+        for count, buttons in ((10, 32), (1, 0), (1, 1)):
+            peers[1].commands(owner.body_script.frame + 1, count, buttons, pitch=8192)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            pending = snapshot_digest(self.capture(session))
+            cast = manager.casts.pop(owner)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), pending)
+            manager.casts[owner] = cast
+            self.assertEqual(snapshot_digest(self.capture(session)), pending)
+        peers[1].commands(owner.body_script.frame + 1, 24, 0, pitch=8192)
+        shield, = manager.actors.values()
+        self.assertEqual(shield.health, 4000)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            shield.health -= 20
+            damaged = snapshot_digest(self.capture(session))
+            shield.component.frame += 1
+            self.assertNotEqual(snapshot_digest(self.capture(session)), damaged)
+        self.assertNotEqual(damaged, initial)
+
+    def test_sigma_barrier_motion_and_pool_change_causal_digest(self):
+        import os
+
+        if not os.environ.get("ORPHEUS_SIGMA_BARRIER_MODEL"):
+            self.skipTest("verified build 104319 Sigma C015 physics mesh required")
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        peers[1].message(21616, pick(owner.entity, sigma_barrier.HERO), now=100.8)
+        peers[1].commands(owner.body_script.frame + 1, 25, 2)
+        barrier, = owner.match.combat.sigma_barriers.values()
+        self.assertEqual(barrier.vitals.total, 700)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            barrier.vitals.damage(20)
+            damaged = snapshot_digest(self.capture(session))
+            x, y, z = barrier.position
+            barrier.position = (x, y, z + 1)
+            moved = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, initial)
+        self.assertNotEqual(moved, damaged)
+
+    def test_deployed_orisa_barrier_pool_changes_causal_digest(self):
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        service = owner.match.combat.orisa_barriers
+        if service.geometry is None:
+            self.skipTest("build 104319 Orisa collision descriptor required")
+        peers[1].message(21616, pick(owner.entity, orisa_barrier.HERO), now=100.8)
+        peers[1].commands(owner.body_script.frame + 1, 100, 16, pitch=8192)
+        self.assertTrue(service.flights)
+        session.tick(101.9, missed=65)
+        shield, = service.actors.values()
+        self.assertEqual(shield.health, 600)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            shield.health -= 20
+            self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_deployed_winston_dome_pool_and_child_clock_change_causal_digest(self):
+        session, peers, players = self.scene(two=True)
+        owner = players[1]
+        peers[1].message(21616, pick(owner.entity, winston_barrier.HERO), now=100.8)
+        peers[1].commands(owner.body_script.frame + 1, 40, 16)
+        dome, = owner.match.combat.winston_barriers.actors.values()
+        self.assertEqual(dome.health, 700)
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            dome.health -= 20
+            damaged = snapshot_digest(self.capture(session))
+            dome.component.frame += 1
+            advanced = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, initial)
+        self.assertNotEqual(advanced, damaged)
+
+    def test_active_moira_fade_clock_is_stored_causal_state(self):
+        session, peers, players = self.scene()
+        player = players[0]
+        peers[0].message(21616, pick(player.entity, MOIRA), now=100.8)
+        peers[0].commands(player.body_script.frame + 1, 1, 8)
+        fight = player.match.combat
+        self.assertTrue(fight.damage_immune(player))
+        component, tick, frame = fight.moira_clocks[player]
+        with mock.patch.object(runtime.Component, "run_now", side_effect=AssertionError("VM ran")):
+            initial = snapshot_digest(self.capture(session))
+            fight.moira_clocks[player] = (component, tick + 1, frame)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_moira_orb_energy_and_clock_are_stored_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        orb = Orb(player, player.body, (1, 2, 3), (0, 0, 1), 20, 7, 200, False, 100)
+        player.match.combat.moira_orbs.append(orb)
+        first = snapshot_digest(self.capture(session))
+        orb.energy -= 1
+        second = snapshot_digest(self.capture(session))
+        self.assertNotEqual(first, second)
+        orb.last_tick += 1
+        third = snapshot_digest(self.capture(session))
+        self.assertNotEqual(second, third)
+        self.assertEqual(orb.launch_body, player.body)
+        orb.launch_body += 1
+        self.assertNotEqual(third, snapshot_digest(self.capture(session)))
+        player.match.combat.moira_hots[player.body] = SprayHeal(player, player.body, 1, 3, 10)
+        third = snapshot_digest(self.capture(session))
+        player.match.combat.moira_hots[player.body].remaining -= 1
+        self.assertNotEqual(third, snapshot_digest(self.capture(session)))
+        packet = Rocket(player, player.team, (1, 2, 3), (0, 0, 1), 40, .375,
+                        HitDef(3.5, healing=True), None, spray=SprayTrace(.75, player.body))
+        player.match.combat.rockets.append(packet)
+        fourth = snapshot_digest(self.capture(session))
+        packet.spray.hits.add(player.body)
+        fifth = snapshot_digest(self.capture(session))
+        self.assertNotEqual(fourth, fifth)
+        packet.spray.radius += .1
+        self.assertNotEqual(fifth, snapshot_digest(self.capture(session)))
+        barrier = barriers.Barrier(1600, 1600, 1, 3)
+        player.match.combat.barriers[player.body] = barrier
+        sixth = snapshot_digest(self.capture(session))
+        barrier.current -= 1
+        seventh = snapshot_digest(self.capture(session))
+        self.assertNotEqual(sixth, seventh)
+        barrier.broken_until += 1
+        self.assertNotEqual(seventh, snapshot_digest(self.capture(session)))
+        player.match.combat.stuns[player.body] = 123
+        eighth = snapshot_digest(self.capture(session))
+        player.match.combat.stuns[player.body] += 1
+        self.assertNotEqual(eighth, snapshot_digest(self.capture(session)))
+        vitals = Vitals(player.body, 200)
+        player.match.combat.vitals[player.body] = vitals
+        vitals.grant_temporary_shields(absorption.SHIELD_TAG, 60, 400)
+        ninth = snapshot_digest(self.capture(session))
+        vitals.temporary_shields[absorption.SHIELD_TAG].now -= 1
+        self.assertNotEqual(ninth, snapshot_digest(self.capture(session)))
+        decay = absorption.ShieldDecay(3, 0, 5)
+        player.match.combat.grasp_shields[player.body] = decay
+        tenth = snapshot_digest(self.capture(session))
+        decay.starts += 1
+        self.assertNotEqual(tenth, snapshot_digest(self.capture(session)))
+        eleventh = snapshot_digest(self.capture(session))
+        player.match.combat.pins[0xC0001111] = player.body
+        twelfth = snapshot_digest(self.capture(session))
+        self.assertNotEqual(eleventh, twelfth)
+        player.match.combat.pins[0xC0001111] = player.body + 1
+        self.assertNotEqual(twelfth, snapshot_digest(self.capture(session)))
+        previous = snapshot_digest(self.capture(session))
+        vitals.healing_block_until = 4.0
+        current = snapshot_digest(self.capture(session))
+        self.assertNotEqual(previous, current)
+        vitals.healing_boost_until = 4.0
+        following = snapshot_digest(self.capture(session))
+        self.assertNotEqual(current, following)
+        vitals.nano_until = 8.0
+        nano = snapshot_digest(self.capture(session))
+        self.assertNotEqual(following, nano)
+        following = nano
+        vitals.sleep_until = 5.0
+        asleep = snapshot_digest(self.capture(session))
+        self.assertNotEqual(following, asleep)
+        following = asleep
+        vitals.sleep_wake_after = 0.5
+        protected = snapshot_digest(self.capture(session))
+        self.assertNotEqual(following, protected)
+        vitals.sleep_view = (0.25, -0.5, 0.25, -0.5, 0.25, -0.5)
+        following = snapshot_digest(self.capture(session))
+        self.assertNotEqual(protected, following)
+        packet.gravity = 9.8
+        current = snapshot_digest(self.capture(session))
+        self.assertNotEqual(following, current)
+        packet.source_body = player.body + 99
+        self.assertNotEqual(current, snapshot_digest(self.capture(session)))
+
+    def test_ice_wall_is_causal(self):
+        session, _, players = self.scene()
+        player = players[0]
+        walls = player.match.combat.walls
+        before = snapshot_digest(self.capture(session))
+        walls.inputs[player.body] = mei_wall.Input(buttons=16, preview=True, rotated=True)
+        preview = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, preview)
+        x, y, z = player.mover.position
+        self.assertTrue(walls.create(player, ((x, y, z + 3),), (1.0, 0.0, 0.0)))
+        (piece,) = walls.pieces.values()
+        deployed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(preview, deployed)
+        piece.health -= 30
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(deployed, damaged)
+        piece.expires += 1
+        delayed = snapshot_digest(self.capture(session))
+        self.assertNotEqual(damaged, delayed)
+        walls.update(piece.expires)
+        self.assertFalse(walls.pieces)
+        self.assertNotEqual(delayed, snapshot_digest(self.capture(session)))
 
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
@@ -1169,7 +1374,20 @@ class StoredJournalTests(unittest.TestCase):
         session.tick(105.0, missed=200)
         self.assertNotEqual(players[1].body, dead_body)
         self.assertFalse(players[1].match.combat.is_dead(players[1]))
-        session.apply("switch_hero", {"account": 1, "hero": 0x02E0000000000002})
+        session.apply("switch_hero", {"account": 1, "hero": MOIRA})
+        source, victim = players
+        session.tick(105.016)
+        fight = source.match.combat
+        target = next(item for item in fight._targets() if item.owner is victim)
+        # Align the command frame with the respawned target's pose history.
+        peers[0].commands(max(source.body_script.frame + 1, source.match.tick), 1, 0, now=105.016)
+        component = source.body_script.component
+        self.assertIs(component.entity_var(ULT_GAIN_ENABLED).value(), True)
+        charge_before = component.entity_var(ULT_CHARGE).value()
+        peers[0].commands(source.body_script.frame + 1, 8, 2, now=105.016)
+        charge = component.entity_var(ULT_CHARGE).value()
+        self.assertAlmostEqual(charge - charge_before, 6.4, places=4)
+        self.assertAlmostEqual(fight.vitals[target.entity].total, 193.6, places=4)
         session.report_callbacks()
         document = session.finish()
         replay = _ReplaySession(document, session.registry.resolve)
@@ -1177,7 +1395,47 @@ class StoredJournalTests(unittest.TestCase):
         self.assertTrue(result["stored_state_verified"])
         copied = replay.server.matches[0].players
         self.assertEqual([p.body for p in copied], [p.body for p in players])
-        self.assertEqual(copied[0].hero.guid, players[0].hero.guid)
+        self.assertEqual(copied[0].hero.guid, MOIRA)
+        self.assertEqual(copied[0].body_script.component.entity_var(ULT_CHARGE).value(), charge)
+
+    def test_stored_journal_replays_ice_wall_blocking_grasp_and_cancel(self):
+        session, sent = self.make()
+        handoffs = session.create_match(MAP, [
+            (1, "Moira", MOIRA, 0, False), (2, "Mei", mei_wall.MEI, 1, False),
+        ])
+        peers = [Peer(session, handoff, sent, ("127.0.0.1", 47200 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        source, mei = session.server.matches[0].players
+        for peer, player in zip(peers, (source, mei), strict=True):
+            peer.message(21616, pick(player.entity, player.hero.guid), now=100.8)
+        fight = source.match.combat
+        x, y, z = source.mover.position
+        yaw, pitch = aim(fight._eye(mei), (x, y, (z + mei.mover.position[2]) / 2))
+        for button in (16, 0, 1, 0):
+            peers[1].commands(mei.body_script.frame + 1, 1, button, yaw=yaw, pitch=pitch)
+        self.assertEqual(len(fight.walls.pieces), 5)
+        pillar = min(fight.walls.pieces.values(), key=lambda piece: abs(piece.feet[0] - x))
+        peers[0].commands(max(source.body_script.frame + 1, source.match.tick), 8, 2)
+        self.assertLess(pillar.health, 400)
+        vitals = fight.vitals.get(mei.body)
+        self.assertEqual(vitals.total if vitals is not None else 250, 250)
+        peers[1].commands(mei.body_script.frame + 1, 1, 16, yaw=yaw, pitch=pitch)
+        self.assertFalse(fight.walls.pieces)
+        peers[0].commands(source.body_script.frame + 1, 8, 2)
+        remaining = fight.vitals[mei.body].total
+        self.assertLess(remaining, 250)
+        session.report_callbacks()
+        replay = _ReplaySession(session.finish(), session.registry.resolve)
+        self.assertTrue(replay.run()["stored_state_verified"])
+        replay_match = replay.server.matches[0]
+        self.assertFalse(replay_match.combat.walls.pieces)
+        self.assertEqual(replay_match.combat.vitals[replay_match.players[1].body].total, remaining)
 
     def test_unrecorded_change_between_roots_fails_before_running_the_next_tick(self):
         session, _ = self.make()

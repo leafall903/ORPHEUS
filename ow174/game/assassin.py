@@ -116,7 +116,10 @@ def victim(world, state):
     if (source is None or source.dead or not source.firing or fight.is_stunned(source)
             or source.body_script is None or source.body_script.component is not state.instance.component):
         return None
-    entity = expr.to_entity(state.evaluate(state.node.field('m_FA3ECC43'), watch=False))
+    selector = state.node.field('m_FA3ECC43')
+    if selector is None and state.node.pos == 23:
+        selector = {'$': 'STUConfigVarDynamic', 'm_identifier': 536, 'm_60DB8F99': 0}
+    entity = expr.to_entity(state.evaluate(selector, watch=False))
     if entity != world.manual_target:
         return None
     target = next((t for t in fight._enemies(source) if t.entity == entity), None)
@@ -167,15 +170,29 @@ def end_health(world, state, *, force=False):
 
 def refresh_control(world, component):
     if (getattr(world, 'hero', None) != HERO or world.match is None
-            or component.entity not in world.match.combat.pins):
+            or world.controller_components is None):
         return
+    fight = world.match.combat
     for instance in component.instances.values():
-        if instance.graph.index == GRAPH:
-            node = instance.graph.node(23)
-            pin = instance.states.get(node.state) if node is not None else None
-            if pin is not None and pin.active:
-                return
-    world.match.combat.release_pin(component.entity)
+        if instance.graph.index != GRAPH:
+            continue
+        node = instance.graph.node(23)
+        pin = instance.states.get(node.state) if node is not None else None
+        if pin is None or not pin.active or pin.ending:
+            continue
+        pair = victim(world, pin)
+        if pair is None:
+            continue
+        source, target = pair
+        if fight.barriers.for_target(target.owner) is not None:
+            continue
+        if fight.pins.get(source.entity) != target.entity:
+            fight.release_pin(source.entity)
+            fight.pins[source.entity] = target.entity
+            fight._interrupt(target)
+            attach_victim(source.entity, target)
+        return
+    fight.release_pin(component.entity)
 
 
 def rescue_with_melee(fight, rescuer, target):
@@ -205,3 +222,40 @@ def rescue_with_melee(fight, rescuer, target):
         fight.stuns[target.entity] = max(deadline, fight.stuns.get(target.entity, 0))
         fight._interrupt(target)
         return
+
+
+def recovery_duration(world, state):
+    """Declared recovery timing from the paired authored Wait37, not clip metadata.
+
+    Anim31 has no explicit duration. Restrict this compatibility service to its
+    actual alias561; the2-second enclosing recovery wait supplies our policy.
+    """
+    if not scoped(world, state.instance) or state.node.pos != 31:
+        return NotImplemented
+    alias = state.evaluate(state.node.field('m_11E0A658'), watch=False)
+    if alias != expr.Asset(0x0C80000000000561):
+        return NotImplemented
+    wait = state.instance.graph.node(37)
+    if wait is None or wait.cls != 'STUStatescriptStateWait':
+        return NotImplemented
+    return expr.to_float(state.evaluate(wait.field('m_timeout'), watch=False))
+
+
+def recovering(world, component):
+    """Delay a new manual down edge until old recovery has cleared its target."""
+    for instance in component.instances.values():
+        if scoped(world, instance):
+            state = instance.states.get(23)  # actual node31 recovery animation
+            if state is not None and state.active:
+                return True
+    return False
+
+
+def release_victim(fight, entity):
+    sources = {source for source, victim in fight.pins.items() if victim == entity}
+    for bot in fight.match.bots:
+        if bot.entity not in sources or bot.hero != HERO or bot.body_script is None:
+            continue
+        component = bot.body_script.component
+        bind(component.world, component, None)
+        bot.attack_input = False

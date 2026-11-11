@@ -229,6 +229,8 @@ WHEEL_CALLOUT_MS = 2000
 # Other heroes retain the unverified 60s passive fallback. Explicit 0 disables
 # passive charging; a positive override retains the legacy test/GM curve.
 ULT_CHARGE, ULT_COST = 342, 338
+ULT_GAIN_ENABLED = 2426
+ULT_GAIN_GRAPH = 0x0B8B
 ULT_SECONDS = 60.0
 GENJI = 0x02E0000000000029
 GENJI_IN_AIR, GENJI_ON_GROUND = 417, 545
@@ -338,6 +340,18 @@ class BodyWorld(runtime.World):
         if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x025C
                 and state.index in (4, 7)):
             return () if self.match is None else self.match.combat.projected_barrier_targets(self.body, state)
+        if self.hero == 0x02E00000000001A2:
+            entry = state.instance.graph.index, state.index
+            if entry in ((0x1007, 17), (0x1007, 19)):
+                return None  # Coalescence publishes from posed command frames.
+            if entry == (0x0F76, 106):
+                from ow174.game import moira
+
+                return moira.grasp_targets(self, state)
+        if self.hero == 0x02E000000000013B and state.instance.graph.index == 0x0B9E and state.index in (3, 6):
+            from ow174.game import nano
+
+            return () if self.match is None else nano.targets(self.match.combat, self.body, state)
         return immunity.transcendence_targets(self, state)
 
     def ability_start_allowed(self, state) -> bool:
@@ -474,6 +488,12 @@ class BodyWorld(runtime.World):
 
         if state.instance.component.strict:
             return super().create_pet(state)
+        from ow174.game import photon_barrier
+
+        if (self.match is not None and state.instance.graph.index == photon_barrier.GRAPH
+                and state.node.pos == 17):
+            entity = self.match.combat.photon_barriers.create(self, state)
+            return 0 if entity is NotImplemented else entity
         return barriers.create(self, state)
 
     def track_targets(self, state):
@@ -521,6 +541,35 @@ class BodyWorld(runtime.World):
                     return 0x40, 0x40 if crouched else 0
         return None
 
+    def linked_target_sample(self, entity: int):
+        match = self.match
+        if (match is None or entity != self.body or entity in match.combat.pins.values()
+                or match.script_player_body(entity, self.body) is None):
+            return NotImplemented
+        # The reconstructed Match owns this unparented player pose. Pin links
+        # need the native linked transform rather than this unlinked sample.
+        return None, 0.0
+
+    def sample_sleep_view(self):
+        """Evaluate the authored 224E view branch using the current Match pose."""
+        definition = graph.graph(0x224E)
+        if definition is None or self.linked_target_sample(self.body) is NotImplemented:
+            return None
+        component = runtime.Component(self.body, strict=True, world=self)
+        instance = component.create(definition, init=False)
+        instance.initialized = True
+        try:
+            # Node 29's wait is scheduled by the combat clock. Its output
+            # enters 30, evaluates both owner queries and starts node 34.
+            instance.run_node(definition.node(30), None)
+            component.run_now()
+            return instance.node_state(definition.node(34)).mover_angles
+        except runtime.UnsupportedScriptError as error:
+            expr.warn_once("sleep-view-resource", "%s", error)
+            return None
+        finally:
+            component.destroy(instance)
+
     def native(self, cfg: dict, instance):
         from ow174.game import mccree
 
@@ -552,6 +601,12 @@ class BodyWorld(runtime.World):
         if charge is not NotImplemented:
             return charge
         cls = cfg.get("$")
+        if instance is not None and instance.graph.index == 0x156B:
+            from ow174.game import photon_barrier
+
+            result = photon_barrier.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if cls == "STU_DB742151" and self.match is not None:
             match = self.match
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=Entity(0))
@@ -707,6 +762,14 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if instance is not None and self.hero == 0x02E00000000001A2 and instance.graph.index == ULT_GAIN_GRAPH and cls in {
+            "STU_AC829876", "STU_A58C1E63", "STU_25ECB55F",
+        }:
+            from ow174.game import moira
+
+            result = moira.damage_charge_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if (cls == "STU_F7262B36" and self.match is not None and instance is not None
                 and instance.graph.index == 0x0276 and self.body_definition == 0x0400000000000407
                 and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
@@ -1095,6 +1158,10 @@ class BodyWorld(runtime.World):
         return None
 
     def play_script_host(self, instance, node):
+        from ow174.game import photon_barrier
+
+        if self.match is not None and self.hero == photon_barrier.HERO:
+            return self.match.combat.photon_barriers.play(instance, node) is True
         if self.match is not None and self.hero == 0x02E000000000023B:
             return self.match.combat.absorption.play(instance, node)
         if self.match is not None and self.hero == ice_wall.MEI:
@@ -1130,6 +1197,13 @@ class BodyWorld(runtime.World):
 
     def placement_probe(self, state):
         return self.match is not None and ice_wall.probe(self.match.combat, state)
+
+    def refresh_compatible_placement(self, state, *, confirm):
+        from ow174.game import photon_barrier
+
+        if self.match is None or self.match.combat.photon_barriers.geometry is None:
+            return NotImplemented
+        return photon_barrier.placement(self, state, confirm=confirm)
 
     def placement_confirmation(self, state):
         if self.match is not None:
@@ -1398,7 +1472,9 @@ class BodyScript(ReplicatedBody):
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
         self.self_healing = 0.0
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        initial_pools = (pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        self._spawn(start_frame, sum(initial_pools) if health is None else health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -1591,6 +1667,15 @@ class BodyScript(ReplicatedBody):
         blocked = self.component.entity_var(842, create=False)
         if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
                 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return
+        if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
+            return
+        # A supplied shared-graph gate owns passive charge, even when disabled.
+        # The fallback only covers hosts that have not supplied that gate.
+        enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+        if (enabled is not None and enabled.value() is not None
+                and any(instance.graph.index == ULT_GAIN_GRAPH
+                        for instance in self.component.instances.values())):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

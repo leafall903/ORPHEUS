@@ -7,9 +7,8 @@ Read in the client (the addresses are in the docstrings below):
   step 0x7FF78AA9DE30). An update drains the instance's events up to now, ticks the ticking states and
   runs the deferred list, until the deferred list is empty (0x7FF78AAA27C0).
 - Events (dispatcher 0x7FF78AAA1690): 0 a state op (begin, finish, abort), 1 a timer, 2 a deferred
-  completion check, 3 an Entry, 4 a variable assignment, 8 a button edge, 9 "a watched variable changed".
-  Inserted after every event
-  of the same time (FIFO), never in the past.
+  completion check, 3 an Entry, 4 an assignment, 7 a stop, 8 a button edge, 9 a watched variable change.
+  Inserted after every event of the same time (FIFO), never in the past.
 - A plug walk (0x7FF78AA83FA0) follows the links in order. A state target only gets a begin (or abort)
   request: an event at now, so a state never begins inside a walk. Actions and conditions run at once.
   The server runs every node that is not client-only.
@@ -144,15 +143,16 @@ class Link:
 class Var:
     """One variable: the stored (base) value, the links that override it, the states that watch it."""
 
-    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers")
+    __slots__ = ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")
 
-    def __init__(self, key: tuple) -> None:
+    def __init__(self, key: tuple, entity_owner: "Component | None" = None) -> None:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
         self.watchers: dict[State, bool | None] = {}
         self.resolving = False
         self.partial = None
+        self.entity_owner = entity_owner
 
     def value(self, below: "State | None" = None):
         # Native1BA70B0's in-resolution flag exposes the current lower value.
@@ -336,6 +336,8 @@ class InstanceContext(Context):
         if cls == "STU_A6B80C63":
             from ow174.game.script import play
 
+            if cfg.get("m_C239F989") is not None or cfg.get("m_8054375D") is not None:
+                return play.array_reduce(self.instance, cfg, watcher=self.watcher)
             return play.fold_array(self.instance, cfg, watcher=self.watcher)
         if cls in ("STU_7042F028", "STU_45B0D2B2"):
             from ow174.game.script import play
@@ -355,7 +357,7 @@ class InstanceContext(Context):
                 return values[0] if values else expr.EVALUATION_FAILED
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_filter, entity_queries, entity_team
 
         component = self.instance.component
         result = NotImplemented
@@ -371,6 +373,8 @@ class InstanceContext(Context):
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_filter.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -564,12 +568,6 @@ class World:
     def target_effects(self, state: "State"):
         return NotImplemented
 
-    def modify_health(self, state: "State", elapsed_ms: int):
-        return NotImplemented
-
-    def end_health(self, state: "State"):
-        pass
-
     def bind_combat_damage_filter(self, state: "State"):
         return NotImplemented
 
@@ -624,6 +622,10 @@ class World:
 
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
+        return NotImplemented
+
+    def linked_target_sample(self, entity: int):
+        """Return (linked entity or None, yaw radians), None if absent, or NotImplemented."""
         return NotImplemented
 
     def subgraph_scopes(self, entity: int):
@@ -740,6 +742,20 @@ class World:
 
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
+
+    def matches_entity_filter(self, entity: int, cfg, *, instance, watcher):
+        """CF4340 environment+150; unknown engine admission must not become false."""
+        from ow174.game.script import entity_filter
+
+        host = self.entity_filter_host(instance)
+        if host is not NotImplemented:
+            entity_filter._check_owner(instance)
+            return entity_filter.admit(host, entity, cfg, instance=instance, watcher=watcher)
+        return NotImplemented
+
+    def entity_filter_host(self, instance):
+        """Current entity components and native filter services for this instance."""
+        return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
@@ -1114,7 +1130,7 @@ class Component:
     def entity_var(self, var: int, create: bool = True) -> Var | None:
         found = self.vars.get(var)
         if found is None and create:
-            found = self.vars[var] = Var((0, var))
+            found = self.vars[var] = Var((0, var), self)
         return found
 
     # --- instances ---------------------------------------------------------------------------------
@@ -1162,6 +1178,7 @@ class Component:
         instance.stopped = True
         instance.initialization_pending = False
         instance.queue.clear()
+        instance.deferred.clear()
         instance.join_inputs.clear()
         del self.instances[instance.id]
         self.destroyed.append(instance)
@@ -1562,6 +1579,8 @@ class Instance:
                 return
             for _ in range(MAX_INSTANCE_UPDATES):
                 self.drain()
+                if self.stopped:
+                    return
                 for state in list(self.ticking):
                     if state.active and state.ticked_at != self.component.now:
                         self.component.consume_work("state tick")

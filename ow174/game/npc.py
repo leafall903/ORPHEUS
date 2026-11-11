@@ -50,7 +50,8 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
-def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -> bots.Bot:
+def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          autonomous: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -59,6 +60,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
     position = tuple(position)
+    if type(autonomous) is not bool:
+        raise ValueError('NPC autonomous mode must be boolean')
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
     entity = match.combat.next_bot
@@ -68,6 +71,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
+    if autonomous:
+        data["autonomous_targeting"] = True
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True

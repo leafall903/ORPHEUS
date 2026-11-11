@@ -214,6 +214,9 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     if type(quanta_us) is not int or quanta_us <= 0 or type(run_options) is not dict:
         raise ManifestError("explicit positive quanta_us and run_options mapping are required")
     values = {"run.quanta_us": quanta_us, "run.options": run_options}
+    from ow174.game.photon_barrier import replay_inputs
+
+    values.update(replay_inputs())
     for name in _CONFIG_MODULES:
         module = importlib.import_module(name)
         required = _REQUIRED_CONFIG.get(name, set())

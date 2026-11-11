@@ -1,4 +1,4 @@
-"""104319 unkeyed insertion/merge and fresh typed-array assignment."""
+"""104319 unkeyed insertion/merge/removal and fresh typed-array assignment."""
 
 import math
 
@@ -160,3 +160,63 @@ def clear(instance, node):
     if target[1]:
         instance.write(target, ())
         _alive(instance, node)
+
+
+def remove(instance, node, caller):
+    """1B6BEB0: writable array, index removal or ordered value-removal iterator.
+
+    Keyed row storage and linked-variable handles remain explicit unsupported
+    services, matching the insertion model's boundary.
+    """
+    _alive(instance, node)
+    output = node.field('m_26E3B366')
+    if output is None:
+        return
+    target = expr.dynamic(output)
+    if target is None:
+        if isinstance(output, dict) and output.get('$') in expr.CONSTANTS:
+            return
+        _unsupported(instance, node, 'array removal output target')
+    index_cfg, key_cfg, source = (node.field(name) for name in ('m_index', 'm_key', 'm_value'))
+    if index_cfg is None and key_cfg is None and source is None:
+        return
+    if key_cfg is not None:
+        key = play.evaluate_scalar(instance, key_cfg, initial=0, watcher=caller)
+        _alive(instance, node)
+        if not _key(key) or not target[1]:
+            return
+        _unsupported(instance, node, 'array removal keyed row storage')
+    if not target[1]:
+        return
+    var = instance.find_var(*target)
+    if var.links:
+        _unsupported(instance, node, 'array removal linked variable checkpoint')
+    before = var.value()
+    items = list(var.base) if type(var.base) is tuple else []
+    # Native writable acquisition converts non-array storage before evaluating
+    # the index provider. Later providers observe each earlier deletion.
+    var.base = tuple(items)
+    value = (play.evaluate_scalar(instance, index_cfg, initial=_FAILED, watcher=caller)
+             if index_cfg is not None else _FAILED)
+    _alive(instance, node)
+    index = -1 if value is _FAILED else _index(value)
+    if index >= 0:
+        if index < len(items):
+            del items[index]
+            var.base = tuple(items)
+    elif source is not None:
+        for item in _items(instance, node, source, target):
+            _alive(instance, node)
+            if item is _SELF:
+                break
+            kept = []
+            for row in items:
+                instance.component.consume_work('array removal equality')
+                if not expr.equal(row, item):
+                    kept.append(row)
+            items = kept
+            var.base = tuple(items)
+    instance.changed(var, before)
+    _alive(instance, node)
+    if len(items) > 200:
+        _unsupported(instance, node, 'array removal native limit diagnostic')

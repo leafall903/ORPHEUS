@@ -561,12 +561,18 @@ class BotWorld(runtime.World):
     def tracked_targets(self, state):
         from ow174.game import heavy_assault
 
-        return heavy_assault.tracked_targets(self, state)
+        targets = heavy_assault.tracked_targets(self, state)
+        if targets is not NotImplemented or self.match is None:
+            return targets
+        targets = self.match.combat._npc_melee(state)
+        return targets if targets is NotImplemented else tuple(target.id for target in targets)
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault
 
         value = heavy_assault.modify_health(self, state, elapsed_ms)
+        if value is NotImplemented and self.match is not None and elapsed_ms == 0:
+            value = self.match.combat._npc_melee(state, health=True)
         return assassin.modify_health(self, state, elapsed_ms) if value is NotImplemented else value
 
     def end_health(self, state):

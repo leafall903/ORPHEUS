@@ -110,6 +110,43 @@ class AIFireWeaponTests(unittest.TestCase):
             self.assertEqual({number: item.graph for number, item in peer.instances.items()},
                              {1: initial.index, 2: manager.index, 3: GRAPH})
 
+    def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior(self):
+        weapon = make_graph(GRAPH, [
+            node(0, "STUStatescriptEntry", fields={"m_outPlug": output([1, "m_beginPlug"])}),
+            node(1, "STUStatescriptStateLogicalButton", state=0, fields={
+                "m_logicalButton": {"$": "STUConfigVarInt", "m_value": 20},
+                "m_onGoingDownPlug": output([2, "m_beginPlug"]),
+            }),
+            node(2, "STUStatescriptStateWeaponVolley", state=1, remote=0),
+        ], states=[1, 2], remote=[2], entries=[0])
+        weapon.fields["m_680A2CB2"] = [0]
+        initial, manager = make_graph(0xF001), make_graph(0xF002)
+        definitions = {item.index: item for item in (initial, manager, weapon)}
+        record = {"graphs": [{"graph": initial.index}], "manager": manager.index,
+                  "weapons": [None, GRAPH, None], "ai_weapon_buttons": {"0": 20}}
+        with (
+            patch.object(graph, "entity_body", return_value=record),
+            patch.object(graph, "graph", side_effect=definitions.get),
+            patch.object(decode, "graph_of", side_effect=definitions.get),
+        ):
+            script = BotScript(0x0400000000001E7D, SOLDIER, bots.BOT_ENTITY, 100, 0, 300)
+            component = script.component
+            self.assertIsNone(script.behavior)
+            self.assertEqual([item.graph.index for item in component.instances.values()],
+                             [initial.index, manager.index, GRAPH])
+            self.assertEqual(component.vars[WEAPON_SLOTS].value(), (False, True, False))
+            self.assertEqual(component.vars[DEFAULT_SLOT].value(), 1)
+            self.assertEqual(component.instances[3].vars[28].value(), 1)
+            component.edges([(20, True)])
+            script.advance_live(101)
+            [(shot, _, _, _)] = component.shots
+            self.assertEqual((shot.instance.id, shot.index), (3, 1))
+            frame, _ = script.initial
+            encoded = statescript.chunk(frame, 0, 1)
+            peer = decode.read_chunk(encoded.getvalue(), encoded.count)
+            self.assertEqual({number: item.graph for number, item in peer.instances.items()},
+                             {1: initial.index, 2: manager.index, 3: GRAPH})
+
     def test_action_presses_and_releases_the_authored_slot_on_the_vm_clock(self):
         def integer(value):
             return {"$": "STUConfigVarInt", "m_value": value}
@@ -278,6 +315,7 @@ class SyntheticScript:
 
     def __init__(self, graph):
         self.graph = graph
+        self.component = SimpleNamespace(world=SimpleNamespace(match=None))
         self.deaths = []
         self.initial = self.frame()
 

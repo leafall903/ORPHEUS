@@ -660,6 +660,86 @@ class AuxiliaryEffect(ScopedSubgraph):
         super().on_destroyed()
 
 
+@state_class("STU_9935FBC8")
+class LinkedTarget(State):
+    """CAC810 mode 1 resource with an explicitly supplied mover sample."""
+
+    _LIMIT = 174532.90625
+    _PITCH_LIMIT = 1.5533430576324463
+    _RADIANS = 0.01745329238474369
+    _FIELDS = (
+        ("m_A53161C8", 0.0), ("m_AB37A892", 0.0),
+        ("m_D6119DFB", -9999999.0), ("m_C33684DE", -9999999.0),
+        ("m_83221709", 9999999.0), ("m_8FA7FF85", 9999999.0),
+    )
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.mover_angles = None
+        self.linked_entity = None
+        self.adjustment = 0.0
+        self.local_yaw = 0.0
+        self.local_limits = ()
+
+    def sample(self):
+        component = self.instance.component
+        sample = component.world.linked_target_sample(component.entity)
+        if sample is NotImplemented:
+            component.unsupported(self.instance, "linked target sample", self.node.cls, self.node)
+        return sample
+
+    def on_begin(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        if (self.instance.graph.index != 0x224E or self.node.pos != 34
+                or _field(self, "m_93CDFD2F") != 1 or _field(self, "m_4BE66EFF") is not None):
+            component.unsupported(self.instance, "linked target resource", self.node.cls, self.node)
+        sample = self.sample()
+        if sample is None:
+            return
+        angles = []
+        for name, default in self._FIELDS:
+            value = play.evaluate_scalar(self.instance, _field(self, name), initial=default)
+            angles.append(f32(f32(to_float(value, default)) * self._RADIANS))
+        self.local_yaw, *self.local_limits = angles
+        self.linked_entity = None
+        self.adjustment = 0.0
+        self.refresh(sample)
+        self.ticks()
+
+    def refresh(self, sample):
+        entity, adjustment = sample
+        adjustment = f32(adjustment)
+        if entity != self.linked_entity:
+            self.local_yaw = f32(f32(self.adjustment - adjustment) + self.local_yaw)
+        self.linked_entity = entity
+        self.adjustment = adjustment
+        yaw = f32(self.local_yaw + adjustment)
+        pitch, yaw_low, pitch_low, yaw_high, pitch_high = self.local_limits
+        pitch_low = f32(max(-self._LIMIT, pitch_low) + pitch)
+        pitch_high = f32(min(self._LIMIT, pitch_high) + pitch)
+        self.mover_angles = (
+            yaw, pitch, f32(max(-self._LIMIT, yaw_low) + yaw),
+            max(-self._PITCH_LIMIT, min(self._PITCH_LIMIT, pitch_low)),
+            f32(min(self._LIMIT, yaw_high) + yaw),
+            max(-self._PITCH_LIMIT, min(self._PITCH_LIMIT, pitch_high)),
+        )
+
+    def tick(self):
+        sample = self.sample()
+        if sample is None:
+            self.mover_angles = None
+            self.instance.ticking.remove(self)
+        else:
+            self.refresh(sample)
+
+    def on_cleanup(self):
+        self.mover_angles = None
+
+    on_failed = on_destroyed = on_cleanup
+
+
 @state_class("STU_316CFEF2")
 class NumericPropertyModifiers(State):
     """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
@@ -2663,10 +2743,15 @@ class Ability(State):
         self.activate()
 
     def timer(self, param: int) -> None:
-        if param == 2 and self.var is not None and self.remaining() == 0:
-            # Time advances a linked cooldown without a variable write. Its
-            # dependents still need the zero transition to reopen their gates.
-            self.instance.changed(self.var, self.cur)
+        if param == 2:
+            # A computed cooldown reaches zero without a variable write. Notify
+            # dependants at expiry (0095's ready gate otherwise stays false).
+            # Millisecond rounding can schedule the timer just before zero.
+            if self.remaining() > 0.0:
+                self.timer_at(1, 2)
+                return
+            if self.var is not None:
+                self.instance.changed(self.var, self.cur)
         if param in (1, 2):
             if param == 2:
                 # Cooldown output reaches zero without a variable write.
@@ -3432,7 +3517,12 @@ class LinkedPlayScript(State):
             self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
 
     def on_begin(self):
-        self.instance.component.world.linked_script_changed(self, entered=True)
+        instance = self.instance
+        world = instance.component.world
+        if (instance.graph.index == 0x1408 and self.node.pos == 158
+                and world.play_script_host(instance, self.node)):
+            return
+        world.linked_script_changed(self, entered=True)
 
     def dependency_changed(self):
         self.instance.component.world.linked_script_changed(self)
@@ -3456,11 +3546,12 @@ class TrackTargets(State):
     def on_enter(self) -> None:
         targets = self.instance.component.world.linked_tracked_targets(self)
         if targets is not NotImplemented:
-            self.targets = self.linked_entities(targets)
+            self.targets = () if targets is None else self.linked_entities(targets)
             target = lvalue(self.node.field("m_8A2905A0"))
             if target is not None:
                 self.target_var = self.link(target)
-            self.ticks()
+            if targets is not None:
+                self.ticks()
             return
         self.refresh()
         component = self.instance.component
@@ -3489,6 +3580,15 @@ class TrackTargets(State):
             if not self.managed and not component.strict:
                 component.world.track_targets(self)
             return
+        targets = self.linked_entities(targets)
+        if targets != self.targets:
+            before = self.target_var.value() if self.target_var is not None else None
+            self.targets = targets
+            if self.target_var is not None:
+                self.instance.changed(self.target_var, before)
+            self.try_complete()
+
+    def publish_targets(self, targets):
         targets = self.linked_entities(targets)
         if targets != self.targets:
             before = self.target_var.value() if self.target_var is not None else None
@@ -4028,9 +4128,21 @@ class PlacementPreview(State):
     legacy behavior unless their world explicitly supports this service.
     """
 
+    def on_begin(self):
+        refresh = getattr(self.instance.component.world, "refresh_compatible_placement", None)
+        if refresh is not None and refresh(self, confirm=False) is not NotImplemented:
+            self.ticks()
+
+    def tick(self):
+        self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+
     def plug_enter(self, input_path):
         if input_path == "m_6647ED22" and self.active:
-            result = self.instance.component.world.placement_confirmation(self)
+            world = self.instance.component.world
+            refresh = getattr(world, "refresh_compatible_placement", None)
+            if refresh is not None and refresh(self, confirm=True) is not NotImplemented:
+                return True
+            result = world.placement_confirmation(self)
             if type(result) is bool:
                 self.instance.follow(self.node, "m_F6955E81" if result else "m_425337C6", self)
                 return True
@@ -4178,6 +4290,8 @@ def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> N
         # General record storage/transport for other graphs remains open.
         if instance.graph.index == 0x224E and index_cfg is None and key_cfg is None:
             record_assignment.store(instance, out_cfg, value)
+        elif index_cfg is None and key_cfg is None:
+            _store_indexed_member(instance, out_cfg, value)
         return
     if key_cfg is not None:
         key = instance.evaluate(key_cfg)
@@ -4197,6 +4311,60 @@ def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> N
             instance.write(target, tuple(items))
             return
     instance.write(target, value)
+
+
+def _store_indexed_member(instance: Instance, cfg, value) -> None:
+    """Write the array-of-maps lvalue used by 224E's effect context builder.
+
+    This is a server reconstruction for the explicit push/index/member form.
+    Other lvalue programs still use their existing handling.
+    """
+    if not isinstance(cfg, dict) or cfg.get('$') not in expr.EXPRESSIONS:
+        return
+    code, dynamics, _ = expr._parts(cfg)
+    if len(code) != 9 or [code[i] for i in (0, 2, 4, 5, 7, 8)] != [8, 8, 17, 7, 15, 0]:
+        return
+    slots = (code[1], code[3], code[6])
+    if any(type(slot) is not int or not 0 <= slot < len(dynamics) for slot in slots):
+        return
+    root_cfg, index_cfg, key_cfg = (dynamics[slot] for slot in slots)
+    root = expr.dynamic(root_cfg)
+    if root is None or expr.dynamic(index_cfg) is None or not isinstance(key_cfg, dict):
+        return
+    key = key_cfg.get('m_identifier')
+    if type(key) is not int or not 0 < key <= 0xFFFF:
+        return
+    index = to_int(instance.evaluate(index_cfg))
+    component = instance.component
+    if instance.stopped or instance.teardown or component.instances.get(instance.id) is not instance:
+        component.unsupported(instance, 'retired indexed member owner', cfg['$'])
+    if index < 0:
+        return
+    var = instance.find_var(*root)
+    current = var.base
+    if var.links or (current is not None and type(current) is not tuple):
+        if component.strict:
+            component.unsupported(instance, 'indexed member array storage', cfg['$'])
+        return
+    items = list(current or ())
+    while len(items) <= index:
+        component.consume_work('indexed member array expansion')
+        items.append(None)
+    member = items[index]
+    if member is not None and type(member) is not expr.Map:
+        if component.strict:
+            component.unsupported(instance, 'indexed member map storage', cfg['$'])
+        return
+    pairs = list(member.items) if member is not None else []
+    for position, (existing, _) in enumerate(pairs):
+        component.consume_work('indexed member key lookup')
+        if equal(existing, key):
+            pairs[position] = (existing, value)
+            break
+    else:
+        pairs.append((key, value))
+    items[index] = expr.Map(tuple(pairs))
+    instance.write(root, tuple(items))
 
 
 @handler("STU_12F5D52D")
@@ -4310,10 +4478,14 @@ def mystery_swap_count(instance: Instance, node, caller) -> bool | NotImplemente
 
 
 @handler('STU_DA54F8F7')
-def mystery_swap_remove_candidate(instance: Instance, node, caller) -> bool | NotImplementedType:
-    """104319 1B6C00B/D56020 remove one row at the evaluated index in order."""
+def remove_array(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """104319 1B6C00B/D56020 removes rows in order."""
     if (instance.graph.index, node.pos) != (0x0C8C, 305):
-        return NotImplemented
+        if not instance.component.strict:
+            return NotImplemented
+        array_actions.remove(instance, node, caller)
+        instance.follow(node, 'm_outPlug', caller)
+        return True
     target = lvalue(node.field('m_26E3B366'))
     if target is None:
         return NotImplemented
@@ -4422,6 +4594,9 @@ def stop_gate_animation(instance: Instance, node, caller) -> bool:
 @handler('STU_523EE38D')
 def retire_junkenstein_corpse(instance: Instance, node, caller) -> bool:
     component = instance.component
+    destroy = getattr(component.world, "destroy_entity", None)
+    if not component.strict and destroy is not None and destroy(instance, node) is True:
+        return no_op(instance, node, caller)
     if (component.strict and component.entity == GAME_MODE_ENTITY
             and instance.graph.index == 0x0C8C and node.pos in (311, 327)
             and expr.dynamic(node.field('m_entity')) == (expr.INSTANCE, 32557)):

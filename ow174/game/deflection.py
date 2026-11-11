@@ -326,3 +326,52 @@ def matrix_contact(script, origin, direction, reach, anchor, forward, *, visible
                     and (visible is None or visible(hit))):
                 best = hit, state
     return best
+
+
+def tags():
+    catalog = _CATALOG
+    return _rows(catalog.blob) if catalog.blob is not None else {}
+
+
+def absorbable(definition):
+    return _CATALOG.admitted(definition)
+
+
+def matrix_distance(player, origin, direction, reach, anchor, forward):
+    """Distance to active authored02CC/st3 boxes in a reconstructed aim frame.
+
+    The caller supplies a live enemy player, eye anchor and normalized aim.
+    Death, team, static cover and nearer body ordering belong to Combat.
+    """
+    hero = getattr(player, "hero", None)
+    script = getattr(player, "body_script", None)
+    if (hero is None or hero.guid != 0x02E000000000007A or hero.body != 0x0400000000000407
+            or script is None or script.retired):
+        return None
+    x, y, z = forward
+    length = math.hypot(x, z)
+    right = (z / length, 0.0, -x / length) if length > 1e-9 else (1.0, 0.0, 0.0)
+    rx, ry, rz = right
+    up = (y * rz - z * ry, z * rx - x * rz, x * ry - y * rx)
+    basis = (right, up, forward)
+    delta = tuple(a - b for a, b in zip(origin, anchor, strict=True))
+    local_origin = tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in basis)
+    local_direction = tuple(sum(a * b for a, b in zip(direction, axis, strict=True)) for axis in basis)
+    best = None
+    for instance in script.component.instances.values():
+        if instance.graph.index != 0x02CC:
+            continue
+        state = instance.state(3)
+        if state is None or not state.active or state.node.cls != "STUStatescriptStateDeflectProjectiles":
+            continue
+        for box in state.node.field("m_boxes") or ():
+            low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+            high = state.evaluate(box.get("m_AEF67365"), watch=False)
+            if (not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3)
+                    or any(not math.isfinite(v) for v in (*low, *high))
+                    or any(a > b for a, b in zip(low, high, strict=True))):
+                raise ValueError("invalid authored Matrix box")
+            hit = box_hit(local_origin, local_direction, low, high, reach)
+            if hit is not None and (best is None or hit < best):
+                best = hit
+    return best

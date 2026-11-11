@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Moira server integration
+
+- Integrate Moira's Grasp, spray, trailing heal, orbs, Fade, and Coalescence
+  with the Python server. Bring in the delivery's Ana Nano Boost, Zarya
+  Graviton Surge, Symmetra Photon Barrier, and shared StateScript changes.
+- Preserve the existing combat pools, barrier managers, and body clocks
+  when routing the new interactions. Pass 41 targeted Moira checks and 66
+  combat and scene checks. Cross-hero interactions, asset-dependent scenarios,
+  and original-client verification remain open.
+
 ### Baptiste server integration
 
 - Integrate Baptiste's weapons, Regenerative Burst, Exo Boots, Immortality

@@ -33,8 +33,10 @@ from ow174.game import (
     deflection,
     earthshatter,
     healing,
+    graviton,
     heroselect,
     mei_wall,
+    moira,
     notices,
     npc_navigation,
     observers,
@@ -42,6 +44,7 @@ from ow174.game import (
     orisa_barrier,
     orisa_halt,
     orisa_supercharger,
+    photon_barrier,
     projectiles,
     props,
     reinhardt_barrier,
@@ -53,6 +56,7 @@ from ow174.game import (
     voicelines,
     winston_barrier,
     world,
+    zarya_barriers,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -117,7 +121,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen tesla_frames "
+        "match vitals history replacement_ticks rockets moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -131,7 +135,7 @@ FIELDS = {
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
-        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor"),
+        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until adaptive_activation"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"
@@ -139,7 +143,7 @@ FIELDS = {
     echo_duplicate.Duplicates: _names("combat states held busy"),
     barriers.Barriers: _names("fight live scripted seen next_entity world reinhardt"),
     barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
-    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id pending"),
     combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
     barriers.Barrier: _names(
         "entity parent parent_body source instance state activation component "
@@ -163,6 +167,11 @@ FIELDS = {
     healing.HealingEffects: _names("combat spec anti amp"),
     absorption.Grasp: _names("combat converted last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
+    graviton.Gravitons: _names("fight fields pulled npc_movers"),
+    winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    photon_barrier.Barriers: _names("fight geometry actors casts"),
+    photon_barrier.Geometry: _names("world triangles source"),
+    photon_barrier.BarrierWorld: _names("hero mode actor"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -239,6 +248,7 @@ DATACLASSES = (
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier,
     deflection.ProjectileTags,
+    moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

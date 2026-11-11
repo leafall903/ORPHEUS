@@ -7,9 +7,11 @@ execute here. This is not the general native interception or pool service.
 
 import math
 
+from ow174.game import bots
 from ow174.game.script import expr
 
 SIGMA = 0x02E000000000023B
+GRASP = 0x1D02
 SHIELD_TAG = 0x5847
 TICK = .016
 
@@ -83,3 +85,47 @@ class Grasp:
                 if getattr(getattr(target.owner, "hero", None), "guid", None) == SIGMA}
         for entity in self.converted.keys() - live:
             del self.converted[entity]
+
+
+def grasp_intersection(combat, shooter, origin, direction, reach):
+    """Nearest live enemy Grasp box before the caller's nearer body/wall bound.
+
+    The local box is reconstructed as view-oriented and eye-relative. Bounds
+    themselves are evaluated from the actual active State, including body scale.
+    """
+    from ow174.game.interception import ray_box
+
+    best = None
+    for target in combat._enemies(shooter):
+        actor = target.owner
+        npc = isinstance(actor, bots.Bot)
+        hero = actor.hero if npc else getattr(getattr(actor, "hero", None), "guid", None)
+        script = getattr(actor, "body_script", None)
+        if hero != SIGMA or script is None or script.component.owner_dead:
+            continue
+        yaw, pitch = (actor.yaw, 0) if npc else (actor.mover.yaw, actor.mover.pitch)
+        yaw, pitch = yaw * math.tau / 65536, pitch * math.tau / 65536
+        sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
+        basis = ((cy, 0, -sy), (sy * sp, cp, cy * sp), (sy * cp, -sp, cy * cp))
+        eye = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+        delta = tuple(a - b for a, b in zip(origin, eye, strict=True))
+        local_origin = tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in basis)
+        local_direction = tuple(sum(a * b for a, b in zip(direction, axis, strict=True)) for axis in basis)
+        for instance in script.component.instances.values():
+            if instance.graph.index != GRASP:
+                continue
+            state = instance.states.get(1)
+            if state is None or not state.active:
+                continue
+            for box in state.node.field("m_boxes") or []:
+                low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+                high = state.evaluate(box.get("m_AEF67365"), watch=False)
+                if not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3):
+                    continue
+                hit = ray_box(local_origin, local_direction, low, high, reach)
+                if hit is not None and (best is None or hit < best[0]):
+                    best = hit, state
+    return best
+
+
+from ow174.game.interception import absorbed

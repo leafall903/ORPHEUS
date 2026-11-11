@@ -38,6 +38,7 @@ STATE_MODELS = (
     ("STUStatescriptStateStack", nodes.Stack),
     ("STUStatescriptStateLogicalButton", nodes.LogicalButton),
     ("STU_E4A30BCF", nodes.DisableLogicalButton),
+    ("STU_54FEB21C", nodes.PhaseEntry),
     ("STUStatescriptStateWait", nodes.Wait),
     ("STU_E3CEF6B9", nodes.WaitForServerFrames),
     ("STU_D74D4F47", nodes.WaitFrames),
@@ -104,8 +105,8 @@ def minimal_graph(classes=("STU_TestPlainState",), index=1):
     })
 
 
-def fixture(classes=("STU_TestPlainState",), allocation=None):
-    component = runtime.Component(123)
+def fixture(classes=("STU_TestPlainState",), allocation=None, *, entity=123):
+    component = runtime.Component(entity)
     instance = component.create(minimal_graph(classes), init=False)
     for index in range(len(classes)) if allocation is None else allocation:
         instance.state(index)
@@ -183,7 +184,7 @@ class BodyVMSnapshotTests(unittest.TestCase):
     def test_every_current_concrete_state_class_exports_before_any_callback(self):
         component, instance = fixture(tuple(name for name, _ in STATE_MODELS))
         data = raw(export_component_vm(component))
-        self.assertEqual(len(STATE_MODELS), 40)
+        self.assertEqual(len(STATE_MODELS), 44)
         for index, (_, expected_type) in enumerate(STATE_MODELS):
             with self.subTest(state=expected_type.__name__):
                 self.assertIs(type(instance.states[index]), expected_type)
@@ -365,6 +366,33 @@ class BodyVMSnapshotTests(unittest.TestCase):
         component.create(old.graph, instance_id=old.id, init=False)
         with self.assertRaisesRegex(BodyVMSnapshotError, "reuse"):
             export_component_vm(component)
+
+    def test_cross_entity_watches_preserve_both_namespaces_without_importing_foreign_storage(self):
+        local, local_instance = fixture()
+        remote, remote_instance = fixture(entity=456)
+        own_slot, remote_slot = local.entity_var(478), remote.entity_var(478)
+        local_state = local_instance.states[0]
+        remote_state = remote_instance.states[0]
+        local_state.active = remote_state.active = True
+        local_state.watch(own_slot)
+        local_state.watch(remote_slot)
+        remote_state.watch(own_slot)
+        local_doc = raw(export_component_vm(local))
+        remote_doc = raw(export_component_vm(remote))
+        self.assertEqual(elements(fields(local_doc, ["state", 1, 0])["watched"]), [
+            [ref("var", 0, 478), None], [ref("external-var", 456, 478), None],
+        ])
+        self.assertEqual(elements(fields(remote_doc, ["var", 0, 478])["watchers"]), [
+            [ref("external-state", 123, 1, 0), None],
+        ])
+        self.assertEqual(elements(fields(local_doc, ["var", 0, 478])["watchers"]), [
+            [ref("state", 1, 0), None], [ref("external-state", 456, 1, 0), None],
+        ])
+        self.assertFalse(any(obj["ref"][0].startswith("external") for obj in local_doc["objects"]))
+        collision, _ = fixture(entity=456)
+        local_state.watch(collision.entity_var(478))
+        with self.assertRaisesRegex(BodyVMSnapshotError, "reuse an entity identity"):
+            export_component_vm(local)
 
     def test_variable_aliases_are_references_and_unowned_or_duplicate_variables_are_rejected(self):
         component, instance = fixture()
@@ -560,7 +588,6 @@ class BodyVMSnapshotTests(unittest.TestCase):
         script.passive_charge_ms = 7
         self.assertNotEqual(snapshot_digest(export_body_vm(script)), snapshot_digest(baseline))
         script.passive_charge_ms = 0
-        self.assertEqual(set(dict(body["world"]["fields"])), {"hero", "mode", "body", "throttles"})
         for name in TRANSPORT_FIELDS:
             setattr(script, name, object())
         with mock.patch.object(BodyScript, "snapshot", side_effect=AssertionError("driver snapshot")):

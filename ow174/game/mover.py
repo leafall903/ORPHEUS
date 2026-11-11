@@ -53,12 +53,14 @@ field for field as the client compares it with the server's (0x7FF789B73E00, see
 
 import json
 import math
+import os
 import struct
 import threading
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, fields, replace
 from functools import cache
+from pathlib import Path
 
 from ow174.game import contacts
 from ow174.game.collision import MOVER, NOT_GROUND, TEAM0, TEAM1, Ground, World, flat_world
@@ -66,6 +68,8 @@ from ow174.game.commands import CROUCH, JUMP, SUBFRAME, Command
 from ow174.paths import DATA_DIR
 
 MOVERS_PATH = DATA_DIR / "game_movers_174.json"  # tools/extract_game_movers.py
+_supplement_path = os.environ.get("ORPHEUS_MOVERS_SUPPLEMENT")
+MOVERS_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 SOLDIER_BODY = 0x04000000000003CF
 
 RUN_SPEED = 5.5  # m/s, most heroes
@@ -93,12 +97,35 @@ THROTTLE_UNIT = f32(1.0 / 127)  # dword_7FF78B523B58
 TWO_PI = f32(6.28318548)  # dword_7FF78B51FCAC
 
 
+def _angle_units(radians: float) -> int:
+    scaled = f32(radians * PITCH_UNITS)
+    return int(f32(scaled - 0.5) if scaled < 0.0 else f32(scaled + 0.5))
+
+
+def clamp_linked_target_command(command: Command, angles: tuple[float, ...]) -> Command:
+    """BBD370 applies linked-target limits to the primary command angles."""
+    reference, _, yaw_low, pitch_low, yaw_high, pitch_high = angles
+    yaw = f32(command.yaw * PITCH_RADIANS)
+    pitch = f32(command.pitch * PITCH_RADIANS)
+    pi = f32(math.pi)
+    if f32(yaw + pi) < reference:
+        yaw = f32(yaw + TWO_PI)
+    elif f32(yaw - pi) > reference:
+        yaw = f32(yaw - TWO_PI)
+    held_yaw = yaw_low if yaw < yaw_low else min(yaw, yaw_high)
+    held_pitch = pitch_low if pitch < pitch_low else min(pitch, pitch_high)
+    if (held_yaw, held_pitch) == (yaw, pitch):
+        return command
+    packed_yaw = (_angle_units(held_yaw) + 0x8000) % 0x10000 - 0x8000
+    packed_pitch = (_angle_units(held_pitch) + 0x8000) % 0x10000 - 0x8000
+    return replace(command, yaw=packed_yaw, pitch=packed_pitch)
+
+
 def turned_pitch(units: int) -> tuple[int, bool]:
     """(the state's pitch, whether it was held to the limit) of a command's pitch."""
     radians = f32(units * PITCH_RADIANS)
     held = max(-PITCH_LIMIT, min(PITCH_LIMIT, radians))
-    scaled = f32(held * PITCH_UNITS)
-    return int(f32(scaled - 0.5) if scaled < 0.0 else f32(scaled + 0.5)), held != radians
+    return _angle_units(held), held != radians
 
 
 def throttle_byte(value: int) -> tuple[float, int]:
@@ -306,6 +333,15 @@ def _movers() -> dict[int, MoverData]:
             else:
                 names = {field.name for field in fields(MoverData)}
                 table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
+                if MOVERS_SUPPLEMENT_PATH is not None:
+                    extra = json.loads(MOVERS_SUPPLEMENT_PATH.read_text(encoding="utf-8"))
+                    for body, entry in extra.items():
+                        identifier = int(body, 16)
+                        if body != f"0x{identifier:016X}" or identifier >> 48 != 0x0400:
+                            raise ValueError("mover supplement needs canonical full003 GUID keys")
+                        if body in table and table[body] != entry:
+                            raise ValueError(f"mover supplement conflicts with body {body}")
+                        table[body] = entry
                 _mover_table = {
                     int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
                     for body, entry in table.items()
@@ -332,6 +368,11 @@ def mover_data(body: int | None) -> MoverData:
     """The body's mover values; Soldier: 76's (most heroes') when the data does not know it."""
     movers = _movers()
     return movers.get(body or 0) or movers.get(SOLDIER_BODY) or MoverData()
+
+
+def defined_mover_data(body: int) -> MoverData | None:
+    """An explicit alternate form must not silently borrow Soldier's capsule."""
+    return _movers().get(body)
 
 
 def quantise(value: float) -> float:
@@ -575,11 +616,12 @@ class Mover:
             self.on_map = True
             self.body = None
 
-    def track_mods(self, active: dict, frame: int) -> None:
+    def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
         a mod that came on acts from the next frame on, one that went off acts up to this frame. The
         client starts a mod at the statescript's frame + 1 (0x7FF789C4C510..0x7FF789C4C52A) and ends it at
-        the frame + 1 it went off in (0x7FF789C49CE1, 0x7FF789B456C0)."""
+        the frame + 1 it went off in (0x7FF789C49CE1, 0x7FF789B456C0).
+        Unposed frames retain ended intervals for late movement reconstruction."""
         for key, (index, op, value, priority) in active.items():
             mod = self.mods.get(key)
             if mod is None or mod.end is not None:
@@ -589,7 +631,7 @@ class Mover:
         for key, mod in list(self.mods.items()):
             if key not in active and mod.end is None:
                 mod.end = frame + 1
-            elif mod.end is not None and mod.end <= frame:
+            elif posed and mod.end is not None and mod.end <= frame:
                 del self.mods[key]  # the mover's next tick is frame + 1
 
     def set_same_team_contact(self, team: int, enabled: bool) -> None:
@@ -679,6 +721,7 @@ class Mover:
     def step(
         self, command: Command, seconds: float, tick: int = 0,
         *, simulate_pose: Callable[[Command, float, int], None] | None = None,
+        retained_buttons: int = 0,
     ) -> None:
         """One tick per command frame. Frames that never arrived are run first: the client ran them, most
         likely with the same keys (the last command again, and from the 33rd
@@ -691,7 +734,7 @@ class Mover:
                 if frame - last.frame > REPEAT:
                     last = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
                 missing = replace(
-                    last, frame=frame, buttons=last.buttons & ~SUBFRAME, action=0,
+                    last, frame=frame, buttons=(last.buttons & ~SUBFRAME) | retained_buttons, action=0,
                     subframe=0xFF, click_yaw=None, click_pitch=None,
                 )
                 pose(missing, seconds, tick)
@@ -704,13 +747,15 @@ class Mover:
         movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
         fall_limit: float | None = None,
         speed_scale: float = 1.0,
+        ground_override: Ground | None = None,
+        world_driven: bool = False,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
-        if self.driven and move_to is None:
+        if self.driven and move_to is None and not world_driven:
             self.velocity = (0.0, 0.0, 0.0)
-        self.driven = move_to is not None
+        self.driven = world_driven or move_to is not None
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
@@ -721,6 +766,10 @@ class Mover:
         self.pitch, held = turned_pitch(command.pitch)
         if held:
             self.flags_word |= TURN_HELD
+        if world_driven:
+            self.throttles = (0, 0)
+            self.history.append(self.snapshot(frame))
+            return None
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
@@ -733,7 +782,7 @@ class Mover:
         was_crouched = self.crouched
         self.landed = False
 
-        ground, under = self._probe(dt)
+        ground, under = self._probe(dt, ground_override)
         self._transitions(ground, under, jump, crouch, active)
         if was_crouched and not self.crouched:
             self.crouch_end = frame
@@ -791,7 +840,7 @@ class Mover:
 
     # ---- 3. the ground probe
 
-    def _probe(self, dt: float):
+    def _probe(self, dt: float, ground_override: Ground | None = None):
         """(ground, under): the ground the feet stand on or land on (None if none), and whether the probe
         met a surface that is not ground (flag 0x80000)."""
         data = self.values
@@ -806,6 +855,9 @@ class Mover:
             reach = max(data.step_down, self.slope_tan * dt * speed * PROBE_FACTOR)
         bottom = y - reach
         hit = self.world.ground(x, z, top, bottom, self.category)
+        if (ground_override is not None and bottom <= ground_override.y <= top
+                and (hit is None or ground_override.y > hit.y)):
+            hit = ground_override
         under = bool(hit is not None and hit.surface & NOT_GROUND)
         if data.gravity_scale <= 0.0:
             return None, under

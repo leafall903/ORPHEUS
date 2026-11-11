@@ -359,7 +359,11 @@ class Projectiles:
                 viewer.client.queue_entities([create])
 
     def absorbed(self, shot: Shot) -> None:
-        """Retire the projectile and its deliveries without releasing an impact."""
+        """Retire an intercepted projectile without impact release or spawned field."""
+        if isinstance(shot.player, bots.Bot):
+            for delivery in shot.observers:
+                delivery.finish(self.match.tick, False)
+            return
         self._end(shot, self.match.tick, explode=False)
 
     def flown(self, shot: Shot, seconds: float) -> None:

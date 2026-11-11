@@ -2,6 +2,7 @@
 
 No graph callbacks, variable resolution, frame snapshots or random draws run here.
 Static Graph/Node storage is bound by exact typed definition and source-data hashes.
+Cross-entity watches are recorded as references at the component boundary.
 This is an observation format, not a restorer or a Python stack checkpoint.
 """
 
@@ -28,6 +29,8 @@ from ow174.game.script import (
 )
 from ow174.game.script.bot import AssassinControllerWorld, BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
+from ow174.game.photon_barrier import BarrierWorld as PhotonWorld
+from ow174.game.winston_barrier import DomeWorld
 
 SCHEMA = "ow174.body-vm-storage.v1"
 COMPONENT_SCHEMA = "ow174.component-vm-storage.v1"
@@ -80,6 +83,7 @@ _STATE_LAYOUTS = {
                            "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
                            "voice_submitted", "voice_failed"), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
+    nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
@@ -196,6 +200,7 @@ class _Export:
         self.instances = {}
         self.states = {}
         self.variables = {}
+        self.entity_components = {component.entity: component}
         self.graphs = {}
         self.node_owners = {}
         self.node_refs = {}
@@ -282,7 +287,7 @@ class _Export:
     def _var(self, obj):
         if type(obj) is not runtime.Var:
             raise BodyVMSnapshotError("unknown variable class")
-        if runtime.Var.__slots__ != _VAR:
+        if runtime.Var.__slots__ != (*_VAR, "entity_owner"):
             raise BodyVMSnapshotError("unknown variable slot layout")
         try:
             data = {name: object.__getattribute__(obj, name) for name in _VAR}
@@ -299,6 +304,42 @@ class _Export:
         elif self.variables[key] is not obj:
             raise BodyVMSnapshotError("distinct variables reuse a local variable identity")
         return ["var", *key]
+
+    def _external_entity(self, component):
+        if type(component) is not runtime.Component:
+            raise BodyVMSnapshotError("unknown external watch component")
+        entity = _integer(component.entity, "external watch entity")
+        if not 0 <= entity <= 0xFFFFFFFF or not expr.valid_entity(entity):
+            raise BodyVMSnapshotError("invalid external watch entity")
+        if entity == self.component.entity or self.entity_components.setdefault(entity, component) is not component:
+            raise BodyVMSnapshotError("external watch components reuse an entity identity")
+        return entity
+
+    def _watched_var(self, state, var):
+        if type(var) is runtime.Var and var.entity_owner not in (None, self.component):
+            owner = var.entity_owner
+            entity = self._external_entity(owner)
+            scope, number = var.key
+            if scope != 0 or owner.vars.get(number) is not var or state not in var.watchers:
+                raise BodyVMSnapshotError("invalid external watched variable")
+            return {"ref": ["external-var", entity, _integer(number, "external variable id")]}
+        return self.value(var)
+
+    def _var_watcher(self, var, state):
+        if type(state) in _STATE_LAYOUTS and state.instance.component is not self.component:
+            instance = state.instance
+            entity = self._external_entity(instance.component)
+            if (var.entity_owner is not self.component or var not in state.watched
+                    or instance.component.instances.get(instance.id) is not instance
+                    or instance.states.get(state.index) is not state):
+                raise BodyVMSnapshotError("invalid external variable watcher")
+            return {"ref": ["external-state", entity, _integer(instance.id, "external watch instance"),
+                            _integer(state.index, "external watch state")]}
+        return self.value(state)
+
+    def _watch_map(self, mapping, key_ref):
+        return {"kind": "dict", "identity": self.identity(mapping),
+                "items": [[key_ref(key), self.value(value)] for key, value in mapping.items()]}
 
     def _graph(self, obj):
         if type(obj) is not graph.Graph:
@@ -387,7 +428,9 @@ class _Export:
         for name, value in data.items():
             if name not in exclude:
                 scope = "model" if type(obj) is BodyScript and name == "record" else "vm"
-                result.append([name, self.value(value, scope=scope)])
+                stored = (self._watch_map(value, lambda var: self._watched_var(obj, var))
+                          if name == "watched" else self.value(value, scope=scope))
+                result.append([name, stored])
         return result
 
     def _set_key(self, obj):
@@ -433,7 +476,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DeviceWorld, PullQuery):
+        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -455,8 +498,12 @@ class _Export:
             if kind is AssassinControllerWorld:
                 fields.update(("mover", "body_entity", "match", "button_edges", "button_holders",
                                "movement_bits", "candidates", "recovery_pending", "recovery_started"))
+            if kind is DomeWorld:
+                fields.update(("manager", "actor"))
+            if kind is PhotonWorld:
+                fields.add("actor")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
@@ -675,10 +722,12 @@ class _Export:
                 owner, number = obj.key
                 table = self.component.vars if owner == 0 else self.instances.get(owner, None)
                 table = table.vars if type(table) is runtime.Instance else table
-                if type(table) is not dict or table.get(number) is not obj:
+                expected_owner = self.component if owner == 0 else None
+                if type(table) is not dict or table.get(number) is not obj or obj.entity_owner is not expected_owner:
                     raise BodyVMSnapshotError("variable is outside its owner's storage")
                 record = {"ref": ["var", *obj.key], "class": _name(type(obj)),
-                          "fields": [[name, self.value(object.__getattribute__(obj, name))]
+                          "fields": [[name, self._watch_map(obj.watchers, lambda state: self._var_watcher(obj, state))
+                                      if name == "watchers" else self.value(object.__getattribute__(obj, name))]
                                      for name in _VAR]}
             else:
                 record = self._graph_record(obj, graph_definitions)

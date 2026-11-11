@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from ow174.game import collision, contacts
-from ow174.game.script import expr
+from ow174.game.collision import Ground
+from ow174.game.mover import IN_AIR
+from ow174.game.script import expr, graph, runtime
 
 MEI = 0x02E00000000000DD
 EPS = 1e-5
@@ -23,6 +25,7 @@ class Pillar:
     width: float = 1.55
     depth: float = 0.5
     height: float = 4.4
+    impact_marked: bool = False
 
 
 @dataclass
@@ -136,14 +139,128 @@ class Walls:
         self.inputs: dict[int, Input] = {}
 
     def create(self, player, points, axis):
-        fight = self.combat
-        if fight.next_bot + len(points) > 0xD0000000:
-            raise ValueError("wall entity allocator exhausted")
+        from ow174.game.combat import TICK
+
+        definition = graph.graph(0x0636)
+        if definition is None:
+            return False
+        players = [target.owner for target in self.combat._targets()
+                   if hasattr(target.owner, "mover") and not self.combat.is_dead(target.owner)]
+        created = False
         for point in points:
-            entity = fight.next_bot
-            fight.next_bot += 1
-            self.pieces[entity] = Pillar(entity, player.body, player.team, point, axis,
-                                         400.0, fight.tick + 313)
+            piece = Pillar(0, player.body, player.team, point, axis, 0., 0)
+            lifts = self.deployment_lifts(piece, players)
+            if lifts is None:
+                continue
+            entity = self.combat.next_bot
+            if entity >= 0xD0000000:
+                raise ValueError("wall entity allocator exhausted")
+            self.combat.next_bot += 1
+            component = runtime.Component(entity)
+            instance = component.create(definition, init=False)
+            # Consume the original pillar marker entry. Health and retirement
+            # are hosted here while the rest of the pillar VM remains open.
+            instance.run_node(definition.node(27), None)
+            marked = expr.truthy(component.entity_var(961).value())
+            health = expr.to_float(instance.evaluate(definition.node(1).field("m_amount")))
+            expires = self.combat.tick + math.ceil(5 / TICK)
+            piece.entity, piece.health, piece.expires, piece.impact_marked = entity, health, expires, marked
+            self.pieces[entity] = piece
+            created = True
+            for mover, position in lifts:
+                self.place_mover(mover, position, ((0., 1., 0.),))
+        return created
+
+
+    def deployment_lifts(self, piece, players):
+        """Plan vertical clearance before committing a column and moving any player."""
+        scene = self.combat.match.collision_world
+        top = piece.feet[1] + piece.height
+        up = (0., 1., 0.)
+        lifts = []
+        for player in players:
+            mover = player.mover
+            x, y, z = mover.position
+            dx, dy, dz = local(piece, tuple(a - b for a, b in zip(mover.position, piece.feet, strict=True)))
+            radius, segment = mover._capsule()
+            lift = mover._lift()
+            height = lift + segment + 2 * radius
+            if (abs(dx) >= piece.width / 2 + radius or abs(dz) >= piece.depth + radius
+                    or dy >= piece.height or dy + height <= 0):
+                continue
+            destination = (x, top + EPS, z)
+            start, end = (x, y + lift, z), (x, destination[1] + lift, z)
+            centres = ((0., radius, 0.), (0., radius + segment, 0.))
+            if contacts.scene_sweep(scene.engine, start, end, centres, radius, mover.category) is not None:
+                return None
+            for other in self.pieces.values():
+                hit = ray(other, mover.position, up, destination[1] - y, radius=radius, height=height)
+                if hit is not None and any(hit[1]):
+                    return None
+            lifts.append((mover, destination))
+        return lifts
+
+
+    @staticmethod
+    def place_mover(mover, position, normals):
+        mover.position = list(position)
+        for normal in normals:
+            into = sum(a * b for a, b in zip(mover.velocity, normal, strict=True))
+            if into < 0:
+                mover.velocity = tuple(a - into * b for a, b in zip(mover.velocity, normal, strict=True))
+            if normal[1] > .7:
+                mover.flags_word &= ~IN_AIR
+                mover.fall, mover.air_ticks, mover.landed = 0., 0, True
+        if mover.body is not None:
+            mover.body.teleport((position[0], position[1] + mover._lift(), position[2]))
+
+
+    def ground(self, mover):
+        radius, _ = mover._capsule()
+        x, y, z = mover.position
+        top = y + mover._pogo() + mover.spring + radius
+        bottom = y - (0. if mover.airborne else mover.values.step_down)
+        best = None
+        for piece in self.pieces.values():
+            dx, _, dz = local(piece, (x - piece.feet[0], y - piece.feet[1], z - piece.feet[2]))
+            height = piece.feet[1] + piece.height
+            if (abs(dx) <= piece.width / 2 and abs(dz) <= piece.depth and bottom <= height <= top
+                    and (best is None or height > best.y)):
+                best = Ground.at((x, height, z), (0., 1., 0.))
+        return best
+
+
+    def move_mover(self, mover, before):
+        after = tuple(mover.position)
+        radius, segment = mover._capsule()
+        height = 2 * radius + segment + mover._pogo()
+        after, normals = self.constrain(before, after, radius, height)
+        if normals:
+            self.place_mover(mover, after, normals)
+            mover.history[-1] = mover.snapshot(mover.history[-1].frame)
+        return bool(normals)
+
+
+    def constrain(self, before, after, radius, height):
+        normals = []
+        for _ in range(3):
+            delta = tuple(b - a for a, b in zip(before, after, strict=True))
+            length = math.hypot(*delta)
+            if length < EPS:
+                break
+            direction = tuple(v / length for v in delta)
+            best = None
+            for piece in self.pieces.values():
+                hit = ray(piece, before, direction, length, radius=radius, height=height)
+                if hit is not None and any(hit[1]) and (best is None or hit[0] < best[0]):
+                    best = hit
+            if best is None:
+                break
+            at, normal = best
+            overlap = sum((length - at) * d * n for d, n in zip(direction, normal, strict=True))
+            after = tuple(a + n * (EPS - overlap) for a, n in zip(after, normal, strict=True))
+            normals.append(normal)
+        return after, normals
 
     def retire(self, body):
         self.inputs.pop(body, None)
@@ -338,8 +455,7 @@ class Walls:
             state.rotated = not state.rotated
         if pressed & 1:
             placement = self.placement(player, command, state.rotated)
-            if placement is not None:
-                self.create(player, *placement)
+            if placement is not None and self.create(player, *placement):
                 instance.write((0, 61), expr.f32(12.0))
                 self.stop_preview(instance)
                 state.preview = False
