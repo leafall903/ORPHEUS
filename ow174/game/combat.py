@@ -3528,9 +3528,8 @@ class Combat:
                         if (script is not None and not script.retired and not script.component.owner_dead
                                 and not any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
                             from ow174.game import ultimate
-                            from ow174.game.content import PRACTICE_RANGE_MODE
 
-                            if script.world.mode == PRACTICE_RANGE_MODE:
+                            if ultimate.practice_timer(script.world):
                                 ultimate.field_healing_points(script, min(given, eligible), target.entity)
                             else:
                                 script.set_ult_charge(ultimate.combat_value(script, min(given, eligible), "healing"))

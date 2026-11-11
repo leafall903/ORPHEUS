@@ -5,6 +5,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Retain delivered Practice Range healing classification
+
+- Use the delivered Practice Range classifier for Soldier's healing-credit
+  route, including its authored 005A/13C0 binding check. Other modes keep the
+  existing evaluated-expression path. This reconciles the same delivered
+  behavior rather than adding a mode or a new acceptance requirement.
+- The existing overlapping-field continuous/skipped-frame credit check passes.
+
+
+
 ### Integrate delivered Soldier Field healing and charge startup
 
 - Read 0258's healing radius, amount, fade and lifetime from its actual player
