@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, npc_melee, sombra_hack
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -50,11 +50,25 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player):
+def start(match, player, *, melee=False, charge=False):
+    if melee and charge:
+        raise ValueError('Select one NPC attack')
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
-    button(bot)  # validate before changing policy
+    primary = button(bot)  # validate before changing policy
+    if melee and bot.body not in npc_melee.GRAPHS:
+        raise ValueError('NPC melee input is unavailable')
+    if charge and bot.body != npc_melee.HEAVY_BODY:
+        raise ValueError('NPC charge input is unavailable')
+    special = npc_melee.CHARGE_BUTTON if charge else npc_melee.BUTTON if melee else None
+    component = bot.body_script.component
+    if bot.attack_special != special:
+        npc_melee.release_charge(match.combat, bot, cancel=True)
+        component.edges([(bot.attack_special or primary, False)])
+        bot.attack_input = False
+    assassin.bind(component.world, component, None)
+    bot.attack_special = special
     bot.attack_target = player.entity
     bot.firing = True
     return bot.entity
@@ -65,17 +79,22 @@ def stop(match):
     for bot in match.bots:
         if not manual(bot):
             continue
+        npc_melee.release_charge(match.combat, bot, cancel=True)
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
+            if bot.attack_special is not None:
+                values.add(bot.attack_special)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
                 values.add(primary)  # also cancel a down edge queued before the next VM update
             component.edges([(value, False) for value in sorted(values)])
             component.shots.clear()
+        bot.attack_special = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
@@ -86,17 +105,26 @@ def stop(match):
 
 def update_input(fight, bot):
     """Refresh manual aim and release input on death, occlusion, range or target loss."""
+    component = bot.body_script.component
+    pin = bot.hero == assassin.HERO and getattr(component.world, 'controller_components', None) is not None
     target = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
-    enabled = (not bot.dead and not fight.is_stunned(bot) and bot.firing
+    enabled = (not bot.dead and not fight.is_stunned(bot) and not bot.controlled and bot.firing
                and target is not None and target.spawned and target.has_body
                and not target.gone and target.client is not None and not fight.is_dead(target)
                and (fight.match.game_map.free_for_all or target.team != bot.team))
+    if pin or bot.attack_special:
+        enabled = enabled and not fight.punches.controlled(bot.entity)
+    if pin or bot.attack_special == npc_melee.CHARGE_BUTTON:
+        enabled = enabled and not sombra_hack.locked(bot, fight.tick)
     if enabled:
-        origin = (bot.position[0], bot.position[1] + combat.EYE, bot.position[2])
+        height = combat.eye_height(bot.body) if pin or bot.attack_special else combat.EYE
+        origin = (bot.position[0], bot.position[1] + height, bot.position[2])
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        enabled = 0 < distance <= (assassin.PIN_RANGE if pin else AIM_RANGE)
+        if pin:
+            enabled = enabled and not fight.protected(target.body)
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -104,8 +132,9 @@ def update_input(fight, bot):
             bot.yaw = float(bots.heading(dx, dz))
             bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
             bot.moved_tick = fight.tick
-    value = button(bot)
-    component = bot.body_script.component
+    value = bot.attack_special or button(bot)
+    if pin:
+        assassin.bind(component.world, component, target.body if enabled else None)
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)

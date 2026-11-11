@@ -1,0 +1,47 @@
+Doomfist/manual Assassin1157 -- partial static evidence, full goal OPEN
+Build1.74.0.0.104319; Doomfist02E000000000012F; Assassin02E00000000001BB.
+
+This checkpoint extends the declared manual controller component set(4B,) to
+manually spawned Assassin. Its slot0 selects logical pin button36. The actual
+1157 graph runs; the narrow permissive adapter supplies self possessor context
+as a data-only Map with1650 pointing to the selected player body. It creates
+no controller entity or alias. Strict, foreign and other-graph queries are not
+resolved by this adapter. Health queries read actual live owner/target pools.
+
+Resource fields retained in assassin-resource-scope-21.json:
+- Node25 modifies target variable536 using amount variable13230 and null mode.
+- Node15 modifies the same target with amount11984 and mode1.
+- Node22 evaluates the real amount expressions; observed values are25/100.
+- Node23 owns the pin subgraph and release31; the actual delay enters the
+  sustained phase after one second, partway through a16ms command frame.
+
+Declared reconstruction, separately from those resource facts:
+- Mode1 means damage per second; null mode applies once on entry. Native enum,
+  health-service scheduler, difficulty scaling and status tags remain unproved.
+- Manual contact uses3m eye distance, LOS, enemy faction, actual living body,
+  protection and current source control checks. This is not native acquisition,
+  navigation, attachment, teleport, collision escape or animation targeting.
+- Source-owned pin bindings interrupt the victim and suppress movement/skills.
+  They are separate from timed Flashbang and Punch control, captured as causal
+  state, and cleared on stop, invalid target, interruption, death and removal.
+- Release Anim31 has no resolved native duration. A fresh explicit manual
+  engagement interrupts that state through its authored exits. No fabricated
+  native release duration is claimed.
+
+Actual-resource tests use ordinary input and original damage resolution, with
+no health/ammo/cooldown/ability-clock/native-query overrides. They cover entry
+25, delay and sustained elapsed damage; stop/fresh engagement; blocked primary,
+Punch, Uppercut, Slam and forward movement; ally/range/wall refusals and ongoing
+faction/LOS loss; ally Punch and Flashbang rescue; Meteor acquisition protection;
+real Hand Cannon source death; source removal; body replacement; natural victim
+death and the ordinary10s respawn with250 health/no temporary shield/4 rounds.
+
+Synthetic1157 tests in test_assassin_pin.py separately probe clock/idempotence,
+Map scope, pool/lifecycle and snapshot mechanics. They are not actual-resource
+acceptance. The separate server snapshot pin mutation test is mechanical too.
+
+Existing Uppercut report_health_effect remains intact. Generic ModifyHealth is
+still strict_supported=False. Native controller allocation, native pin/status
+health service, autonomous special behavior, all remaining bidirectional/cross-
+hero requirements and original-client presentation remain OPEN. Complete static
+acceptance is false; no commit, merge, publication or original-client use.

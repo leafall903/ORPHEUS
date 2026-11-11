@@ -1,0 +1,78 @@
+Doomfist/manual Enforcer context -- partial static evidence, full goal OPEN
+Build1.74.0.0.104319; hero02E000000000012F.
+
+Scope and distinction:
+At checkpoint20 only manual_spawn Enforcer01CE declared components(4B,).
+Checkpoint21 also declares Assassin01BB; its separate1157 possessor/health
+adapter is described in DOOMFIST_ASSASSIN_CONTEXT.txt. Other NPCs, stock
+placements and undeclared contexts retain None. Only self-targeted
+B96D3A98 in13EB is resolved, in permissive mode. Strict/foreign/unrelated queries
+remain unsupported. Existing authoritative owner-health queries are preserved.
+There is no native controller entity, controller/body alias, foreign namespace
+allocation or controller wire component. The tuple is a declared sandbox input.
+
+The original CC9F61 predicate tail and182C470 bitset reader match8 component
+sets against the private predicate. DA6910 controller lookup and F66AF0 result
+collection are adapters. This proves4B-present/5C-absent selection only; it does
+not prove native allocation, ownership, component selection or boolean storage.
+Actual13EB resources supply the damage; the bridge returns a boolean only.
+BotWorld's declaration is stored in VM/server snapshots and is mechanically
+verified to affect the captured state without executing native services.
+
+Seven actual Enforcer methods:
+- Real manual selection/start causes2-point attacks on Doomfist at3m. Stop
+  suppresses attacks and fresh engagement resumes. No query override is used.
+- A real static wall suppresses the ongoing attack; removing it permits damage.
+- Ally selection is refused; the enemy-faction fixture is a positive control.
+- Real Punch control suppresses new incoming damage after existing projectiles
+  finish; the authored attack resumes after control expires. Observational
+  damage recording calls the original damage method and retains its result.
+- Meteor selection rejects actual Enforcer shot attempts; incoming damage
+  resumes after the real confirmation/impact/end path.
+- Actual Hand Cannon input kills the350-point NPC, whose retained corpse stops
+  attacking and is removed through the ordinary manual removal API.
+- Sustained ordinary input naturally kills250-health Doomfist after20191 frames.
+  The old body remains until the normal10s deadline; the fresh body has250
+  health, no temporary shields and4 Hand Cannon rounds. No health, damage,
+  cooldown, resource or component clock is assigned. Already delivered/acked
+  FakeClient observation lists are drained to bound the long test's memory;
+  this does not modify server state, inputs, queues or damage.
+
+The first six methods run in the main hero regression. The long incoming-death
+method is a separate test added afterward; production code is identical.
+Manual selection/aim policy, static fixtures, generic target capsules and the
+permissive body VM remain explicit. Native ownership/controller construction,
+difficulty/pellet count/scatter/critical/muzzle behavior, exact weapon timing,
+specials, autonomous acquisition/navigation and original-client presentation
+are not accepted by these methods. Assassin has separate partial checkpoint21
+evidence; its complete incoming behavior and all original requirements stay OPEN.
+
+Held-primary exit review:
+Three command methods cover full/empty magazines through Uppercut, primary
+Punch cancel and ground Slam. Held fire resumes, ammo stays within0..4,
+ordinary neutral commands refill4, and a fresh press spends exactly1 round.
+A separate observational Instance.write trace records the resource writes.
+These six contexts do not reproduce the shared McCree refill-overwrite case.
+The parent arbitration-release ordering candidate is therefore not imported
+as an assumed native fix; other held-input/interlock cases remain required.
+
+Opposing body02A3 eyes:
+The existing prepared32-hero metadata already contains1.425/.9975. Two further
+actual command methods verify stand/crouch/stand eye/history values and70 versus
+0 damage when opposing standing/crouched primary crosses the same1.03m cover.
+This is static stance geometry, not native animated muzzle/bone hit regions;
+no global or McCree-specific critical policy is changed here.
+
+Complete original static acceptance remains false. Original-client acceptance
+is separate and unrun. No hero commit, parent write, merge or publication.
+
+Checkpoint20 results:217 hero OK659.914s;1117 shared OK351.118s;13 focused
+OK44.934s; stored journal OK22.726s;2 opposing-eye methods OK1.780s;1 natural
+incoming-death/respawn method OK101.927s. Native predicate tail8 cases pass.
+Counts overlap. Source production code is identical across these runs; the
+last two test groups were added after the main hero run. Earlier fixture API
+name errors are retained and corrected without a production workaround.
+The lane's run_checkpoint20.py selects exact recorded method IDs, preserving
+the historical217-method set while its separate death group covers the new
+long method. Its all selector contains1338 recorded methods but has not been
+executed as one combined run. It is not a complete-goal verifier.

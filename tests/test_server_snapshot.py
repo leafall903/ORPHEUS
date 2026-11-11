@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import barriers, bots, combat, doomfist, meteor
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER
@@ -29,6 +30,67 @@ from ow174.game.world import OP_UPDATE, EntityUpdate, Movement
 
 
 class ServerSnapshotTests(unittest.TestCase):
+    def test_manual_assassin_pin_bindings_are_causal_without_executing_services(self):
+        session, _, players = self.scene()
+        fight = players[0].match.combat
+        previous = snapshot_digest(self.capture(session))
+        # Mechanical causal-storage probe, not actual graph/combat acceptance.
+        for change in (lambda: fight.pins.update({123: players[0].body}),
+                       lambda: fight.pins.update({123: players[0].body + 1}),
+                       lambda: fight.pins.clear()):
+            change()
+            with mock.patch.object(Path, 'read_text', side_effect=AssertionError('capture must not read')):
+                current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(current, previous)
+            previous = current
+
+    def test_barrier_resource_deadlines_are_causal_without_capture_file_reads(self):
+        session, _, players = self.scene()
+        host = players[0].match.combat.hand_cannon_barriers
+        state = barriers.Barrier(1600, 1600, 0, 2)
+        host.states[players[0].body] = state  # mechanical storage, not command acceptance
+        previous = snapshot_digest(self.capture(session))
+        for name, value in (('current', 1534), ('last_update', 1), ('regen_after', 3),
+                            ('broken_until', 5), ('active', True)):
+            setattr(state, name, value)
+            with mock.patch.object(Path, 'read_text', side_effect=AssertionError('capture must not read')):
+                current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(current, previous)
+            previous = current
+
+    def test_first_person_input_fields_change_digest_without_moving_the_player(self):
+        session, _, players = self.scene()
+        player = players[0]
+        data = mover_module.loaded_mover_table()[player.hero.body]
+        before_position = tuple(player.mover.position)
+        original = data.eye_height
+        first = snapshot_digest(self.capture(session))
+        try:
+            # Mechanical immutable-input fault injection, not combat acceptance.
+            object.__setattr__(data, 'eye_height', (original or 1.55) + .1)
+            with mock.patch.object(Path, 'read_text', side_effect=AssertionError('capture must not read')):
+                changed = snapshot_digest(self.capture(session))
+            self.assertNotEqual(changed, first)
+            self.assertEqual(tuple(player.mover.position), before_position)
+        finally:
+            object.__setattr__(data, 'eye_height', original)
+
+    def test_meteor_pending_target_and_confirmation_are_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        cast = meteor.Cast((4, 1, 1000), (0, 0, 0))
+        player.match.combat.meteors.casts[player.body] = cast
+        previous = snapshot_digest(self.capture(session))
+        for change in (
+            lambda: setattr(cast, 'target', (0, 0, 5)),
+            lambda: setattr(cast, 'confirm_down', True),
+            lambda: setattr(cast, 'impacted', True),
+        ):
+            change()
+            current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(current, previous)
+            previous = current
+
     def scene(self, two=False):
         case = journal_tests.ServerJournalTests()
         session, sent = case.make()
@@ -39,6 +101,73 @@ class ServerSnapshotTests(unittest.TestCase):
     def capture(session):
         return export_server_state(session.server, archives=session._matches.values(),
                                    collision_provider=session._collision_reads, assets=session.registry)
+
+    def test_temporary_shield_decay_clock_changes_stored_digest_without_health_change(self):
+        session, _, players = self.scene()
+        player = players[0]
+        vitals = combat.Vitals(player.body, 200)
+        player.match.combat.vitals[player.body] = vitals
+        vitals.add_temporary_shields(30, 150, 3, 1, 0)
+        initial = snapshot_digest(self.capture(session))
+        health = vitals.total
+        vitals.temporary_decay_at += 1
+        self.assertEqual(vitals.total, health)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_launched_npc_mover_is_captured_as_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        bot = bots.Bot(bots.BOT_ENTITY + 0x100, {
+            "hero": "0x02E000000000016B", "team": 1, "position": tuple(player.mover.position),
+            "rotation": (0, 0, 0, 1), "graphs": [],
+        }, {"name": "Motion fixture", "body": "0x0400000000001403", "health": 200}, {})
+        player.match.bots.append(bot)
+        bot.launch((0, 14, 7), player.match.tick, player.match.collision_world)
+        self.assertIsNotNone(bot.motion)
+        initial = snapshot_digest(self.capture(session))
+        bot.motion.velocity = (0, 15, 7)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_punch_pending_contact_and_control_clocks_change_stored_digest(self):
+        session, _, players = self.scene(two=True)
+        source, victim = players
+        punches = source.match.combat.punches
+        punches.dashes[source.body] = doomfist.Dash(
+            (215, 1), (0, 0, 0), (0, 0, 1), (0, 0, 10), 37.5, 2.25,
+            100, 150, 30, .5)
+        punches.impacts.append(doomfist.Impact(
+            source, source.body, victim.body, (0, 0, 1), 150, 101.0))
+        punches.controls[victim.body] = 101.0
+        previous = snapshot_digest(self.capture(session))
+        changes = (
+            lambda: setattr(punches.dashes[source.body], "last", (0, 0, 1)),
+            lambda: setattr(punches.impacts[0], "until", 101.1),
+            lambda: punches.controls.update({victim.body: 101.1}),
+            lambda: setattr(victim.body_script.component, "input_suppressed", True),
+        )
+        for change in changes:
+            change()
+            current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(current, previous)
+            previous = current
+
+    def test_slam_charge_wave_and_launch_release_are_causal_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        cast = doomfist.Slam((8, 1, 1000), (0, 0, 1), origin=(0, 0, 0), damage=50, wave_at=1100)
+        player.match.combat.slams.casts[player.body] = cast
+        previous = snapshot_digest(self.capture(session))
+        for change in (
+            lambda: setattr(cast, 'wave_at', 1116),
+            lambda: setattr(cast, 'hit', (0xA0000102,)),
+            lambda: setattr(cast, 'destination', (0, 0, 8)),
+            lambda: setattr(cast, 'speed', 25),
+            lambda: setattr(player.mover, 'launching', True),
+        ):
+            change()
+            current = snapshot_digest(self.capture(session))
+            self.assertNotEqual(current, previous)
+            previous = current
 
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()

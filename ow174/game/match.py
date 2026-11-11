@@ -33,7 +33,19 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    sombra_hack,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -322,10 +334,21 @@ class Player:
             self._advance_body_frame(Command(first_pose - 1), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+        from ow174.game import mei_frost, npc_melee
+
         stunned = self.match.combat.is_stunned(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        frost = mei_frost.sample(self.match.combat, self.body, tick)
+        if frost is not None:
+            if frost.until:
+                command = replace(command, yaw=frost.yaw, pitch=frost.pitch)
+            elif not stunned:
+                scale = 1 - min(.7, frost.progress(tick))
+                command = replace(command, forward=round(command.forward * scale),
+                                  right=round(command.right * scale))
+        command = self.match.combat.punches.command_input(self, command)
         script = self.body_script
         requests = []
         if script is not None and not stunned:
@@ -336,8 +359,19 @@ class Player:
                 if isinstance(state, nodes.MoveTo) and (movement := state.move_request()) is not None
             ]
         # Arbitration between simultaneous world-target states is unresolved.
+        slam = None if stunned else self.match.combat.slams.movement(self)
+        if slam is not None:
+            requests.append(slam)
         movement_end = None
-        if len(requests) == 1:
+        punch = None if stunned else self.match.combat.punches.movement(self, command)
+        carry = npc_melee.charge_carry(self.match.combat, self, seconds, tick) if stunned else None
+        carry_blocked = False
+        if carry is not None:
+            carry_blocked = self.mover.step_pose(command, seconds, tick, move_to=carry) is False
+        elif punch is not None:
+            outcome = self.mover.step_pose(command, seconds, tick, move_to=punch)
+            self.match.combat.punches.movement_result(self, outcome)
+        elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self.mover.step_pose(
                 command, seconds, tick, move_to=((target.x, target.y, target.z), speed),
@@ -347,12 +381,19 @@ class Player:
         else:
             self.mover.step_pose(command, seconds, tick)
         self._advance_body_frame(command, movement_end=movement_end)
+        if carry_blocked:
+            npc_melee.charge_carry_blocked(self.match.combat, self)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        command = self.match.combat.punches.command_input(self, command)
         if self.body_script is not None:
+            command = sombra_hack.prepare_input(self.match.combat, self, command)
+            command = self.match.combat.meteors.prepare_command(self, command)
+            if posed:
+                self.match.combat.slams.observe(self)
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
@@ -595,15 +636,21 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            vitals = self.combat.vitals.get(bot.entity)
+            health = vitals.total if vitals is not None else bot.health
             bot.body_script = BotScript(
-                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
+                bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, health,
                 firing_position=bot.position if firing else None,
+                controller_components=npc_context.manual_components(bot),
             )
+            bot.body_script.component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -906,12 +953,15 @@ class Match:
         if ready and not self._advance_scene(now, tick):
             return
         if ready and self.bots:
+            from ow174.game import npc_melee
+
             if self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
             for bot in self.bots:
                 bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
+                         paused_until=self.combat.stun_until(bot.entity),
+                         drive=npc_melee.charge_velocity(self.combat, bot))
         if ready:
             self.combat.update(now, tick, frames=frames)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:

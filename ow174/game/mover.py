@@ -40,7 +40,7 @@ command frame (dt = 16 ms), main tick 0x7FF789B4B1D0:
 The hero's values are its body's STUCharacterMoverComponent (data/game_movers_174.json), changed each tick
 by the movement mods the body's statescript has on (0x7FF789B4CBA0, see `modded`): Soldier: 76's Sprint
 adds 0.5 to the speed scalar (run speeds x 1.5) and sets the crouch intent to 0. Not modelled: mods of
-heroes whose statescript the server does not run, the throttle mods (17-19), velocity mods (STU_FF3471E9
+heroes whose statescript the server does not run, velocity mods (STU_FF3471E9
 states) and knockback, abilities that take over the move (the tick's phase hooks), moving platforms,
 other bodies.
 The capsule rests 5 mm out of a wall (the engine's contact skin), not touching it.
@@ -168,6 +168,7 @@ ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
+THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
@@ -212,7 +213,13 @@ REPEAT = 32  # missing command frames run with the last command; as many again w
 
 @dataclass(frozen=True)
 class MoverData:
-    """A body's STUCharacterMoverComponent (the client keeps it at mover +0x418 + the field's offset)."""
+    """Body pose inputs: CharacterMover fields and adjacent FirstPerson heights.
+
+    CharacterMover fields follow the client's mover +0x418 layout. The optional
+    eye heights come from a separate FirstPerson component and only combat uses
+    them; they do not alter the character/contact solver. None preserves legacy
+    packs whose extractor did not retain that component.
+    """
 
     stand_height: float = 2.0
     stand_radius: float = 0.5
@@ -248,6 +255,8 @@ class MoverData:
     ground_gravity_accel: float = 0.0
     ground_gravity_decel: float = 0.0
     character_collision: int = 1
+    eye_height: float | None = None
+    crouch_eye_height: float | None = None
 
 
 _mover_table: dict[int, MoverData] | None = None
@@ -283,6 +292,11 @@ def _clear_movers() -> None:
 
 
 _movers.cache_clear = _clear_movers  # retain the previous private cache reset interface
+
+
+def authored_mover_data(body: int | None) -> MoverData | None:
+    """Only this body's declared data, without another body's movement fallback."""
+    return _movers().get(body or 0)
 
 
 def mover_data(body: int | None) -> MoverData:
@@ -386,6 +400,18 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     return value
 
 
+def modified_throttles(mods: list[Mod], right: float, forward: float) -> tuple[float, float]:
+    """C33960..C33A8D: split axes, apply scalar mods, restore lateral sign and clamp."""
+    if not any(mod.index in (THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL) for mod in mods):
+        return right, forward
+    ahead = intent(mods, THROTTLE_FORWARD, max(0.0, forward))
+    back = intent(mods, THROTTLE_BACKWARD, -min(0.0, forward))
+    lateral = intent(mods, THROTTLE_LATERAL, abs(right))
+    if right < 0:
+        lateral = -lateral
+    return max(-1.0, min(1.0, lateral)), max(-1.0, min(1.0, f32(ahead - back)))
+
+
 def _number(instance, cfg, default: float) -> float:
     if cfg is None:
         return default
@@ -454,6 +480,7 @@ class Mover:
         self.category = category  # the query category: the team's proxy bit
         self.velocity = (0.0, 0.0, 0.0)
         self.driven = False  # the previous pose used a statescript world-target velocity
+        self.launching = False  # reconstructed positive impulse has not yet cleared its floor contact
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
         self.flags_word = 0
@@ -534,6 +561,34 @@ class Mover:
     def gravity_scale(self) -> float:
         """The gravity scale of the last tick (state +24, written every tick: 0x7FF789B4D869)."""
         return self.values.gravity_scale
+
+    def launch(self, velocity: tuple[float, float, float]) -> None:
+        """Apply a reconstructed external launch to the authoritative physics state.
+
+        Horizontal impulse adds; vertical launch has a minimum upward speed.
+        Keep the newest completed pose consistent for owner corrections. Native
+        velocity modifier operations, prediction clock and air-control policy
+        are separate work; this is not a claim that their bit layout is restored.
+        """
+        if not all(math.isfinite(v) for v in velocity) or velocity[1] < 0 or not any(velocity):
+            return
+        vx, vy, vz = self.velocity
+        dx, up, dz = velocity
+        self.velocity = (f32(vx + dx), f32(max(vy, up) if up > 0 else vy), f32(vz + dz))
+        if up > 0:
+            self.launching = True
+            self.flags_word = self.flags_word & ~JUMPED | FELL
+            self.air_ticks = 0
+            self.fall = 0.0
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
+    def stop_drive(self) -> None:
+        self.velocity = (0.0, 0.0, 0.0)
+        self.driven = False
+        self.launching = False
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
 
     def snapshot(self, frame: int) -> Snapshot:
         return Snapshot(
@@ -663,6 +718,7 @@ class Mover:
             self.input_tick = tick
             self.input_frame = frame
 
+        right, forward = modified_throttles(active, right, forward)
         outcome = None
         if move_to is None:
             normal = ground.normal if grounded and ground is not None else (0.0, 1.0, 0.0)
@@ -828,6 +884,13 @@ class Mover:
             vx, vy, vz = self.velocity
             nx, ny, nz = ground.normal if ground is not None else (0.0, 0.0, 0.0)
             limit = intent(active, LAND_LIMIT_MOD, LAND_LIMIT) if active else LAND_LIMIT
+            # A reconstructed positive impulse must first leave its floor.
+            # Otherwise an authored large landing limit reattaches it before
+            # the first upward collision step can run.
+            if self.launching and vy > 0:
+                limit = min(limit, LAND_LIMIT)
+            if ground is None or vy <= 0:
+                self.launching = False
             if ground is not None and vx * nx + vy * ny + vz * nz < limit:
                 if flags & (JUMPED | FELL):  # 0x7FF789AD0400
                     flags &= ~(JUMPED | FELL)

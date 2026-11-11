@@ -5,7 +5,13 @@ from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
 from ow174.game.script import expr, graph, runtime
-from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs
+from ow174.game.script.driver import (
+    OWNER_HEALTH,
+    ReplicatedBody,
+    Snapshot,
+    create_body_graphs,
+    owner_health_query,
+)
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
@@ -31,12 +37,18 @@ class BotWorld(runtime.World):
 
     def __init__(
         self, hero: int, mode: int, weapon_buttons: dict[str, int], owner_position: expr.Vec3 | None = None,
+        *, controller_components: tuple[int, ...] | None = None,
     ) -> None:
         super().__init__(hero, mode)
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.controller_components = controller_components
+        self.match = None
+        self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
+        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+            return 36
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
@@ -44,6 +56,27 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def native(self, cfg: dict, instance: runtime.Instance):
+        from ow174.game import assassin, npc_melee, sombra_hack
+
+        if self.match is not None and instance.graph.index == 0x0B1F:
+            value = sombra_hack.predicate(self.match.combat, instance, cfg)
+            if value is not NotImplemented:
+                return value
+
+        value = assassin.native(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        value = npc_melee.charge_query(self, cfg, instance)
+        if value is not NotImplemented:
+            return value
+        health = owner_health_query(cfg, instance)
+        if health is not NotImplemented:
+            return health
+        from ow174.game import npc_context
+
+        context = npc_context.native(self, cfg, instance)
+        if context is not NotImplemented:
+            return context
         if (
             cfg.get("$") == "STU_AC829876"
             and self.mode == PRACTICE_RANGE_MODE
@@ -71,6 +104,40 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import assassin, npc_melee
+
+        result = assassin.modify_health(self, state, elapsed_ms)
+        if result is NotImplemented:
+            return npc_melee.modify_health(self, state, elapsed_ms)
+        return result
+
+    def track_combat_targets(self, state):
+        from ow174.game import npc_melee
+
+        return npc_melee.track(self, state)
+
+    def combat_ray_hit(self, state):
+        from ow174.game import npc_melee
+
+        return npc_melee.charge_ray_hit(self, state)
+
+    def position(self, entity):
+        if self.match is not None:
+            from ow174.game import npc_melee
+
+            source = next((b for b in self.match.bots if b.entity == entity), None)
+            if (source is not None and source.body_script is not None
+                    and source.body_script.component.world is self
+                    and npc_melee.charging(self.match.combat, source)):
+                return expr.Vec3(*source.position)
+        return super().position(entity)
+
+    def end_health(self, state):
+        from ow174.game import assassin
+
+        assassin.end_health(self, state)
+
 
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
@@ -78,6 +145,7 @@ class BotScript(ReplicatedBody):
     def __init__(
         self, body: int, hero: int, entity: int, frame: int, mode: int, health: float,
         *, firing_position: tuple | None = None,
+        controller_components: tuple[int, ...] | None = None,
     ) -> None:
         record = graph.entity_body(body)
         if record is None:
@@ -86,7 +154,7 @@ class BotScript(ReplicatedBody):
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing is not None else None
-        world = BotWorld(hero, mode, buttons, position)
+        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components)
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         component.frame = frame
         component.now = frame * component.frame_ms

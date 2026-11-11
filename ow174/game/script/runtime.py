@@ -496,6 +496,9 @@ class World:
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
 
+    def report_defense_script(self, instance: "Instance", node: Node) -> None:
+        """Optional, explicitly reconstructed player defense effect host."""
+
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
 
@@ -564,7 +567,12 @@ class Component:
         self.destroyed: list[Instance] = []
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
+        # Authored direct-health effects, frozen at the state activation clock.
+        self.health_reports: list[tuple[tuple[int, ...], float, int | None, int, tuple | None]] = []
+        self.motion_reports: list[tuple[tuple[int, ...], tuple, int]] = []
+        self.pool_reports: list[tuple[float, float, float, float]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
+        self.input_suppressed = False  # explicit reconstructed combat control, separate from death
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
         self._follow_depth = 0
@@ -588,6 +596,9 @@ class Component:
             self.fault = error
             self.world.script_failed(self)
             self.shots.clear()
+            self.health_reports.clear()
+            self.motion_reports.clear()
+            self.pool_reports.clear()
             self.held.clear()
             self.code_states.clear()
             self.state_registries.clear()
@@ -670,7 +681,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -847,6 +858,8 @@ class Component:
     def edges(self, buttons: list[tuple[int, bool]]) -> None:
         """Button edges at now, on every instance (0x7FF789C66AA0 queues each on all the instances)."""
         for button, pressed in buttons:
+            if pressed and self.input_suppressed:
+                continue
             for instance in list(self.instances.values()):
                 instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
@@ -1007,9 +1020,13 @@ class Instance:
                 if self.component.strict:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
-            if self.component.strict and node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState":
+            model = STATE_CLASSES.get(node.cls, State)
+            if self.component.strict and (
+                (node.cls not in STATE_CLASSES and node.cls != "STUStatescriptState")
+                or not getattr(model, "strict_supported", True)
+            ):
                 self.component.unsupported(self, "state", node.cls, node)
-            found = self.states[index] = STATE_CLASSES.get(node.cls, State)(self, node, index)
+            found = self.states[index] = model(self, node, index)
             found.on_created()
         return found
 
@@ -1027,6 +1044,10 @@ class Instance:
     def cancel(self, state: "State") -> None:
         """Drop every queued event of a state (0x7FF78AAA12F0)."""
         self.queue = [event for event in self.queue if event.state is not state]
+        # These flags coalesce queued dependency callbacks. Removed callbacks
+        # must not suppress changes after the state begins again.
+        state.flags_changed = False
+        state.flags_check = False
 
     def drop_begins(self, states: list["State"]) -> None:
         """Drop the begin requests queued at now for these states (0x7FF78AAA10F0)."""
@@ -1237,6 +1258,8 @@ class Instance:
     def button_edge(self, button: int, pressed: bool) -> None:
         """A logical-button edge (event 8): the held list, then every LogicalButton/Ability state of the
         graph's m_logicalButtonStateIndices, active or not."""
+        if pressed and self.component.input_suppressed:
+            return
         component = self.component
         component.button = button
         if pressed and button not in component.held:

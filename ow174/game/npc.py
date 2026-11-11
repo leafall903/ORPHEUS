@@ -75,10 +75,12 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
+    # Install every authored pool before the body's first graph frame. Passing
+    # only base health made shield-bearing NPC queries disagree until first hit.
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    match.bots.append(bot)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -94,21 +96,29 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         bot.died(match.tick)
+        match.combat.clear_pins(bot.entity)
+        match.combat.punches.retire(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
             component.owner_dead = True
+            from ow174.game import assassin
+
+            assassin.bind(component.world, component, None)
             component.held.clear()
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            component.world.match = None
+            component.world.manual_target = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)
         match.combat.rockets[:] = [rocket for rocket in match.combat.rockets if rocket.shooter is not bot]
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history,
-                      match.combat.replacement_ticks, match.combat.melee_seen, match.combat.stuns):
+                      match.combat.replacement_ticks, match.combat.melee_seen,
+                      match.combat.stuns, match.combat.ana_sleeps, match.combat.frost):
             table.pop(bot.entity, None)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

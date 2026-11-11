@@ -25,7 +25,8 @@ from ow174.game.mover import Mod, Mover, MoverData, Snapshot
 SCHEMA = "ow174.physics-snapshot.v1"
 SCOPE = "stored-mover-physics-only"
 MOVER_FIELDS = (
-    "data", "values", "position", "on_map", "world", "category", "velocity", "driven", "yaw", "pitch",
+    "data", "values", "position", "on_map", "world", "category", "velocity", "driven", "launching",
+    "yaw", "pitch",
     "flags_word", "air_ticks", "spring", "spring2", "spring_steps", "spring_speed", "fall", "landed",
     "crouch_end", "throttles", "input_throttles", "input_tick", "input_frame", "last_command", "mods",
     "history", "corrected", "body", "slope", "slope_cos", "slope_tan", "slope_cos32", "spring_low",
@@ -38,7 +39,8 @@ DATA_FIELDS = (
     "crouch_strafe", "accel_ground", "accel_air", "accel_air_touching", "decel_ground_base",
     "decel_ground_base_speed", "decel_ground_per_speed", "decel_air_base", "decel_air_base_speed",
     "decel_air_per_speed", "jump_speed", "gravity_scale", "terminal_velocity", "terminal_velocity_up",
-    "ground_gravity_accel", "ground_gravity_decel", "character_collision",
+    "ground_gravity_accel", "ground_gravity_decel", "character_collision", "eye_height",
+    "crouch_eye_height",
 )
 BODY_FIELDS = ("radius", "top", "capsule", "world", "category", "position", "aabb", "fat", "moved",
                "contacts", "budget")
