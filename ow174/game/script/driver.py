@@ -1851,6 +1851,8 @@ class BodyScript(ReplicatedBody):
         except Exception:
             if match is not None:
                 match.unregister_body_component(self.component)
+            self.component.disconnect_foreign_watchers()
+            self.world.match = None
             raise
 
     def __repr__(self) -> str:
@@ -2349,6 +2351,7 @@ class BodyScript(ReplicatedBody):
                     state.clear_children()
         if self.world.match is not None:
             self.world.match.unregister_body_component(self.component)
+        self.component.disconnect_foreign_watchers()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

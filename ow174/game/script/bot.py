@@ -260,6 +260,8 @@ class BotWorld(runtime.World):
     _lookup_entity_query = BodyWorld._lookup_entity_query
     _poll_entity_query = BodyWorld._poll_entity_query
     _body_component = BodyWorld._body_component
+    script_component_present = BodyWorld.script_component_present
+    entity_ruleset = BodyWorld.entity_ruleset
     _query_spatial = BodyWorld._query_spatial
     spatial_query_context = BodyWorld.spatial_query_context
 
@@ -355,6 +357,8 @@ class BotWorld(runtime.World):
                 self.controller_inputs[var] = 0x10000 + var
             self.sync_controller_inputs()
             return self.component.entity_var(self.controller_inputs[var])
+        if self.hero == 0x02E000000000007A and self.match is not None:
+            return BodyWorld.entity_var_slot(self, entity, var, create=create)
         return NotImplemented
 
     def sync_controller_inputs(self) -> None:
@@ -885,6 +889,16 @@ class BotScript(ReplicatedBody):
     def has_controller_buttons(self) -> bool:
         return (self.controller is not None and not self.controller.owner_dead
                 and isinstance(self.controller.world, AssassinControllerWorld))
+
+    def retire(self) -> None:
+        """Disconnect a retired namespace while retaining its stored history."""
+        world = self.component.world
+        if world.match is not None:
+            world.match.combat.clear_pins(self.component.entity)
+            world.match.unregister_body_component(self.component)
+        self.component.disconnect_foreign_watchers()
+        world.match = None
+        world.manual_target = None
 
     def advance_live(self, frame: int, position: tuple | None = None, *, edges=(), publish=True) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""

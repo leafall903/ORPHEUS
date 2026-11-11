@@ -4168,6 +4168,7 @@ class Combat:
             except Exception:
                 self.clear_pins(bot.entity)
                 script.retire_controller()
+                script.retire()
                 bot.body_script = None
                 log.exception("[game] %s: %s's weapon script failed", self.match.label(), bot.name)
 
@@ -7413,6 +7414,7 @@ class Combat:
 
                 body_entities.queue_demech_return(self.match, bot)
         except Exception:
+            script.retire()
             bot.body_script = None
             log.exception("[game] %s: %s's body script failed on %X", self.match.label(), bot.name, DIED)
             return
@@ -7429,6 +7431,7 @@ class Combat:
         try:
             events = script.advance_death(tick, int(BOT_RESPAWN / TICK))
         except Exception:
+            script.retire()
             bot.body_script = None
             log.exception("[game] %s: %s's death script timer failed", self.match.label(), bot.name)
             return

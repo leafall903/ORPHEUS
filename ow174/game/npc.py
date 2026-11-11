@@ -150,6 +150,7 @@ def remove_body(match, bot) -> None:
         script.retire_controller()
         component = script.component
         match.unregister_body_component(component)
+        component.disconnect_foreign_watchers()
         from ow174.game import assassin
 
         assassin.bind(component.world, component, None)

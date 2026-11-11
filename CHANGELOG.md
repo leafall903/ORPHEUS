@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered D.Va foreign-body services and retirement
+
+- Connect the owned mech VM to live foreign entity variable slots, component
+  presence and target rulesets, retaining the existing controller-input adapter.
+  Preserve subscription cleanup at receiver/target retirement and initialization,
+  weapon, death and death-timer failure without changing retained variable values.
+- Keep notification events in the receiving VM's clock/FIFO domain. Restore the
+  delivered external-component identity descriptors in passive snapshots while
+  retaining the combined external-var/state references and separate namespaces.
+- Retain the source's12 body-variable checks; only the created-body fixture import
+  names the already retained delivery module. All12 passed, including failure
+  cleanup and getter-free enclosing server snapshots. The16-check focused
+  retirement/runtime run also passed.
+- The combined41-check body-variable/storage run passed38. Its three storage
+  failures concern existing Assassin state allocation/types and the additional
+  Zenyatta world field; all three reproduce unchanged on the clean4b81a462 intake
+  baseline. Preserve these checks and implementations without claiming complete
+  cross-line or original-client acceptance. Call Mech blocked fallback and skipped
+  Self-Destruct behavior remain pending as recorded below.
+
 ### Retain the original D.Va placement checks
 
 - Preserve the delivered eight-check placement file unchanged alongside the

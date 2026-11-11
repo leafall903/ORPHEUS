@@ -781,6 +781,11 @@ class _Export:
             else:
                 record = self._graph_record(obj, graph_definitions)
             self.records.append(record)
+        if len(self.entity_components) > 1:
+            result["external_components"] = [
+                {"identity": self.identity(owner), "entity": entity}
+                for entity, owner in self.entity_components.items() if owner is not self.component
+            ]
         return result
 
 

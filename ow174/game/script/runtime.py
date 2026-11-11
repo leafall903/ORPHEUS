@@ -1242,6 +1242,26 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
+    def disconnect_foreign_watchers(self) -> None:
+        """Release cross-body subscriptions without changing retained VM values."""
+        variables = list(self.vars.values())
+        for instance in (*self.instances.values(), *self.destroyed):
+            variables.extend(instance.vars.values())
+            for state in instance.states.values():
+                for var in list(state.watched):
+                    if var.entity_owner not in (None, self):
+                        var.watchers.pop(state, None)
+                        state.watched.pop(var, None)
+        for var in variables:
+            for state in list(var.watchers):
+                if state.instance.component is self:
+                    continue
+                var.watchers.pop(state, None)
+                state.watched.pop(var, None)
+                if state.active and not state.ending and not state.flags_changed:
+                    state.flags_changed = True
+                    state.instance.post(Event(state.instance.component.now, 0, CHANGED, state=state))
+
     def changed(self, var: Var, before, *, stack_source: "State | None" = None, structural=False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
