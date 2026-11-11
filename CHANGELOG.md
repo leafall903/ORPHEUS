@@ -30,6 +30,10 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Python scenario integration
 
+- Admit returning Junkenstein Junkrat to its existing grenade combat path
+  when the authored 0CBC return branch skips the intro. Verify 150 scene,
+  combat, and StateScript checks, including Zombardier grenade input and
+  Junkrat's difficulty-scaled flight. Original-client verification remains open.
 - Port the returning Reaper and Roadhog combat handoff from the Junkenstein
   scenario branch. The authored return-wave state and mode flags permit
   combat after the intro is skipped. The existing Python shield recharge

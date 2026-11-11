@@ -586,6 +586,24 @@ class MatchSceneHostTests(unittest.TestCase):
         self.assertTrue(world.modify_health(recharge, 1000))
         self.assertEqual(vitals.pool_current(combat.SHIELDS_POOL), 0)
 
+    def test_returning_junkrat_uses_its_own_wave_and_seen_flag(self):
+        mode = runtime.GAME_MODE_ENTITY
+        world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[0])
+        world.bind(mode)
+        mode_vm = runtime.Component(mode, world=world)
+        world.bind_script_component(mode, mode_vm)
+        body = runtime.Component(A, world=world)
+        model = scene_host.graph.graph(0x0CBC)
+        wave = body.create(model, init=False)
+        wave.states[5] = SimpleNamespace(active=True)
+        mode_vm.set(8566, True)
+        mode_vm.set(8521, True)
+        self.assertFalse(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
+        mode_vm.set(8522, True)
+        self.assertTrue(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
+        body.create(scene_host.graph.graph(0x0CE0), init=False)
+        self.assertFalse(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
+
     def test_roadhog_ai_uses_hook_readiness_and_releases_its_input(self):
         world = ValueWorld(mode=JUNKENSTEIN_MODES[0])
         host = junkenstein_scene.JunkensteinSceneHost(world)

@@ -427,6 +427,8 @@ def returning_boss_ready(world, hero, component):
         seen_var, wave_state = 8520, 6
     elif hero == ROADHOG:
         seen_var, wave_state = 8521, 4
+    elif hero == JUNKRAT:
+        seen_var, wave_state = 8522, 5
     else:
         return False
     for key in (seen_var, 8566):
