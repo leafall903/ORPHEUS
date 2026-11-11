@@ -3900,6 +3900,8 @@ class Combat:
             view = frame if isinstance(payload, Rocket) else min(frame, math.floor(payload.view_tick))
             deadline = view + HISTORY - 1
             waiting = self._awaited_boost_sources(shooter, frame) if self.tick < deadline else ()
+            if self.tick == frame and self.tick < deadline and not isinstance(payload, Rocket):
+                waiting += self.sound_barriers.awaiting_slam_scripts(shooter, frame)
             if waiting or any(attack.source is source for attack in self.pending_attacks):
                 bonuses = tuple(self._boost_candidates(shooter, frame))
                 self.pending_attacks.append(PendingAttack(shooter, source, frame, deadline, waiting, bonuses, payload))

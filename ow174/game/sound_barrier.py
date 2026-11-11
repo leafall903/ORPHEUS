@@ -128,6 +128,37 @@ class SoundBarriers:
         if self.fight.now < grant.wave.until:
             self.waves[grant.source] = grant.wave
 
+    def awaiting_slam_scripts(self, attacker, frame):
+        """Check whether an enemy's current 073A can slam on an unreceived pose."""
+        fight = self.fight
+        waiting = []
+        for player in fight.match.players:
+            if (player is attacker or player.hero.guid != HERO or not fight.match._shown(player)
+                    or (not fight.match.game_map.free_for_all and player.team == attacker.team)):
+                continue
+            script = player.body_script
+            if (script is None or script.retired or script.frame >= frame
+                    or fight.is_dead(player) or fight.is_stunned(player, tick=frame)):
+                continue
+            for instance in script.component.instances.values():
+                if instance.graph.index != 0x073A or instance.stopped:
+                    continue
+                startup = instance.states.get(3)
+                if startup is None or not startup.active:
+                    continue
+                windup = instance.states.get(4)
+                if windup is None or not windup.active:
+                    waiting.append(script)
+                    break  # The authored startup is waiting for a grounded pose.
+                if any(event.kind == runtime.TIMER and event.state is windup
+                       and event.time // script.frame_ms == frame for event in instance.queue):
+                    waiting.append(script)
+                    break
+        return tuple(waiting)
+
+    def awaiting_slam(self, attacker, frame):
+        return bool(self.awaiting_slam_scripts(attacker, frame))
+
     def interrupt(self, entity):
         self.landings.pop(entity, None)
 

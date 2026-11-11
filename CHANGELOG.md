@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve delivered same-frame slam admission
+
+- Reuse the combined pending-attack queue for a hitscan/melee contact whose
+  hostile Lucio can slam on an unreceived pose of that frame. Resolve it after
+  that body's actual frame, death or retirement, retaining current boost credits
+  and bounded queue lifetime. Projectile launches retain their flight scheduling.
+- The real Soldier/Lucio command-order replay now yields the same base health200
+  and shield730 in both orders; previously enemy-first yielded health180/shield750.
+- Preserve the original priority-link dependency fixture. All10 original input/
+  priority checks passed. The44-check shared run retained the same four NPC
+  Mercy-chain failures and34 skips as its38-check pre-change baseline; both
+  focused slam/airborne checks passed. Broader validation remains running and
+  does not withhold existing source. Original-client acceptance remains open.
+
+
 ### Integrate delivered Sound Barrier slam and deferred grants
 
 - Mount the authored grounded-owner predicate and its watched/polled073A
