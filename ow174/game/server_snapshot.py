@@ -57,6 +57,7 @@ from ow174.game import (
     stats,
     tracer_recall,
     pulse_bomb,
+    zenyatta,
     voicelines,
     winston_barrier,
     world,
@@ -130,13 +131,14 @@ FIELDS = {
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
-        "pulse_bombs projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     tracer_recall.Recalls: _names("fight history phases"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
+    zenyatta.Zenyatta: _names("combat owners last_tick"),
     breather.Breathers: _names("fight channels"),
     sombra_control.Controls: _names("fight locks held device_receivers"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
@@ -208,7 +210,7 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms ult_gain_bonus ultimates reports report_count self_healing support_healing"
     ),
-    driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
+    driver.BodyWorld: _names("hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
                              "_body_owner_context _entity_query_context"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
@@ -255,6 +257,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    zenyatta.Owner, zenyatta.Orb,
     pulse_bomb.CommandPoseAnchor,
     support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, sound_barrier.Grant, lucio.Lease,
     driver.WheelCallout, driver.WheelSprayEvent,

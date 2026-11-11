@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Zenyatta support and weapon services
+
+- Retain the original Zenyatta service, scoped defense timing helper and33
+  original check files. Mount Harmony, Discord, shield recovery, charged-orb
+  ammunition limits, interruption and body retirement on the combined host.
+- Preserve the delivered orb critical/falloff policy and world-clock
+  Transcendence healing/expiry. Actual Zenyatta uses one healing authority;
+  copied-body consumers retain their existing VM path. Recall cleanses Discord.
+  Integrate competing support before the retained combat interval.
+- All eight focused weapon/support/snapshot checks passed. An actual Zenyatta
+  owner with live Harmony state exported without evaluation, and changing its
+  visibility clock changed the snapshot digest.
+- Earlier broad runs retain passive-charge, timed-flight and cross-host
+  differences. The initial66-check run had39 failures and two errors; after
+  weapon integration the33-check run had seven failures plus a BodyWorld field
+  registration error, subsequently fixed and checked above. Do not treat these
+  results as full acceptance or discard the delivered implementation.
+  Remaining hero/shared integrations and original-client acceptance stay open.
+
 ### Retain delivered Recall pose and pre-capture mobility input behavior
 
 - Freeze Recall translation while retaining incoming view angles, matching the

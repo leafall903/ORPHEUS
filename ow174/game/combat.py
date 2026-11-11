@@ -966,7 +966,7 @@ def hit_def(state, cfg) -> HitDef | None:
     graph_index, node_index = state.instance.graph.index, state.index
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
-    critical_default = 2.0 if icicle or tracer_pistol else mccree.critical_default(state)
+    critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
     if isinstance(loadout, expr.Asset) and loadout.guid == ECHO_TRI_SHOT_LOADOUT:
         # 19E5 leaves the field null. Use a scoped reconstructed headshot default.
         critical_default = 2.0
@@ -1012,7 +1012,7 @@ def hit_def(state, cfg) -> HitDef | None:
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4),
+        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=0.0 if graph_index == 0x0BD4 else value("m_57DAE1B5", 0.0),
         healing=modify.get("m_93CDFD2F") == 0,
@@ -1372,6 +1372,9 @@ class Combat:
         from ow174.game.pulse_bomb import PulseBombs
 
         self.pulse_bombs = PulseBombs(self)
+        from ow174.game.zenyatta import Zenyatta
+
+        self.zenyatta = Zenyatta(self)
         self.breathers = breather.Breathers(self)
         self.sombra_controls = sombra_control.Controls(self)
         self.sound_barriers = sound_barrier.SoundBarriers(self)
@@ -1553,6 +1556,7 @@ class Combat:
         self.projectiles.retire_fields(player)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != player.body]
         self.recalls.retire(player.body)
+        self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
         self.echo_duplicates.retired(player)
@@ -1804,6 +1808,7 @@ class Combat:
         return immunity.control_immune(target.owner, target.entity) or self.orisa._immune(target.owner)
 
     def _interrupt(self, target: Target) -> None:
+        self.zenyatta.interrupt(target.owner)
         self.sombra_controls.interrupt(target.owner, hack_only=True)
         self.recalls.interrupt(target.entity)
         self.sound_barriers.interrupt(target.entity)
@@ -2148,6 +2153,7 @@ class Combat:
             return
         self.barriers.sync(player)
         shots, script.component.shots[:] = list(script.component.shots), []
+        self.zenyatta.command(player, command)
         interception.update_pools(self, self.tick)
         barriers.advance(self, self.tick)
         if self.is_dead(player):
@@ -2942,7 +2948,7 @@ class Combat:
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
         if self.tick and tick > self.tick + 1 and (
-            self.timed_hits or self.recalls.phases or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
+            self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -2959,6 +2965,17 @@ class Combat:
         for target in self._targets():
             history = self.history.setdefault(target.entity, deque(maxlen=HISTORY))
             history.append(self._target_sample(tick, target))
+        if self.zenyatta.owners and first > self.tick + 1:
+            # Preserve the delivered pre-retention support integration without
+            # consuming the other hosts' independent catch-up interval.
+            previous_time, previous_tick = self.now, self.tick
+            while self.tick + 1 < first and self.zenyatta.competing_heals(wounded=True):
+                self.tick += 1
+                self.now = now - (tick - self.tick) * TICK
+                self.zenyatta.update()
+            self.now, self.tick = now - (tick - first + 1) * TICK, first - 1
+            self.zenyatta.update()
+            self.now, self.tick = previous_time, previous_tick
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
@@ -3040,6 +3057,7 @@ class Combat:
                             log.exception("[game] %s: %s's world timers failed", self.match.label(), player.name)
                             self.match.stop_body_script(player, failed=True)
             self._advance_timed_hits()
+            self.zenyatta.update()
             if self.lucio_auras.leases or self.lucio_auras.healing:
                 self.lucio_auras.update(at)
             for target in self._targets():
@@ -3277,6 +3295,10 @@ class Combat:
             return False
         for instance in script.component.instances.values():
             if instance.graph.index == graph_index:
+                if graph_index == 0x017B:
+                    service = getattr(getattr(getattr(script.world, "match", None), "combat", None), "zenyatta", None)
+                    if service is not None and service.stale_ultimate_flag(owner):
+                        return False
                 state = instance.states.get(state_index)
                 return state is not None and state.active
         return False
@@ -5189,13 +5211,14 @@ class Combat:
                 if padding:
                     axis_y = _segment_point(point, *struck.segment())[1]
                     contact_y = axis_y + (contact_y - axis_y) * struck.radius / (struck.radius + padding)
+                zen_orb = getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000020
                 critical = (
-                    (direct.projectile_headshot or direct.loadout == ECHO_TRI_SHOT_LOADOUT)
+                    (direct.projectile_headshot or direct.loadout == ECHO_TRI_SHOT_LOADOUT or zen_orb)
                     and direct.critical > 1.0 and contact_y >= struck.feet[1] + struck.eye - HEAD_BELOW
                     and not immunity.fortified(struck.owner, struck.entity)
                 )
                 amount = direct.amount * (direct.critical if critical else 1.0)
-                if rocket.scale_direct:
+                if rocket.scale_direct or zen_orb:
                     amount *= direct.scale(rocket.flown * rocket.speed)
                 before = self.vitals_of(struck).total if rocket.accretion_source is not None else 0.0
                 landed = self._damage(
@@ -5913,6 +5936,10 @@ class Combat:
             spec = PROTECTED_PHASES.get(instance.graph.index)
             if spec is None or (phases is not None and instance.graph.index not in phases):
                 continue
+            if instance.graph.index == 0x017B:
+                service = getattr(getattr(getattr(component.world, "match", None), "combat", None), "zenyatta", None)
+                if service is not None and service.stale_ultimate_flag(owner):
+                    continue
             phase = instance.states.get(spec[1])
             if phase is not None and phase.active and not phase.ending:
                 return True
@@ -6612,7 +6639,8 @@ class Combat:
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
                 or immunity.wraith_active(target.owner, target.entity) or moira.fading(target.owner)
-                or self.pulse_bombs.recalling(target) or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
+                or self.pulse_bombs.recalling(target) or self.zenyatta.ultimate(target.owner)
+                or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
             return False
         if loadout in (FLAIL_LOADOUT, WHIP_LOADOUT) and self._deflects(target, self._eye(shooter)):
             return False
@@ -6644,6 +6672,8 @@ class Combat:
         if bubble is not None:
             self.barriers.damage(bubble, amount, shooter)
             return False
+        self.zenyatta.regenerate_before_damage(target, vitals)
+        amount *= self.zenyatta.boost(target)
         base_before = vitals.base_total
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
@@ -6659,6 +6689,7 @@ class Combat:
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
+        self.zenyatta.damaged(target)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
             if vitals.dead or vitals.now[HEALTH_POOL] <= EPSILON:
@@ -6685,6 +6716,7 @@ class Combat:
         self.brigitte.damaged(shooter, loadout)
         if award_ult and shooter is not target.owner:
             self.brigitte.charge(shooter, dealt)
+            self.zenyatta.charge(shooter, dealt - extra)
         killed = vitals.pool_current(HEALTH_POOL) <= EPSILON
         victim = target.owner
         copy_break = killed and not isinstance(victim, bots.Bot) and self.echo_duplicates.active(victim)
@@ -6728,7 +6760,7 @@ class Combat:
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source
-                    and hero not in (regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == 0x02E000000000006E:
@@ -6959,6 +6991,7 @@ class Combat:
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)
         self.recalls.retire(victim.body)
+        self.zenyatta.retire(victim.body)
         self.breathers.retire(victim.body)
         self.personal_barriers.pop(victim.body, None)
         self.projected_barriers.pop(victim.body, None)

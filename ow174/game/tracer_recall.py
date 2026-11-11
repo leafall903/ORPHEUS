@@ -99,6 +99,7 @@ class Recalls:
         later_positions = tuple(item.feet for item in (history or ()) if item.now > sample.now)
         self.phases[entity] = Phase(sample, now + windup, now + windup + duration,
                                     later_positions=later_positions)
+        self.fight.zenyatta.cleanse_discord(entity)
 
     def locked(self, actor):
         return getattr(actor, "body", None) in self.phases

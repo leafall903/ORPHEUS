@@ -26,6 +26,11 @@ def _active_state(owner, hero, graph, index, entity=None):
     for instance in script.component.instances.values():
         state = instance.states.get(index) if instance.graph.index == graph else None
         if state is not None and state.active:
+            if hero == ZENYATTA:
+                match = getattr(script.world, "match", None)
+                service = getattr(getattr(match, "combat", None), "zenyatta", None)
+                if service is not None and service.stale_ultimate_flag(owner):
+                    return None
             return state
     return None
 

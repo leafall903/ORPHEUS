@@ -5085,6 +5085,9 @@ def set_var(instance: Instance, node, caller) -> bool:
             value = difficulty  # Supply the queue input at the original encounter assignment.
         else:
             value = play.evaluate_value(instance, config, initial=0)
+        transform = getattr(component.world, "assignment_value", None)
+        if transform is not None:
+            value = transform(instance, node, value)
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
         if (instance.graph.index, node.pos) == (0x0CA2, 26) and component.world.queue_mystery_swap is not None:
             component.world.queue_mystery_swap(instance, value)

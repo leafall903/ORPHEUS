@@ -518,7 +518,7 @@ class _Export:
                 optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
-                               "_body_owner_context", "_entity_query_context"))
+                               "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))
             if kind is BotWorld:
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",

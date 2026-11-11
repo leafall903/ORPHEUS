@@ -293,6 +293,7 @@ class BodyWorld(runtime.World):
         self.wheel_callouts: list[WheelCallout] = []
         self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
+        self.zenyatta_charge_ammo = None
         self.match: Match | None = None
         self._body_owner_context = body_owner.Context(
             body, True, True, lookup=self._lookup_body_owner,
@@ -663,6 +664,11 @@ class BodyWorld(runtime.World):
         barriers.track_projected_target(self, state)
         return barriers.track_transcendence(self, state)
 
+    def assignment_value(self, instance, node, value):
+        from ow174.game.zenyatta import weapon_assignment
+
+        return weapon_assignment(self, instance, node, value)
+
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
@@ -673,6 +679,10 @@ class BodyWorld(runtime.World):
                 controls.drain(state)
                 state.request_finish()
             return True
+        if self.match is not None and self.hero == 0x02E0000000000020 and state.instance.graph.index == 0x017B:
+            owner = self.match._message_player(self.body)
+            if owner is not None and owner.hero.guid == self.hero and state.index == 6:
+                return True  # The delivered Zenyatta service owns the world-clock healing budget.
         value = immunity.transcendence_heal(self, state, elapsed_ms)
         if value is not NotImplemented:
             return value
