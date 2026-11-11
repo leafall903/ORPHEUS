@@ -337,6 +337,11 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        from ow174.game import sound_barrier
+
+        if (self.hero == sound_barrier.HERO and self.match is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (sound_barrier.GRAPH, 16)):
+            return self.match.combat.sound_barriers.tracked_targets(state)
         if self.hero == 0x02E000000000012E and self.match is not None and not state.instance.component.strict:
             controls = self.match.combat.sombra_controls
             player = controls.player(self.body)

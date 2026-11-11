@@ -7,7 +7,7 @@ import test_game_ana_orisa_barrier as placement
 import test_game_ana_sound_barrier as sound_fixture
 from test_game_combat import Run, aim
 
-from ow174.game import adaptive_shield, sound_barrier, stats
+from ow174.game import adaptive_shield, moira, sound_barrier, stats
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE
 from ow174.game.world import HEALTH_POOL
@@ -193,16 +193,18 @@ class AnaAdaptiveShieldTests(unittest.TestCase):
         sound = sound_fixture.AnaSoundBarrierTests()
         sound.cast(run, lucio)
         sound.land(run, lucio)
-        pool = self.cast(run, ball, 175)
+        run.step({ball: (0, 0, 16)})
         entry = self.entry(run, ball)
         fight = run.match.combat
         vitals = fight.vitals_of(entry)
-        before = vitals.sound_shield.amount
+        pool = vitals.extra[("adaptive", moira.ADAPTIVE_SHIELD_TAG)]
+        self.assertEqual(pool.now, 175)
+        before = vitals.extra[sound_barrier.POOL_KEY].now
         at = fight.now
         for _ in range(3):
             fixture.AnaRifleTests().shoot(run, ana, entry, False)
-        self.assertEqual(pool.amount, 0)
-        self.assertAlmostEqual(before - vitals.sound_shield.amount - (fight.now - at) * 125, 35)
+        self.assertEqual(pool.now, 0)
+        self.assertAlmostEqual(before - vitals.extra[sound_barrier.POOL_KEY].now - (fight.now - at) * 125, 35)
         self.assertEqual(sum(vitals.now.values()), 600)
         self.assertEqual(ana.body_script.component.entity_var(ULT_CHARGE).value(), 35)
 

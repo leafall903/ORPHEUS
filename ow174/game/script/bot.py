@@ -463,6 +463,9 @@ class BotWorld(runtime.World):
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
     def entity_var(self, entity: int, var: int):
+        if self.match is not None and var in (1735, 2381):
+            # Crossfade's 0267 reads the player's song and Amp from its source body.
+            return self.match.combat.scripted_body_var(entity, var)
         # 1157's timed release reads these members on the engaged victim.
         if (self.hero == assassin.HERO and self.match is not None and entity == self.manual_target
                 and var in (478, 2380)):

@@ -90,7 +90,7 @@ from ow174.game import (
     world,
     world_bubbles,
 )
-from ow174.game import orisa, orisa_charge, sombra_control
+from ow174.game import lucio, orisa, orisa_charge, sombra_control, sound_barrier
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -701,8 +701,10 @@ class Vitals:
         left = max(0.0, amount)
         taken = self.spend_temporary_shield(left)
         left -= taken
+        # The delivered adaptive shield absorbs hits before Sound Barrier.
+        pools = sorted(self.extra.values(), key=lambda pool: pool.identifier == sound_barrier.RECEIVER)
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
-            for pool in self.extra.values():
+            for pool in pools:
                 if pool.kind == kind and pool.now > 0 and left > 0:
                     take = min(left, pool.now)
                     pool.now -= take
@@ -1205,6 +1207,8 @@ class Combat:
         self.recalls = tracer_recall.Recalls(self)
         self.breathers = breather.Breathers(self)
         self.sombra_controls = sombra_control.Controls(self)
+        self.sound_barriers = sound_barrier.SoundBarriers(self)
+        self.lucio_auras = lucio.Auras(self)
         self.health_packs, self.health_pack_digest = health_packs.mount(match, match.tick)
         # Bounded flight results for ability impact/deployable consumers.
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
@@ -1369,6 +1373,8 @@ class Combat:
             if charge.pinned == player.body:
                 charge.pinned = None
         self.sombra_controls.retire(player.body)
+        self.sound_barriers.retire(player.body)
+        self.lucio_auras.retire(player.body)
         self.baptiste.retire_body(player.body)
         self.healing.retire(player.body)
         self.absorption.retire(player.body)
@@ -1575,6 +1581,7 @@ class Combat:
     def _interrupt(self, target: Target) -> None:
         self.sombra_controls.interrupt(target.owner, hack_only=True)
         self.recalls.interrupt(target.entity)
+        self.sound_barriers.interrupt(target.entity)
         self.breathers.retire(target.entity)
         self.orisa.interrupt_supercharger_cast(target.owner)
         self.brigitte.interrupted(target.entity)
@@ -1606,7 +1613,8 @@ class Combat:
                     # or continuing stack priority. Preserve its authored timer;
                     # the stunned command gate still blocks drawing new swings.
                     # This scoped server control policy is reconstructed.
-                    if not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ())):
+                    if (not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ()))
+                            and not lucio.keep_active_amp_on_stun(script, state)):
                         state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
@@ -1931,6 +1939,10 @@ class Combat:
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
         self.breathers.observe(player)
+        if command is not None:
+            self.sound_barriers.observe(player)
+        if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
+            self.lucio_auras.refresh(script.frame)
         self._sync_adaptive_shield(player)
         moira.track_clock(self, player, posed=command is not None)
         if self.is_stunned(player):
@@ -2613,6 +2625,8 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.timed_hits or self.recalls.phases or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
             or self.zarya_gravitons.fields or self.sombra_controls.locks
+            or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
+            or self.lucio_auras.healing
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
@@ -2629,6 +2643,7 @@ class Combat:
             self.recalls.update()
             self.breathers.update()
             self._decay_temporary_shields()
+            self.sound_barriers.update()
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
             for body, dome in tuple(self.winston_domes.items()):
@@ -2654,6 +2669,8 @@ class Combat:
                     self.shatters.pop(body, None)
             self._bot_weapons(at)
             self._advance_timed_hits()
+            if self.lucio_auras.leases or self.lucio_auras.healing:
+                self.lucio_auras.update(at)
             for target in self._targets():
                 self.recalls.observe(target)
             self.brigitte.update()
@@ -3003,7 +3020,7 @@ class Combat:
             if target.entity == _source_entity(shooter) or not self._ally(shooter, target):
                 continue
             vitals = self.vitals_of(target)
-            if not vitals.dead and vitals.total < sum(vitals.most.values()) - EPSILON:
+            if not vitals.dead and vitals.base_total < sum(vitals.most.values()) - EPSILON:
                 targets.append(target)
         return targets
 
@@ -3427,7 +3444,9 @@ class Combat:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
             blast = hit_def(state, node.field("m_D2D11CE9"))
-            if state.instance.graph.index == 0x0B97 and blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT:
+            biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
+                              and blast.effect == BIOTIC_GRENADE_EFFECT)
+            if biotic_grenade:
                 gravity = projectiles.unconditional_gravity(state)
             field_spec = self.baptiste.field_parameters(state)
             grenade = self.baptiste.grenade_parameters(state)
@@ -3532,11 +3551,16 @@ class Combat:
                     from ow174.game import nano
 
                     dose_scalar = nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
+                projectile_tick = None
+                if npc:
+                    projectile_tick = self.tick if launch_tick is None else launch_tick
+                elif biotic_grenade and command is not None:
+                    projectile_tick = max(self.tick, command.frame)
                 for pellet, launch in enumerate(directions):
                     rocket = Rocket(
                         shooter, shooter.team, origin, launch, speed, lifetime, direct, blast,
                         shot if pellet == 0 else None,
-                        last_tick=(self.tick if launch_tick is None else launch_tick) if npc else None,
+                        last_tick=projectile_tick,
                         gravity=gravity or 0.0,
                         velocity=(velocity if velocity is not None else
                                   tuple(expr.f32(value * speed) for value in launch) if gravity is not None else None),
@@ -5664,6 +5688,7 @@ class Combat:
                 sum(vitals.most.values()) - vitals.base_total,
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
+        adaptive_loss = shield_before - (adaptive.now if adaptive is not None else 0.0)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -5689,7 +5714,7 @@ class Combat:
                 orisa_charge.damage(shooter, target, dealt, loadout)
                 moira.gain_combat_charge(
                     shooter, dealt, body=source_body, damage_target=target, damage_tags=hit_tags,
-                    adaptive_loss=shield_before - (adaptive.now if adaptive is not None else 0.0),
+                    adaptive_loss=adaptive_loss,
                 )
             if (award_ult and victim is not shooter
                     and (self.match.game_map.free_for_all or target.team != shooter.team)):
@@ -5705,7 +5730,8 @@ class Combat:
             if (award_ult and enemy and script is not None and current_source
                     and hero not in (0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
-                script.gain_ult_charge(dealt)
+                points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
+                script.gain_ult_charge(points)
             if enemy and current_source and hero == 0x02E0000000000029:
                 tick = self.match.tick if world_tick is None else world_tick
                 self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)
@@ -5845,6 +5871,8 @@ class Combat:
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
+        self.sound_barriers.retire(bot.entity)
+        self.lucio_auras.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
         self.clear_pins(bot.entity)
@@ -5907,6 +5935,8 @@ class Combat:
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         """Dispatch notices, authored death, and the respawn."""
         self.sombra_controls.retire(victim.body)
+        self.sound_barriers.retire(victim.body)
+        self.lucio_auras.retire(victim.body)
         assassin_victim.retire_target(self, victim.body)
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)

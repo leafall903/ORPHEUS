@@ -3,18 +3,21 @@
 import math
 from dataclasses import dataclass, field
 
+from ow174.game import actors
 from ow174.game.mover import IN_AIR
-from ow174.game.script import expr
+from ow174.game.script import expr, graph, runtime
 from ow174.game.world import SHIELDS_POOL
 
 HERO = 0x02E0000000000079
 GRAPH = 0x073A
+RECEIVER = 0x073B
+POOL_KEY = ("sound_barrier", RECEIVER)
 CAPACITY = 750.0  # 073B node1 sets #499, consumed by the receiver HealthPool.
 
 
 @dataclass
 class Shield:
-    amount: float
+    application: runtime.Instance
     at: float
     rate: float
 
@@ -54,7 +57,7 @@ class SoundBarriers:
         self.fight = fight
         self.landings = {}
         self.waves = {}
-        self.shielded = set()
+        self.shielded = {}
 
     def observe(self, player):
         state = landing_state(player)
@@ -72,10 +75,24 @@ class SoundBarriers:
         elif landing.grounded_at is None:
             landing.grounded_at = self.fight.now
 
-    def retire(self, entity):
+    def interrupt(self, entity):
         self.landings.pop(entity, None)
+
+    def retire(self, entity):
+        self.interrupt(entity)
         self.waves.pop(entity, None)
-        self.shielded.discard(entity)
+        self.remove_shield(entity)
+
+    def remove_shield(self, entity):
+        shield = self.shielded.pop(entity, None)
+        if shield is None:
+            return
+        vitals = self.fight.vitals.get(entity)
+        if vitals is not None and POOL_KEY in vitals.extra:
+            vitals.remove_temporary(POOL_KEY)
+        application = shield.application
+        if application.component.instances.get(application.id) is application:
+            application.component.destroy(application)
 
     def update(self):
         from ow174.game.combat import TICK
@@ -84,28 +101,28 @@ class SoundBarriers:
             return
         fight = self.fight
         targets = {target.entity: target for target in fight._targets()}
-        for entity in tuple(self.shielded):
+        for entity, shield in tuple(self.shielded.items()):
             vitals = fight.vitals.get(entity)
             target = targets.get(entity)
-            if vitals is None or vitals.dead or target is None:
-                self.shielded.discard(entity)
+            pool = vitals.extra.get(POOL_KEY) if vitals is not None else None
+            if vitals is None or vitals.dead or target is None or pool is None or pool.removed:
+                self.remove_shield(entity)
                 continue
-            shield = vitals.sound_shield
             elapsed = max(0.0, fight.now - shield.at)
-            if elapsed:
-                shield.amount = max(0.0, shield.amount - elapsed * shield.rate)
-                if shield.amount < 1e-9:
-                    shield.amount = 0.0
+            if elapsed or pool.now == 0:
+                pool.now = max(0.0, pool.now - elapsed * shield.rate)
                 shield.at = fight.now
                 vitals.changed.add(SHIELDS_POOL)
+                if pool.now < 1e-9:
+                    self.remove_shield(entity)
+                else:
+                    shield.application.write((graph.INSTANCE, 199), pool.now)
                 fight._sync_body_health(target.owner, vitals)
-            if shield.amount == 0:
-                self.shielded.discard(entity)
         for entity, landing in tuple(self.landings.items()):
             player = self.player(entity)
             state = landing_state(player)
             if (state is None or fight.is_dead(player) or fight.is_asleep(player)
-                    or fight.is_stunned(player)):
+                    or fight.is_stunned(player) or entity in fight.sombra_controls.locks):
                 del self.landings[entity]
             elif landing.grounded_at is not None:
                 gate = max(landing.ready, landing.grounded_at + TICK)
@@ -164,6 +181,8 @@ class SoundBarriers:
         fight = self.fight
         centre = fight._eye(player)
         for target in targets:
+            if isinstance(target.owner, actors.Deployable) or target.owner.body_script is None:
+                continue
             if target.owner is not player and (fight.match.game_map.free_for_all or target.team != player.team):
                 continue
             vitals = fight.vitals_of(target)
@@ -173,22 +192,43 @@ class SoundBarriers:
                 a, b = target.segment()
                 if (segment_distance(centre, a, b) - target.radius > radius
                         or not capsule_visible(fight._collision(), centre, a, b, target.radius,
-                                               pillars=fight.ice_wall.pieces.values())):
+                                               walls=fight.walls)):
                     continue
             yield target
 
     def grant(self, player, wave, targets, at):
         fight = self.fight
-        rate = CAPACITY / wave.duration
-        amount = max(0.0, CAPACITY - (fight.now - at) * rate)
-        if not amount:
+        definition = graph.graph(RECEIVER)
+        if definition is None:
             return
         for target in self.eligible(player, wave.radius, targets):
             if target.entity in wave.recipients:
                 continue
             wave.recipients.add(target.entity)
             vitals = fight.vitals_of(target)
-            vitals.sound_shield = Shield(amount, fight.now, rate)
-            self.shielded.add(target.entity)
-            vitals.changed.add(SHIELDS_POOL)
+            component = target.owner.body_script.component
+            receiver = component.create(
+                definition, values={(graph.INSTANCE, 27): expr.Entity(player.body)},
+            )
+            runtime.send_instance_message(receiver, 0x024000000000000F,
+                                          {0x2B: wave.duration}, player.body)
+            receiver.update()
+            state = receiver.states.get(2)
+            if state is None or not state.active:
+                component.destroy(receiver)
+                continue
+            capacity = expr.to_float(state.evaluate(state.node.field("m_amount"), watch=False))
+            rate = capacity / wave.duration
+            amount = capacity - max(0.0, fight.now - at) * rate
+            if not math.isfinite(amount) or amount <= 0:
+                component.destroy(receiver)
+                continue
+            self.remove_shield(target.entity)
+            pool = vitals.add_temporary(POOL_KEY, RECEIVER, SHIELDS_POOL, capacity, fight.tick)
+            if pool is None:
+                component.destroy(receiver)
+                continue
+            pool.now = amount
+            receiver.write((graph.INSTANCE, 199), amount)
+            self.shielded[target.entity] = Shield(receiver, fight.now, rate)
             fight._sync_body_health(target.owner, vitals)

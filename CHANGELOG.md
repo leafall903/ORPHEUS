@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Lucio aura and Sound Barrier integration
+
+- Mount the delivered Crossfade and Amp status controller, including recipient
+  filtering, authored rates, nonstacking ownership, sparse-input timing, and
+  healing credit. Settle Crossfade through the shared healing service so the
+  grenade's authored amplification delay and expiry apply on their own ticks.
+- Use the authored Sound Barrier landing and receiver to create a decaying
+  temporary shield. EMP removes it, Adaptive Shield retains damage precedence,
+  and Biotic Rifle can heal injured teammates under temporary shields.
+- The combined test runtime mounts the external 0267, 073B and 07C7 graphs
+  with the existing ORPHEUS_GRAPH_SUPPLEMENT setting. Lucio's remaining
+  movement, knockback and ultimate-rule changes and original-client
+  acceptance remain pending.
+
 ### Sombra control integration
 
 - Route Hack and EMP through the Python server's authored receivers. Apply
@@ -13,8 +27,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   without charging Zarya or overflowing into body health.
 - Static checks cover casts, duration, interruption, snapshot causality,
   adaptive shields, Winston and Zarya barriers, pack access, and Field
-  protection and cleanup. All 33 core combat tests passed. Lucio's Sound
-  Barrier route still needs integration.
+  protection and cleanup. All 33 core combat tests passed. The Lucio
+  integration above adds the Sound Barrier interaction.
   The combined barrier test requires external meshes. Original-client
   acceptance and the remainder of the Sombra delivery are pending.
 

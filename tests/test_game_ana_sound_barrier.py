@@ -43,11 +43,11 @@ class AnaSoundBarrierTests(unittest.TestCase):
     def land(self, run, lucio):
         vitals = self.vitals(run, lucio)
         for _ in range(90):
-            if vitals.sound_shield is not None:
+            if vitals.extra.get(sound_barrier.POOL_KEY) is not None:
                 break
             run.step({})
-        self.assertIsNotNone(vitals.sound_shield)
-        self.assertEqual(vitals.sound_shield.amount, 750)
+        self.assertIsNotNone(vitals.extra.get(sound_barrier.POOL_KEY))
+        self.assertEqual(vitals.extra[sound_barrier.POOL_KEY].now, 750)
         return vitals
 
     def test_grounded_cast_grants_same_team_pool_and_world_clock_expires_it(self):
@@ -59,10 +59,10 @@ class AnaSoundBarrierTests(unittest.TestCase):
         self.assertEqual(lucio.body_script.frame, lucio_frame)
         caster = self.vitals(run, lucio)
         ally = self.vitals(run, ana)
-        self.assertEqual(caster.sound_shield.amount, 750)
-        self.assertEqual(ally.sound_shield.amount, 750)
+        self.assertEqual(caster.extra[sound_barrier.POOL_KEY].now, 750)
+        self.assertEqual(ally.extra[sound_barrier.POOL_KEY].now, 750)
         run.match.update((start + 104) * .016, start + 104, frames=False)
-        self.assertAlmostEqual(ally.sound_shield.amount, 626)
+        self.assertAlmostEqual(ally.extra[sound_barrier.POOL_KEY].now, 626)
         run.match.update((start + 417) * .016, start + 417, frames=False)
         self.assertEqual(caster.total, 200)
         self.assertEqual(ally.total, 200)
@@ -73,7 +73,7 @@ class AnaSoundBarrierTests(unittest.TestCase):
         start = run.frame
         run.match.update((start + 180) * .016, start + 180, frames=False)
         vitals = self.vitals(run, ana)
-        self.assertAlmostEqual(vitals.sound_shield.amount, 474)
+        self.assertAlmostEqual(vitals.extra[sound_barrier.POOL_KEY].now, 474)
         self.assertFalse(run.match.combat.sound_barriers.waves)
         run.match.update((start + 418) * .016, start + 418, frames=False)
         self.assertEqual(vitals.total, 200)
@@ -86,10 +86,10 @@ class AnaSoundBarrierTests(unittest.TestCase):
         for _ in range(45):
             run.step({})
         self.assertTrue(lucio.mover.flags_word & IN_AIR)
-        self.assertIsNone(self.vitals(run, ana).sound_shield)
+        self.assertIsNone(self.vitals(run, ana).extra.get(sound_barrier.POOL_KEY))
         self.land(run, lucio)
         self.assertFalse(lucio.mover.flags_word & IN_AIR)
-        self.assertEqual(self.vitals(run, ana).sound_shield.amount, 750)
+        self.assertEqual(self.vitals(run, ana).extra[sound_barrier.POOL_KEY].now, 750)
 
     def test_range_and_cover_exclude_allies_and_wave_can_reach_late_arrival(self):
         for cover in (False, True):
@@ -101,14 +101,14 @@ class AnaSoundBarrierTests(unittest.TestCase):
                 self.cast(run, lucio)
                 self.land(run, lucio)
                 ally = self.vitals(run, ana)
-                self.assertIsNone(ally.sound_shield)
+                self.assertIsNone(ally.extra.get(sound_barrier.POOL_KEY))
                 lx, ly, lz = lucio.mover.position
                 placement.AnaOrisaBarrierTests.place(ana, (lx, ly, lz + 2))
                 run.step({})
-                self.assertEqual(ally.sound_shield.amount, 750)
+                self.assertEqual(ally.extra[sound_barrier.POOL_KEY].now, 750)
 
     def test_actual_ana_contacts_drain_pool_and_sleep_and_antiheal_still_apply(self):
-        for button, held, expected in ((1, 0, 70), (1, 2, 70), (8, 0, 5), (16, 0, 50), (0x800, 0, 30)):
+        for button, held, expected in ((1, 0, 70), (1, 2, 70), (8, 0, 5), (16, 0, 60), (0x800, 0, 30)):
             with self.subTest(button=button, scoped=bool(held)):
                 run, ana, lucio = self.arena(enemy=True, distance=1.5 if button == 0x800 else 3)
                 direction = self.direction(run, ana, lucio)
@@ -116,20 +116,21 @@ class AnaSoundBarrierTests(unittest.TestCase):
                     run.step({ana: (*direction, held)})
                 self.cast(run, lucio)
                 vitals = self.land(run, lucio)
-                self.assertIsNone(self.vitals(run, ana).sound_shield)
+                self.assertIsNone(self.vitals(run, ana).extra.get(sound_barrier.POOL_KEY))
                 if held:
                     for _ in range(35):
                         run.step({ana: (*direction, held)})
-                before = vitals.sound_shield.amount
+                before = vitals.extra[sound_barrier.POOL_KEY].now
                 at = run.match.combat.now
                 run.step({ana: (*direction, held | button)})
                 for _ in range(65):
                     run.step({ana: (*direction, held)})
                 fight = run.match.combat
-                self.assertAlmostEqual(before - vitals.sound_shield.amount - (fight.now - at) * 125, expected)
+                self.assertAlmostEqual(before - vitals.extra[sound_barrier.POOL_KEY].now - (fight.now - at) * 125, expected)
                 self.assertEqual(vitals.now[HEALTH_POOL], 200)
                 self.assertEqual(fight.is_asleep(lucio), button == 8)
-                self.assertEqual(vitals.healing_block_until > fight.now, button == 16)
+                entry = next(target for target in fight._targets() if target.owner is lucio)
+                self.assertEqual(fight.healing.factor(entry) == 0, button == 16)
                 self.assertAlmostEqual(ana.stats.value(stats.HERO_DAMAGE), expected)
 
     def test_actual_dart_interrupts_queued_landing_after_charge_is_spent(self):
@@ -140,7 +141,7 @@ class AnaSoundBarrierTests(unittest.TestCase):
         for _ in range(95):
             run.step({})
         self.assertTrue(run.match.combat.is_asleep(lucio))
-        self.assertIsNone(self.vitals(run, lucio).sound_shield)
+        self.assertIsNone(self.vitals(run, lucio).extra.get(sound_barrier.POOL_KEY))
         self.assertNotIn(lucio.body, run.match.combat.sound_barriers.landings)
 
     def test_friendly_rifle_heals_ordinary_health_without_refilling_sound_barrier(self):
@@ -153,7 +154,7 @@ class AnaSoundBarrierTests(unittest.TestCase):
         for _ in range(65):
             run.step({})
         self.assertEqual(vitals.now[HEALTH_POOL], 160)
-        self.assertAlmostEqual(vitals.sound_shield.amount, 618)
+        self.assertAlmostEqual(vitals.extra[sound_barrier.POOL_KEY].now, 618)
         self.assertEqual(ana.stats.value(stats.HEALING), 70)
 
     def test_caster_replacement_retires_wave_and_leaves_granted_ally_shield(self):
@@ -166,8 +167,8 @@ class AnaSoundBarrierTests(unittest.TestCase):
         manager = run.match.combat.sound_barriers
         self.assertNotIn(old, manager.waves)
         self.assertNotIn(old, manager.shielded)
-        self.assertIsNone(self.vitals(run, lucio).sound_shield)
-        self.assertAlmostEqual(self.vitals(run, ana).sound_shield.amount, 748)
+        self.assertIsNone(self.vitals(run, lucio).extra.get(sound_barrier.POOL_KEY))
+        self.assertAlmostEqual(self.vitals(run, ana).extra[sound_barrier.POOL_KEY].now, 748)
 
     def test_pending_landing_and_active_pool_enter_the_server_snapshot(self):
         import test_server_snapshot as stored
@@ -187,8 +188,8 @@ class AnaSoundBarrierTests(unittest.TestCase):
         landing.ready += .016
         self.assertNotEqual(pending, stored.snapshot_digest(case.capture(session)))
         session.tick(102.0)
-        shield = fight.vitals[lucio.body].sound_shield
+        shield = fight.vitals[lucio.body].extra[sound_barrier.POOL_KEY]
         self.assertIsNotNone(shield)
         active = stored.snapshot_digest(case.capture(session))
-        shield.amount -= 5
+        shield.now -= 5
         self.assertNotEqual(active, stored.snapshot_digest(case.capture(session)))

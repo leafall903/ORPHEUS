@@ -370,8 +370,12 @@ class Player:
                 checkpoint = tracer_recall.exit_frame(self)
             if checkpoint is not None and first_missing < checkpoint < first_pose - MAX_GAP:
                 self._advance_body_frame(Command(checkpoint, buttons=retained_buttons), posed=False)
-        if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1, buttons=retained_buttons), posed=False)
+        from ow174.game import lucio
+
+        frame, end = script.frame, first_pose - 1
+        while self.body_script is script and frame < end:
+            frame = lucio.effect_gap_frame(script, frame, end)
+            self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
         fight = self.match.combat

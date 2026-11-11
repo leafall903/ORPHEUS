@@ -212,10 +212,10 @@ class AnaSombraControlTests(unittest.TestCase):
         sound.cast(run, lucio)
         sound.land(run, lucio)
         vitals = self.vitals(run, ana)
-        self.assertEqual(vitals.sound_shield.amount, sound_barrier.CAPACITY)
+        self.assertEqual(vitals.extra[sound_barrier.POOL_KEY].now, sound_barrier.CAPACITY)
         sombra.body_script.ult_seconds = 0
         self.cast(run, ana, sombra, 32)
-        self.assertEqual(vitals.sound_shield.amount, 0)
+        self.assertEqual(vitals.extra[sound_barrier.POOL_KEY].now, 0)
         self.assertEqual(vitals.now[HEALTH_POOL], 200)
         self.assertEqual(sombra.body_script.component.entity_var(ULT_CHARGE).value(), 0)
 
