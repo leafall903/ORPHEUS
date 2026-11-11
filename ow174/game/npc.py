@@ -87,13 +87,16 @@ def remove_spawned(match) -> tuple[int, ...]:
     for bot in tuple(match.bots):
         if bot.spawner.get('manual_spawn') is not True:
             continue
+        match.combat.clear_pins(bot.entity)
         bot.died(match.tick)
         bot.navigation = None
-        match.combat.clear_pins(bot.entity)
         match.combat._end_npc_hit_reaction(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
+            from ow174.game import assassin
+
+            assassin.bind(component.world, component, None)
             component.owner_dead = True
             component.held.clear()
             component.shots.clear()
@@ -105,9 +108,9 @@ def remove_spawned(match) -> tuple[int, ...]:
         match.combat.cancel_npc_projectiles(bot)
         match.combat.respawns[:] = [(when, who) for when, who in match.combat.respawns if who is not bot]
         for table in (match.combat.vitals, match.combat.history, match.combat.replacement_ticks,
-                      match.combat.melee_seen, match.combat.stuns, match.combat.projected_barriers):
+                      match.combat.melee_seen, match.combat.genji_assists, match.combat.stuns,
+                      match.combat.projected_barriers):
             table.pop(bot.entity, None)
-        match.combat.clear_pins(bot.entity)
         match.combat.brigitte.retire(bot.entity)
         match._pending_bot_scripts = type(match._pending_bot_scripts)(
             item for item in match._pending_bot_scripts if item is not bot)

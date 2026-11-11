@@ -54,6 +54,7 @@ STATE_MODELS = (
     ("STU_38EE1100", nodes.SendGameMessageState),
     ("STUStatescriptStateCosmeticEntity", nodes.CosmeticEntity),
     ("STUStatescriptStateGamePadVibration", nodes.GamePadVibration),
+    ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
     ("STUStatescriptStateTrackTargets", nodes.TrackTargets),
     ("STU_431F3FCC", nodes.TargetEffects),
     ("STUStatescriptStateModifyHealth", nodes.ModifyHealth),
@@ -62,6 +63,8 @@ STATE_MODELS = (
     ("STU_01178155", nodes.ActiveQuery),
     ("STU_7D71FDF3", nodes.ModelLook),
     ("STUStatescriptStateDataFlowMapping", nodes.DataFlowMapping),
+    ("STUStatescriptStatePet", nodes.Pet),
+    ("STU_54FEB21C", nodes.PhaseEntry),
 )
 COMPONENT_FIELDS = {
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",

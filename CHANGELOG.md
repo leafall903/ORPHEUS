@@ -12,6 +12,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Pass 103 scene, PvE entrance, Arcade, combat, and Brigitte tests with the
   combined 104319 runtime. Original-client verification remains open.
 
+### Genji server integration
+
+- Integrate Genji's Python combat, movement, input buffering, and ultimate
+  handling with the combined server. Bring in the delivery's StateScript,
+  projectile interception, barrier Pet, and PvE updates.
+
 ### Echo server integration
 
 - Integrate Echo's Tri-Shot, Sticky Bombs, Focusing Beam, Flight, Glide, and
@@ -3147,6 +3153,110 @@ This log records tested changes and their acceptance status. Entries are grouped
   inputs/services and original working changes are preserved; no hero lane merged.
 
 ### 2026-11-08
+
+#### Combat ultimate credit and Genji elimination resets (partial)
+
+- Credit effective enemy damage to capped ultimate charge, with no generation
+  while the ultimate runs. Preserve overkill, self, miss and reflection ownership
+  distinctions. The existing diagnostic passive fill is not a native-rate claim.
+- Reconstruct Genji's recent-damage credit window and deliver the actual0093/
+  169F reset entries with target parameters and a narrowly scoped body predicate.
+  Keep the authored Q/05BE reset after the draw phase. Add contributor elimination
+  stats/notices, generation cleanup and manual-NPC removal cleanup. Retire all
+  owned projectile authority on body replacement/leave; posthumous same-body
+  hits still credit. Window/filter/ownership edge policies remain reconstructed.
+- Pass20 charge/reset tests, seven external-NPC fixture tests (including actual
+  five-body kills, dash reset and retained corpse/death-script checks), causal
+  contribution snapshots and247 combined Genji/shared/model-manifest tests.
+  Register passive helper configuration aliases in model identity. Native
+  passive/mode charge, defenses/control, three NPC incoming attacks/specials,
+  complete current-source snapshot regression and original client remain open.
+
+#### Genji weapon boundaries and shared projectile/melee fixes (partial)
+
+- Apply evaluated direct-projectile critical multipliers; reconstruct Genji's
+  missing critical override as2x while retaining Helix's explicit1. Add static
+  LOS to quick melee. Neither change restores native hitbox/filter geometry.
+- Admit a final partial-cost volley shot with positive ammo using rounded-up
+  planning; its ammo output still clamps to0. Genji's last1/2 fan ammo previously
+  disappeared without emitting a projectile. This edge policy is reconstructed.
+- Pass14 weapon tests covering29/58 damage, 100m range boundaries, misses,
+  ammo, both reload waits0.9+0.6s, automatic empty reload, last-round/fan edges,
+  melee LOS/range/team and ammo independence. Pass212 combined Genji/shared
+  combat/projectile/movement/VM/driver/NPC tests with explicit external NPC data.
+- Full static goal remains open for combat ultimate charging, dash reset/assist
+  events, defenses/control and unresolved incoming NPC attacks/specials.
+
+#### Genji passive movement reconstruction (partial)
+
+- Add a body-local passive controller around the existing collision mover:
+  one extra airborne jump impulse from the authored mover value, and bounded
+  frontal wall climbing using explicitly inferred roles for0157's7.5/0.75/0.25
+  fields. Preserve capsule/ceiling collision, jump-intent blocks, key edges,
+  landing/new-body refresh and climb cancellation. Missing commands age duration.
+- Store the controller as registered causal state. Pass14 command/collision
+  mobility tests plus the expanded passive-state snapshot digest check. Native
+  custom-State semantics, prediction and visual acceptance remain open, along
+  with the remaining full static hero combat matrix.
+
+#### Genji reconstructed Deflect authority (partial)
+
+- Reflect explicitly tagged frontal hitscan and physical volley projectiles
+  during the authored Deflect State, transferring attacker/team attribution
+  while retaining remaining range/lifetime. Block frontal quick melee/Blade
+  without reflecting them; preserve rear, splash and noneligible damage.
+  Body-capsule/angle/tag admission is reconstructed. Native boxes/filter policy,
+  beam heroes, status payload transfer and reflected client visuals remain open.
+- Pass14 Deflect command tests including critical/kill credit, team transfer,
+  rear hits, melee, expiry/cancel/cooldown reuse, death and splash/negative
+  eligibility. A136-test Genji/shared combat/projectile/ability/NPC suite passes;
+  six explicit external-NPC fixture tests pass20 outgoing and four incoming/
+  reflection scenarios across the selected real body definitions.
+- Complete static hero acceptance remains open: passive movement, critical
+  defaults, resources/reload, combat ultimate charge, dash resets, shield/absorb/
+  invulnerability/control and all five enemy attack/special behaviors still need
+  execution evidence. No original-client acceptance or shared-main merge claim.
+
+#### Genji static regression and NPC dependency intake
+
+- Pass78 Genji/shared combat/movement/ability checks and14 frozen-source passive
+  snapshot checks, including causal Strike/Blade hit ledgers. Original-client
+  and complete static hero acceptance remain open.
+- Review and merge the parent's manual NPC lifecycle/catalog commits into this
+  isolated lane only. A separate read-only external-catalog fixture passes20
+  outgoing damage scenarios across all five actual NPC bodies. Explicit fire
+  damages Genji from Trooper/Heavy only; Enforcer/Sniper/Assassin incoming attacks
+  remain unresolved. This does not establish autonomous AI or specials.
+
+#### Genji reconstructed Strike and Dragonblade (partial)
+
+- Reconstruct Genji-only own eye/aim and static dash casts, run the authored
+  15m/50m/s MoveTo, and sweep its evaluated 50 damage once per enemy. Reconstruct
+  the weapon's short sword target windows using evaluated 110 damage, range5,
+  angle90 and static line of sight. Keep native geometry/filter semantics and
+  dynamic defenses explicitly unaccepted; correct Q/E graph identification.
+- Preserve ability input-buffer timestamps while cooldown/conditions reject
+  a start. Previously each retry refreshed the timestamp indefinitely, allowing
+  old released input to fire after the cooldown. This affects shared abilities.
+- Add 10 Strike and eight Dragonblade command-path tests, including damage,
+  miss, walls, team, cancellation, cooldown rejection/expiry, charge gates,
+  consumption, kills and ultimate end. Extend passive combat snapshots with
+  per-activation victim ledgers. Full static hero goal remains active; Deflect,
+  passive movement, combat charging, five NPCs and cross-hero defenses remain open.
+
+#### Genji secondary shuriken authority (partial)
+
+- Emit three independently swept projectiles for weapon0304's authored fan,
+  preserving its per-projectile damage, team filtering and armor processing.
+  Adjacent spread angles are reconstructed from spread9; exact native geometry
+  and original-client presentation remain unverified.
+- Nine command-path Genji tests cover real health changes against players and
+  a training bot, separate victims, range separation, armor, team semantics,
+  static triangle collision and actual death. Shared combat and authored
+  MoveTo regression tests also pass. No complete hero/client acceptance.
+- Deflect, Swift Strike targeting/damage, Dragonblade, five mission NPCs and
+  cross-hero status/defense interactions remain open. See docs/GENJI_COMBAT.txt.
+  This lane delivers a reviewed patch; it does not publish or merge root main.
 
 #### Native array selection for PvE difficulty configs
 

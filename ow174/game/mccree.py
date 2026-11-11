@@ -216,11 +216,11 @@ def _npc_peer_contacts(owner, reach):
         yield peer, any(bot.velocity)
 
 
-def step_rialto_pose(owner, command, seconds, tick, *, controlled=False):
+def step_rialto_pose(owner, command, seconds, tick, *, controlled=False, speed_scale=1.0):
     """Include nearby living hostile Rialto NPCs in McCree's movement sweep."""
     mover = owner.mover
     if controlled or owner.hero.guid != HERO or owner.match.game_map.map_guid != RIALTO:
-        mover.step_pose(command, seconds, tick)
+        mover.step_pose(command, seconds, tick, speed_scale=speed_scale)
         return
     vx, _, vz = mover.velocity
     data = mover.values
@@ -228,13 +228,13 @@ def step_rialto_pose(owner, command, seconds, tick, *, controlled=False):
     reach = max(data.stand_radius, data.crouch_radius) + speed * seconds + 0.04
     candidates = list(_npc_peer_contacts(owner, reach))
     if not candidates:
-        mover.step_pose(command, seconds, tick)
+        mover.step_pose(command, seconds, tick, speed_scale=speed_scale)
         return
     peers = [peer for peer, _ in candidates]
     body = mover._engine_body()
     body.contacts[:0] = peers
     try:
-        mover.step_pose(command, seconds, tick)
+        mover.step_pose(command, seconds, tick, speed_scale=speed_scale)
         nx, _, nz = mover.velocity
         roll_contact = math.hypot(nx - vx, nz - vz) > 0.05 and _roll_active(owner)
         # Remote interpolation can place a moving NPC differently during local prediction.

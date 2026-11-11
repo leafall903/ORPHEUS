@@ -54,6 +54,15 @@ def start(match, player):
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
     value = button(bot)  # validate before changing policy
+    if bot.hero == 0x02E00000000001CE:
+        component = bot.body_script.component
+        index = component.entity_var(9948).value()
+        if index is not None and (type(index) is not int or not 0 <= index < 4):
+            raise ValueError('Enforcer attack difficulty index must select one of four authored entries')
+        if index is None:
+            # Manual sandbox default: first authored attack-damage table entry.
+            # This is not a native mission/difficulty or conditional-pool claim.
+            component.set(9948, 0)
     if bot.attack_target is not None and bot.attack_target != player.entity:
         _retire_target_input(bot, value)
     if bot.navigation is not None and bot.navigation.next_plan is None:

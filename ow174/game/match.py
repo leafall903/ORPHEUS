@@ -68,6 +68,7 @@ from ow174.game.content import (
     spawn_point,
 )
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
+from ow174.game.genji import GENJI, Mobility
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
@@ -239,6 +240,7 @@ class Player:
         self.impulse_correction: tuple[int, int] | None = None
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
+        self.genji_mobility = Mobility()
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
         self.shown: dict[int, ShownController] = {}  # other players' controller entities on this client
@@ -356,6 +358,7 @@ class Player:
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
             return
         stunned = self.match.combat.is_stunned(self, tick=tick)
+        frost = self.match.combat.frost_progress(self, tick=tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             impact = self.match.combat.punch_impacts.get(self.body)
@@ -387,6 +390,8 @@ class Player:
             self._advance_body_frame(command)
             return
         # Arbitration between simultaneous world-target states is unresolved.
+        if self.hero.guid == GENJI:
+            self.genji_mobility.before_pose(self, command, seconds, driven=bool(requests))
         movement_end = None
         charge_start = tuple(self.mover.position) if self.hero.guid in (
             0x02E0000000000007, 0x02E000000000012F,
@@ -403,14 +408,18 @@ class Player:
             if script is not None and not stunned and not self.mover.external_impulse:
                 movement_limit = self.match.combat.brigitte.bash_movement_limit(self)
             fall_limit = echo_movement.glide_limit(self, command)
+            speed_scale = max(0.3, 1.0 - frost)
             if fall_limit is not None:
                 self.mover.step_pose(
-                    command, seconds, tick, movement_limit=movement_limit, fall_limit=fall_limit,
+                    command, seconds, tick, movement_limit=movement_limit,
+                    fall_limit=fall_limit, speed_scale=speed_scale,
                 )
             elif movement_limit is None:
-                mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned)
+                mccree.step_rialto_pose(self, command, seconds, tick, controlled=stunned,
+                                       speed_scale=speed_scale)
             else:
-                self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit)
+                self.mover.step_pose(command, seconds, tick, movement_limit=movement_limit,
+                                     speed_scale=speed_scale)
         if self.body in self.match.combat.punch_impacts:
             self.match.combat.punch_wall_contact(self, command, tick)
         self._advance_body_frame(
@@ -434,7 +443,7 @@ class Player:
                 script = self.body_script
                 self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
                 return
-            self.match.body_command(self, command, movement_end=movement_end)
+            self.match.body_command(self, command, movement_end=movement_end, posed=posed)
             self.match.combat.command(self, command if posed else None)
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
@@ -445,6 +454,7 @@ class Player:
         self.body = entity
         self.mover = self.new_mover()
         self.impulse_correction = None
+        self.genji_mobility = Mobility()
 
     def new_mover(self) -> Mover:
         """The body's mover at the spawn point, with the hero's values and the match's pinned collision.
@@ -713,7 +723,7 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
-        from ow174.game import heavy_assault, npc_context
+        from ow174.game import npc_context
 
         if graph.entity_body(bot.body) is None:
             return
@@ -732,9 +742,9 @@ class Match:
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
             )
-            if (components is not None
-                    or (bot.hero in heavy_assault.MELEE and bot.spawner.get("manual_spawn") is True)):
-                bot.body_script.component.world.match = self
+            component = getattr(bot.body_script, "component", None)
+            if isinstance(component, runtime.Component):
+                component.world.match = self
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
 
@@ -742,7 +752,7 @@ class Match:
         # A later viewer cannot depend on the globally cleared health dirty bits.
         # Freeze its initial pools here so retransmitting the create keeps the same baseline.
         vitals = self.combat.vitals.get(bot.entity)
-        components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.ids)
+        components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.most)
         components[26] = [TEAM_BIT << bot.team]
         definition, position, rotation = bot.body, bot.position, _rotation(bot.yaw)
         return EntityUpdate(
@@ -774,12 +784,12 @@ class Match:
         """Whether other players' clients get this player's body."""
         return player.spawned and player.has_body and player.client is not None
 
-    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None) -> list[EntityUpdate]:
+    def own_body_updates(self, viewer: Player, *, start_frame: int | None = None, ult_fraction: float = 0.0) -> list[EntityUpdate]:
         """The viewer's own body: its movement state rides in the create (at frame 0xFFFFFFFE) and in a
         movement record at the packet frame."""
         state = deepcopy(viewer.pose())
         create = EntityUpdate(viewer.body, OP_CREATE, movement=state)
-        self.start_body_script(viewer, create, start_frame=start_frame)
+        self.start_body_script(viewer, create, start_frame=start_frame, ult_fraction=ult_fraction)
         # The new script must exist before its projectile lease is captured. The create's
         # stream remains the native driver's arrival gate; only the payload is frozen here.
         create.build = self._body_builder(viewer, state, own=True)
@@ -797,7 +807,7 @@ class Match:
             health, armour, shields = pools.body_pools(owner.hero.guid)
             components = world.health(health, health, armour, shields)
         else:
-            components = vitals.component(vitals.ids)
+            components = vitals.component(vitals.most)
         components[26] = [owner.team_bit]
         components[123] = [owner.hero.guid]
         if own:
@@ -1281,7 +1291,7 @@ class Match:
                 self.stop_body_script(player, failed=True)
 
     def start_body_script(
-        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None
+        self, player: Player, create: EntityUpdate, *, start_frame: int | None = None, ult_fraction: float = 0.0
     ) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
@@ -1314,6 +1324,7 @@ class Match:
             mount_intro = getattr(self.scene_host, "mount_player_intro_receiver", None)
             if mount_intro is not None:
                 mount_intro(script)
+            script.restore_genji_ult(ult_fraction, player.entity)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
@@ -1336,6 +1347,7 @@ class Match:
 
     def body_command(
         self, player: Player, command: Command, *, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        posed: bool = True,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
@@ -1349,6 +1361,7 @@ class Match:
             script.command(
                 command.frame, command.buttons, command.action, command.forward, command.right,
                 grounded=not player.mover.airborne,
+                airborne=player.mover.airborne if posed else None,
             )
         except Exception as error:
             bodytrace.failed(script, error)
@@ -1505,10 +1518,15 @@ class Match:
                     mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
+        ult_fraction = 0.0
         if old is not None:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            # Reconstructed source policy for the authored 14F2 receiver.
+            # The old script stays live until the replacement ID is secured.
+            if old_hero == hero.guid == GENJI and player.body_script is not None:
+                ult_fraction = player.body_script.ult_fraction()
             self.combat.retire_player_body(player)
         player.hero = hero
         if old is not None:
@@ -1523,7 +1541,7 @@ class Match:
         player.has_body = True
         if player.client is not None and player.spawned:
             components = self._possession(player)
-            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame))
+            player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction))
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,

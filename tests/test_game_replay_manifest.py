@@ -14,7 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import correction, match
+from ow174.game import correction, genji, interception, match
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import DATA_DIR, ROOT
@@ -103,6 +103,19 @@ class ReplayManifestTests(unittest.TestCase):
             {"path": "files/ow174/game/model.py", "kind": "missing"},
             {"path": "files/ow174/jam/new_package/new_model.py", "kind": "added"},
         ])
+
+    def test_optional_barrier_geometry_presence_and_content_are_causal_inputs(self):
+        before = self.capture()
+        path = self.data / "barrier_geometry_174.json"
+        path.write_bytes(b"external geometry one")
+        present = self.capture()
+        self.assertEqual(manifest.compare_manifests(before, present), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "added"}])
+        path.write_bytes(b"external geometry two")
+        self.assertEqual(manifest.compare_manifests(present, self.capture()), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "changed"}])
+        path.unlink()
+        self.assertEqual(self.capture(), before)
 
     def test_required_data_and_source_roots_fail_explicitly(self):
         for name in manifest.DATA_FILES:
@@ -212,10 +225,14 @@ class ReplayManifestTests(unittest.TestCase):
         for name in ("EVENTS_PER_TIME", "MAX_SCRIPT_WORK", "MAX_INSTANCE_UPDATES", "MAX_COMPONENT_UPDATES"):
             self.assertEqual(config[f"ow174.game.script.runtime.{name}"], getattr(runtime, name))
         self.assertEqual(config["ow174.game.script.driver.MAX_SHOTS"], driver.MAX_SHOTS)
+        self.assertEqual(config["ow174.game.genji.WORLD_GRAVITY"], genji.WORLD_GRAVITY)
+        self.assertEqual(config["ow174.game.interception.EPSILON"], interception.EPSILON)
         with (
             mock.patch.object(match, "HEALTH", 222.0),
             mock.patch.object(correction, "HEROES", {123, 456}),
             mock.patch.object(runtime, "MAX_SCRIPT_WORK", runtime.MAX_SCRIPT_WORK + 1),
+            mock.patch.object(genji, "WORLD_GRAVITY", genji.WORLD_GRAVITY + 1),
+            mock.patch.object(interception, "EPSILON", interception.EPSILON * 2),
         ):
             changed = manifest.runtime_configuration(quanta_us=7000, run_options={"mode": "controlled"})
         differences = manifest.compare_manifests(
@@ -224,6 +241,8 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertEqual({row["path"] for row in differences}, {
             "configuration/ow174.game.match.HEALTH", "configuration/ow174.game.correction.HEROES",
             "configuration/ow174.game.script.runtime.MAX_SCRIPT_WORK", "configuration/run.quanta_us",
+            "configuration/ow174.game.genji.WORLD_GRAVITY",
+            "configuration/ow174.game.interception.EPSILON",
         })
         self.assertEqual(config["ow174.game.correction.HEROES"], correction.HEROES)
         for quanta, options in ((True, {}), (0, {}), (16000, None)):
@@ -287,7 +306,9 @@ class ReplayManifestTests(unittest.TestCase):
                      "ow174/jam/codec.py", "data/game_graphs_174.json.gz", "data/game_heroes_174.json",
                      "data/collision_keys_174.json", "data/collision_props_174.json"):
             self.assertIn(name, files)
-        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, set(manifest.DATA_FILES))
+        expected = set(manifest.DATA_FILES) | {
+            name for name in manifest.OPTIONAL_DATA_FILES if (DATA_DIR / name).exists()}
+        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, expected)
         self.assertFalse(any(name.endswith(".col") for name in files))
 
     def test_fresh_process_hash_seed_does_not_change_canonical_set_identity(self):

@@ -477,10 +477,6 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
-    def track_targets(self, state):
-        """An explicit target-query provider; unsupported graphs retain the legacy empty result."""
-        return NotImplemented
-
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
@@ -574,6 +570,16 @@ class World:
 
     def ability_start_allowed(self, state: "State") -> bool:
         return True
+
+    def track_targets(self, state: "State") -> bool:
+        """Return true when the selection must refresh every VM update."""
+        return False
+
+    def compatibility_message_receiver(self, state: "State"):
+        return NotImplemented
+
+    def compatibility_stop_script(self, instance: "Instance", node: Node):
+        return NotImplemented
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
@@ -758,6 +764,7 @@ class World:
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         if not instance.component.strict:
+            self.compatibility_play_script(instance, node)
             return
         from ow174.game.script.play import resolve_resource
 
@@ -782,6 +789,17 @@ class World:
 
     def retire_compatible_pet(self, state: "State", entity: int) -> None:
         pass
+
+    def compatibility_play_script(self, instance: "Instance", node: Node) -> None:
+        """Optional explicitly scoped owner routing in the permissive body VM."""
+
+    def create_pet(self, state: "State") -> int:
+        if state.instance.component.strict:
+            state.instance.component.unsupported(state.instance, "pet factory", state.node.cls, state.node)
+        return 0
+
+    def retire_pet(self, entity: int) -> None:
+        """Retire only a factory-owned pet when its source state ends."""
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.

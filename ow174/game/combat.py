@@ -52,12 +52,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ow174.game import (
+    assassin_victim,
     barriers,
     bots,
     contacts,
     deflections,
     echo_duplicate,
     immunity,
+    interception,
     mei_wall,
     observers,
     orisa_barrier,
@@ -125,6 +127,7 @@ RESPAWN_RETRY = 0.25  # s between attempts when all player body IDs are still re
 MELEE = {0x0043: (4, 1.5, 1.0)}  # graph -> (its ModifyHealth state, metres ahead of the eye, radius): DATA
 ARMOUR_BLOCK = 5.0  # damage armour stops per hit (unverified: OW1's rule; the client has no damage code)
 TICK = 0.016
+GENJI_ASSIST_TICKS = math.ceil(5.0 / TICK)  # reconstructed damage-contribution credit window
 EPSILON = 1e-9
 FLASHBANG_EFFECT = 0x04A0000000000079  # .053/0079 ->0228 ->224E
 HELIX_LOADOUT = 0x0B9000000000008E
@@ -144,6 +147,29 @@ PROTECTED_PHASES = {
     0x0F7C: (1, 3),    # Fade
     0x05FE: (41, 6),   # Cryo-Freeze
     0x017B: (13, 3),   # Transcendence
+}
+SLEEP_DART_ENTITY = 0x04000000000015E8  # 0BDD state 6
+SLEEP_DART_EFFECT = 0x04A000000000026F  # .053/026F -> 0BDE
+SLEEP_TICKS = math.ceil(5.0 / TICK)
+SLEEP_WAKE_FLOOR_TICKS = math.ceil(1.5 / TICK)
+SLEEP_WAKE_RECOVERY_TICKS = math.ceil(0.5 / TICK)
+MEI_SPRAY_ENTITY = 0x04000000000008BE  # root target tag 0145, excluded by Genji 03A3 state 10
+MEI_SPRAY_LOADOUT = 0x0B900000000000D3  # 05E6 state 13 -> frost effect 0169
+FROST_PROGRESS = 2427  # 0B77 aggregate consumed by 05E7
+FROST_INITIAL, FROST_STEP = expr.f32(0.2), expr.f32(0.0285)
+FROST_GAP_TICKS, FROST_FREEZE_TICKS = math.ceil(1.0 / TICK), math.ceil(1.3 / TICK)
+PHASE_STATES = {
+    0x02E0000000000002: (0x0020, 5),  # Reaper Wraith, node11 writes entity 530
+    0x02E00000000001A2: (0x0F7C, 4),  # Moira Fade, node10 writes entity 530
+}
+DAMAGE_IMMUNITY_STATES = PHASE_STATES | {
+    0x02E0000000000020: (0x017B, 31),  # Transcendence, node62 writes entity 10414
+    0x02E00000000000DD: (0x05FE, 35),  # Cryo-Freeze, node58 writes entity 10414
+}
+BEAM_STATES = {
+    0x02E0000000000016: (0x157C, 100, 86),  # Symmetra
+    0x02E0000000000068: (0x0241, 81, 10),  # Zarya
+    0x02E00000000001A2: (0x0F76, 106, 22),  # Moira damage grasp
 }
 
 
@@ -195,10 +221,29 @@ def _along(origin, direction, t: float):
     return (origin[0] + direction[0] * t, origin[1] + direction[1] * t, origin[2] + direction[2] * t)
 
 
-def eye_height(body: int, crouched: bool = False) -> float:
-    if crouched:
-        return EYE_CROUCHED.get(body, EYE_CROUCHED_DEFAULT)
-    return EYE_STANDING.get(body, EYE)
+def genji_fan(state, direction):
+    """Apply 0304's authored fan rotation and direction order (native D808F0)."""
+    cfg = state.node.field("m_5EC1EB38") or {}
+    if state.instance.graph.index != 0x0304 or cfg.get("$") != "STU_1145C42E":
+        return (direction,)
+    count = _number(state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False), 1)
+    if count != 3:
+        return (direction,)
+    # D5EAA0 converts the authored full angle to radians for D808F0.
+    half_spread = math.radians(_number(state.evaluate(cfg.get("m_spread"), watch=False), 0.0)) / 2
+    rotation = math.radians(_number(state.evaluate(cfg.get("m_A2A9890A"), watch=False), 90.0))
+    x, y, z = direction
+    horizontal = math.hypot(x, z)
+    if horizontal > EPSILON:
+        right = (z / horizontal, 0.0, -x / horizontal)
+        up = (-y * x / horizontal, horizontal, -y * z / horizontal)
+    else:
+        right, up = (-1.0, 0.0, 0.0), (0.0, 0.0, math.copysign(1.0, y))
+    tangent = tuple(u * math.cos(rotation) - r * math.sin(rotation) for u, r in zip(up, right))
+    return tuple(
+        tuple(d * math.cos(offset) + t * math.sin(offset) for d, t in zip(direction, tangent))
+        for offset in (-half_spread, 0.0, half_spread)
+    )
 
 
 def _communication_screen_score(target: "Target", eye, forward, right, up) -> float:
@@ -317,13 +362,17 @@ def ray_capsule(origin, direction, a, b, radius: float) -> float | None:
     return best
 
 
-def segment_distance(point, a, b) -> float:
-    """The distance from a point to the segment a-b."""
+def _segment_point(point, a, b):
+    """The nearest point on segment a-b."""
     ab, ap = _sub(b, a), _sub(point, a)
     length = _dot(ab, ab)
     t = 0.0 if length <= EPSILON else max(0.0, min(1.0, _dot(ap, ab) / length))
-    closest = _along(a, ab, t)
-    d = _sub(point, closest)
+    return _along(a, ab, t)
+
+
+def segment_distance(point, a, b) -> float:
+    """The distance from a point to the segment a-b."""
+    d = _sub(point, _segment_point(point, a, b))
     return math.sqrt(_dot(d, d))
 
 
@@ -345,6 +394,46 @@ def capsule_visible(
     if hit is None or hit.distance + EPSILON >= reach:
         return True
     return hit.attachment is not None and hit.attachment.entity == target_entity
+
+
+def ring_directions(state, direction):
+    """Resource-authored radial projectile layout (613BDDB0), reconstructed phase.
+
+    Ring counts/radii and spread come from the volley. Spread is interpreted as
+    degrees and phase starts at local up; native angular phase/muzzle placement
+    and multi-pellet client transport are not accepted by this reconstruction.
+    """
+    config = state.node.field("m_5EC1EB38") or {}
+    if config.get("$") != "STU_613BDDB0":
+        return None
+    count = expr.to_int(state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False))
+    spread = expr.to_float(state.evaluate(config.get("m_spread"), watch=False))
+    if not 1 <= count <= 64 or not math.isfinite(spread) or not 0 <= spread < 90:
+        raise ValueError("unsupported radial volley count/spread")
+    horizontal = math.hypot(direction[0], direction[2])
+    right = ((-direction[2]/horizontal, 0, direction[0]/horizontal)
+             if horizontal > EPSILON else (-1, 0, 0))
+    up = (right[1]*direction[2]-right[2]*direction[1],
+          right[2]*direction[0]-right[0]*direction[2],
+          right[0]*direction[1]-right[1]*direction[0])
+    found = []
+    for ring in config.get("m_0D30E40C") or ():
+        radius = expr.to_float(state.evaluate(ring.get("m_6425FFB9"), watch=False))
+        amount = expr.to_int(state.evaluate(ring.get("m_B19BD35D"), watch=False))
+        if not math.isfinite(radius) or radius < 0 or not 1 <= amount <= 64:
+            raise ValueError("unsupported radial volley ring")
+        if not math.isfinite(spread*radius) or spread*radius >= 90:
+            raise ValueError("unsupported radial volley angular extent")
+        tangent = math.tan(math.radians(spread*radius))
+        for index in range(amount):
+            angle = index*2*math.pi/amount
+            vector = tuple(direction[k] + tangent*(right[k]*math.sin(angle)+up[k]*math.cos(angle))
+                           for k in range(3))
+            length = math.sqrt(_dot(vector, vector))
+            found.append(tuple(value/length for value in vector))
+    if len(found) != count:
+        raise ValueError("radial volley ring count does not match authored projectile count")
+    return found
 
 
 def ray_world(
@@ -379,6 +468,18 @@ class TemporaryShield:
     activation: tuple[int, int] | None = None
 
 
+@dataclass
+class TemporaryPool:
+    identifier: int
+    kind: int
+    slot: int
+    pool_id: int
+    most: float
+    now: float
+    last_tick: int
+    removed: bool = False
+
+
 class Vitals:
     """A body's pools as component 51 has them: health, armour, shields (world.health's ids and fields)."""
 
@@ -395,10 +496,15 @@ class Vitals:
         self.ids[HEALTH_POOL] = pool_id
         self.wave_health: WaveHealthPool | None = None
         self.wave_health_id = 0
+        self.extra: dict[tuple, TemporaryPool] = {}
+        self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
         self.died_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
+        self.sleep_until = 0
+        self.sleep_wake_floor = 0
+
         self.bonus_armour: list[TemporaryArmour] = []
         self.bonus_declared = False
         self.temporary_shield: TemporaryShield | None = None
@@ -432,12 +538,14 @@ class Vitals:
     @property
     def maximum(self) -> float:
         shield = self.temporary_shield
-        return self.normal_health(maximum=True) + self.temporary_armour + (shield.maximum if shield else 0.0)
+        normal = self.normal_health(maximum=True) + self.temporary_armour
+        return normal + (shield.maximum if shield else 0.0) + sum(pool.most for pool in self.extra.values())
 
     @property
     def temporary_shields(self) -> float:
         shield = self.temporary_shield
-        return shield.amount if shield is not None else 0.0
+        return ((shield.amount if shield is not None else 0.0)
+                + sum(pool.now for pool in self.extra.values() if pool.kind == SHIELDS_POOL))
 
     def grant_armour(self, amount: float, cap: float, until: float) -> float:
         """Reconstructed cohorts; healing never refills them. Native pool hosting remains open."""
@@ -456,6 +564,8 @@ class Vitals:
         if lost > 0:
             self.changed.add(ARMOUR_POOL)
         return lost
+    def clear_sleep(self) -> None:
+        self.sleep_until = self.sleep_wake_floor = 0
 
     @property
     def dead(self) -> bool:
@@ -465,7 +575,28 @@ class Vitals:
     def total(self) -> float:
         shield = self.temporary_shield
         wave = self.wave_health.current if self.wave_health is not None else 0.0
-        return sum(self.now.values()) + wave + self.temporary_armour + (shield.amount if shield else 0.0)
+        base = sum(self.now.values()) + wave + self.temporary_armour
+        return base + (shield.amount if shield else 0.0) + sum(pool.now for pool in self.extra.values())
+
+    def add_temporary(self, key, identifier, kind, amount, tick):
+        occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
+        slot = next((slot for slot in range(2, POOLS) if slot not in occupied), None)
+        if slot is None or not math.isfinite(amount) or amount <= 0:
+            return None
+        # Reuse a retired wire slot, while preserving monotonically unique pool IDs.
+        self.extra = {key: pool for key, pool in self.extra.items()
+                      if pool.kind != kind or pool.slot != slot}
+        pool = TemporaryPool(identifier, kind, slot, self.next_pool, amount, amount, tick)
+        self.next_pool += 1
+        self.extra[key] = pool
+        self.changed.add(kind)
+        return pool
+
+    def remove_temporary(self, key):
+        pool = self.extra[key]
+        pool.most = pool.now = 0.0
+        pool.removed = True
+        self.changed.add(pool.kind)  # keep a zero-valued wire tombstone until slot reuse
 
     def spend_temporary_shield(self, amount: float) -> float:
         shield = self.temporary_shield
@@ -517,6 +648,13 @@ class Vitals:
         taken = self.spend_temporary_shield(left)
         left -= taken
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
+            for pool in self.extra.values():
+                if pool.kind == kind and pool.now > 0 and left > 0:
+                    take = min(left, pool.now)
+                    pool.now -= take
+                    taken += take
+                    left -= take
+                    self.changed.add(kind)
             if left <= 0.0:
                 break
             if kind == ARMOUR_POOL and self.now[kind] + self.temporary_armour > 0.0:
@@ -601,6 +739,10 @@ class Vitals:
             parts[SHIELDS_POOL * POOLS + 1] = world.pool(
                 0xFFFFFFFF, SHIELDS_POOL, shield.maximum, shield.amount,
             )
+            for pool in self.extra.values():
+                if pool.kind == kind:
+                    parts[kind * POOLS + pool.slot] = world.pool(
+                        pool.pool_id, kind, pool.most, pool.now)
         return {51: parts}
 
 
@@ -615,11 +757,14 @@ class HitDef:
     falloff_floor: float | None = None
     critical: float = 1.0
     rings: tuple = ()  # (radius, scalar) of an explosion
+    deflectable: bool = False  # reconstructed admission: explicit projectile/bullet tag003BF
     effect: int | None = None  # ModifyHealth's authored hit-effect resource
     tags: tuple[int, ...] = ()
     ally_heal: float = 0.0
     projectile_headshot: bool = False
     knockback: tuple[float, float, tuple] | None = None
+    projectile_extent: float = 0.0  # m_57DAE1B5, used for flight against bodies and interception boxes
+    deflect_override: bool | None = None  # scoped projectile root evidence for Genji
 
     def scale(self, distance: float) -> float:
         """Unverified: full damage to falloff_start, falloff_floor from falloff_end on, a straight line
@@ -645,6 +790,19 @@ class HitDef:
                 return last_scalar + (scalar - last_scalar) * share
             last_radius, last_scalar = radius, scalar
         return 0.0
+
+
+@dataclass
+class Frost:
+    """Default 0B77 max-across-sources progress and exclusive freeze deadline."""
+
+    sources: dict[int, tuple[float, int]] = field(default_factory=dict)
+    frozen_until: int = 0
+
+    def progress(self, tick: int) -> float:
+        if tick < self.frozen_until:
+            return 1.0
+        return max((value for value, expires in self.sources.values() if tick < expires), default=0.0)
 
 
 def _number(value, default=None):
@@ -699,14 +857,19 @@ def hit_def(state, cfg) -> HitDef | None:
         falloff_start=value("m_EAD7F104"),
         falloff_end=value("m_157E5BC5"),
         falloff_floor=value("m_72A81154"),
-        critical=value("m_A872C70E", critical_default),
+        critical=value("m_A872C70E", 2.0 if graph_index == 0x0304 else critical_default),
         rings=tuple(sorted(rings)),
+        deflectable=any(
+            (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
+            for tag in modify.get("m_148F3152") or [] if isinstance(tag, dict)
+        ),
         effect=effect.guid if isinstance(effect, expr.Asset) else None,
         tags=tags,
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle,
+        projectile_headshot=icicle or graph_index == 0x0304,
         knockback=_accretion_knockback(state, modify),
+        projectile_extent=value("m_57DAE1B5", 0.0),
     )
 
 
@@ -810,6 +973,8 @@ class Rocket:
     attached_entity: int | None = None
     attached_offset: tuple = (0.0, 0.0, 0.0)
     source_body: int | None = None  # Health-event charge belongs to the emitting body.
+    target_limit: int = 1
+    hit_entities: set[int] = field(default_factory=set)
 
 
 @dataclass
@@ -849,10 +1014,14 @@ class Combat:
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
+        self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
+        self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
+        self.genji_blades: dict[int, dict] = {}  # body -> (instance, tracker) -> (activation, victims)
+        self.genji_assists: dict[int, dict] = {}  # victim -> source body -> (Genji player, last damage tick)
         self.stuns: dict[int, int] = {}  # body identity -> exclusive world-tick deadline
         self.npc_hit_reactions: dict[int, tuple[int, runtime.Instance]] = {}
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
@@ -868,6 +1037,8 @@ class Combat:
         self.winston_domes: dict[int, winston_barrier.Dome] = {}
         self.projected_casts: dict[tuple[int, int], int] = {}
         self.brigitte = BrigitteCombat(self)
+        self.frost_hits: dict[int, Frost] = {}
+        self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
         self.echo_duplicates = echo_duplicate.Duplicates(self)
@@ -897,6 +1068,9 @@ class Combat:
         """Discard body-local combat state when the player's current body retires."""
         self.echo_duplicates.retired(player)
         self.barriers.retire(player.body)
+        barriers.retire_owner(self, player)
+        assassin_victim.retire_target(self, player.body)
+        self.clear_pins(player.body)
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
@@ -929,12 +1103,23 @@ class Combat:
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None)
         ]
+        self.frost_hits.pop(player.body, None)
+        self.genji_strikes.pop(player.body, None)
+        self.genji_blades.pop(player.body, None)
+        self.genji_assists.pop(player.body, None)
+        for victim, sources in list(self.genji_assists.items()):
+            sources.pop(player.body, None)
+            if not sources:
+                del self.genji_assists[victim]
+        if player.hero.guid == 0x02E0000000000029:
+            self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not player]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
 
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
         self.replacement_ticks[body] = self.match.tick
         self.stuns.pop(body, None)
+        self.frost_hits.pop(body, None)
         self.clear_pins(body)
 
     def cancel_npc_projectiles(self, bot: bots.Bot) -> None:
@@ -945,7 +1130,47 @@ class Combat:
         body = _source_entity(actor)
         return (body in self.pins.values() or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
-                or self.brigitte.controlled(body))
+                or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
+                or self.is_asleep(actor, tick=tick)
+                or self.frost_progress(actor, tick=self.tick if tick is None else tick) >= 1.0)
+
+    def is_asleep(self, actor, *, tick: int | None = None) -> bool:
+        vitals = self.vitals.get(_source_entity(actor))
+        return vitals is not None and (self.tick if tick is None else tick) < vitals.sleep_until
+
+    def frost_progress(self, actor, *, tick: int) -> float:
+        frost = self.frost_hits.get(_source_entity(actor))
+        return frost.progress(tick) if frost is not None else 0.0
+
+    @staticmethod
+    def _write_frost(component, progress: float) -> None:
+        if component.entity_var(FROST_PROGRESS).value() != progress:
+            component.set(FROST_PROGRESS, progress)
+
+    def _frost_immune(self, target: Target) -> bool:
+        component = target.owner.body_script.component
+        return self._has_protection(target, DAMAGE_IMMUNITY_STATES) or any(
+            (variable := component.entity_var(key, create=False)) is not None and expr.truthy(variable.value())
+            for key in (6604, 8440, 9161)
+        )
+
+    def _mei_frost_hit(self, shooter, target: Target, tick: int) -> None:
+        owner = target.owner
+        if isinstance(owner, bots.Bot) or owner.body_script is None or self._frost_immune(target):
+            return
+        frost = self.frost_hits.setdefault(target.entity, Frost())
+        if tick < frost.frozen_until:
+            return  # Further hits do not extend an established freeze.
+        source = _source_entity(shooter)
+        previous, expires = frost.sources.get(source, (0.0, 0))
+        progress = min(1.0, max(FROST_INITIAL, expr.f32((previous if tick < expires else 0.0) + FROST_STEP)))
+        frost.sources[source] = (progress, tick + FROST_GAP_TICKS)
+        if progress >= 1.0:
+            frost.sources.clear()
+            frost.frozen_until = tick + FROST_FREEZE_TICKS
+            self._interrupt(target)
+        self._write_frost(owner.body_script.component, frost.progress(tick))
+
 
     def clear_pins(self, entity: int) -> None:
         for source, victim in list(self.pins.items()):
@@ -965,12 +1190,26 @@ class Combat:
 
     def _hit_effect(self, target: Target, effect: int | None, *, shooter=None) -> None:
         """Apply the reconstructed Flashbang interruption and the scoped Talon reaction."""
-        if (effect != FLASHBANG_EFFECT or self.vitals_of(target).dead or self._invulnerable(target.owner)
+        vitals = self.vitals_of(target)
+        if vitals.dead or self._invulnerable(target.owner) or immunity.control_immune(target.owner, target.entity):
+            return
+        if effect == SLEEP_DART_EFFECT:
+            floor = self.tick + SLEEP_WAKE_FLOOR_TICKS
+            if floor > max(vitals.sleep_until, self.stuns.get(target.entity, 0)):
+                vitals.sleep_wake_floor = floor
+                vitals.sleep_until = self.tick + SLEEP_TICKS
+                self._interrupt(target)
+            return
+        if (effect != FLASHBANG_EFFECT or self._invulnerable(target.owner)
                 or immunity.control_immune(target.owner, target.entity)):
             return
         variables = graph.mode_variables(self.match.game_map.mode_guid) or {}
         duration = 1.7 if expr.truthy(variables.get(FLASHBANG_MODE_FLAG)) else 0.8
         deadline = self.tick + math.ceil(duration / TICK)
+        if vitals.sleep_until > self.tick:
+            if deadline <= vitals.sleep_until:
+                return
+            vitals.clear_sleep()
         self.stuns[target.entity] = max(deadline, self.stuns.get(target.entity, 0))
         self._interrupt(target)
         self._begin_npc_hit_reaction(target, duration, self.stuns[target.entity], shooter=shooter)
@@ -1030,9 +1269,20 @@ class Combat:
         component.edges([(value, False) for value in tuple(component.held)])
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):
+                if instance.graph.index == 0x01DB and isinstance(state, nodes.MoveTo) and state.active:
+                    #01DB starts movement from its on-start plug, outside the
+                    #Ability subgraph. Stop the phase too: a short control must
+                    #not merely pause and then resume the old dash destination.
+                    state.end(False)
+                    self.genji_strikes.pop(target.entity, None)
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
-                    state.stop()  # use authored exit/cooldown paths for running channels
+                    # Genji0317's persistent transform has no continue condition
+                    # or continuing stack priority. Preserve its authored timer;
+                    # the stunned command gate still blocks drawing new swings.
+                    # This scoped server control policy is reconstructed.
+                    if not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ())):
+                        state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
         if hasattr(component.world, "velocity_requests"):
@@ -1300,6 +1550,11 @@ class Combat:
             return
         self.barriers.sync(player)
         shots, script.component.shots[:] = list(script.component.shots), []
+        interception.update_pools(self, self.tick)
+        barriers.advance(self, self.tick)
+        if self.is_dead(player):
+            self.genji_strikes.pop(player.body, None)
+            self.genji_blades.pop(player.body, None)
         healing, script.self_healing = script.self_healing, 0.0
         if self.is_dead(player):
             return
@@ -1326,9 +1581,13 @@ class Combat:
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         try:
+            self._weapon_beam(player, command, script)
+            self._winston_tesla(player, command, script)
             self._melee(player, command, script)
             self._soundwave(player, command, script)
             self.brigitte.command(player, command, script)
+            self._genji_strike(player, command, script)
+            self._genji_blade(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
         if command is not None:
@@ -1338,6 +1597,7 @@ class Combat:
                 log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
         try:
             self._echo_beam(player, command, script)
+            self._weapon_beam(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
 
@@ -1440,6 +1700,288 @@ class Combat:
                 self._damage(player, target, definition.amount * player.quanta / 1e6,
                              False, definition.loadout, command.frame, armour_scalar=0.8)
 
+    def _weapon_beam(self, player, command, script) -> None:
+        """Select a beam target and evaluate its authored ModifyHealth.
+
+        Body capsules, eye origin and one damage sample per posed command are
+        server reconstruction. Native selection, lock tolerances and cadence remain open.
+        """
+        spec = BEAM_STATES.get(player.hero.guid)
+        if spec is None:
+            return
+        graph_index, ray_index, health_index = spec
+        instance = next((i for i in script.component.instances.values() if i.graph.index == graph_index), None)
+        if instance is None:
+            return
+        ray = instance.states.get(ray_index)
+        if ray is None:
+            return
+        # Moira's damage state consumes TrackTargets' selection. The separate
+        # TrackRay in that graph does not supply the damage target.
+        body_only = ray.node.cls == "STUStatescriptStateTrackTargets"
+        target_field = "m_8A2905A0" if body_only else "m_target.m_692DFF72"
+        range_field = "m_radius" if body_only else "m_F5732403.m_6A79BD98"
+        output = expr.lvalue(ray.node.field(target_field))
+        if output is None:
+            return
+        body = shield = None
+        if command is not None and ray.active:
+            reach = expr.to_float(ray.evaluate(ray.node.field(range_field), watch=False))
+            if reach > 0:
+                origin = self._eye(player)
+                direction = aim(player.mover.yaw, player.mover.pitch)
+                wall = ray_world(self._collision(), origin, direction, reach)
+                limit = wall if wall is not None else math.inf
+                hit = barriers.ray_hit(self, player, origin, direction, min(reach, limit))
+                if hit is not None and hit[0] < limit:
+                    limit = hit[0]
+                    if not body_only:
+                        shield = hit[1]
+                for target in self._enemies(player):
+                    a, b = target.segment()
+                    distance = ray_capsule(origin, direction, a, b, target.radius)
+                    if distance is not None and distance <= reach and distance < limit:
+                        limit, body, shield = distance, target, None
+        entity = body.entity if body is not None else shield.entity if shield is not None else 0
+        current = instance.find_var(*output).value()
+        if expr.to_entity(current) != entity:
+            instance.write(output, expr.Entity(entity) if entity else None)
+            instance.component.run_now()
+        health = instance.states.get(health_index)
+        if not entity or health is None or not health.active or expr.to_entity(
+            health.evaluate(health.node.field("m_FA3ECC43"), watch=False)
+        ) != entity:
+            return
+        modify = health.node.field("m_modifyHealth")
+        rate = expr.to_float(health.evaluate(modify.get("m_amount"), watch=False))
+        sample_seconds = script.component.frame_ms / 1000
+        amount = rate * sample_seconds
+        if shield is not None:
+            barriers.damage(self, shield, amount, attacker=player.body)
+        elif body is not None:
+            loadout = health.evaluate(modify.get("m_loadout"), watch=False)
+            reached = self._damage(player, body, amount, False,
+                                   loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+            if reached and graph_index == 0x0F76:
+                self._moira_grasp_heal(player, instance, sample_seconds)
+
+    def _moira_grasp_heal(self, player, instance, sample_seconds):
+        """Apply 0F76's active self-heal with the same sample clock as its damage."""
+        heal = instance.states.get(45)
+        if heal is None or not heal.active or expr.to_entity(
+            heal.evaluate(heal.node.field("m_FA3ECC43"), watch=False)
+        ) != player.body:
+            return
+        recipient = next((target for target in self._targets() if target.owner is player), None)
+        if recipient is not None:
+            rate = expr.to_float(heal.evaluate(heal.node.field("m_modifyHealth.m_amount"), watch=False))
+            self._heal_target(player, recipient, self.vitals_of(recipient), rate * sample_seconds)
+
+    def _winston_tesla(self, player, command, script):
+        """Feed 00FE's multi-target damage state with a reconstructed visible cone."""
+        if player.hero.guid != 0x02E0000000000009:
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x00FE), None)
+        if instance is None:
+            return
+        track = instance.states.get(10)
+        if track is None or not track.active:
+            return
+        output = expr.lvalue(track.node.field("m_8A2905A0"))
+        if output is None:
+            return
+        targets = []
+        offset = track.evaluate(track.node.field("m_05BE62DD"), watch=False) if command is not None else None
+        if isinstance(offset, expr.Vec3):
+            centre = tuple(a + b for a, b in zip(player.mover.position, offset, strict=True))
+            facing = aim(*command.aim())
+            reach = expr.to_float(track.evaluate(track.node.field("m_radius"), watch=False))
+            angle = expr.to_float(track.evaluate(track.node.field("m_A30B383E"), watch=False))
+            threshold = math.cos(math.radians(angle))
+            collision = self._collision()
+            for target in self._enemies(player):
+                a, b = target.segment()
+                toward = _sub(_segment_point(centre, a, b), centre)
+                distance = math.sqrt(_dot(toward, toward))
+                if (distance <= reach + target.radius and _dot(facing, toward) + EPSILON >= threshold * distance
+                        and capsule_visible(collision, centre, a, b, target.radius)):
+                    targets.append(target)
+        selected = tuple(expr.Entity(target.entity) for target in targets)
+        if instance.find_var(*output).value() != selected:
+            instance.write(output, selected)
+            instance.component.run_now()
+        damage = instance.states.get(13)
+        if not targets or damage is None or not damage.active or damage.evaluate(
+            damage.node.field("m_FA3ECC43"), watch=False
+        ) != selected:
+            return
+        modify = damage.node.field("m_modifyHealth")
+        rate = expr.to_float(damage.evaluate(modify.get("m_amount"), watch=False))
+        amount = rate * script.component.frame_ms / 1000
+        loadout = damage.evaluate(modify.get("m_loadout"), watch=False)
+        for target in targets:
+            self._damage(player, target, amount, False,
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+
+    def _genji_strike(self, player, command, script) -> None:
+        """Reconstruct 01DB's enemy tracking during actual MoveTo movement.
+
+        The authored body-centred sphere has radius1.5 and amount50. Sweep it
+        between poses and admit each live enemy once per activation. Native
+        filter/shape semantics are unverified; dynamic shields remain open.
+        """
+        if player.hero.guid != 0x02E0000000000029 or command is None:
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x01DB), None)
+        movement = instance.states.get(1) if instance is not None else None
+        if movement is None:
+            return
+        previous = self.genji_strikes.get(player.body)
+        identity = (instance.id, movement.counter)
+        centre = tuple(a + b for a, b in zip(player.mover.position, (0, 1, 0), strict=True))
+        if previous is None or previous[:2] != identity:
+            if not movement.active:
+                self.genji_strikes.pop(player.body, None)
+                return
+            previous = (*identity, centre, set())
+        start, victims = previous[2:]
+        track = instance.states.get(33)
+        radius = _number(track.evaluate(track.node.field("m_radius"), watch=False), 0) if track else 0
+        modify = instance.state(3).node.field("m_modifyHealth") or {}
+        amount = _number(instance.evaluate(modify.get("m_amount")), 0)
+        loadout = instance.evaluate(modify.get("m_loadout"))
+        delta = _sub(centre, start)
+        length = math.sqrt(_dot(delta, delta))
+        if not movement.active and length <= EPSILON:
+            self.genji_strikes.pop(player.body, None)
+            return
+        direction = tuple(v / length for v in delta) if length > EPSILON else (0, 0, 1)
+        for target in self._enemies(player):
+            if target.entity in victims:
+                continue
+            a, b = target.segment()
+            distance = ray_capsule(start, direction, a, b, target.radius + radius)
+            if distance is None or distance > length:
+                continue
+            midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
+            to_target = _sub(midpoint, centre)
+            reach = math.sqrt(_dot(to_target, to_target))
+            if reach > EPSILON:
+                wall = ray_world(self._collision(), centre, tuple(v / reach for v in to_target), reach)
+                if wall is not None and wall < reach:
+                    continue
+            victims.add(target.entity)
+            self._damage(player, target, amount, False,
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+        if movement.active:
+            self.genji_strikes[player.body] = (*identity, centre, victims)
+        else:
+            self.genji_strikes.pop(player.body, None)
+
+    def _genji_blade(self, player, command, script) -> None:
+        """Reconstruct 0304's short-lived sword target windows, once per victim.
+
+        Use authored range5, angle90 and the evaluated amount (110 in 104319).
+        Cone/capsule and static LOS rules are server reconstruction; dynamic
+        defenses and original-client geometry require separate acceptance.
+        """
+        if player.hero.guid != 0x02E0000000000029 or command is None:
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x0304), None)
+        if instance is None:
+            return
+        records = self.genji_blades.setdefault(player.body, {})
+        centre = tuple(a + b for a, b in zip(player.mover.position, (0, 1, 0), strict=True))
+        facing = aim(*command.aim())
+        for tracking, damage in ((66, 21), (67, 22)):
+            track = instance.states.get(tracking)
+            if track is None or not track.active:
+                continue
+            key = (instance.id, tracking)
+            activation, victims = records.get(key, (0, set()))
+            if activation != track.counter:
+                victims = set()
+                records[key] = (track.counter, victims)
+            radius = _number(track.evaluate(track.node.field("m_radius"), watch=False), 0)
+            angle = _number(track.evaluate(track.node.field("m_A30B383E"), watch=False), 0)
+            threshold = math.cos(math.radians(angle))
+            state = instance.state(damage)
+            modify = state.node.field("m_modifyHealth") or {}
+            amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0)
+            loadout = state.evaluate(modify.get("m_loadout"), watch=False)
+            for target in self._enemies(player):
+                if target.entity in victims:
+                    continue
+                a, b = target.segment()
+                if segment_distance(centre, a, b) > radius + target.radius:
+                    continue
+                midpoint = tuple((x + y) / 2 for x, y in zip(a, b, strict=True))
+                delta = _sub(midpoint, centre)
+                distance = math.sqrt(_dot(delta, delta))
+                if distance > EPSILON:
+                    direction = tuple(v / distance for v in delta)
+                    if _dot(facing, direction) + EPSILON < threshold:
+                        continue
+                    wall = ray_world(self._collision(), centre, direction, distance)
+                    if wall is not None and wall < distance:
+                        continue
+                victims.add(target.entity)
+                if self._genji_deflects(target, facing):
+                    continue  # sword damage is blocked, not reflected
+                self._damage(player, target, amount, False,
+                             loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+
+    def _genji_deflects(self, target, incoming) -> bool:
+        """Frontal melee block while the authored Deflect state is active."""
+        return self._genji_deflect_state(target, incoming) is not None
+
+    def _genji_deflect_state(self, target, incoming):
+        owner = target.owner
+        hero = getattr(owner, "hero", None)
+        if getattr(hero, "guid", None) != 0x02E0000000000029 or self.vitals_of(target).dead:
+            return None
+        script = getattr(owner, "body_script", None)
+        if script is None or script.retired:
+            return None
+        facing = aim(owner.mover.yaw, owner.mover.pitch)
+        if _dot(facing, incoming) >= -EPSILON:
+            return None
+        for instance in script.component.instances.values():
+            if instance.graph.index == 0x03A3:
+                state = instance.states.get(10)
+                if state is not None and state.active:
+                    return state
+        return None
+
+    def _genji_deflect_contact(self, target, hit, origin, direction, length, *, padding=0.0):
+        """Clip an eligible shot against the authored boxes at the server pose."""
+        if hit is None or not (hit.deflectable if hit.deflect_override is None else hit.deflect_override):
+            return None
+        state = self._genji_deflect_state(target, direction)
+        if state is None:
+            return None
+        mover = target.owner.mover
+        yaw = mover.yaw * math.tau / 65536
+        forward = aim(mover.yaw, mover.pitch)
+        right = (math.cos(yaw), 0.0, -math.sin(yaw))
+        up = (forward[1] * right[2], forward[2] * right[0] - forward[0] * right[2],
+              -forward[1] * right[0])
+        # World-up reference for the box basis, with a stable right axis at vertical aim.
+        basis = (right, up, forward)
+        anchor = _along(target.feet, (0.0, 1.0, 0.0), target.eye)
+        delta = _sub(origin, anchor)
+        local_origin = tuple(_dot(delta, axis) for axis in basis)
+        local_direction = tuple(_dot(direction, axis) for axis in basis)
+        best = None
+        for box in state.node.field("m_boxes") or ():
+            low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+            high = state.evaluate(box.get("m_AEF67365"), watch=False)
+            if isinstance(low, expr.Vec3) and isinstance(high, expr.Vec3):
+                distance = interception.ray_box(local_origin, local_direction, low, high, length, padding=padding)
+                if distance is not None and (best is None or distance < best):
+                    best = distance
+        return best
+
     def _melee(self, player, command, script) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
         m_radius 1.0 at (0, 0, 1.5) from the eye (DATA; unverified: along the aim), #476 = 30 damage (DATA),
@@ -1478,7 +2020,8 @@ class Combat:
                 a, b = shown.segment()
                 if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
                         and capsule_visible(self._collision(), self._eye(player), a, b, shown.radius)):
-                    if deflections.blocks_melee(self, player, target, state, modify):
+                    if (deflections.blocks_melee(self, player, target, state, modify)
+                            or self._genji_deflects(target, aim(*command.aim()))):
                         continue
                     self._damage(player, target, amount, False, loadout, command.frame,
                                  hit_reaction=player.hero.guid == mccree.HERO)
@@ -1576,12 +2119,15 @@ class Combat:
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
+            interception.update_pools(self, at)
+            barriers.advance(self, at)
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
             self.orisa_barriers.update(at)
             self._bot_weapons(at)
             self.brigitte.update()
+            assassin_victim.advance(self)
         self.projectiles.update(tick, first_tick=retained)
         self._flush_deadeye_notices()
         self.match.deliver_body_messages()
@@ -1599,7 +2145,20 @@ class Combat:
                 self.respawns.remove((when, who))
                 self._respawn(who)
         self.voice.expire(now)
-        current = {target.entity for target in self._targets()}
+        current = {target.entity: target for target in self._targets()}
+        for entity, frost in list(self.frost_hits.items()):
+            target = current.get(entity)
+            if target is None or target.owner.body_script is None:
+                del self.frost_hits[entity]
+                continue
+            progress = 0.0 if self._frost_immune(target) else frost.progress(tick)
+            self._write_frost(target.owner.body_script.component, progress)
+            if not progress:
+                del self.frost_hits[entity]
+            else:
+                for source, (_, expires) in list(frost.sources.items()):
+                    if tick >= expires:
+                        del frost.sources[source]
         for entity, (deadline, _) in tuple(self.npc_hit_reactions.items()):
             if entity not in current or deadline <= tick:
                 self._end_npc_hit_reaction(entity)
@@ -1627,7 +2186,10 @@ class Combat:
             if (impact.deadline <= tick or entity not in current or impact.source_body not in current
                     or self.vitals[entity].dead):
                 del self.punch_impacts[entity]
-        for table in (self.history, self.vitals, self.replacement_ticks, self.stuns):
+        for vitals in self.vitals.values():
+            if vitals.sleep_until and tick >= vitals.sleep_until:
+                vitals.clear_sleep()
+        for table in (self.history, self.vitals, self.replacement_ticks, self.genji_assists, self.stuns):
             for entity in [key for key in table if key not in current]:
                 del table[entity]
         for source, victim in list(self.pins.items()):
@@ -1670,6 +2232,23 @@ class Combat:
                 found = Vitals(entity, *pools.body_pools(owner.hero.guid))
             self.vitals[entity] = found
         return found
+
+    @staticmethod
+    def _has_protection(target: Target, states) -> bool:
+        """Read the live authored protection stack for this admission policy."""
+        owner = target.owner
+        profile = states.get(getattr(getattr(owner, "hero", None), "guid", None))
+        if profile is None:
+            return False
+        graph_index, state_index = profile
+        script = getattr(owner, "body_script", None)
+        if script is None or script.retired:
+            return False
+        for instance in script.component.instances.values():
+            if instance.graph.index == graph_index:
+                state = instance.states.get(state_index)
+                return state is not None and state.active
+        return False
 
     def _wheel_model_pose(self, entity: int) -> ModelPose | None:
         player = self.match._message_player(entity)
@@ -1765,7 +2344,7 @@ class Combat:
                 continue
             if not free_for_all and target.team == shooter.team:
                 continue
-            if self.vitals_of(target).dead:
+            if self.vitals_of(target).dead or self._has_protection(target, PHASE_STATES):
                 continue
             if damageable and immunity.wraith_active(target.owner, target.entity):
                 continue
@@ -2012,7 +2591,17 @@ class Combat:
                 for motion in node.field("m_projectileMotions") or ():
                     if motion.get("$") == "STU_E1A5B579":
                         gravity = _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
-            directions = projectile_directions(state, direction, number, activation)
+            directions = (
+                genji_fan(state, direction) if state.instance.graph.index == 0x0304
+                else projectile_directions(state, direction, number, activation)
+            )
+            target_limit = 1
+            if direct is not None:
+                if definition == MEI_SPRAY_ENTITY:
+                    direct.deflect_override = False
+                    target_limit = max(1, min(99, int(field("m_6396149F.m_B4454CD7", 1))))
+                elif definition == SLEEP_DART_ENTITY:
+                    direct.deflect_override = True
             shot = None
             if definition is not None:
                 shot = self.projectiles.fired(
@@ -2037,6 +2626,8 @@ class Combat:
                     from ow174.game import npc_context
 
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)
+                    if len(directions) == 1:
+                        directions = ring_directions(state, direction) or directions
                 self.rockets.extend(
                     Rocket(
                         shooter, shooter.team, origin, launch, speed, lifetime, direct, blast,
@@ -2050,7 +2641,7 @@ class Combat:
                         detonate_on_expiry=flashbang_gravity is not None,
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=1.0 if sticky else None,
-                        source_body=None if npc else shooter.body,
+                        source_body=None if npc else shooter.body, target_limit=target_limit,
                     )
                     for pellet, launch in enumerate(directions)
                 )
@@ -2062,7 +2653,7 @@ class Combat:
         view_tick = self.tick if launch_tick is None else launch_tick
         if command is not None:
             view_tick = command.frame - command.view_delay(shooter.quanta) * 1e6 / shooter.quanta
-        directions = (direction,)
+        directions = ring_directions(state, direction) or (direction,)
         if (npc and shooter.hero == 0x02E0000000000002 and state.instance.graph.index == 0x0019
                 and node.pos == 10 and self._scene_component(shooter) is state.instance.component):
             from ow174.game import weapon_spread
@@ -2076,9 +2667,11 @@ class Combat:
                           view_tick if npc else None, view_tick=view_tick, definition=definition)
 
     def _hitscan(self, shooter, state, origin, direction, reach, targets, direct, shot_frame, world_tick,
-                 *, view_tick=None, reflected=False, definition=None):
+                 *, view_tick=None, reflected=frozenset(), definition=None, travelled=0.0):
         best = None
         for target, shown in targets:
+            if self._has_protection(target, PHASE_STATES) or immunity.wraith_active(target.owner, target.entity):
+                continue
             a, b = shown.segment()
             t = ray_capsule(origin, direction, a, b, shown.radius)
             if t is not None and t <= reach and (best is None or t < best[0]):
@@ -2089,6 +2682,13 @@ class Combat:
             redirect = self._trace_deflection(shooter, origin, direction, limit, view_tick=view_tick)
             if redirect is not None:
                 limit = redirect[0]
+        for target, shown in targets:
+            if target.entity in reflected:
+                continue
+            distance = self._genji_deflect_contact(shown, direct, origin, direction, limit)
+            if distance is not None and (redirect is None or distance < limit):
+                redirect = distance, target
+                limit = distance
         absorption = self._trace_absorption(
             shooter, definition, origin, direction, limit,
             grasp=direct.loadout == 0x0B9000000000008D, view_tick=view_tick,
@@ -2098,6 +2698,13 @@ class Combat:
             redirect = None
         else:
             absorption = None
+        scripted_absorption = interception.absorption(self, shooter, direct, origin, direction, limit)
+        if scripted_absorption is not None and scripted_absorption[0] < limit:
+            absorption = scripted_absorption
+            limit = absorption[0]
+            redirect = None
+        else:
+            scripted_absorption = None
         wall = ray_world(self._collision(), origin, direction, limit)
         ice = self.walls.cast(origin, direction, limit if wall is None else wall)
         if ice is not None and (wall is None or ice[0] < wall):
@@ -2109,11 +2716,16 @@ class Combat:
         scene_barrier = self._barrier_hit(shooter, origin, direction, bound)
         if scene_barrier is not None:
             bound = scene_barrier[0]
-        echo_shield = self.barriers.intercept(shooter, origin, direction, bound)
+        echo_shield = self.barriers.intercept(shooter, origin, direction, bound, include_authored_mesh=False)
         if echo_shield is not None and echo_shield[0] < bound:
             bound = echo_shield[0]
         else:
             echo_shield = None
+        scripted_shield = barriers.ray_hit(self, shooter, origin, direction, bound)
+        if scripted_shield is not None and scripted_shield[0] < bound:
+            bound = scripted_shield[0]
+        else:
+            scripted_shield = None
         ray = Rocket(shooter, shooter.team, origin, direction, 0.0, 0.0, direct, None)
         consumed = deflections.intercept(self, ray, bound, (), modes=("absorb",))
         if consumed is not None and consumed[0] < bound:
@@ -2122,10 +2734,15 @@ class Combat:
         deployed = sigma_barrier.barrier_intersection(self, shooter, origin, direction, bound)
         if deployed is not None and (
             deployed[0] < bound or (scene_barrier is None and barrier is None and wall is None and best is None
-                                   and redirect is None and absorption is None and echo_shield is None)
+                                   and redirect is None and absorption is None and echo_shield is None and scripted_shield is None)
         ):
             distance, actor = deployed
             sigma_barrier.damage_barrier(self, actor, direct.amount * direct.scale(distance))
+            return
+        if scripted_shield is not None:
+            distance, actor = scripted_shield
+            barriers.damage(self, actor, direct.amount * direct.scale(travelled + distance),
+                            attacker=_source_entity(shooter))
             return
         if echo_shield is not None:
             distance, actor = echo_shield
@@ -2144,17 +2761,23 @@ class Combat:
             return
         if absorption is not None:
             if wall is None:
-                self._absorbed(absorption[1], direct.amount * direct.scale(limit))
+                amount = direct.amount * direct.scale(travelled + limit)
+                if scripted_absorption is not None:
+                    interception.absorbed(absorption[1], amount)
+                else:
+                    self._absorbed(absorption[1], amount)
             return
         if redirect is not None and wall is None:
             distance, target = redirect
-            if not reflected and reach > distance:
+            if target.entity not in reflected and len(reflected) < 8 and reach > distance:
                 owner = target.owner
                 facing = aim(owner.mover.yaw, owner.mover.pitch)
                 targets = tuple((body, body) for body in self._shot_targets(owner, direct))
+                contact = _along(origin, direction, distance)
                 self._hitscan(
-                    owner, state, self._eye(owner), facing, reach - distance, targets, direct,
-                    shot_frame, self.tick, view_tick=self.tick, reflected=True, definition=definition,
+                    owner, state, _along(contact, facing, 1e-4), facing, reach - distance, targets, direct,
+                    shot_frame, self.tick, view_tick=self.tick, reflected=reflected | {target.entity},
+                    definition=definition, travelled=travelled + distance,
                 )
             return
         if best is None or (wall is not None and wall < best[0]):
@@ -2165,7 +2788,7 @@ class Combat:
             return
         hit_y = origin[1] + direction[1] * t
         critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-        amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
+        amount = direct.amount * direct.scale(travelled + t) * (direct.critical if critical else 1.0)
         landed = self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
             world_tick=world_tick, hit_tags=direct.tags,
@@ -2331,7 +2954,7 @@ class Combat:
         # Re-sweep the unspent slice after redirects. Bound overlapping
         # deflectors that could repeatedly collide at distance zero.
         reflected = set()
-        for _ in range(8):
+        for _ in range(8 + rocket.target_limit):
             duration = self._sweep_rocket(rocket, duration, reflected)
             if duration <= EPSILON:
                 return
@@ -2341,26 +2964,34 @@ class Combat:
             self._expire(rocket)
 
     def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float:
-        """Advance a slice and return any unspent time after reflection."""
+        """Advance a slice and return any unspent time after reflection or piercing."""
         # Sweep the remaining flight even when the range or lifetime ends inside this tick.
         step = rocket.speed * duration
         blast = rocket.blast
+        padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
         best = None
         for target in candidates:
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
+            if target.entity in rocket.hit_entities or self._has_protection(target, PHASE_STATES):
+                continue
             if immunity.wraith_active(target.owner, target.entity):
                 continue
             a, b = target.segment()
-            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius)
+            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + padding)
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
         scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, rocket.direction, best[0] if best else step)
         if scene_barrier is not None:
             best = (scene_barrier[0], None)
-        wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
+        collision = self._collision()
+        wall = ray_world(collision, rocket.position, rocket.direction, step)
+        if padding > 0:
+            swept = collision.sweep_sphere(rocket.position, rocket.direction, step, padding)
+            if swept is not None and (wall is None or swept < wall):
+                wall = swept
         if wall is not None and (best is None or wall < best[0]):
             best = (wall, None)
             scene_barrier = None
@@ -2404,7 +3035,8 @@ class Combat:
         else:
             deployed = None
         limit = best[0] if best else step
-        echo_shield = self.barriers.intercept(rocket.shooter, rocket.position, rocket.direction, limit)
+        echo_shield = self.barriers.intercept(rocket.shooter, rocket.position, rocket.direction, limit,
+                                              radius=padding, include_authored_mesh=False)
         if echo_shield is not None and (best is None or echo_shield[0] < limit):
             best = echo_shield
             shield = redirect = absorption = deployed = None
@@ -2422,6 +3054,35 @@ class Combat:
                 absorption, redirect = None, (distance, target)
         else:
             defense = None
+        scripted_shield = None
+        scripted_absorption = None
+        limit = best[0] if best else step
+        candidate = barriers.ray_hit(self, rocket.shooter, rocket.position, rocket.direction, limit, padding=padding)
+        if candidate is not None and (best is None or candidate[0] < limit):
+            scripted_shield = candidate
+            best = candidate[0], None
+            shield = echo_shield = deployed = redirect = absorption = defense = None
+
+        limit = best[0] if best else step
+        candidate = interception.absorption(
+            self, rocket.shooter, rocket.direct, rocket.position, rocket.direction, limit, padding=padding,
+        )
+        if candidate is not None and (best is None or candidate[0] < limit):
+            scripted_absorption = absorption = candidate
+            best = candidate[0], None
+            shield = echo_shield = deployed = redirect = defense = scripted_shield = None
+
+        for target in self._enemies(rocket.shooter):
+            if target.entity in reflected:
+                continue
+            limit = best[0] if best else step
+            distance = self._genji_deflect_contact(
+                target, rocket.direct, rocket.position, rocket.direction, limit, padding=padding,
+            )
+            if distance is not None and (best is None or distance <= limit):
+                best = redirect = distance, target
+                shield = echo_shield = deployed = absorption = defense = scripted_shield = scripted_absorption = None
+
         if best is None:
             rocket.position = _along(rocket.position, rocket.direction, step)
             rocket.flown += duration
@@ -2437,7 +3098,9 @@ class Combat:
             if rocket.shot is not None:
                 self.projectiles.absorbed(rocket.shot)
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
-            if defense is not None:
+            if scripted_absorption is not None:
+                interception.absorbed(scripted_absorption[1], amount)
+            elif defense is not None:
                 deflections.absorb(absorption[1], amount)
             else:
                 self._absorbed(absorption[1], amount)
@@ -2463,6 +3126,14 @@ class Combat:
                 return 0.0
             return duration - spent
         point = _along(rocket.position, rocket.direction, t)
+        if scripted_shield is not None:
+            amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
+            barriers.damage(self, scripted_shield[1], amount, attacker=_source_entity(rocket.shooter))
+            if rocket.sticky_delay is not None:
+                self._stick(rocket, point, duration - contact_time)
+            else:
+                self._landed(rocket)
+            return 0.0
         if echo_shield is not None:
             actor = echo_shield[1]
             if rocket.direct is not None:
@@ -2486,9 +3157,13 @@ class Combat:
             if direct.ally_heal and self._ally(rocket.shooter, struck):
                 self._heal(rocket.shooter, struck, direct.ally_heal, source_body=rocket.source_body)
             else:
+                contact_y = point[1]
+                if padding:
+                    axis_y = _segment_point(point, *struck.segment())[1]
+                    contact_y = axis_y + (contact_y - axis_y) * struck.radius / (struck.radius + padding)
                 critical = (
                     (direct.projectile_headshot or direct.loadout == ECHO_TRI_SHOT_LOADOUT)
-                    and direct.critical > 1.0 and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW
+                    and direct.critical > 1.0 and contact_y >= struck.feet[1] + struck.eye - HEAD_BELOW
                     and not (direct.loadout == ECHO_TRI_SHOT_LOADOUT and immunity.fortified(struck.owner, struck.entity))
                 )
                 amount = direct.amount * (direct.critical if critical else 1.0)
@@ -2505,6 +3180,11 @@ class Combat:
                     if rocket.accretion_source is not None:
                         self._accretion_hit(rocket, struck, before - self.vitals_of(struck).total)
                         self._apply_accretion_impulse(rocket, struck, direct)
+        if struck is not None and blast is None and len(rocket.hit_entities) + 1 < rocket.target_limit:
+            rocket.hit_entities.add(struck.entity)
+            rocket.position = point
+            rocket.left -= contact_time
+            return max(0.0, duration - contact_time)
         impact_barrier = scene_barrier[1] if scene_barrier is not None and t == scene_barrier[0] else None
         if impact_barrier is not None:
             if rocket.direct is not None:
@@ -3155,7 +3835,8 @@ class Combat:
         """Apply damage and report whether a body hit can carry an attached effect."""
         vitals = self.vitals_of(target)
         if (vitals.dead or amount <= 0.0 or self._invulnerable(target.owner)
-                or immunity.wraith_active(target.owner, target.entity)):
+                or immunity.wraith_active(target.owner, target.entity)
+                or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
             return False
         if loadout in (FLAIL_LOADOUT, WHIP_LOADOUT) and self._deflects(target, self._eye(shooter)):
             return False
@@ -3168,7 +3849,9 @@ class Combat:
         if component is not None:
             amount = component.world.outgoing_combat_damage(shooter.entity, amount, hit_tags)
         attacker = _source_entity(shooter)
-        remaining = self._absorb_personal_barrier(target, amount, attacker)
+        remaining = barriers.protect_body(self, target, amount, attacker=attacker)
+        if remaining is None:
+            remaining = self._absorb_personal_barrier(target, amount, attacker)
         if remaining is None:
             remaining = self._absorb_projected_barrier(target, amount, attacker)
         if remaining is not None:
@@ -3193,6 +3876,10 @@ class Combat:
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
+            vitals.clear_sleep()
+        elif self.tick < vitals.sleep_until:
+            wake = max(vitals.sleep_wake_floor, self.tick + SLEEP_WAKE_RECOVERY_TICKS)
+            vitals.sleep_until = min(vitals.sleep_until, wake)
         if not isinstance(shooter, (bots.Bot, SceneHazard)):
             flags = (CRITICAL if critical else 0) | (KILLING if killed and not copy_break else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
@@ -3200,6 +3887,21 @@ class Combat:
             if (award_ult and victim is not shooter
                     and (self.match.game_map.free_for_all or target.team != shooter.team)):
                 self._charge_echo_health_event(shooter, dealt, source_body=source_body)
+            enemy = victim is not shooter and (
+                self.match.game_map.free_for_all or target.team != shooter.team
+            )
+            script = getattr(shooter, "body_script", None)
+            hero = shooter.hero.guid
+            current_source = source_body is None or source_body == shooter.body
+            sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
+                               and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
+            if (award_ult and enemy and script is not None and current_source
+                    and hero not in (0x02E0000000000206, 0x02E0000000000195)
+                    and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
+                script.gain_ult_charge(dealt)
+            if enemy and current_source and hero == 0x02E0000000000029:
+                tick = self.match.tick if world_tick is None else world_tick
+                self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)
             if award_ult and isinstance(victim, bots.Bot):
                 from ow174.game import mccree
 
@@ -3216,6 +3918,8 @@ class Combat:
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = _source_entity(shooter)
+        if killed:
+            self._genji_eliminations(target, shooter, vitals.death_tick)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick, deadeye=deadeye)
@@ -3231,7 +3935,36 @@ class Combat:
                 self._begin_npc_hit_reaction(target, TALON_DAMAGE_REACTION, deadline, restart=False, shooter=shooter)
         if killed:
             self._died(shooter, victim, critical, loadout)
+        elif loadout == MEI_SPRAY_LOADOUT:
+            self._mei_frost_hit(shooter, target, self.tick if world_tick is None else world_tick)
         return True
+
+    def _genji_eliminations(self, target, killer, tick):
+        """Deliver authored reset entries for reconstructed kill/damage assists.
+
+        0093/parameter15 and169F/parameter45 both lead through the scoped body
+        predicate to SetVar61=0. Full native elimination event fan-out, credit
+        windows and payload/filter semantics remain unverified.
+        """
+        entity = target.entity
+        for body, (player, damaged) in self.genji_assists.pop(entity, {}).items():
+            if (not 0 <= tick - damaged <= GENJI_ASSIST_TICKS or player.body != body
+                    or player.gone or player not in self.match.players
+                    or player.hero.guid != 0x02E0000000000029):
+                continue
+            script = player.body_script
+            if script is None or script.retired or script.component.fault is not None:
+                continue
+            if player is not killer:
+                player.stats.add(stats.ELIMINATIONS)
+                self._kill_notice(player, target.owner)
+            instance = next((i for i in script.component.instances.values() if i.graph.index == 0x01DB), None)
+            if instance is not None:
+                message, parameter = (
+                    (0x0240000000000093, 0x15) if player is killer else (0x024000000000169F, 0x45)
+                )
+                runtime.send_instance_message(instance, message, {parameter: expr.Entity(entity)}, body)
+                script.component.run_now()
 
     def _tell_hit(self, shooter, target: Target, dealt: float, flags: int, frame: int) -> None:
         """Send the shooter's hit marker and target health bar using the hit's source frame."""
@@ -3362,11 +4095,15 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout) -> None:
+        assassin_victim.retire_target(self, victim.body)
+        self.clear_pins(victim.body)
         """A player died: the notices, his body script's "died" (the kill feed line), and the respawn."""
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)
         self.personal_barriers.pop(victim.body, None)
         self.projected_barriers.pop(victim.body, None)
+        if self.frost_hits.pop(victim.body, None) is not None and victim.body_script is not None:
+            self._write_frost(victim.body_script.component, 0.0)
         label = self.match.label()
         log.info("[game] %s: %s killed %s", label, killer.name, victim.name)
         victim.stats.add(stats.DEATHS)
@@ -3442,7 +4179,7 @@ class Combat:
             if not vitals.changed:
                 continue
             # A replacement covers prior unacknowledged changes in any pool.
-            components = vitals.component(vitals.ids)
+            components = vitals.component(vitals.most)
             vitals.changed.clear()
             for viewer in self.match.players:
                 client = viewer.client

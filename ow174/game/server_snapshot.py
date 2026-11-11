@@ -17,12 +17,14 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    assassin_victim,
     barriers,
     bots,
     brigitte,
     combat,
     correction,
     echo_duplicate,
+    genji,
     heroselect,
     mei_wall,
     notices,
@@ -95,8 +97,8 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script body_script_failed genji_mobility seen shown script mode_script "
+                   "next_countdown select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
@@ -105,7 +107,8 @@ FIELDS = {
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
-        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers"
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
+        "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims"
     ),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
@@ -114,15 +117,21 @@ FIELDS = {
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
-        "healing_block healing_boost temporary_shield"),
+        "healing_block healing_boost temporary_shield extra next_pool sleep_until sleep_wake_floor"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"
     ),
     echo_duplicate.Duplicates: _names("combat states held busy"),
-    barriers.Barriers: _names("fight live seen next_entity world reinhardt"),
+    barriers.Barriers: _names("fight live scripted seen next_entity world reinhardt"),
     barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
     barriers.world_bubbles.WorldBubbles: _names("fight actors next_id"),
+    combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
+    barriers.Barrier: _names(
+        "entity parent parent_body source instance state activation component "
+        "mesh geometry_digest vitals retired recipient recipient_body recipient_component"),
+    assassin_victim.Lease: _names(
+        "source source_instance sender_state activation target source_component target_component instance"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -186,6 +195,7 @@ DATACLASSES = (
     brigitte.BashStun,
     echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
     reinhardt_barrier.RaisedBarrier,
+    genji.Mobility, combat.Frost,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
@@ -195,7 +205,7 @@ DATACLASSES = (
 
 
 class _Graph:
-    def __init__(self, boundaries, assets):
+    def __init__(self, boundaries, assets, definition_digests):
         self.boundaries = {}
         for name, obj in boundaries.items():
             if obj is None:
@@ -205,6 +215,7 @@ class _Graph:
                 _fail("one external object has conflicting boundary names")
             self.boundaries[id(obj)] = (obj, name)
         self.assets = assets
+        self.definition_digests = definition_digests
         self.asset_descriptors = {}
         self.asset_worlds = {}
         self.objects = []
@@ -400,10 +411,14 @@ class _Graph:
         from ow174.game.body_vm_snapshot import export_component_vm_with_identities
 
         owners = {}
+        graph_definitions = {}
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras, _graph_definitions=graph_definitions,
+                _definition_digests=self.definition_digests,
+            )
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))
@@ -438,7 +453,7 @@ class _Graph:
         return self.nodes
 
 
-def export_server_state(server, *, archives=(), collision_provider=None, assets=None):
+def export_server_state(server, *, archives=(), collision_provider=None, assets=None, _definition_digests=None):
     """Export all registered stored fields; unknown fields/types fail instead of being skipped.
 
     Only stopped controlled servers are accepted. Every match must use the same
@@ -471,7 +486,7 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,
     }
-    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets)
+    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets, _definition_digests)
     with server.lock:
         roots = {"server": graph.value(server), "archived_matches": graph.value(archives),
                  "canonical_movers": graph.value(loaded_mover_table())}

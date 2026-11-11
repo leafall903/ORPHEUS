@@ -62,6 +62,7 @@ class ManualNpcTests(unittest.TestCase):
         self.match.combat.respawns.append((9999, bot))
         self.match.combat.history[bot.entity] = []
         self.match.combat.melee_seen[bot.entity] = {}
+        self.match.combat.genji_assists[bot.entity] = {self.player.body: (self.player, self.match.tick)}
         shot = projectiles.Shot(bot, bot.entity, 1, self.match.tick, 1, 0, (1, 0))
         delivery = Mock()
         shot.observers.append(delivery)
@@ -70,6 +71,7 @@ class ManualNpcTests(unittest.TestCase):
         self.assertEqual(self.match.bots, original)
         self.assertEqual(self.match.combat.rockets, [])
         self.assertEqual(self.match.combat.projectiles.shots, [])
+        self.assertNotIn(bot.entity, self.match.combat.genji_assists)
         delivery.finish.assert_called_once_with(self.match.tick, False)
         self.assertFalse(any(who is bot for _, who in self.match.combat.respawns))
         for table in (self.match.combat.vitals, self.match.combat.history,

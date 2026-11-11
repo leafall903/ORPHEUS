@@ -11,6 +11,7 @@ import hashlib
 import json
 from collections import deque
 from contextlib import nullcontext
+from weakref import WeakKeyDictionary
 
 from ow174.game import replay_values
 from ow174.game.collision import CollisionProvider, LoadState
@@ -39,6 +40,9 @@ OPERATIONS = {
     "skin_changed": {"account", "hero"},
     "send_home": {"account"},
     "take_out": {"player", "reason"},
+    "spawn_manual_npc": {"match_id", "definition", "position", "team", "yaw"},
+    "manual_npc_key": {"account", "key"},
+    "state_checkpoint": set(),
     "report_callbacks": set(),
     "run_loop": {"receives", "callback_actions"},
 }
@@ -165,6 +169,7 @@ class _Session:
         self._effects = []
         self._sends = 0
         self._state_profile = "wire-only"
+        self._definition_digests = WeakKeyDictionary()
         self._callback_actions = deque()
 
     @property
@@ -271,6 +276,22 @@ class _Session:
             return self.server.send_home(args["account"])
         if operation == "take_out":
             return self.server.take_out(self._player(args["player"]), args["reason"])
+        if operation == "spawn_manual_npc":
+            from ow174.game import npc
+
+            definition = args["definition"]
+            _fields(definition, {f.name for f in dataclasses.fields(npc.Definition)}, "NPC definition")
+            if type(args["position"]) is not tuple:
+                self._fail("invalid manual NPC position")
+            bot = npc.spawn(self._match(args["match_id"]), npc.Definition(**definition),
+                            args["position"], team=args["team"], yaw=args["yaw"])
+            return bot.entity
+        if operation == "manual_npc_key":
+            if args["key"] not in ("0", "{"):
+                self._fail("manual NPC root only starts or stops attacks")
+            return self.server.npc_key(_integer(args["account"], "NPC console account"), args["key"], {})
+        if operation == "state_checkpoint":
+            return self._state_digest()
         if operation == "run_loop":
             return self._run_loop(args["receives"], args["callback_actions"])
         return self.server._report_leaves()
@@ -368,11 +389,14 @@ class _Session:
     def _stored_hash(self):
         if self._state_profile == "wire-only":
             return None
+        return self._state_digest()
+
+    def _state_digest(self):
         from ow174.game.server_snapshot import export_server_state, snapshot_digest
 
         return snapshot_digest(export_server_state(
             self.server, archives=self._matches.values(), collision_provider=self._collision_reads,
-            assets=self._state_assets,
+            assets=self._state_assets, _definition_digests=self._definition_digests,
         ))
 
     def _check_boundary(self, before, state_before):

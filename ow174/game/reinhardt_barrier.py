@@ -145,6 +145,9 @@ def sync(combat, player):
     if not raised:
         elapsed = max(0, combat.now - max(state.last_update, state.regen_after))
         state.current = min(state.maximum, state.current + elapsed * geometry.regen_rate)
+    authored = combat.barriers.authored_for(player.body)
+    if authored is not None:
+        state.current = authored.vitals.total
     state.active = raised and state.current > 0 and combat.now >= state.broken_until
     state.last_update = combat.now
     if raised and not state.active:
@@ -302,6 +305,11 @@ class ReinhardtBarriers:
     def damage(self, actor, amount):
         if not actor.active or amount <= 0:
             return 0.0
+        authored = self.fight.barriers.authored_for(actor.body)
+        if authored is not None:
+            from ow174.game import barriers
+
+            return barriers.damage(self.fight, authored, amount)
         before = actor.health
         damage(self.fight, actor.owner, amount)
         if actor.health == 0:
