@@ -6,8 +6,8 @@ from dataclasses import replace
 import test_game_tracer as tracer_tests
 from test_game_combat import Run, aim
 
-from ow174.game import combat
-from ow174.game.commands import FIRE
+from ow174.game import combat, stats
+from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
 
 
@@ -38,6 +38,84 @@ class TracerUltimateTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
         self.assertEqual(self.charge(), cost)
         self.wait(125)
         self.assertEqual(self.charge(), cost)
+
+    def test_actual_pulse_restarts_passive_timer_before_projectile_retires(self):
+        self.script.ult_seconds = 60
+        fight = self.run.match.combat
+        self.script.set_ult_charge(self.component.entity_var(338).value())
+        self.run.step({self.player: (16384, -8000, 32)})
+        self.assertEqual(self.charge(), 0)
+        for _ in range(61):
+            self.run.step({self.player: (16384, -8000, 0)})
+        bomb, = fight.pulse_bombs.bombs
+        self.assertFalse(bomb.stuck)
+        self.assertEqual(self.charge(), 0)
+        self.wait(22)
+        self.assertEqual(self.charge(), 0)
+        self.assertTrue(bomb.stuck)
+        self.step()
+        self.assertEqual(self.charge(), 5)
+        self.assertIn(bomb, fight.pulse_bombs.bombs)
+        self.wait(61)
+        self.assertEqual(self.charge(), 5)
+        self.assertNotIn(bomb, fight.pulse_bombs.bombs)
+        self.step()
+        self.assertEqual(self.charge(), 10)
+        self.assertFalse(self.player.client.messages(combat.HIT))
+
+    def test_passive_catchup_within_command_window_matches_contiguous_frames(self):
+        for gap in (63, 126, 256):
+            with self.subTest(gap=gap):
+                self.setUp()
+                self.script.ult_seconds = 60
+                start = self.script.frame
+                for frame in range(start + 1, start + gap + 1):
+                    self.script.command(frame, 0)
+                expected = self.charge()
+                self.assertGreater(expected, 0)
+
+                self.setUp()
+                self.script.ult_seconds = 60
+                last = self.script.frame + gap
+                self.script.command(last, 0)
+                self.assertEqual(self.charge(), expected)
+                self.script.command(last, 0)
+                self.script.command(last - 1, 0)
+                self.assertEqual(self.charge(), expected)
+
+    def test_hosted_command_gap_releases_fire_and_preserves_passive_phase(self):
+        self.script.ult_seconds = 60
+        self.wait(30)
+        self.step(FIRE, yaw=16384)
+        pistol = next(i for i in self.component.instances.values() if i.graph.index == 0x16)
+        ammo = pistol.vars[53]
+        self.assertEqual(ammo.value(), 38)
+        start = self.script.frame
+
+        for frame in range(start + 1, start + 257):
+            self.run.match.update(frame * combat.TICK, frame)
+        self.assertEqual(self.script.frame, start)
+        self.assertEqual(self.charge(), 0)
+        self.player.take_commands([Command(start + 256)])
+        self.assertEqual(self.script.frame, start + 256)
+        self.assertEqual(self.script.buttons, 0)
+        self.assertEqual(ammo.value(), 38)
+        self.assertEqual(self.charge(), 20)
+        self.player.take_commands([Command(start + 255), Command(start + 256)])
+        self.assertEqual(self.charge(), 20)
+
+        changes = []
+        previous = self.charge()
+        for offset in range(1, 100):
+            frame = start + 256 + offset
+            self.run.match.update(frame * combat.TICK, frame)
+            self.player.take_commands([Command(frame)])
+            if self.charge() != previous:
+                previous = self.charge()
+                changes.append((offset, previous))
+        self.assertEqual(changes, [(26, 25), (89, 30)])
+        self.assertEqual(ammo.value(), 38)
+        self.assertFalse(self.player.client.messages(combat.HIT))
 
     def test_authored_passive_gate_stops_and_restarts_without_backlog(self):
         self.script.ult_seconds = 60
@@ -106,6 +184,81 @@ class TracerUltimateTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
         self.wait(125)
         self.assertTrue(self.run.match.combat.is_dead(self.enemy))
         self.assertEqual(self.charge(), 0)
+
+    def test_actual_player_damage_funds_two_lethal_pulses_from_zero(self):
+        fight = self.run.match.combat
+        self.enemy.spawn = (tuple(self.enemy.mover.position), self.enemy.spawn[1])
+        cost = self.component.entity_var(338).value()
+        for cycle in range(2):
+            with self.subTest(cycle=cycle):
+                self.assertEqual(self.charge(), 0)
+                self.run.step({self.player: (0, 0, 32)})
+                self.assertEqual(self.charge(), 0)
+                self.assertFalse(fight.pulse_bombs.bombs)
+                health = self.earn_pulse_on_respawning_player(cost)
+                self.assertTrue(5 < health.total <= 200)
+                self.assertEqual(self.charge(), cost)
+                eliminations = self.player.stats.value(stats.ELIMINATIONS)
+                self.run.step({self.player: (0, 0, 32)})
+                self.assertEqual(self.charge(), 0)
+                self.assertFalse(fight.pulse_bombs.bombs)
+                for _ in range(55):
+                    self.run.step({})
+                    if fight.pulse_bombs.bombs and fight.pulse_bombs.bombs[0].stuck:
+                        break
+                bomb, = fight.pulse_bombs.bombs
+                self.assertEqual(bomb.attached, self.enemy.body)
+                self.assertFalse(health.dead)
+                for _ in range(75):
+                    self.run.step({})
+                    if not fight.pulse_bombs.bombs:
+                        break
+                self.assertFalse(fight.pulse_bombs.bombs)
+                self.assertTrue(health.dead)
+                self.assertEqual(health.killer, self.player.body)
+                self.assertEqual(self.player.stats.value(stats.ELIMINATIONS), eliminations + 1)
+                self.assertEqual(self.charge(), 0)
+
+    def earn_pulse_on_respawning_player(self, cost):
+        fight = self.run.match.combat
+        pistol = next(i for i in self.component.instances.values() if i.graph.index == 0x16)
+        ammo = pistol.vars[53]
+        health = fight.vitals_of(next(t for t in fight._targets() if t.owner is self.enemy))
+        earned = reloads = respawns = 0
+        damage_before = self.player.stats.value(stats.HERO_DAMAGE)
+        for _ in range(3000):
+            if health.dead:
+                health = self.wait_for_ultimate_target_respawn()
+                respawns += 1
+            before, rounds = health.total, ammo.value()
+            if rounds:
+                self.fire()
+            else:
+                self.run.step({self.player: (0, 0, 0x400)})
+            earned += before - health.total
+            reloads += int(not rounds and ammo.value() > 0)
+            self.assertAlmostEqual(self.charge(), min(earned, cost), places=4)
+            if self.charge() == cost and health.total > 5:
+                break
+        self.assertGreaterEqual(earned, cost)
+        self.assertGreater(reloads, 0)
+        self.assertGreater(respawns, 0)
+        self.assertAlmostEqual(self.player.stats.value(stats.HERO_DAMAGE) - damage_before, earned)
+        return health
+
+    def wait_for_ultimate_target_respawn(self):
+        fight = self.run.match.combat
+        old_body = self.enemy.body
+        deadline, = (when for when, owner in fight.respawns if owner is self.enemy)
+        for _ in range(round(combat.respawn_seconds(self.run.match) / combat.TICK) + 2):
+            self.run.step({})
+            if self.enemy.body != old_body:
+                break
+        self.assertNotEqual(self.enemy.body, old_body)
+        self.assertGreaterEqual(fight.now, deadline)
+        health = fight.vitals_of(next(t for t in fight._targets() if t.owner is self.enemy))
+        self.assertEqual(health.total, 200)
+        return health
 
     def test_recall_self_healing_grants_no_ultimate_charge(self):
         self.wait(200)

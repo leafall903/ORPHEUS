@@ -231,6 +231,8 @@ class LobbyServer:
             skin_of=self.skin_of,
             on_join=self.game_joined,
             on_clock_ready=self.game_clock_ready,
+            sonic_profile=self.settings.sonic_profile,
+            dragon_profile=self.settings.dragon_profile,
             collision_provider_factory=lambda: AsyncCollisionProvider(
                 build_missing=self.settings.build_missing_collision,
             ),

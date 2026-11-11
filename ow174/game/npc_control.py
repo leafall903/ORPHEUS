@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat, npc_navigation
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -42,7 +42,8 @@ def selected(match, player):
         return None
     distance, target = best
     wall = combat.ray_world(match.collision_world, origin, direction, distance)
-    if wall is not None and wall < distance:
+    if ((wall is not None and wall < distance)
+            or fight.walls.blocked(origin, combat._along(origin, direction, distance))):
         return None
     if (not isinstance(target.owner, bots.Bot) or not manual(target.owner)
             or (not match.game_map.free_for_all and target.team == player.team)):
@@ -68,8 +69,10 @@ def stop(match):
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
+        npc_navigation.stop(bot)
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
@@ -84,6 +87,18 @@ def stop(match):
     return count
 
 
+def retire_target(match, body):
+    """End the Assassin's body-local binding before its target ID can be reused."""
+    for bot in match.bots:
+        if bot.hero == assassin.HERO and bot.body_script is not None:
+            component = bot.body_script.component
+            if component.world.manual_target == body:
+                assassin.bind(component.world, component, None)
+                bot.attack_input = False
+                # Settle the old scope's exit before a new binding can start.
+                component.run_now()
+
+
 def update_input(fight, bot):
     """Refresh manual aim and release input on death, occlusion, range or target loss."""
     target = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
@@ -96,17 +111,26 @@ def update_input(fight, bot):
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
+        if bot.hero == assassin.HERO and assassin.target_protected(fight, target):
+            enabled = False
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
-            enabled = wall is None or wall >= distance
+            enabled = (wall is None or wall >= distance) and not fight.walls.blocked(origin, point)
             bot.yaw = float(bots.heading(dx, dz))
             bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if (bot.hero == assassin.HERO and component.world.controller_entity is not None
+            and component.world.manual_target != desired):
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
     bot.attack_input = bool(enabled)
+    npc_navigation.face_input(bot)
     return bool(enabled)

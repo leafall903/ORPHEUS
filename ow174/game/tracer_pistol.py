@@ -20,7 +20,9 @@ def active(state):
 
 def normalized(state, count):
     launch = state.node.field("m_5EC1EB38") or {}
-    denominator = expr.to_float(state.evaluate(launch.get("m_AC20B1C1"), watch=False))
+    denominator = getattr(state, "spread_ramp", None)
+    if denominator is None:
+        denominator = expr.to_float(state.evaluate(launch.get("m_AC20B1C1"), watch=False))
     if denominator < expr.f32(1e-7):
         return 1.0
     increment = expr.f32(expr.f32(max(0, count)) / denominator)

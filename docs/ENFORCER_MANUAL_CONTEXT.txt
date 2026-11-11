@@ -1,0 +1,46 @@
+Enforcer manual combat context: partial104319 reconstruction
+
+Reviewed reuse of the parent's uncommitted npc_context.py/test_npc_context.py;
+lane provenance and source hashes live in ENFORCER_SHARED_REVIEW.json outside
+Git. No shared source was modified. This lane enables the declaration only for
+manual Enforcer bodies; the parent's separate Assassin bridge is not imported.
+
+The manual sandbox declares controller components (75,), with92 absent.
+B96D3A98's CC9F61 tail tests75 present and92 absent via182C470. Eight offline
+Unicorn cases execute the original tail and bitset reader and agree with the
+Python predicate. DA6910 controller lookup and F66AF0 result collection are
+adapters. This does not prove that a native NPC controller has this component
+set or restore native controller allocation, namespace or wire components.
+
+Only owner queries in Enforcer13EB use this declared predicate. F7262B36 and
+foreign queries remain unresolved. The body health query uses the existing
+synchronized aggregate health input, installed before graph initialization;
+complete native health pool policy remains open. Both VM and full-server
+snapshot whitelists include the declared component set as causal state.
+
+Actual external body/weapon graphs and authored capsules, with normal manual
+engagement and no probe-time query overrides, damage Tracer for2 on frame67
+at5m. Open400-frame probes deal6 total at3/5/10/20m, with first-hit frames
+65/67/71/79. These are server observations, not native pellet or range claims.
+
+Direct Tracer fixtures verify stop without late damage, Recall protection and
+damage recovery, actual support Flashbang interruption/recovery, real pistol
+kill with no later damage and retained corpse, and static triangle-wall
+exclusion followed by attack recovery after removing the wall. Incoming Heavy
+damage still uses an approximate head region; this work does not change it.
+
+Still OPEN: complete native controller/foreign-variable service, native AI and
+navigation, native Enforcer projectile count/spread/muzzle/hitbox and timing,
+Assassin pin/health/control/lifetime, all other specials and full cross-hero
+matrix. Transport is an adapter; original-client acceptance was not run.
+All further own changes remain uncommitted until full static acceptance.
+
+Prepared-runtime follow-up:
+The base runtime has38 mover entries and lacks the five Talon bodies. Earlier
+lane NPC fixtures patch all mover fields from the original body XML in memory;
+they do not use the generic mover defaults. The parent's separate read-only
+npc-navigation-runtime contains43 entries. Before any test patch, direct
+mover_data loads for all five bodies match every XML field and source SHA256.
+All14 lane NPC tests pass against that prepared runtime. The mover and base
+runtime hashes remain unchanged. Hardlinked metadata is immutable input;
+real-map collision cache, navigation and deployment acceptance remain open.

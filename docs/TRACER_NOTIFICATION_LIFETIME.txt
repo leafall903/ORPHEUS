@@ -1,0 +1,37 @@
+Tracer checks for shared notification and Ability exit fixes
+===========================================================
+
+The private runtime reproduced both parent notification regressions before the
+fix: canceling a queued CHANGED left flags_changed set, and a cleanup write could
+queue another notification while the state was ending. These markers coalesce
+events; retaining one after cancellation suppresses later notifications when
+the state reenters. State.end now clears flags_check/flags_changed after cancel,
+and Component.changed excludes ending states. Existing fields/layout are reused.
+
+Ability.stop now queues running-scope exit/stop/resource cleanup before unlinking
+the arbitration variable. This prevents a newly unblocked weapon from sampling
+old resources before the outgoing scope's refill. This inter-object ordering is
+an explicit server reconstruction; full native ordering remains unverified.
+The parent has additional unrelated world/target/velocity services; only these
+reviewed lifecycle/ordering changes are applied in this lane.
+
+Do not claim Tracer had the parent's McCree Roll symptom. Before applying this
+fix, actual Tracer probes already passed empty-magazine Recall at0/1/5/10/20-frame
+reload-entry offsets: ammo40 restored, first shot12 damage, four paired shots in
+eleven frames deal48 damage and leave32 ammo. Those fixtures use an explicit
+high-health enemy pool to avoid death/respawn during magazine depletion.
+
+After the change, two minimal shared notification regressions pass and two
+actual Tracer methods guard those five offsets plus primary held through Recall.
+Primary causes no damage inside Recall and resumes after its exit. These checks
+preserve prior Tracer behavior while proving the repaired shared notification
+invariant separately. They do not establish all reload/cancel/status boundaries.
+
+External lane artifacts preserve pre-fix notification-lifetime-before.log and
+TRACER_NOTIFICATION_BEFORE.json. NOTIFICATION_SOURCE_HASHES.json pins the new
+source. The regular/script selection and focused two-player lifecycle replay
+are recorded in NOTIFICATION_REGRESSION_PROGRESS.json; do not relabel the earlier
+THROTTLE validation's16 server snapshot/replay cases as new-source results.
+Original104319 map mover checks run separately against immutable existing cache
+inputs. Broader native/controls/cross-hero acceptance and the explicit Winston
+barrier failure remain open. No own commit/patch until the complete static goal.

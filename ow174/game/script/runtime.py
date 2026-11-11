@@ -262,6 +262,13 @@ class InstanceContext(Context):
             return None
         return value
 
+    def resolved_member(self, entity: int, var: int):
+        # 1B80D97 writes +230 only after the namespace resolves a script VM.
+        component = self.instance.component
+        if entity == component.entity or component.world.script_component_present(entity) is True:
+            self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int):
         component = self.instance.component
         value = component.world.position(entity)
@@ -277,6 +284,24 @@ class InstanceContext(Context):
             return found
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
+
+    def reset_ruleset_target(self):
+        self.instance.ruleset_target_entity = expr.INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self.instance.ruleset_target_entity = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return self.instance.ruleset_target_entity
+
+    def ruleset_default(self, key: int, entity: int):
+        component = self.instance.component
+        if not expr.valid_entity(entity) or entity == component.entity:
+            return component.world.ruleset(key)
+        value = component.world.entity_ruleset(entity, key)
+        if value is NotImplemented and component.strict:
+            component.unsupported(self.instance, "foreign entity ruleset", f"{entity:08X}:{key}")
+        return value
 
     def would_stack_to_top(self, var, priority):
         if var is None:
@@ -302,9 +327,15 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import body_owner, controller_heroes, entity_queries, entity_team
 
-        result = entity_queries.evaluate(self, cfg)
+        result = NotImplemented
+        if cfg.get("$") == body_owner.CLASS:
+            result = self.instance.component.world.body_owner_override(cfg, self.instance)
+            if result is NotImplemented:
+                result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
@@ -375,6 +406,9 @@ class World:
 
         return rulesets.default(key, self.hero, self.mode)
 
+    def resurrect(self, instance, node):
+        return NotImplemented
+
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
             variables = mode_variables(self.mode)
@@ -386,6 +420,14 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def script_component_present(self, entity: int):
+        """Explicit member-expression VM resolution; unknown is not a resolved VM."""
+        return NotImplemented
+
+    def entity_ruleset(self, entity: int, key: int):
+        """Declared foreign body's ruleset default, after its variable read failed."""
+        return NotImplemented
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
@@ -394,6 +436,24 @@ class World:
 
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
+
+    def tracked_targets(self, state: "State"):
+        return NotImplemented
+
+    def target_effects(self, state: "State"):
+        return NotImplemented
+
+    def refresh_compatible_placement(self, state: "State", *, confirm: bool):
+        return NotImplemented
+
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def tracked_ray(self, state: "State"):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
 
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
@@ -429,6 +489,13 @@ class World:
 
     def data_flow_context(self, entity: int):
         """Explicit component47 mapping registry and native namespace availability."""
+        return NotImplemented
+
+    def body_owner_override(self, cfg: dict, instance: "Instance"):
+        return NotImplemented
+
+    def body_owner_context(self, entity: int):
+        """Explicit direct body ownership services."""
         return NotImplemented
 
     def entity_query_context(self, entity: int):
@@ -487,6 +554,15 @@ class World:
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
+
+    def create_compatible_pet(self, state: "State"):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state: "State", entity: int) -> None:
+        """Release a pet previously allocated by this host."""
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> None:
+        """Optional host service for a specific request from a permissive body."""
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -670,7 +746,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -939,6 +1015,7 @@ class Instance:
         self.disabled_start_entries: set[int] = set()
         self.disabled_message_entries: set[int] = set()  # Native entry-array indices, not node positions.
         self.cached_source_entity = 0  # Native Instance+234, initially the invalid entity.
+        self.ruleset_target_entity = 0  # Native Instance+230, selected by an entity member expression.
         self.auto_retire = False  # Native Instance318 bit11, set for PlayScript byte zero.
         self.initialized_frame = 0  # Native Instance+58.
         self.retirement_pending = False  # Native Instance318 bit22.
@@ -1219,11 +1296,18 @@ class Instance:
         elif event.kind == CHECK:
             state.flags_check = False
             if state.active:
-                state.try_complete()
+                previous = self.component.button
+                if event.button:
+                    self.component.button = event.button
+                try:
+                    state.try_complete()
+                finally:
+                    self.component.button = previous
         elif event.kind == CHANGED:
             state.flags_changed = False
             if state.active:
                 state.dependency_changed()
+                state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
         elif event.kind == ASSIGN:
@@ -1247,6 +1331,17 @@ class Instance:
             state = self.state(index)
             if state is not None:
                 state.button(button, pressed)
+        if self.graph.index == 0x00F2:
+            # Shadow Step's idle transition listens to an authored button condition.
+            for node in self.graph.nodes:
+                if (node.cls != "STU_7DEB522D" or not self.accepts(node)
+                        or expr.to_int(self.evaluate(node.field("m_logicalButton"))) != button):
+                    continue
+                for index in node.field("m_122DF0CA") or ():
+                    state = self.states.get(index)
+                    if state is not None and state.active and not state.flags_check:
+                        state.flags_check = True
+                        self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
 
     def run_deferred(self) -> bool:
@@ -1485,6 +1580,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing markers describe queued events, which cancel just removed.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()

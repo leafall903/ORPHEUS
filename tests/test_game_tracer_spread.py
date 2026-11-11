@@ -34,6 +34,25 @@ class TracerSpreadTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
         self.assertEqual(tracer_pistol.rays(self.volley, key[2], key[3], key[:2], (0, 0, 1), 2),
                          ((0, 0, 1), (0, 0, 1)))
 
+    def test_actual_ramp_is_baked_and_exported_without_losing_reported_angles(self):
+        from unittest.mock import patch
+
+        self.step(FIRE)
+        self.assertEqual(self.volley.spread_ramp, 3)
+        retained = dict(self.volley.shot_spread)
+        launch = self.volley.node.field('m_5EC1EB38')
+        # Explicit configuration mutation isolates activation baking; it is not
+        # a native gameplay mechanism for changing Tracer's authored constant.
+        with patch.dict(launch, {'m_AC20B1C1': {'$': 'STUConfigVarFloat', 'm_value': 99}}):
+            self.assertAlmostEqual(tracer_pistol.angle(self.volley, 1), math.radians(3.5/3), places=7)
+        baseline = snapshot_digest(export_body_vm(self.player.body_script))
+        ramp = self.volley.spread_ramp
+        self.volley.spread_ramp = 6.0
+        self.assertNotEqual(snapshot_digest(export_body_vm(self.player.body_script)), baseline)
+        self.volley.spread_ramp = ramp
+        self.assertEqual(snapshot_digest(export_body_vm(self.player.body_script)), baseline)
+        self.assertEqual(self.volley.shot_spread, retained)
+
     def test_held_fire_grows_by_shot_count_and_caps_at_authored_three_point_five_degrees(self):
         self.hold(11)
         radii = list(self.volley.shot_spread.values())

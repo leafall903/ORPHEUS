@@ -139,6 +139,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--data-dir", type=Path, help="keep profiles and logs in this folder instead (the tests use it)"
     )
+    parser.add_argument(
+        "--reconstructed-hanzo-sonic-profile", type=Path,
+        help="load an extracted Sonic Arrow profile for the local game server",
+    )
+    parser.add_argument(
+        "--reconstructed-hanzo-dragon-profile", type=Path,
+        help="load an extracted Dragonstrike profile for the local game server",
+    )
     return parser.parse_args(argv)
 
 
@@ -244,7 +252,32 @@ def _paths(args: argparse.Namespace) -> Paths:
     )
 
 
+def _load_combat_profile(path, label, load_profile, **policy):
+    if path is None:
+        return None
+    try:
+        return load_profile(path, **policy)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LaunchError(f"Invalid reconstructed {label} profile: {error}") from error
+
+
+def _combat_profiles(args: argparse.Namespace):
+    sonic_path = args.reconstructed_hanzo_sonic_profile
+    dragon_path = args.reconstructed_hanzo_dragon_profile
+    if sonic_path is None and dragon_path is None:
+        return None, None
+    if args.mode in ("join", "join-tournament") or args.game_port <= 0:
+        raise LaunchError("A reconstructed combat profile requires a local game server (--game-port > 0).")
+    from ow174.game import dragon, sonic
+
+    return (
+        _load_combat_profile(sonic_path, "Sonic", sonic.load_profile, reconstructed_geometry=True),
+        _load_combat_profile(dragon_path, "Dragonstrike", dragon.load_profile, reconstructed_rates=True),
+    )
+
+
 def run(args: argparse.Namespace) -> None:
+    sonic_profile, dragon_profile = _combat_profiles(args)
     if args.no_launch and args.mode in ("join", "join-tournament"):
         raise LaunchError("--no-launch runs host services and cannot be used with a join mode.")
     if args.no_launch and args.game_exe is not None:
@@ -274,6 +307,8 @@ def run(args: argparse.Namespace) -> None:
         test_players=max(0, args.test_players),
         paths=_paths(args),
         build_missing_collision=launches_game,
+        sonic_profile=sonic_profile,
+        dragon_profile=dragon_profile,
     )
     game = relay = None
     if launches_game:

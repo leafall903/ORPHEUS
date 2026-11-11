@@ -9,13 +9,41 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from test_game_combat import KANEZAKA_DM, Run, aim
+from test_game_mover import FLOOR, box, cached, wall
 
 from ow174.game import combat, stats, tracer
-from ow174.game.collision import World
-from ow174.game.commands import FIRE, Command
-from ow174.game.content import heroes
+from ow174.game.collision import StaticCollisionProvider, World
+from ow174.game.commands import CROUCH, FIRE, Command
+from ow174.game.content import PRACTICE_RANGE, heroes
 
 TRACER = 0x02E0000000000003
+
+
+def check_melee_reuse(run, inputs, assert_swings):
+    run.step({})
+    run.step(inputs)
+    assert_swings(1)
+    run.step({})
+    run.step(inputs)
+    assert_swings(1)
+    for _ in range(65):
+        run.step(inputs)
+    assert_swings(2)
+    for _ in range(65):
+        run.step(inputs)
+    assert_swings(2)
+
+    run.step({})
+    run.step(inputs)
+    assert_swings(3)
+    run.step({})
+    run.step(inputs)
+    assert_swings(3)
+    for _ in range(65):
+        run.step({})
+    assert_swings(3)
+    run.step(inputs)
+    assert_swings(4)
 
 
 class TracerPistolTests(unittest.TestCase):
@@ -120,6 +148,158 @@ class TracerPistolTests(unittest.TestCase):
         self.fire(run, enemy, player)
         target = next(t for t in run.match.combat._targets() if t.owner is player)
         self.assertEqual(run.match.combat.vitals_of(target).total, 130)
+        notice, = enemy.client.messages(combat.HIT)
+        self.assertFalse(notice["+0x78"]["+0x8"] & combat.CRITICAL)
+
+    def test_quick_melee_pvp_rejects_aim_range_wall_and_team_then_recovers(self):
+        for gate in ("aim", "range", "wall", "team"):
+            with self.subTest(gate=gate):
+                self.check_quick_melee_pvp_gate(gate)
+
+    def check_quick_melee_pvp_gate(self, gate):
+        run, tracer, soldier, soldier_health = self.fight()
+        match, fight = run.match, run.match.combat
+        tracer_health = fight.vitals_of(next(t for t in fight._targets() if t.owner is tracer))
+        actors = (tracer, soldier)
+        for actor in actors:
+            actor.body_script.ult_seconds = 0
+        match.game_map = replace(match.game_map, free_for_all=False)
+        x, y, z = tracer.mover.position
+        soldier.mover.position[:] = (x, y, z + (4 if gate == "range" else 1.8))
+        soldier.mover.body = None
+        provider, world = match.collision_provider, match.collision_world
+        if gate == "wall":
+            floor = box(x - 10, x + 10, y - 1, y, z - 10, z + 10)
+            mesh = World(floor + wall(x - 5, z + 0.9, x + 5, z + 0.9, y, y + 4))
+            match.collision_provider = StaticCollisionProvider(mesh)
+            match.collision_world = mesh
+            for actor in actors:
+                actor.mover.use(world=mesh)
+        if gate == "team":
+            soldier.team = tracer.team
+        run.step({})
+
+        blocked = self.melee_inputs(tracer, soldier, away=gate == "aim")
+        for _ in range(40):
+            run.step(blocked)
+        self.assert_melee_exchange(actors, tracer_health, soldier_health, swings=0)
+
+        soldier.mover.position[:] = (x, y, z + 1.8)
+        soldier.mover.body = None
+        soldier.team = 1 - tracer.team
+        if gate == "wall":
+            match.collision_provider, match.collision_world = provider, world
+            for actor in actors:
+                actor.mover.use(world=world)
+        clear = self.melee_inputs(tracer, soldier)
+        for _ in range(65):
+            run.step(clear)
+        self.assert_melee_exchange(actors, tracer_health, soldier_health, swings=0)
+
+        def assert_swings(count):
+            self.assert_melee_exchange(actors, tracer_health, soldier_health, swings=count)
+
+        check_melee_reuse(run, clear, assert_swings)
+
+    def melee_inputs(self, tracer, soldier, *, away=False):
+        fight = tracer.match.combat
+        inputs = {}
+        for source, target in ((tracer, soldier), (soldier, tracer)):
+            x, y, z = target.mover.position
+            yaw, pitch = aim(fight._eye(source), (x, y + 1, z))
+            if away:
+                yaw = yaw - 32768 if yaw >= 0 else yaw + 32768
+            inputs[source] = (yaw, pitch, 0x800)
+        return inputs
+
+    def assert_melee_exchange(self, actors, tracer_health, soldier_health, *, swings):
+        damage = 30 * swings
+        self.assertEqual((tracer_health.total, soldier_health.total), (150 - damage, 200 - damage))
+        for actor in actors:
+            self.assertEqual(len(actor.client.messages(combat.HIT)), swings)
+            self.assertEqual(actor.stats.value(stats.HERO_DAMAGE), damage)
+            self.assertEqual(actor.body_script.component.entity_var(342).value(), damage)
+
+    def test_incoming_pistol_hits_standing_head_region_and_respects_cover(self):
+        for covered in (False, True):
+            with self.subTest(covered=covered):
+                run, player, enemy, _ = self.fight()
+                match = run.match
+                fight = match.combat
+                x, y, z = player.mover.position
+                if covered:
+                    mesh = World(FLOOR + wall(x - 4, z + 2, x + 4, z + 2, y, y + 3))
+                    match.collision_provider = StaticCollisionProvider(mesh)
+                    match.collision_world = mesh
+                    for actor in run.players:
+                        actor.mover.world = mesh
+                yaw, pitch = aim(fight._eye(enemy), (x, y + 1.567, z))
+                run.step({enemy: (yaw, pitch, FIRE)})
+                target = next(t for t in fight._targets() if t.owner is player)
+                self.assertEqual(fight.vitals_of(target).total, 150 if covered else 110)
+                notices = enemy.client.messages(combat.HIT)
+                self.assertEqual(len(notices), 0 if covered else 1)
+                if not covered:
+                    self.assertTrue(notices[0]["+0x78"]["+0x8"] & combat.CRITICAL)
+
+    def test_incoming_soldier_fire_resolves_crouched_tracer_pose(self):
+        for case, offset, damage, critical in (
+            ("low body", 0.45, 20, False),
+            ("crouched eye", 0.875, 40, True),
+            ("standing head height", 1.567, 0, False),
+            ("cover", 0.875, 0, False),
+        ):
+            with self.subTest(case=case):
+                run, player, enemy, _ = self.fight()
+                fight = run.match.combat
+                x, y, z = player.mover.position
+                if case == "cover":
+                    floor = box(x - 15, x + 15, y - 1, y, z - 15, z + 15)
+                    mesh = World(floor + wall(x - 4, z + 2, x + 4, z + 2, y, y + 3))
+                    run.match.collision_provider = StaticCollisionProvider(mesh)
+                    run.match.collision_world = mesh
+                    for actor in run.players:
+                        actor.mover.world = mesh
+                held = {player: (0, 0, CROUCH)}
+                for _ in range(8):
+                    run.step(held)
+                self.assertTrue(player.mover.crouched)
+                target = next(t for t in fight._targets() if t.owner is player)
+                self.assertEqual((target.height, target.radius, target.eye), (1.25, 0.5, 0.875))
+                self.assertIsNone(target.head_offset)
+                direction = aim(fight._eye(enemy), (x, y + offset, z))
+                run.step({**held, enemy: (*direction, FIRE)})
+                self.assertEqual(fight.vitals_of(target).total, 150 - damage)
+                notices = enemy.client.messages(combat.HIT)
+                self.assertEqual(len(notices), int(bool(damage)))
+                if damage:
+                    hit, = notices
+                    self.assertEqual(hit["+0x78"]["+0x4"], damage)
+                    self.assertEqual(bool(hit["+0x78"]["+0x8"] & combat.CRITICAL), critical)
+
+    def test_delayed_soldier_shot_uses_tracers_stance_at_the_viewed_tick(self):
+        for view_standing in (False, True):
+            with self.subTest(view_standing=view_standing):
+                run, player, enemy, _ = self.fight()
+                match, fight = run.match, run.match.combat
+                x, y, z = player.mover.position
+                run.step({})
+                standing_tick = run.frame
+                for _ in range(8):
+                    run.step({player: (0, 0, CROUCH)})
+                self.assertTrue(player.mover.crouched)
+                tick = run.frame + 1
+                match.update(tick * combat.TICK, tick, frames=False)
+                yaw, pitch = aim(fight._eye(enemy), (x, y + 1.567, z))
+                delay = (tick - standing_tick) * 16 if view_standing else 0
+                enemy.take_commands([Command(tick, yaw=yaw, pitch=pitch, buttons=FIRE, extra=delay)])
+                target = next(t for t in fight._targets() if t.owner is player)
+                self.assertIsNone(target.head_offset)
+                self.assertEqual(fight.vitals_of(target).total, 110 if view_standing else 150)
+                hits = enemy.client.messages(combat.HIT)
+                self.assertEqual(len(hits), int(view_standing))
+                if view_standing:
+                    self.assertTrue(hits[0]["+0x78"]["+0x8"] & combat.CRITICAL)
 
     def test_missed_shot_and_target_beyond_authored_range_take_no_damage(self):
         for distance, yaw in ((5, 16384), (105, 0)):
@@ -130,6 +310,57 @@ class TracerPistolTests(unittest.TestCase):
                 run.step({player: (yaw, 0, FIRE)})
                 self.assertEqual(vitals.total, 200)
                 self.assertEqual(player.client.messages(combat.HIT), [])
+
+    def test_pulse_pistols_resolve_standing_tracer_region_and_critical_credit(self):
+        for case in ("head", "body", "side", "wall", "ally", "lethal"):
+            with self.subTest(case=case):
+                self.check_pulse_pistol_tracer_region(case)
+
+    def check_pulse_pistol_tracer_region(self, case):
+        run, player, enemy, _ = self.fight()
+        match, fight = run.match, run.match.combat
+        self.assertTrue(match.switch_hero(enemy, heroes()[TRACER]))
+        player.body_script.ult_seconds = 0
+        x, y, z = player.mover.position
+        enemy.mover.position[:] = (x, y, z + 5)
+        enemy.mover.body = None
+        if case == "wall":
+            floor = box(x - 10, x + 10, y - 1, y, z - 10, z + 10)
+            mesh = World(floor + wall(x - 5, z + 2, x + 5, z + 2, y, y + 4))
+            match.collision_provider = StaticCollisionProvider(mesh)
+            match.collision_world = mesh
+            for actor in run.players:
+                actor.mover.use(world=mesh)
+        if case == "ally":
+            match.game_map = replace(match.game_map, free_for_all=False)
+            enemy.team = player.team
+        run.step({})
+        target = next(t for t in fight._targets() if t.owner is enemy)
+        health = fight.vitals_of(target)
+        if case == "lethal":
+            health.damage(133)
+            fight._sync_body_health(enemy, health)
+        before = health.total
+        # Model 02B1, standing bind region 282, rounded to the shot coordinates.
+        height = 1.0 if case == "body" else 1.567
+        angles = aim(fight._eye(player), (x + (0.22 if case == "side" else 0), y + height, z + 5))
+        run.step({player: (*angles, FIRE)})
+        expected = {
+            "head": (12, 12), "body": (6, 6), "side": (6, 6), "wall": (), "ally": (), "lethal": (12, 5),
+        }[case]
+        hits = [notice["+0x78"] for notice in player.client.messages(combat.HIT)]
+        self.assertEqual([hit["+0x4"] for hit in hits], list(expected))
+        critical = 0 if case in ("body", "side") else combat.CRITICAL
+        flags = [critical] * len(expected)
+        if case == "lethal":
+            flags[-1] |= combat.KILLING
+        self.assertEqual([hit["+0x8"] for hit in hits], flags)
+        damage = sum(expected)
+        self.assertEqual(health.total, before - damage)
+        self.assertEqual(player.stats.value(stats.HERO_DAMAGE), damage)
+        self.assertEqual(player.body_script.component.entity_var(342).value(), damage)
+        self.assertEqual(health.killer, player.body if case == "lethal" else None)
+        self.assertEqual(len(enemy.client.messages(combat.DEATH_NOTICE)), int(case == "lethal"))
 
     def test_distant_body_hit_uses_authored_falloff_floor(self):
         run, player, enemy, vitals = self.fight()
@@ -263,6 +494,35 @@ class TracerBlinkTests(TracerCommandFixture, unittest.TestCase):
         self.assertGreater(self.player.mover.position[2], z)
         self.assertLess(self.player.mover.position[2], z + 3)
         self.assertEqual(self.blink.vars[11].value(), 2)
+
+    def test_practice_range_balcony_railing_clips_actual_blink(self):
+        world = cached(PRACTICE_RANGE.map_guid)
+        if world is None:
+            self.skipTest("no collision cache for the Practice Range")
+        run = Run(PRACTICE_RANGE)
+        player, = run.players
+        run.match.bots.clear()
+        run.match._pending_bot_scripts.clear()
+        run.match.collision_world = world
+        self.assertTrue(run.match.switch_hero(player, heroes()[TRACER]))
+        mover = player.mover
+        mover.use(world=world)
+        mover.position[:] = (46.5, 7.0, 43.3)
+        mover.body = None
+        component = player.body_script.component
+        blink = next(i for i in component.instances.values() if i.graph.index == 0x24)
+        run.step({player: (16384, 0, 8)})
+        x, y, _ = mover.position
+        self.assertGreater(x, 46.5)
+        self.assertLess(x, 47.5)
+        self.assertAlmostEqual(y, 7.0, delta=0.05)
+        self.assertEqual(blink.vars[11].value(), 2)
+        self.assertEqual(mover.history[-1].position, tuple(mover.position))
+        for _ in range(20):
+            run.step({player: (16384, 0, 8)})
+        self.assertAlmostEqual(mover.position[0], x, delta=0.01)
+        self.assertFalse(mover.airborne)
+        self.assertEqual(blink.vars[11].value(), 2)
 
     def test_dead_body_cannot_blink(self):
         target = next(t for t in self.run.match.combat._targets() if t.owner is self.player)

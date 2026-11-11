@@ -12,7 +12,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ow174.game import messages, replay_values
+from ow174.game import messages, npc, replay_values
 from ow174.game.bits import BitWriter
 from ow174.game.collision import StaticCollisionProvider, World, flat_world
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, Spawn
@@ -28,6 +28,7 @@ from ow174.game.server_journal import (
     replay_server_session,
 )
 from ow174.lobby.matchmaker import Found, Matchmaker, Ticket
+from ow174.paths import DATA_DIR
 
 REAPER = 0x02E0000000000002
 MAP = dataclasses.replace(
@@ -217,6 +218,54 @@ class ServerJournalTests(unittest.TestCase):
         self.assertFalse(result["complete_battle_replay"])
         self.assertFalse(result["full_state_verified"])
         return document, replay, result
+
+    def test_tracer_and_trooper_combat_replays_controlled_npc_roots(self):
+        catalog = DATA_DIR / "pve_npcs_174.json"
+        if not catalog.is_file():
+            self.skipTest("prepared NPC catalog and graphs required")
+        definition = next(d for d in npc.load_catalog(catalog).values() if d.name == "Trooper")
+        session, sent = self.make()
+        (peer,), (player,) = self.connected(session, sent, two=False)
+        peer.message(21616, pick(player.entity, 0x02E0000000000003), now=101.0)
+        self.assertEqual(player.hero.guid, 0x02E0000000000003)
+        match = player.match
+        x, y, z = player.mover.position
+        entity = session.apply("spawn_npc", {
+            "match_id": match.id, "definition": dataclasses.asdict(definition),
+            "position": (x, y, z + 5), "team": 1, "yaw": -32768,
+        })
+        bot = next(b for b in match.bots if b.entity == entity)
+        self.assertIsNotNone(bot.body_script)
+        self.assertIsNone(bot.body_script.component.fault)
+        peer.commands(player.body_script.frame + 1, 1, 1, now=101.0)
+        self.assertEqual(match.combat.vitals[entity].total, definition.health - 12)
+        selector = (match.id, player.slot)
+        self.assertEqual(session.apply("npc_attack", {"player": selector, "enabled": True}), entity)
+        for step in range(1, 80):
+            session.tick(101.0 + step * 0.016)
+            if match.combat.vitals[player.body].total < 150:
+                break
+        self.assertEqual(match.combat.vitals[player.body].total, 130)
+        self.assertEqual(session.apply("npc_attack", {"player": selector, "enabled": False}), 1)
+        document, replay, result = self.verify(session)
+        self.assertGreater(result["send_attempts"], 0)
+        copied = replay.server.matches[0]
+        self.assertEqual(copied.combat.vitals[entity].total, definition.health - 12)
+        self.assertEqual(copied.combat.vitals[copied.players[0].body].total, 130)
+        self.assertFalse(next(b for b in copied.bots if b.entity == entity).attack_input)
+        for operation in ("spawn_npc", "npc_attack"):
+            with self.subTest(tampered_operation=operation):
+                changed = copy.deepcopy(document)
+                row = next(r for r in changed["roots"] if r["operation"] == operation)
+                arguments = replay_values.decode(row["arguments"])
+                if operation == "spawn_npc":
+                    x, y, z = arguments["position"]
+                    arguments["position"] = (x, y, z + 1)
+                else:
+                    arguments["enabled"] = False
+                row["arguments"] = replay_values.encode(arguments)
+                with self.assertRaises(ServerJournalError):
+                    replay_server_session(changed, resolver=session.registry.resolve)
 
     def test_factory_is_per_match_and_defaults_remain_optional(self):
         provider = StaticCollisionProvider(flat_world(0.0))

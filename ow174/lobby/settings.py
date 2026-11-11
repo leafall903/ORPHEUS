@@ -1,8 +1,12 @@
 """How the lobby server is configured."""
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from ow174.paths import Paths
+
+if TYPE_CHECKING:
+    from ow174.game import dragon, sonic
 
 
 @dataclass(frozen=True)
@@ -19,3 +23,5 @@ class Settings:
     test_players: int = 0
     paths: Paths = field(default_factory=Paths)
     build_missing_collision: bool = False  # local client testing may extract a missing cache
+    sonic_profile: "sonic.Profile | None" = None
+    dragon_profile: "dragon.Profile | None" = None

@@ -5,7 +5,1121 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### 2026-11-11
+
+#### Tracer lane integration handoff
+
+- Preserve the existing Tracer combat implementation, shared server and
+  StateScript changes, cross-hero and NPC interactions, and their tests.
+- The integrated Winston regression passed 94 methods. The retained
+  Reinhardt Pulse regression reproduces two failures with batched shield
+  turns and release. Full static and original-client acceptance remain open.
+
+
+#### Tracer and Hanzo
+
+- Verify that all five marked Talon NPCs return damage to Tracer and
+  that a combined ricochet deploys reveal only on terminal impact.
+- Complete the authored Dragonstrike windup and recovery in the server
+  simulation. Verify the initial arrow's charge gate, timing, hit, range
+  and lethal interruption by Tracer. Mount profile-backed moving dragons
+  at normal server startup. Verify range and wall continuation, Blink,
+  Recall, source attribution, lifetime and departure.
+- Sample complete Tracer movement batches at their original world frames
+  and split fractional dragon births at the next frame boundary. Verify
+  Winston dome interception and projected barrier absorption by phase.
+- Preserve Recall activation and completion boundaries when Dragonstrike
+  samples a complete batch of Tracer commands. Verify moving dragon damage
+  on all five actual Talon bodies and allied Tracer exclusion.
+- Verify Talon return attacks, death events and corpse retention. Admit
+  the initial arrow to Deflect and Grasp, retain Matrix absorption and
+  transfer reflected continuation ownership. Verify moving damage passes
+  through the three active projectile defenses.
+
+#### Tracer hit regions
+
+- Verify Soldier's actual body hit, critical hit, high miss and cover
+  against crouched Tracer. Verify that view delay uses the prior standing
+  hit region after the target crouches.
+- Verify crouched Icicle and Orb of Destruction hits and high misses.
+  Verify in-flight stance changes for Icicle and Pulse Bomb attachment.
+- Use complete observed input batches for Pulse Bomb contact and attached
+  detonation. Verify stance changes, explosion position, damage and hit frame.
+- Verify batched Recall detachment at the last unprotected pose and
+  explosion immunity. Preserve Genji's contact-time Deflect state and
+  redirect when later commands turn or start Deflect.
+- Use D.Va Matrix state, eye and aim on each observed Pulse flight tick.
+  Verify late activation after a stick and turning away after absorption.
+- Use sampled Grasp bounds for Pulse while the same 1D02 activation is
+  active. Verify a late press preserves attachment and a later turn
+  preserves the 355-point credit and eventual 213-point shield grant.
+- Apply a batched Grasp shield request on its original expiry tick, after
+  earlier Pulse absorption. Verify cumulative pistol and Pulse credit,
+  one grant, and the decay start against separate updates.
+- Keep in-flight Flashbang and Pulse in world-frame order during batched
+  Grasp. Cancel the shield request when Flashbang interrupts the same
+  activation before its scheduled expiry.
+- Align the interrupted Grasp cooldown and its wake with the Flashbang
+  hit frame. Preserve prior absorption credit and verify early rejection
+  and on-time reuse.
+- Schedule Winston's pending barrier on its deployment frame and preserve
+  earlier Pulse contacts when the barrier expires during a batch.
+- Verify Flashbang rejects a fresh Winston cast without consuming cooldown
+  and preserves the independent wait for a cast already started.
+
+### 2026-11-10
+
+#### Tracer and Zenyatta
+
+- Resolve actual Orb of Destruction body and critical contacts,
+  cap charged release by remaining ammunition, and route both
+  orbs through projectile defenses. Verify Tracer's return
+  fire, Blink, Recall and lethal charge interruption.
+- Resolve Harmony healing and Discord damage on Tracer using
+  the source orb graphs' search and timing values. Verify
+  expiry, recast, Recall cleanse and Winston dome denial.
+- Drive Transcendence from the authored cast and countdown.
+  Verify Tracer healing, Pulse and Flashbang immunity, and
+  damage after expiry with no caster input. Feed effective
+  Orb of Destruction damage and Harmony healing to 0B8B.
+- Verify Harmony healing and charge, Discord amplification of
+  Tracer's pistols and Pulse Bomb, unmodified NPC return attacks,
+  and Transcendence team and expiry gates on all five Retribution
+  NPCs. The tests use server fixtures with manual NPC engagement.
+  Native effect parity and original-client acceptance remain open.
+- Settle Transcendence healing across world gaps beyond retained
+  attack frames. Verify actual Ana anti-heal and healing resumption
+  after Winston dome and Mei Ice Wall expiry. Use the latest known
+  poses in the skipped interval. Original-client acceptance remains open.
+- Settle Harmony healing and charge before retained combat frames.
+  Verify occlusion and range grace, recovery after actual Ana anti-heal,
+  and actual Pulse Bomb damage before and after Discord expires.
+- Advance admitted Pulse Bombs with Zenyatta orb effects before
+  the retained combat window. Verify Discord amplification,
+  Transcendence immunity and death timing at the blast frame.
+- Verify Pulse flight and attachment across the same gap. Contact
+  and blast can fall on opposite sides of the orb effect's deadline.
+
+#### Tracer and Roadhog
+
+- Use the authored ring configuration to launch all 25 Scrap Gun
+  primary pellets per round. Verify death, miss, team and cover
+  gates and Tracer return fire. Native spread and original-client
+  acceptance remain open.
+- Emit the authored Scrap Gun secondary fragments when the slug
+  expires. Verify close contact, the split boundary, cover and
+  ammunition use. The expiry callback is a server reconstruction.
+- Route Scrap Gun pellets and slugs through shared projectile defenses.
+  Verify Winston dome, Deflect, Matrix and Grasp. Exercise shared ammo,
+  both reload paths and held-fire recovery. Native filter parity stays open.
+- Host Chain Hook from the actual launch state and pull graph.
+  Verify damage, player pull and release, blocked Tracer inputs,
+  evasion, cover, Winston dome and cooldown reuse.
+- Preserve the Chain Hook input cutoff after release so late
+  commands from the pull interval cannot fire or Blink. Verify
+  Pulse interruption, range edge and release on death, departure
+  and new cover.
+- Host Chain Hook pulls on the five extracted Retribution NPCs.
+  Verify attack suppression and recovery, Tracer shots during
+  the pull, team and lifecycle cleanup, and Pulse attachment.
+- Host Take a Breather self-healing and the timed damage stack.
+  Verify Tracer pistol and Pulse mitigation across world gaps,
+  actual anti-heal, interruption, lethal cleanup and reuse.
+- Resolve Whole Hog's authored ring volley and force through the
+  shared combat and movement paths. Verify charge earned by
+  Scrap Gun damage, cast lifecycle, protection and displacement
+  of Tracer and the five Retribution NPCs.
+- Verify Defense Matrix and Kinetic Grasp absorb Whole Hog without
+  damage or force. Verify Flashbang and lethal Tracer fire end
+  an active volley.
+- Verify Genji Deflect returns Whole Hog damage and force to
+  Roadhog and credits the hits to Genji.
+- Verify Whole Hog falloff, its 100 m contact limit and normal
+  pellet damage on Tracer head contact.
+- Credit effective Take a Breather self-healing through Roadhog's
+  authored ultimate charge graph. Verify undercharge rejection,
+  a self-heal-funded cast and zero charge under anti-heal.
+- Verify that Scrap Gun damage can complete a buffered Whole Hog
+  cast within 150 ms and that a fresh input is required after expiry.
+- Verify Recall blocks Whole Hog damage and force through both
+  active phases and that later volleys hit after Recall ends.
+- Verify Blink evades Whole Hog's aim and that the active cast
+  can hit after Roadhog reaims.
+
+#### Tracer and Bastion
+
+- Verify Recon damage, lethal attribution, miss, team, cover,
+  Tracer return fire, range, falloff, release and manual reload.
+- Verify Reconfigure locks fire until the selected weapon is ready,
+  preserves separate magazines and allows Tracer return fire in Sentry.
+- Verify Sentry falloff and range, Blink evasion, both Recall phases,
+  and Winston dome and Genji Deflect against both weapon modes.
+- Host Bastion's authored Self-Repair healing and health queries.
+  Verify release, resource exhaustion and reuse, anti-heal and
+  lethal Pulse Bomb interruption.
+- Route Bastion damage and effective Self-Repair into the authored
+  charge graph. Verify Tank admission, a lethal shell, expiry and
+  the passive charge pause and restart.
+- Route Tank shells through the existing projectile defenses and
+  barrier splash checks. Verify flight range, falloff, team and cover.
+- Verify Blink and Recall against a live Tank shell and hit all
+  five extracted NPC capsules with both Tracer pistols and Tank shells.
+- End Self-Repair through its recovery branch on control. Verify Tank
+  stun, post-death shell attribution and reuse funded entirely by Sentry.
+- Apply Bastion's active Ironclad filter to incoming damage before armor.
+  Verify Tracer pistol damage across Bastion's mode transitions.
+- Notify Statescript ammo watchers through volley depletion and retain the
+  notification sample in VM snapshots. Verify automatic reload for Recon
+  and Sentry, manual reload clocks under Flashbang and weapon reuse
+  after Self-Repair or Reconfigure during reload.
+- Admit the authored Recon and Sentry rounds to Sigma's Kinetic Grasp.
+  Verify that Grasp and D.Va's Matrix protect Tracer from both weapons.
+- Resolve the deployed Sentry rear core in the retained hitscan pose.
+  Reconstruct the omitted Pulse Pistols and Recon critical multipliers
+  and verify Tracer headshots before and after Fortify expiry.
+- Verify Bastion's actual quick melee hit and configuration gates,
+  Blink and Recall evasion, and Ironclad against Tracer's melee.
+- Verify Recon and Sentry torso damage and notices on all five
+  extracted Retribution NPCs.
+- Verify all three Bastion weapons against Reinhardt, Sigma, Orisa
+  and projected Zarya barriers. Verify Recon Blink and Recall
+  evasion, and Ironclad on both Pulse Bomb impact events.
+- Apply actual Sombra Hack to Bastion. End Self-Repair without
+  trailing healing and preserve weapon fire and transition timing.
+- Apply the same Bastion skill lock to actual EMP. Verify range,
+  cover, team, active repair interruption and all mode transitions.
+- Verify actual Sleep Dart interruption and fresh Tank fire or
+  repair after the sleep deadline.
+- Apply Tank's authored self-splash scalar and knockback rings
+  to actual shell explosions. Verify wall and floor impacts,
+  death credit and movement for players and manual NPCs.
+- Verify the outer Tank splash ring, barrier break, Fortify expiry
+  and Nano mitigation. Verify fractional Self-Repair credit on both
+  sides of the Tank charge threshold.
+- Retire leased and unleased Tank shells with the replaced body.
+  Verify fire at Tank expiry, posthumous hits and all five NPC targets.
+- Advance admitted Tank shells through skipped world frames so
+  damage reads timed protections at impact. Verify Nano expiry,
+  Winston dome expiry and endpoint-only admission.
+- Verify a late Tank Sleep Dart blocks held fire through Recon
+  recovery. At wake, held fire hits and a fresh trigger also works.
+- Verify Sleep Dart preserves Recon and Sentry reload refill
+  clocks and held fire hits at wake. Verify Mei's full freeze
+  interrupts Self-Repair and fresh input heals after thaw.
+- Verify lethal Tracer pistols cancel pending Bastion refill in
+  Recon and Sentry. After refill, recovery keeps its deadline.
+  Verify the separate Sentry exit refill and both weapons after respawn.
+
+#### Tracer and Soldier: 76
+
+- Route ordinary Helix Rockets through shared barriers and
+  projectile defenses. Verify Tracer's Blink and Recall, return
+  fire, and allied protection from Winston, Genji, Sigma and D.Va.
+- Verify Biotic Field's allied healing, Blink range transitions,
+  expiry and recast.
+- Run the default Tactical Visor search and apply its targets to
+  rifle fire. Verify charge, target loss, reacquisition, expiry
+  and death. Keep manual aim on the Visor Helix variant and
+  route it through projectile defenses.
+- Feed Soldier's effective damage and Biotic Field healing to
+  the authored charge graph. Verify an earned Visor, damage
+  falloff during it and charge recovery after expiry.
+- Verify Tracer's pistol pair against Sprint and Pulse Bomb
+  following the sprinting body through detonation.
+
+#### Tracer and Lucio
+
+- Resolve Soundwave health and player impulse through the authored
+  activation. Verify Tracer's Blink, Recall, projected barrier,
+  return fire and Pulse release boundaries.
+- Bind the Sound Barrier slam and status graph to temporary shields.
+  Verify Tracer's pistol and Pulse absorption, shield overflow,
+  Recall, cast interruption, expiration and recast.
+- Run Crossfade's extracted healing and speed graphs. Verify
+  Tracer's actual movement, Amp expiry and reuse, Blink range,
+  anti-heal and healing while an active Amp survives a stun.
+- Drive Lucio's Wall Ride and release jump through the authored
+  graph on static surfaces. Verify Tracer pistol and Pulse hits,
+  finite wall exit, and interruption by stun or death.
+- Verify Crossfade healing and Sound Barrier on all five manual
+  Retribution NPCs. Apply the authored speed modifier to the
+  Assassin's manual approach to Tracer.
+- Sweep Soundwave's authored impulse on all five manual
+  Retribution NPC capsules. Verify midair Tracer hits, a wall
+  stop, Assassin pin release and pursuit after landing.
+- Feed effective Sonic Amplifier and Soundwave damage and
+  Crossfade healing to Lucio's authored charge graph. Verify an
+  earned Sound Barrier and charge recovery after the ability.
+
+#### Tracer and Mercy
+
+- Bridge 006B staff selection to authoritative healing and 006C
+  outgoing damage boost. Verify allied Tracer's healing, damage
+  attribution, beam release and loss, and boosted Pulse launch timing.
+- Verify hostile Mercy blaster damage and Tracer pistol return fire.
+- Bind 006E Guardian Angel's authored selectors and endpoint to
+  friendly Tracer, including Blink, cooldown and flight interruption.
+- Route 00CA Resurrect to the same dead player body with the authored
+  cast, control and immunity timings. Verify return to combat and
+  caster-death interruption, Valkyrie expiry and lethal Pulse.
+- Apply Valkyrie's embedded mover profile and kind 16 flight hook.
+  Verify pitched and vertical input, collision, airborne weapon
+  exchanges, Pulse attachment in flight and the return to gravity.
+- Preserve both Gravitic Flux and Combat Roll in the shared velocity
+  action dispatcher.
+- Mount Mercy's extracted staff root and Valkyrie chain effects. Verify
+  secondary Tracer healing, damage boost, Blink range changes, occlusion,
+  release, idle expiry and boosted Pulse launch.
+- Verify Valkyrie chains with all five actual NPC classes. Remove
+  attachments immediately when a manual NPC is removed and keep
+  player ability cleanup out of the NPC stun path.
+
 ### 2026-11-09
+
+#### Tracer and Pharah Rocket Launcher
+
+- Verify actual rocket direct and splash damage, wall-side splash, range,
+  allied rejection, and Tracer's Blink, Recall and pistol return fire.
+- Admit Pharah's primary rocket to Defense Matrix from its authored
+  volley state and verify interception before damage reaches Tracer.
+- Use the same launch identity for Genji Deflect and verify the reflected
+  rocket's damage attribution and subsequent Matrix admission.
+- Verify Sigma's Grasp absorbs the primary rocket and grants 72 temporary
+  shields, which the next unabsorbed rocket spends before base shields.
+- Resolve primary rocket contact and splash against hostile Winston and
+  Reinhardt barriers, including a breaking rocket and subsequent body hit.
+- Verify the deployed Sigma mesh also stops the rocket and its splash.
+  Cover friendly passage, barrier recall, cooldown rejection and redeployment.
+- Verify Zarya's projected barrier absorbs a direct or splash-only rocket
+  and gives Zarya energy for the shield health actually spent.
+- Verify Pharah Barrage charge rejection, channel lifetime and first
+  rocket damage against Tracer, including team, cover and Recall gates.
+- Verify Tracer's lethal Pulse Bomb ends an active Barrage while released
+  rockets continue their flight.
+- Admit Barrage rockets to barrier collision and verify first-rocket
+  interception by Winston Barrier, Genji Deflect and Sigma Grasp.
+- Verify consecutive Barrage rockets against D.Va Matrix and Zarya's
+  projected barrier, including the first body hit after barrier break.
+- Verify a full fixed-aim Barrage against stationary Tracer through death,
+  remaining launches, natural channel end and projectile retirement.
+- Verify Blink evasion before and after a Barrage impact, plus damage
+  resuming after Blink or Recall returns Tracer to the active firing line.
+- Apply Concussive Blast's authored impulse to Tracer and Pharah.
+  Verify zero damage and team, static cover, Recall and barrier gates.
+- Verify Concussive Blast cooldown rejection and reuse, plus Matrix,
+  Deflect and Grasp behavior for the zero-damage projectile.
+- Verify Pulse Bomb releases from Tracer's displaced position when
+  Concussive Blast hits during windup, and continues in flight when hit later.
+- Verify Tracer and a Trooper exchange real fire after Concussive Blast
+  displaces Tracer, and Recall restores her position before fire resumes.
+- Verify Blink dodges already-launched Enforcer and Sniper rounds.
+  Later NPC rounds reacquire Tracer, who can return fire after moving.
+- Verify Enforcer and Sniper projectiles can hit after Tracer kills the
+  shooter, including a posthumous Sniper kill credited to the NPC.
+- Verify a lethal Sniper round cancels Pulse Bomb during windup, while
+  an already released Pulse can still kill the Sniper and credit Tracer.
+- Verify Recall protects Tracer from already-launched Enforcer and
+  Sniper projectiles, with later rounds hitting after protection.
+- Record manual NPC spawn and attack operations in controlled replay.
+  Reproduce Tracer and Trooper damage in both directions from recorded
+  operations and encrypted input.
+- Verify real Trooper damage funds Tracer's Pulse Bomb and that misses
+  or shots at an allied Trooper leave the cast undercharged.
+- Verify a lethal volley credits only the Trooper's remaining health
+  and further shots at its corpse spend ammo without adding charge.
+- Verify a second Pulse Bomb is funded entirely by actual pistol damage
+  and manual reloads after the first bomb ends.
+- Verify pistol damage builds charge during Pulse flight and fuse, and
+  the Pulse explosion itself adds no charge.
+- Verify passive charge across gaps within the command catch-up window
+  and reproduce the long-gap undercount in a command-only probe. Verify
+  the hosted 256-frame gap releases fire without spending ammo and preserves
+  charge phase. The 1250-frame undercount also occurs with continuous world ticks.
+  An offline ordered replay matches the contiguous 1250- and 2500-frame
+  charge totals and phase, with multi-tick synchronous replay cost.
+
+#### Sombra EMP against Tracer
+
+- Host the authored EMP target search and body application, including capped
+  shield drain and the Tracer ability deadline.
+- Verify cover, range, team and Recall gates, and distinguish unreleased
+  Pulse Bomb from a projectile already in flight.
+- Apply the authored EMP shield damage to raised hostile Reinhardt barriers.
+  Verify static cover, team filtering and the lockout on Tracer behind the shield.
+- Apply EMP shield damage to Zarya's personal and projected barriers without
+  spilling into body health or granting energy.
+
+#### Sombra Hack against Tracer
+
+- Verify selective ability lockout, Pulse windup interruption and recovery.
+- Verify channel rejection by static cover and Recall.
+
+#### Ana Nano Boost with Tracer
+
+- Use the authored team-mode Nano targeting and release for healing and eight
+  seconds of damage amplification and reduction.
+- Keep Pulse Bomb damage from the release frame through detonation. Verify
+  charge and team rejection, expiry, pistol damage and quick melee.
+
+#### Ana Biotic Grenade against Tracer
+
+- Verify Recall's separate cleanse timing with actual Mei frost and Ana
+  anti-heal active together. Frost clears on entry and anti-heal clears
+  with health restoration at completion. Fresh spray applies frost again.
+- Exercise the Recall graph abort in both phases with an actual grenade
+  and Biotic Field. Anti-heal persists to expiry, after which the field heals.
+- Use the authored gravity and apply four-second healing modifiers on impact.
+- Verify enemy damage and healing denial, allied healing and amplification
+  with Soldier's actual Biotic Field, and Recall health restoration.
+- Verify static cover, Winston interception, Matrix absorption and cooldown reuse.
+
+#### Reinhardt Fire Strike against Tracer
+
+- Complete 00E2's empty windup marker so its authored timer releases
+  Fire Strike. Use the direct hit extent and target limit to hit bodies
+  once each. Verify Recall protection, cooldown rejection and fresh reuse.
+  Killing the wounded caster cancels windup but leaves released shots live.
+- Admit Fire Strike to tagged Deflect and Grasp. Verify ownership transfer,
+  reflected armour damage, Matrix absorption and Grasp credit.
+- Spend shield health once per Fire Strike on Reinhardt, Winston and Sigma
+  barriers, continue to bodies behind them, and stop at static cover.
+- Verify the order of Winston bubble damage versus Deflect and Grasp
+  when either defense is in front. Two successive Deflects transfer ownership
+  without refreshing lifetime or repeating damage to a previously hit body.
+- Verify Fire Strike passes allied Tracer and stops at static cover.
+  Host grounded Earthshatter using 00BE ground sampling, windup and a
+  world-clock front. Verify ranged damage and control, lethal close contact,
+  Recall protection, ally exclusion, range and static cover. Verify
+  protection from Reinhardt, Winston and Sigma barriers. Verify early and
+  late Reinhardt shield strafes. Sweep the moving Sigma mesh against the
+  wave between combat frames. Verify ranged damage and stun protection
+  from intact and breaking Zarya projected barriers. Exclude close-hit
+  targets from the ground wave when the close hit breaks a projected
+  barrier. Restore 00BE's jump-cast landing branch with its elapsed gate
+  and check lethal Tracer fire before and after wave release. Verify Ice
+  Wall removal on either side of ground-front contact and Pulse
+  interruption before release versus a bomb that has already attached.
+  Verify terrain propagation on small steps and a mild ramp, blockage at
+  gaps, large ledges and a steep ramp, and Blink entry before or after
+  the wave front passes.
+
+#### Tracer against Orisa Protective Barrier
+
+- Reuse the verified 4062.00C mesh and run the 0BD7 throw and 0BD8
+  deployment graph. Verify Tracer primary, Orisa return fire, Earthshatter,
+  body-switch retirement and authored expiry.
+- Verify Tracer melee and Blink against the mesh. Handle Pulse contact,
+  detonation, detachment on break and static cover.
+- Resolve shield splash visibility before applying damage. Verify both
+  Orisa and Winston shield orders and outer break during or before blast.
+
+#### Tracer against Orisa Fortify
+
+- Consume the live 0CF4 filter and control stack. Verify Tracer pistol,
+  melee and Pulse damage, Earthshatter stun rejection, damage after
+  expiry, cooldown reuse and Soldier critical suppression.
+- Keep Sleep Dart and Accretion damage while Fortify blocks sleep, stun
+  and projectile displacement. Verify return fire and control after expiry.
+  Verify Fortify clears partial frost and freeze can build again after expiry.
+
+#### Tracer against Orisa Halt
+
+- Host the 0CCB orb and detonation message with verified 0CCC and 0CCE
+  graphs. Verify Tracer movement, Blink and Recall, team and static cover
+  gates, cooldown, body replacement, absorption and reflected ownership.
+
+#### Tracer against Reaper Hellfire Shotguns
+
+- Resolve Reaper's authored 20-pellet ring count and spread through
+  independent hitscan rays using the same geometry as Fusion Cannons.
+- Verify torso damage, partial and full cover, off-axis hits, range and
+  team gates, manual reload, Recall and Blink after pose publication.
+- Apply Reaping to actual hostile pool loss and verify both quick melees.
+  Overkill and blocked pellets add no healing.
+
+#### Tracer against McCree Peacekeeper
+
+- Resolve Fan with authored cone angles retained per activation and
+  deterministic 104319 table sampling under reconstructed seed identities.
+- Verify primary and return fire, six-round damage and ammo, duplicate
+  input, off-axis hits, range, cover, reload, Flashbang, Blink and Recall.
+
+#### Tracer against McCree Deadeye
+
+- Host the original 022F searches and verified 01EE target effects.
+- Verify off-axis release, ammo, lethal damage, distinct lock and shot
+  ranges, cover and barrier interception, Blink, Recall, cancel, expiry,
+  Flashbang, caster death and body replacement.
+
+#### Tracer against McCree Combat Roll
+
+- Consume authored 01F0 velocity requests before collision-aware movement.
+- Verify evasion and re-aim, ammo refill, held Fan, wall clipping, cooldown,
+  actual Flashbang and lethal Tracer fire. Retain pending velocity in snapshots.
+
+#### Tracer and Moira Coalescence
+
+- Host the original 1007 ally and enemy searches and apply the separate
+  damage, healing and self-heal operations.
+- Verify piercing, cover, range, Blink, Recall, Winston Barrier, Deflect,
+  Flashbang interruption, lethal pistol fire, natural end and recast.
+
+#### Tracer and Moira Biotic Orb
+
+- Host actual damage and healing releases, bouncing flight and a
+  shared energy budget per orb. Verify Recall, static cover, expiry,
+  selection cancellation, shared cooldown and release persistence.
+- Verify Deflect transfers the damage aura, and actual Sigma Grasp
+  and D.Va Matrix remove the orb before it reaches Tracer.
+
+#### Tracer and Moira Biotic Grasp
+
+- Publish the actual F76 damage target, apply its authored damage and
+  self-heal, and recover fuel through the original hit expression.
+- Host the authored spray packets and trailing heal. Verify ally,
+  range, cover, fuel and release gates, Recall, barrier break and
+  lethal interruption.
+
+#### Tracer against Reaper Shadow Step
+
+- Route actual selection edges to 00F2, validate and lock the static
+  landing, and revalidate at completion.
+- Verify cancel, early retry, cooldown reuse, wall and occupancy gates,
+  and Tracer's pistol and Pulse interactions across phase. Lethal pistol
+  fire and actual Flashbang prevent the pending teleport.
+
+#### Tracer against Reaper Death Blossom
+
+- Host the 0044 channel with 0045's human damage and cadence. Verify
+  charge rejection, full duration, input gaps, Blink and Recall,
+  static cover and team gates.
+- Verify a Winston bubble break protects Tracer for that pulse, and
+  actual Flashbang and lethal Pulse Bomb stop the channel.
+
+#### Tracer and Orisa Supercharger
+
+- Deploy the 200 HP device through actual ultimate input and run its
+  authored lifetime and buff graphs with the verified 104319 mesh.
+- Verify allied pistol amplification, range and static cover, enemy
+  device destruction, loss of Orisa's damage boost and authored expiry.
+- Resolve Tracer melee and Pulse contact and blast against the device.
+  Verify fuse retention after a contact break, blocked splash, ally
+  rejection and deployment cancellation by lethal pistol fire.
+- Verify the allied aura boosts Tracer's melee, Pulse contact and blast
+  and that Pulse retains the launch multiplier after Tracer leaves the aura.
+- Verify a manually controlled Trooper hits Tracer for 30 under the aura
+  and for 20 after Tracer destroys the device with pistol fire.
+- Verify that lethal Tracer fire after launch preserves flight. Retain
+  the deployed boost through death and replay the deployment callback on
+  respawn. Respect its passive charge lock through expiry and verify recast.
+
+#### Tracer against five NPC classes
+
+- Admit the Enforcer and Sniper projectiles to Genji's tagged
+  Deflect path. Verify frontal return, facing and team rejection,
+  and Genji attribution when a returned Sniper shot kills.
+- Route both tagged NPC rounds through Sigma's Kinetic Grasp.
+  Verify shield conversion, rear rejection and nearer-defense
+  ordering with active Genji Deflect.
+- Route both NPC rounds through Winston, Reinhardt, Sigma and
+  Orisa barrier contact. Verify dome team filtering, expiry and
+  contact on either side of a Sniper round's reflection.
+- Verify D.Va Matrix team filtering and Zarya projected-barrier
+  energy and break behavior against both NPC rounds. Verify a
+  nearer Matrix intercept leaves the projected barrier untouched.
+- Route tagged Trooper and Heavy Assault rays through Sigma's
+  Grasp. Verify the first volley against dome, Deflect and Matrix,
+  including a two-ray Heavy return with Genji kill credit.
+- Forward the Assassin pin's authored damage tag. Verify projected
+  Particle Barrier absorption, energy and break during a live pin.
+- Reject Assassin pin admission during Mercy Resurrect protection.
+  Verify lethal contact and continuous damage, same-body recovery,
+  Blink after rising and reengagement at immunity expiry.
+- End the Assassin's old pin scope before reusing a Tracer body ID.
+  Verify fresh contact after normal respawn and live replacement.
+- Settle active Assassin pin damage on its combat frame across
+  world update gaps, including Sound Barrier decay and lethal timing.
+- Verify Nano expiry during an active Assassin pin and the sleep
+  interruption, pistol wake and reengagement sequence.
+- Verify a released Pulse Bomb sticks and detonates during an
+  Assassin pin, including lethal release, nonlethal continuation
+  and close self-damage.
+- Verify same-frame pin and Pulse lethality under contiguous,
+  24-frame and 100-frame updates.
+- Verify Reinhardt, Sigma and Orisa meshes absorb actual Trooper
+  and Heavy Assault rays, including a same-frame Heavy hit after break.
+- Verify Trooper and Heavy ray absorption and energy on projected
+  barrier break, and paired Heavy rays across both active shields.
+- Verify all five actual NPC attackers credit one Tracer death and
+  resume damage on normal respawn. Cover both lethal Heavy rays.
+- Verify actual Pulse Pistol bloom against all five NPC capsules,
+  including distant partial hits and full-bloom wall separation.
+- Verify two lethal Pulse Bomb casts funded from zero by actual
+  pistol damage against each NPC class. Extend miss and allied
+  charge rejection to all five classes.
+- Verify two Pulse Bomb kills funded from zero by pistol damage
+  against a Soldier player who respawns on the normal timer.
+- Verify Pulse contact and blast cover and team gates against all
+  five NPC classes, plus falloff measured from capsule surfaces.
+- Verify manual Assassin contact and continuous pin across active
+  Winston, Reinhardt, Sigma and Orisa barriers in the static host.
+- Verify the manual Assassin pin persists while Deflect, Matrix
+  or Grasp intercepts a separate Trooper ray.
+- Verify two-way Tracer and Soldier quick melee against aim, range,
+  cover and team gates, including held and released cooldown presses.
+- Verify those quick melee gates, cooldown presses and damage credit
+  against all five actual NPC classes.
+- Verify a second Recall after actual damage from each NPC class,
+  including early rejection and a new rewind position.
+- Verify Recall one frame before and on first NPC impact, including
+  recovery from nonlethal damage, lethal rejection and the pin lock.
+- Verify Tracer's three attacks against a Soldier stunned by allied
+  Flashbang, including stun cleanup on death and Pulse after expiry.
+- Verify pistol, melee and Pulse contact shorten actual NPC sleep
+  after the wake grace period, with attack input resuming on expiry.
+- Verify Pulse splash preserves or shortens sleep by grace timing
+  and clears it on a lethal hit against all five NPC classes.
+- Verify Tracer attacks against a player slept by allied Ana,
+  including splash timing and the first accepted rifle input on wake.
+- Verify enemy and allied Ana grenades block or boost Harmony
+  on all five NPCs wounded by Tracer, including expiry and credit.
+- Route Hanzo's full and short draw arrows through projectile
+  defenses. Verify actual Winston, Deflect, Matrix and Grasp inputs.
+- Verify full-draw arrows against three deployed meshes and Zarya's
+  projected barrier, including break without spill and the next hit.
+- Apply authored bow acceleration and route Sonic and Storm arrows
+  through projectile defenses. Verify direct damage and Winston interception.
+- Allow one Storm Arrow wall ricochet and verify post-bounce
+  damage, cover, team and Tracer defense interactions.
+- Preserve the Storm ricochet when a combined volley selects the
+  Sonic projectile. Recheck state transitions after watched-variable
+  changes so Storm ends at five arrows. Verify the combined charge
+  budget, cooldown rejection and a fresh five-arrow volley.
+- Run the authored Sonic reveal flag stack with an explicit
+  reconstructed profile. Verify body attachment, wall reveal,
+  range exit and expiry, and no reveal on Winston dome interception.
+- Mount the explicit Sonic profile through local server startup. Verify
+  short-draw and combined reveal in server-created matches and reject
+  invalid profiles before lobby setup. Verify Deflect ownership and no
+  field after Kinetic Grasp or Defense Matrix.
+- Verify Sonic reveal at lethal impact, Hanzo death and leave, Tracer body
+  replacement and overlapping fields. Verify reveal and allied Tracer
+  pistol hits on all five Talon classes.
+- Verify Blink one frame before and on first NPC impact, including
+  hitscan re-aim, projectile evasion and the Assassin's pin lock.
+- Verify Pulse Pistol critical damage and kill credit against the
+  standing Tracer bind sphere and all five NPC height fallbacks.
+- Verify lethal attacks from all five NPCs cancel Pulse Bomb before
+  release and preserve the bomb and Tracer kill credit after release.
+- Verify both Pulse release outcomes against actual Soldier rifle and
+  Helix inputs, including bombs that attach after Tracer dies.
+- Verify actual Flashbang interrupts all five manual NPC attacks,
+  breaks an active Assassin pin and permits renewed attacks after stun.
+  Already-launched Enforcer and Sniper rounds still hit, including a
+  lethal Sniper round with NPC attribution.
+- Verify both Blink inputs cross all five NPC bodies without contact damage.
+  Check two-way combat from the landing side, recharge and a return Blink.
+- Verify static geometry clips Blink before all five NPC bodies and that
+  fresh input restores full travel after cover removal. Verify actual Blink
+  against the cached Practice Range balcony railing.
+- Verify Recall restores position, health and ammo after each actual NPC
+  attack, rejects a recast on cooldown, and permits renewed combat.
+- Verify empty-fire rejection and resumed two-bullet damage and charge after
+  manual reload on all five authored NPCs. Verify Pulse attachment, contact
+  damage, armed fuse and explosion separately on each body.
+- Verify that a static partition blocks manual NPC attacks and Tracer pistol
+  damage and charge against all five authored bodies. Removing the partition
+  restores damage in both directions.
+- Verify that team changes release active NPC attacks, clear an active
+  Assassin pin, and reject allied damage and pistol charge for all five bodies.
+- Verify range rejection at 105 metres and resumed damage in both directions
+  at close range, including the Assassin's approach before pinning. At 25
+  metres both pistol bullets deal 3.6 total and grant 3.6 charge on all five
+  NPC bodies, while missed shots grant neither.
+
+#### Ana Sleep Dart against Tracer
+
+- Apply the 026F effect after Sleep Dart damage, interrupt pending abilities
+  and record sleep separately from other control deadlines.
+- Follow the 224E wake branches. Early damage preserves the deadline and later
+  eligible damage caps the remainder at 0.5 seconds.
+- Verify actual avoidance, cooldown reuse, selected defenses and death cleanup.
+- Verify that an interrupted Pulse Bomb stays canceled until sleep expires
+  and a newly charged cast succeeds. An already released bomb still sticks
+  to Ana and detonates while Tracer remains asleep.
+
+#### Mei Icicle against Tracer
+
+- Use Tracer's standing head region for Icicle hits and reconstruct the
+  omitted 2× Icicle multiplier. Cover and active defenses resolve before damage.
+- Verify actual body and head hits, ammunition use, Blink and Recall, shield
+  contact, Deflect, Matrix, Grasp, death before and after release, and retirement.
+
+#### Mei Ice Wall against Tracer
+
+- Use the actual Ice Wall preview and confirmation to place five independent
+  pillars, with removal, expiry and cooldown.
+- Route Tracer's pistol rounds, melee and Blink through pillar collision.
+  Ordinary projectile splash and Blizzard now include Ice Wall in visibility.
+- Verify actual Pulse Bomb impact, fuse, blast cover and detachment on wall
+  removal. Recall reaches a clear recorded location across a newly placed wall.
+- When a pillar occupies the Recall destination, use the first clear newer
+  position captured at cast time, or retain the current position if all are
+  occupied. Include pillar tops in the mover ground probe for jumping.
+- Resolve Ice Wall and Winston barrier contact by order. The front surface
+  blocks Pulse Bomb blast damage to the rear surface. Ice Wall also blocks
+  Tracer melee from reaching a covered barrier.
+- Apply Ice Wall cover to manual NPC selection and attack input. Actual
+  Enforcer and Tracer fire resumes in both directions after Mei removes it.
+- Revalidate Assassin's manual route against live pillars. Assassin can route around
+  an active wall before pinning Tracer, and a new wall interrupts an active pin.
+
+#### Mei Blizzard against Tracer
+
+- Verify Blizzard keeps damaging and freezing after Pulse Bomb kills Mei.
+  Tracer uses Blink to avoid self-damage while staying in the field.
+- Verify Blizzard cancels Pulse Bomb before release without a refund.
+  A bomb already attached detonates while Tracer is still frozen.
+- Run the actual 064A snowball through ballistic contact and start
+  the reconstructed 065E field on landing. Use the extracted damage
+  and frost cadence, with independent exposure and freeze deadlines.
+- Verify charge, Blink and Recall, Genji reflection, Matrix absorption,
+  and death before and after release.
+
+#### Mei primary frost against Tracer
+
+- Accumulate source-scoped frost on actual spray damage, apply the
+  movement slow and interrupt active input at the freeze threshold.
+- Use the authored spray target count while preserving cover and barrier
+  contacts. Verify Recall cleanse, Blink avoidance, Pulse interruption
+  and replacement body cleanup.
+
+#### Zarya projectile defenses around Tracer
+
+- Admit the two projectile definitions through the active Genji boxes
+  and the existing Matrix and Grasp queries. Reflection transfers
+  ownership, team and the remaining flight budget, including the
+  subsequent Graviton field.
+- Resolve Winston bubble impacts on the approach side. A breaking
+  secondary blast respects the original barrier cover.
+
+#### Zarya Particle Cannon and Graviton Surge against Tracer
+
+- Apply the authored secondary and Graviton projectile acceleration.
+- Verify Blink crossing the active Graviton edge and next-tick capture
+  when Blink lands inside the field. Reject new Blink and Recall presses
+  during an active pull. First capture discards prior mobility input, including
+  Recall buffered at the end of cooldown. Primary fire and fresh casts after
+  expiry still work. Verify Pulse contact and detonation during pull, and
+  field expiry after Tracer kills the caster with pistol fire. Two overlapping
+  fields deal damage and maintain the mobility lock through the last expiry.
+  Actual secondary splash, Blink evasion, Recall and cover are verified.
+- Deploy the 0260 field from the actual 025F impact. The host applies
+  the extracted 0261 damage and uses its pull scalar for world-clock
+  movement, with expiry and source-body retirement.
+
+#### Tracer against Zarya Particle Barrier
+
+- Route actual personal and projected barrier hits to their 200-point
+  activation pools. The absorbed loss drives Zarya's authored energy
+  receiver. Projected Barrier checks ally, range and static cover.
+- Verify Tracer pistols, melee, Pulse contact and fuse, and charged
+  return beam damage. Pulse follows the barrier activation and
+  detaches when that activation ends.
+
+#### Tracer against Wraith Form, Fade and Cryo-Freeze
+
+- Complete the three stock protection entry gates. The active phase
+  stack removes Wraith Form and Fade from hostile contacts.
+  Cryo-Freeze remains a solid damage-immune contact.
+- Verify actual Tracer pistols, melee and Pulse, protection expiry
+  and Wraith cancel and reuse. Fade detaches Pulse, and Wraith Form
+  and Fade release a live Flux lift.
+
+#### Sigma Hyperspheres against Tracer
+
+- Run authored 187F sphere gravity, body and wall radii, bounce values
+  and expiry blast. Retain the flight budget through bounces and Deflect.
+- Resolve hostile shield and absorption contacts. Actual Tracer fixtures
+  cover direct and expiry damage, walls, Blink, Recall, teams and
+  caster body replacement. Actual quick melee covers both directions,
+  static cover and Recall.
+
+#### Sigma Gravitic Flux against Tracer
+
+- Verify both Blink inputs are rejected during lift and a fresh press
+  works after landing. Pulse Bomb can hit the airborne caster while
+  the lift and slam still resolve if Sigma survives. A lethal Pulse blast
+  after pistol damage during the fuse prevents the pending slam.
+- Resolve static placement and hostile capsule selection for 1E41.
+  Confirming placement starts the authored 1DBC effect on selected
+  player bodies. Apply its entry damage, lift and grounded slam.
+- Use the caster flight tuning during selection. Actual Tracer commands
+  cover Blink escape, Recall admission and lockout, and a pistol kill
+  that ends the cast before confirmation.
+
+#### Sigma Accretion against Tracer
+
+- Read the 1BBB launch bias, acceleration and knockback rings. Sweep
+  the rock on bounded world steps and pass its tagged direct damage
+  through the authored control request.
+- Apply the 0.8-second host stun and collision-clipped player impulse.
+  Actual Tracer commands cover input interruption, Blink after expiry,
+  Recall protection, splash-only impact, cooldown reuse and caster
+  body replacement.
+
+#### Sigma Experimental Barrier against Tracer
+
+- Run the authored deploy, recall, cooldown and redeploy inputs with a
+  reconstructed actor using the verified 104319 C015 collision mesh.
+- Route actual Tracer pistol rounds, quick melee and Pulse contact and
+  blast to the projected barrier. Resolve each pistol round separately
+  when the barrier breaks between rounds.
+- Notify graph conditions as the linked ability cooldown elapses.
+
+#### Sigma Kinetic Grasp against Tracer
+
+- Evaluate the active 1D02 bounds and feed each intercepted round to
+  the authored accumulator. Pulse is retired before stick and blast.
+- Handle the authored 1D03 request on exit with a separate temporary
+  shield pool, delayed decay and removal on body replacement.
+  The contact and potential blast sum for Pulse, view-oriented boxes
+  and shield storage are server reconstructions.
+
+#### Tracer combined defense fixtures
+
+- Run actual Tracer, Genji and Winston commands in the same encounter.
+  Team changes establish whether the sphere intercepts the outbound
+  shot or the reflected return. Same-side explosion damage retains
+  Tracer attribution.
+- Run the real 02CC Matrix and 00FA bubble together. The nearer defense
+  wins Pulse contact. After Deflect transfers ownership, the return can
+  be absorbed by the original shooter's allied Matrix before the sphere.
+
+#### Tracer Pulse against Winston Barrier Projector
+
+- The authored Pulse sphere checks both sides of the deployed 00FA
+  barrier. Contact deals five, starts the fuse and retains the exact
+  bubble instance. Retirement clears attachment and preserves the fuse.
+- Detonation deals up to 350 to each visible enemy bubble and uses
+  the pre-damage shell for body occlusion. Actual inputs cover inner and
+  outer contact, break without spill, team admission, and static cover.
+  Native collision filters, detachment motion and replication remain open.
+
+#### Tracer melee and Pulse against Reinhardt Barrier Field
+
+- The actual melee sphere checks the nearest visible mesh point once per
+  activation. At 4 m it deals 30 to the shield alone. At 3 m it reaches
+  both the shield and the body. Walls and allied teams reject both contacts.
+- Pulse uses an ordered spherical sweep, a shield-local attachment and
+  the authored fuse. Contact deals five to the shield, while the blast
+  deals up to 350 and evaluates shield occlusion before applying damage.
+  Releasing the shield leaves the bomb at its last position until the fuse
+  expires. Native pose, detachment motion and pet replication stay open.
+
+#### Reinhardt Barrier Field against Tracer (uncommitted, static gate open)
+
+- Use lane 0007's prepared 104319 barrier triangles with the active
+  0095 raise state. Each Tracer pellet checks the nearest body, wall,
+  barrier or Matrix contact before applying damage.
+- Actual inputs verify front interception, rear armour damage, break
+  between pellets, delayed regeneration and reuse, and a nearer wall.
+  Native pose, pet replication, melee and Pulse Bomb remain open.
+- The hammer range probe sees the active swing on frame 27, with 85
+  damage at 4.5 m and zero at 5 m in the reconstructed fixture.
+
+#### Standing Tracer hitscan regions (uncommitted, static gate open)
+
+- Use Tracer model 02B1's authored motion-1 head sphere for standing
+  hitscan classification. Retain its yaw-rotated offset with the viewed pose.
+- The same Soldier rifle input produces 20 damage to the torso and 40
+  at the head, with the critical flag set only for the latter. A real wall
+  blocks the head ray. Animated pose, crouch and native damage consumption
+  remain open.
+
+#### D.Va Defense Matrix against Tracer (uncommitted, gate failing)
+
+- Reuse lane 007A's ruleset fallback, body possession query and authored
+  Matrix boxes. Load projectile target tags from explicit build104319 data.
+- Compare the Matrix contact against earlier body and world contacts, plus
+  the existing hitscan Winston barrier. Absorbed Pulse Bomb flights retire
+  their projectile record without a stick or explosion. Current aim and
+  target-tag admission remain reconstructed.
+
+#### Selected D.Va mech against Tracer (uncommitted, gate failing)
+
+- Reuse lane 007A's additive graph/mover loading and authored 0407 body
+  selection. The mech uses its own weapon script, capsule and 300/300 pools.
+- Fusion Cannons deal 22 damage across 11 rays at 2 m. Tracer's first pair
+  removes six mech armour. Cover, range, team, release/repress and Recall
+  checks execute actual input. Micro Missiles deal 126 across a full burst
+  and reject reuse during cooldown.
+- VM and replay model fingerprints account for the supplied inputs.
+  Initial possession, form transitions and native pellet trajectories remain open.
+
+#### D.Va Light Gun against Tracer (uncommitted, gate failing)
+
+- Connect the authored pilot pistol graph to the direct body-owner query
+  reviewed in lane 007A. Resolve live player and NPC identities through
+  the Match, and include the query context in read-only snapshots.
+- The default 5 m roster case fires three 14-damage projectiles. A separate
+  single-shot case verifies travel, ammunition and attributed damage.
+  D.Va's mech and form transitions remain open.
+
+#### Reinhardt Rocket Hammer against Tracer (uncommitted, gate failing)
+
+- Adapt lane 0007's active 0048 swing queries, using authored capsule endpoints,
+  radii, timing and 85 damage. Share each swing's hit record across overlapping
+  queries, including when both queries reach the same Winston bubble.
+- Map quick melee and primary onto the same hammer input before computing
+  button edges. Verify windup, one damage event, real wall and team rejection,
+  and actual Recall protection at 3 m. Native sweep and knockback remain open.
+
+#### Symmetra primary beam against Tracer (uncommitted, gate failing)
+
+- Adapt lane 0016's 157C target queries and damage path to the lane's body
+  and Winston barrier services. Actual sustained contact advances all
+  three authored damage rates. Store the duplicate-frame guard.
+- Five focused beam methods pass. Blink clears contact from the next
+  retained pose, Recall blocks damage, and a nearer bubble takes the
+  damage slice. Native query, barrier, armour and timing parity remain open.
+
+#### Zarya primary beam against Tracer (uncommitted, gate failing)
+
+- Adapt lane 013B's 0241 TrackRay outputs and continuous damage to the
+  existing combat services. Read the actual graph's selected entity,
+  rate and reach, and register ray state and the consumed-frame guard.
+- Verify actual sustained damage, release and reuse, range, team and wall
+  rejection, Blink leaving the beam and Recall protection. The ray uses
+  server capsules and authored eye height. Native filter, aggregate outputs,
+  and barrier interaction parity remain open.
+
+#### Brigitte Rocket Flail against Tracer (uncommitted, gate failing)
+
+- Adapt lane 0195's flail volume to the actual 1248 damage states. Read
+  the authored 35 damage and 6 m reach, verify Brigitte's eye offsets,
+  and store each swing's hit set so a target takes damage once.
+- Select 1248's combo cases by index when the resource disables value
+  matching and supplies null case values. Actual release and re-press
+  now reach the next swing. Native sweep and index coercion remain open.
+- The 5 m roster case now deals 35 damage. Focused tests cover re-press,
+  rear and range misses, teammates, real map geometry and Recall.
+
+#### Winston Tesla Cannon against Tracer (uncommitted, gate failing)
+
+- Reuse lane 0009's reconstructed Tesla cone with actual 00FE search and damage
+  states, the authored Winston eye offsets, and lane 0003's shield and Recall
+  handling. Record the last consumed frame in stored combat state.
+- Verify damage and feedback in the 32-hero roster run. Incoming Winston now
+  damages Tracer. Focused fixtures cover sustained fire, release and re-press,
+  duplicate rejection, range, team, walls, Recall, and enemy barrier contact.
+- Native cone, status filters, target payloads and original-client behavior
+  remain open, along with the other incoming primary gaps.
+
+#### Tracer Pulse Bomb launch bias (uncommitted, gate failing)
+
+- Evaluate the authored `m_22CE7F30` lift on the actual 0034 release. Apply
+  its +0.2 vertical bias before normalization and share the resulting direction
+  between authoritative flight and observer projectile creation.
+- Match 160 captured native direction calculations. Actual flat 5-metre input
+  now attaches and deals 5 contact damage before the fuse. The original
+  attachment, Recall, blast falloff, armour and five-NPC checks pass.
+- Animated hardpoint and aimID transforms, incoming critical regions, full
+  interaction coverage and original-client acceptance remain open.
+
+#### Tracer shared baked spread ramp (uncommitted, gate failing)
+
+- Integrate activation-baked float32 spread_ramp and elapsed+1 exit sampling;
+  register causal snapshot state while retaining Tracer per-report shot angles.
+- Current source:1265 distinct methods,1256 passing,9 failed methods/15 subcases,
+  zero skips.7 generic spread and10 actual Tracer spread methods pass. New actual
+  Tracer stored-state replay passes. Earlier Winston actor replay is pre-ramp
+  layout evidence; full server-group and original-client checks remain open.
+- Full-width character model IDs separate hardpoint3 from bone3. Preserve the
+  complete bind chain; animated world muzzle and critical regions remain open.
+- Keep all32 heroes/five actual NPCs and the full interaction matrix in scope.
+  No own commit/patch is produced until the entire static goal passes.
+
+#### Tracer Winston barrier and first-person offsets (uncommitted, gate failing)
+
+- Reuse only reviewed Bubble/Barriers classes, binding actual00FA deployment to
+  server sphere actors. Independently verify modelD02's radius5/motion1 record.
+  Intercept individual hitscan rays before bodies/walls; preserve range/credit
+  behavior, per-ray break ordering and independent melee volume contact.
+- Eleven actual-input cases pass deployment, paired damage, empty rear target,
+  break/ally/inside/exit/wall ordering, melee, death, retirement, world expiry,
+  cooldown rejection and fresh reuse. Register actor/guard causal state. Two
+  new read-only storage and actual deployment-expiry stored replay cases pass
+  in1523.964s; this is not a replicated pet or battle-damage replay claim.
+- Original XML verifies Tracer standing/crouched1.25/.875 and McCree1.425/.9975.
+  Use body-aware offsets for combat origin and Target.eye. Four actual-input
+  low-cover/stance cases pass. A selectively exported Tracer02B1 model passes
+  the104319 content-manifest check; its node3 is not a resolved world muzzle.
+- Current covered selection:1258 distinct methods,1249 pass and9 fail with15
+  subcases, zero skips. The170-method Tracer run exposes incoming body/critical
+  and Pulse contact/attachment/falloff assumptions after eye correction. Keep
+  all failed assertions; do not restore the wrong eye or shorten the range.
+  Remaining1084 checks pass. Earlier green results are historical source only.
+- Pulse hardpoint3/aimID, native filters/pose/pet/wire and full32-hero/five-NPC
+  interactions stay open. Shared spread_ramp/layout change is reviewed and
+  queued separately. Full static goal remains ACTIVE; no own commit/patch,
+  merge or publication. See docs/TRACER_WINSTON_BARRIER.txt.
+
+#### Shared notification lifetime and Ability exit ordering (uncommitted)
+
+- Reproduce both parent queue-marker regressions in the private runtime. Clear
+  CHECK/CHANGED coalescing markers after state cancellation and suppress writes
+  notifying ending states. Reuse existing causal fields and snapshot layout.
+- Queue Ability scope/stop/resource cleanup before releasing arbitration, using
+  the reviewed parent's explicit server reconstruction. Full native inter-object
+  ordering remains open; unrelated parent engine services are not copied.
+- Preserve actual Tracer empty-magazine Recall behavior across five reload-entry
+  offsets and verify held-primary rejection/resumption. The five offsets already
+  passed before this fix; two minimal shared regressions prove the repaired
+  defect. See docs/TRACER_NOTIFICATION_LIFETIME.txt for source/validation scope.
+- Pass1242 distinct current-source tests across the primary run and original-map
+  supplement:1233 main passes plus9 missing-cache skips resolved by47 mover passes.
+  This includes157 Tracer cases, two notification regressions,771 extra script
+  cases and one392.110s two-player lifecycle replay. Frozen source and immutable
+  cache hashes, Ruff and diff checks pass; no new causal fields are introduced.
+- Keep the preceding484-test freeze and16 full server cases as historical-source
+  evidence; full16 were not rerun after the lifecycle patch. Execution probes
+  are refreshed on current source; actual Winston barrier interception still
+  fails. Full static/client acceptance remains open.
+
+#### Shared movement input modifiers for Tracer (uncommitted)
+
+- Reproduce five initialized actual-resource/input failures: shared023A factor
+  leaves Tracer at full speed and00CB/01CB zero-input scopes permit acceleration.
+  Apply the reviewed parent mover17/18/19 split/sign/clamp consumer. Raw command
+  bytes and existing snapshot layout stay unchanged.
+- Seven Tracer fixtures pass four-way scaling, dynamic factors, priority stacking,
+  duplicate commands, body replacement and the actual00CB1.5s scope deadline with
+  next-pose restoration. Explicit fixture activation does not establish native
+  combat status dispatch, instant momentum cancellation or full controls.
+- The prepared-runtime mover group skips9 missing-map-cache tests. Reading the
+  existing original104319 caches directly makes all47 mover tests pass without
+  skips. Cache hashes remain unchanged; no cache build/copy is invoked. Broader
+  frozen-source regression results are recorded separately in lane evidence.
+- Isolate an actual Winston barrier failure:00FA completes deployment and starts
+  cooldown with700 health/9s duration parameters, but actual Tracer primary still
+  damages Winston. Keep this failure and the full32-hero/five-NPC matrix open.
+  See docs/TRACER_MOVEMENT_MODS.txt. No own commit/patch, merge or publication.
+
+#### Typed manual Assassin pin and Tracer buffering (uncommitted)
+
+- Adapt reviewed parent manual1157 support to a distinct server-only controller
+  Entity and typed foreign1650 target. Reserve its identity with the NPC body;
+  retain graph health amounts and a reconstructed elapsed damage clock, input
+  lock, authored interruption and cleanup. Export all new causal state.
+- Reuse reviewed incremental collision-aware pursuit only for manual Assassin.
+  The actual1.5m/.5m/14m/s mover approaches from5m and applies25 damage on frame10.
+  Twelve actual-body fixtures pass pin damage/clock, action rejection, Recall,
+  Pulse cancellation, stop/reengagement, walls, support primary/stun and removal.
+  All five selected actual NPC attacks now damage Tracer and pause during Recall.
+- Reproduce two actual Tracer early-press failures, then retain Ability press
+  timestamps while unready instead of refreshing them every frame. Five cases
+  pass released-press expiry, held input and short buffering at real resource
+  and cooldown gates. See docs/TRACER_ASSASSIN.txt for provenance and scope.
+- Pass430 distinct regressions without skips:414 regular plus16 server snapshot/
+  replay, including148 Tracer tests. The734.484s server group completes in the
+  same owned run; frozen source hashes, Ruff and diff checks pass. Fourteen
+  prepared-runtime NPC repeats pass separately. Audit direct failures are empty;
+  its full-static flag remains false. Evidence is external to the repository.
+  Native AI/controller/wire, health-clock semantics, release animation, QTEs,
+  real-map navigation and the full cross-hero matrix remain OPEN. Parent mover
+  properties17-19 appear in referenced shared status resources; actual activation
+  and scope-end restoration remain an explicit follow-up. No own commit/patch.
+
+#### Pulse Bomb physical Deflect (uncommitted reconstruction)
+
+- Reproduce two actual Q/E transfer/damage failures with a passing rear-contact
+  control. Add scoped Pulse admission under the existing frontal Genji capsule
+  policy, ending old prediction/observers and transferring source/kill credit.
+  Preserve speed at contact, gravity, age, remaining life and authored hit data;
+  begin fuse on a later impact, retaining already-stuck behavior.
+- Fourteen direct cases pass owner/lease retirement, self damage, rear contact,
+  real rear Soldier kill and Flashbang interruption, body replacement, Recall,
+  Blink, lifetime, redirected aim/team/ally, actual walls and the450 PvE branch.
+  One storage fixture verifies owner/body causality without claiming simulation.
+- Native admission/filter/boxes/redirect/fuse semantics and new-owner replicated
+  visual/lease allocation remain OPEN. The eight-transfer per-step bound is an
+  explicit reconstruction. Complete Tracer static/client acceptance is open;
+  no own commit or new patch is made. See docs/TRACER_DEFLECT.txt.
+- Pass394 distinct regressions without skips (379 regular plus15 full-server
+  snapshot/replay), including131 Tracer tests. The same frozen production source
+  passes the513.313s server run; hashes/Ruff/diff checks pass. Fourteen prepared
+  NPC runtime fixtures pass separately with unchanged inputs. Actual Q/E audit
+  observes transfer, old prediction retirement and remaining-life preservation.
+  Repeated expanded contacts reach the reconstructed eight-transfer retirement
+  without damage; that observation does not establish the native policy.
+
+#### Tracer hitscan and melee against Deflect (uncommitted)
+
+- Reproduce three actual-input failures, then reuse the reviewed Genji-lane
+  frontal admission/redirect policy in the per-bullet resolver. Preserve evaluated
+  damage tags, defender team/credit, accumulated falloff and remaining range;
+  block frontal quick melee without return damage. No new causal fields or RNG.
+- Seventeen direct fixtures pass paired reflection, rear exposure, redirected
+  aim/team/ally/wall, kill credit, armour/shields, Recall/Blink, expiry/cancel/
+  cooldown/reuse, body replacement, actual death and both-leg distance handling.
+- Eight unchanged native box-ordering slices pass without engine adapters.
+  This is local endpoint evidence only. Physical Pulse still sticks to active
+  Deflect in an actual Q/E probe; native eligibility, boxes/filters/transforms,
+  physical transfer/lifetime and complete reflection remain OPEN. See
+  docs/TRACER_DEFLECT.txt. Source remains uncommitted pending the full goal.
+- Pass379 distinct regressions without skips (365 regular plus14 full-server
+  snapshot/replay);117 Tracer tests include the17 new Deflect cases. The same
+  frozen production source passed the393.438s full-server run without restart.
+  Source hashes, Ruff and diff checks pass. Fourteen prepared-runtime NPC tests
+  repeat successfully with immutable input hashes; these are separately counted.
+
+#### Enforcer manual incoming combat (uncommitted static acceptance work)
+
+- Review/reuse the parent's uncommitted explicit manual-controller predicate,
+  restricting its declaration to manual Enforcer bodies in this lane. Eight
+  original CC9F61/182C470 tail executions agree with the component-set predicate;
+  native controller allocation and the chosen manual component policy stay open.
+- The real13EB weapon now damages Tracer:2 on frame67 at5m. Actual-input tests
+  cover stop, Recall immunity/recovery, Flashbang interruption/recovery, pistol
+  death/corpse retention and static-wall exclusion/recovery. Causal VM and
+  full-server snapshots include the declared controller components.
+- Direct loads from the parent's separate43-entry NPC runtime match every
+  authored mover field for all five bodies before test patching; all14 NPC
+  fixtures pass there with unchanged input hashes. Earlier lane fixtures used
+  those XML fields in memory. The38-entry base runtime lacks these NPC records;
+  neither its defaults nor the unprepared real-map cache establish deployment.
+- A32-hero command survey records outgoing pistol loss to all32 and incoming
+  held-primary loss from24. This is a diagnostic, not complete weapon/defense
+  acceptance. Actual Genji03A3 StateDeflectProjectiles is active but admits12
+  frontal Tracer damage without reflection: a direct outstanding failure.
+- Pass362 distinct regressions without skips (348 regular plus14 full-server
+  snapshot/replay), including100 Tracer and6 controller-context tests. Full-server
+  tests took660.813s on the same frozen production source; hashes match and the
+  process was not restarted. Separate native8-case and repeated14-NPC runtime
+  checks are not added to the distinct test count. Ruff/diff checks pass.
+- See docs/ENFORCER_MANUAL_CONTEXT.txt. Assassin's separate typed namespace and
+  pin bridge, native weapon fidelity, full static and original-client acceptance
+  remain open. No new own commit, exported patch or shared-source write.
+
+#### NPC owner-health input (uncommitted static acceptance work)
+
+- Reuse reviewed parent2ca9178 as private dependency e3416f5. Its distinct-input
+  join and strict snapshot changes pass 129 selected regressions before this
+  health change; full Tracer acceptance remains open.
+- Bridge NPC STU_9B7648C3 to the body's existing synchronized health input.
+  Native CEB6C0/D177C0 selects component51 and calls its scalar getter; the
+  host uses current aggregate combat health. Foreign entity lookup and the
+  native health component's complete pool policy remain unaccepted.
+- Install manual NPC combat pools before graph initialization so initial health
+  includes shields/armour. A five-class real-input regression failed before the
+  bridge and now covers initialization, pistol damage and terminal zero health.
+- Pass168 selected regressions and Ruff/diff checks. The97-test Tracer audit
+  passes its regressions but still fails both actual Enforcer/Assassin incoming
+  attack probes. Prior full-server results remain historical for this change.
+- Keep Enforcer/Assassin controller eligibility and primary attacks open. No
+  controller predicates are forced. Further own changes stay uncommitted until
+  the complete static goal passes; original-client acceptance remains pending.
 
 #### Tracer Flashbang interactions and buffered weapon interruption
 

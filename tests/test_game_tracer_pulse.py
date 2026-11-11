@@ -5,8 +5,9 @@ from dataclasses import replace
 
 import test_game_tracer as tracer_tests
 
-from ow174.game import combat, stats
+from ow174.game import combat, stats, tracer
 from ow174.game.collision import World
+from ow174.game.commands import CROUCH, Command
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.script import expr
 
@@ -68,6 +69,181 @@ class PulseBombTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
         self.assertTrue(self.vitals.dead)
         self.assertEqual(self.manager.bombs, [])
         self.assertEqual(len(self.player.client.messages(combat.KILL_NOTICE)), 1)
+
+    def test_pulse_bomb_contact_uses_target_tracers_stance_after_release(self):
+        for crouch_at_contact in (False, True):
+            with self.subTest(crouch_at_contact=crouch_at_contact):
+                self.setUp()
+                self.assertTrue(self.run.match.switch_hero(self.enemy, heroes()[tracer_tests.TRACER]))
+                x, y, z = self.player.mover.position
+                self.enemy.mover.position[:] = (x, y, z + 5)
+                self.enemy.mover.body = None
+                initial = 0 if crouch_at_contact else CROUCH
+                for _ in range(12):
+                    self.step()
+                    self.enemy.take_commands([Command(self.run.frame, buttons=initial)])
+                self.assertEqual(self.enemy.mover.crouched, bool(initial))
+                target = next(t for t in self.fight._targets() if t.owner is self.enemy)
+                health = self.fight.vitals_of(target)
+                # This trajectory crosses the standing capsule above the crouched capsule.
+                bomb = self.launch(pitch=-2800)
+                self.assertFalse(bomb.stuck)
+                held = CROUCH if crouch_at_contact else 0
+                self.step()
+                self.enemy.take_commands([Command(self.run.frame, buttons=held)])
+                self.assertEqual(self.enemy.mover.crouched, crouch_at_contact)
+                self.assertFalse(bomb.stuck)
+                self.contact(bomb)
+                self.assertEqual(self.enemy.mover.crouched, crouch_at_contact)
+                self.assertEqual(bomb.attached, None if crouch_at_contact else self.enemy.body)
+                self.assertEqual(health.total, 150 if crouch_at_contact else 145)
+                hits = self.player.client.messages(combat.HIT)
+                self.assertEqual(len(hits), int(not crouch_at_contact))
+                if hits:
+                    self.assertEqual(hits[0]["+0x78"]["+0x4"], 5)
+
+    def test_pulse_bomb_batch_preserves_stance_at_contact(self):
+        for crouch_after_crossing in (False, True):
+            with self.subTest(crouch_after_crossing=crouch_after_crossing):
+                continuous = self.pulse_across_stance_batch(crouch_after_crossing, batched=False)
+                batched = self.pulse_across_stance_batch(crouch_after_crossing, batched=True)
+                self.assertEqual(continuous, (crouch_after_crossing, 145 if crouch_after_crossing else 150))
+                self.assertEqual(batched, continuous)
+
+    def pulse_across_stance_batch(self, crouch_after_crossing, *, batched):
+        self.setUp()
+        self.assertTrue(self.run.match.switch_hero(self.enemy, heroes()[tracer_tests.TRACER]))
+        x, y, z = self.player.mover.position
+        self.enemy.mover.position[:] = (x, y, z + 5)
+        self.enemy.mover.body = None
+        initial = 0 if crouch_after_crossing else CROUCH
+        final = CROUCH if crouch_after_crossing else 0
+        for _ in range(12):
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame, buttons=initial)])
+        target = next(t for t in self.fight._targets() if t.owner is self.enemy)
+        health = self.fight.vitals_of(target)
+        bomb = self.launch(pitch=-2800)
+        for _ in range(15):
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame, buttons=initial)])
+        self.assertFalse(bomb.stuck)
+        commands = [initial] * 12 + [final] * 3
+        if batched:
+            self.enemy.take_commands([
+                Command(self.run.frame + i, buttons=buttons) for i, buttons in enumerate(commands, 1)
+            ])
+            self.run.frame += len(commands)
+            self.run.match.update(self.run.frame * combat.TICK, self.run.frame)
+        else:
+            for buttons in commands:
+                self.step()
+                self.enemy.take_commands([Command(self.run.frame, buttons=buttons)])
+        self.assertEqual(self.enemy.mover.crouched, bool(final))
+        return bomb.attached == self.enemy.body, health.total
+
+    def test_pulse_bomb_batch_uses_attached_target_pose_at_fuse_expiry(self):
+        continuous = self.pulse_fuse_during_movement(batched=False)
+        batched = self.pulse_fuse_during_movement(batched=True)
+        for actual, expected in zip(batched, continuous, strict=True):
+            self.assertAlmostEqual(actual, expected, places=5)
+
+    def pulse_fuse_during_movement(self, *, batched):
+        self.setUp()
+        self.assertTrue(self.run.match.switch_hero(self.enemy, heroes()[tracer_tests.TRACER]))
+        x, y, z = self.player.mover.position
+        self.enemy.mover.position[:] = (x, y, z + 5)
+        self.enemy.mover.body = None
+        # Keep the actual target alive to compare its remaining movement after the blast.
+        health = self.fight.vitals[self.enemy.body] = combat.Vitals(self.enemy.body, 1000)
+        bomb = self.launch()
+        self.contact(bomb)
+        self.assertEqual(bomb.attached, self.enemy.body)
+        for _ in range(70):
+            if bomb.fuse_left <= 0.13:
+                break
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame)])
+        self.assertIn(bomb, self.manager.bombs)
+        self.assertGreater(bomb.fuse_left, 0)
+        self.assertLessEqual(bomb.fuse_left, 0.13)
+        before = bomb.position[0]
+        gap = 14
+        if batched:
+            self.enemy.take_commands([Command(self.run.frame + i, right=-127) for i in range(1, gap + 1)])
+            self.run.frame += gap
+            self.run.match.update(self.run.frame * combat.TICK, self.run.frame)
+        else:
+            for _ in range(gap):
+                self.step()
+                self.enemy.take_commands([Command(self.run.frame, right=-127)])
+        self.assertNotIn(bomb, self.manager.bombs)
+        self.assertEqual(health.total, 645)
+        self.assertGreater(bomb.position[0], before)
+        self.assertLess(bomb.position[0], self.enemy.mover.position[0])
+        hits = self.player.client.messages(combat.HIT)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in hits], [5, 350])
+        return (*bomb.position, *self.enemy.mover.position, health.total, hits[-1]["+0x84"])
+
+    def test_batched_recall_detaches_pulse_at_last_unprotected_position(self):
+        results = [self.check_pulse_recall_batch(batched) for batched in (False, True)]
+        for continuous, batched in zip(*results, strict=True):
+            self.assertAlmostEqual(continuous, batched, places=5)
+
+    def check_pulse_recall_batch(self, batched):
+        self.setUp()
+        self.assertTrue(self.run.match.switch_hero(self.enemy, heroes()[tracer_tests.TRACER]))
+        x, y, z = self.player.mover.position
+        self.enemy.mover.position[:] = (x, y, z + 5)
+        self.enemy.mover.body = None
+        for _ in range(195):
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame)])
+        target = next(t for t in self.fight._targets() if t.owner is self.enemy)
+        health = self.fight.vitals_of(target)
+        bomb = self.launch()
+        self.contact(bomb)
+        self.assertEqual(bomb.attached, self.enemy.body)
+        self.assertEqual(health.total, 145)
+        for _ in range(4):
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame)])
+        first = self.run.frame
+        original = bomb.position
+        commands = [Command(first + i, right=-127, buttons=16 if i == 6 else 0) for i in range(1, 13)]
+        if batched:
+            self.enemy.take_commands(commands)
+            self.run.frame += len(commands)
+            self.run.match.update(self.run.frame * combat.TICK, self.run.frame)
+        else:
+            for command in commands:
+                self.step()
+                self.enemy.take_commands([command])
+        self.assertTrue(tracer.recalling(self.enemy))
+        self.assertIsNone(bomb.attached)
+        self.assertGreater(bomb.position[0], original[0])
+        before_recall = next(p for p in self.enemy.mover.history if p.frame == first + 5)
+        expected = tuple(a + b for a, b in zip(before_recall.position, bomb.offset, strict=True))
+        for actual, position in zip(bomb.position, expected, strict=True):
+            self.assertAlmostEqual(actual, position)
+        detached = bomb.position
+        for _ in range(66):
+            self.step()
+            self.enemy.take_commands([Command(self.run.frame)])
+            if bomb not in self.manager.bombs:
+                break
+        self.assertNotIn(bomb, self.manager.bombs)
+        self.assertTrue(tracer.recalling(self.enemy))
+        self.assertEqual(health.total, 145)
+        self.assertEqual(bomb.position, detached)
+        self.assertEqual(len(self.player.client.messages(combat.HIT)), 1)
+        return detached
+
+    def test_actual_release_applies_authored_upward_bias_at_level_aim(self):
+        bomb = self.launch()
+        self.assertEqual(bomb.velocity[0], 0)
+        self.assertAlmostEqual(bomb.velocity[1] / bomb.velocity[2], 0.2, places=6)
+        self.assertAlmostEqual(sum(axis * axis for axis in bomb.velocity), 15 ** 2, places=4)
 
     def test_miss_lands_without_contact_damage_and_expires_once(self):
         self.enemy.mover.position[0] += 100
@@ -174,22 +350,28 @@ class PulseBombTests(tracer_tests.TracerCommandFixture, unittest.TestCase):
         self.wait(80)
         self.assertEqual(self.vitals.total, 545)
 
-    def test_three_metre_blast_surface_distance_deals_210_damage(self):
+    def test_blast_falloff_and_outer_range_use_capsule_surface(self):
         from test_game_combat import in_world
 
-        bomb = self.launch(pitch=-800)
-        self.contact(bomb)
-        third = self.run.match.add_player(3, "Ring target", SOLDIER, 1, False)
-        in_world(self.run.match, third)
-        self.run.match.switch_hero(third, third.hero)
-        # Sphere-to-capsule surface distance3m, within the2..4m falloff band.
-        third.mover.position = [bomb.position[0] + 3.5, self.player.mover.position[1], bomb.position[2]]
-        self.assertGreater(bomb.position[1], third.mover.position[1] + 0.5)
-        self.assertLess(bomb.position[1], third.mover.position[1] + 1.5)
-        vitals = combat.Vitals(third.body, 500)
-        self.fight.vitals[third.body] = vitals
-        self.wait(80)
-        self.assertAlmostEqual(vitals.total, 290, places=4)
+        for distance, damage in ((3.0, 210), (3.875, 87.5), (4.125, 0)):
+            with self.subTest(surface_distance=distance):
+                self.setUp()
+                bomb = self.launch(pitch=-800)
+                self.contact(bomb)
+                self.assertEqual(bomb.attached, self.enemy.body)
+                third = self.run.match.add_player(3, "Ring target", SOLDIER, 1, False)
+                in_world(self.run.match, third)
+                self.run.match.switch_hero(third, third.hero)
+                x, y, z = bomb.position
+                third.mover.position = [x + distance + 0.5, self.player.mover.position[1], z]
+                self.assertGreater(y, third.mover.position[1] + 0.5)
+                self.assertLess(y, third.mover.position[1] + 1.5)
+                vitals = combat.Vitals(third.body, 500)
+                self.fight.vitals[third.body] = vitals
+                self.wait(80)
+                self.assertNotIn(bomb, self.manager.bombs)
+                self.assertTrue(self.vitals.dead)
+                self.assertAlmostEqual(vitals.total, 500 - damage, places=4)
 
     def test_ultimate_ends_and_can_be_used_again_after_recharging(self):
         self.launch()

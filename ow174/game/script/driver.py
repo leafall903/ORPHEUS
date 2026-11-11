@@ -24,11 +24,20 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import (
+    deadeye,
+    lucio_barrier,
+    lucio_soundwave,
+    mccree_roll,
+    mercy,
+    pools,
+    soldier_visor,
+    wall_ride,
+)
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.script import body_owner, entity_queries, expr, graph, nodes, runtime
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -126,9 +135,208 @@ class BodyWorld(runtime.World):
         self.body = body
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.match: Match | None = None
+        if hero == mccree_roll.HERO:
+            self.velocity_requests = []
+
+        self._body_owner_context = body_owner.Context(
+            body, True, True, lookup=self._lookup_body_owner,
+            watch_environment=self._poll_body_owner, watch_owner=self._poll_body_owner,
+        )
+
+        self._entity_query_context = entity_queries.Context(
+            body, True, True, True, lookup=self._lookup_entity_query,
+            watch_environment=self._poll_body_owner, watch_possession=self._poll_body_owner,
+        )
+
+    def _poll_body_owner(self, *_):
+        # InstanceContext polls native queries with a watcher on every frame.
+        pass
+
+    def _lookup_body_owner(self, entity):
+        if self.match is None:
+            return None
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return body_owner.Target(entity, player.entity)
+            if player.entity == entity:
+                return body_owner.Target(entity, None)
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return body_owner.Target(entity, 0)
+        return None
+
+    def body_owner_override(self, cfg, instance):
+        if instance.graph.index == 0x0B8B:
+            from ow174.game import ultimate
+
+            # The reconstructed passive gate also respects the owner's charge clock.
+            return ultimate.native(self, cfg, instance)
+        return NotImplemented
+
+    def body_owner_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        # The native config poll reads live ownership each frame.
+        return self._body_owner_context
+
+    def _lookup_entity_query(self, entity):
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone:
+                continue
+            if player.entity == entity:
+                current = player.body if player.has_body else 0
+                return entity_queries.Target(entity, entity_queries.Possession(current))
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, None)
+        if (entity == runtime.GAME_MODE_ENTITY or entity in match.combat.halt.orbs
+                or entity in match.combat.superchargers.active
+                or any(bot.entity == entity for bot in match.bots)):
+            return entity_queries.Target(entity, None)
+        return None
+
+    def entity_query_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self._entity_query_context
+
+    def script_component_present(self, entity):
+        if self.match is None:
+            return NotImplemented
+        for player in self.match.players:
+            if not player.gone and player.has_body and player.body == entity:
+                script = player.body_script
+                return script is not None and not script.retired
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return bot.body_script is not None
+        return False
+
+    def create_compatible_pet(self, state):
+        from ow174.game import sigma_barrier
+
+        if self.match is not None:
+            return sigma_barrier.create_barrier(self.match.combat, self, state)
+        return NotImplemented
+
+    def retire_compatible_pet(self, state, entity):
+        if self.match is not None:
+            self.match.combat.sigma_barriers.pop(entity, None)
+
+    def play_compatible_script(self, instance, node):
+        if instance.graph.index in (0x0B1B, 0x0B31, 0x0B32):
+            from ow174.game import sombra_hack
+
+            sombra_hack.apply(self, instance, node)
+            return
+
+        from ow174.game import sigma_accretion, sigma_barrier, sigma_flux, sigma_grasp
+
+        if self.match is None or self.hero != sigma_grasp.HERO:
+            return
+        if (sigma_accretion.play_accretion_control(self, instance, node)
+                or sigma_flux.play_flux_request(self, instance, node)):
+            return
+        combat = self.match.combat
+        if not sigma_barrier.play_barrier_request(combat, self.body, instance, node):
+            sigma_grasp.grant_shields(combat, self.body, instance, node)
+
+    def target_effects(self, state):
+        return deadeye.effects(self, state)
+
+    def tracked_targets(self, state):
+        from ow174.game import moira
+
+        if (self.match is not None and self.hero == lucio_soundwave.HERO
+                and state.instance.graph.index == lucio_barrier.CAST and state.index == 8):
+            return lucio_barrier.recipients(self, state)
+
+        if self.hero == mercy.HERO and state.index in mercy.SEARCHES.get(state.instance.graph.index, ()):
+            if self.match is None:
+                return ()
+            caster = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            return () if caster is None else mercy.query(self.match.combat, caster, state)
+
+        if state.instance.graph.index == deadeye.ULTIMATE:
+            return deadeye.targets(self, state)
+        if state.instance.graph.index == soldier_visor.GRAPH:
+            return soldier_visor.targets(self, state)
+
+        if self.hero == moira.HERO:
+            index = state.instance.graph.index
+            if ((index == moira.GRASP and state.index == moira.DAMAGE_SEARCH)
+                    or (index == moira.COALESCENCE and state.index in moira.BEAM_SEARCHES)):
+                return moira.tracked_targets(self, state)
+        if state.instance.graph.index == 0x0B31 and state.node.pos == 40:
+            from ow174.game import sombra_hack
+
+            player = sombra_hack.caster(self)
+            return () if player is None else sombra_hack.emp_targets(player, state)
+        if state.instance.graph.index == 0x0B1B and state.node.pos in (50, 52, 68):
+            from ow174.game import sombra_hack
+
+            player = sombra_hack.caster(self)
+            return () if player is None else sombra_hack.targets(player, state)
+
+        from ow174.game import sigma_flux, zarya_barrier
+
+        if (self.hero == 0x02E000000000013B and state.instance.graph.index == 0x0B9E
+                and state.index in (3, 6)):
+            return () if self.match is None else self.match.combat.nano_targets(self.body, state)
+        if state.instance.graph.index == 0x025C:
+            return zarya_barrier.projected_barrier_targets(self, state)
+        return sigma_flux.flux_targets(self, state)
+
+    def refresh_compatible_placement(self, state, *, confirm):
+        from ow174.game import sigma_flux
+
+        return sigma_flux.place_flux(self, state, confirm=confirm)
+
+    def modify_health(self, state, elapsed_ms):
+        from ow174.game import bastion_repair, roadhog_breather
+
+        if self.hero == bastion_repair.HERO and bastion_repair.selected(state):
+            return bastion_repair.heal(self, state, elapsed_ms)
+        if self.hero == roadhog_breather.HERO and roadhog_breather.selected(state):
+            return roadhog_breather.heal(self, state, elapsed_ms)
+        if state.instance.graph.index == 0x0B32 and state.node.pos == 9:
+            from ow174.game import sombra_hack
+
+            if elapsed_ms == 0:
+                sombra_hack.drain_shields(self, state)
+            return None
+
+        from ow174.game import sigma_flux
+
+        return sigma_flux.flux_modify_health(self, state, elapsed_ms)
+
+    def tracked_ray(self, state):
+        if (state.instance.graph.index, state.node.pos) == (0x00BE, 105):
+            from ow174.game import earthshatter
+
+            return earthshatter.ground_ray(self)
+        if state.instance.graph.index == 0x0B1B and state.node.pos == 59:
+            from ow174.game import sombra_hack
+
+            player = sombra_hack.caster(self)
+            if player is None:
+                return runtime.RaycastResult(False, None, None, None)
+            return sombra_hack.track_ray(player, state)
+
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and state.instance.graph.index == 0x0241 and state.index in (43, 81)):
+            return self.match.combat.zarya_beam_ray(self.body, state)
+        return NotImplemented
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
+            position = self.match.combat.halt.position(entity)
+            if position is not None:
+                return Vec3(*position)
             position = self.match.script_body_position(entity, self.body)
             if position is not None:
                 return position
@@ -149,9 +357,116 @@ class BodyWorld(runtime.World):
 
         tracer.end_recall(self, state, playback, finished)
 
+    def velocity_action(self, instance, node):
+        if self.hero == wall_ride.HERO:
+            return wall_ride.action(self, instance, node)
+        return mccree_roll.velocity_action(self, instance, node)
+
+    def entity_var(self, entity, var):
+        if self.match is not None and self.hero == mercy.HERO and var == mercy.CORPSE_MARKER:
+            fight = self.match.combat
+            return mercy.eligible_corpse(fight, mercy.body_target(fight, entity))
+        return super().entity_var(entity, var)
+
+    def resurrect(self, instance, node):
+        if (self.match is None or self.hero != mercy.HERO
+                or instance.graph.index != mercy.RESURRECT or node.pos != 20):
+            return NotImplemented
+        fight = self.match.combat
+        caster = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        entity = mercy.first_entity(instance.evaluate(node.field("m_targets")))
+        return mercy.revive(fight, caster, instance, mercy.body_target(fight, entity))
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
-        if self.hero == 0x02E0000000000003 and instance.graph.index == 0x0B8B:
+        if self.match is not None and instance.graph.index == 0x0153:
+            from ow174.game import bastion_repair
+
+            result = bastion_repair.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if self.match is not None and self.hero == lucio_soundwave.HERO:
+            result = lucio_barrier.owner_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            result = wall_ride.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            result = lucio_soundwave.query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if (self.match is not None and self.hero == mercy.HERO
+                and instance.graph.index in (mercy.GUARDIAN, mercy.RESURRECT)):
+            result = mercy.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if instance.graph.index == deadeye.TARGET_EFFECT:
+            result = deadeye.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if instance.graph.index == mccree_roll.ROLL:
+            result = mccree_roll.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if instance.graph.index in (0x0CCB, 0x0CCE):
+            from ow174.game import orisa_halt
+
+            result = orisa_halt.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            if (self.match is not None and instance.graph.index == 0x0CCB
+                    and cls == "STU_2B2E2F6D" and cfg.get("m_7BDB02D1") == 0):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_81A364DE")))
+                orb = self.match.combat.halt.orbs.get(entity)
+                if orb is not None:
+                    return Entity(orb.rocket.halt_body)
+        if (cls == "STU_9B7648C3" and instance.graph.index == 0x0CF5
+                and instance.component.entity == self.body
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            health = instance.component.entity_var(OWNER_HEALTH, create=False)
+            value = health.value() if health is not None else None
+            if type(value) in (int, float):
+                return f32(value)
+        if instance.graph.index == 0x00BE and cls in ("STU_71A87E92", "STU_021D01CD", "STU_C8C4C20D"):
+            from ow174.game import earthshatter
+
+            result = earthshatter.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if instance.graph.index in (0x1E41, 0x1DBC):
+            from ow174.game import sigma_flux
+
+            for query in (sigma_flux.flux_caster_native, sigma_flux.flux_effect_native,
+                          sigma_flux.flux_position_query, sigma_flux.flux_actor_point_query):
+                result = query(self, cfg, instance)
+                if result is not NotImplemented:
+                    return result
+        if instance.graph.index == 0x1BBB:
+            from ow174.game import sigma_accretion
+
+            result = sigma_accretion.accretion_native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if instance.graph.index == 0x1B55:
+            from ow174.game import sigma_barrier
+
+            for query in (sigma_barrier.barrier_owner_query, sigma_barrier.barrier_health_query):
+                result = query(self, cfg, instance)
+                if result is not sigma_barrier.NOT_HANDLED:
+                    return result
+        if (self.hero == 0x02E0000000000016 and self.match is not None
+                and instance.graph.index == 0x157C and cls in ("STU_E72F6348", "STU_AC829876")):
+            queries = instance.graph.state(25).field("m_condition.m_configVars") or ()
+            if cfg in queries:
+                target = instance.evaluate(cfg.get("m_entity"))
+                if not isinstance(target, Entity):
+                    return False
+                fight = self.match.combat
+                if cls == "STU_E72F6348":
+                    return any(body.entity == target.id for body in fight._targets())
+                owner = next((p for p in self.match.players if p.body == self.body), None)
+                return owner is not None and any(body.entity == target.id for body in fight._enemies(owner))
+        if instance.graph.index == 0x0B8B:
             from ow174.game import ultimate
 
             value = ultimate.native(self, cfg, instance)
@@ -183,6 +498,16 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if (cls == "STU_AC829876" and instance.graph.index == 0x0B1B
+                and cfg is instance.graph.node(204).field("m_condition")):
+            from ow174.game import sombra_hack
+
+            player = sombra_hack.caster(self)
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            if player is None or not any(t.entity == entity for t in self.match.combat._enemies(player)):
+                return False
+            with instance.component.parameter_scope({8: Entity(entity)}):
+                return expr.truthy(instance.evaluate(cfg["m_filter"].get("m_condition")))
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
@@ -190,9 +515,11 @@ class BodyWorld(runtime.World):
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
-        if (match is not None and sender == self.body
-                and match.queue_body_message(target, message, params, sender)):
-            return
+        if match is not None and sender == self.body:
+            if match.combat.halt.receive(target, message, sender):
+                return
+            if match.queue_body_message(target, message, params, sender):
+                return
         super().send_message(target, message, params, sender)
 
 
@@ -284,10 +611,16 @@ class BodyScript(ReplicatedBody):
         ult_seconds: float = ULT_SECONDS,
         *,
         match: "Match | None" = None,
+        body_definition: int | None = None,
     ) -> None:
         if type(start_frame) is not int or not 0 <= start_frame <= FRAME_MASK:
             raise ValueError("start_frame must be uint32")
-        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        if body_definition is None:
+            record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+        else:
+            record = graph.bodies().get(body_definition) or graph.entity_body(body_definition)
+            if record is not None and record.get("hero") not in (None, f"0x{hero:016X}"):
+                raise ValueError("selected body belongs to another hero")
         if record is None:
             raise ValueError(f"no statescript data for the hero {hero:016X}")
         self.hero = hero
@@ -307,7 +640,18 @@ class BodyScript(ReplicatedBody):
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        if health is None:
+            initial_pools = (pools.body_pools(hero) if body_definition is None
+                             else pools.active_pools(hero, body_definition))
+            health = sum(initial_pools)
+        if hero == mercy.HERO:
+            # Host the ordinary 30-degree cone with unscaled settings.
+            self.component.set(mercy.GUARDIAN_CONE_SCALE, 1.0)
+        if hero == wall_ride.HERO:
+            # Defaults from the 104319 Lucio hero settings resource.
+            self.component.set(wall_ride.BACKWARDS, False)
+            self.component.set(wall_ride.JUMP_ON_RELEASE, True)
+        self._spawn(start_frame, health)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -365,7 +709,12 @@ class BodyScript(ReplicatedBody):
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
             self._run(missing, [])
         self.world.throttles = (forward, right)
-        self._run(frame, button_edges(self.buttons, buttons, action))
+        previous, current = self.buttons, buttons
+        if self.hero == 0x02E0000000000007:
+            # Quick melee and primary are two inputs to the same hammer.
+            previous |= int(bool(previous & 0x800))
+            current |= int(bool(current & 0x800))
+        self._run(frame, button_edges(previous, current, action))
         self.buttons = buttons
         self.frame = frame
 
@@ -383,10 +732,18 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
-        from ow174.game import ultimate
+        from ow174.game import orisa_supercharger, ultimate
 
         if ultimate.active(self) and self.ult_seconds == ULT_SECONDS:
-            return  # actual0B8B Wait/action loop owns normal Tracer passive gain
+            return  # the actual 0B8B Wait/action loop owns normal passive gain
+        if orisa_supercharger.charging_blocked(self):
+            return
+        if (self.hero == 0x02E0000000000068 and self.world.match is not None
+                and self.world.match.combat.gravitons.charging_blocked(self.world.body)):
+            return
+        if (self.hero == 0x02E00000000000DD and self.world.match is not None
+                and self.world.match.combat.blizzard.charging_blocked(self.world.body)):
+            return
         if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -563,6 +920,13 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        mccree_roll.clear(self)
+        if self.hero == deadeye.HERO:
+            for instance in tuple(self.component.instances.values()):
+                if instance.graph.index == deadeye.ULTIMATE:
+                    for state in instance.states.values():
+                        if isinstance(state, nodes.TargetEffects):
+                            state.clear_children()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

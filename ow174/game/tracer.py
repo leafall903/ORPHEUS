@@ -14,13 +14,14 @@ from dataclasses import dataclass
 
 from ow174.game import contacts
 from ow174.game.mover import turned_pitch
-from ow174.game.script import expr
+from ow174.game.script import expr, nodes
 from ow174.game.world import HEALTH_POOL
 
 HERO = 0x02E0000000000003
 BLINK_GRAPH = 0x0024
 BLINK_ACTION = "STU_A807207A"
 RECALL_GRAPH = 0x001A
+MOBILITY_BUTTONS = (29, 35, 36, 110, 112, 114)
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class RecallSession:
     component: object
     sample: RecallSample
     state: object
+    later_positions: tuple[tuple, ...]
 
 
 def _player(world, component=None):
@@ -95,7 +97,9 @@ def begin_recall(world, state, playback):
         seconds_back = expr.to_float(instance.find_var(expr.INSTANCE, 7125).value())
         cutoff = component.now - seconds_back * 1000
         sample = next((s for s in reversed(history) if s.time <= cutoff), history[0])
-        world.recall_session = RecallSession(component, sample, state)
+        later_positions = tuple(pose.position for pose in history if pose.time > sample.time)
+        world.recall_session = RecallSession(component, sample, state, later_positions)
+        player.match.combat.zenyatta_orbs.clear_discord(player.body)
         # The authored fade-in ChaseVar supplies the preparatory interval. This
         # timing policy substitutes for the missing native 54FEB21C completion.
         seconds = expr.to_float(state.evaluate(instance.graph.node(16).field("m_5BEFF040"),
@@ -124,12 +128,20 @@ def end_recall(world, state, playback, finished):
     if vitals.dead:
         return
     # Recall never reduces current health or resurrects a retired/dead body.
+    vitals.healing_block_until = 0
     restored = min(session.sample.health, vitals.most[HEALTH_POOL])
     vitals.heal(max(0.0, restored - vitals.now[HEALTH_POOL]))
     world.match.combat._sync_body_health(player, vitals)
     mover = player.mover
     body = mover._engine_body()
-    x, y, z = session.sample.position
+    destination = session.sample.position
+    walls = world.match.combat.walls
+    if walls.occupies(mover, destination):
+        # A newly raised wall can occupy the rewind point. Check the path
+        # recorded at cast time, from the requested point toward the present.
+        destination = next((p for p in session.later_positions if not walls.occupies(mover, p)),
+                           tuple(mover.position))
+    x, y, z = destination
     mover._place(body, (x, y + mover._lift(), z), False)
     mover.velocity = (0.0, 0.0, 0.0)
     mover.fall = 0.0
@@ -157,8 +169,31 @@ def hold_pose(player, command):
     mover.history.append(mover.snapshot(command.frame))
 
 
+def discard_mobility_input(player):
+    script = player.body_script
+    if script is None or script.hero != HERO:
+        return
+    component = script.component
+    released = [(button, False) for button in component.held if button in MOBILITY_BUTTONS]
+    for button, _ in released:
+        component.held.remove(button)
+    component.edges(released)
+    for instance in component.instances.values():
+        if instance.graph.index not in (BLINK_GRAPH, RECALL_GRAPH):
+            continue
+        for state in instance.states.values():
+            if isinstance(state, nodes.LogicalButton):
+                state.pressed_at = None
+            elif isinstance(state, nodes.Ability):
+                state.presses.clear()
+
+
 def filter_edges(world, edges):
     player = _player(world)
+    if player is not None and player.body in world.match.combat.gravitons.player_pulls:
+        # Reject new Blink and Recall presses while the world has captured this body.
+        # Preserve releases so a rejected press cannot start when the pull expires.
+        return [(button, down) for button, down in edges if not (down and button in MOBILITY_BUTTONS)]
     if player is not None and recalling(player):
         # Blink's logical-button nodes do not consult the ordinary ability
         # stack. Reconstruct its Recall exclusion before a press enters them.
@@ -199,7 +234,9 @@ def blink(world, instance, node):
                                body.radius, mover.category)
     share = max(0.0, hit[0] - 0.001 / distance) if hit is not None else 1.0
     final = (start[0] + dx * share, start[1], start[2] + dz * share)
+    before = tuple(mover.position)
     mover._place(body, final, hit is not None)
+    match.combat.walls.move_player(player, before)
     # The action runs after the normal pose. Replace its same-frame correction
     # snapshot instead of leaving the owning client at the pre-Blink position.
     mover.history[-1] = mover.snapshot(component.frame)

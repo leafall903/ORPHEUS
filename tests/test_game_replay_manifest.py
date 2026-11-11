@@ -66,6 +66,15 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertNotIn(str(self.root), json.dumps(captured))
         self.assertNotIn(str(self.data), json.dumps(captured))
 
+    def test_explicit_supplement_bytes_participate_in_model_identity(self):
+        supplement = self.base / "supplement.json"
+        supplement.write_bytes(b"old")
+        first = self.capture(graph_supplement=supplement)
+        supplement.write_bytes(b"new")
+        self.assertEqual(manifest.compare_manifests(first, self.capture(graph_supplement=supplement)),
+                         [{"path": "files/supplement/graphs", "kind": "changed"}])
+        self.assertNotIn(str(supplement), json.dumps(first))
+
     def test_relocation_mtime_map_and_set_order_do_not_change_identity(self):
         first = self.capture()
         other = self.base / "elsewhere"

@@ -20,17 +20,39 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    dragon,
+    earthshatter,
+    graviton,
+    halt,
     heroselect,
+    lucio_aura,
+    lucio_barrier,
+    mei_blizzard,
+    mei_wall,
+    mercy_effects,
+    moira,
+    moira_orb,
     notices,
+    npc_navigation,
     observers,
+    orisa_barrier,
+    orisa_supercharger,
     projectiles,
     pulse_bomb,
+    reaper,
+    reinhardt_barrier,
     replay_values,
+    roadhog_hook,
+    sigma_barrier,
+    sigma_grasp,
+    sonic,
     statescript,
     stats,
     tracer,
     voicelines,
+    winston_barrier,
     world,
+    zenyatta_orbs,
 )
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -40,7 +62,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import body_owner, driver, entity_queries, expr, runtime
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
@@ -71,7 +93,7 @@ def _names(text):
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
-                       "on_leave on_join on_clock_ready "
+                       "on_leave on_join on_clock_ready sonic_profile dragon_profile "
                        "skin_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
@@ -94,12 +116,41 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles pulse_bombs observers voice stuns"
+        "match vitals history replacement_ticks rockets sonars sonic_profile dragons dragon_profile "
+        "command_pose_anchors respawns next_bot now tick melee_seen "
+        "projectiles pulse_bombs observers voice stuns pins winston_barriers reinhardt_barriers "
+        "grasp_shields grasp_grants grasp_conversions sigma_barriers tesla_frames "
+        "gravitons blizzard earthshatters "
+        "walls frost_hits frost_sources orisa_barriers halt superchargers "
+        "reaper_blossoms reaper_shadows moira_hots moira_orbs "
+        "flail_hits zarya_beam_frames symmetra_beam_frames hammer_hits "
+        "mercy_effects lucio_barriers lucio_auras zenyatta_orbs roadhog_hooks breather_deadlines"
     ),
-    combat.Vitals: _names("entity most now ids changed died_at death_tick killer"),
+    lucio_aura.Auras: _names("fight receivers amp_deadlines last_tick"),
+    zenyatta_orbs.Orbs: _names("fight links buttons ready transcendence"),
+    roadhog_hook.Hooks: _names("fight flights seen input_anchors input_cutoffs"),
+    lucio_aura.AuraWorld: _names("hero mode component"),
+    lucio_barrier.Barriers: _names("fight leases"),
+    mercy_effects.Effects: _names("match attachments valkyrie_deadlines"),
+    mercy_effects.EffectWorld: _names("hero mode match source owner"),
+    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_blizzard.Blizzard: _names("combat areas"),
+    graviton.Gravitons: _names("combat fields player_pulls"),
+    earthshatter.Earthshatters: _names("combat waves"),
+    halt.Halt: _names("fight orbs pulls"),
+    orisa_supercharger.Superchargers: _names("fight active buffs graph_rows geometry"),
+    orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
+    orisa_barrier.Geometry: _names("world triangles source"),
+    orisa_barrier.BarrierWorld: _names("hero mode fight entity location"),
+    combat.Vitals: _names(
+        "entity most now temporary_shields particle_barriers ids changed died_at death_tick killer "
+        "sleep_until sleep_wake_after healing_block_until healing_boost_until nano_until hack_until "
+        "rising_until revive_protection_until"
+    ),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     pulse_bomb.PulseBombs: _names("combat bombs"),
+    winston_barrier.Barriers: _names("combat actors pending seen"),
+    reinhardt_barrier.Barriers: _names("combat geometry states"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
     observers.Watch: _names("body arrived stream sent next_lazy"),
@@ -116,11 +167,16 @@ FIELDS = {
         "hero entity record frame_ms world component frame buttons stream create_arrived "
         "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
     ),
-    driver.BodyWorld: _names("hero mode body throttles match"),
+    driver.BodyWorld: _names("hero mode body throttles match _body_owner_context _entity_query_context"),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                   "lookup watch_environment watch_possession retired"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components controller_entity "
+                     "manual_target match"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -134,17 +190,33 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "navigation impulse_mover"
     ),
 }
 OPTIONAL_FIELDS = {
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
-    driver.BodyWorld: _names("recall_history recall_session"),
+    driver.BodyWorld: _names("recall_history recall_session velocity_requests"),
 }
 DATACLASSES = (
+    lucio_aura.Receiver,
+    zenyatta_orbs.Link,
+    zenyatta_orbs.Transcendence,
+    roadhog_hook.Flight,
+    lucio_barrier.Lease,
+    mercy_effects.Attachment,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
-    pulse_bomb.Bomb, tracer.RecallSample, tracer.RecallSession,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.FragmentBurst,
+    dragon.Profile, dragon.Flight, combat.CommandPoseAnchor, sonic.Profile, sonic.Beacon,
+    graviton.Field, earthshatter.Wave, mei_blizzard.Area, mei_wall.Pillar, mei_wall.Input,
+    orisa_barrier.Barrier, orisa_supercharger.Device, halt.Orb, halt.Pull,
+    pulse_bomb.Bomb, reaper.Blossom, reaper.Shadow, moira.Spray, moira.SprayHeal, moira_orb.Orb,
+    tracer.RecallSample, tracer.RecallSession,
+    npc_navigation.Navigator, npc_navigation.Search,
+    winston_barrier.Bubble, winston_barrier.PendingDeployment,
+    reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
+    combat.TemporaryShield, sigma_grasp.ShieldDecay, sigma_grasp.Conversion, sigma_barrier.Geometry,
+    sigma_barrier.Barrier,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

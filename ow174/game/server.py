@@ -24,7 +24,7 @@ from collections import deque
 from ctypes import wintypes
 from dataclasses import dataclass, field, replace
 
-from ow174.game import combat, correction, messages, movelog, observers, world
+from ow174.game import combat, correction, dragon, messages, movelog, observers, sonic, world
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.commands import InputError, read_commands
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -1035,12 +1035,16 @@ class GameServer:
         collision_provider_factory=None,
         scene_host_factory=None,
         on_clock_ready=None,
+        sonic_profile: sonic.Profile | None = None,
+        dragon_profile: dragon.Profile | None = None,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
         # controlled server replay and isolated scenes without patching global collision state.
         self.collision_provider_factory = collision_provider_factory
         self.scene_host_factory = scene_host_factory
+        self.sonic_profile = sonic_profile
+        self.dragon_profile = dragon_profile
         self.host = host
         self.port = port
         self.on_leave = on_leave  # called with each player who leaves a match
@@ -1103,6 +1107,10 @@ class GameServer:
                 ),
                 scene_host_factory=self.scene_host_factory,
             )
+            if self.sonic_profile is not None:
+                match.combat.configure_sonic(self.sonic_profile)
+            if self.dragon_profile is not None:
+                match.combat.configure_dragonstrike(self.dragon_profile)
             handoffs = [self._add_player(match, entry) for entry in players]
             self.matches.append(match)
         names = ", ".join(player.describe() for player in match.players)

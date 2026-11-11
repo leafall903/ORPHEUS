@@ -36,6 +36,8 @@ OPERATIONS = {
     "datagram": {"data", "address", "now"},
     "tick": {"now", "missed"},
     "switch_hero": {"account", "hero"},
+    "spawn_npc": {"match_id", "definition", "position", "team", "yaw"},
+    "npc_attack": {"player", "enabled"},
     "skin_changed": {"account", "hero"},
     "send_home": {"account"},
     "take_out": {"player", "reason"},
@@ -265,6 +267,25 @@ class _Session:
             if hero is None:
                 self._fail("unknown hero")
             return self.server.switch_hero(args["account"], hero)
+        if operation == "spawn_npc":
+            from ow174.game import npc
+
+            fields = {field.name for field in dataclasses.fields(npc.Definition)}
+            _fields(args["definition"], fields, "NPC definition")
+            definition = npc.Definition(**args["definition"])
+            return npc.spawn(
+                self._match(args["match_id"]), definition, args["position"],
+                team=args["team"], yaw=args["yaw"],
+            ).entity
+        if operation == "npc_attack":
+            from ow174.game import npc_control
+
+            player = self._player(args["player"])
+            if type(args["enabled"]) is not bool:
+                self._fail("NPC attack enable must be a boolean")
+            if args["enabled"]:
+                return npc_control.start(player.match, player)
+            return npc_control.stop(player.match)
         if operation == "skin_changed":
             return self.server.skin_changed(args["account"], args["hero"])
         if operation == "send_home":
@@ -360,7 +381,18 @@ class _Session:
             quanta_us=RETAIL_QUANTA,
             run_options={"scope": self._scope(), "state_profile": self._state_profile},
         )
-        return capture_manifest(root=ROOT, data_dir=DATA_DIR, configuration=configuration)
+        from ow174.game.deflection import TAGS_PATH
+        from ow174.game.mover import MOVERS_SUPPLEMENT_PATH
+        from ow174.game.reinhardt_barrier import geometry_path
+        from ow174.game.script.graph import GRAPH_SUPPLEMENT_PATH
+        from ow174.game.sigma_barrier import model_path
+
+        return capture_manifest(
+            root=ROOT, data_dir=DATA_DIR, configuration=configuration,
+            graph_supplement=GRAPH_SUPPLEMENT_PATH, mover_supplement=MOVERS_SUPPLEMENT_PATH,
+            projectile_tags=TAGS_PATH, reinhardt_collision=geometry_path(),
+            sigma_barrier_model=model_path(),
+        )
 
     def _scope(self):
         return SCOPE if self._state_profile == "wire-only" else STORED_SCOPE

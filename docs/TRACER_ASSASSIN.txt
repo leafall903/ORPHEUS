@@ -1,0 +1,142 @@
+Tracer versus manual Assassin: partial server reconstruction
+==========================================================
+
+This lane executes the actual01BB body and1157 graph against Tracer. It does
+not establish complete Assassin AI, native controller allocation or client
+presentation. Full Tracer static acceptance and all original-client acceptance
+remain open. Changes are uncommitted until the complete static objective passes.
+
+Controller and health context
+-----------------------------
+Manual Assassin spawning reserves a body ID and a distinct server-only
+controller ID in the existing monotonic NPC allocator. DB742151 returns an
+Entity, never a Map or the body itself. The declared controller's foreign1650
+member supplies the current player BODY Entity. The actual graph stores this
+in local536. Other graphs and undeclared contexts retain unsupported behavior.
+There is no fabricated controller entity on the wire. Native possession,
+component layout, acquisition and allocation semantics remain unverified.
+
+Manual input selects button36; the extracted default20 does not reach this pin.
+The graph supplies25 contact damage, a delayed100 amount with mode1, and scope
+exits. Treating mode1 as damage per second on elapsed state time is reconstructed.
+ModifyHealth records last_applied; repeated host updates cannot repeat a tick.
+The pin registry rejects Tracer movement and ability input through the shared
+interrupt path, preserving weapon/ability press cleanup and authored exits.
+
+Victims must be connected, living enemy player bodies matching the explicit
+manual target. Sources must be living, firing, un-stunned and retain the same
+component. A3m eye-distance and capsule LOS check is manual contact policy.
+Stop, removal, source death/stun, target invalidation and scope end release the
+registry and health clock. Explicit reengagement exits unresolved releaseAnim31;
+its native duration and automatic recovery are still open.
+
+An actual projected Particle Barrier absorbs the 25-point contact
+and the continuous damage while the manual pin still locks Tracer's
+input. When cast on an already pinned Tracer, a projected barrier
+with one point left absorbs the breaking tick, credits 0.2 energy,
+and leaves later ticks to damage Tracer. Both damage phases forward
+the extracted 302F damage tag to Combat.
+
+An actual Winston dome crossing probe places the Assassin outside
+and Tracer inside with the shield surface between them. The current
+host applies contact and pin while the dome stays at 700. The
+original-client barrier admission for this direct health and control
+effect is still open.
+
+Lethal contact and lethal continuous damage each clear the pin and
+credit the Assassin. Actual Mercy Resurrect restores the same Tracer
+body. The retained manual engagement waits through 00CB damage
+protection and applies a fresh contact on the first unprotected
+frame. The earlier end of the rising lock lets Tracer Blink while
+the damage protection is still active.
+
+Normal respawn and live same-hero replacement retire the old Tracer
+body. The retained manual engagement approaches the new spawn and
+deals fresh contact damage. If two replacements reuse the old body
+ID in one frame, retirement ends the old scope and processes its exit
+before the new binding. The first hit is 25 contact damage. Before
+the fix, the old 1.6 tick carried over.
+
+An active pin settles elapsed damage on its combat tick, including
+before the normal retained frame window. With six health left,
+contiguous updates and 24- or 100-frame gaps kill on the fourth
+frame with matching Assassin attribution and respawn deadline.
+A new pin begins within the retained window. With an actual Sound
+Barrier reduced to nine shield and six base health, continuous and
+100-frame updates both kill on the sixth frame after decay and pin
+damage. These comparisons use static retained poses.
+
+An actual Nano Boost halves the pin's 25-point contact. Its active
+continuous ticks deal 0.8 until Nano expires, then 1.6 starting
+on the expiry frame. Contiguous, 24-frame and 100-frame updates
+give the same damage sequence and final state.
+
+An actual allied Sleep Dart ends an active pin. Tracer's pistols
+damage the sleeping Assassin. Damage in the initial protection
+window leaves the sleep deadline intact. Damage at the end of
+that window caps the remaining sleep at 0.5 seconds. The retained
+engagement starts a new pin at the shortened deadline.
+
+Pulse Bomb survives a pin that begins after release, both in flight
+and after attachment. With a projected barrier protecting Tracer,
+the blast kills a wounded 350-health Assassin, clears the pin and
+allows a fresh Blink. The same blast leaves a full-health Assassin
+at 145 with the pin still active. At close range without the
+projected barrier, the blast kills both bodies. Tracer retains kill
+attribution on the Assassin, and her own death is self-attributed.
+
+The same-frame probe starts one frame before detonation, during
+active continuous pin damage. At 0.5 health the pin kills Tracer
+before the blast. At 2 health the pin leaves a fraction and the
+blast kills Tracer. Pulse kills the Assassin on that frame in both
+cases, with Tracer attribution. Contiguous updates and 24- or
+100-frame gaps agree on both deaths, the cleared pin and the
+respawn deadline.
+
+Pursuit
+-------
+Only manually spawned Assassin pursuit is connected to Match updates here.
+The reviewed parent's collision-aware incremental grid router is reconstructed:
+1m grid,2048 visited-node bound,4 heap pops/update,30-tick planning interval and
+2.5m standoff. It checks floor, headroom and capsule width and uses Mover physics.
+The actual capsule/speed come from prepared XML-derived mover data:1.5m height,
+0.5m radius,14m/s forward speed. Missing Assassin mover metadata stops pursuit.
+All other NPC routes retain their previous Match behavior. Native navigation,
+lunges, jumping, QTEs and obstacle tactics remain open.
+
+The5m flat-world combat probe reaches25 contact damage on frame10 with these
+authored mover values. This does not accept real-map navigation or deployment.
+
+Selected execution evidence
+---------------------------
+Twelve actual-body combat fixtures pass typed target context, contact damage,
+continuous timing/duplicate update, causal clock storage, Tracer action locking,
+stop/reengagement, Recall protection/resumption, unreleased Pulse cancellation,
+5m approach, actual Soldier support kill, actual McCree support stun, source
+removal and new-wall invalidation. Soldier's kill fixture explicitly wounds the
+Assassin first; it does not claim a one-shot kill of native base health.
+Separate context, navigation and server-storage fixtures cover identity bounds,
+allocator collisions, incremental routing and hidden causal state. Storage
+fixtures do not establish executable replay through a live pin/navigation path.
+
+Shared Ability buffering
+------------------------
+A parent-reviewed generic bug refreshed an early press timestamp every unready
+tick. Actual Tracer tests reproduced released Recall auto-recast after its real
+12s cooldown and unfunded Pulse auto-launch after later charge fill. Ability
+now retains the original timestamp while unready and consumes it when ready.
+Five actual Tracer fixtures pass expiry, held input and recent short buffering.
+The shared fix adds no causal fields and preserves stop/keep consumption.
+
+Provenance
+----------
+Reviewed parent uncommitted assassin.py SHA256:
+042d5da6c7c70b2c5ba9f4874d176ef29bb15f4040fbabdbc2df2c95bea879c1.
+The private typed Entity contract deliberately replaces its Map return.
+Reviewed parent npc_navigation.py SHA256:
+bf9dda9e8d68ab203ea42c8e3c459e5603e82cc5e30a305116279818c2efd352.
+Reviewed parent navigation tests SHA256:
+9ad85241431ef677518f7d5ec96bc45b94c6ef6a876f87860651a5887c1dc8ae.
+These are reviewed working-tree inputs, not applied shared commits. Final lane
+source hashes and regression logs are external to the repository. No shared
+source, immutable runtime inputs or client processes are modified by this work.

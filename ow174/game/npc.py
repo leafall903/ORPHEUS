@@ -9,7 +9,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-from ow174.game import bots, combat, world
+from ow174.game import bots, combat, npc_context, world
 
 
 @dataclass(frozen=True)
@@ -62,10 +62,18 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
     entity = match.combat.next_bot
-    if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(b.entity == entity for b in match.bots):
+    # The manual Assassin's server-only controller uses the same monotonic
+    # allocator. It is never aliased to a body or reused by the next NPC.
+    count = 2 if definition.hero == npc_context.ASSASSIN else 1
+    allocated = set(range(entity, entity + count))
+    occupied = {b.entity for b in match.bots}
+    occupied.update(b.spawner['manual_controller'] for b in match.bots if 'manual_controller' in b.spawner)
+    if entity < bots.BOT_ENTITY or entity + count > 0xD0000000 or occupied & allocated:
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if count == 2:
+        data['manual_controller'] = entity + 1
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     bot = bots.Bot(entity, data, hero, {})
     bot.yaw = float(bots.s16(yaw))
@@ -74,11 +82,11 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0) -
     from ow174.game.match import BOT_RECORD_DELAY
 
     bot.records_from = match.tick + BOT_RECORD_DELAY
-    match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
-    match.bots.append(bot)
+    match.combat.next_bot += count
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    match.bots.append(bot)
     match.combat.record_replacement(entity)
     for viewer in match.players:
         if viewer.client is not None and viewer.spawned:
@@ -94,6 +102,13 @@ def remove_spawned(match) -> tuple[int, ...]:
         if bot.spawner.get('manual_spawn') is not True:
             continue
         bot.died(match.tick)
+        bot.navigation = None
+        match.combat.mercy_effects.retire(bot.entity)
+        match.combat.lucio_barriers.retire(bot.entity)
+        match.combat.lucio_auras.retire(bot.entity)
+        match.combat.zenyatta_orbs.retire(bot.entity)
+        match.combat.roadhog_hooks.retire(bot.entity)
+        match.combat.clear_pins(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component
@@ -102,6 +117,8 @@ def remove_spawned(match) -> tuple[int, ...]:
             component.shots.clear()
             for instance in list(component.instances.values()):
                 component.destroy(instance)
+            component.world.match = None
+            component.world.manual_target = None
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
                 match.combat.projectiles._end(shot, match.tick, False)

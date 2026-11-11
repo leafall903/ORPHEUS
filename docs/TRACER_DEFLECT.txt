@@ -1,0 +1,87 @@
+Tracer versus Genji Deflect: partial104319 server reconstruction
+
+Actual failure and repaired paths:
+Original03A3 state10/node18 (STUStatescriptStateDeflectProjectiles) was active,
+but a frontal Tracer input pair dealt12 to Genji and reflected0. Three direct
+regressions failed before repair: frontal pair, reflected kill and melee block.
+They pass after the repair. This does not establish full native Deflect parity.
+
+Reviewed policy from Genji lane0029:
+An active current living Genji body admits frontal body-capsule hits. The
+reconstructed directional test is a negative facing/incoming dot product.
+Evaluated damage tag003BF admits hitscan reflection; quick melee blocks without
+return damage. No global invulnerability or raw damage suppression is installed.
+Native authored boxes, angle interpretation and filter/tag admission remain open.
+The lane did not import Genji mobility, economy, beam or projectile implementations.
+
+Every reported Tracer bullet samples its existing cone independently and calls
+the same one-ray resolver. A reflected ray follows the defender's current aim
+and uses the defender's team, hit/death credit and world tick. Evaluated damage
+tags and loadout remain attached to the hit. Total travelled distance owns
+falloff, and each new leg consumes remaining range including its origin offset.
+An eight-leg bound terminates repeated reflection without additional damage.
+No new persistent fields, RNG consumption or snapshot layout are introduced.
+
+Seventeen direct input tests cover frontal/rear paired damage, defender hit and
+kill credit with overkill clamping, per-bullet shield/armour losses, no original
+Tracer damage charge, melee block, expiry, cancel/rejection/reuse, replacement
+body and actual rear pistol death. Three-player tests cover defender aim/team,
+ally rejection, redirected static-wall occlusion, Recall protection/recovery and
+Blink evasion. Separate tests show total range and both-leg falloff consumption.
+These are body-graph/combat fixtures with transport and geometry approximations.
+The hitscan-only checkpoint passes379 distinct regressions without skips (365 regular
+plus14 full-server snapshot/replay), including117 Tracer tests. Full-server
+tests take393.438s in the same run; production hashes match. Prepared-runtime
+NPC14 repeats also pass with unchanged input hashes and are counted separately.
+
+Native evidence and remaining geometry:
+Constructor D5ED40 -> AE2EE0 installs client vtable2654208; server constructor
+AE4150 -> AE30A0 installs26543E0. On-enter D5BBD0 evaluates box endpoints,
+normalizes each finite axis and appends the endpoints. Offline Unicorn execution
+of unchanged D5BED4..D5BF39 passes8 endpoint permutations without engine adapters.
+This proves local endpoint ordering only, not box/world/bone transforms, ray
+intersection, state wire encoding or native reflection ownership and velocity.
+Probe, captured-image hash and result remain outside Git in the lane directory.
+
+Physical Pulse Bomb: selected reconstructed server execution, native parity OPEN:
+The actual0034 projectile is0045.003. Manifest-verified selective reads confirm
+the original entity and097/0002 filter resource without copying the archive.
+0145.06C is a referenced STUTargetTag but no file stream is available in this
+input. Pulse's entity target tags are037C/0412/06B2/07D4. These are distinct from
+ModifyHealth damage tags; its contact tags do not contain003BF. The003BF hitscan
+policy cannot be used as evidence of native Pulse eligibility.
+The initial actual Q/E probe stuck Pulse to active Deflect, dealt5 contact damage
+and retained Tracer ownership. Two direct transfer/damage tests failed before
+repair; the rear-hit control passed. A subsequent Pulse-specific bridge now
+uses the active Genji frontal capsule predicate, explicitly as a server policy.
+It does not infer physical admission from damage tag003BF or TargetTag0145.
+
+Contact transfers shooter/source to the current defender and ends the old
+predicted shot plus observer deliveries without an explosion. It preserves
+instantaneous speed, gravity, age, life remaining, direct/blast definitions and
+tags, and redirects along defender aim. Reflected visual/lease allocation for
+the new owner is not implemented. Contact fuse starts at the next non-deflected
+collision; an already stuck bomb never enters reflection. Eight transfers per
+physics step bound overlapping zero-time contacts, with harmless retirement at
+the bound. That limit is reconstructed, not native repeated-Deflect evidence.
+
+Fourteen actual Q/E tests cover transfer/prediction retirement/duplicate tick,
+rear and nonretroactive contact, current-owner self damage, defender kill/charge
+credit, actual rear Soldier kill and support Flashbang interruption, old/new
+body replacement, Recall detachment, Blink attachment and evasion, unchanged5s
+life, aim/team/ally filtering, wall flight/blast exclusion and the original450
+PvE blast branch on an explicitly enlarged target pool. Actual strafe input
+also verifies defender escape from the returned bomb. A separate server storage
+test hashes the changed owner/body and verifies restoration without simulation.
+The latest frozen Pulse extension passes394 distinct tests without skips
+(379 regular plus15 full-server snapshot/replay), including131 Tracer tests.
+Full-server tests take513.313s in one unchanged run; hashes/Ruff/diff checks pass.
+Prepared-runtime NPC14 repeats pass separately with immutable input hashes.
+
+Native physical admission, authored boxes/transforms/angle/filter semantics,
+redirect speed rule, fuse/attachment details, repeated reflection, lease/visual
+replication and original-client presentation remain unaccepted. These selected
+server paths do not complete the full reflection or full hero goal.
+
+Other complete-goal gaps remain in TRACER_COMBAT.md and the external goal status.
+All own changes remain uncommitted until complete static acceptance passes.

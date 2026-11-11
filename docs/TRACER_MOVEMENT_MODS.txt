@@ -1,0 +1,53 @@
+Tracer shared throttle modifiers: partial static execution
+=========================================================
+
+The parent mover change is reused in this private lane after review. Properties
+17/18/19 now affect positive forward, backward magnitude and unsigned lateral
+input before acceleration. Lateral sign is restored and the axes are clamped.
+Raw command bytes and existing snapshots retain their original input values.
+No new causal state or snapshot fields are introduced.
+
+Read-only parent mover SHA256 at review/copy:
+a68e9b99c97cee8fa8c9be7bf525ef965b41dfe913642f61c37e6c8b45344207.
+The parent's captured104319 C33960..C33A8D prefix comparison has an explicit
+scalar-mod lookup stub. It is supporting evidence for the split/sign/clamp
+sequence, not complete native modifier-service or physics acceptance.
+
+Tracer-specific pistol/Blink/Recall/Pulse graphs have no17-19 rows. The declared
+body/weapon/manager and directly referenced graph closure does contain shared
+00CB node2,01CB node11 and023A node2. Their rows publish zeroing restrictions
+at priority99 or a dynamic2101 multiplicative factor at priority1. One direct
+graph reference0F9C is absent from the prepared bundle. Dynamic references and
+complete combat status dispatch remain open.
+
+Before the mover fix, five initialized actual-resource/input fixtures fail:
+Tracer still reaches6m/s under a0.25 factor, backward speed remains5.4m/s, and
+the authored zero-input restrictions do not stop acceleration. Use the external
+tracer-throttle-before-initialized.log as this evidence. An earlier diagnostic
+fixture created uninitialized instances, which produced an invalid queue-budget
+fault; it is not evidence of a product VM defect or native status behavior.
+
+Seven fixtures now pass:
+- Actual023A factor limits four cardinal inputs with correct lateral sign while
+  preserving the raw movement record; changing2101 updates without restarting.
+- Actual00CB/01CB zero restrictions stop new input acceleration; ending them
+  restores steering after collection on the following movement pose.
+- The00CB start entry runs its actual1.5s Wait3 and retires the child modifier
+  naturally. Its deadline can fall after the pose within a16ms frame; steering
+  resumes on the next pose. No shortened test cooldown or replacement timer.
+- Priority99 restrictions dominate the lower-priority factor, then release to
+  that factor; duplicate commands do not advance pose; replacement drops the
+  old body's throttle modifiers and permits movement.
+
+Activation is explicitly requested by the fixtures using actual state/start-entry
+APIs. They do not prove a native attack-to-status dispatch path. The zero-input
+tests reset pre-existing momentum observationally to isolate new acceleration;
+they do not establish instant momentum cancellation or all forced movement.
+Do not infer full stun/sleep/freeze/root/hack/immunity/cleanse coverage from them.
+
+The external frozen-source regression and map-cache repeats record broader
+validation separately. The prepared five-NPC runtime lacks map collision files;
+the original104319 runtime already has immutable real-map caches. Map mover
+checks can read those directly without building caches or copying input archives.
+Full Tracer static combat and all original-client acceptance remain open. No own
+commit/patch is made until the complete static goal passes.

@@ -232,6 +232,9 @@ def _file(base: Path, relative: str, logical: str) -> dict:
 def capture_manifest(
     *, root: Path, data_dir: Path, configuration: dict,
     runtime: dict | None = None, dependencies: dict | None = None,
+    graph_supplement: Path | None = None, mover_supplement: Path | None = None,
+    projectile_tags: Path | None = None, reinhardt_collision: Path | None = None,
+    sigma_barrier_model: Path | None = None,
 ) -> dict:
     """Read explicitly rooted source/table bytes and seal a detached JSON-compatible manifest."""
     root, data_dir = Path(root), Path(data_dir)
@@ -246,6 +249,14 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    supplements = (("graphs", graph_supplement), ("movers", mover_supplement),
+                   ("projectile-tags", projectile_tags), ("reinhardt-collision", reinhardt_collision))
+    if sigma_barrier_model is not None:
+        supplements += (("sigma-barrier-model", sigma_barrier_model),
+                        ("sigma-barrier-integrity", sigma_barrier_model.with_name("model-integrity.json")))
+    for name, supplement in supplements:
+        if supplement is not None:
+            files.append(_file(supplement.parent, supplement.name, f"supplement/{name}"))
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

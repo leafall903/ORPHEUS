@@ -32,6 +32,7 @@ from ow174.game.script import (
 )
 from ow174.game.script.expr import (
     EPSILON,
+    INSTANCE,
     Asset,
     Entity,
     Handle,
@@ -1039,8 +1040,10 @@ class WeaponVolley(State):
         self.ammo0 = 0
         self.rate = 1.0
         self.spread0 = 0.0
+        self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
+        self.last_ammo = 0  # linked value last delivered to dependency watchers
 
     def on_enter(self) -> None:
         self.offset = 0
@@ -1062,9 +1065,10 @@ class WeaponVolley(State):
             time = start + shot_time(self.reported, self.rate)
             if time > until:
                 break
-            from ow174.game import tracer_pistol
+            from ow174.game import mccree_fan, tracer_pistol
 
             tracer_pistol.remember(self, self.reported, time, activation)
+            mccree_fan.remember(self, self.reported, time, activation)
             self.instance.component.shots.append((self, self.reported, time, activation))
             self.reported += 1
 
@@ -1082,6 +1086,12 @@ class WeaponVolley(State):
         self.ammo0 = max(0, to_int(ammo.value())) if ammo else self.max_shots * self.per_shot
         spread = self._out("m_3FFC9EB9")
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
+        launch = _field(self, "m_5EC1EB38")
+        self.spread_ramp = None
+        if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
+                and launch.get("m_23C72C36") is None):
+            cfg = launch.get("m_AC20B1C1")
+            self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -1094,6 +1104,14 @@ class WeaponVolley(State):
             var.base = value
             self.links.append(self.link(target, slot))
             self.instance.changed(var, before)
+        if ammo is not None:
+            self.last_ammo = ammo.value()
+            self.ticks()
+
+    def tick(self) -> None:
+        ammo = self._out("m_24E351A4")
+        if ammo is not None:
+            self.last_ammo = self.instance.component.changed(ammo, self.last_ammo)
 
     def _out(self, name: str) -> Var | None:
         target = lvalue(_field(self, name))
@@ -1132,20 +1150,26 @@ class WeaponVolley(State):
             return self.ammo_at(self.now - self.start - self.offset)
         if slot == 1:
             return self.rate
-        from ow174.game import tracer_pistol
+        return self.spread_at(self.now - self.start - self.offset)
 
-        if tracer_pistol.active(self):
-            return tracer_pistol.normalized(self, self.shots_at(self.now - self.start - self.offset) + 1)
-        return self.spread0
+    def spread_at(self, elapsed: int) -> float:
+        """No-decay239B571E output; baked ramp, native completed-shot+1 input."""
+        if self.spread_ramp is None:
+            return self.spread0
+        if self.spread_ramp < f32(1e-7):
+            return 1.0
+        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
         self.report(self.now)
         elapsed = self.now - self.start - self.offset
-        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.output(2)}
+        values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread_at(elapsed + 1)}
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
-                before = var.value()
+                # The final shot can end the volley before its next update.
+                before = self.last_ammo if link.slot == 0 else var.value()
                 var.base = values.get(link.slot)
                 self.unlink(var)
                 self.instance.changed(var, before)
@@ -1175,7 +1199,26 @@ class ReconstructedRecall(State):
 
 @state_class("STU_54FEB21C")
 class RecallWarmup(ReconstructedRecall):
-    pass
+    def on_begin(self):
+        super().on_begin()
+        if (not self.instance.component.strict and self.instance.graph.index == 0x0101
+                and self.node.pos in (29, 37)):
+            # Dragonstrike uses authored literal windup and recovery durations.
+            duration = self.evaluate(_field(self, "m_ED97A97C"), watch=False)
+            self.request_finish(seconds_to_ms(duration))
+            return
+        # These stock entries complete this marker before their authored timing begins.
+        if (not self.instance.component.strict
+                and (self.instance.graph.index, self.node.pos) in (
+                    (0x05FE, 64), (0x0020, 2), (0x0F7C, 2), (0x00E2, 10),
+                )):
+            self.request_finish()
+        if (not self.instance.component.strict and (self.instance.graph.index, self.node.pos) == (0x00BE, 92)
+                and isinstance(self.instance.find_var(expr.INSTANCE, 1724).value(), Vec3)):
+            self.request_finish()
+        if (not self.instance.component.strict and (self.instance.graph.index, self.node.pos) == (0x017B, 26)
+                and to_int(self.evaluate(self.node.field("m_ED97A97C"), watch=False)) == 0):
+            self.request_finish()
 
 
 @state_class("STU_41B3FC2B")
@@ -1270,6 +1313,7 @@ class Ability(State):
         self.presses: list[tuple[int, int, int]] = []  # (time, button, activation)
         self.cur = 0.0
         self.cooldown_rate = 1.0
+        self.cooldown_observed = 0.0
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
@@ -1299,11 +1343,26 @@ class Ability(State):
         self.cur = max(0.0, to_float(var.base))
         self.cooldown_rate = self.rate()
         self.last = self.now
+        self.cooldown_observed = self.cur
         self.var = self.link(target)
+        self._queue_cooldown()
+
+    def _queue_cooldown(self) -> None:
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
         if self.cur > 0 and self.cooldown_rate > 0:
-            self.timer_at(max(1, round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))), 2)
+            duration = round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))
+            self.timer_at(max(1, self.last + duration - self.now), 2)
+
+    def retime_cooldown(self, started_at: int) -> None:
+        """Move an already-started cooldown and its wake to an observed earlier time."""
+        if self.var is None or not 0 <= started_at < self.last:
+            return
+        before = self.remaining()
+        self.last = started_at
+        self._queue_cooldown()
+        self.cooldown_observed = self.remaining()
+        self.instance.changed(self.var, before)
 
     def remaining(self) -> float:
         return max(0.0, f32(f32(f32(f32(self.now - self.last) * -MS) * self.cooldown_rate) + self.cur))
@@ -1338,19 +1397,25 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, retain: bool = False) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if not retain:
+                    self.presses.remove(item)
                 return True
         return False
 
     # starting and stopping
 
     def tick(self) -> None:
+        # The linked cooldown changes with time even when the graph does not write it.
+        if self.var is not None:
+            before = self.cooldown_observed
+            self.cooldown_observed = self.remaining()
+            self.instance.changed(self.var, before)
         self.activate()
 
     def timer(self, param: int) -> None:
@@ -1395,7 +1460,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, retain=True)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1411,9 +1476,9 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
+        if pressed:
+            self.take_press(start)  # consume only when ready; never refresh an unready input's timestamp
         if start:
             self.flags |= self.HELD
         return True
@@ -1465,18 +1530,23 @@ class Ability(State):
         self.set_vars("m_EF3C5C73")
 
     def stop(self) -> None:
-        """Off the stack variable, then out of running: the subgraph exits, the on-stop plug and its
-        variables."""
+        """Queue running-scope cleanup before releasing its arbitration link.
+
+        This reconstructed server ordering prevents a newly unblocked weapon
+        from sampling old ammo before an outgoing scope's refill message.
+        Native inter-object ordering remains unverified.
+        """
+        var = None
         if self.flags & self.PUSHED:
             self.flags &= ~self.PUSHED
             var, self.stack_var = self.stack_var, None
-            if var is not None:
-                self.unlink(var)
         if self.flags & self.RUNNING:
             self.flags &= ~self.RUNNING
             self.instance.exit_subgraph(self.node, "m_B969AFC9")
             self.instance.follow(self.node, "m_6EEEC0AA", self)
             self.set_vars("m_19899EAC")
+        if var is not None:
+            self.unlink(var)
 
     def on_end(self, finished: bool) -> None:
         self.flags &= ~self.HELD
@@ -1602,7 +1672,16 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
+        cases = _field(self, "m_05706D1C") or []
+        mode = _field(self, "m_270252ED")
+        # 1248's combo counter indexes the authored null-valued cases when
+        # value matching is disabled. Native coercion is still unverified.
+        if (self.instance.graph.index == 0x1248 and mode is not None
+                and not truthy(self.evaluate(mode, watch=False)) and cases
+                and all(isinstance(case, dict) and case.get("m_value") is None for case in cases)):
+            index = to_int(value)
+            return f"m_05706D1C[{index}]" if 0 <= index < len(cases) else "m_A5EF385D"
+        for number, case in enumerate(cases):
             if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
@@ -1838,6 +1917,31 @@ class CosmeticEntity(State):
         return Handle(1, self.instance.id, self.index, 0)
 
 
+@state_class("STUStatescriptStatePet")
+class CompatiblePet(State):
+    """Explicit reconstructed Pet host hook; strict native execution remains unsupported."""
+
+    def on_created(self) -> None:
+        self.pet_entity = None
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = self.instance.component.world.create_compatible_pet(self)
+        if entity is NotImplemented:
+            return
+        if type(entity) is not int or not expr.valid_entity(entity):
+            raise ValueError("compatible Pet factory returned an invalid entity")
+        self.pet_entity = entity
+        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+
+    def on_end(self, finished: bool) -> None:
+        if self.pet_entity is not None:
+            self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
+            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
+            self.pet_entity = None
+
+
 @state_class("STUStatescriptStateGamePadVibration")
 class GamePadVibration(State):
     """Ends itself; with no gamepad at once."""
@@ -1846,14 +1950,178 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStateTrackRay")
+class TrackRay(State):
+    """Hosted simple Entity and bool outputs, scoped by the world provider."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.ray_hit = False
+
+    def on_begin(self):
+        self.ray_hit = False
+
+    def on_enter(self):
+        if self.refresh():
+            self.ticks()
+
+    def refresh(self):
+        result = self.instance.component.world.tracked_ray(self)
+        if result is NotImplemented:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(
+                    self.instance, "TrackRay provider", self.node.cls, self.node,
+                )
+            return False
+        from ow174.game.script.runtime import RaycastResult
+
+        if (type(result) is not RaycastResult or type(result.hit) is not bool
+                or (result.entity is not None and not _ray_entity(result.entity))):
+            raise ValueError("TrackRay provider must return a typed completed ray result")
+        outputs = self.node.field("m_target")
+        if not isinstance(outputs, dict) or outputs.get("$") != "STU_404DE6D3":
+            raise ValueError("TrackRay simple output interface required")
+        if self.instance.component.strict and any(
+            outputs.get(key) is not None for key in outputs if key not in ("$", "m_692DFF72", "m_7BA44A69")
+        ):
+            self.instance.component.unsupported(
+                self.instance, "TrackRay complex outputs", self.node.cls, self.node,
+            )
+        self.ray_hit = result.hit
+        values = (("m_692DFF72", result.entity or Entity(0)), ("m_7BA44A69", result.hit))
+        if self.instance.graph.index == 0x0B1B and self.node.pos == 59:
+            values = (("m_692DFF72", result.hit), ("m_F2F8606D", result.point))
+        if (self.instance.graph.index, self.node.pos) == (0x00BE, 105):
+            values += (("m_5ED803CF", result.point),)
+        for key, value in values:
+            target = lvalue(outputs.get(key))
+            if target is not None:
+                self.instance.write(target, value)
+        return True
+
+    def tick(self):
+        self.refresh()
+
+
+@state_class("STU_4C96470A")
+class CompatiblePlacement(State):
+    """Host placement boundary; native prediction/filter/geometry services remain explicit."""
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "native placement service", self.node.cls, self.node,
+            )
+        result = self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+        if result is not NotImplemented:
+            self.ticks()
+
+    def tick(self) -> None:
+        self.instance.component.world.refresh_compatible_placement(self, confirm=False)
+
+    def plug_enter(self, input_path: str) -> bool:
+        if input_path == "m_6647ED22":
+            if self.active:
+                result = self.instance.component.world.refresh_compatible_placement(self, confirm=True)
+                return result is not NotImplemented
+            return True  # a retired selection cannot confirm a cast
+        return super().plug_enter(input_path)
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Scoped world health service; supported1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        from ow174.game import bastion_repair, roadhog_breather
+
+        if roadhog_breather.selected(self) or bastion_repair.selected(self):
+            self.tick()
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Target queries supplied by an explicit world bridge; other searches remain empty."""
 
     family = "targets"
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.targets = ()
+        self.managed = False
+
+    def on_enter(self) -> None:
+        self.refresh()
+        if self.managed:
+            self.ticks()
+
+    def refresh(self) -> None:
+        values = self.instance.component.world.tracked_targets(self)
+        if values is NotImplemented:
+            return
+        self.managed = True
+        self.targets = tuple(values)
+        self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(e) for e in self.targets))
+
+    def tick(self) -> None:
+        self.refresh()
+
+    def on_end(self, finished: bool) -> None:
+        # The authored consumer can read the baked array after the search exits.
+        self.targets = ()
+
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((entity, 0) for entity in self.targets)}  # age policy unverified
+
+
+@state_class("STU_431F3FCC")
+class TargetEffects(State):
+    """Scoped effect-instance bridge; not the complete native effect manager."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.children = {}
+
+    def on_enter(self) -> None:
+        result = self.instance.component.world.target_effects(self)
+        if result is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "target effects service", self.node.cls, self.node)
+
+    def tick(self) -> None:
+        self.instance.component.world.target_effects(self)
+
+    def on_end(self, finished: bool) -> None:
+        self.clear_children()
+
+    def clear_children(self) -> None:
+        component = self.instance.component
+        for number in list(self.children.values()):
+            child = component.instances.get(number)
+            if child is not None:
+                component.destroy(child)
+        self.children.clear()
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -1968,6 +2236,16 @@ def _raycast_request(instance: Instance, node) -> RaycastRequest | None:
     )
 
 
+@handler("STU_621AF478")
+def resurrect(instance: Instance, node, caller):
+    result = instance.component.world.resurrect(instance, node)
+    if result is NotImplemented:
+        return result
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return True
+
+
 @handler("STU_08D6BA6E")
 def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedType:
     """Run the authored type-0 cast when a provider can complete it."""
@@ -2011,6 +2289,10 @@ def set_var(instance: Instance, node, caller) -> bool:
     # value wrapper at 1B6D381 resets a failed evaluation to type 2 (int 0).
     if config is not None and target is not None:
         value = play.evaluate_value(instance, config, initial=0)
+        # The following authored Zenyatta charge step spends a round only if one remains.
+        if (instance.graph.index == 0x0164 and node.pos == 45
+                and to_int(instance.find_var(INSTANCE, 53).value()) <= 0):
+            value = instance.find_var(INSTANCE, 1392).value()
         store(instance, target, value, node.fields.get("m_index"), node.fields.get("m_key"))
     instance.follow(node, "m_outPlug", None)
     return True
@@ -2135,7 +2417,19 @@ def contains(instance: Instance, node, caller) -> bool:
 def button_held(instance: Instance, node, caller) -> bool:
     """A logical-button condition: the button is held."""
     button = to_int(instance.evaluate(node.fields.get("m_logicalButton")))
-    return branch(instance, node, caller, button in instance.component.held)
+    component = instance.component
+    held = button in component.held
+    if instance.graph.index != 0x00F2:
+        return branch(instance, node, caller, held)
+    accepted = not component.disabled.get(button) and (
+        (component.button == button and (
+            (node.fields.get("m_87F97379", 1) and held)
+            or (node.fields.get("m_12A75BC7", 0) and not held)
+        ))
+        or (node.fields.get("m_00994FF0", 0) and held)
+        or (node.fields.get("m_F2B4B71D", 0) and not held)
+    )
+    return branch(instance, node, caller, bool(accepted))
 
 
 @handler("STU_4E2BCAAB")
@@ -2223,12 +2517,43 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_22926252")
+def retire_compatible_flux_effect(instance: Instance, node, caller) -> bool:
+    """Retire at 1DBC's terminal plugs on the reconstructed Match host."""
+    from ow174.game import sigma_flux
+
+    component = instance.component
+    if (component.strict or instance.graph.index != sigma_flux.FLUX_EFFECT
+            or node.pos not in (3, 5, 45, 61) or getattr(component.world, "match", None) is None):
+        return NotImplemented
+    component.destroy(instance)
+    return True
+
+
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
+    world = instance.component.world
     if instance.component.strict:
-        instance.component.world.play_script(instance, node)
+        world.play_script(instance, node)
+    else:
+        world.play_compatible_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
+
+
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller):
+    from ow174.game import sigma_flux
+
+    callback = getattr(instance.component.world, "velocity_action", None)
+    result = callback(instance, node) if callback is not None else NotImplemented
+    if result is NotImplemented:
+        if not sigma_flux.flux_velocity(instance, node):
+            return NotImplemented
+        result = True
+    if result:
+        instance.follow(node, "m_outPlug", None)
+    return bool(result)
 
 
 @handler("STU_A807207A")

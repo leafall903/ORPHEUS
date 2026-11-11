@@ -1,0 +1,77 @@
+Tracer versus Winston barrier: partial reconstructed interception
+===============================================================
+
+The actual00FA deployment/cooldown now creates a server-only sphere actor. The
+initial health700 and duration9 come from evaluated graph/body parameters; radius5
+was independently read from modelD02 MSTU sphere4614D0E5/fieldED61D926. The model
+record has motion1 and is excluded by the static-map prop filter. Entity01C3's
+XML links that model and ray receiver02A, with target tags003A/0043.
+
+Only the reviewed Bubble/Barriers classes from lane0009 are reused. No Winston
+Primal/Jump Pack/ultimate services or other-lane combat resolver is copied.
+Centre at feet+.1, sphere crossing/inside exit, friendly pass-through, per-ray
+break/no spill and melee contact are explicit reconstruction policies. Native
+pose, receiver/filter evaluation, pet identity/replication and HUD remain open.
+
+The registry is bound to the owner's BODY identity. World time expires actors;
+owner death leaves a deployed actor alive, while retirement removes actor/guard.
+Seen deployment counters prevent refilling an existing actor. The authored graph
+retains its13s cooldown and early-press behavior. No per-hit resource drain is
+added. This service does not yet intercept ballistic projectiles or Pulse Bomb.
+Pulse admission/attachment/explosion interaction needs its own evidence.
+
+Every hitscan ray compares the earliest enemy sphere crossing with nearer body
+or static contacts. A shield can be hit without a body behind it. A breaking
+bullet has no damage spill; another bullet resolves again. Range/falloff include
+the distance already travelled before reflection. Melee damages overlapping
+shield volumes once per activation independently of body penetration. Shield
+damage currently produces neither body hit notice nor body ultimate credit;
+native shield damage statistics and presentation are not restored.
+
+Eleven actual-command fixtures pass deployment, paired pistol hits, empty body
+behind, per-bullet break ordering, allied pass-through, inside/exit rays, nearer
+walls, quick melee, simultaneous body/shield melee, owner death, retirement,
+world expiry, cooldown rejection, expired early press and fresh reuse. The death
+fixture explicitly wounds the owner: the first bullet kills it and the second
+continues to the far sphere exit under the current dead-body filtering policy.
+This is not independent proof of native corpse or same-volley batching rules.
+
+The server snapshot registers manager combat/actors/seen and all Bubble fields.
+New tests check read-only health/expiry/guard causality and an actual recorded
+deployment/world-expiry replay with stored-state verification enabled. They do
+not establish a battle replay through shield damage or native replicated pets.
+
+Verified first-person offsets and exposed gaps
+---------------------------------------------
+Original104319 XML gives Tracer body0001 standing1.25/crouched.875 and McCree
+body02A3 standing1.425/crouched.9975. Combat origins and Target.eye now share the
+same body-aware lookup. Other unverified bodies retain their previous fallback.
+Four real-input/triangle-wall fixtures cover both crouch offsets, Tracer standing
+and crouching cover, and reverse McCree fire. Native camera/model/muzzle animation
+and skeletal critical regions are separate services and remain unverified.
+
+Correcting the eye does not complete projectile origins. Pulse0034/node1 explicitly
+names hardpoint3 in its muzzle config and an aimID service. Combat currently uses
+the eye for launch instead. Model02B1 is selectively exported with a checked
+104319 content manifest; typed hardpoint0DC0000000000003 differs from bone0880000000000003.
+Full64-bit parent lookup yields242 nodes; low32 lookup merges28 identifiers.
+The complete bind frame is not a resolved animated world muzzle.
+Do not introduce an arbitrary old-height offset to recover earlier green tests.
+
+The existing170-case Tracer run now fails15 subcases in9 methods: incoming
+body/critical classification and previous Pulse flat-contact/attachment/falloff
+assumptions, including five actual NPC classes. Those assertions are retained.
+The two later added barrier fixtures supplement that run. No failed item is
+closed by these new passes. Full static acceptance and all original-client
+acceptance remain open; no own commit/patch until the full goal passes.
+
+External evidence: WINSTON_BARRIER_RESOURCE_EVIDENCE.json,
+WINSTON_BARRIER_EXECUTION.json, TRACER_EYE_MUZZLE_EVIDENCE.json,
+BARRIER_EYE_TRACER_VALIDATION.json and the current regression/replay logs.
+
+Current shared-ramp source:173 Tracer methods included in1265 distinct methods;
+1256 pass and9 methods/15 subcases fail, zero skips. Generic spread7 and actual
+Tracer spread10 pass, plus one new actual Tracer stored-state replay. The two
+previous Winston actor replay cases apply to the pre-ramp layout only.
+Current evidence: RAMP_CURRENT_VALIDATION.json, RAMP_REGRESSION_PROGRESS.json,
+TRACER_TYPED_HARDPOINT_EVIDENCE.json, probe_tracer_typed_hardpoints.py.

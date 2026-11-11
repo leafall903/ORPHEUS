@@ -46,7 +46,8 @@ import json
 import math
 from functools import cache
 
-from ow174.game.mover import GRAVITY_SCALE, mover_data
+from ow174.game.commands import Command
+from ow174.game.mover import GRAVITY_SCALE, Mover, _movers, mover_data
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
 
@@ -125,6 +126,8 @@ class Bot:
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.navigation = None  # explicit manual pursuit state, allocated on first movement
+        self.impulse_mover = None
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -156,6 +159,36 @@ class Bot:
         self.input_tick: int | None = None  # the last tick it held the keys in
         self.moved_tick: int | None = None  # the last tick it moved or turned in
         self.last_tick: int | None = None
+
+    def push(self, world, impulse, tick: int) -> None:
+        """Give a manual NPC's authored capsule the Soundwave impulse."""
+        if (self.dead or world is None or self.spawner.get("manual_spawn") is not True
+                or self.body not in _movers()):
+            return
+        if self.impulse_mover is None:
+            mover = Mover(self.position, s16(round(self.yaw)), world, mover_data(self.body))
+            mover.velocity = self.velocity
+            self.impulse_mover = mover
+            self.navigation = None
+            self.last_tick = tick
+        self.impulse_mover.add_external_impulse(impulse)
+
+    def step_impulse(self, tick: int, seconds: float, collision) -> bool:
+        mover = self.impulse_mover
+        if mover is None:
+            return False
+        mover.use(world=collision)
+        first = max(self.last_tick + 1, tick - CATCH_UP + 1)
+        for at in range(first, tick + 1):
+            command = Command(at, yaw=s16(round(self.yaw)), pitch=s16(round(self.pitch)))
+            mover.step_pose(command, seconds, at)
+            self.position, self.velocity = tuple(mover.position), mover.velocity
+            self.pace, self.held, self.keys = 0.0, (0, 0), False
+            self.last_tick = self.moved_tick = at
+            if not mover.airborne and not any(self.velocity):
+                self.impulse_mover = None
+                break
+        return True
 
     def step(self, tick: int, seconds: float, collision=None, *, paused_until: int = 0) -> None:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
@@ -295,6 +328,10 @@ class Bot:
 
     def died(self, tick: int) -> None:
         """Killed: it stops where it is, and its records carry the dead flag (every frame for a while)."""
+        from ow174.game import npc_navigation
+
+        npc_navigation.stop(self)
+        self.impulse_mover = None
         self.dead = True
         self.attack_target = None
         self.attack_input = False
@@ -332,16 +369,20 @@ class Bot:
             input_frame = None
         else:
             input_frame = self.input_tick
+        forced = self.impulse_mover
+        if forced is not None and not forced.history:
+            forced = None  # force starts affecting movement records on the next posed frame
         return Movement(
             self.position,
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else forced.flags if forced is not None else 0,
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
-            gravity=GRAVITY_SCALE,
+            air_ticks=forced.air_ticks if forced is not None else 0,
+            gravity=forced.gravity_scale if forced is not None else GRAVITY_SCALE,
         )
 
 
