@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Orisa delivery history integration
+
+- Merge delivery 5b38741c after the interface reconciliation. Every delivered
+  Python runtime module is present; Halt and charge modules match the delivery.
+  Keep the combined barrier geometry verification, swept contacts, lifetime
+  handling and SceneHazard-safe Supercharger owner lookup.
+- Retain combined expiry, multi-hero deployable tracing, reflection and visible
+  defense consumers in place of the older Orisa-only private helpers. Retain
+  collection_index, input history and modeled conditions in place of the old
+  array index, take-press and unknown-condition helpers. Shared conflicts keep
+  these integrated implementations rather than restoring older host files.
+- This history merge changes documentation only. The preceding code commit
+  passed 106 enabled Orisa checks with two NPC-input checks skipped; unfinished
+  cross-hero/client acceptance does not prevent preserving the delivery.
+
+
+
 ### Orisa delivery interface reconciliation
 
 - Retain the delivered barrier geometry model parameter, world-contact guard
