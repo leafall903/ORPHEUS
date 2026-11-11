@@ -67,13 +67,13 @@ class DeadeyeTargetsTests(unittest.TestCase):
         self.assertEqual(self.query.targets, (self.enemy.body,))
         self.assertEqual(self.visible.targets, ())
         self.assertEqual(set(self.effects.children), {self.enemy.body})
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         self.assertIsNone(mccree.shot_aim(self.match.combat, self.player,
                                        type("Volley", (), {"instance": child})()))
 
     def test_off_crosshair_aim_rejects_retired_or_newly_occluded_target(self):
         self.select()
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         state = type("Volley", (), {"instance": child})()
         origin, direction = mccree.shot_aim(self.match.combat, self.player, state)
         self.assertEqual(origin, self.match.combat._eye(self.player))
@@ -87,22 +87,22 @@ class DeadeyeTargetsTests(unittest.TestCase):
         self.select()
         first = self.effects.children[self.enemy.body]
         self.select()
-        self.assertEqual(self.effects.children[self.enemy.body], first)
+        self.assertIs(self.effects.children[self.enemy.body], first)
         self.place(self.enemy, 0, -8)
         self.select()
-        self.assertNotIn(first, self.component.instances)
+        self.assertNotIn(first.id, self.component.instances)
         self.assertFalse(self.effects.children)
         self.place(self.enemy, 3, 8)
         self.select()
         second = self.effects.children[self.enemy.body]
-        self.assertNotEqual(first, second)
+        self.assertIsNot(first, second)
         self.effects.on_end(False)
-        self.assertNotIn(second, self.component.instances)
+        self.assertNotIn(second.id, self.component.instances)
         self.assertFalse(self.effects.children)
 
     def test_short_capsule_is_hit_even_when_its_generic_eye_is_above_the_body(self):
         self.select()
-        child = self.component.instances[self.effects.children[self.enemy.body]]
+        child = self.effects.children[self.enemy.body]
         state = type("Volley", (), {"instance": child})()
         target = next(t for t in self.match.combat._targets() if t.owner is self.enemy)
         short = replace(target, height=1.5, radius=0.5, eye=1.6)
@@ -148,7 +148,7 @@ class DeadeyeTargetsTests(unittest.TestCase):
         self.select()
         child = self.effects.children[self.enemy.body]
         self.script.retire()
-        self.assertNotIn(child, self.component.instances)
+        self.assertNotIn(child.id, self.component.instances)
         self.assertFalse(self.effects.children)
         self.assertIsNone(self.world.match)
 
@@ -157,5 +157,5 @@ class DeadeyeTargetsTests(unittest.TestCase):
         child = self.effects.children[self.enemy.body]
         self.player.gone = True
         mccree.effects(self.world, self.effects)
-        self.assertNotIn(child, self.component.instances)
+        self.assertNotIn(child.id, self.component.instances)
         self.assertFalse(self.effects.children)

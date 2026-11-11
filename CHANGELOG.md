@@ -12,6 +12,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### McCree / Cassidy
+
+- Align Deadeye target tests with stored child instance references and check
+  removal by instance ID. All 11 Deadeye target tests passed with the Rialto
+  runtime. This changes the tests only. Full original-client combat acceptance
+  remains open.
+
 #### Communication wheel
 
 - Verify 21 authored greeting turn-filter configurations against the native initializer.
