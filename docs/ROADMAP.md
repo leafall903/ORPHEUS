@@ -1,5 +1,7 @@
 # Restoration roadmap
 
+Ana delivery scope and cross-hero interaction notes are in `docs/ANA_COMBAT.txt`.
+
 - [ ] Moira full combat acceptance (hero01A2): partial server repair preserves
   healing volley allegiance, Fade lifecycle/immunity, grasp and ultimate health
   effects, orb flight/tethers/energy, trailing heal, authored fuel and Fade

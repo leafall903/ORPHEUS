@@ -42,14 +42,18 @@ def authored_pools(record: dict | None) -> tuple[float, float, float] | None:
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
 
 
-@cache
-def hero_pools(hero: int) -> tuple[float, float, float] | None:
-    """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
-    record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+def record_pools(record, hero: int) -> tuple[float, float, float] | None:
     result = authored_pools(record)
     if result is None:
         log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
     return result
+
+
+@cache
+def hero_pools(hero: int) -> tuple[float, float, float] | None:
+    """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
+    record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    return record_pools(record, hero)
 
 
 def active_pools(hero: int, definition: int) -> tuple[float, float, float]:

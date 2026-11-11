@@ -1065,6 +1065,84 @@ class ServerSnapshotTests(unittest.TestCase):
             self.assertNotEqual(controlled, snapshot_digest(self.capture(session)))
 
 
+    def test_beam_consumed_frame_and_live_ray_cache_change_digest(self):
+        session, peers, players = self.scene()
+        session.apply("switch_hero", {"account": 1, "hero": 0x02E0000000000068})
+        caster = players[0]
+        peers[0].commands(caster.body_script.frame + 1, 2, 1)
+        instance = next(i for i in caster.body_script.component.instances.values() if i.graph.index == 0x241)
+        ray = instance.states[43]
+        self.assertTrue(ray.active)
+        fight = caster.match.combat
+        before = snapshot_digest(self.capture(session))
+        frame = fight.beam_frames[caster.body]
+        fight.beam_frames[caster.body] = frame - 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        fight.beam_frames[caster.body] = frame
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+        ray.ray_hit = not ray.ray_hit
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+
+
+    def test_manual_npc_context_is_causal_without_fabricating_controller_entities(self):
+        from ow174.game.script.bot import BotWorld
+
+        session, _, players = self.scene()
+        component = players[0].body_script.component
+        # Storage-only world substitution: no behavior or native allocation claim.
+        world = component.world = BotWorld(0x02E00000000001CE, 0, {}, controller_components=None)
+        world.match = players[0].match
+        before = snapshot_digest(self.capture(session))
+        world.controller_components = (75,)
+        assigned = snapshot_digest(self.capture(session))
+        self.assertNotEqual(assigned, before)
+        world.controller_components = (75, 92)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), assigned)
+
+
+    def test_manual_npc_pitch_is_causal_but_pure_spread_table_caches_are_not(self):
+        from ow174.game import bots, combat, weapon_spread
+
+        session, _, players = self.scene()
+        player = players[0]
+        bot = bots.Bot(0xC0001001, {'hero': f'0x{SOLDIER:X}', 'team': 1,
+                                  'position': (0, 0, 6), 'rotation': (0, 0, 0, 1), 'graphs': []},
+                       {'name': 'stored view fixture', 'body': f'0x{player.hero.body:X}', 'health': 200}, {})
+        player.match.bots.append(bot)  # storage-only fixture; no native allocation claim
+        weapon_spread.uniform_table.cache_clear()
+        weapon_spread.float_table.cache_clear()
+        before = snapshot_digest(self.capture(session))
+        weapon_spread.uniform_table()
+        weapon_spread.float_table()
+        self.assertEqual(snapshot_digest(self.capture(session)), before)
+        bot.pitch = 1000.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+        self.assertEqual(bot.movement(player.match.tick).pitch, 1000)
+        rocket = combat.Rocket(player, player.team, (0, 0, 0), (0, 0, 1), 80, 1, combat.HitDef(2), None)
+        player.match.combat.rockets.append(rocket)
+        in_flight = snapshot_digest(self.capture(session))
+        rocket.distance = 8.0
+        self.assertNotEqual(snapshot_digest(self.capture(session)), in_flight)
+
+
+    def test_reinhardt_shield_health_and_redeploy_deadline_are_causal(self):
+        from ow174.game.reinhardt import Barrier
+
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        # Isolate snapshot storage. Actual deployment is tested with its resource mesh.
+        barrier = Barrier(player, player.body, 1, 1600, 1600, fight.now, fight.now, fight.now)
+        fight.reinhardt.owners[player.body] = barrier
+        before = snapshot_digest(self.capture(session))
+        barrier.hp = 1530
+        damaged = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, damaged)
+        barrier.blocked_until = fight.now + 5
+        self.assertNotEqual(damaged, snapshot_digest(self.capture(session)))
+
+
+
 class StoredJournalTests(unittest.TestCase):
     def make(self):
         sent = []
@@ -1447,6 +1525,39 @@ class StoredJournalTests(unittest.TestCase):
         self.assertEqual(session.server.tick, before)
         with self.assertRaises(ServerJournalError):
             session.finish()
+
+
+    def test_actual_zarya_primary_target_and_consumed_frames_survive_stored_replay(self):
+        session, sent = self.make()
+        handoffs = session.create_match(MAP, [(1, "Zarya", SOLDIER, 0, False),
+                                              (2, "Ana", SOLDIER, 1, False)])
+        peers = [Peer(session, handoff, sent, ("127.0.0.1", 47200 + index))
+                 for index, handoff in enumerate(handoffs)]
+        for peer in peers:
+            peer.send(flags=SYN)
+            peer.send()
+            peer.message(21601, {})
+        acknowledge_ownership(session, peers)
+        session.tick(100.8)
+        for account, hero in ((1, 0x02E0000000000068), (2, 0x02E000000000013B)):
+            session.apply("switch_hero", {"account": account, "hero": hero})
+        caster, target = session.server.matches[0].players
+        peers[0].commands(caster.body_script.frame + 1, 10, 1)
+        weapon = next(i for i in caster.body_script.component.instances.values() if i.graph.index == 0x241)
+        self.assertEqual(weapon.vars[536].value().id, target.body)
+        self.assertAlmostEqual(target.match.combat.vitals[target.body].total, 188)
+        consumed = dict(caster.match.combat.beam_frames)
+        session.report_callbacks()
+        document = session.finish()
+        replay = _ReplaySession(document, session.registry.resolve)
+        self.assertTrue(replay.run()["stored_state_verified"])
+        copied_caster, copied_target = replay.server.matches[0].players
+        copied_weapon = next(i for i in copied_caster.body_script.component.instances.values()
+                             if i.graph.index == 0x241)
+        self.assertEqual(copied_weapon.vars[536].value().id, copied_target.body)
+        self.assertEqual(copied_caster.match.combat.beam_frames, consumed)
+        self.assertAlmostEqual(copied_target.match.combat.vitals[copied_target.body].total, 188)
+
 
 
 class MoverTableTests(unittest.TestCase):

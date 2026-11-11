@@ -10,7 +10,7 @@ from pathlib import Path
 
 from ow174.game import bots, contacts, props
 from ow174.game.collision import AX, BX, CX, NX, MOVER, World
-from ow174.game.script import expr, graph
+from ow174.game.script import expr, graph, play, play_queue, runtime
 
 HERO = 0x02E000000000023B
 BARRIER_GRAPH = 0x1B55
@@ -89,6 +89,24 @@ class Barrier:
     active: bool = False
     child_request_seen: bool = False
     recharge_at: float | None = None
+    component: runtime.Component | None = None
+
+    @property
+    def child(self):
+        if self.component is None:
+            return None
+        return next((instance for instance in self.component.instances.values() if instance.graph.index == 0x1A2A), None)
+
+    def sync_pool(self):
+        if self.component is not None:
+            self.component.set(253, self.vitals.total)
+            self.component.set(478, self.vitals.total <= 0)
+
+    def retire_child(self):
+        if self.component is not None:
+            for instance in tuple(self.component.instances.values()):
+                self.component.destroy(instance)
+            self.component = None
 
     def update(self, combat):
         component = self.instance.component
@@ -118,6 +136,14 @@ class Barrier:
         else:
             self.recharge_at = None
         self.last = max(self.last, combat.now)
+        if self.child is not None:
+            if wanted != self.phase:
+                self.child.write((expr.INSTANCE, 59), wanted)
+            self.sync_pool()
+            if combat.tick > self.component.frame:
+                self.component.run_frame(combat.tick)
+            else:
+                self.component.run_now()
         self.phase = wanted
         self.active = wanted in (2, 3) and self.vitals.total > 0 and self.child_request_seen
         if self.active and wanted == 2 and elapsed:
@@ -178,6 +204,29 @@ class Barrier:
         return nearest
 
 
+class BarrierWorld(runtime.World):
+    def __init__(self, mode, barrier):
+        super().__init__(HERO, mode)
+        self.barrier = barrier
+
+    def position(self, entity):
+        if entity == self.barrier.entity:
+            return expr.Vec3(*self.barrier.position)
+        return super().position(entity)
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        source = self.barrier.instance.component
+        if entity == source.entity and var in (19777, 2083):
+            return source.entity_var(var, create=False)
+        return NotImplemented
+
+    def modify_health(self, state, elapsed_ms):
+        if (state.instance.graph.index, state.node.pos) == (0x1A2A, 50):
+            # The shared actor integrates the authored rate across world clock gaps.
+            return True
+        return NotImplemented
+
+
 def create_barrier(combat, world, state):
     if (state.instance.component.strict or world.hero != HERO
             or state.instance.graph.index != BARRIER_GRAPH or state.node.state != 4):
@@ -233,7 +282,28 @@ def play_barrier_request(combat, body, instance, node):
     if (resource != expr.Asset(0x0580000000001A2A) or barrier is None
             or barrier.owner_body != body or barrier.instance is not instance):
         return False
+    if barrier.child_request_seen:
+        return True
+    definition = graph.graph(0x1A2A)
+    selected = play.resolve_resource(instance, node)
+    if definition is None or selected is None:
+        return False
+    request = play.resolve_request(instance, node, selected, context_provider=lambda:
+        play.InvocationContext(body, body, instance.source_entity()))
+    if request is None or request.targets != (barrier.entity,):
+        return False
+    child = runtime.Component(barrier.entity, instance.component.frame_ms,
+                              BarrierWorld(instance.component.world.mode, barrier))
+    child.frame, child.now = combat.tick, combat.tick * child.frame_ms
+    queue = play_queue.Queue(child, lambda _: play_queue.Load("ready", definition))
+    queue.submit(request)
+    barrier.component = child
     barrier.child_request_seen = True
+    barrier.sync_pool()
+    child.run_now()
+    if barrier.child is not None:
+        barrier.child.write((expr.INSTANCE, 59), barrier.phase)
+        child.run_now()
     return True
 
 
@@ -242,6 +312,7 @@ def update_barriers(combat):
         if (barrier.owner.gone or barrier.instance.stopped or barrier.instance.component.owner_dead
                 or barrier.owner.body != barrier.owner_body or combat.match.ended):
             del combat.sigma_barriers[entity]
+            barrier.retire_child()
             state = barrier.instance.states.get(4)
             if state is not None and state.pet_entity == entity and not barrier.instance.stopped:
                 state.pet_entity = None
@@ -256,6 +327,9 @@ def barrier_intersection(combat, shooter, origin, direction, reach):
 
 def damage_barrier(combat, barrier, amount):
     dealt = barrier.vitals.damage(amount)
+    barrier.sync_pool()
+    if barrier.component is not None:
+        barrier.component.run_now()
     if barrier.vitals.total <= 0:
         barrier.active = False
     return dealt

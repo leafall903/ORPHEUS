@@ -622,5 +622,25 @@ class BodyVMSnapshotTests(unittest.TestCase):
         self.assertEqual(snapshot_digest(baseline), snapshot_digest(copy.deepcopy(baseline)))
 
 
+    def test_strict_assassin_pursuit_and_facing_storage_exports(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_ECAEE401", "STU_AB9B30EF")), init=False)
+        for index, expected in enumerate((nodes.AssassinPursuitCallbacks, nodes.AssassinFacingState)):
+            self.assertIs(type(instance.state(index)), expected)
+        data = raw(export_component_vm(component))
+        self.assertEqual(set(fields(data, ["state", 1, 0])),
+                         STATE_FIELDS | {"pursuit_hosted", "pursuit_refresh"})
+        self.assertEqual(set(fields(data, ["state", 1, 1])), STATE_FIELDS)
+
+
+    def test_assassin_navigation_outside_authored_graph_keeps_factory_fallback(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(minimal_graph(("STU_988AAC99",)), init=False)
+        with mock.patch.object(runtime.World, "native_state_factory_miss", return_value=True) as miss:
+            self.assertIsNone(instance.state(0))
+        miss.assert_called_once_with("STU_988AAC99")
+
+
+
 if __name__ == "__main__":
     unittest.main()

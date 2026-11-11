@@ -219,11 +219,14 @@ class Barriers:
     def intersection(self, shooter, origin, direction, length, *, radius=0.0):
         return self.trace(shooter, origin, direction, length, radius=radius)
 
-    def trace(self, shooter, origin, direction, length, *, radius=0.0, barriers=None):
+    def closest(self, barrier, point):
+        return self.geometry.closest(barrier.position, barrier.yaw, point)
+
+    def trace(self, shooter, origin, direction, length, *, radius=0.0, barriers=None, team=None):
         if self.geometry is None:
             return None
         nearest = None
-        for barrier in self.opponents(shooter) if barriers is None else barriers:
+        for barrier in self.opponents(shooter, team) if barriers is None else barriers:
             distance = self.geometry.cast(barrier.position, barrier.yaw, origin, direction, length, radius)
             if distance is not None and (nearest is None or distance < nearest[0]):
                 nearest = distance, barrier
@@ -235,7 +238,7 @@ class Barriers:
         if self.geometry is None:
             return
         for barrier in self.opponents(shooter):
-            point = self.geometry.closest(barrier.position, barrier.yaw, centre)
+            point = self.closest(barrier, centre)
             if (math.dist(point, centre) <= radius
                     and capsule_visible(self.fight._collision(), origin, point, point, 0.0,
                                         walls=self.fight.walls)):

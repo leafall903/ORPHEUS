@@ -6,9 +6,13 @@ from ow174.game import immunity
 from ow174.game.script import expr, runtime
 from ow174.game.script.graph import graph
 
-HERO, GRAPH = 0x02E00000000001BB, 0x1157
+HERO, GRAPH, BUTTON = 0x02E00000000001BB, 0x1157, 36
 VICTIM_GRAPH, PIN_MESSAGE = 0x1177, 0x02400000000008FE
 PIN_RANGE = 3.0  # manual contact policy, not recovered native acquisition distance
+
+
+def manual(world):
+    return getattr(world, "hero", None) == HERO and world.controller_components is not None
 
 
 def scoped(world, instance):
@@ -259,3 +263,53 @@ def release_victim(fight, entity):
         component = bot.body_script.component
         bind(component.world, component, None)
         bot.attack_input = False
+
+
+
+def acquire(fight, bot, player):
+    from ow174.game import npc_control
+
+    script = bot.body_script
+    if script is None or not manual(script.component.world):
+        return False
+    world = script.component.world
+    if player is None or not player.has_body or not player.spawned:
+        stop(bot)
+        return False
+    if world.manual_target not in (None, player.body):
+        stop(bot)
+        return False
+    if world.manual_target is None and recovering(world, script.component):
+        return False
+    bot.attack_target = player.entity
+    return npc_control.update_input(fight, bot)
+
+
+def engage(match, bot, player):
+    if match.ended or bot not in match.bots or player not in match.players:
+        return False
+    return acquire(match.combat, bot, player)
+
+
+def selected_contact(fight, bot, entity):
+    if bot.dead or fight.is_stunned(bot):
+        return None
+    target = next((target for target in fight._enemies(bot) if target.entity == entity), None)
+    if (target is None or getattr(target.owner, "client", None) is None or target.owner.gone
+            or not contact(fight.match, bot, target)):
+        return None
+    return target
+
+
+def stop(bot):
+    component = getattr(bot.body_script, "component", None)
+    if component is not None and manual(component.world):
+        bind(component.world, component, None)
+        bot.attack_input = False
+        bot.attack_target = None
+
+
+def refresh(fight, bot):
+    component = getattr(bot.body_script, "component", None)
+    if component is not None and manual(component.world):
+        refresh_control(component.world, component)

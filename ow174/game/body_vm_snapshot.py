@@ -13,14 +13,19 @@ import random
 import types
 
 from ow174.game import replay_values
+from ow174.game.health_packs import PackWorld
+from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
 from ow174.game.script import (
     body_owner,
+    data_flow,
+    health_queries,
     entity_queries,
     expr,
     graph,
+    message_manager,
     message_receive,
     message_scope,
     nodes,
@@ -67,12 +72,11 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
-    nodes.TargetEffects: (("children",), ()),
     nodes.FilterArray: ((), ()),
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
-    nodes.ModifyHealth: ((), ()),
+    nodes.RecallRewind: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
@@ -94,6 +98,11 @@ _STATE_LAYOUTS = {
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
     nodes.ActiveOutput: ((), ()),
+    nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
+    nodes.AssassinPursuitCallbacks: (("pursuit_hosted", "pursuit_refresh"), ()),
+    nodes.AssassinFacingState: ((), ()),
+    nodes.AssassinNavigationState: ((), ()),
+    nodes.AssassinButtonRequest: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.ControllerButton: ((), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
@@ -130,9 +139,16 @@ _STATE_LAYOUTS = {
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied",), ()),
     nodes.SprayPlacement: (("placement",), ()),
+    nodes.CompatibleTrackRay: (("ray_hit",), ()),
+    nodes.CreateEntity: ((), ()),
+    nodes.Component51CounterState: (("health_counter",), ()),
+    nodes.DataFlowSnapshotState: (("scope_registry", "snapshot_registration"), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    data_flow.Snapshot: ("mapping", "value"),
+    data_flow.SnapshotRegistry: ("entries",),
+    health_queries.StateCounter: ("value",),
     WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
     WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
     body_owner.Context: ("owner", "instance_present", "environment_present", "lookup",
@@ -148,6 +164,7 @@ _VALUE_LAYOUTS = {
     message_receive.Packet: ("message", "caller", "instigator", "params"),
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
+    message_manager.Key: ("entity", "flags", "message"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
     play.InvocationContext: ("caller", "owner", "instigator"),
 }
@@ -186,7 +203,7 @@ def _digest(value) -> str:
 
 
 class _Export:
-    def __init__(self, component, definition_digests):
+    def __init__(self, component, definition_digests, external_reference=None):
         if type(component) is not runtime.Component:
             raise BodyVMSnapshotError("unknown component class")
         fields = _layout(component, _COMPONENT)
@@ -197,6 +214,7 @@ class _Export:
         _integer(fields["entity"], "component")
         self.component = component
         self.definition_digests = definition_digests
+        self.external_reference = external_reference
         self.instances = {}
         self.states = {}
         self.variables = {}
@@ -274,7 +292,7 @@ class _Export:
         if (type(fields["node"]) is not graph.Node or not 0 <= index < len(owner.graph.states)
                 or owner.graph.states[index] is not fields["node"]):
             raise BodyVMSnapshotError("state node does not match its graph slot")
-        if kind is not runtime.state_type(fields["node"].cls, owner.component.strict):
+        if kind is not runtime.state_type(fields["node"].cls, owner.component.strict, owner.graph.index, fields["node"].pos):
             raise BodyVMSnapshotError("state class does not match its registered node model")
         key = (owner.id, index)
         if key not in self.states:
@@ -466,6 +484,10 @@ class _Export:
             return obj
         if obj is self.component:
             return {"ref": ["component"]}
+        if self.external_reference is not None:
+            reference = self.external_reference(obj)
+            if reference is not None:
+                return {"external_ref": reference}
         if kind is runtime.Instance:
             return {"ref": self._instance(obj)}
         if kind in _STATE_LAYOUTS:
@@ -476,10 +498,12 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery):
+        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
+                    PackWorld, ExperimentalBarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
+            optional = ()
             if kind is BodyWorld:
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
@@ -490,6 +514,10 @@ class _Export:
                                "controller_inputs", "heavy_counter_stuns"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
+            if kind is PackWorld:
+                fields.update(("match", "entity"))
+            if kind is ExperimentalBarrierWorld:
+                fields.add("barrier")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
             if kind is PullQuery:
@@ -503,7 +531,7 @@ class _Export:
             if kind is PhotonWorld:
                 fields.add("actor")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) is BodyWorld
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
@@ -735,12 +763,13 @@ class _Export:
         return result
 
 
-def _document(component, extra_roots, script=None, *, graph_definitions=None, definition_digests=None):
+def _document(component, extra_roots, script=None, *, graph_definitions=None, definition_digests=None,
+              external_reference=None):
     if type(extra_roots) not in (tuple, list):
         raise BodyVMSnapshotError("extra_roots must be a tuple or list")
     try:
         source = hashlib.sha256(graph.GRAPHS_PATH.read_bytes()).hexdigest()
-        exporter = _Export(component, definition_digests)
+        exporter = _Export(component, definition_digests, external_reference)
         raw = exporter.capture(extra_roots, script,
                                graph_definitions={} if graph_definitions is None else graph_definitions)
         document = {
@@ -759,15 +788,16 @@ def export_component_vm(component, *, extra_roots=()) -> dict:
 
 
 def export_component_vm_with_identities(component, *, extra_roots=(), _graph_definitions=None,
-                                        _definition_digests=None) -> tuple:
+                                        _definition_digests=None, external_reference=None) -> tuple:
     """Return one capture plus ephemeral (storage id, original object, scope tag) bindings.
 
     Scope tags are vm, model or vm+model. The sidecar is not serializable replay
     data; an outer adapter can detect unsupported sharing across artifact scopes.
-    No identity callback or gameplay function is invoked.
+    The optional outer encoder supplies references to registered enclosing storage.
+    No gameplay function is invoked.
     """
     return _document(component, extra_roots, graph_definitions=_graph_definitions,
-                     definition_digests=_definition_digests)
+                     definition_digests=_definition_digests, external_reference=external_reference)
 
 
 def export_body_vm(script) -> dict:

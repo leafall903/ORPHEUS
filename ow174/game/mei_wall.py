@@ -6,7 +6,8 @@ from itertools import pairwise
 
 from ow174.game import collision, contacts
 from ow174.game.collision import Ground
-from ow174.game.mover import IN_AIR
+from ow174.game.commands import Command
+from ow174.game.mover import IN_AIR, Mover, mover_data
 from ow174.game.script import expr, graph, runtime
 
 MEI = 0x02E00000000000DD
@@ -144,8 +145,19 @@ class Walls:
         definition = graph.graph(0x0636)
         if definition is None:
             return False
-        players = [target.owner for target in self.combat._targets()
-                   if hasattr(target.owner, "mover") and not self.combat.is_dead(target.owner)]
+        from ow174.game.bots import Bot
+
+        players = []
+        for target in self.combat._targets():
+            owner = target.owner
+            if isinstance(owner, Bot) and owner.spawner.get("manual_spawn") and not owner.dead:
+                mover = getattr(owner, "wall_mover", None) or Mover(
+                    owner.position, round(owner.yaw), self.combat.match.collision_world, mover_data(owner.body),
+                )
+            else:
+                mover = getattr(owner, "mover", None)
+            if mover is not None and not self.combat.is_dead(owner):
+                players.append((owner, mover))
         created = False
         for point in points:
             piece = Pillar(0, player.body, player.team, point, axis, 0., 0)
@@ -167,8 +179,12 @@ class Walls:
             piece.entity, piece.health, piece.expires, piece.impact_marked = entity, health, expires, marked
             self.pieces[entity] = piece
             created = True
-            for mover, position in lifts:
+            for owner, mover, position in lifts:
                 self.place_mover(mover, position, ((0., 1., 0.),))
+                if isinstance(owner, Bot):
+                    owner.wall_mover = mover
+                    owner.position, owner.velocity = tuple(mover.position), mover.velocity
+                    owner.moved_tick = self.combat.tick
         return created
 
 
@@ -178,8 +194,7 @@ class Walls:
         top = piece.feet[1] + piece.height
         up = (0., 1., 0.)
         lifts = []
-        for player in players:
-            mover = player.mover
+        for owner, mover in players:
             x, y, z = mover.position
             dx, dy, dz = local(piece, tuple(a - b for a, b in zip(mover.position, piece.feet, strict=True)))
             radius, segment = mover._capsule()
@@ -197,7 +212,7 @@ class Walls:
                 hit = ray(other, mover.position, up, destination[1] - y, radius=radius, height=height)
                 if hit is not None and any(hit[1]):
                     return None
-            lifts.append((mover, destination))
+            lifts.append((owner, mover, destination))
         return lifts
 
 
@@ -262,14 +277,40 @@ class Walls:
             normals.append(normal)
         return after, normals
 
+    def step_npc(self, bot, tick, seconds):
+        mover = getattr(bot, "wall_mover", None)
+        if mover is None or bot.dead:
+            return False
+        if bot.last_tick == tick:
+            return True
+        bot.last_tick = tick
+        before = tuple(mover.position)
+        mover.step_pose(Command(tick, yaw=round(bot.yaw)), seconds, tick, ground_override=self.ground(mover))
+        self.move_mover(mover, before)
+        position = tuple(mover.position)
+        if bot.position != position:
+            bot.position, bot.moved_tick = position, tick
+        bot.velocity = mover.velocity
+        if not mover.airborne and self.ground(mover) is None:
+            del bot.wall_mover
+        return True
+
+    def remove(self, piece):
+        if self.pieces.pop(piece.entity, None) is not None:
+            sentries = getattr(self.combat, "symmetra_sentries", None)
+            if sentries is not None:
+                sentries.retire_supported_by(piece.entity)
+
     def retire(self, body):
         self.inputs.pop(body, None)
-        self.pieces = {entity: piece for entity, piece in self.pieces.items() if piece.owner != body}
+        for piece in tuple(self.pieces.values()):
+            if piece.owner == body:
+                self.remove(piece)
 
     def update(self, tick):
         for entity, piece in tuple(self.pieces.items()):
             if piece.expires <= tick:
-                del self.pieces[entity]
+                self.remove(piece)
 
     def cancel_preview(self, player):
         state = self.inputs.get(getattr(player, "body", None))
@@ -288,7 +329,7 @@ class Walls:
             return
         piece.health = max(0.0, piece.health - amount)
         if piece.health == 0:
-            self.pieces.pop(piece.entity, None)
+            self.remove(piece)
 
     def instance(self, player):
         script = getattr(player, "body_script", None)
@@ -434,7 +475,7 @@ class Walls:
         if pressed & 16:
             if owned:
                 for piece in owned:
-                    self.pieces.pop(piece.entity)
+                    self.remove(piece)
                 state.preview = False
                 self.stop_preview(instance)
                 return True

@@ -182,6 +182,17 @@ def _uniform(index, low, high):
     return f32(f32(f32(value * f32(high - low)) * 2.0 ** -32) + low)
 
 
+def ring_phase(degrees: float | None) -> float:
+    """D88756..D887C2: absent is random; explicit negative degrees wrap upward."""
+    if degrees is None:
+        return -1.0
+    angle = f32(f32(degrees) * f32(math.pi / 180))
+    if angle < 0:
+        cycles = math.trunc(f32(angle * f32(1 / math.tau)))
+        angle = f32(f32(angle - f32(f32(cycles) * f32(math.tau))) + f32(math.tau))
+    return angle
+
+
 def ring_direction(forward, spread, jitter, phase, rings, base, shot, pellet):
     """D80310 concentric launch at unit aspect; angles supplied in degrees except phase radians."""
     tau, radians = f32(math.tau), f32(math.pi / 180)
@@ -237,8 +248,8 @@ def ring_volley(state, forward, base, shot):
         raise ValueError("Enforcer ring counts do not match authored projectile count")
     spread = number(launch.get("m_spread"), 0)
     jitter = number(launch.get("m_92308789"), 0)
-    phase = (-1 if launch.get("m_391F15AF") is None else
-             f32(number(launch["m_391F15AF"], 0) * f32(math.pi / 180)))
+    phase_cfg = launch.get("m_391F15AF")
+    phase = ring_phase(None if phase_cfg is None else number(phase_cfg, 0))
     return tuple(ring_direction(forward, spread, jitter, phase, rings, base, shot, pellet)
                  for pellet in range(count))
 

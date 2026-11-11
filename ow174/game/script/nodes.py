@@ -19,12 +19,18 @@ from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, Snapsho
 from ow174.game.script import (
     animation_alias,
     array_actions,
+    assassin_movement,
+    b61,
+    combat_mod_filter,
+    component45_spatial,
+    component86,
     data_flow,
     effect_parameters,
     effect_routing,
     entity_control,
     expr,
     game_message,
+    health_queries,
     message_receiver,
     message_state,
     model_look,
@@ -98,6 +104,11 @@ _NUMERIC_ROWS = {
     "STU_4CB0950F": (0, 0.0), "STU_D8CC6B10": (1, 1.0), "STU_56DEE1BB": (2, 0.0),
     "STU_C61711C8": (3, f32(3.4028234663852886e38)),
     "STU_F197CFBF": (4, f32(2 ** -126)), "STU_0A019882": (5, f32(2 ** -126)),
+}
+_VECTOR_ROWS = {
+    "STU_56F54BF7": (0, expr.Vec3(0, 0, 0)),
+    "STU_09441550": (1, expr.Vec3(1, 1, 1)),
+    "STU_09F9B1FE": (2, expr.Vec3(0, 0, 0)),
 }
 
 
@@ -742,7 +753,7 @@ class LinkedTarget(State):
 
 @state_class("STU_316CFEF2")
 class NumericPropertyModifiers(State):
-    """D39590/D399C0/D3C1E0: numeric rows on an explicit component-31 backend.
+    """D39590/D399C0/D3C1E0: property rows on an explicit component-31 backend.
 
     The backend clock is native component +528/vt48's frame, not an assumed
     alias of Component.frame. Typed-value and filter rows remain strict errors.
@@ -769,19 +780,35 @@ class NumericPropertyModifiers(State):
         for row in rows:
             if row is None:
                 continue
-            if (not isinstance(row, dict) or row.get("$") not in _NUMERIC_ROWS
-                    or type(row.get("m_A9561CA0", 0)) is not int
-                    or not 0 <= row.get("m_A9561CA0", 0) <= 0xFFFFFFFF):
+            cls = row.get("$") if isinstance(row, dict) else None
+            if not isinstance(cls, str) or (cls not in _NUMERIC_ROWS and cls not in _VECTOR_ROWS):
                 self.instance.component.unsupported(
                     self.instance, "numeric property modifier row", str(row.get("$")
                     if isinstance(row, dict) else type(row)), self.node,
                 )
+            field = row.get("m_CFEC5F76" if cls in _VECTOR_ROWS else "m_A9561CA0", 0)
+            if type(field) is not int or not 0 <= field <= 0xFFFFFFFF:
+                self.instance.component.unsupported(self.instance, "numeric property modifier row", cls, self.node)
         return rows
 
     def number(self, cfg, default):
         failed = object()
         value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
         return default if value is failed else f32(expr.to_float(value, default))
+
+    def record(self, row, key, start):
+        cls = row["$"]
+        if cls in _VECTOR_ROWS:
+            operation, default = _VECTOR_ROWS[cls]
+            value = play.evaluate_scalar(self.instance, row.get("m_9B7A63EA"), initial=default, watcher=self)
+            priority = self.number(row.get("m_priority"), 0.0)
+            return modifiers.VectorRecord(1, key, start, row.get("m_CFEC5F76", 0), operation,
+                                          value if isinstance(value, expr.Vec3) else default, priority)
+        operation, default = _NUMERIC_ROWS[cls]
+        priority = self.number(row.get("m_priority"), 0.0)
+        upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
+        value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
+        return modifiers.Record(1, key, start, row.get("m_A9561CA0", 0), operation, value, priority, upper)
 
     def on_begin(self):
         if not self.instance.component.strict:
@@ -805,15 +832,10 @@ class NumericPropertyModifiers(State):
             self.instance.component.consume_work("numeric property modifier")
             if row is None:
                 continue
-            operation, default = _NUMERIC_ROWS[row["$"]]
-            priority = self.number(row.get("m_priority"), 0.0)
-            upper = self.number(row.get("m_8213EB22"), f32(3.4028234663852886e38)) if operation == 5 else 0.0
-            value = self.number(row.get("m_8AD739CE" if operation == 5 else "m_9B7A63EA"), default)
             key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
-            backend.upsert(modifiers.Record(1, key, (frame + 1) & 0xFFFFFFFF,
-                row.get("m_A9561CA0", 0), operation, value, priority, upper))
+            backend.upsert(self.record(row, key, (frame + 1) & 0xFFFFFFFF))
             if self.per_frame:
-                backend.retire(1, key, (frame + 2) & 0xFFFFFFFF)
+                backend.retire(1, key, (frame + 2) & 0xFFFFFFFF, vector=row["$"] in _VECTOR_ROWS)
         if self.per_frame:
             self.ticks()
 
@@ -835,7 +857,177 @@ class NumericPropertyModifiers(State):
         for index, row in enumerate(rows):
             if row is not None:
                 key = modifiers.state_key(self.instance.id, self.index, self.counter, index, offset)
-                backend.retire(1, key, (frame + 1) & 0xFFFFFFFF)
+                backend.retire(1, key, (frame + 1) & 0xFFFFFFFF, vector=row["$"] in _VECTOR_ROWS)
+
+
+@state_class("STU_B61E6681")
+class B61State(State):
+    """C7DCE0/C7E2D0/C7E030 against an explicit scene registry."""
+
+    def registry(self):
+        component = self.instance.component
+        return component.world.b61_registry(component.entity)
+
+    def fields(self):
+        enabled = truthy(self.evaluate(self.node.field("m_88881C38")))
+        first = self.float_field("m_36998F8A")
+        second = self.float_field("m_44064F45")
+        return b61.Payload(enabled, first, second, self.extras())
+
+    def float_field(self, name, default=0.0):
+        value = self.evaluate(self.node.field(name))
+        return f32(default if value is None else to_float(value, default))
+
+    def extras(self):
+        return self.float_field("m_203D6B00"), self.float_field("m_weight")
+
+    def on_begin(self):
+        registry = self.registry()
+        component = self.instance.component
+        if type(registry) is not b61.Registry:
+            if component.strict:
+                component.unsupported(self.instance, "B61 registry host", self.node.cls, self.node)
+            return
+        payload = self.fields()
+        priority = registry.priority(self.evaluate(self.node.field("m_priority"), watch=False))
+        if priority is NotImplemented:
+            if component.strict:
+                component.unsupported(self.instance, "B61 priority descriptor", self.node.cls, self.node)
+            return
+        registry.insert(self, payload, *priority)
+
+    def dependency_changed(self):
+        registry = self.registry()
+        if type(registry) is b61.Registry and registry.find(self) is not None:
+            registry.update(self, self.fields())
+
+    def on_cleanup(self):
+        registry = self.registry()
+        if type(registry) is b61.Registry:
+            registry.remove(self)
+
+    def on_failed(self):
+        self.on_cleanup()
+
+
+@state_class("STU_600E3C59")
+class B61ExtendedState(B61State):
+    """C81870 extension payload, with the shared B61 lifecycle."""
+
+    def extras(self):
+        interval = {0: 1 / 60, 1: .05, 2: .1, 4: .5}.get(self.node.field("m_DD792FF0"), .2)
+        return (
+            self.float_field("m_D655C99A", 2.0),
+            self.float_field("m_width", 2.0),
+            self.float_field("m_weight"),
+            f32(interval),
+            self.float_field("m_B802CBBA", 1.0),
+        )
+
+
+@state_class("STU_CF8C7CC5")
+class Component86State(State):
+    """C77F60/C78640 target registration with explicit scene host data."""
+
+    registry = None
+    watch_priority = False
+
+    def registration(self, registry):
+        return None
+
+    def priority(self, registry):
+        priority = registry.priority(self.evaluate(self.node.field("m_priority"), watch=self.watch_priority))
+        if priority is NotImplemented:
+            self.instance.component.unsupported(
+                self.instance, "component86 priority descriptor", self.node.cls, self.node,
+            )
+        return priority
+
+    def on_enter(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        value, success = play.evaluate_scalar_result(self.instance, self.node.field("m_00D49978"))
+        entity = expr.to_entity(value) if success else expr.INVALID_ENTITY
+        if not expr.valid_entity(entity):
+            self.request(ABORT)
+            return
+        registry = component.world.component86(entity)
+        if registry is None:
+            self.request(ABORT)
+            return
+        if type(registry) is not component86.Registry:
+            component.unsupported(self.instance, "component86 target registry", self.node.cls, self.node)
+            return
+        payload = self.registration(registry)
+        if payload is NotImplemented:
+            self.request(ABORT)
+            return
+        registry.insert(self, *self.priority(registry), payload)
+        self.registry = registry
+
+    def on_cleanup(self):
+        if self.registry is not None:
+            self.registry.remove(self)
+            self.registry = None
+
+    on_failed = on_destroyed = on_cleanup
+
+
+@state_class("STU_066B4605")
+class Component86SelectionState(Component86State):
+    """C7C650/C7D5C0/C7CD30 selection-qualified registration."""
+
+    def registration(self, registry):
+        if registry.accepted_selections is NotImplemented:
+            self.instance.component.unsupported(
+                self.instance, "component70 selection service", self.node.cls, self.node,
+            )
+        slot, success = play.evaluate_scalar_result(self.instance, self.node.field("m_D66E7D68"))
+        slot = to_int(slot, 9999) if success else 9999
+        identifier = play._asset(play.evaluate_scalar(self.instance, self.node.field("m_F2810377")))
+        flag = truthy(play.evaluate_scalar(self.instance, self.node.field("m_F8585ABF")))
+        if (slot, identifier) not in registry.accepted_selections:
+            return NotImplemented
+        return component86.Selection(slot, identifier, flag)
+
+
+@state_class("STU_473549CA", strict_only=True)
+class Component86NumericPairState(Component86State):
+    """C78AE0 supplies a kind 1 pair in the primary component86 list."""
+
+    def registration(self, registry):
+        default = f32(math.pi)
+        values = []
+        for name in ("m_49EEBB65", "m_FD4D6C19"):
+            value, success = play.evaluate_scalar_result(self.instance, self.node.field(name))
+            values.append(f32(expr.to_float(value, default)) if success and value is not None else default)
+        return component86.NumericPair(*values)
+
+
+@state_class("STU_FC16FF45", strict_only=True)
+class Component86VectorState(Component86State):
+    """C7E630/C7E7D0 kind-3 vector and priority on the primary list."""
+
+    watch_priority = True
+
+    def registration(self, registry):
+        value = self.evaluate(self.node.field("m_7CCD8B4B"))
+        return value if isinstance(value, expr.Vec3) else expr.Vec3(0.0, 0.0, 0.0)
+
+    def dependency_changed(self):
+        if self.registry is not None:
+            vector = self.registration(self.registry)
+            self.registry.update_vector(self, *self.priority(self.registry), vector)
+
+
+@state_class("STUStatescriptStateBlinkEffect", strict_only=True)
+class BlinkEffect(State):
+    """104319 authoritative begin with no received presentation events.
+
+    The B8/60 hooks are empty and the initial pending count is zero. The
+    external event and stream readers that enqueue effect IDs are separate.
+    """
 
 
 @state_class("STU_43994F1B", "STU_93B8758C", strict_only=True)
@@ -849,8 +1041,14 @@ class RegisteredState(State):
     client services, not simulated by this server's begin/end requests.
     """
 
-    def on_begin(self) -> None:
+    def register(self) -> None:
         self.instance.component.state_registries.setdefault(self.node.cls, []).append(self)
+
+    def on_begin(self) -> None:
+        self.register()
+        from ow174.game import wraith
+
+        wraith.enter(self)
 
     def on_cleanup(self) -> None:
         self.instance.component.state_registries[self.node.cls].remove(self)
@@ -908,6 +1106,41 @@ class SceneColorState(RegisteredState):
     def on_cleanup(self) -> None:
         if self.instance.component.strict:
             super().on_cleanup()
+
+
+@state_class("STU_274FF373", strict_only=True)
+class NPCControllerLinkedState(RegisteredState):
+    """104319 linked-state hooks. External consumers of m_69A20070 are separate."""
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.register()
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            super().on_cleanup()
+
+
+@state_class(combat_mod_filter.CLASS, strict_only=True)
+class CombatModFilter(RegisteredState):
+    """Local registration and explicit events for native tag-only profiles."""
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.combat_filter = combat_mod_filter.profile(self)
+            self.register()
+
+    def on_cleanup(self):
+        if self.instance.component.strict:
+            super().on_cleanup()
+
+    def filter_event(self, resource, tags):
+        component = self.instance.component
+        with component.operation():
+            if (not self.active or self.ending
+                    or self not in component.state_registries.get(self.node.cls, ())):
+                return None
+            return combat_mod_filter.evaluate(self, resource, tags)
 
 
 @state_class("STU_33A46033")
@@ -1045,6 +1278,65 @@ class AnimationAlias(State):
         self.alias_handle = 0
 
 
+@state_class("STU_96333BBE", strict_only=True)
+class SpatialBindingState(ScopedSubgraph):
+    """Ordinary hooks are passive. Auxiliary binding requires the engine owner."""
+
+    def scope_enter(self):
+        component = self.instance.component
+        if component.strict and component.world.spatial_binding_owner(component.entity) is not None:
+            component.unsupported(self.instance, "spatial binding owner or binding service",
+                                  self.node.cls, self.node)
+
+    def scope_exit(self):
+        # The supported owner-absent path never acquires a binding.
+        pass
+
+
+@state_class(component45_spatial.CLASS, strict_only=True)
+class Component45SpatialState(ScopedSubgraph):
+    """104319 8EF100 reset and 8EF2B0 elapsed-time update."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.elapsed = 0
+        self.result = 0.0
+        self.last_update = 0
+        self.spatial_registry = None
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.elapsed = 0
+            self.result = 0.0
+            self.last_update = self.now
+            if component45_spatial.context_for(self).sample is not None:
+                self.ticks()
+
+    def scope_enter(self):
+        if self.instance.component.strict:
+            component45_spatial.register(self)
+
+    def scope_exit(self):
+        component45_spatial.unregister(self)
+
+    def on_destroyed(self):
+        component45_spatial.unregister(self)
+        super().on_destroyed()
+
+    def on_failed(self):
+        component45_spatial.unregister(self)
+
+    def tick(self):
+        self.elapsed += self.now - self.last_update
+        self.last_update = self.now
+        if self.elapsed >= 80:
+            elapsed, self.elapsed = self.elapsed, 0
+            self.result = 0.0
+            context = component45_spatial.context_for(self)
+            if context.sample is not None:
+                component45_spatial.update(self, context, elapsed)
+
+
 @state_class("STU_7D71FDF3")
 class ModelLook(ScopedSubgraph):
     """Native +1C0 scope enter/exit and +70 tick; begin/end stay separate."""
@@ -1093,6 +1385,28 @@ class GlobalDataFlowValue(State):
 
     on_failed = on_cleanup
     on_destroyed = on_cleanup
+
+
+@state_class("STU_AC29FFB9", strict_only=True)
+class DataFlowSnapshotState(ScopedSubgraph):
+    """104319 component82 value snapshot acquired in the auxiliary phase."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.snapshot_registration = None
+
+    def scope_enter(self):
+        data_flow.snapshot_enter(self)
+
+    def scope_exit(self):
+        data_flow.snapshot_exit(self)
+
+    def on_destroyed(self):
+        data_flow.snapshot_exit(self)
+        super().on_destroyed()
+
+    def on_failed(self):
+        data_flow.snapshot_exit(self)
 
 
 @state_class("STUStatescriptStateDataFlowMapping")
@@ -1736,6 +2050,10 @@ class Stack(State):
         priority, above = stack_priority(_field(self, "m_priority"))
         self.var = self.instance.find_var(*target)
         self.link(target, 0, priority, above, stack=True)
+        if (self.instance.graph.index, self.node.pos) == (0x0F7C, 49):
+            from ow174.game import fade
+
+            fade.enter(self)
 
     def stack_changed(self, var: Var) -> None:
         if not self.active or self.ending or var is not self.var or not var.links:
@@ -1934,6 +2252,18 @@ class LogicalButton(State):
         return {"counter": self.counter}
 
 
+class ActiveInputRelay(State):
+    """104319 1B97E10 consumes the custom plug and forwards it while active."""
+
+    def plug_enter(self, input_path: str) -> bool:
+        plug = self.node.field(input_path)
+        if not isinstance(plug, dict) or plug.get("$") != "STU_A1AAB8C4":
+            return super().plug_enter(input_path)
+        if self.active:
+            self.instance.follow(self.node, "m_outPlug", self)
+        return True
+
+
 @state_class("STU_91EF24A9")
 class AIBehavior(State):
     """A behavior candidate. The world decides when its selected subgraph runs."""
@@ -1961,6 +2291,192 @@ class ControllerButton(State):
     def on_end(self, finished: bool) -> None:
         self.instance.component.world.controller_button(self, False)
 
+
+@state_class(assassin_movement.CLASS, strict_only=True)
+class AssassinMovementState(State):
+    """Publish the two configured booleans of authored 1158 node 19."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.movement_outputs = (False, False)
+        self.movement_frame = None
+
+    def on_enter(self):
+        instance = self.instance
+        component = instance.component
+        outputs = tuple(lvalue(self.node.field(field)) for field in assassin_movement.FIELDS)
+        if ((instance.graph.index, self.node.pos) != (assassin_movement.GRAPH, assassin_movement.NODE)
+                or outputs != tuple((expr.INSTANCE, key) for key in assassin_movement.IDS)):
+            component.unsupported(instance, "movement sample outputs", self.node.cls, self.node)
+        self.ticks()
+
+    def tick(self):
+        instance = self.instance
+        component = instance.component
+        if self.movement_frame == component.frame:
+            return
+        entity = expr.to_entity(self.evaluate(self.node.field("m_entity"), watch=False))
+        sample = component.world.assassin_movement_sample(entity) if expr.valid_entity(entity) else None
+        if sample is not None and type(sample) is not assassin_movement.Sample:
+            component.unsupported(instance, "movement sample service", self.node.cls, self.node)
+        component.ensure_valid()
+        if not self.active or instance.stopped or instance.teardown:
+            return
+        self.movement_frame = component.frame
+        outputs = sample.outputs() if sample is not None else (False, False)
+        for key, before, value in zip(assassin_movement.IDS, self.movement_outputs, outputs, strict=True):
+            if value != before:
+                instance.write((expr.INSTANCE, key), value)
+        self.movement_outputs = outputs
+
+    def on_end(self, finished):
+        self.movement_outputs = (False, False)
+        self.movement_frame = None
+
+
+@state_class("STU_ECAEE401", strict_only=True)
+class AssassinPursuitCallbacks(State):
+    """Deliver supplied timers for 1158/2 and expose its typed refresh request."""
+
+    REFRESH_INPUT = "m_8CBFEBB9"
+    TIMER_OUTPUTS = {3: "m_1B09389D", 4: "m_3D5F729C"}
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.pursuit_hosted = False
+        self.pursuit_refresh = False
+
+    def on_begin(self) -> None:
+        component = self.instance.component
+        if (self.instance.graph.index, self.node.pos) != (0x1158, 2):
+            component.unsupported(self.instance, "state", self.node.cls, self.node)
+        hosted = component.world.hosts_assassin_pursuit_callbacks(component.entity)
+        if type(hosted) is not bool:
+            component.unsupported(self.instance, "pursuit callback host", self.node.cls, self.node)
+        self.pursuit_hosted = hosted
+        self.pursuit_refresh = False
+
+    def plug_enter(self, input_path: str) -> bool:
+        if input_path != self.REFRESH_INPUT:
+            return super().plug_enter(input_path)
+        plug = self.node.field(input_path)
+        if not isinstance(plug, dict) or plug.get("$") != "STU_A1AAB8C4":
+            return False
+        if not self.active or self.ending:
+            return False
+        if self.pursuit_hosted:
+            self.pursuit_refresh = True
+        return True
+
+    def take_pursuit_refresh(self) -> bool:
+        """Consume the current activation's pending refresh once."""
+        pending = self.pursuit_refresh
+        self.pursuit_refresh = False
+        return pending
+
+    def queue_pursuit_timer(self, delay: int, param: int) -> bool:
+        """Queue a host-issued callback relative to the VM clock."""
+        if type(delay) is not int or delay < 0 or type(param) is not int or param not in self.TIMER_OUTPUTS:
+            raise ValueError("expected a nonnegative integer delay and pursuit timer 3 or 4")
+        if not self.active or self.ending or not self.pursuit_hosted:
+            return False
+        self.timer_at(delay, param)
+        return True
+
+    def timer(self, param: int) -> None:
+        output = self.TIMER_OUTPUTS.get(param)
+        if output is None:
+            self.instance.component.unsupported(self.instance, "pursuit callback", self.node.cls, self.node)
+        if self.active:
+            self.instance.follow(self.node, output, self)
+
+    def on_end(self, finished: bool) -> None:
+        self.on_failed()
+
+    def on_failed(self) -> None:
+        self.pursuit_hosted = False
+        self.pursuit_refresh = False
+
+
+@state_class("STU_AB9B30EF", strict_only=True)
+class AssassinFacingState(State):
+    """Expose the authored 1158/102 world target to a steering host."""
+
+    def on_enter(self) -> None:
+        target = self.node.field("m_CC7C6F4B")
+        if ((self.instance.graph.index, self.node.pos) != (0x1158, 102)
+                or self.node.field("m_89AABA94") != 0
+                or not isinstance(target, dict) or target.get("$") != "STU_71A87E92"
+                or lvalue(target.get("m_entity")) != (expr.INSTANCE, 536)):
+            self.instance.component.unsupported(self.instance, "facing request", self.node.cls, self.node)
+
+    def facing_request(self) -> Vec3 | None:
+        if not self.active or self.ending or self.instance.stopped or self.instance.teardown:
+            return None
+        target = self.node.field("m_CC7C6F4B")
+        entity = expr.to_entity(self.evaluate(target["m_entity"], watch=False))
+        if not expr.valid_entity(entity):
+            return None
+        point = self.evaluate(target, watch=False)
+        if isinstance(point, Vec3) and all(math.isfinite(axis) for axis in point):
+            return point
+        return None
+
+
+@state_class("STU_988AAC99", "STU_194D744E", strict_only=True)
+class AssassinNavigationState(State):
+    """Expose the destination and optional numeric operand of authored 1158 navigation."""
+
+    state_scope = (0x1158, (42, 43, 49))
+    TARGET_FIELDS = {
+        (42, "STU_988AAC99"): "m_9FC83BDB",
+        (49, "STU_988AAC99"): "m_9FC83BDB",
+        (43, "STU_194D744E"): "m_BD2A95EE",
+    }
+
+    def on_enter(self) -> None:
+        field = self.TARGET_FIELDS.get((self.node.pos, self.node.cls))
+        if (self.instance.graph.index != 0x1158 or field is None
+                or self.node.field("m_89AABA94") != 0
+                or lvalue(self.node.field(field)) != (expr.INSTANCE, 13669)):
+            self.instance.component.unsupported(self.instance, "navigation request", self.node.cls, self.node)
+
+    def navigation_request(self) -> tuple[Vec3, float | None] | None:
+        if not self.active or self.ending or self.instance.stopped or self.instance.teardown:
+            return None
+        field = self.TARGET_FIELDS[self.node.pos, self.node.cls]
+        point = self.evaluate(self.node.field(field), watch=False)
+        if not _finite_vector(point):
+            return None
+        if self.node.cls == "STU_194D744E":
+            return point, None
+        operand = self.evaluate(self.node.field("m_35A4E804"), watch=False)
+        if type(operand) in (int, float) and math.isfinite(operand):
+            return point, float(operand)
+        return None
+
+
+@state_class("STU_D3CDCF04", strict_only=True)
+class AssassinButtonRequest(State):
+    """Expose the reconstructed phase-2 hold to the controller input host."""
+
+    state_scope = (0x1158, (12,))
+
+    def on_enter(self) -> None:
+        target = self.node.field("m_14EDDDA7")
+        if (not isinstance(target, dict) or target.get("$") != "STU_0AC15F78"
+                or not isinstance(target.get("m_entity"), dict)
+                or target["m_entity"].get("$") != "STU_B5A0CAF0"
+                or self.node.field("m_7E2A700B.m_logicalButton") != 36
+                or self.node.field("m_5E1D2E9C.m_value") != 0):
+            self.instance.component.unsupported(self.instance, "Assassin button request",
+                                                self.node.cls, self.node)
+
+    def button_request(self) -> tuple[int, int] | None:
+        if not self.active or self.ending or self.instance.stopped or self.instance.teardown:
+            return None
+        target = expr.to_entity(self.evaluate(self.node.field("m_14EDDDA7"), watch=False))
+        return (target, 36) if expr.valid_entity(target) else None
 
 @state_class("STU_D7F9E1C3")
 class AIFireWeapon(State):
@@ -2024,7 +2540,15 @@ class ConditionalTimer(State):
 
     def on_enter(self) -> None:
         if not self.instance.component.strict:
+            from ow174.game import torbjorn_turret, tracer_recall
+
             entry = self.instance.graph.index, self.node.pos
+            if tracer_recall.prelude(self):
+                return
+            if (entry[0] == torbjorn_turret.HAMMER and entry[1] in (43, 48)
+                    and truthy(self.evaluate(_field(self, "m_7C8AD485"), watch=False))):
+                self.request_finish(seconds_to_ms(self.evaluate(_field(self, "m_ED97A97C"), watch=False)))
+                return
             timing = self.node.field("m_ED97A97C.m_value")
             if ((entry in ((0x20, 2), (0x0F7C, 2), (0x017B, 26)) and timing == 0)
                     or self.instance.component.world.completes_empty_marker(self)):
@@ -2050,6 +2574,17 @@ class ConditionalTimer(State):
 
 
 PhaseEntry = ConditionalTimer
+
+
+@state_class("STU_41B3FC2B")
+class RecallRewind(State):
+    def on_enter(self):
+        from ow174.game import tracer_recall
+
+        if tracer_recall.matches(self, 1):
+            self.request_finish(seconds_to_ms(self.evaluate(_field(self, "m_FAF3B2D3"), watch=False)))
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state execution", self.node.cls, self.node)
 
 
 @state_class("STUStatescriptStateWait")
@@ -2600,6 +3135,13 @@ class Anim(State):
             resolved = world.animation_duration(self.instance, self.node)
             if resolved is None and authored is None:
                 resolved = world.animation_seconds(self)
+                if resolved is None:
+                    millis = world.resolved_animation_ms(self)
+                    if millis is not NotImplemented:
+                        if type(millis) is not int or millis < 0:
+                            self.instance.component.unsupported(self.instance, "resolved animation duration",
+                                                                self.node.cls, self.node)
+                        resolved = millis / 1000
             if resolved is not None:
                 speed = _field(self, "m_speedScalar")
                 scalar = 1.0 if speed is None else to_float(self.evaluate(speed, watch=False))
@@ -2798,6 +3340,13 @@ class Ability(State):
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
         start, hold, _ = self.buttons()
+        if self.instance.component.world.skill_locked(self):
+            self.presses.clear()
+            if self.held(start):
+                self.flags |= self.HELD
+            else:
+                self.flags &= ~self.HELD
+            return False
         pressed = None
         if start:
             pressed = self.take_press(start, retain=True)
@@ -3531,6 +4080,103 @@ class LinkedPlayScript(State):
         self.instance.component.world.linked_script_changed(self)
 
 
+@state_class("STUStatescriptStateTrackRay")
+class CompatibleTrackRay(State):
+    """C83A70's simple Entity/bool outputs with a declared world query service.
+
+    Aggregate result handles, vector links, radius correction and presentation
+    remain unimplemented. Unhosted non-strict worlds retain legacy no-output.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.ray_hit = False
+
+    def on_begin(self):
+        self.ray_hit = False
+
+    def on_enter(self):
+        if self.refresh():
+            self.ticks()
+
+    def refresh(self):
+        result = self.instance.component.world.tracked_ray(self)
+        if result is NotImplemented:
+            if self.instance.component.strict:
+                self.instance.component.unsupported(self.instance, "TrackRay provider",
+                                                    self.node.cls, self.node)
+            return False
+        from ow174.game.script.runtime import RaycastResult
+
+        if (type(result) is not RaycastResult or type(result.hit) is not bool
+                or (result.entity is not None and not _ray_entity(result.entity))):
+            raise ValueError("TrackRay provider must return a typed completed ray result")
+        outputs = self.node.field("m_target")
+        if not isinstance(outputs, dict) or outputs.get("$") != "STU_404DE6D3":
+            raise ValueError("TrackRay simple output interface required")
+        if self.instance.component.strict and any(
+            outputs.get(key) is not None for key in outputs if key not in ("$", "m_692DFF72", "m_7BA44A69")
+        ):
+            self.instance.component.unsupported(self.instance, "TrackRay complex outputs",
+                                                self.node.cls, self.node)
+        self.ray_hit = result.hit
+        for key, value in (("m_692DFF72", result.entity or Entity(0)), ("m_7BA44A69", result.hit)):
+            target = lvalue(outputs.get(key))
+            if target is not None:
+                self.instance.write(target, value)
+        return True
+
+    def tick(self):
+        self.refresh()
+
+    # C88700 removes vector links, but leaves the plain Entity/bool assignments.
+
+
+@state_class("STU_064D4DE7", strict_only=True)
+class Component51CounterState(State):
+    """Native component51 +4EC activation counter."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.health_counter = None
+
+    def on_begin(self):
+        component = self.instance.component
+        if not component.strict:
+            return
+        counter = component.world.component51_state_counter(component.entity)
+        component.ensure_valid()
+        if not self.active or self.instance.stopped or self.instance.states.get(self.index) is not self:
+            component.unsupported(self.instance, "component51 counter owner retired", self.node.cls, self.node)
+        if counter is None:
+            return
+        if type(counter) is not health_queries.StateCounter:
+            component.unsupported(self.instance, "component51 state counter", self.node.cls, self.node)
+        counter.adjust(1)
+        self.health_counter = counter
+
+    def on_cleanup(self):
+        counter, self.health_counter = self.health_counter, None
+        if counter is not None:
+            counter.adjust(-1)
+
+    on_failed = on_cleanup
+    on_destroyed = on_cleanup
+
+
+@state_class("STUStatescriptStateCreateEntity", strict_only=True)
+class CreateEntity(State):
+    """104319 definition admission and the no-result begin path."""
+
+    def on_begin(self):
+        value = play.evaluate_scalar(self.instance, self.node.field("m_entityDef"))
+        definition = play._asset(value)
+        if definition >> 48 == 0x0400:
+            self.instance.component.unsupported(self.instance, "entity creation service", self.node.cls, self.node)
+        # The failed create leaves the configured output unchanged. Ordinary
+        # State.begin still dispatches the authored begin and subgraph plugs.
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
     """Target queries supplied by an explicit world bridge; other searches remain empty."""
@@ -4032,7 +4678,7 @@ class RecentInputState(State):
 
 
 @state_class("STU_7B9E8909")
-class ActiveOutput(State):
+class ActiveOutput(ActiveInputRelay):
     """The 104319 input hook at 1B97E10 consumes input and forwards only while active."""
 
     def plug_enter(self, input_path: str) -> bool:
@@ -4098,7 +4744,7 @@ def collect_targets(instance: Instance, node, caller) -> bool:
         return NotImplemented
     filter_config = node.field('m_filter')
     output = lvalue(node.field('m_4AEEE6A1'))
-    if (output is None or node.field('m_ADEB6E05') != 1 or node.field('m_2BBEEAB8') not in (None, 0)
+    if (output is None or node.field('m_ADEB6E05') not in (None, 1) or node.field('m_2BBEEAB8') not in (None, 0)
             or any(node.field(key) is not None for key in ('m_9C7BD8B8', 'm_8B2A4DF3'))):
         return NotImplemented
     required = node.field('m_B486603E')
@@ -4111,6 +4757,17 @@ def collect_targets(instance: Instance, node, caller) -> bool:
             return NotImplemented
         # CB8EC0 uses the required tag list at DB3850 even without a participant filter.
         targets = component.world.static_tag_targets(tag.guid)
+    elif filter_config is None and isinstance(required, dict) and required.get('$') == 'STU_357DABBB':
+        tag = play._asset(play.evaluate_scalar(instance, required))
+        found = component.world.target_tag_entities(tag) if tag else ()
+        component.ensure_valid()
+        if (instance.stopped or component.instances.get(instance.id) is not instance
+                or type(found) is not tuple):
+            component.unsupported(instance, 'target tag entity index', node.cls, node)
+        if any(type(entity) is not int or not 0 < entity <= 0xFFFFFFFF or not expr.valid_entity(entity)
+               for entity in found):
+            component.unsupported(instance, 'target tag entity identity', node.cls, node)
+        targets = tuple(Entity(entity) for entity in found)
     else:
         return NotImplemented
     if targets is NotImplemented:
@@ -4139,6 +4796,10 @@ class PlacementPreview(State):
     def plug_enter(self, input_path):
         if input_path == "m_6647ED22" and self.active:
             world = self.instance.component.world
+            if not self.instance.component.strict:
+                result = world.confirm_portal(self)
+                if result is not NotImplemented:
+                    return result
             refresh = getattr(world, "refresh_compatible_placement", None)
             if refresh is not None and refresh(self, confirm=True) is not NotImplemented:
                 return True
@@ -4258,10 +4919,40 @@ def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedTy
     return result
 
 
+def weighted_output(instance: Instance, node, caller) -> bool:
+    """1B6D010 samples cumulative float32 weights before the ordinary output."""
+    if instance.component.strict:
+        outputs = node.field("m_D84D6E03") or ()
+        if type(outputs) not in (list, tuple):
+            return NotImplemented
+        total = 0.0
+        cumulative = []
+        for output in outputs:
+            instance.component.consume_work("weighted output evaluation")
+            if output is not None and (type(output) is not dict or output.get("$") != "STU_2AA453C0"):
+                return NotImplemented
+            if output is not None:
+                value, success = play.evaluate_scalar_result(instance, output.get("m_weight"), watcher=caller)
+                if success:
+                    total = f32(total + to_float(value))
+            cumulative.append(total)
+        draw = f32(instance.component.rng.uniform(0, total))
+        for index, threshold in enumerate(cumulative):
+            if draw < threshold or math.isnan(draw) or math.isnan(threshold):
+                instance.follow(node, f"m_D84D6E03[{index}]", caller)
+                break
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 @handler("STUStatescriptActionSetVar")
 def set_var(instance: Instance, node, caller) -> bool:
     """SetVar (0x7FF78AA7D300): the value (failure: int 0), then a keyed insert, an element write or a
     plain assignment with the value's own type; then m_outPlug."""
+    if (instance.graph.index, node.pos) == (0x1566, 14):
+        from ow174.game import adaptive_shield
+
+        adaptive_shield.prepare_count(instance)
     config = node.fields.get("m_value")
     target = node.fields.get("m_out_Var")
     # Native 1B6D325..353 skips assignment when either pointer is absent. The
@@ -4460,7 +5151,7 @@ def condition_bool(instance: Instance, node, caller) -> bool:
 def mystery_swap_count(instance: Instance, node, caller) -> bool | NotImplementedType:
     """104319 1B6D010 draws from cumulative weights, then follows the common output."""
     if (instance.graph.index, node.pos) != (0x0C8C, 307):
-        return NotImplemented
+        return weighted_output(instance, node, caller)
     limits = []
     total = 0.0
     for row in node.field('m_D84D6E03'):
@@ -4516,8 +5207,12 @@ def button_held(instance: Instance, node, caller) -> bool:
 
 @handler("STU_CFCE55DC")
 def apply_script_pose(instance: Instance, node, caller) -> bool:
-    if instance.component.strict or not instance.component.world.apply_script_pose(instance, node):
+    world = instance.component.world
+    result = world.relocate_through_portal(instance, node)
+    if result is NotImplemented and (instance.component.strict or not world.apply_script_pose(instance, node)):
         return NotImplemented
+    if result is False:
+        return False
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -4657,7 +5352,6 @@ def send_client_only_game_message(instance: Instance, node, caller) -> bool:
     return no_op(instance, node, caller)
 
 
-@handler('STU_22926252')
 def request_instance_stop(instance: Instance, node, caller) -> bool:
     """1B6C8F0 queues operation 7 for the default self-stop form."""
     handled = instance.component.world.finish_wheel_emote(instance, node)
@@ -4797,8 +5491,14 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 @handler("STU_22926252")
 def stop_instance(instance: Instance, node, caller) -> bool:
     """104319 1B6C8F0 queues event 7 before continuing the action."""
+    if instance.graph.index in (0x0B1F, 0x0B32):
+        from ow174.game.health_packs import PackWorld
+
+        if isinstance(instance.component.world, PackWorld):
+            instance.component.destroy(instance)
+            return True
     if not instance.component.strict and instance.graph.index != 0x1177:
-        return NotImplemented
+        return request_instance_stop(instance, node, caller)
     if node.field("m_67B81D25") is not None or node.field("m_EB35D2F1") is not None:
         return NotImplemented
     if not instance.teardown:
@@ -4810,8 +5510,9 @@ def stop_instance(instance: Instance, node, caller) -> bool:
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
     world = instance.component.world
-    if instance.component.strict or not world.play_script_host(instance, node):
-        world.play_script(instance, node)
+    if world.play_script_selected(instance, node) is NotImplemented:
+        if instance.component.strict or not world.play_script_host(instance, node):
+            world.play_script(instance, node)
     instance.follow(node, "m_outPlug", None)
     return True
 
@@ -4884,12 +5585,51 @@ def create_world_entity(instance: Instance,node,caller) -> bool | NotImplemented
         result = spawn_deployable(instance, node, caller)
         if result is not NotImplemented:
             return result
-    result = instance.component.world.create_world_entity(instance,node)
+    world = instance.component.world
+    result = world.create_world_entity(instance,node)
+    if result is NotImplemented:
+        result = world.create_entity(instance,node)
     if result is NotImplemented:
         return NotImplemented
     if result is True:
         instance.follow(node,"m_outPlug",None)
     return result
+
+
+def _write_model_gate(instance: Instance, node, field, gate):
+    value, success = play.evaluate_scalar_result(instance, node.field(field))
+    target = expr.to_entity(value) if success else expr.INVALID_ENTITY
+    if not expr.valid_entity(target):
+        return
+    component = instance.component
+    setter = component.world.model_gate_consumer(target)
+    if setter is None:
+        return
+    if not callable(setter):
+        component.unsupported(instance, "component1 model gate", node.cls, node)
+    setter(gate)
+    component.ensure_valid()
+    if (instance.stopped or instance.teardown or component.instances.get(instance.id) is not instance
+            or component.world.model_gate_consumer(target) is not setter):
+        component.unsupported(instance, "component1 model gate retired during callback", node.cls, node)
+
+
+@handler("STU_EEA6FD79")
+def set_model_gate(instance: Instance, node, caller) -> bool:
+    """9A75B0 evaluates the gate then target and dispatches to component1."""
+    if instance.component.strict:
+        value, success = play.evaluate_scalar_result(instance, node.field("m_40B6706F"))
+        _write_model_gate(instance, node, "m_4F64C1D3", success and truthy(value))
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
+def clear_model_gate(instance: Instance, node, caller) -> bool:
+    """8EAEF0 clears component1's gate for the evaluated entity."""
+    if instance.component.strict:
+        _write_model_gate(instance, node, "m_entity", False)
+    instance.follow(node, "m_outPlug", None)
+    return True
 
 
 def no_op(instance: Instance, node, caller) -> bool:
@@ -4945,7 +5685,7 @@ def wheel_presentation_action(instance: Instance, node, caller) -> bool:
 @handler("STU_680F6816")
 def ghost_model_action(instance: Instance, node, caller) -> bool:
     if (instance.graph.index, node.pos) != (0x2B72, 93):
-        return NotImplemented
+        return clear_model_gate(instance, node, caller)
     world = instance.component.world
     entity = expr.to_entity(instance.evaluate(node.field('m_entity')))
     if world.ghost_model_action(instance.component, entity) is not True:
@@ -4982,6 +5722,7 @@ for _name in (
     "STU_A1DF3B2D",  # No dedicated 104319 action. DD856C32 leaves the destination unchanged.
     "STUStatescriptActionSendClientGlobalGameMessage",
     "STU_C43F9944",
+    "STU_9F3FE778",  # D34A80 returns true without evaluating config; 1B6EBA0 follows output.
 ):
     handler(_name)(no_op)
 

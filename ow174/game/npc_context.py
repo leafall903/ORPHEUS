@@ -4,6 +4,7 @@ from ow174.game import weapon_spread
 from ow174.game.script import expr
 
 ENFORCER = 0x02E00000000001CE
+HEAVY_ASSAULT = 0x02E00000000001BA
 WEAPON = 0x13EB
 
 

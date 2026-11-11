@@ -39,6 +39,7 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    cryo,
     earthshatter,
     echo_movement,
     heroselect,
@@ -81,7 +82,7 @@ from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data,
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
-from ow174.game.script.driver import WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
+from ow174.game.script.driver import MAX_GAP, WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
 from ow174.game.statescript import Stream, owner_ack
 from ow174.game.world import (
@@ -361,6 +362,14 @@ class Player:
             return
         first_missing = script.frame + 1
         self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False)
+        if first_pose - first_missing > MAX_GAP:
+            from ow174.game import tracer_recall
+
+            checkpoint = cryo.exit_frame(self)
+            if checkpoint is None:
+                checkpoint = tracer_recall.exit_frame(self)
+            if checkpoint is not None and first_missing < checkpoint < first_pose - MAX_GAP:
+                self._advance_body_frame(Command(checkpoint, buttons=retained_buttons), posed=False)
         if first_missing < first_pose - 1:
             self._advance_body_frame(Command(first_pose - 1, buttons=retained_buttons), posed=False)
 
@@ -373,7 +382,7 @@ class Player:
         frost = fight.frost_progress(self, tick=tick)
         command = fight.clamp_sleep_command(self, command)
         pulled = self.body in fight.zarya_gravitons.pulled
-        if stunned:
+        if stunned or fight.recalls.locked(self):
             command = replace(command, forward=0, right=0, buttons=0, action=0)
             impact = self.match.combat.punch_impacts.get(self.body)
             if not pulled and not self.mover.external_impulse and (impact is None or tick >= impact.deadline):
@@ -934,6 +943,29 @@ class Match:
         tag = player.card.get("+0x40") or player.name or None
         return [player.player_id, tag, player.card.get("+0x38"), None, None, None, None, rating, place, tier]
 
+    def controller_record(self, entity: int):
+        """Declared relations for this server's existing player/controller model.
+
+        Native NPC controller allocation and component membership stay unknown.
+        Player membership mirrors emitted44/75; the body->controller binding is
+        this server's reconstruction, separate from native function validation.
+        """
+        from ow174.game.script.controller_queries import Record
+
+        for player in self.players:
+            if player.gone:
+                continue
+            if player.entity == entity:
+                return Record(entity, frozenset((44, 75))) if player.has_body else NotImplemented
+            if player.has_body and player.body == entity:
+                return Record(entity, frozenset((43,)), player.entity)
+        if any(bot.entity == entity for bot in self.bots):
+            return NotImplemented
+        if entity == world.GAME_MODE_ENTITY:
+            return Record(entity, frozenset((114,)))
+        return None
+
+
     @staticmethod
     def _possession(player: Player) -> dict:
         """Components 44 (the body the player possesses, views and controls) and 75 (its hero, skin
@@ -1153,7 +1185,10 @@ class Match:
             for bot in self.bots:
                 if self.combat.orisa.controls(bot.entity, tick):
                     continue
-                if bot.spawner.get('manual_spawn') is True:
+                npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
+                if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
+                    continue
+                if bot.spawner.get('manual_spawn') is True and getattr(bot, "pursuit", None) is None:
                     npc_navigation.step(self, bot, tick, RETAIL_QUANTA / 1e6,
                                         plan_budget=budgets.get(bot.entity, 0))
                     continue
@@ -1446,6 +1481,9 @@ class Match:
                 state.request(runtime.FINISH if arrived else runtime.ABORT, max(0, delay))
             if script.hero == moira.MOIRA and self._shown(player) and not self.assembling():
                 moira.start_charge(player, script)
+            controls = getattr(self.combat, "sombra_controls", None)
+            if posed and controls is not None:
+                controls.preselect(player, command)
             script.command(
                 command.frame, command.buttons, command.action, command.forward, command.right,
                 grounded=not player.mover.airborne,

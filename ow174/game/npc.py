@@ -9,7 +9,17 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-from ow174.game import bots, combat, world
+from ow174.game import bots, combat, npc_navigation, world
+
+
+ACQUISITION_RANGE = 100.0  # Stationary host policy in metres.
+TROOPER_HERO = 0x02E00000000001AC
+TROOPER_BODY = 0x0400000000001D40  # The body definition declares TargetTag 04BA.
+MELEE_BUTTON = 31
+MELEE_GRAPHS = {
+    TROOPER_HERO: (0x1422, 2, 5, 1.4),
+    0x02E00000000001BA: (0x140E, 3, 6, 2.5),
+}
 
 
 @dataclass(frozen=True)
@@ -51,7 +61,8 @@ def load_catalog(path: Path) -> dict[str, Definition]:
 
 
 def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
-          autonomous: bool = False) -> bots.Bot:
+          autonomous: bool = False, acquire: bool = False, pursue: bool = False, specials: bool = False,
+          authored_assassin: bool = False, authored_trooper: bool = False) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -64,6 +75,18 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC autonomous mode must be boolean')
     if len(position) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in position):
         raise ValueError('NPC position needs three finite coordinates')
+    if authored_assassin:
+        from ow174.game import assassin, assassin_controller
+
+        if definition.hero != assassin.HERO or not pursue:
+            raise ValueError("authored Assassin spawn requires Assassin pursuit")
+        assassin_controller.phase2_definition()
+    if authored_trooper:
+        from ow174.game import enforcer_controller
+
+        if definition.body != TROOPER_BODY or definition.hero != TROOPER_HERO or not (acquire or pursue):
+            raise ValueError("authored coordination requires an acquiring Trooper")
+        enforcer_controller.require_trooper_controller()
     entity = match.combat.next_bot
     if (not bots.BOT_ENTITY <= entity < 0xD0000000 or entity in match.combat.deployables
             or any(b.entity == entity for b in match.bots)):
@@ -73,7 +96,15 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     if autonomous:
         data["autonomous_targeting"] = True
+    if acquire or pursue:
+        data["acquire_targets"] = True
+    if specials:
+        data["acquire_specials"] = True
+    if authored_trooper:
+        data["authored_trooper"] = True
     bot = bots.Bot(entity, data, hero, {})
+    if pursue:
+        bot.pursuit = npc_navigation.Pursuit()
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
     match.combat.next_bot += 1
@@ -83,6 +114,13 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         entity, definition.health, definition.armour, definition.shields)
     match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
+    if authored_assassin:
+        from ow174.game import assassin_controller
+
+        controller = assassin_controller.Phase2World(
+            match.combat, bot, native_state_misses=("STU_356628FC",),
+        )
+        assassin_controller.mount_phase2(match.combat, bot, controller)
     match.publish_bot(bot)
     return bot
 
@@ -128,3 +166,114 @@ def remove_spawned(match) -> tuple[int, ...]:
                 viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
         removed.append(bot.entity)
     return tuple(removed)
+
+
+def trooper_coordination_targets(fight, owner, state):
+    """Reconstruct 1034's coordination search over live Trooper bodies."""
+    source = next((bot for bot in fight.match.bots if bot.entity == owner), None)
+    if source is None or source.dead or source.body != TROOPER_BODY:
+        return ()
+    radius = state.evaluate(state.node.field("m_radius"), watch=False)
+    if type(radius) not in (int, float) or radius <= 0:
+        return ()
+    _, y, _ = source.position
+    candidates = []
+    for target in fight._targets():
+        candidate = target.owner
+        if (target.entity == owner or not isinstance(candidate, bots.Bot)
+                or candidate.body != TROOPER_BODY or candidate.dead or fight.vitals_of(target).dead):
+            continue
+        low, high = target.segment()
+        closest = low[0], min(max(y, low[1]), high[1]), low[2]
+        distance = math.dist(source.position, closest) - target.radius
+        if distance > radius:
+            continue
+        if npc_navigation.visible(fight.match.collision_world, source.position, target):
+            candidates.append((distance, target.entity))
+    return tuple(entity for _, entity in sorted(candidates))
+
+
+def update_acquisition(fight, bot):
+    """Opt-in target selection for authored weapon, melee and special inputs."""
+    from ow174.game import assassin, assassin_controller, enforcer_controller, heavy_assault, sniper_retreat
+
+    component = bot.body_script.component
+    if component.strict or component.fault is not None:
+        return
+    specials = bot.spawner.get('acquire_specials')
+    controls = getattr(fight, "sombra_controls", None)
+    locked = controls is not None and bot.entity in controls.locks
+    charge_ability = heavy_assault.ability(component, 0x1408) if specials and bot.hero == heavy_assault.HERO else None
+    charge = charge_ability.instance if charge_ability is not None else None
+    phase = charge.states.get(36) if charge is not None else None
+    if phase is not None and phase.active:
+        return  # Keep the heading established by the charge input.
+    x, y, z = bot.position
+    origin = x, y + combat.EYE, z
+    candidates, blocked, approach = [], [], []
+    pursuit = getattr(bot, "pursuit", None)
+    if not locked and not fight.is_asleep(bot) and not fight.is_stunned(bot):
+        for target in fight._enemies(bot):
+            if getattr(target.owner, "client", None) is None:
+                continue
+            point = fight._eye(target.owner)
+            distance = math.dist(origin, point)
+            if not 0 < distance <= ACQUISITION_RANGE:
+                continue
+            in_reach = bot.hero != assassin.HERO or assassin.selected_contact(fight, bot, target.entity) is not None
+            if in_reach and npc_navigation.visible(fight.match.collision_world, bot.position, target):
+                candidates.append((distance, target.entity, target.owner, point))
+                if bot.hero == assassin.HERO and pursuit is not None and distance > 2.0:
+                    approach.append((distance, target.entity, target))
+            elif pursuit is not None:
+                blocked.append((distance, target.entity, target))
+    if bot.hero == assassin.HERO and assassin_controller.apply_phase2_input(fight, bot, candidates):
+        if pursuit is not None:
+            controller = bot.assassin_controller
+            destination = None
+            if not locked and controller.fault is None and assassin.BUTTON not in component.held:
+                selected_entity = assassin_controller._selected_entity(controller)
+                if selected_entity:
+                    destination = next((item for item in approach if item[1] == selected_entity), None)
+                else:
+                    destination = min(blocked + approach, default=None, key=lambda item: item[:2])
+            npc_navigation.update(fight, bot, destination[2] if destination else None, 2.0)
+        return
+    selected = min(candidates, default=None, key=lambda item: item[:2])
+    if bot.hero == assassin.HERO:
+        selected, admitted = assassin_controller.select(fight, bot, candidates)
+    elif bot.hero in enforcer_controller.HOSTS:
+        admitted = enforcer_controller.admit(fight, bot, selected)
+    else:
+        admitted = selected is not None
+    ground_motion = specials and not locked and getattr(bot, "wall_mover", None) is None
+    retreating = ground_motion and sniper_retreat.acquire(bot, selected if admitted else None)
+    if pursuit is not None:
+        destination = None
+        if selected is None and not retreating:
+            destination = min(blocked, default=None, key=lambda item: item[:2])
+        reach = 2.5 if bot.hero == assassin.HERO else 12.0
+        npc_navigation.update(fight, bot, destination[2] if destination else None, reach)
+    if bot.hero == assassin.HERO:
+        assassin.acquire(fight, bot, selected[2] if admitted else None)
+        return
+    button = component.world.ai_weapon_button(0)
+    if type(button) is not int:
+        return
+    if selected is not None:
+        dx, dy, dz = (axis - start for axis, start in zip(selected[3], origin, strict=True))
+        bot.yaw = float(bots.heading(dx, dz))
+        bot.pitch = float(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
+    bot.firing = admitted and not retreating
+    melee = MELEE_GRAPHS.get(bot.hero) if specials else None
+    if melee is None:
+        inputs = [(button, bot.firing)]
+    else:
+        close = bot.firing and selected[0] <= melee[3]
+        ability = charge.states.get(41) if charge is not None else None
+        charging = (admitted and ground_motion and 5 <= selected[0] <= 8 and ability is not None
+                    and ability.remaining() == 0 and charge.vars[59].value() in (None, 0))
+        inputs = [(button, bot.firing and not (close or charging)), (MELEE_BUTTON, close)]
+        if charge is not None:
+            inputs.append((35, charging))
+    component.edges([(value, down) for value, down in inputs if (value in component.held) != down])

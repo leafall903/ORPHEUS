@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Ana server integration
+
+- Integrate the Biotic Rifle's world-clock doses with source body attribution,
+  launch-time damage scaling and armour handling. Keep Biotic Grenade on the
+  shared healing service and use the authored grenade trajectory.
+- Bring in Tracer Recall, Take a Breather, placed health packs, the Sigma
+  barrier child VM, and the delivery's NPC and StateScript code. The core
+  rifle, grenade, combat and recall checks passed, including a recheck of
+  the grenade cleanse. Cross-hero device and controller routes remain in progress.
+
 ### Moira server integration
 
 - Integrate Moira's Grasp, spray, trailing heal, orbs, Fade, and Coalescence

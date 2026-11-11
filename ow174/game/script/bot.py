@@ -558,8 +558,28 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def body_health(self, entity):
+        lookup = getattr(self.match.combat, "body_health", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+    def controller_record(self, entity):
+        lookup = getattr(self.match, "controller_record", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+    def play_script_selected(self, instance, node):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        return controls.play(instance, node) if controls is not None else NotImplemented
+
+    def skill_locked(self, state):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        return controls is not None and not state.instance.component.strict and controls.blocked(state)
+
     def tracked_targets(self, state):
-        from ow174.game import heavy_assault
+        from ow174.game import heavy_assault, npc
+
+        if (self.match is not None and self.hero == npc.TROOPER_HERO
+                and (state.instance.graph.index, state.node.pos) == (0x1034, 16)):
+            return npc.trooper_coordination_targets(self.match.combat, state.instance.component.entity, state)
 
         targets = heavy_assault.tracked_targets(self, state)
         if targets is not NotImplemented or self.match is None:
@@ -570,6 +590,13 @@ class BotWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault
 
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if (controls is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B32, 9)):
+            if elapsed_ms == 0:
+                controls.drain(state)
+                state.request_finish()
+            return True
         value = heavy_assault.modify_health(self, state, elapsed_ms)
         if value is NotImplemented and self.match is not None and elapsed_ms == 0:
             value = self.match.combat._npc_melee(state, health=True)

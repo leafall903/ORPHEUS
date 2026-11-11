@@ -23,6 +23,7 @@ from ow174.game import (
     barrier,
     assassin_victim,
     barriers,
+    breather,
     bots,
     brigitte,
     combat,
@@ -34,6 +35,7 @@ from ow174.game import (
     earthshatter,
     healing,
     graviton,
+    health_packs,
     heroselect,
     mei_wall,
     moira,
@@ -53,6 +55,7 @@ from ow174.game import (
     sigma_barrier,
     statescript,
     stats,
+    tracer_recall,
     voicelines,
     winston_barrier,
     world,
@@ -121,16 +124,20 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "match vitals history replacement_ticks rockets timed_hits recalls breathers health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
+    tracer_recall.Recalls: _names("fight history phases"),
+    breather.Breathers: _names("fight channels"),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
     orisa_barrier.BarrierWorld: _names("hero mode match entity location"),
+    sigma_barrier.BarrierWorld: _names("hero mode barrier"),
+    health_packs.PackWorld: _names("hero mode match entity"),
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
@@ -230,13 +237,15 @@ OPTIONAL_FIELDS = {
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction"),
     npc_navigation.Navigator: _names("charge_contact"),
+    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley, combat.TimedHit,
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
+    npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
     combat.TemporaryArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,

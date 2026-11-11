@@ -373,6 +373,8 @@ class Bot:
         if self.spawner.get('manual_spawn') is True:
             self.firing = False
         self.impulse_mover = None
+        if hasattr(self, "wall_mover"):
+            del self.wall_mover
         self.attack_target = None
         self.attack_input = False
         self.keys = False

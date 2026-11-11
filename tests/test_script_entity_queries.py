@@ -5,6 +5,7 @@ import unittest
 from ow174.game.script import entity_queries as query
 from ow174.game.script import expr, play, runtime, scene
 from tests.test_script_runtime_budget import graph, node
+from ow174.game.script import controller_queries
 
 OWNER, BODY = 0xA0000100, 0xA0000101
 ABSENT = object()
@@ -338,6 +339,83 @@ class EntityQueryTests(unittest.TestCase):
         context.retire()
         with self.assertRaises(ValueError):
             world.set_entity_query_context(OWNER, context)
+
+
+    def test_scene_definition_query_preserves_resource_type_and_binding_lifetime(self):
+        world = scene.SceneWorld()
+        world.bind(OWNER)
+        component = runtime.Component(OWNER, world=world, strict=True)
+        instance = component.create(graph(), init=False)
+        cfg = {"$": query.DEFINITION, "m_entity": expr.Entity(BODY)}
+        self.assertEqual(instance.evaluate(cfg), expr.Asset(0))
+        world.bind(BODY)
+        self.assertIs(query.evaluate(instance.context(), cfg), NotImplemented)
+        world.unbind(BODY)
+        world.bind(BODY, definition=0x0400000000001D40)
+        self.assertEqual(instance.evaluate(cfg), expr.Asset(0x0400000000001D40))
+        world.unbind(BODY)
+        world.bind(BODY, definition=0)
+        self.assertEqual(instance.evaluate(cfg), expr.Asset(0))
+
+
+    def test_component92_query_reads_the_source_without_following_component43(self):
+        world, _, instance, _, _, _, _ = setup()
+        world.bind(BODY)
+        cfg = {"$": controller_queries.SOURCE_HAS_92, "m_entity": expr.Entity(OWNER)}
+        world.set_controller_record(controller_queries.Record(OWNER, frozenset({43}), BODY))
+        world.set_controller_record(controller_queries.Record(BODY, frozenset({92})))
+        self.assertIs(instance.evaluate(cfg), False)
+        world.set_controller_record(controller_queries.Record(OWNER, frozenset({43, 92}), BODY))
+        world.set_controller_record(controller_queries.Record(BODY, frozenset({44})))
+        self.assertIs(instance.evaluate(cfg), True)
+        world.unbind(OWNER)
+        self.assertIs(instance.evaluate(cfg), False)
+
+
+    def test_component76_primary_can_be_suppressed_without_fallback(self):
+        world, _, instance, _, _, _, _ = setup()
+        world.bind(BODY)
+        cfg = {"$": query.COMPONENT76_KEY, "m_entity": expr.Entity(BODY),
+               "m_88B0050A": "0x0D6000000000003A"}
+        self.assertIs(query.evaluate(instance.context(), cfg), NotImplemented)
+        world.set_component76_keys(BODY, None)
+        self.assertIs(instance.evaluate(cfg), False)
+        keys = frozenset({58})
+        world.set_component76_keys(BODY, query.Component76Keys(primary=keys))
+        self.assertIs(instance.evaluate(cfg), True)
+        world.set_component76_keys(BODY, query.Component76Keys(keys, keys, keys))
+        self.assertIs(instance.evaluate(cfg), False)
+        world.set_component76_keys(BODY, query.Component76Keys(fallback=keys, suppressed=keys))
+        cfg["m_88B0050A"] = "0x048000000000003A"
+        self.assertIs(instance.evaluate(cfg), True)
+        world.unbind(BODY)
+        self.assertIs(instance.evaluate(cfg), False)
+
+
+    def test_target_queries_distinguish_missing_records_from_numeric_zero(self):
+        world, _, instance, _, _, _, _ = setup()
+        world.bind(BODY)
+        target = {"$": query.INDEXED_TARGET, "m_152B6961": expr.Entity(OWNER), "m_A60150E2": 3}
+        scalar = {"$": query.TARGET_RECORD_SCALAR, "m_target": target, "m_7826B991": expr.Entity(OWNER)}
+        self.assertIs(query.evaluate(instance.context(), target), NotImplemented)
+        world.indexed_targets[OWNER] = None
+        self.assertEqual(instance.evaluate(target, initial=17), 17)
+        world.indexed_targets[OWNER] = {}
+        self.assertEqual(instance.evaluate(target), expr.Entity(0))
+        world.indexed_targets[OWNER] = {(OWNER, 3): BODY}
+        self.assertEqual(instance.evaluate(target), expr.Entity(BODY))
+        self.assertIs(query.evaluate(instance.context(), scalar), NotImplemented)
+        for records in (None, {}):
+            world.target_record_scalars[OWNER] = records
+            self.assertEqual(instance.evaluate(scalar, initial=17), 17)
+        for value in (0.0, 1.0, -0.5):
+            world.target_record_scalars[OWNER] = {BODY: value}
+            result = instance.evaluate(scalar, initial=17)
+            self.assertIs(type(result), float)
+            self.assertEqual(result, value)
+        world.unbind(OWNER)
+        self.assertIs(query.evaluate(instance.context(), target), NotImplemented)
+
 
 
 if __name__ == '__main__':

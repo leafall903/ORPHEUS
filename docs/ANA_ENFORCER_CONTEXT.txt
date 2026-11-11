@@ -1,0 +1,68 @@
+Manual Enforcer13EB context: bounded server reconstruction in the Ana lane
+
+Before and after
+Actual Enforcer held slot0 input previously left Ana200 with no fault. The
+native-backed health gate passed, but13EB's B96D3A98 control gate had no declared
+NPC context. Parent npc_context.py supplies a manual policy. The private port
+opts in only manual Enforcer01CE bodies, with a data-only75-present/92-absent
+tail. Own13EB/owner B96 falls back to this policy when the native query service
+is unknown. The predicate body matches the reviewed parent AST.
+
+This does not allocate a native43/44 controller relation, substitute an existing
+body as a controller, or invent a C361 resource result. F7262B36 related-ID and
+foreign-variable namespaces remain unknown. Match-backed native health queries
+remain authoritative; the parent's legacy health fallback is not copied.
+Ordinary placements, other heroes and other graphs keep their prior service.
+BotWorld.controller_components is causal state in both VM and server snapshots.
+
+Current evidence
+Five policy/storage methods cover opt-in scope,75/92 tail, unknown native
+relation service, own-entity/graph/query restriction and VM hash sensitivity.
+A server snapshot check detects None/75/75+92 changes without claiming native
+allocation. Actual NPC checks cover contact versus friend/wall/off-axis, sleep
+suppression and actual Ana rifle wake with later return fire.109 shared/query/
+bot/VM/server snapshot methods pass in372.192s, no skips. An earlier interrupted
+run omitted the VM layout field and reported export errors; that log is not
+acceptance. The missing layout is fixed and the whole targeted group rerun.
+
+The Enforcer contact subcase now passes; the remaining ordinary incoming failure
+is Assassin. Full Enforcer weapon behavior is still incomplete. An actual180-frame
+input trace produces one13EB/node24/state14 report, ammo4->3 and Ana200->198.
+The evaluated per-projectile amount is2, whereas m_numProjectilesPerShot is25.
+The actual launch config is STU613BDDB0 with ring rows(radius0/count1,
+radius.5/count8,radius1/count16), spread230=4 and configured92308789=2.
+Combat currently ignores multi-projectile generation and spread. Do not equate
+the retired no-contact failure with correct25-projectile quantity/total damage.
+
+Bounded next-stage native evidence
+One hundred original D80310..D803F0 prefix cases pass with prepared native
+parameters and no call stubs. They cover ring selection/local index, division
+by count times tau, and max(0,(param28-param2C)*degrees)*ring radius. The probe
+stops before random sampling/transform. Native resource-to-parameter baking,
+phase/jitter sampling, output orientation and complete emission remain open.
+The actual613 constructor/backend mapping is not established by this probe.
+No coincident-ray multiplier or fabricated final scatter pattern is installed.
+
+External artifacts
+Final current-source five-NPC suite runs22 methods in122.506s:21 methods pass,
+with only Assassin's incoming attack subcase failing. Enforcer's contact result
+does not close its25-projectile quantity/spread/amount gap described above.
+
+ana-enforcer-context-shared-regressions.txt; ana-enforcer-context-npc-final.txt;
+enforcer-context-parent-provenance.json; enforcer-actual-primary-execution.json;
+enforcer-scattergun-resource-evidence.json (original XML/bundle hashes);
+enforcer-ring-prefix-native-validation.json/.txt; ANA_STATIC_MATRIX.json.
+
+Prior514-method full stored replay is a historical pre-context baseline. Current
+targeted109 includes VM/server snapshots but excludes StoredJournalTests. A full
+current-source stored replay remains required before final acceptance. Parent
+spread_ramp and native uniform-table/cone work is reported but not yet ported;
+it covers STU239B571E, not automatically this613 ring generator. Native controller
+startup, Assassin target/pin, complete defensive interactions and all remaining
+full-goal matrix items remain open. No final commit/merge/client acceptance.
+
+Later ring work supersedes the one-ray quantity frontier above. Actual25-flight
+generation now uses the native-derived aspect1 kernel, with162 production/native
+vector comparisons and24 scalar-baking cases. See ANA_ENFORCER_RING.txt for
+scope, flight falloff/pitch/storage, executed interactions and remaining limits.
+The one-ray2-damage trace remains historical; the new actual-input trace is50.

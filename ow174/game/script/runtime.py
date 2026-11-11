@@ -51,6 +51,7 @@ SUBGRAPH_STATES = "m_FF3DAF1E"
 
 STATE_CLASSES: dict[str, type["State"]] = {}  # node class -> runtime state class (nodes.py fills it)
 STRICT_STATE_CLASSES: dict[str, type["State"]] = {}
+SCOPED_STATE_CLASSES: dict[tuple[str, int, int], type["State"]] = {}
 HANDLERS: dict[str, object] = {}  # action/condition handlers can defer with NotImplemented
 ENTRY_CLASSES = {"STUStatescriptEntry", "STU_571CC72E"}  # run at Init (EntryClientOnlySharedVars agrees too)
 MESSAGE_ENTRIES = {"STUStatescriptEntryGameMessage"}
@@ -106,13 +107,20 @@ def state_class(*names: str, strict_only: bool = False):
     def register(cls):
         registry = STRICT_STATE_CLASSES if strict_only else STATE_CLASSES
         for name in names:
-            registry[name] = cls
+            scope = getattr(cls, "state_scope", None)
+            if strict_only and scope is not None:
+                for position in scope[1]:
+                    SCOPED_STATE_CLASSES[name, scope[0], position] = cls
+            else:
+                registry[name] = cls
         return cls
 
     return register
 
 
-def state_type(name: str, strict: bool):
+def state_type(name: str, strict: bool, graph_index=None, position=None):
+    if strict and (model := SCOPED_STATE_CLASSES.get((name, graph_index, position))) is not None:
+        return model
     if strict and name in STRICT_STATE_CLASSES:
         return STRICT_STATE_CLASSES[name]
     return STATE_CLASSES.get(name, State)
@@ -287,6 +295,26 @@ class InstanceContext(Context):
             return expr.Vec3(0.0, 0.0, 0.0)
         return value
 
+    def ruleset_expression(self, config):
+        from ow174.game import matrix
+
+        hosted = self.instance.component.world.ruleset_expression(self, config)
+        if hosted is not NotImplemented:
+            return hosted
+        if self.instance.graph.index != 0x2CC or self.instance.component.world.hero != matrix.HERO:
+            return NotImplemented
+        if not isinstance(config, dict) or config.get('$') != 'STU_919FD47C':
+            return NotImplemented
+        expression = config.get('m_expression') or {}
+        fields = expression.get('m_dynamicVars') or ()
+        if expression.get('m_opcodes') != [14, 0, 7, 0, 15, 0] or len(fields) != 1:
+            return NotImplemented
+        key = expr.dynamic(fields[0])
+        if key is None or key[1] not in (9743, 9777, 9778):
+            return NotImplemented
+        value = expr.evaluate(config, self)
+        return self.ruleset(key[1]) if value is None else value
+
     def ruleset(self, key: int):
         found = self.var(ENTITY, key)
         if found is not None:
@@ -357,10 +385,14 @@ class InstanceContext(Context):
                 return values[0] if values else expr.EVALUATION_FAILED
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import body_owner, controller_heroes, entity_filter, entity_queries, entity_team
+        from ow174.game.script import (
+            body_owner, controller_heroes, controller_queries, entity_filter, entity_queries, entity_team, health_queries,
+        )
 
         component = self.instance.component
-        result = NotImplemented
+        result = health_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = controller_queries.evaluate(self, cfg)
         if cls == body_owner.CLASS and self.instance.graph.index == 0x0B8B and not component.strict:
             from ow174.game import orisa_charge
 
@@ -461,6 +493,10 @@ class World:
     queue_mystery_swap = None
     junkenstein_difficulty: expr.Asset | None = None
 
+    def tracked_ray(self, state):
+        """Explicit TrackRay query provider; unsupported differs from a completed miss."""
+        return NotImplemented
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode
@@ -478,6 +514,9 @@ class World:
 
     def ruleset_for(self, entity: int, key: int):
         return self.ruleset(key)
+
+    def ruleset_expression(self, evaluation, config):
+        return NotImplemented
 
     def entity_var(self, entity: int, var: int):
         if entity == GAME_MODE_ENTITY and self.mode:
@@ -611,6 +650,38 @@ class World:
     def compatibility_stop_script(self, instance: "Instance", node: Node):
         return NotImplemented
 
+    def target_tag_entities(self, tag: int):
+        """Ordered entity IDs for an explicitly known single-tag search."""
+        return NotImplemented
+
+
+    def resolved_animation_ms(self, state: "State"):
+        """Optional duration of the resolved finite animation for this activation."""
+        return NotImplemented
+
+
+    def skill_locked(self, state: "State") -> bool:
+        return False
+
+
+    def body_health(self, entity: int):
+        """(current, maximum), None for missing entity, or an unknown service.
+
+        An explicitly known entity without component51 supplies (0.0, 0.0).
+        """
+        return NotImplemented
+
+
+    def component51_state_counter(self, entity: int):
+        """Explicit component51 +4EC storage, known absence, or unknown service."""
+        return NotImplemented
+
+
+    def filtered_body_health(self, entity: int, kind: int, tag: int):
+        """Current selected component51 pool total from an explicit host."""
+        return NotImplemented
+
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -620,6 +691,49 @@ class World:
     def end_health(self, state: "State") -> None:
         pass
 
+    def spatial_binding_owner(self, entity: int):
+        """An explicit 96333BBE auxiliary owner, or None for known absence."""
+        return NotImplemented
+
+    def component45_spatial_context(self, entity: int):
+        """Explicit component45 spatial scheduler, lookup and registration services."""
+        return NotImplemented
+
+    def assassin_movement_sample(self, entity: int):
+        """Explicit 1158 movement sample, known absence, or an unknown service."""
+        return NotImplemented
+
+    def hosts_assassin_pursuit_callbacks(self, entity: int):
+        """Whether the owner has a 1158 callback host, or an unknown service."""
+        return NotImplemented
+
+    def component76_keys(self, entity: int):
+        """Explicit component76 keys, known absence, or unknown service."""
+        return NotImplemented
+
+    def indexed_target_lookup(self, entity: int):
+        """The A37A910D instance service, known absence, or unknown service."""
+        return NotImplemented
+
+    def target_record_scalar(self, owner: int, target: int):
+        """A D379F515 component46 record scalar, known absence, or unknown service."""
+        return NotImplemented
+
+    def controller_record(self, entity: int):
+        """Explicit controller_queries.Record, None missing, or unknown service.
+
+        Component43's related ID is independent of the primary-possessor registry.
+        """
+        return NotImplemented
+
+    def entity_filter_record(self, entity: int):
+        """Explicit classification record, known absence or unknown service."""
+        return NotImplemented
+
+    def array_filter_accepts(self, state: "State", value):
+        """Apply the authored 0A6BE10E filter to a candidate value."""
+        return NotImplemented
+
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented
@@ -627,6 +741,22 @@ class World:
     def linked_target_sample(self, entity: int):
         """Return (linked entity or None, yaw radians), None if absent, or NotImplemented."""
         return NotImplemented
+
+    def model_gate_consumer(self, entity: int):
+        """Component1 bit-0 setter, known absence, or unknown service."""
+        return NotImplemented
+
+    def b61_registry(self, entity: int):
+        """Explicit registry for B61 state records."""
+        return NotImplemented
+
+    def component86(self, entity: int):
+        """Explicit target registry, known absence, or unknown service."""
+        return NotImplemented
+
+    def native_state_factory_miss(self, cls: str) -> bool:
+        """Whether an explicit host catalog establishes an empty native state slot."""
+        return False
 
     def subgraph_scopes(self, entity: int):
         """Known auxiliary-interface registration service, known no service, or unknown."""
@@ -688,6 +818,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def entity_definition_resource(self, entity: int):
+        """Declared entity-definition GUID, typed zero for missing, or unknown."""
         return NotImplemented
 
     def controller_hero_context(self, entity: int, *, component: "Component | None" = None):
@@ -758,6 +892,10 @@ class World:
         return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
+        if cfg.get("$") == "STU_A77AC2AC" and self.mode:
+            from ow174.game.content import TUTORIAL_MODE
+
+            return self.mode == TUTORIAL_MODE  # CE8580 compares the selected mode resource.
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
@@ -845,6 +983,21 @@ class World:
         """Optional explicitly scoped body adapter; false leaves legacy bodies unchanged."""
         return False
 
+    def create_entity(self, instance, node):
+        return NotImplemented
+
+    def confirm_portal(self, state):
+        return NotImplemented
+
+    def relocate_through_portal(self, instance, node):
+        return NotImplemented
+
+    def destroy_entity(self, instance, node):
+        return NotImplemented
+
+    def play_script_selected(self, instance, node):
+        return NotImplemented
+
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
         if not instance.component.strict:
@@ -910,6 +1063,10 @@ class World:
         A concrete mission owner must implement this service.
         """
         instance.component.unsupported(instance, "native PlayScript request", node.cls, node)
+
+    def managed_script_resource(self, instance: "Instance", node: Node, resource):
+        """Resolve a state-owned, local graph through the world's loader."""
+        instance.component.unsupported(instance, "managed script loader", node.cls, node)
 
     def code_changed(self, component: "Component", token: int) -> None:
         """Deliver an explicitly registered native-service notification."""
@@ -1234,7 +1391,8 @@ class Component:
     # --- time --------------------------------------------------------------------------------------
 
     def next_event_time(self) -> int | None:
-        times = [item.queue[0].time for item in self.instances.values() if item.queue and not item.stopped]
+        times = [item.queue[0].time for item in self.instances.values()
+                 if item.queue and not item.stopped and (item.initialized or item.initialization_pending)]
         return min(times) if times else None
 
     def edges(self, buttons: list[tuple[int, bool]]) -> None:
@@ -1417,9 +1575,10 @@ class Instance:
                 if self.component.strict:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
-            model = state_type(node.cls, self.component.strict)
-            if (self.component.strict and node.cls not in STATE_CLASSES
-                    and node.cls not in STRICT_STATE_CLASSES and node.cls != "STUStatescriptState"):
+            model = state_type(node.cls, self.component.strict, self.graph.index, node.pos)
+            if self.component.strict and node.cls != "STUStatescriptState" and model is State:
+                if self.component.world.native_state_factory_miss(node.cls):
+                    return None
                 self.component.unsupported(self, "state", node.cls, node)
             found = self.states[index] = model(self, node, index)
             found.on_created()
@@ -1922,6 +2081,9 @@ class State:
         """A link enters the state (base 0x7FF78AA83D80): the abort plug asks for an abort, others a begin."""
         if input_path == "m_C721B06C" and self.active and self.instance.component.world.placement_probe(self):
             return True
+        if ((self.instance.graph.index, self.node.pos, input_path) == (0x156B, 57, "m_6647ED22")
+                and getattr(self.instance.component.world, "confirm_photon_barrier", lambda _: False)(self)):
+            return True
         if input_path == ABORT_PLUG:
             self.request(ABORT)
         else:
@@ -1950,6 +2112,8 @@ class State:
         if self.node.cls == "STUStatescriptStatePet":
             self.instance.component.world.pet_lifecycle(self, True)
         self.on_enter()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.create_entity(self.instance, self.node)
         if not self.active:
             return
         self.instance.follow(self.node, "m_onBeginPlug", self)
@@ -1971,6 +2135,8 @@ class State:
         if self.node.cls == "STUStatescriptStatePet":
             self.instance.component.world.pet_lifecycle(self, False)
         self.on_cleanup()
+        if self.node.cls == "STUStatescriptStatePet":
+            self.instance.component.world.destroy_entity(self.instance, self.node)
         self.unwatch()
         self.polled = False
         if self in self.instance.ticking:

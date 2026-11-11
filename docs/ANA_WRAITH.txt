@@ -1,0 +1,29 @@
+Ana against Reaper Wraith on build 104319
+
+The actual Reaper Shift input starts graph0020. Node2 is class54FEB21C
+with E8 scalar0 and no F0 condition. Its authored end plug starts node6,
+the three-second Wait, which owns protection node1/state0 and the input
+listeners for early exit. The authored ability also applies an eight-second
+cooldown after recovery.
+
+The server completes this exact zero-scalar prelude under a scoped policy.
+Other uses of class54FEB21C keep their existing unsupported execution.
+Combat reads the live protection state from the VM. Enemy contact searches
+skip the phased body, harmful splash and status are rejected, and entry
+removes active antiheal and queued offensive rifle doses. Allied healing
+and Nano remain available. Replacement and death cannot retain protection.
+There is no separate duration clock or protection flag in combat storage.
+
+Seven actual input methods cover hip and scoped rifle, Sleep Dart, melee,
+direct grenade and nearby floor splash, cleansing, ally rifle and Nano,
+three-second expiry, early Shift exit, cooldown and recast, sleep blocking
+entry, and body replacement. Shared rifle, control, Deflect, barrier and
+VM snapshot regressions pass in a separate87-method group.
+
+The original OnEnter scalar prefix8E5B3E..8E5B92 passes12 offline
+comparisons. It multiplies by1000 and rounds signed halves away from zero.
+Prior tests cover20 timer cases and24 link-walker cases with explicit
+adapters. They establish neither original completion dispatch for this
+conditionless resource nor native immunity geometry, filtering or client
+effects. The static combat policy uses the authored phase and remains a
+server reconstruction.

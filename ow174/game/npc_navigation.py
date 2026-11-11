@@ -12,6 +12,7 @@ from ow174.game.mover import Mover, mover_data
 from ow174.game.script import expr, nodes, runtime
 
 GRID, MAX_NODES, PLAN_INTERVAL, PLAN_SLICE = 1.0, 2048, 30, 4
+RETRY_FRAMES = PLAN_INTERVAL
 RIALTO_MAP = 0x080000000000079F
 # Server-authored connection through the southern opening in the upper railing.
 RIALTO_LEDGE = (-139.081, 3.75, -103.052)
@@ -738,3 +739,61 @@ def _drop_step(bot, nav, tick, seconds):
     bot.held = (0, 0) if released else bots.throttles(bot.yaw, (-1.0, 0.0))
     bot.last_held, bot.input_tick, bot.keys = bot.held, tick, not bot.dead
     bot.moved_tick = tick
+
+
+@dataclass
+class Pursuit:
+    search: Search | None = None
+    retry_at: int = 0
+    wall_entities: tuple = ()
+
+
+def stop_pursuit(bot):
+    pursuit = bot.pursuit
+    if pursuit.search is None and not bot.route:
+        return
+    pursuit.search = None
+    bot.route, bot.target, bot.keys = [], None, False
+    bot.turning = 0.0
+    bot.pace, bot.velocity, bot.held = 0.0, (0.0, 0.0, 0.0), (0, 0)
+
+
+def refresh_obstacles(bot, pieces):
+    pursuit = getattr(bot, 'pursuit', None)
+    if pursuit is None:
+        return
+    entities = tuple(pieces)
+    if entities != pursuit.wall_entities:
+        stop_pursuit(bot)
+        pursuit.wall_entities = entities
+        pursuit.retry_at = 0
+
+
+def update(fight, bot, target, reach):
+    pursuit = bot.pursuit
+    if getattr(bot, "wall_mover", None) is not None or fight.is_stunned(bot):
+        stop_pursuit(bot)
+        return
+    if target is None:
+        stop_pursuit(bot)
+        pursuit.retry_at = 0
+        return
+    search = pursuit.search
+    if search is not None and (target.entity != search.target.entity
+                               or math.dist(target.feet, search.target.feet) > GRID):
+        stop_pursuit(bot)
+        search = None
+        pursuit.retry_at = 0
+    if search is None:
+        if fight.tick < pursuit.retry_at:
+            return
+        search = pursuit.search = begin(bot.position, target, reach)
+    if search.done:
+        if bot.target is None and (not bot.route or bot.index == len(bot.route) - 1):
+            stop_pursuit(bot)
+            pursuit.retry_at = fight.tick + RETRY_FRAMES
+        return
+    if advance(search, fight.match.collision_world, mover_data(bot.body), reach, PLAN_SLICE,
+               contact=bot.hero == assassin.HERO) and search.path:
+        bot.route = list(search.path)
+        bot.index, bot.wait, bot.last_tick = -1, 0.0, fight.tick

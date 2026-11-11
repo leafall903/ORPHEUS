@@ -168,11 +168,13 @@ class WorldBubbles:
                 if runtime.send_message(actor.source_component, 0x0240000000000053, params, actor.entity):
                     actor.source_component.run_now()
 
-    def enemies(self, shooter):
+    def enemies(self, shooter, *, team=None):
+        if team is None:
+            team = shooter.team
         return [a for a in self.actors.values() if not a.retired and a.component is not None and a.health > 0
                 and self.live_source(a)
                 and a.owner is not shooter
-                and (self.fight.match.game_map.free_for_all or a.team != shooter.team)]
+                and (self.fight.match.game_map.free_for_all or a.team != team)]
 
     @staticmethod
     def live_source(actor):
@@ -180,9 +182,9 @@ class WorldBubbles:
         return (script is not None and not script.retired and script.component is actor.source_component
                 and actor.owner.spawned and actor.owner.has_body and not actor.owner.gone)
 
-    def trace(self, shooter, origin, direction, length, radius=0.0):
+    def trace(self, shooter, origin, direction, length, radius=0.0, *, team=None, bubbles=None):
         best = None
-        for actor in self.enemies(shooter):
+        for actor in self.enemies(shooter, team=team) if bubbles is None else bubbles:
             inside = math.dist(origin, actor.point) < actor.radius
             extent = max(0.0, actor.radius - radius) if inside else actor.radius + radius
             distance = shell(origin, direction, actor.point, extent, length)
@@ -213,6 +215,15 @@ class WorldBubbles:
             actor.component.run_now()
         return lost
 
+    @staticmethod
+    def nearest_shell(actor, point):
+        radial = tuple(a - b for a, b in zip(point, actor.point, strict=True))
+        distance = math.hypot(*radial)
+        if distance == 0:
+            radial, distance = (1.0, 0.0, 0.0), 1.0
+        return tuple(centre + actor.radius * axis / distance
+                     for centre, axis in zip(actor.point, radial, strict=True))
+
     def explosion(self, shooter, point, blast, visible_from, *, forced=()):
         """One pool debit and all crossed body paths per area event; centre visibility is reconstructed."""
         from ow174.game.combat import _sub, capsule_visible
@@ -224,10 +235,7 @@ class WorldBubbles:
             scalar = blast.splash(abs(distance-actor.radius))
             if scalar <= 0:
                 continue
-            direction = _sub(actor.point,visible_from)
-            length = math.sqrt(sum(v*v for v in direction))
-            surface = tuple(c+v*actor.radius/max(length,1e-12)
-                            for c,v in zip(actor.point,_sub(visible_from,actor.point),strict=True))
+            surface = self.nearest_shell(actor, visible_from)
             if not capsule_visible(self.fight._collision(),visible_from,surface,surface,.01):
                 continue
             for target in self.fight._enemies(shooter,damageable=True):

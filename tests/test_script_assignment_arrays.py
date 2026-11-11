@@ -35,6 +35,25 @@ def run(instance):
 
 
 class AssignmentArrayTests(unittest.TestCase):
+    def test_expression_destination_writes_one_element_and_zero_fills_gaps(self):
+        for index, initial, expected in (
+            (2, 99, (0, 0, 17)),
+            (1, (5, 6, 7), (5, 17, 7)),
+            (2.5, (5,), (5, 0, 0, 17)),
+            (-1, (5,), (5,)),
+            (1000, (5,), (5,)),
+        ):
+            with self.subTest(index=index):
+                destination = {
+                    '$': 'STU_919FD47C',
+                    'm_expression': {'m_opcodes': [8, 0, 6, 0, 17, 0],
+                                     'm_dynamicVars': [dynamic(7)], 'm_D99EF254': [index]},
+                }
+                _, instance = setup(integer(17), m_out_Var=destination)
+                instance.write((expr.INSTANCE, 7), initial)
+                self.assertEqual(run(instance), expected)
+                self.assertEqual(instance.find_var(expr.INSTANCE, 8).value(), 17)
+
     def test_value_interface_collects_all_configs_and_follows_output(self):
         component, instance = setup(array(integer(3), integer(5), integer(7)))
         self.assertEqual(run(instance), (3, 5, 7))

@@ -416,6 +416,70 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
+    def component76_keys(self, entity):
+        if self.match is None:
+            return NotImplemented
+        from ow174.game import health_packs
+
+        return health_packs.tag_keys(getattr(self.match.combat, "health_packs", {}).get(entity))
+
+
+    def body_health(self, entity):
+        lookup = getattr(self.match.combat, "body_health", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+
+    def controller_record(self, entity):
+        lookup = getattr(self.match, "controller_record", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+
+    def confirm_portal(self, state):
+        portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
+        if portals is not None and (state.instance.graph.index, state.node.pos) == (0x1571, 69):
+            portals.confirm(state)
+            return True
+        return NotImplemented
+
+
+    def relocate_through_portal(self, instance, node):
+        portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
+        return portals.relocate(instance, node) if portals is not None else NotImplemented
+
+
+    def skill_locked(self, state):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        return controls is not None and not state.instance.component.strict and controls.blocked(state)
+
+
+    def tracked_ray(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012E
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B1B, 59)):
+            controls = getattr(self.match.combat, "sombra_controls", None)
+            player = controls.player(self.body) if controls is not None else None
+            if player is not None:
+                return controls.ray(player, state)
+        if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x0241
+                and state.index in (43, 81)):
+            service = getattr(self.match.combat, "zarya_beam_ray", None) if self.match is not None else None
+            return service(self.body, state) if service is not None else NotImplemented
+        return NotImplemented
+
+
+    def play_script_selected(self, instance, node):
+        from ow174.game import doomfist_passive
+
+        if self.match is None or instance.component.strict:
+            return NotImplemented
+        fight = self.match.combat
+        if (self.hero == doomfist_passive.HERO and hasattr(fight, "doomfist_decay")
+                and (instance.graph.index, node.pos) == (doomfist_passive.PASSIVE, 4)):
+            return doomfist_passive.grant(self, instance, node)
+        controls = getattr(fight, "sombra_controls", None)
+        return controls.play(instance, node) if controls is not None else NotImplemented
+
+
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:
             return self.match.resolve_body_spray(self.body, length)
@@ -459,11 +523,19 @@ class BodyWorld(runtime.World):
 
     def retire_compatible_pet(self, state, entity: int) -> None:
         if self.match is not None:
-            self.match.combat.sigma_barriers.pop(entity, None)
+            barrier_actor = self.match.combat.sigma_barriers.pop(entity, None)
+            if barrier_actor is not None:
+                barrier_actor.retire_child()
 
     def create_world_entity(self, instance, node):
         if self.match is not None:
-            return self.match.combat.barriers.world.create(self, instance, node)
+            fight = self.match.combat
+            result = fight.barriers.world.create(self, instance, node)
+            if result is not NotImplemented:
+                return result
+            portals = getattr(fight, "symmetra_portals", None)
+            if portals is not None:
+                return portals.create(instance, node)
         return NotImplemented
 
     def play_static_actor(self, instance, node):
@@ -505,6 +577,13 @@ class BodyWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if (controls is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B32, 9)):
+            if elapsed_ms == 0:
+                controls.drain(state)
+                state.request_finish()
+            return True
         value = immunity.transcendence_heal(self, state, elapsed_ms)
         if value is not NotImplemented:
             return value

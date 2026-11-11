@@ -20,6 +20,7 @@ class Context:
     retired: bool = False
     component: object = None
     _providers: dict = field(default_factory=dict, init=False, repr=False)
+    snapshots: object = NotImplemented
 
     def __post_init__(self):
         if (type(self.owner) is not int or not 0 <= self.owner <= 0xFFFFFFFF
@@ -48,6 +49,66 @@ class Context:
     def providers(self, mapping):
         return tuple(state for state, guid in self._providers.items()
                      if guid == mapping and state.active and not state.ending)
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    mapping: int
+    value: float | expr.Entity | expr.Asset | expr.Vec3
+
+
+class SnapshotRegistry:
+    """Component82 indexed records, including reuse of the first empty slot."""
+
+    def __init__(self):
+        self.entries: list[Snapshot | None] = []
+
+    def insert(self, record: Snapshot) -> int:
+        for index, entry in enumerate(self.entries):
+            if entry is None:
+                self.entries[index] = record
+                return index
+        self.entries.append(record)
+        return len(self.entries) - 1
+
+    def remove(self, index: int, record: Snapshot):
+        if not 0 <= index < len(self.entries) or self.entries[index] is not record:
+            raise ValueError("component82 snapshot registration is stale")
+        self.entries[index] = None
+        while self.entries and self.entries[-1] is None:
+            self.entries.pop()
+
+
+def snapshot_enter(state):
+    context = _context(state)
+    registry = context.snapshots
+    if registry is None:
+        return
+    if type(registry) is not SnapshotRegistry:
+        _unsupported(state, "component82 snapshot registry")
+    if state.snapshot_registration is not None:
+        _unsupported(state, "component82 snapshot already registered")
+    instance, node = state.instance, state.node
+    value = play.evaluate_scalar(instance, node.field("m_5A6D4FBD"), initial=_FAILED)
+    _check(state, context)
+    mapping = 0 if value is _FAILED else play._asset(value)
+    if not mapping:
+        return
+    answer = play.evaluate_scalar(instance, node.field("m_answer"), initial=_FAILED)
+    _check(state, context)
+    if answer is _FAILED:
+        return
+    if type(answer) not in (expr.Entity, expr.Asset, expr.Vec3):
+        answer = expr.f32(expr.to_float(answer))
+    record = Snapshot(mapping, answer)
+    state.snapshot_registration = registry, registry.insert(record), record
+
+
+def snapshot_exit(state):
+    registration, state.snapshot_registration = state.snapshot_registration, None
+    if registration is not None:
+        registry, index, record = registration
+        registry.remove(index, record)
 
 
 def _unsupported(state, feature):

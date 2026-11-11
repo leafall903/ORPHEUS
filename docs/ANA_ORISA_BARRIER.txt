@@ -1,0 +1,33 @@
+Ana against Orisa Protective Barrier on build 104319
+
+Actual E runs 0BD7's carrier with the 14A1.003 and 0BD8 bindings. The
+carrier uses the authored projectile velocity and gravity. World impact
+schedules deployment seven ticks later, from the authored 0.1s delay.
+The server starts 0BD8 with the source body identity and takes health
+and lifetime from its actual initialization. The barrier has 600 health.
+The twenty-second ChaseVar/HealthPool scope governs collision. On expiry
+the half-second tail remains live without blocking attacks.
+
+The mesh has 460 triangles from 4062.00C. Loading verifies the known
+model and the triangle/mask digest. Rotation, attachment, team filtering,
+damage and transport are reconstructed. The host uses the prepared
+013E resource read only through ORPHEUS_ORISA_GEOMETRY.
+
+Both Ana rifle modes, Sleep Dart and Biotic Grenade reduce the barrier
+by 70, 70, 5 and 50. They leave body health and harmful status untouched
+on the far side. A breaking grenade still uses the pre-impact mesh for
+that explosion, preserving near-side self-healing. Friendly rifle and
+Nano work through the barrier. A placed shield keeps its original
+source identity after the caster switches body. Pending deployment is
+retired with the old body. Barrier, launch orientation and pending
+deployment are causal state.
+
+Tests use actual E and attack inputs, static world collision and transport
+fixtures. The authored graph and mesh evidence are separate from the
+server's deployment and combat policy. Native effect tails, network
+entity hosting and original-client acceptance remain open.
+
+Five Orisa combat methods passed within the47-method shared group. A
+separate stored server snapshot method exported the deployment handoff,
+active graph, geometry and shield health. That method uses a storage
+fixture. Actual E and landing are exercised by the combat group.

@@ -1262,6 +1262,50 @@ class Mover:
         )
         return None
 
+    def displace(self, velocity, dt, *, constrain=None):
+        """Sweep external velocity without replacing the actor's input velocity."""
+        body = self._engine_body()
+        vector = contacts.v3(*velocity)
+        final, planes, touching = body.move(contacts.v3(*(v * f32(dt) for v in vector)), f32(dt), ROUNDS)
+        before = self.position[1]
+        if constrain is not None:
+            lift = self._lift()
+            feet = (final[0], final[1] - lift, final[2])
+            radius, _ = self._capsule()
+            height = self.data.crouch_height if self.crouched else self.data.stand_height
+            feet, normals = constrain(self.position, feet, radius, height)
+            final = (feet[0], feet[1] + lift, feet[2])
+            planes = [*planes, *((contacts.v3(*normal), 0.0) for normal in normals)]
+        self._place(body, final, touching)
+        if self.position[1] - before > STEP and not self.airborne:
+            self.flags_word |= FELL
+            self.air_ticks = 0
+        return tuple(contacts.clip_velocity(vector, planes))
+
+
+    def wall_raise_clear(self, height: float) -> bool:
+        """Check a pillar lift against the map without mutating the player's capsule."""
+        radius, segment = self._capsule()
+        body = contacts.CharacterBody(radius, f32(segment + radius), world=self.world.engine,
+                                      category=self.category)
+        x, y, z = self.position
+        lift = self._lift()
+        body.teleport((x, f32(y + lift), z))
+        rise = height - self.position[1]
+        final, _, _ = body.move(contacts.v3(0.0, rise, 0.0), 1.0, ROUNDS)
+        return final[1] - lift >= height - STEP and body.fits(radius, f32(segment + radius))
+
+
+    def raise_to_wall(self, height: float) -> None:
+        x, _, z = self.position
+        self._place(self._engine_body(), (x, height + self._lift(), z), True)
+        self.flags_word &= ~IN_AIR
+        self.fall, self.air_ticks, self.landed = 0.0, 0, True
+        self.velocity = (self.velocity[0], max(0.0, self.velocity[1]), self.velocity[2])
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
+
     def _place(self, body: contacts.CharacterBody, final, touching: bool) -> bool:
         self.flags_word = self.flags_word & ~TOUCHING | (TOUCHING if touching else 0)
         lift = self._lift()

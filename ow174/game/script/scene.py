@@ -23,15 +23,21 @@ from ow174.game.content import (
 )
 from ow174.game.script import (
     animation_alias,
+    b61,
+    component45_spatial,
+    component86,
     controller_heroes,
+    controller_queries,
     data_flow,
     effect_routing,
     entity_control,
+    entity_filter,
     entity_queries,
     entity_team,
     expr,
     game_message,
     graph,
+    health_queries,
     message_receive,
     message_state,
     model_look,
@@ -160,7 +166,7 @@ class SceneWorld(runtime.World):
     Static positions are exposed only for bound entities.
     """
 
-    def __init__(self, hero: int = 0, mode: int = 0, *, entity_creator=None, hero_creator=None) -> None:
+    def __init__(self, hero: int = 0, mode: int = 0, *, entity_creator=None, hero_creator=None, native_state_misses=()) -> None:
         super().__init__(hero, mode)
         if entity_creator is not None and not callable(entity_creator):
             raise ValueError("scene entity creator must be callable")
@@ -168,6 +174,11 @@ class SceneWorld(runtime.World):
         if hero_creator is not None and not callable(hero_creator):
             raise ValueError("scene hero creator must be callable")
         self.hero_creator = hero_creator
+        misses = tuple(native_state_misses)
+        if any(type(cls) is not str or not cls.startswith(("STU_", "STUStatescriptState"))
+               for cls in misses):
+            raise ValueError("native state factory misses must be STU class names")
+        self._native_state_misses = frozenset(misses)
         self.map_guid: int | None = None
         self.entity_start = 0
         self.entities: dict[int, SceneEntity] = {}
@@ -179,6 +190,12 @@ class SceneWorld(runtime.World):
         self.current_possessions: dict[int, int] = {}
         self.linked_controllers: dict[int, int | None] = {}
         self._owned_deployables: dict[int, frozenset[int]] = {}
+        self.component44_body_ids: dict[int, int] = {}
+        self.ai_difficulties: dict[int, expr.Asset] = {}
+        self.b61_registries: dict[int, b61.Registry] = {}
+        self.component86_registries: dict[int, component86.Registry | None] = {}
+        self.health_state_counters: dict[int, health_queries.StateCounter | None] = {}
+        self.health_pool_amounts: dict[int, tuple[tuple[float, float, float], float | None]] = {}
         self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
         self.scope_components: dict[int, scopes.Registry | None] = {}
         self.effect_contexts: dict[int, effect_routing.Context | None] = {}
@@ -239,6 +256,16 @@ class SceneWorld(runtime.World):
         self.engine_settings: dict[int, bool | int | float] | None = None
         self.global_data_flow: dict[int, tuple[runtime.State, bool]] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
+        self.controller_records: dict[int, controller_queries.Record] = {}
+        self.absent_spatial_binding_owners: set[int] = set()
+        self.component45_spatial_contexts: dict[int, component45_spatial.Context] = {}
+        self.component76_records: dict[int, entity_queries.Component76Keys | None] = {}
+        self.indexed_targets: dict[int, dict[tuple[int, int], int] | None] = {}
+        self.target_record_scalars: dict[int, dict[int, float] | None] = {}
+        self.entity_filter_records: dict[int, entity_filter.Record] = {}
+        self.target_tag_members: dict[int, tuple[int, ...]] = {}
+        self.entity_directions: dict[int, tuple[expr.Vec3 | None, expr.Vec3 | None]] | None = None
+        self.model_gate_consumers = {}
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
         self.message_contexts: dict[int, message_state.Context] = {}
@@ -271,14 +298,14 @@ class SceneWorld(runtime.World):
             raise ValueError("scene entity identifier is already bound")
         if reference.int and reference in self.references:
             raise ValueError("scene entity UUID is already bound")
-        resolved_position = _position(position) if position is not None else None
         if placement is not None:
             if definition is not None and definition != placement.definition:
                 raise ValueError("scene entity definition disagrees with its placement")
             definition = placement.definition
-        if definition is not None and (type(definition) is not int or definition >> 48 != 0x0400
-                                       or not definition & 0xFFFFFFFFFFFF):
-            raise ValueError("scene entity definition must be a nonzero .003 asset")
+        if definition is not None and (type(definition) is not int or not (
+                definition == 0 or definition >> 48 == 0x0400 and definition & 0xFFFFFFFFFFFF)):
+            raise ValueError("expected an entity-definition GUID or explicit absence")
+        resolved_position = _position(position) if position is not None else None
         tags = None
         if target_tags is not None:
             values = tuple(target_tags)
@@ -379,6 +406,28 @@ class SceneWorld(runtime.World):
                     self.linked_controllers[body] = None
         self.modifier_components.pop(entity, None)
         self.voice_sets.pop(entity, None)
+        self.ai_difficulties.pop(entity, None)
+        self.health_state_counters.pop(entity, None)
+        self.health_pool_amounts.pop(entity, None)
+        self.controller_records.pop(entity, None)
+        self.absent_spatial_binding_owners.discard(entity)
+        self.component45_spatial_contexts.pop(entity, None)
+        self.component76_records.pop(entity, None)
+        self.indexed_targets.pop(entity, None)
+        self.target_record_scalars.pop(entity, None)
+        self.entity_filter_records.pop(entity, None)
+        if self.entity_directions is not None:
+            self.entity_directions.pop(entity, None)
+        for tag, members in self.target_tag_members.items():
+            if entity in members:
+                self.target_tag_members[tag] = tuple(member for member in members if member != entity)
+        self.model_gate_consumers.pop(entity, None)
+        registry = self.b61_registries.pop(entity, None)
+        if registry is not None:
+            registry.clear()
+        target_registry = self.component86_registries.pop(entity, None)
+        if target_registry is not None:
+            target_registry.clear()
         self._retire_control_contexts(entity=entity)
         aliases = self.alias_components.pop(entity, None)
         if aliases is not None:
@@ -399,6 +448,7 @@ class SceneWorld(runtime.World):
                 if owner != entity and target != entity
             }
             self.possessors.discard(entity)
+            self.component44_body_ids.pop(entity, None)
             self.primary_possessors.pop(entity, None)
             self.primary_possessors = {
                 target: owner for target, owner in self.primary_possessors.items() if owner != entity
@@ -411,6 +461,103 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def set_target_tag_entities(self, tag: int, entities) -> None:
+        """Supply the ordered active matches for an authored TargetTag."""
+        if type(tag) is not int or tag >> 48 != 0x0D60:
+            raise ValueError("expected a TargetTag GUID")
+        members = tuple(entities)
+        for entity in members:
+            self._bound_entity(entity)
+        self.target_tag_members[tag] = tuple(dict.fromkeys(members))
+
+    def target_tag_entities(self, tag: int):
+        return self.target_tag_members.get(tag, NotImplemented)
+
+    def set_entity_directions(self, entity: int, *, aim=None, forward=None) -> None:
+        """Bind the two transform-derived outputs independently for a scene entity."""
+        self._bound_entity(entity)
+        directions = (
+            _position(aim) if aim is not None else None,
+            _position(forward) if forward is not None else None,
+        )
+        if self.entity_directions is None:
+            self.entity_directions = {}
+        self.entity_directions[entity] = directions
+
+    def set_ai_difficulty(self, entity: int, definition: int, difficulty: int) -> None:
+        """Select an authored difficulty key on an explicitly bound AI entity."""
+        self._bound_entity(entity)
+        if type(definition) is not int or type(difficulty) is not int:
+            raise ValueError("AI definition and difficulty must be resource identifiers")
+        placement = self.entities[entity].placement
+        if placement is not None and placement.definition != definition:
+            raise ValueError("AI difficulty definition differs from the bound placement")
+        record = graph.entity_body(definition)
+        profiles = record.get("ai_difficulty_profiles", {}) if record is not None else {}
+        if not isinstance(profiles, dict) or f"0x{difficulty:016X}" not in profiles:
+            raise ValueError("difficulty is not authored by the AI definition")
+        self.ai_difficulties[entity] = expr.Asset(difficulty)
+
+    def set_b61_registry(self, entity: int, registry: b61.Registry) -> None:
+        self._bound_entity(entity)
+        if (type(registry) is not b61.Registry or registry.entries or entity in self.b61_registries
+                or registry in self.b61_registries.values()):
+            raise ValueError("B61 registry must be an empty service with a single scene owner")
+        self.b61_registries[entity] = registry
+
+    def b61_registry(self, entity: int):
+        return self.b61_registries.get(entity, NotImplemented)
+
+    def set_component86(self, entity: int, registry: component86.Registry | None) -> None:
+        self._bound_entity(entity)
+        if (entity in self.component86_registries or (registry is not None and (
+                type(registry) is not component86.Registry or registry.entries or registry.selection_entries
+                or registry in self.component86_registries.values()))):
+            raise ValueError('component86 requires an unbound empty registry or known absence')
+        self.component86_registries[entity] = registry
+
+    def component86(self, entity: int):
+        return self.component86_registries.get(entity, NotImplemented)
+
+    def set_health_pool_amounts(self, entity: int, health: float, armour: float, shields: float,
+                                *, maximum: float | None = None) -> None:
+        self._bound_entity(entity)
+        amounts = tuple(expr.f32(amount) for amount in (health, armour, shields))
+        if any(not math.isfinite(amount) or amount < 0 for amount in amounts):
+            raise ValueError("expected finite nonnegative current health pools")
+        if maximum is not None:
+            maximum = expr.f32(maximum)
+            if not math.isfinite(maximum) or maximum < 0:
+                raise ValueError("expected a finite nonnegative maximum health total")
+        self.health_pool_amounts[entity] = amounts, maximum
+
+    def set_component51_state_counter(self, entity: int, counter: health_queries.StateCounter | None):
+        self._bound_entity(entity)
+        if counter is not None and type(counter) is not health_queries.StateCounter:
+            raise ValueError("expected an explicit component51 state counter or known absence")
+        self.health_state_counters[entity] = counter
+
+    def component51_state_counter(self, entity: int):
+        return self.health_state_counters.get(entity, NotImplemented)
+
+    def filtered_body_health(self, entity: int, kind: int, tag: int):
+        pools = self.health_pool_amounts.get(entity)
+        if pools is None or tag != 0 or not 0 <= kind < len(pools[0]):
+            return NotImplemented
+        return pools[0][kind]
+
+    def body_health(self, entity: int):
+        if entity not in self.entities:
+            return None
+        pools = self.health_pool_amounts.get(entity)
+        if pools is None or pools[1] is None:
+            return NotImplemented
+        amounts, maximum = pools
+        return expr.f32(sum(amounts)), maximum
+
+    def native_state_factory_miss(self, cls: str) -> bool:
+        return cls in self._native_state_misses
 
     def bind_script_component(self, entity: int, component: runtime.Component | None) -> None:
         """Publish the actual component, or explicitly declare component absence."""
@@ -487,6 +634,12 @@ class SceneWorld(runtime.World):
         if mapping is not None:
             mapping.retire()
         if previous is not None:
+            registry = self.b61_registries.get(entity)
+            if registry is not None:
+                registry.clear()
+            for target in self.component86_registries.values():
+                if target is not None:
+                    target.remove_component(previous)
             self._notify_script_retired(previous)
 
     def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
@@ -747,6 +900,29 @@ class SceneWorld(runtime.World):
         if entity in self.play_queues and self.play_queues[entity] is not queue:
             raise ValueError('retire the existing PlayScript queue before replacement')
         self.play_queues[entity] = queue
+
+    def managed_script_resource(self, instance, node, resource):
+        component = instance.component
+        if (self.script_components.get(component.entity) is not component or instance.stopped
+                or instance.teardown or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "scene managed script source lifecycle", node.cls, node)
+        queue = self.play_queues.get(component.entity)
+        if queue is None or queue.component is not component or queue.closed:
+            component.unsupported(instance, "scene managed script loader", node.cls, node)
+        load = queue.acquire(resource.guid)
+        component.ensure_valid()
+        if (self.play_queues.get(component.entity) is not queue or queue.closed
+                or self.script_components.get(component.entity) is not component
+                or instance.stopped or instance.teardown
+                or component.instances.get(instance.id) is not instance):
+            component.unsupported(instance, "scene managed script loader retired", node.cls, node)
+        if load is None or (type(load) is play_queue.Load and load.phase == "failed"):
+            return None
+        if (type(load) is not play_queue.Load or load.phase != "ready"
+                or not isinstance(load.definition, graph.Graph)
+                or resource.guid != (graph.GRAPH_TYPE << 48) | load.definition.index):
+            component.unsupported(instance, "scene managed script resource readiness", node.cls, node)
+        return load.definition
 
     def set_voice_context(self, entity: int, context: voice_stimulus.Context | None) -> None:
         self._bound_entity(entity)
@@ -1318,6 +1494,86 @@ class SceneWorld(runtime.World):
             possession = entity_queries.Possession(self.current_possessions.get(entity, 0))
         return entity_queries.Target(entity, possession)
 
+    def entity_definition_resource(self, entity: int):
+        record = self.entities.get(entity)
+        if record is None:
+            return 0
+        return NotImplemented if record.definition is None else record.definition
+
+    def declare_spatial_binding_owner_absent(self, entity: int) -> None:
+        self._bound_entity(entity)
+        self.absent_spatial_binding_owners.add(entity)
+
+    def spatial_binding_owner(self, entity: int):
+        return None if entity in self.absent_spatial_binding_owners else NotImplemented
+
+    def set_component45_spatial_context(self, entity: int, context: component45_spatial.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not component45_spatial.Context:
+            raise ValueError("expected explicit component45 spatial context")
+        self.component45_spatial_contexts[entity] = context
+
+    def component45_spatial_context(self, entity: int):
+        return self.component45_spatial_contexts.get(entity, NotImplemented)
+
+    def set_component76_keys(self, entity: int, keys: entity_queries.Component76Keys | None) -> None:
+        self._bound_entity(entity)
+        if keys is not None and type(keys) is not entity_queries.Component76Keys:
+            raise ValueError("expected explicit component76 keys or known absence")
+        self.component76_records[entity] = keys
+
+    def component76_keys(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.component76_records.get(entity, NotImplemented)
+
+    def indexed_target_lookup(self, entity: int):
+        records = self.indexed_targets.get(entity, NotImplemented)
+        if records is NotImplemented or records is None:
+            return records
+        return lambda owner, index: records.get((owner, index), 0)
+
+    def target_record_scalar(self, owner: int, target: int):
+        if owner not in self.entities:
+            return None
+        records = self.target_record_scalars.get(owner, NotImplemented)
+        if records is NotImplemented or records is None:
+            return records
+        return records.get(target)
+
+    def set_controller_record(self, record: controller_queries.Record) -> None:
+        if type(record) is not controller_queries.Record:
+            raise ValueError("expected an explicit controller query record")
+        self._bound_entity(record.entity)
+        self.controller_records[record.entity] = record
+
+    def controller_record(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.controller_records.get(entity, NotImplemented)
+
+    def set_entity_filter_record(self, entity: int, record: entity_filter.Record) -> None:
+        self._bound_entity(entity)
+        if type(record) is not entity_filter.Record:
+            raise ValueError("expected an explicit entity filter record")
+        self.entity_filter_records[entity] = record
+
+    def entity_filter_record(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.entity_filter_records.get(entity, NotImplemented)
+
+    def set_model_gate_consumer(self, entity: int, consumer) -> None:
+        self._bound_entity(entity)
+        if consumer is not None and not callable(consumer):
+            raise ValueError("expected a model gate setter or known absence")
+        self.model_gate_consumers[entity] = consumer
+
+    def model_gate_consumer(self, entity: int):
+        if entity not in self.entities:
+            return None
+        return self.model_gate_consumers.get(entity, NotImplemented)
+
     def set_controller_hero_context(self, entity: int, context: controller_heroes.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not controller_heroes.Context or context.owner != entity or context.retired:
@@ -1411,6 +1667,7 @@ class SceneWorld(runtime.World):
         backend = self.modifier_components.get(component.entity)
         if backend is not None:
             backend.records.clear()
+            backend.vector_records.clear()
         scope = self.scope_components.get(component.entity)
         if scope is not None:
             scope.clear()
@@ -1438,6 +1695,7 @@ class SceneWorld(runtime.World):
             relations[entity] = owner
         released = set(self.current_possessions)
         self.possessors, self.primary_possessors = known, relations
+        self.component44_body_ids.clear()
         self.current_possessions.clear()
         for owner in tuple(self._possession_revisions):
             if owner not in known or owner in released:
@@ -1483,6 +1741,7 @@ class SceneWorld(runtime.World):
         else:
             self.possessors.discard(entity)
             self.current_possessions.pop(entity, None)
+            self.component44_body_ids.pop(entity, None)
             self.primary_possessors = {
                 target: owner for target, owner in self.primary_possessors.items() if owner != entity
             }
@@ -1511,6 +1770,15 @@ class SceneWorld(runtime.World):
             return entity
         owner = self.primary_possessors.get(entity, 0)
         return owner if owner in self.entities and owner in self.possessors else 0
+
+    def set_component44_body_id(self, entity: int, body_id: int) -> None:
+        """Supply the raw Entity ID in a live component 44's +0xD0 member."""
+        self._bound_entity(entity)
+        if self.possessors is None or entity not in self.possessors:
+            raise ValueError("body ID requires a declared component 44")
+        if type(body_id) is not int or not 0 <= body_id <= 0xFFFFFFFF:
+            raise ValueError("component 44 body ID must be an unsigned 32-bit integer")
+        self.component44_body_ids[entity] = body_id
 
     def position(self, entity: int):
         record = self.entities.get(entity)
@@ -2156,6 +2424,25 @@ class SceneWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         kind = cfg.get("$")
+        if (instance is not None and kind in ("STU_2200A66D", "STU_021D01CD")
+                and self.entity_directions is not None):
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
+            entity = expr.to_entity(value)
+            if entity not in self.entities:
+                return expr.EVALUATION_FAILED
+            pair = self.entity_directions.get(entity)
+            direction = pair[kind == "STU_021D01CD"] if pair is not None else None
+            if direction is not None:
+                return direction
+        if cfg.get("$") == "STU_A3DEF368":
+            mode = self.script_components.get(runtime.GAME_MODE_ENTITY)
+            if mode is not None and mode.fault is None:
+                return expr.Entity(runtime.GAME_MODE_ENTITY)
+        if cfg.get("$") == "STU_C3619A38" and instance is not None:
+            value = play.evaluate_scalar(instance, cfg.get("m_F52607FF"), initial=expr.Entity(0))
+            difficulty = self.ai_difficulties.get(expr.to_entity(value))
+            if difficulty is not None:
+                return difficulty
         if (kind == 'STU_D0E0DA18' and instance is not None and instance.graph.index == 0x2B72
                 and self.mode in JUNKENSTEIN_MODES):
             direction = play.evaluate_scalar(instance, cfg.get('m_3ABD589C'))
@@ -2647,6 +2934,13 @@ class SceneWorld(runtime.World):
         if cfg.get("$") == "STU_DB742151" and self.possessors is not None:
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
             return expr.Entity(self.primary_possessor(expr.to_entity(value)))
+        if cfg.get("$") == "STU_00707E1E" and self.possessors is not None:
+            value = play.evaluate_scalar(instance, cfg.get("m_00903303"), initial=expr.Entity(0))
+            entity = expr.to_entity(value)
+            if entity not in self.possessors:
+                return expr.Entity(0)
+            if entity in self.component44_body_ids:
+                return expr.Entity(self.component44_body_ids[entity])
         if cfg.get("$") == "STUConfigVarEntityReference":
             try:
                 reference = _reference(cfg.get("m_4A2AD74A"))

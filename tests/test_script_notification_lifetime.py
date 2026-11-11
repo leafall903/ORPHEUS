@@ -119,5 +119,25 @@ class NotificationLifetimeTests(unittest.TestCase):
         self.assertTrue(any(event.kind == runtime.CHECK for event in instance.queue))
 
 
+    def test_canceled_join_check_can_be_queued_again_after_reentry(self):
+        import test_script_join as joins
+
+        helper = joins.JoinTests()
+        component, instance = helper.setup_join()
+        state = instance.states[0]
+        helper.arrive(instance, 4)
+        self.assertTrue(state.flags_check)
+        state.end(False)
+        self.assertFalse(state.flags_check)
+        helper.arrive(instance, 5)
+        component.run_now()
+        state.request(runtime.BEGIN)
+        component.run_now()
+        helper.arrive(instance, 4)
+        self.assertTrue(any(event.state is state and event.kind == runtime.CHECK
+                            for event in instance.queue))
+
+
+
 if __name__ == "__main__":
     unittest.main()
