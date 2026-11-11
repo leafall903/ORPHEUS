@@ -133,7 +133,7 @@ FIELDS = {
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
-        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms echo_duplicates barriers "
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     tracer_recall.Recalls: _names("fight history phases"),
