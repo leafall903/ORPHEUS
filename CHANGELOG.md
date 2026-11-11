@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Python scenario integration
+
+- Integrate the existing Junkenstein Vengeful Ghost, Mystery Swap, and late
+  wave health changes with the combined Rialto and hero server. Preserve
+  the scene host's intro and movement replication changes.
+- Pass 103 scene, PvE entrance, Arcade, combat, and Brigitte tests with the
+  combined 104319 runtime. Original-client verification remains open.
+
 #### Combined hero server intake
 
 - Bring the Brigitte combat bridge and its shared barrier, impulse and body
@@ -568,6 +576,40 @@ This log records tested changes and their acceptance status. Entries are grouped
   death, resolve its 0E60 narration to the original enUS voice line
   E39E, and run the 0CB7 tire startup state. A replay of the Arcade card
   killed its first Zombardier and spawned a Shock-Tire from that death.
+  A separate tire replay reached the castle gate and fired the authored
+  0C89/29 impact state. All 382 focused regression tests passed.
+
+- Run the Vengeful Ghost encounter in an isolated 104319 runtime candidate.
+  Its 3C53 entity runs the authored 2B72 spawn, target selection, chase and
+  contact-damage states. A controlled replay verified damage stops when the
+  defender moves out of range, resumes after the ghost catches up, and credits
+  the ghost with the death. The natural Arcade replay created the ghost at
+  frame 3362 and retired it at frame 5058. A separate replay exercised the
+  authored replacement action and serialized both entity creates and their
+  initial script frames. All 217 focused regression tests passed.
+  The default runtime now includes the authored definition and graph. The
+  server sends position and yaw after entity creation is acknowledged, using
+  the original client movement channel for component 28. The two spawn
+  actions stay queued behind the initial script frame and advance in order
+  as the client acknowledges each frame. The natural replay decoded seven
+  movement records, verified both actions with a delayed acknowledgement
+  and retired the ghost at settlement. A dead or replaced defender now
+  sends the chase through the authored retry phase. The replay verified
+  that the ghost waits and selects the defender's new body on respawn.
+  All 261 focused tests passed with the default runtime data.
+  Original-client rendering and target-local effects still need acceptance.
+
+- Run Mystery Swap's authored controller branch with the 12 heroes from
+  104319 ruleset 011D. When its wave state assigns a new hero, use the
+  standard body replacement and possession path, with the incoming hero's
+  mover data. The four-player replay passed frame 13000 with assignments
+  on three consecutive eligible waves. A controlled replay verified new body IDs,
+  possession records and mover data. A defender who has yet to select a
+  hero stays in selection while the other defenders swap. The original
+  client's temporary roster override and swap presentation need acceptance.
+- Skip the wave health bonus when its owner has already died. A rapid-kill
+  replay reached the delayed 0CBC initialization at frame 9614 and continued
+  without restoring health to the corpse. Passed 280 focused tests.
 
 - Accept the authored 0045 pose-rate cue on living linked Junkenstein
   enemies during the phase exit. A replay with a surviving Summoner

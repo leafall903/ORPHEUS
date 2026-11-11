@@ -455,6 +455,9 @@ class Client:
             snapshot = script.live
             script.live = None
             if self._queue_bot_snapshot(script, snapshot):
+                queued, _ = stream.pending[stream.last]
+                if snapshot.next_callout(queued.callout) is not None:
+                    script.live = snapshot
                 return
         if script.death_frames:
             while script.death_frames:
@@ -773,7 +776,7 @@ class Client:
     def _track_body_create(self, entity: int) -> None:
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
-        host = match.scene_host
+        host = getattr(match, "scene_host", None)
         script = getattr(bot, "body_script", None)
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)

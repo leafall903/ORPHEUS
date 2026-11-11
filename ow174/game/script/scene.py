@@ -213,6 +213,9 @@ class SceneWorld(runtime.World):
         self.roadhog_hook_cast = None
         self.symmetra_beam_cast = None
         self.symmetra_beam_hit = None
+        self.ghost_targets = None
+        self.ghost_contact_damage = None
+        self.update_vengeful_ghost = None
         self.roadhog_hook_targets = None
         self.roadhog_hook_hit = None
         self.roadhog_hook_target = None
@@ -850,11 +853,13 @@ class SceneWorld(runtime.World):
                              and config.get('m_66747E7D') == 1 and config.get('m_89831602') == 4)
         predicate = config.get('m_condition')
         beam_filter = self.mode in JUNKENSTEIN_MODES and instance.graph.index == 0x157C and predicate is not None
+        ghost_filter = (self.mode in JUNKENSTEIN_MODES and instance.graph.index == 0x2B72
+                        and config == instance.graph.node(34).field('m_filter'))
         death_predicate = killer_filter and instance.graph.index == 0x01A3 and predicate is not None
         allowed = (*fields, *tag_fields, 'm_66747E7D') if killer_filter else (*fields, *tag_fields)
         if witch_ally_filter:
             allowed += ('m_66747E7D', 'm_89831602')
-        if beam_filter or death_predicate or witch_ally_filter:
+        if beam_filter or death_predicate or witch_ally_filter or ghost_filter:
             allowed += ('m_condition',)
         if (self.script_components.get(component.entity) is not component
                 or not callable(self.array_filter_inputs) or config.get('$') != 'STUConfigVarFilter'
@@ -947,7 +952,7 @@ class SceneWorld(runtime.World):
                 return expr.truthy(play.evaluate_scalar(instance, predicate))
         if death_predicate:
             return expr.truthy(play.evaluate_scalar(instance, predicate))
-        if witch_ally_filter and predicate is not None:
+        if (witch_ally_filter or ghost_filter) and predicate is not None:
             with component.parameter_scope({8: expr.Entity(entity)}):
                 return expr.truthy(play.evaluate_scalar(instance, predicate, initial=True))
         return True
@@ -1037,6 +1042,8 @@ class SceneWorld(runtime.World):
         result = []
         for entity in self.session_entity_roster():
             component.consume_work('session roster traversal')
+            if self.mode in JUNKENSTEIN_MODES and instance.graph.index == 0x2B72:
+                entity = self.current_possessions.get(entity)
             if entity in self.entities:
                 result.append(expr.Entity(entity))
         return tuple(result)
@@ -1844,6 +1851,9 @@ class SceneWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         """Apply encounter health changes through the live body's service."""
         instance, node = state.instance, state.node
+        if ((instance.graph.index, node.pos) == (0x2B72, 7)
+                and self.mode in JUNKENSTEIN_MODES and self.ghost_contact_damage is not None):
+            return self.ghost_contact_damage(state, elapsed_ms)
         if ((instance.graph.index, node.pos) == (0x0033, 5)
                 and self.mode in JUNKENSTEIN_MODES and self.shield_recharge is not None):
             return self.shield_recharge(state, elapsed_ms)
@@ -1963,6 +1973,9 @@ class SceneWorld(runtime.World):
         return NotImplemented
 
     def tracked_targets(self, state):
+        if (state.instance.graph.index == 0x2B72 and state.node.pos in (54, 62)
+                and self.mode in JUNKENSTEIN_MODES and self.ghost_targets is not None):
+            return self.ghost_targets(state)
         if (state.instance.graph.index == 0x006B and state.node.pos in (6, 7, 121)
                 and self.mode in JUNKENSTEIN_MODES and self.witch_staff_targets is not None):
             return self.witch_staff_targets(state)
@@ -1974,6 +1987,32 @@ class SceneWorld(runtime.World):
                 and state.node.field('m_filter.m_84065FD1') == 0x80):
             return ()
         return super().tracked_targets(state)
+
+    def ghost_model_action(self, component, entity):
+        body = self.entities.get(entity)
+        if (self.mode not in JUNKENSTEIN_MODES or body is None or entity != component.entity
+                or body.definition != 0x0400000000003C53
+                or self.script_components.get(entity) is not component):
+            return NotImplemented
+        # Native 8EAEF0 calls 1B049E0(model, false) if a model is present.
+        # The simulation has no model component, so take its absent-model exit.
+        return True
+
+    def set_ghost_transform(self, component, entity, position, yaw):
+        callback = self.update_vengeful_ghost
+        if (self.mode not in JUNKENSTEIN_MODES or entity != component.entity
+                or self.script_components.get(entity) is not component or callback is None):
+            return NotImplemented
+        return callback(entity, position, yaw)
+
+    def ghost_chase_target_is_live(self, instance):
+        if self.mode not in JUNKENSTEIN_MODES or instance.graph.index != 0x2B72:
+            return NotImplemented
+        slot = instance.find_var(runtime.INSTANCE, 536, create=False)
+        target = expr.to_entity(slot.value()) if slot is not None else 0
+        if target not in self.entities:
+            return False
+        return self._filter_entity(instance, target, instance.graph.node(21).field('m_filter'))
 
     def velocity_action(self, instance, node):
         if self.mode not in JUNKENSTEIN_MODES or (instance.graph.index, node.pos) != (0x01C9, 60):
@@ -2117,9 +2156,21 @@ class SceneWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         kind = cfg.get("$")
+        if (kind == 'STU_D0E0DA18' and instance is not None and instance.graph.index == 0x2B72
+                and self.mode in JUNKENSTEIN_MODES):
+            direction = play.evaluate_scalar(instance, cfg.get('m_3ABD589C'))
+            if isinstance(direction, expr.Vec3):
+                # CD29B0 normalizes the direction and returns yaw and pitch in degrees.
+                x, y, z = direction
+                length = math.sqrt(x*x + y*y + z*z)
+                if not length:
+                    return expr.Vec3(0, 0, 0)
+                pitch = math.asin(max(-1, min(1, -y / length)))
+                return expr.Vec3(expr.f32(math.degrees(math.atan2(x, z))),
+                                 expr.f32(math.degrees(pitch)), 0)
         if (kind == 'STU_E0A69706' and instance is not None and instance.graph.index == 0x2B72
                 and self.mode in JUNKENSTEIN_MODES
-                and expr.guid_of(cfg.get('m_displayText', {}).get('m_displayText')) == 0x0DE0000000012294):
+                and expr.guid_of((cfg.get('m_displayText') or {}).get('m_displayText')) == 0x0DE0000000012294):
             # 12294.07C is the enUS name authored on the ghost's 2FCD code value.
             return 'Vengeful Ghost'
         if (kind == 'STU_A58C1E63' and instance is not None and instance.graph.index == 0x0B8B
@@ -2179,11 +2230,35 @@ class SceneWorld(runtime.World):
                     read = target.health_pool if kind == 'STU_F1C45C59' else target.pool_capacity
                     if read is not None:
                         return self._health_value(instance, cfg, target, read(pool))
-        if (kind == 'STU_6EA8533F' and instance is not None and instance.graph.index == 0x0C8C
-                and instance.component.entity == runtime.GAME_MODE_ENTITY and self.mode in JUNKENSTEIN_MODES):
+        if (kind == 'STU_6EA8533F' and instance is not None and self.mode in JUNKENSTEIN_MODES
+                and ((instance.graph.index == 0x0C8C and instance.component.entity == runtime.GAME_MODE_ENTITY)
+                     or (instance.graph.index == 0x0CA2 and instance.component.entity in self.hero_contexts))):
             entities = self.session_script_entities(instance)
             if entities is not NotImplemented:
                 return entities
+        if (kind in ('STU_951CAB4C', 'STU_45EDF12D', 'STU_B96D3A98')
+                and instance is not None and instance.graph.index == 0x0CA2
+                and instance.component.entity in self.hero_contexts):
+            if kind == 'STU_951CAB4C':
+                values = play.evaluate_value(instance, cfg.get('m_814F8EC3'))
+                if not isinstance(values, tuple):
+                    return NotImplemented
+                accepted = []
+                for value in values:
+                    instance.component.consume_work('Mystery Swap filter candidate')
+                    with instance.component.parameter_scope({142: value}):
+                        if expr.truthy(play.evaluate_scalar(instance, cfg.get('m_condition'))):
+                            accepted.append(value)
+                return tuple(accepted)
+            if kind == 'STU_45EDF12D' and cfg.get('m_key') is None:
+                values = play.evaluate_value(instance, cfg.get('m_814F8EC3'))
+                value = play.evaluate_scalar(instance, cfg.get('m_value'))
+                if isinstance(values, tuple):
+                    return expr.contains_value(values, value)
+            if kind == 'STU_B96D3A98':
+                target = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+                # Real defender controllers carry 75 and omit the NPC component 92.
+                return target in self.hero_contexts and target in self.script_components
         if (kind == "STU_DAAE1875" and instance is not None and instance.graph.index == 0x180A
                 and instance.component.entity == runtime.GAME_MODE_ENTITY and self.mode in JUNKENSTEIN_MODES):
             # 91A861: the server scene has no local presentation owner. The
@@ -2215,6 +2290,26 @@ class SceneWorld(runtime.World):
         if (kind in ('STU_FC99C77E', 'STU_C1F83245') and self.roadhog_hook_cast is not None
                 and instance is not None and instance.graph.index == 0x01C8):
             return self._roadhog_hook_anchor(cfg, instance)
+        if (kind == 'STU_FC99C77E' and instance is not None and instance.graph.index == 0x2B72
+                and self.mode in JUNKENSTEIN_MODES
+                and expr.guid_of((cfg.get('m_hardPoint') or {}).get('m_hardPoint')) == 0x0DC0000000000004):
+            target = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+            binding = self.entities.get(target)
+            if binding is None:
+                return expr.EVALUATION_FAILED
+            if binding.definition in (0x0400000000003C53, 0x0400000000001424, 0x0400000000000141,
+                                      0x04000000000003CF, 0x04000000000002A3):
+                # Hardpoint 0004 is at the root bind transform in these 104319 models.
+                return self.position(target)
+        if (kind == 'STU_2200A66D' and instance is not None and instance.graph.index == 0x2B72
+                and self.mode in JUNKENSTEIN_MODES):
+            from ow174.game import props
+
+            target = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+            binding = self.entities.get(target)
+            if (target == instance.component.entity and binding is not None
+                    and binding.definition == 0x0400000000003C53 and binding.rotation_reader is not None):
+                return expr.Vec3(*props.place((0, 0, 1), (0, 0, 0), (1, 1, 1), binding.rotation_reader()))
         source_hero = None
         if kind in ("STU_21A13145", "STU_2200A66D", "STU_66F3B89E") and instance is not None:
             if instance.graph.index == 0x01C8 and self.roadhog_hook_cast is not None:
@@ -2484,7 +2579,10 @@ class SceneWorld(runtime.World):
         if cfg.get("$") == "STU_93DCDDFD":
             # CDF220 reads the hero resource of the selected body.
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
-            target = self.entities.get(expr.to_entity(value) & 0xFFFFFFFF)
+            entity = expr.to_entity(value) & 0xFFFFFFFF
+            if instance.graph.index == 0x0CA2 and entity in self.hero_contexts:
+                entity = self.current_possessions.get(entity, entity)
+            target = self.entities.get(entity)
             if target is None:
                 return expr.EVALUATION_FAILED
             if target.hero is not None:
@@ -2500,6 +2598,13 @@ class SceneWorld(runtime.World):
                 return expr.Asset(target.definition)
             return super().native(cfg, instance)
         if cfg.get("$") == "STU_B3E67A36":
+            if (instance.graph.index == 0x2B72 and self.mode in JUNKENSTEIN_MODES
+                    and all(cfg.get(key) is None for key in ('m_filter', 'm_B486603E', 'm_8B2A4DF3'))):
+                tag = play.evaluate_scalar(instance, cfg.get('m_9C7BD8B8'))
+                if tag == expr.Asset(0x0D60000000000A79):
+                    targets = self.targets_with_tag(instance, tag.guid)
+                    if targets is not NotImplemented:
+                        return targets[0] if targets else expr.Entity(0)
             if (instance.graph.index == 0x0CC0 and self.mode in JUNKENSTEIN_MODES
                     and all(cfg.get(key) is None for key in ('m_filter', 'm_9C7BD8B8', 'm_8B2A4DF3'))):
                 tag = play.evaluate_scalar(instance, cfg.get('m_B486603E'))

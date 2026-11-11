@@ -764,7 +764,12 @@ def install_enemy_creator(match, host, definitions, configure_component):
         registration = host.combatants.get(component.entity)
         vitals = fight.vitals.get(component.entity)
         if (registration is None or host.combatant_component(registration[0]) is not component
-                or vitals is None or vitals.dead or vitals.wave_health is not None):
+                or vitals is None):
+            return NotImplemented
+        if vitals.dead:
+            # The wave child may initialize after combat has already killed its owner.
+            return None
+        if vitals.wave_health is not None:
             return NotImplemented
         remove = vitals.add_wave_health(amount)
         try:

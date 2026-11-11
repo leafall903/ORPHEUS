@@ -426,6 +426,8 @@ class World:
     tips_context_available: bool | None = None
     ux_presenter_available: bool | None = None
     queue_mode_action = None
+    queue_ghost_action = None
+    queue_mystery_swap = None
     junkenstein_difficulty: expr.Asset | None = None
 
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
@@ -485,6 +487,15 @@ class World:
         return NotImplemented
 
     def tracked_targets(self, state: "State"):
+        return NotImplemented
+
+    def ghost_model_action(self, component, entity):
+        return NotImplemented
+
+    def set_ghost_transform(self, component, entity, position, yaw):
+        return NotImplemented
+
+    def ghost_chase_target_is_live(self, instance):
         return NotImplemented
 
     def static_target_tag(self, tag: int):

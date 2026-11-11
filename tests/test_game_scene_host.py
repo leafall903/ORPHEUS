@@ -12,7 +12,7 @@ from ow174.game.match import Match, _rotation
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import entity_team, expr, runtime, scene, scene_host
 from ow174.game.script.bot import DIED
-from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS
+from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS, BodyScript
 from ow174.game.server import GameServer
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state
 from tests.test_game_server import REAPER, pick
@@ -43,6 +43,45 @@ class HomeClient:
 
 
 class MatchSceneHostTests(unittest.TestCase):
+    def test_junkenstein_keeps_phase_list_scopes_off_the_client_wire(self):
+        component = runtime.Component(runtime.GAME_MODE_ENTITY)
+        model = scene_host.graph.graph(0x180A)
+        phase_list = model.node(42)
+        root = component.create(model, init=False)
+        projection = observers.SceneBody(component)
+
+        root.states[phase_list.state] = SimpleNamespace(active=True)
+        row = component.create(model, parent=root, parent_state=phase_list.state, init=False)
+        cinematic = scene_host.graph.graph(0x027F)
+        phase = component.create(cinematic, parent=row, parent_state=model.node(41).state, init=False)
+        sibling = component.create(model, init=False)
+
+        snapshot = observers.snapshot(projection)
+        self.assertIn(phase_list, model.remote_states())
+        self.assertNotIn((root.id, phase_list.state), snapshot.states)
+        self.assertEqual(snapshot.instances[phase.id], (cinematic.index, None))
+        self.assertEqual(set(snapshot.instances), {root.id, phase.id, sibling.id})
+        self.assertEqual(set(projection.graphs()), {root.id, phase.id, sibling.id})
+        self.assertIs(component.instances[phase.id], phase)
+        self.assertIsNotNone(observers.full_frame(projection, snapshot))
+        self.assertIsNotNone(observers.acknowledged_delta(projection, projection.latest_live, snapshot))
+
+    def test_junkenstein_mounts_boss_intro_on_the_player_owner_stream(self):
+        mode = JUNKENSTEIN_MODES[0]
+        host = junkenstein_scene.JunkensteinSceneHost(scene.SceneWorld(mode=mode))
+        self.addCleanup(host.close)
+        script = BodyScript(0x02E0000000000042, 0xA0000101, 0, mode=mode)
+
+        host.mount_player_intro_receiver(script)
+
+        intro, = (instance for instance in script.component.instances.values()
+                  if instance.graph.index == junkenstein_scene.TEAM_BODY_GRAPH)
+        receiver = intro.graph.node(33)
+        snapshot = script.snapshot()
+        self.assertEqual(snapshot.instances[intro.id], (intro.graph.index, None))
+        self.assertTrue(snapshot.states[(intro.id, receiver.state)][1])
+        self.assertNotIn((intro.id, intro.graph.node(43).state), snapshot.states)
+
     def test_mystery_swap_selects_authored_weighted_count_from_bound_controllers(self):
         mode = runtime.GAME_MODE_ENTITY
         world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[0])
