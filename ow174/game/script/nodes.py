@@ -420,6 +420,53 @@ class SharedVariables(State):
             shared_vars.validate(self.instance, self.node)
 
 
+@state_class("STU_353AF1A9")
+class VoiceDefinition(State):
+    """104319 D43390/D433A0/D439A0 owner-component path with the manager absent."""
+
+    def _backend(self, *, watch=True):
+        component = self.instance.component
+        if not component.strict:
+            return None
+        self.evaluate(self.node.field("m_target"), watch=watch)
+        backend = component.world.voice_definition_component(component.entity)
+        if (component.world.voice_context(component.entity) is not None
+                or (backend is not None and (type(backend) is not voice_stimulus.DefinitionComponent
+                                            or backend.owner != component.entity or backend.retired))):
+            component.unsupported(self.instance, "voice definition backend", self.node.cls, self.node)
+        return backend
+
+    def _install(self):
+        backend = self._backend()
+        if backend is None:
+            return
+        cfg = self.node.field("m_DA4846A5")
+        guid = 0
+        if cfg is not None:
+            if (not isinstance(cfg, dict) or cfg.get("$") != "STUConfigVoiceDefinition"
+                    or cfg.get("m_resourceKey") is not None):
+                self.instance.component.unsupported(
+                    self.instance, "voice definition resource", self.node.cls, self.node)
+            value = cfg.get("m_C6C61CB0")
+            guid = expr.guid_of(value)
+            if value is not None and (not guid or guid >> 48 != 0x07A0):
+                self.instance.component.unsupported(
+                    self.instance, "voice definition resource", self.node.cls, self.node)
+        backend.install(guid)
+
+    def on_begin(self):
+        self._install()
+
+    def dependency_changed(self):
+        self._install()
+        super().dependency_changed()
+
+    def on_cleanup(self):
+        backend = self._backend(watch=False)
+        if backend is not None:
+            backend.clear()
+
+
 @state_class("STU_40E05F6B")
 class VoiceStimulus(State):
     """Shared voice begin/poll/timer callbacks; legacy spawn barks remain passive."""
@@ -721,7 +768,17 @@ class LogicalButton(State):
             self.pressed_at = self.now
             self.early_counter = (self.counter + (0 if self.active else 1)) & 0xFFFF
         if self.active:
-            self.go_down() if pressed else self.go_up()
+            if pressed:
+                self.go_down()
+                return
+            was_down = self.down
+            self.go_up()
+            if (was_down and self.instance.graph.index == 0x114F and self.node.pos == 3
+                    and button == self.instance.component.world.ai_weapon_button(0)):
+                # Reconstruct the Heavy's controller cancellation on release.
+                from ow174.game import npc_control
+
+                npc_control.end_attack_scope(self.instance.component)
 
     def go_down(self) -> None:
         self.down = True
@@ -1144,7 +1201,16 @@ class WeaponVolley(State):
         return self.spread0
 
     def on_end(self, finished: bool) -> None:
-        self.report(self.now)
+        until = self.now
+        if not finished and self.instance.graph.index == 0x1122 and self.node.pos == 6:
+            # Reconstruct the Sniper's released-input boundary. Recharge can
+            # begin and abort a new volley at the same timestamp. While held,
+            # that same authored sequence still produces the intended shot.
+            component = self.instance.component
+            primary = component.world.ai_weapon_button(0)
+            if primary is not None and primary not in component.held:
+                until -= 1
+        self.report(until)
         elapsed = self.now - self.start - self.offset
         values = {0: self.ammo_at(elapsed + 1), 1: self.rate, 2: self.spread0}
         for var in self.links:
@@ -1196,16 +1262,20 @@ class MoveTo(State):
 class Anim(State):
     """An animation (OnBegin 0x7FF78981DD90): with m_playOverDuration (m_86701C3E) set, a timer at start + d
     follows m_A3B86BB0 (animation finished), and unless m_clientAnimRemovesSelf (m_154DBA91) the state
-    finishes at start + d. Without it the duration is the animation asset's: not known here."""
+    finishes at start + d. Otherwise the host can resolve the animation asset's duration."""
 
     family = "anim"
 
     def on_enter(self) -> None:
         duration = _field(self, "m_86701C3E")
         if duration is None:
-            expr.warn_once("anim", "an Anim state without m_playOverDuration does not end on its own")
-            return
-        ms = seconds_to_ms(self.evaluate(duration, watch=False))
+            duration = self.instance.component.world.animation_duration(self)
+            if duration is None:
+                expr.warn_once("anim", "an Anim state without a resolved duration does not end on its own")
+                return
+        else:
+            duration = self.evaluate(duration, watch=False)
+        ms = seconds_to_ms(duration)
         self.timer_at(max(0, ms), 1)
         removes_self = _field(self, "m_154DBA91")
         if removes_self is None or not truthy(self.evaluate(removes_self, watch=False)):
@@ -1247,6 +1317,7 @@ class Ability(State):
         self.presses: list[tuple[int, int, int]] = []  # (time, button, activation)
         self.cur = 0.0
         self.cooldown_rate = 1.0
+        self.cooldown_observed = 0.0
         self.last = 0
         self.var: Var | None = None
         self.stack_var: Var | None = None
@@ -1276,6 +1347,7 @@ class Ability(State):
         self.cur = max(0.0, to_float(var.base))
         self.cooldown_rate = self.rate()
         self.last = self.now
+        self.cooldown_observed = self.cur
         self.var = self.link(target)
         queue = self.instance.queue
         self.instance.queue = [event for event in queue if not (event.state is self and event.param == 2)]
@@ -1315,19 +1387,26 @@ class Ability(State):
             if self.active:
                 self.timer_at(0, 1, transient=True)
 
-    def take_press(self, button: int) -> bool:
+    def take_press(self, button: int, *, retain: bool = False) -> bool:
         early = _field(self, "m_246438AD")
         limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
         for item in self.presses:
             time, which, activation = item
             if which == button and self.now - time <= limit and activation <= self.counter:
-                self.presses.remove(item)
+                if not retain:
+                    self.presses.remove(item)
                 return True
         return False
 
     # starting and stopping
 
     def tick(self) -> None:
+        # The linked cooldown getter changes with time even without a write.
+        if self.var is not None:
+            before = self.cooldown_observed
+            self.cooldown_observed = self.remaining()
+            if self.var.watchers:
+                self.instance.changed(self.var, before)
         self.activate()
 
     def timer(self, param: int) -> None:
@@ -1372,7 +1451,7 @@ class Ability(State):
         start, hold, _ = self.buttons()
         pressed = False
         if start:
-            pressed = self.take_press(start)
+            pressed = self.take_press(start, retain=True)
             if not pressed:
                 if not self.held(start):
                     self.flags &= ~self.HELD
@@ -1388,9 +1467,9 @@ class Ability(State):
             and self.stack_allows("m_3C0EB4A6")
         )
         if not ready:
-            if pressed:
-                self.presses.insert(0, (self.now, start, self.counter))  # the press waits
             return False
+        if pressed:
+            self.take_press(start)  # consume only after gates pass; preserve the original press age
         if start:
             self.flags |= self.HELD
         return True
@@ -1823,14 +1902,141 @@ class GamePadVibration(State):
         self.request_finish()
 
 
+@state_class("STUStatescriptStatePet")
+class CompatiblePet(State):
+    """Explicit reconstructed Pet host hook; strict native execution remains unsupported."""
+
+    def on_created(self) -> None:
+        self.pet_entity = None
+
+    def on_begin(self) -> None:
+        if self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "native Pet factory", self.node.cls, self.node)
+        entity = self.instance.component.world.create_compatible_pet(self)
+        if entity is NotImplemented:
+            return
+        if type(entity) is not int or not expr.valid_entity(entity):
+            raise ValueError("compatible Pet factory returned an invalid entity")
+        self.pet_entity = entity
+        self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(entity))
+
+    def on_end(self, finished: bool) -> None:
+        if self.pet_entity is not None:
+            self.instance.component.world.retire_compatible_pet(self, self.pet_entity)
+            self.instance.write(lvalue(self.node.field("m_B3019338")), Entity(0))
+            self.pet_entity = None
+
+
+@state_class("STUStatescriptStateModifyHealth")
+class ModifyHealth(State):
+    """Explicit health service; supported manual1157 clock is reconstructed."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_applied = 0
+
+    def on_enter(self):
+        self.last_applied = self.now
+        value = self.instance.component.world.modify_health(self, 0)
+        if value is not NotImplemented:
+            self.ticks()
+        elif self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
+
+    def tick(self):
+        elapsed = max(0, self.now - self.last_applied)
+        if elapsed:
+            self.last_applied = self.now
+            self.instance.component.world.modify_health(self, elapsed)
+
+    def on_end(self, finished):
+        self.instance.component.world.end_health(self)
+
+
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """A target search the server cannot run: it finds nothing."""
+    """Selected host scans for Hack and the Mercy staff."""
 
     family = "targets"
+    targets: tuple[Entity, ...] = ()
+
+    def on_enter(self) -> None:
+        from ow174.game import mercy_boost
+
+        if mercy_boost.tracks(self) or (self.instance.graph.index == 0x0B1B and self.node.pos in (50, 52)):
+            self.tick()
+            self.ticks()
+
+    def tick(self) -> None:
+        from ow174.game import mercy_boost, wraith
+        from ow174.game.combat import aim
+
+        world = self.instance.component.world
+        if mercy_boost.tracks(self):
+            self.targets = mercy_boost.targets(world, self)
+            self.instance.write(lvalue(self.node.field("m_8A2905A0")), self.targets)
+            return
+        match = getattr(world, "match", None)
+        if match is None:
+            return
+        fight = match.combat
+        targets = fight._targets()
+        entity = self.instance.component.entity
+        owner = next((p for p in match.players if p.has_body and p.body == entity), None)
+        if owner is None:
+            return
+        radius = to_float(self.evaluate(self.node.field("m_radius"), watch=False))
+        angle_cfg = self.node.field("m_A30B383E")
+        angle = to_float(self.evaluate(angle_cfg, watch=False))
+        if self.node.pos == 50 and not angle:
+            # The native controller expression is unavailable. Use its ordinary 30-degree operand.
+            angle = angle_cfg["m_expression"]["m_D99EF254"][1]
+        cosine = math.cos(math.radians(angle))
+        origin = fight._eye(owner)
+        direction = aim(owner.mover.yaw, owner.mover.pitch)
+        ranked = []
+        for target in targets:
+            if (target.owner is owner or (target.team == owner.team and not match.game_map.free_for_all)
+                    or fight.vitals_of(target).dead or wraith.protects(target.owner, fight.tick)):
+                continue
+            offset = tuple(value - start for value, start in zip(
+                (target.feet[0], target.feet[1] + target.eye, target.feet[2]), origin, strict=True,
+            ))
+            distance = math.sqrt(sum(axis * axis for axis in offset))
+            if distance > radius or not distance:
+                continue
+            alignment = sum(a * b for a, b in zip(direction, offset, strict=True)) / distance
+            if alignment >= cosine and fight.hack_line_clear(owner, origin, target, offset, distance):
+                ranked.append((-alignment, distance, target.entity))
+        ranked.sort()
+        self.targets = tuple(Entity(entity) for _, _, entity in ranked[:1])
+        # The switch into the second scan consumes this result after the first scan exits.
+        self.instance.write(lvalue(self.node.field("m_8A2905A0")), self.targets)
 
     def payload(self) -> dict:
-        return {"targets": ()}
+        return {"targets": tuple((target.id, 0) for target in self.targets)}
+
+
+@state_class("STUStatescriptStateTrackRay")
+class TrackRay(State):
+    """Reconstructed continuous visibility for Sombra's Hack channel."""
+
+    def on_enter(self) -> None:
+        if self.instance.graph.index == 0x0B1B and self.node.pos == 59:
+            self.ticks()
+
+    def tick(self) -> None:
+        channel = self.instance.state(self.instance.graph.node(100).state)
+        if not channel.active:
+            return
+        world = self.instance.component.world
+        visible = getattr(world, "hack_target_visible", None)
+        if visible is None:
+            return
+        target = self.evaluate(self.node.field("m_F5732403.m_entity"), watch=False)
+        if not isinstance(target, Entity) or not visible(self.instance, target.id):
+            # End the wait through its authored abort plug and cast cleanup.
+            channel.end(False)
 
 
 @state_class("STU_691BFA55", "STU_7CA2FBAF")
@@ -2029,6 +2235,18 @@ def set_vars(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """Bounded actual0263 bridge; other row/controller contexts stay unsupported."""
+    from ow174.game.lucio_movement import action
+
+    result = action(instance, node)
+    if result is NotImplemented:
+        return NotImplemented
+    instance.follow(node, "m_outPlug", caller)
+    return True
+
+
 @handler("STU_4C3509FB")
 def insert_array(instance: Instance, node, caller) -> bool | NotImplementedType:
     """Native unkeyed insertion/merge; keyed storage and checkpoints stay explicit."""
@@ -2137,6 +2355,48 @@ def action_switch(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler("STU_DE66D3F5")
+def resolve_direct_animation_alias(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """104319 CBB830/CC1FD0, direct alias selector with only a primary output."""
+    component = instance.component
+    if not component.strict:
+        return NotImplemented
+    selector = node.field("m_59FEECBB")
+    if (not isinstance(selector, dict) or selector.get("$") != "STU_EAA20CD6"
+            or selector.get("m_22326315") is not None or selector.get("m_CA8BE7F0") is not None
+            or any(node.field(field) is not None for field in (
+                "m_3AE9A97D", "m_9E677E71", "m_26667904", "m_331F748E",
+                "m_F644FB20", "m_5502D358", "m_33F52A40", "m_407D208A",
+            ))):
+        return NotImplemented
+    output = node.field("m_0A915A83")
+    target = lvalue(output)
+    if output is not None and target is None:
+        return NotImplemented
+    alias = instance.evaluate(selector.get("m_animAlias"))
+    result = Asset(0)
+    if isinstance(alias, Asset) and alias.guid >> 48 == 0x0C80 and alias.guid & 0xFFFFFFFFFFFF:
+        aliases = component.world.animation_set_aliases(component.entity)
+        component.ensure_valid()
+        if not isinstance(aliases, frozenset):
+            component.unsupported(instance, "animation set catalog", node.cls, node)
+        if alias.guid in aliases:
+            result = alias
+    instance.write(target, result)
+    instance.follow(node, "m_outPlug", caller)
+    return True
+
+
+@handler("STU_9F3FE778")
+def empty_action_trace(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """104319 9095A0 follows the output with no gameplay work in the empty PC case."""
+    if (not instance.component.strict or node.field("m_5328E4F8") is not None
+            or node.field("m_value") is not None):
+        return NotImplemented
+    instance.follow(node, "m_outPlug", caller)
+    return True
+
+
 def message_params(instance: Instance, node) -> dict:
     params = {}
     for item in node.fields.get("m_params") or []:
@@ -2202,9 +2462,23 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 
 @handler("STUStatescriptActionPlayScript")
 def play_script(instance: Instance, node, caller) -> bool:
-    if instance.component.strict:
+    # Selected actions have dedicated match backends.
+    if instance.component.strict or (instance.graph.index, node.pos) in (
+        (0x1D02, 34), (0x1B55, 8), (0x0B1B, 141),
+    ):
         instance.component.world.play_script(instance, node)
     instance.follow(node, "m_outPlug", None)
+    return True
+
+
+@handler("STU_22926252")
+def retire_hack_receiver(instance: Instance, node, caller) -> bool:
+    # Reconstruct only the null-operand exits in the 104319 Hack receiver.
+    if (instance.graph.index != 0x0B1F or node.pos not in (11, 27, 135)
+            or node.field("m_67B81D25") is not None or node.field("m_EB35D2F1") is not None):
+        return NotImplemented
+    if not instance.teardown:
+        instance.component.destroy(instance)
     return True
 
 

@@ -514,6 +514,8 @@ class RayHit:
     normal: tuple[float, float, float]
     mask: int
     surface: int
+    attachment: tuple[int, int] | None = None  # optional object and part from the scene
+    surface_velocity: tuple[float, float, float] = (0., 0., 0.)
 
 
 class _TriangleScene:

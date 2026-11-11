@@ -286,6 +286,8 @@ class DamageTests(unittest.TestCase):
             shooter.take_commands([turn] if lost else [*held, turn])
             rifle = next(instance for instance in shooter.body_script.component.instances.values()
                          if instance.graph.index == 0x0254)
+            self.assertEqual(vitals.total, 200.0)
+            run.match.update(turn.frame * combat.TICK, turn.frame)
 
             def result():
                 hits = shooter.client.messages(combat.HIT)
@@ -324,8 +326,12 @@ class DamageTests(unittest.TestCase):
                     yaw, pitch = aim(fight._eye(shooter), (x, y + 1.0, z + 6.0))
                     endpoint = Command(press.frame + distance, yaw=yaw, pitch=pitch, buttons=buttons)
                     expected = [(endpoint.frame, 20)] if buttons else []
-                    for window in ([endpoint], [press, endpoint]):
+                    for index, window in enumerate(([endpoint], [press, endpoint])):
                         shooter.take_commands(window)
+                        if index == 0:
+                            self.assertEqual(vitals.total, 200.0)
+                            self.assertFalse(shooter.client.messages(combat.HIT))
+                            run.match.update(endpoint.frame * combat.TICK, endpoint.frame)
                         hits = shooter.client.messages(combat.HIT)
                         self.assertEqual([(hit["+0x84"], hit["+0x78"]["+0x4"]) for hit in hits], expected)
                         self.assertEqual(vitals.total, 180.0 if buttons else 200.0)
@@ -644,6 +650,23 @@ class DeathTests(unittest.TestCase):
         for _ in range(40):
             self.run.step({self.a: (yaw, pitch, 0)})
         self.assertEqual(self.run.match.combat.vitals[self.b.body].now[HEALTH_POOL], 170.0)
+        self.assertEqual([hit["+0x78"]["+0x4"] for hit in self.a.client.messages(combat.HIT)], [30])
+
+    def test_early_quick_melee_resolves_once_at_its_impact(self):
+        self.run.step({})
+        fight = self.run.match.combat
+        target = (self.b.mover.position[0], self.b.mover.position[1] + 1.0, self.b.mover.position[2])
+        yaw, pitch = aim(fight._eye(self.a), target)
+        command = Command(self.run.frame + 8, yaw=yaw, pitch=pitch, buttons=0x800)
+        vitals = fight.vitals_of(next(target for target in fight._targets() if target.owner is self.b))
+        self.a.take_commands([command])
+        while self.run.frame < command.frame:
+            self.assertEqual(vitals.now[HEALTH_POOL], 200.0)
+            self.run.step({})
+        self.assertEqual(vitals.now[HEALTH_POOL], 170.0)
+        self.a.take_commands([command])
+        self.run.step({})
+        self.assertEqual(vitals.now[HEALTH_POOL], 170.0)
         self.assertEqual([hit["+0x78"]["+0x4"] for hit in self.a.client.messages(combat.HIT)], [30])
 
     def test_reused_body_id_starts_a_new_melee_activation_history(self):

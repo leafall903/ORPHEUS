@@ -4,7 +4,402 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Deliver the Lucio 104319 server implementation (0079 lane)
+
+- Package the existing combat, movement, aura, Sound Barrier, NPC and cross-hero code,
+  shared dependencies and tests for server integration.
+- Delivery regression covered 49 test methods. Result OK. Repository Ruff reported 31 findings.
+  Full static and original-client acceptance remain open.
+
+#### Preserve Soundwave shield visibility during delayed settlement (0079 lane, WIP)
+
+- Retain enemy Experimental Barrier poses when a queued Soundwave first
+  becomes eligible. Recall or break after that point does not change the
+  wave's visibility while it waits for same-frame Sound Barrier settlement.
+  This is reconstructed ordering. Native scene registration and original-client
+  acceptance remain open.
+
+### 2026-11-10
+
+#### Sample Soundwave visibility at two heights (0079 lane, WIP)
+
+- Apply the 104319 fallback height fractions to the retained target capsule.
+  Verify low cover, overhead cover and a blocked pair of samples with actual
+  player input. Use the current enemy Experimental Barrier mesh for each
+  sample. Headless inputs cover deployment, recall, team, depth, and both
+  orders of partial cover. Native attachment anchors, scene registration,
+  and original-client acceptance remain open.
+
+#### Resolve direct animation aliases from a bound scene catalog (0079 lane, WIP)
+
+- Use the owner's declared animation-set aliases for the strict direct selector.
+  Verify the matched alias, typed null and unavailable catalog on Rialto graph
+  0F65. Original-client playback and moving collision remain open.
+- Export optional animation-set catalogs from local 021 XML and bind them to
+  selected placements through their model definitions before script startup.
+- Model the empty PC trace action on the missing-alias branch. Keep authored
+  text or value variants outside this reconstruction.
+- Run the voice definition state when its manager and owner component are
+  explicitly absent, or install and release an override through a declared
+  owner component when the manager is absent. Live manager routing remains open.
+
+#### Keep projectile contact eligibility through Sound Barrier ordering (0079 lane, WIP)
+
+- Settle a landed direct projectile even if the target enters Wraith Form
+  while the hit waits for a same-frame Sound Barrier grant.
+- Keep the same admission for NPC hitscan and Assassin damage. The ongoing
+  pin still requires a live control target when the queued hit settles.
+- Sample Wraith eligibility for queued melee and Soundwave when the attack
+  first reaches its world frame, before waiting for Sound Barrier.
+- Retain incoming damage scaling and Fortify force resistance at the same
+  boundary, then settle against the pools present when the queue drains.
+- Retain Genji's frontal melee rejection before same-frame Barrier ordering
+  can change the defender's guard or facing.
+
+#### Apply Mercy boost to manual Archives NPC attacks (0079 lane, WIP)
+
+- Resolve the staff recipient by its live entity and retain boost credit when
+  an NPC weapon or Assassin pin impact waits for Sound Barrier ordering.
+- Snapshot the boost and its owner when a manual NPC projectile launches.
+
+#### Credit Mercy for Lucio's extra damage (0079 lane, WIP)
+
+- Retain the boost owner and send extra pool loss through 006B and 0B8B.
+  Clear the launch owner's credit on Deflect.
+- Verify overkill, Sound Barrier and launch-owner replacement with the
+  reconstructed pool and owner rules.
+
+#### Read Mercy's staff boost for Lucio attacks (0079 lane, WIP)
+
+- Execute the external 104319 effect graph 006C. Reconstruct the 006B
+  aimed target scan and retained beam.
+- Sample Sonic Amplifier projectiles at launch and Soundwave and melee
+  at activation. Clear the original owner's boost on Deflect.
+- Mercy's boost credit and original-client acceptance remain open.
+
+#### Retain Lucio projectile mitigation through Barrier settlement (0079 lane, WIP)
+
+- Capture direct-hit mitigation with the projectile's contact and critical
+  classification. A same-frame Sound Barrier can still enter the target's
+  pools before that hit spends them.
+- Verify same-frame Fortify start and expiry across owner-command orders.
+  This remains reconstructed server ordering.
+- Advance the stored-journal fixture through queued rifle impacts before
+  asserting death, respawn and replay.
+
+#### Suppress Lucio projectile criticals during Fortify (0079 lane, WIP)
+
+- Use the final target's live 0CF4 combat filter and retained clock at
+  projectile contact, including after Genji changes projectile ownership.
+- Verify body and head-band contact, Sound Barrier, hit flags, charge
+  and volleys that cross expiry. The critical policy remains a host
+  reconstruction pending original-client acceptance.
+
+#### Suppress Lucio's impulses during active Fortify (0079 lane, WIP)
+
+- Use the 0CF4 filter, 9161 flag and world-clock window for Soundwave and
+  quick melee. Keep damage, armour, Sound Barrier and charge settlement.
+- Test both sides of expiry with target input silence and queued attacks.
+  Original-client acceptance remains open.
+
+#### Apply authored incoming damage mitigation (0079 lane, WIP)
+
+- Read the target's 8243 stack before resolving temporary shields, armour
+  and health. Credit Lucio from the actual permanent pool loss.
+- Take a Breather and Fortify expire on the reconstructed world clock
+  during command silence. Verify both effects and Ironclad against
+  primary, Soundwave and quick melee.
+- Native pool ordering and original-client acceptance remain pending.
+
+#### Sweep in-flight Lucio projectiles against retained NPC poses (0079 lane, WIP)
+
+- Sample routed and force-driven NPCs at retained world ticks while an
+  already-flying Sonic Amplifier projectile crosses a batched update.
+  Keep unswept projectiles on their existing start slices.
+- Five Archives archetypes agree with frame-by-frame first-hit results
+  when crossing the trajectory. This verifies reconstructed server
+  collision. Original-client acceptance is pending.
+
 ### 2026-11-09
+
+#### Retain Lucio charge across same-hero respawn (0079 lane, WIP)
+
+- Pass the old body's charge ratio to the new 0B8B instance through
+  its authored restore message. Preserve the spawn-ready rule and
+  start a different hero without Lucio's meter.
+
+#### Advance Lucio passive charge during command silence (0079 lane, WIP)
+
+- Run the authored charge interval and formula on the match clock.
+  Preserve its deadline in stored state and expire old Q presses
+  before replayed owner frames can consume a newly full meter.
+
+#### Credit Crossfade healing through actual 0B8B (0079 lane, WIP)
+
+- Send restored health and the live 0267 healing tags through the
+  original charge receiver. The event producer remains a host
+  reconstruction. The graph supplies the charge factors and cap.
+
+#### Credit Lucio damage through actual 0B8B (0079 lane, WIP)
+
+- Send actual base-pool loss through the authored damage receiver.
+  The graph applies combat generation rules and Roadhog's reduction.
+- Cover primary, Soundwave and quick melee. Target inputs and
+  temporary-shield classification are reconstructed. Healing charge
+  remains open.
+
+#### Wire Sound Barrier rules into the Lucio host (0079 lane, WIP)
+
+- Use actual 0B8B for spawn-ready charge and the disabled-ultimate
+  priority stack. A regular Q press cannot spend masked charge.
+- Scale the existing host fill clock with the target overall and
+  passive generation settings. Native passive rates, damage/healing
+  conversion and custom duration behavior remain open.
+
+#### Restore default Wall Ride direction and entry ramp (0079 lane, WIP)
+
+- Build the stationary tangent from the contact side and normal. Apply
+  the original default forward request in sustained phases, with the
+  kind3 age ramp and no tangent acceleration on the kind2 exit pose.
+- Compare123 original context calls and pass49 focused host methods,
+  including actual reverse commands on both side walls. Raw native
+  input decoding and contact-side selection remain open.
+
+#### Restore the wall tangent acceleration clamp (0079 lane, WIP)
+
+- Apply the stationary C334A0 positive-only speed increment before the
+  wall force in sustained movement. Keep the reconstructed desired
+  direction and derive the acceleration rate from host mover values.
+- Verify144 isolated and41 in-path original calls and48 focused
+  regression methods. Native movement-context preparation remains open.
+
+#### Apply original distance-dependent Wall Ride force (0079 lane, WIP)
+
+- Use stance radius and selected wall distance for the stationary force.
+  Preserve the original velocity projection and force branch at0.3s
+  of controller age. Source that clock from actual0263 state8 so a
+  delayed first contact does not reset it.
+- Compare480 standalone and60 in-path native force cases and60 clearance
+  values. Static wall queries and sustained tangent acceleration remain
+  server reconstructions.
+
+#### Use recovered wall normal and phase clock math (0079 lane, WIP)
+
+- Apply the original half-weight previous normal to qualifying static ray
+  samples and backdate kind4 by whole ticks based on the speed ratio.
+  Keep the server's reconstructed face selection and sustained velocity.
+- Compare60 original normal operands and34 original clock writes.
+  Actual adjacent-face commands now expose a blended normal and retain
+  phase4. All47 focused movement and physics-storage methods pass.
+
+#### Preserve Wall Ride through adjacent static faces (0079 lane, WIP)
+
+- Keep the active ride phase when the reconstructed contact normal changes
+  without a contact gap. Actual commands traverse a side-to-front corner
+  in phase4. An in-memory restore of the old phase reset fails that test.
+- Two separated walls exercise the authored500ms reacquisition block under
+  held jump and early re-press. Both reacquire in phase2 after the block.
+  Pass47 targeted regression methods and four adapted original traces.
+  Native normal smoothing and phase clock adjustment remain open.
+
+#### Drive Lucio Wall Ride from static scene contact (0079 lane, WIP)
+
+- Gate reconstructed static wall acquisition on actual0263 state8 and
+  ordinary player input. Publish the observed contact and phase to the
+  graph, then consume its authored wall jump velocity on the next pose.
+  Ground and capsule movement still constrain the reconstructed ride.
+- Store wall phase timing with physics snapshots. Clear contact and queued
+  wall velocity on stun and death. Finite side wall, release on contact or
+  beyond the edge, low/distant rejection and cancellation tests execute.
+- Verify147 distinct regression methods, including nine real-map checks
+  rerun against the existing map caches. Native geometry queries, phase
+  equations, moving surfaces, and prediction remain open.
+
+#### Load target Lucio control defaults (0079 lane, WIP)
+
+- Initialize Hold to Crossfade=false, Allow Backwards Wall Ride=false and
+  Wall Jump on Release=true from the verified 104319 0126.054 setting rows
+  before the Lucio body graph entries run. Client preference synchronization
+  and complete Wall Ride mover integration remain open.
+- Recover the native 01C7 contact feedback for entity1204. The offline
+  descriptor-to-graph fixture feeds the original writer's rising and falling
+  edges to actual0263 and executes the default release window.
+- Verify 94 passing regression methods and one external training-body skip.
+  Actual0266 toggle and hold modes and the 0263 backwards-profile expression
+  were also exercised with declared setting overrides.
+
+#### Run manual Assassin resources against Lucio (0079 lane, WIP)
+
+- Review the parent's manual1157 bridge. Bind an explicit data-only target
+  context, route primary input36, apply authored contact25 and continuous100
+  through a reconstructed elapsed-ms health clock, and retain control through
+  the authored pin scope. Stop, source stun/death/removal, geometry/team loss,
+  target retirement and script failure release control. Record target, pin
+  registry and health clock in VM/server causal snapshots.
+- Preserve this lane's active-Amp interruption policy. Actual1157 checks now
+  exercise Lucio input/resource suppression, healing/Amp continuation, Barrier
+  cast interruption and shield absorption, source Flashbang, duplicate frames,
+  lifecycle cleanup and manual reengagement. Synthetic host/clock tests are
+  separate from actual-resource evidence. Native acquisition/ownership,3m
+  contact policy, health mode/clock, melee escape and recovery remain open.
+- Fix the exposed post-cast weapon recovery defect: WouldVarStackToTop reads
+  now observe link structure as well as scalar changes. Removing the ultimate's
+  priority10 entry previously left the primary condition cached false when#33
+  stayed true. Mark structural readers in existing watch maps and notify them
+  on link insertion/removal; scalar-only readers receive no extra notifications.
+  The dependency mode is causal snapshot state. Four focused dependency tests
+  and ten actual Lucio/Assassin methods pass. No animation timeout or altered
+  resource duration is introduced; full static/merge readiness stay false.
+- Verify enemy McCree02A3 FirstPerson fields1.425/.9975 against target XML and
+  use them in combat eyes/targets/history. Lucio retains its verified1.175/.8225
+  fields. No McCree critical-multiplier policy or native head regions were imported.
+
+#### Reset canceled state notification markers (0079 lane, WIP)
+
+- Review the parent's runtime lifetime fix. State exit now clears canceled
+  CHANGED/CHECK coalescing markers; cleanup writes do not enqueue a fresh
+  notification for the ending state. Existing state fields/layout are retained.
+- Two reviewed regressions and an additional join-CHECK reentry case reproduce
+  three failures before the fix. Actual Sonic Amplifier reload recovery under
+  Soundwave, Amp and Sound Barrier inputs was also observed before the change;
+  these cases did not reproduce the parent's McCree-specific exit-order defect.
+- Do not import the parent's separate Ability.stop cross-object reordering on
+  the basis of these Lucio cases. Its native equivalence remains unproven; this
+  lane keeps its existing stop order while validating the notification fix.
+
+#### Exercise Enforcer combat against Lucio with declared context (0079 lane, WIP)
+
+- Review the parent manual-controller bridge and resolve actual13EB owner
+  queries for Enforcer only: declared4B-present/5C-absent predicate and current
+  authoritative aggregate health. Preserve the lane's live cross-body variable
+  lookup and bind the new input in VM/server causal snapshots. Synchronize
+  initial NPC aggregate health after creating its resource pools.
+- Six controller tests and five actual Lucio/Enforcer methods pass within72
+  selected regressions. They cover live health/damage/healing/death, incoming
+  damage, manual stop/reengagement, wall/team loss, Sound Barrier absorption,
+  actual Sonic Amplifier kill, retained corpse and explicit removal. Eight
+  original104319 predicate-tail/bitset comparisons also pass with declared
+  lookup/output adapters; native controller allocation remains unverified.
+- This does not establish native NPC AI/controller ownership, Enforcer complete
+  pellet count/spread/reload, raw released-input end semantics, Assassin attacks
+  or full hero acceptance. See [Lucio Enforcer context](docs/LUCIO_ENFORCER.txt).
+
+#### Consume authored lateral input restrictions (0079 lane, WIP)
+
+- Review the parent's shared throttle consumer and apply existing movement
+  properties17/18/19 to split forward, backward and unsigned lateral input,
+  restore the lateral sign and clamp before acceleration. Keep raw command
+  bytes in the existing movement/snapshot fields.
+- Actual0263 state1 slot0 sets lateral input property19 to zero. Three methods
+  cover both lateral signs with forward/back input, next-pose begin/end,
+  restoration and retained momentum. They reproduce six failed subcases before
+  the fix and pass afterwards. State entry is explicitly declared by the
+  fixture; native Wall Ride acquisition and continuous controller remain open.
+- An outside-source charge-gap probe confirms actual primary/Soundwave damage
+  and self/ally Crossfade healing leave charge unchanged when the60-second
+  placeholder is disabled. Real passive/damage/healing charge remains missing;
+  no unverified charge coefficients are introduced.
+
+#### Expire rejected ability presses at their original age (0079 lane, WIP)
+
+- Review the parent worktree's shared Ability buffer fix against actual Lucio
+  resources. Unready checks previously consumed a press and reinserted it at
+  the current time, keeping it alive indefinitely. Retain its timestamp until
+  cooldown, resource and stack gates pass; consume it only on a successful start.
+- Six methods exercise actual0776/0277/073A150ms input windows: expired short
+  presses, retained event time, near-expiry buffering, held input and external
+  ultimate-charge arrival. The original behavior fails five assertions with no
+  errors; the fixed45-method ability/Lucio regression run passes. The shared
+  parent's uncommitted changes were not merged or modified.
+- Ultimate gain remains open. The resource's2940 cost and zero-on-cast behavior
+  do not prove the base passive/damage/healing gain rates; the existing60-second
+  placeholder is not promoted to native acceptance by these input-gate tests.
+
+#### Unresisted Soundwave target impulse host (0079 lane, WIP)
+
+- Apply the actual0776 direction*17*ruleset10615 vector once to each selected
+  surviving enemy, through the existing one-frame velocity consumer. Player
+  requests use the victim's next command pose; NPC requests use the next world
+  tick. Host event keys are a separate documented namespace, not native action
+  key evidence. Zero ruleset scale preserves damage without applying force.
+- Give forced manual NPCs an ordinary capsule Mover with their authored body
+  geometry, gravity and friction. Publish its airborne movement fields; return
+  control to the saved route after grounded rest. Stun blocks voluntary input
+  while this reconstructed incoming force continues. Death, removal and body
+  replacement discard pending external requests and tracking references.
+- Pass110 focused weapon/control/NPC regressions and213 core checks. The58-method
+  PvE/status run retains the known native Sniper/Heavy release failure (one
+  method/two subcases) and one missing training-body skip. All16 frozen-source
+  server stored-domain methods pass (506.045s), including nonconsuming pending
+  player/NPC requests. A separate21-root encrypted-input stored replay reproduces
+  the target trajectory and serial exactly, without live sockets. Six expected
+  negative-control assertions fail when only target application is disabled.
+  Cooldown tests return the victim to range to isolate expiry from knockback.
+- This is an explicitly unresisted host policy. Native damage-to-mover routing,
+  per-body resistance/immunity (including Talon specials), active MoveTo/force
+  arbitration, prediction and original-client behavior remain unaccepted. No
+  full hero gate is completed and no shared merge/publication is performed.
+
+#### One-frame velocity consumer and actual0263 actions (0079 lane, WIP)
+
+- Add a stationary world-frame consumer for numeric velocity indexes0..3 and
+  enqueue-time full-vector deltas, with add/multiply/set operations and a
+  single active command frame. Preserve scalar-before-vector order and the
+  original post-gravity, pre-collision application point. Upward deltas over
+  0.004 use the original detach flag/timer behavior before translation.
+- Store pending immutable requests in physical/server snapshots. Eight focused
+  methods cover actual movement order, takeoff, future/expired frames, gap
+  recovery, combined order and stored queues;69 mover/physics checks and one
+  added server stored-queue check pass. All15 server stored-domain checks pass
+  in a frozen-source rerun (560.966s). An earlier run was invalidated by edits
+  during its source-manifest window and is not counted as acceptance.
+- Compare host arithmetic with219 original enqueue-to-consumer cases, within
+  2e-5 tolerance. Native vector/scalar arithmetic and detach execute; declared
+  input preparation, queue storage and mode access use offline adapters.
+- Connect actual0263 FF3471E9 numeric3 multiply/vector1 add rows to the live
+  player body, with native next-frame keys, duplicate replacement and numeric/
+  vector subarray ordering. Reuse the modifier insertion comparison;256 native
+  numeric/vector search cases and18 same-frame native overwrites pass.
+- Supply the narrow self-body look/yaw-basis/velocity queries. Native command
+  turning and look math pass15 offline fixtures. The resource's throttle branch
+  subtracts its side component; it is not a forward-plus-side expression.
+  Five methods execute actual60/61/63 nodes, their expressions and next-frame
+  collision movement, including duplicate calls, key boundary and missing owner.
+  Together with queue, mover, physical snapshot and modifier checks,91 pass.
+- Extend the bounded0263 query bridge with nativeCCF4A0/1B8D940 held-list
+  semantics:84 original evaluator fixtures match the host, including default0,
+  duplicates and missing-component no-output failure. Five additional methods
+  check actual button edges, disabled-versus-held distinction, release into
+  velocity requests, wait expiry and the32856-gated crouch cancellation. The
+  controller-loss entry and32856 are declared inputs in those branch fixtures;
+  their native producers and same-frame input/timer ordering remain open.
+- Decode0776 ModifyHealth's authored impulse expression: original0762B33A
+  limiterCEB820 passes35 Soundwave-family fixtures. Desired look+0.5up is limited
+  around forward+up with yaw90/pitch25, producing elevation20..70 degrees before
+  multiplication by17 and ruleset10615. The narrow self-body queries and limiter
+  now evaluate that actual resource expression; four methods cover its default
+  magnitude, up/down limits, absence of mover mutation and unsupported settings.
+  Target-side health-to-mover dispatch, resistance, NPC displacement and full
+  Soundwave knockback are still unimplemented and unaccepted.
+- All15 server stored-domain checks pass after the held-query and Soundwave
+  expression additions, with source frozen throughout (451.516s). The earlier
+  action/key checkpoint passed in696.473s. The current125-method body/Lucio
+  regression run has124 passes and one external training-body skip; its real
+  five-body Barrier method passes under the separate authored NPC mover runtime.
+- Recheck actual five-body geometry and base route speeds using parent-prepared
+  external mover rows. Ten Soundwave capsule-range boundary cases pass. The
+  14-method NPC run retains Sniper/Heavy native-release failures and exposes an
+  Assassin speed fixture error: at14m/s it leaves the stationary source aura.
+  Keep the source with the receiver for sustained-speed assertions, rebuilding
+  its collision body after fixture relocation; add a stationary-source exit
+  check. All three revised speed methods pass with actual NPC mover inputs.
+  These fixture-only changes preserve runtime behavior. The native-release
+  failure is not suppressed or weakened.
+- This remains uncommitted. Full input/controller Wall Ride/jump, persistent
+  native queue storage/retirement, NPC AI/difficulty, full hero static acceptance
+  and original-client acceptance remain open. No shared merge or publication.
 
 #### Authored Crossfade speed controller and NPC route scaling (0079 lane)
 

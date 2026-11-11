@@ -13,6 +13,54 @@ CACHES = ('voice_handle', 'voice_attempts', 'voice_duration', 'voice_part', 'voi
           'voice_delay', 'voice_cooldown', 'voice_retry_at', 'voice_submitted', 'voice_failed')
 
 
+class DefinitionComponent:
+    """Component 78 override storage with explicit owner resource leases."""
+
+    def __init__(self, owner: int, *, acquire, release):
+        if not callable(acquire) or not callable(release):
+            raise ValueError("voice definition resource services must be callable")
+        self.owner, self.acquire, self.release = owner, acquire, release
+        self.guid, self.handle = 0, None
+        self.active = self.retired = False
+        self._installing = False
+
+    def install(self, guid: int) -> None:
+        if self.retired:
+            raise ValueError("voice definition component is retired")
+        if self._installing:
+            raise ValueError("voice definition resource update already in progress")
+        self._installing = True
+        try:
+            self._replace(guid)
+        finally:
+            self._installing = False
+
+    def _replace(self, guid: int) -> None:
+        # D529E0 obtains a temporary lease before BE6830 installs the override.
+        temporary = self.acquire(guid) if guid else None
+        if temporary is not None:
+            self.release(temporary)
+        self.clear()
+        if self.retired:
+            raise ValueError("voice definition component retired during resource update")
+        handle = self.acquire(guid) if guid else None
+        if self.retired:
+            if handle is not None:
+                self.release(handle)
+            raise ValueError("voice definition component retired during resource update")
+        self.guid, self.handle, self.active = guid, handle, True
+
+    def clear(self) -> None:
+        handle, self.handle = self.handle, None
+        self.active = False
+        if handle is not None:
+            self.release(handle)
+
+    def retire(self) -> None:
+        self.retired = True
+        self.clear()
+
+
 @dataclass(frozen=True)
 class Stimulus:
     guid: int

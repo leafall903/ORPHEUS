@@ -1,0 +1,37 @@
+Lucio / manual Enforcer: partial104319 static reconstruction
+
+The private0079 lane reviewed the parent's uncommitted npc_context bridge.
+Only manual Enforcer01CE bodies declare controller components(4B,). Existing
+placed NPCs and unsupported heroes retain an unknown controller service.
+This declaration is a sandbox policy, not recovered native controller creation.
+
+Actual13EB owner queries now resolve B96D3A98's4B-present/5C-absent predicate
+and9B7648C3's authoritative aggregate health. Spawn synchronizes health after
+creating health/armour/shield pools. Damage, healing and death keep that input
+current. Foreign owners, other graphs/heroes and unknown queries stay unsupported.
+The existing cross-body live-variable lookup is preserved.
+
+Eight offline executions of original104319 CC9F61 and182C470 agree with the
+predicate for missing, empty, allowed and excluded component sets. DA6910's
+controller lookup and F66AF0's boolean output are explicit adapters. The full
+entity/namespace/decryption path and component allocation are not accepted.
+Research logs/capture stay outside source and Git.
+
+Five actual Lucio/Enforcer tests execute real weapon/body resources and the
+manual input controller, without overriding native queries in the tests:
+* Aggregate health350 ->315 after damage ->325 after healing ->0 on death.
+* First incoming damage2, manual stop over100 frames, and reengagement.
+* A static wall or changed team removes held attack input; combat resumes.
+* Actual Sound Barrier absorbs incoming2 before base health, including decay.
+* Sonic Amplifier input kills the Enforcer; its corpse remains and cannot
+  reengage, then explicit removal retires it.
+
+Flat collision and immediate NPC transport remain declared test adapters.
+The body VM is permissive. Two points is the observed actual graph damage;
+this is not a claim that the native complete shotgun attack has one pellet.
+No original client was started, attached or controlled.
+
+Remaining: native controller/AI/wire ownership, complete pellet/spread/projectile
+and muzzle behavior, reload/interrupt timing/difficulty, raw logical release
+ownership, complete Assassin fidelity, all cross-hero controls/interceptions and the
+full player/five-NPC bidirectional matrix. Full static acceptance stays false.

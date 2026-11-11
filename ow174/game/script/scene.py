@@ -112,11 +112,13 @@ class SceneWorld(runtime.World):
         self.effect_targets: dict[int, effect_routing.Target | None] = {}
         self.control_contexts: dict[int, entity_control.Context | None] = {}
         self.alias_components: dict[int, animation_alias.Aliases | None] = {}
+        self.animation_sets: dict[int, frozenset[int]] = {}
         self.look_contexts: dict[int, model_look.Context] = {}
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
         self.script_components: dict[int, runtime.Component | None] = {}
         self.play_queues: dict[int, play_queue.Queue] = {}
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
+        self._voice_definitions: dict[int, voice_stimulus.DefinitionComponent | None] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
@@ -145,9 +147,13 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        voice_definition = self._voice_definitions.pop(entity, None)
+        if voice_definition is not None:
+            voice_definition.retire()
         self.modifier_components.pop(entity, None)
         self._retire_control_contexts(entity=entity)
         aliases = self.alias_components.pop(entity, None)
+        self.animation_sets.pop(entity, None)
         if aliases is not None:
             aliases.retire()
         look = self.look_contexts.pop(entity, None)
@@ -380,6 +386,22 @@ class SceneWorld(runtime.World):
             return None
         return self.voice_contexts.get(entity, NotImplemented)
 
+    def declare_voice_definition_component_absent(self, entity: int) -> None:
+        self.set_voice_definition_component(entity, None)
+
+    def set_voice_definition_component(
+            self, entity: int, backend: voice_stimulus.DefinitionComponent | None) -> None:
+        self._bound_entity(entity)
+        if backend is not None and (type(backend) is not voice_stimulus.DefinitionComponent
+                                    or backend.owner != entity or backend.retired):
+            raise ValueError("voice definition component belongs to another owner or is retired")
+        if entity in self._voice_definitions and self._voice_definitions[entity] is not backend:
+            raise ValueError("retire the entity before replacing its voice definition component")
+        self._voice_definitions[entity] = backend
+
+    def voice_definition_component(self, entity: int):
+        return self._voice_definitions.get(entity, NotImplemented)
+
     def submit_script_request(self, instance, node, request):
         source = instance.component
         if (self.script_components.get(source.entity) is not source
@@ -499,6 +521,18 @@ class SceneWorld(runtime.World):
 
     def animation_aliases(self, entity: int):
         return self.alias_components.get(entity, NotImplemented)
+
+    def set_animation_set_aliases(self, entity: int, aliases: frozenset[int]) -> None:
+        self._bound_entity(entity)
+        if type(aliases) is not frozenset or any(
+            type(alias) is not int or not 0x0C80000000000001 <= alias <= 0x0C80FFFFFFFFFFFF
+            for alias in aliases
+        ):
+            raise ValueError("expected immutable animation alias GUIDs")
+        self.animation_sets[entity] = aliases
+
+    def animation_set_aliases(self, entity: int):
+        return self.animation_sets.get(entity, NotImplemented)
 
     def set_model_look_context(self, entity: int, context: model_look.Context) -> None:
         self._bound_entity(entity)
@@ -728,6 +762,8 @@ class SceneWorld(runtime.World):
         placeable types (lights/areas), not the ENTITY record index. A zero
         client_id never becomes C0000000 and is not automatically instantiated.
         The caller must supply its actual server-create flat indexes explicitly.
+        Optional animation_sets maps full blend-tree-set GUIDs to lists of alias
+        GUIDs. Bind these catalogs through the selected entity's model definition.
         """
         if type(data) is not dict or type(data.get("version")) is not int or data["version"] != 1:
             raise ValueError("unknown map-world input format")
@@ -791,4 +827,31 @@ class SceneWorld(runtime.World):
                 world.bind(CLIENT_PLACEABLE | client_id, reference, placement.position, placement=placement)
         if matched_server != server_placeables:
             raise ValueError("server create names a placeable absent from the map")
+        if "animation_sets" in source:
+            world._bind_map_animation_sets(source["animation_sets"])
         return world
+
+    def _bind_map_animation_sets(self, rows: dict) -> None:
+        if type(rows) is not dict:
+            raise ValueError("map-world animation sets must be a GUID map")
+        catalogs = {}
+        for key, aliases in rows.items():
+            guid = graph.guid(key)
+            if guid is None or guid >> 48 != 0x0040 or type(aliases) is not list:
+                raise ValueError("invalid map-world animation set")
+            catalog = frozenset(graph.guid(alias) for alias in aliases)
+            if any(alias is None or not 0x0C80000000000001 <= alias <= 0x0C80FFFFFFFFFFFF
+                   for alias in catalog):
+                raise ValueError("invalid map-world animation alias")
+            catalogs[guid] = catalog
+        if not catalogs:
+            return
+        for entity in self.entities.values():
+            definition = self.definitions[entity.placement.definition]
+            components = (definition.get("components") or {}).get("entries") or ()
+            models = [value for row in components if isinstance(value := row.get("value"), dict)
+                      and value.get("$") == "STUModelComponent"]
+            if len(models) == 1:
+                guid = graph.guid(models[0].get("m_animBlendTreeSet"))
+                if guid in catalogs:
+                    self.set_animation_set_aliases(entity.id, catalogs[guid])

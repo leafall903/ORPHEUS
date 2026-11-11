@@ -41,6 +41,7 @@ _SCRIPT = frozenset((
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "ultimates",
     "reports", "report_count",
 ))
+_SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -76,8 +77,9 @@ _STATE_LAYOUTS = {
         ("max_shots", "min_shots"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.Anim: ((), ()),
-    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
+    nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "cooldown_observed", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),
     nodes.ForCodeSynced: ((), ()),
     nodes.SubScript: (("child",), ()),
@@ -88,6 +90,7 @@ _STATE_LAYOUTS = {
                              "message_observed"), ("received",)),
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
+    nodes.CompatiblePet: (("pet_entity",), ()),
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: ((), ()), nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
@@ -390,7 +393,8 @@ class _Export:
             if kind is BodyWorld:
                 fields.update(("body", "throttles", "match"))
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position", "match"))
+                fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
+                               "manual_target"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, exclude={"match"})}
@@ -545,7 +549,7 @@ class _Export:
         }
         if script is not None:
             result["body_script_fields_identity"] = self.identity(vars(script))
-            result["body_script"] = self.fields(script, _SCRIPT, exclude=TRANSPORT_FIELDS)
+            result["body_script"] = self.fields(script, _SCRIPT, _SCRIPT_OPTIONAL, exclude=TRANSPORT_FIELDS)
         cursor = 0
         while cursor < len(self.pending):
             kind, obj = self.pending[cursor]
@@ -614,7 +618,7 @@ def export_component_vm_with_identities(component, *, extra_roots=()) -> tuple:
 def export_body_vm(script) -> dict:
     if type(script) is not BodyScript:
         raise BodyVMSnapshotError("unknown body script class")
-    data = _layout(script, _SCRIPT)
+    data = _layout(script, _SCRIPT, _SCRIPT_OPTIONAL)
     if data["world"] is not data["component"].world or data["entity"] != data["component"].entity:
         raise BodyVMSnapshotError("body script component/world identity mismatch")
     return _document(data["component"], data["ultimates"], script)[0]

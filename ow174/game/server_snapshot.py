@@ -21,6 +21,7 @@ from ow174.game import (
     combat,
     correction,
     heroselect,
+    knockback,
     lucio,
     notices,
     observers,
@@ -32,6 +33,7 @@ from ow174.game import (
     world,
 )
 from ow174.game.bits import BitWriter
+from ow174.game import experimental_barrier
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.commands import CommandQueue
@@ -94,12 +96,14 @@ FIELDS = {
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "projectiles observers voice lucio_auras lucio_barriers stuns"
+        "projectiles observers voice lucio_auras lucio_barriers stuns heal_denials heal_boosts "
+        "pins knockbacks grasp_shields barriers"
     ),
     combat.Vitals: _names("entity most now ids changed died_at death_tick killer next_pool_id "
                           "temporary_shields temporary_used"),
-    lucio.Auras: _names("combat leases last_tick"),
-    lucio.Barriers: _names("combat seen leases"),
+    lucio.Auras: _names("combat leases healing last_tick"),
+    lucio.Barriers: _names("combat seen leases pending"),
+    knockback.Knockbacks: _names("combat serial active"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -121,7 +125,7 @@ FIELDS = {
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior"
     ),
-    BotWorld: _names("hero mode weapon_buttons owner_position match"),
+    BotWorld: _names("hero mode weapon_buttons owner_position controller_components match manual_target"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
@@ -135,14 +139,22 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch "
+        "impulse_mover"
     ),
 }
-OPTIONAL_FIELDS = {Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning")}
+OPTIONAL_FIELDS = {
+    combat.Combat: _names("stun_poses pin_pose_starts pending_impacts"),
+    lucio.Barriers: _names("latest_grants"),
+    knockback.Knockbacks: _names("pending_npc"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning"),
+    driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
+}
 DATACLASSES = (
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket,
-    combat.TemporaryShield, lucio.Lease, lucio.BarrierLease,
+    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.ProjectileImpact,
+    combat.Hitscan, combat.Melee, combat.Soundwave, combat.NpcWeaponImpact,
+    combat.TemporaryShield, experimental_barrier.Barrier, lucio.Lease, lucio.BarrierLease, lucio.BarrierGrant,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

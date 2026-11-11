@@ -19,6 +19,48 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   Soundwave damage consumer has headless health/damage evidence; knockback,
   Crossfade/Amp, Sound Barrier, wall ride, interception/status interactions
   and client acceptance remain open. See [Lucio combat](LUCIO_COMBAT.txt).
+  The reconstructed Soundwave visibility check uses the deployed enemy
+  Experimental Barrier mesh. Headless inputs verify that two blocked samples
+  suppress damage, charge and knockback, and either clear sample permits them.
+  One-frame velocity request consumption now has219 native arithmetic cases
+  and eleven host movement/queue checks; pending requests include native keys
+  in stored snapshots. Actual0263 actions now run through narrow self-body
+  direction queries into next-frame movement, with five action checks and256
+  original numeric/vector insertion searches. Full input/controller Wall Ride
+  and wall jump, persistent queue fidelity and the hero gate remain open.
+  The0263 held-button query now matches84 native fixtures; release/wait and
+  conditional crouch branches execute with declared controller-loss/32856
+  inputs. Actual01C7 native feedback identifies entity1204, and an offline
+  wall-loss trace drives its output through actual0263. Target hero setting
+  defaults for7766/9473/32856 now initialize the host. The command loop now
+  reconstructs static wall contact and sustained velocity and feeds actual0263.
+  Native scene queries, full phase dynamics, transitions across moving surfaces
+  and client prediction remain open.
+  Soundwave now applies its authored impulse through an unresisted reconstructed
+  player/NPC mover host, with next-pose/world-tick clocks, capsule collision and
+  lifecycle cleanup. Native resistance/immunity, force/MoveTo arbitration and
+  prediction remain open; these checks do not complete secondary or hero fidelity.
+  Shared Ability input buffers now retain original event age across rejected
+  cooldown/resource checks. Actual0776/0277/073A150ms windows have expired/near-
+  expiry/held/resource-arrival checks; ultimate gain rates remain unverified.
+  Actual0263 state1's lateral SET0 now affects acceleration through the shared
+  throttle17/18/19 consumer. Both signs, forward/back preservation and next-pose
+  scope restoration pass with declared state entry; raw input is preserved.
+  Native Wall Ride acquisition/continuous control and real ultimate charge remain open.
+  A declared manual Enforcer controller now resolves actual13EB owner predicate
+  and aggregate health, with incoming damage/stop/reengagement/wall/team/Barrier
+  and Sonic Amplifier kill/corpse/removal checks. Native controller allocation,
+  complete Enforcer weapon fidelity, Assassin and raw NPC release remain open.
+  Shared state cleanup now clears canceled CHANGED/CHECK markers and excludes
+  ending states from variable notifications. Reentry and join checks have
+  targeted regressions; no native cross-object Ability.stop order is claimed.
+  Manual Assassin1157 now executes contact/continuous damage and victim control
+  with declared context/clock semantics, including Lucio support/control/lifecycle
+  interactions. The allied rescue case now passes after fixing structural
+  priority-query notifications: the primary condition recomputes when a cast
+  priority entry disappears even if its boolean value is unchanged. Resource
+  Anim0.8s and later ChaseVar phases are preserved; no artificial timeout is used.
+  Raw NPC release, native control fidelity and the other full matrix gaps remain open.
   - [ ] Complete the full static skill/weapon/passive/ultimate and interaction
     matrix before requesting integration as an accepted hero. Soundwave's
     four-second cooldown and duplicate-input checks pass; status-linked child

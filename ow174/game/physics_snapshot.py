@@ -21,6 +21,7 @@ from ow174.game.collision_fingerprint import (
 from ow174.game.collision_fingerprint import SCHEMA as WORLD_SCHEMA
 from ow174.game.commands import Command
 from ow174.game.mover import Mod, Mover, MoverData, Snapshot
+from ow174.game.velocity import Change
 
 SCHEMA = "ow174.physics-snapshot.v1"
 SCOPE = "stored-mover-physics-only"
@@ -29,7 +30,7 @@ MOVER_FIELDS = (
     "flags_word", "air_ticks", "spring", "spring2", "spring_steps", "spring_speed", "fall", "landed",
     "crouch_end", "throttles", "input_throttles", "input_tick", "input_frame", "last_command", "mods",
     "history", "corrected", "body", "slope", "slope_cos", "slope_tan", "slope_cos32", "spring_low",
-    "spring_high",
+    "spring_high", "velocity_changes", "wall_contact",
 )
 DATA_FIELDS = (
     "stand_height", "stand_radius", "stand_pogo", "crouch_height", "crouch_radius", "crouch_pogo",
@@ -48,6 +49,7 @@ OBJECT_FIELDS = {
     Mover: MOVER_FIELDS,
     MoverData: DATA_FIELDS,
     Mod: ("index", "op", "value", "start", "end", "priority", "key"),
+    Change: ("frame", "index", "op", "value", "key", "priority"),
     Command: ("frame", "forward", "right", "yaw", "pitch", "buttons", "action", "extra", "subframe",
               "click_yaw", "click_pitch"),
     Snapshot: ("frame", "position", "velocity", "yaw", "pitch", "flags", "air_ticks", "gravity",

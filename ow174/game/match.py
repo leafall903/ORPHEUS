@@ -33,7 +33,20 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import replace
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    heroselect,
+    lucio,
+    movelog,
+    notices,
+    pools,
+    stats,
+    wall_ride,
+    world,
+)
 from ow174.game.collision import (
     MOVER,
     TEAM0,
@@ -306,6 +319,8 @@ class Player:
                 else:
                     if not dead:  # a dead body lies where it fell
                         self.mover.step(command, seconds, self.match.tick)
+                    else:
+                        self.mover.wall_contact = None
                     self._advance_body_frame(command)
         if movelog.ENABLED:
             movelog.snapshots(self)
@@ -316,17 +331,27 @@ class Player:
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
-        first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing), posed=False)
-        if first_missing < first_pose - 1:
-            self._advance_body_frame(Command(first_pose - 1), posed=False)
+        frame = script.frame + 1
+        self._advance_body_frame(Command(frame), posed=False)
+        end = first_pose - 1
+        while self.body_script is script and frame < end:
+            frame = lucio.effect_gap_frame(script, frame, end)
+            self._advance_body_frame(Command(frame), posed=False)
 
     def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
-        stunned = self.match.combat.is_stunned(self, tick=tick)
+        stunned = self.match.combat.pose_stunned(self, command.frame, tick)
         if stunned:
             command = replace(command, forward=0, right=0, buttons=0, action=0)
-            self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+            if not self.match.combat.knockbacks.affecting(self.body):
+                self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
         script = self.body_script
+        controller = wall_ride.controller(script)
+        state = controller.states.get(wall_ride.STATE) if controller is not None else None
+        wall_control = None
+        if not stunned and state is not None and state.active:
+            setting = script.component.entity_var(wall_ride.BACKWARDS, create=False)
+            backwards = bool(setting.value()) if setting is not None else False
+            wall_control = (state.start // script.frame_ms + 1, backwards)
         requests = []
         if script is not None and not stunned:
             requests = [
@@ -345,13 +370,15 @@ class Player:
             if outcome is not None:
                 movement_end = state, outcome
         else:
-            self.mover.step_pose(command, seconds, tick)
+            self.mover.step_pose(command, seconds, tick, wall_ride=wall_control)
         self._advance_body_frame(command, movement_end=movement_end)
 
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        if not posed:
+            self.mover.wall_contact = None
         if self.body_script is not None:
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
@@ -595,14 +622,19 @@ class Match:
         return updates
 
     def _prepare_bot_script(self, bot: bots.Bot) -> None:
+        from ow174.game import npc_context
+
         if graph.entity_body(bot.body) is None:
             return
         try:
             firing = (bot.firing and self.game_map.map_guid == PRACTICE_RANGE.map_guid
                       and self.game_map.mode_guid == PRACTICE_RANGE.mode_guid)
+            components = npc_context.manual_components(bot)
+            context = {} if components is None else {"controller_components": components}
             bot.body_script = BotScript(
                 bot.body, bot.hero, bot.entity, self.tick, self.game_map.mode_guid, bot.health,
                 firing_position=bot.position if firing else None, match=self,
+                **context,
             )
         except Exception:
             log.exception("[game] %s: could not initialize %s's statescript", self.label(), bot.name)
@@ -905,15 +937,25 @@ class Match:
             return
         if ready and not self._advance_scene(now, tick):
             return
-        if ready and self.bots:
-            if self._pending_bot_scripts:
+        if ready:
+            if self.bots and self._pending_bot_scripts:
                 # Keep graph setup within the loading window and off the world-create burst.
                 self._prepare_bot_script(self._pending_bot_scripts.popleft())
-            for bot in self.bots:
-                bot.step(tick, RETAIL_QUANTA / 1e6, self.collision_world,
-                         paused_until=self.combat.stuns.get(bot.entity, 0))
-        if ready:
-            self.combat.update(now, tick, frames=frames)
+            retained = tick - combat.COMBAT_CATCH_UP + 1
+            for at, start_flights in self.combat.world_frames(tick):
+                if at > self.combat.tick:
+                    # A silent caster cannot hold a hit beyond the frame.
+                    self.tick = self.combat.tick
+                    self.combat.publish_impacts(self.tick, closing=True)
+                self.tick = at
+                for bot in self.bots:
+                    self.combat.knockbacks.step_npc(
+                        bot, at, RETAIL_QUANTA / 1e6, self.collision_world,
+                        paused_until=self.combat.stuns.get(bot.entity, 0),
+                    )
+                self.combat.update(now - (tick - at) * combat.TICK, at, frames=frames and at == tick,
+                                   retained_from=retained, start_flights=start_flights)
+                self.combat.publish_impacts(at)
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
         for player in self.players:
@@ -1099,6 +1141,7 @@ class Match:
     def start_body_script(self, player: Player, create: EntityUpdate) -> None:
         """The statescript of the player's new body; the old body's stops. It runs from
         the newest command frame on, and its full frame goes out once the client acknowledged the create."""
+        charge_ratio = lucio.replacement_charge_ratio(player.body_script, player.hero.guid, player.body)
         self.stop_body_script(player)
         if BODY_SCRIPT_HEROES is not None and player.hero.guid not in BODY_SCRIPT_HEROES:
             return
@@ -1112,6 +1155,7 @@ class Match:
                 health=HEALTH,
                 match=self,
             )
+            lucio.restore_charge(script, charge_ratio, player.entity)
         except Exception as error:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
@@ -1122,6 +1166,7 @@ class Match:
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
+        player.mover.wall_contact = None
         script = player.body_script
         if script is not None:
             bodytrace.stopped(player, script)
@@ -1140,6 +1185,10 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            controller = wall_ride.controller(script)
+            contact = player.mover.wall_contact
+            if controller is not None and (contact is not None or 14980 in controller.vars):
+                wall_ride.feedback(controller, contact)
             if movement_end is not None:
                 state, arrived = movement_end
                 delay = command.frame * script.frame_ms - script.component.now

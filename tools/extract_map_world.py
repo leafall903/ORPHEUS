@@ -83,6 +83,29 @@ def definition(path: Path, enums: EnumTables) -> dict:
             'components': values}
 
 
+def add_animation_sets(data: dict, paths: list[Path]) -> None:
+    catalogs, sources = {}, {}
+    for path in paths:
+        root = ET.parse(path).getroot()
+        guid = full_guid(path.stem)
+        if tag(root) != 'STUAnimBlendTreeSet' or guid >> 48 != 0x0040 or int(root.attrib['m_guid']) != guid:
+            raise ValueError(f'{path.name}: animation set identity mismatch')
+        key = f'0x{guid:016X}'
+        if key in catalogs:
+            raise ValueError(f'{path.name}: duplicate animation set')
+        rows = next((child for child in root if child.get(NAME) == 'm_253EE7C8'), None)
+        if rows is None or tag(rows) != 'array':
+            raise ValueError(f'{path.name}: missing animation alias array')
+        aliases = [int(row.text or '') for row in rows]
+        if any(not 0x0C80000000000001 <= alias <= 0x0C80FFFFFFFFFFFF for alias in aliases):
+            raise ValueError(f'{path.name}: invalid animation alias')
+        catalogs[key] = [f'0x{alias:016X}' for alias in aliases]
+        sources[key] = source(path)
+    if catalogs:
+        data['animation_sets'] = catalogs
+        data['sources']['animation_sets'] = sources
+
+
 def collect(map_index: int, entities_path: Path, chunk_path: Path,
             definitions_dir: Path, enums: WorldTypes) -> dict:
     if type(map_index) is not int or not 0 <= map_index <= 0xFFFFFFFFFFFF:
@@ -175,6 +198,7 @@ def main(argv=None) -> int:
     parser.add_argument('--chunk', required=True, type=Path)
     parser.add_argument('--definitions', required=True, type=Path)
     parser.add_argument('--owlib', required=True, type=Path)
+    parser.add_argument('--animation-set', action='append', type=Path, default=[])
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args(argv)
     if args.output.resolve().is_relative_to(ROOT) or args.output.suffix.lower() != '.json':
@@ -182,6 +206,7 @@ def main(argv=None) -> int:
     enums = WorldTypes(args.owlib / 'TankLib' / 'STU' / 'Types')
     try:
         data = collect(args.map_index, args.entities, args.chunk, args.definitions, enums)
+        add_animation_sets(data, args.animation_set)
     except (OSError, ValueError, KeyError, ET.ParseError) as error:
         parser.error(str(error))
     args.output.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')

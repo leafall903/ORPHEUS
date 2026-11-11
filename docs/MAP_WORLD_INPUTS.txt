@@ -5,6 +5,9 @@ Run from the source checkout, with all game inputs and the output outside it:
     --chunk <ENTITY chunk> --definitions <003 XML directory>
     --owlib <OWLib checkout> --output <external map-world-inputs.json>
 
+Pass --animation-set <asset.021.xml> for each animation set the scene will use
+for direct alias lookup. The export records full GUIDs and source hashes.
+
 The export retains the inputs required to interpret placed-world components.
 It does not instantiate or replicate entities, merge components, execute scripts,
 select encounters or implement native behavior. Unknown fields remain opaque.
@@ -33,6 +36,8 @@ JSON fields:
 - definitions: full definition GUID -> source filename/hash, root fields, and
   component map. These defaults remain separate from instance data. In particular,
   null placed values do not automatically replace definition defaults.
+- animation_sets, when present, maps each blend-tree-set GUID to its alias GUIDs.
+  SceneWorld binds the catalog through the selected entity's model definition.
 - A DragonML map is {"$":"map", "key_type":..., "value_type":..., "entries":[
   {"key":..., "value":...}, ...]}. Nested map keys, entry order and object aliases
   survive parsing. Each independently printed instance component has its own

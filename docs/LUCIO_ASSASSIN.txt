@@ -1,0 +1,69 @@
+Lucio / manual Assassin1157: partial104319 static reconstruction
+
+The private0079 lane reviewed the parent's uncommitted Assassin bridge. Only
+manual01BB bodies declare its controller policy. Primary slot0 routes to36;
+the original20 graph13B8 has no health outlet. DB742151(owner) supplies a
+data-only Map containing1650 -> engaged player body. No native controller entity
+is fabricated, replicated or aliased to the body. Target536 follows the actual
+1157 resource. The lane's live cross-body variable lookup remains intact.
+
+The host requires a living manually engaged enemy player within3m and static
+line of sight. This contact limit and the controller declaration are explicit
+server policies. They do not restore native autonomous pursuit/acquisition.
+
+Actual1157 node25 has contact amount25; node15 has amount100 and mode1.
+The resource supplies its phase delay and scope. The host interprets default
+mode as one application at entry and mode1 as amount/second over elapsed VM
+milliseconds. Continuous entry deals no elapsed damage; duplicate frames do
+not repeat it. last_applied is causal state. This clock interpretation has no
+original-server comparison and is not promoted to native acceptance.
+
+Combat.pins stores source body -> victim body independently of timed stuns.
+Actual scope23 retains control through the gap between contact25 and the
+continuous phase. Entry releases held inputs and interrupts supported abilities;
+this lane retains its existing active-Amp policy. Normal/Amp healing and already
+granted Sound Barrier shields continue under the existing support hosts.
+
+Stop, binding/range/team/geometry loss, source stun/death/removal, victim death
+or body retirement, scope exit and script failure retire old control. Independent
+Flashbang deadlines are preserved. Reengagement interrupts the unresolved
+release Anim31 through its authored exit, rather than inventing a duration.
+Target/context, pin registry and health clock are included in causal snapshots.
+
+Actual Lucio tests use real body/weapon/status resources, physical triangle
+occlusion and real player/NPC inputs. Transport and permissive body VM remain
+declared fixtures. Synthetic1157 host clock tests are a separate evidence class.
+
+Allied rescue and priority dependency correction:
+A full-health Assassin has authored400 health plus100 shields. Under current
+body-shot/pin clocks, two unshielded supporting Lucios kill it after the victim
+has died. If one ally casts Sound Barrier first, shields now allow the victim
+to survive until both allies kill the healthy attacker. Neither NPC pools nor
+the pin damage clock are weakened for this comparison.
+
+The case exposed a runtime dependency defect. Actual0776 state53 reads
+WouldVarStackToTop(#33,priority2). After the073A cast's priority10 entry was
+removed, #33's effective boolean remained true and no scalar notification was
+sent. The primary condition stayed cached false even with an empty stack.
+The host now marks priority readers in the existing watch maps and notifies
+them on link insertion/removal. Ordinary scalar-only observers retain their
+previous notification behavior. The mode is included in causal VM/server hashes.
+
+Resource recovery Anim032F has explicit0.8 seconds; later ChaseVar phases keep
+the ultimate Ability alive longer. An800-frame audit reaches its normal stop.
+No fake animation duration, altered resource timer or Ability.stop reordering
+is used for the weapon recovery correction. Native observer implementation and
+cross-object ordering are not fully compared by these host tests.
+
+The shared script suite preserves the historical Soldier977-bit crash fixture
+by restoring the old scalar-only observer in that replay. Its captured bit857
+failure is unchanged; current frames decode and match live runtime states.
+The shared830, combat/projectile/VM-storage88 and full server snapshot17 pass.
+The hero matrix has128 passes, one failure with two existing raw Sniper/Heavy
+release subcases and one skipped external training-body fixture.
+
+Still open: native controller/namespace/wire, complete health mode/clock and
+immunity/cleanse, melee escape/counterplay, release duration/cooldown, autonomous
+movement/lunge/victim poses, animation/camera/effects/audio/HUD, Sound Barrier
+native end/recovery and custom duration, remaining cross-hero/static acceptance
+and original client.

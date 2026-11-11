@@ -9,10 +9,14 @@ from dataclasses import replace
 from unittest.mock import patch
 
 import test_lucio_combat as fixtures
+from test_game_combat import aim
 
 from ow174.game import bots, combat
+from ow174.game.collision import World
+from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
 from ow174.game.script import graph
+from ow174.game.script.driver import ULT_CHARGE
 
 
 @unittest.skipUnless(graph.graph(0x0267) is not None, "requires extracted Lucio status supplement")
@@ -33,6 +37,28 @@ class LucioAuraTests(unittest.TestCase):
         target = next(t for t in fight._targets() if t.owner is owner)
         fight.vitals_of(target).damage(amount)
 
+    def test_healing_before_retained_damage_can_prevent_a_lethal_hit(self):
+        for schedule in ((1,) * 5, (5,)):
+            with self.subTest(schedule=schedule):
+                helper, run, source, enemy, _ = self.scenario()
+                fight = run.match.combat
+                source.body_script.ult_seconds = 0
+                self.wound(run, source, 180.125)
+                fight.rockets.append(combat.Rocket(
+                    enemy, enemy.team, (0, 1.8, 4), (0, 0, -1), 50, 1.0,
+                    combat.HitDef(20), None, last_tick=run.frame,
+                ))
+                for frames in schedule:
+                    run.frame += frames
+                    run.match.update(run.frame * combat.TICK, run.frame)
+                healed = 5 * (16 / 1.3) * combat.TICK
+                meter = source.body_script.component.entity_var(ULT_CHARGE)
+                self.assertAlmostEqual(helper.health(run, source), healed - 0.125, places=5)
+                self.assertAlmostEqual(meter.value(), healed, places=5)
+                self.assertFalse(fight.is_dead(source))
+                self.assertFalse(fight.rockets)
+                self.assertFalse(fight.respawns)
+
     def test_authored_ally_and_self_rates_and_enemy_exclusion(self):
         helper, run, source, enemy, ally = self.scenario()
         for owner in (source, ally, enemy):
@@ -42,6 +68,245 @@ class LucioAuraTests(unittest.TestCase):
         self.assertAlmostEqual(helper.health(run, ally), 100 + 16 * 64 * combat.TICK, places=5)
         self.assertAlmostEqual(helper.health(run, source), 100 + (16 / 1.3) * 64 * combat.TICK, places=5)
         self.assertEqual(helper.health(run, enemy), 100)
+
+    def test_ana_grenade_denies_normal_and_amp_healing_until_expiry(self):
+        for amp, skipped in ((False, 0), (True, 0), (False, 6)):
+            with self.subTest(amp=amp, skipped=skipped):
+                helper, run, source, enemy, ally = self.scenario()
+                run.match.switch_hero(enemy, heroes()[0x02E000000000013B])
+                enemy.mover.position[:] = (0, 1, 4)
+                ally.mover.position[:] = (6, 1, 0)
+                ally.mover.body.teleport((6, 1 + ally.mover._lift(), 0))
+                self.wound(run, ally)
+                if amp:
+                    run.step({source: (0, 0, 16)})
+                    for _ in range(10):
+                        run.step({})
+                fight = run.match.combat
+                direction = aim(fight._eye(enemy), (0, 1.95, 0))
+                run.step({enemy: (*direction, 16)})
+                for _ in range(40):
+                    if source.body in fight.heal_denials:
+                        break
+                    run.step({})
+                self.assertIn(source.body, fight.heal_denials)
+                impact, deadline = fight.heal_denials[source.body]
+                self.assertEqual(impact, run.frame)
+                self.assertEqual((deadline - impact) * combat.TICK, 4)
+                self.assertEqual(helper.health(run, source), 150)
+                self.assertNotIn(ally.body, fight.heal_denials)
+                ally_before = helper.health(run, ally)
+                for _ in range(10):
+                    run.step({})
+                self.assertEqual(helper.health(run, source), 150)
+                self.assertAlmostEqual(helper.health(run, ally) - ally_before,
+                                       (52 if amp else 16) * 10 * combat.TICK, places=5)
+                while run.frame + 1 < deadline - skipped // 2:
+                    run.step({})
+                self.assertEqual(helper.health(run, source), 150)
+                run.frame += skipped
+                run.step({})
+                healed_ticks = run.frame - deadline + 1
+                self.assertAlmostEqual(helper.health(run, source),
+                                       150 + 16 / 1.3 * combat.TICK * healed_ticks, places=5)
+                self.assertNotIn(source.body, fight.heal_denials)
+
+    def test_allied_ana_grenade_boosts_crossfade_and_amp_until_expiry(self):
+        for amp in (False, True):
+            with self.subTest(amp=amp):
+                helper, run, source, ana, ally = self.scenario()
+                run.match.switch_hero(ana, heroes()[0x02E000000000013B])
+                ana.team = source.team
+                ana.mover.position[:] = (0, 1, 4)
+                ally.mover.position[:] = (6, 1, 0)
+                ally.mover.body.teleport((6, 1 + ally.mover._lift(), 0))
+                run.match.collision_world = World([
+                    (-20, 1, -20, -20, 1, 20, 20, 1, 20), (-20, 1, -20, 20, 1, 20, 20, 1, -20),
+                    (-4, 1, -1, 4, 1, -1, 4, 6, -1), (-4, 1, -1, 4, 6, -1, -4, 6, -1),
+                ])
+                if amp:
+                    run.step({source: (0, 0, 16)})
+                    for _ in range(10):
+                        run.step({})
+                self.wound(run, source, 130)
+                fight = run.match.combat
+                direction = aim(fight._eye(ana), (0, 1.95, -1))
+                command = {ana: (*direction, 16)}
+                for _ in range(40):
+                    before = helper.health(run, source)
+                    run.step(command)
+                    command = {}
+                    if source.body in fight.heal_boosts:
+                        break
+                self.assertIn(source.body, fight.heal_boosts)
+                impact, deadline = fight.heal_boosts[source.body]
+                self.assertEqual((impact, deadline), (run.frame, run.frame + 250))
+                self.assertNotIn(ally.body, fight.heal_boosts)
+                self.assertNotIn(source.body, fight.heal_denials)
+                rate = 40 if amp else 16 / 1.3
+                self.assertAlmostEqual(helper.health(run, source) - before,
+                                       50 + rate * 1.5 * combat.TICK, places=5)
+                before = helper.health(run, source)
+                for _ in range(10):
+                    run.step({})
+                self.assertAlmostEqual(helper.health(run, source) - before,
+                                       rate * 1.5 * 10 * combat.TICK, places=5)
+                while run.frame + 1 < deadline:
+                    run.step({})
+                self.wound(run, source, 30)
+                before = helper.health(run, source)
+                run.step({})
+                self.assertAlmostEqual(helper.health(run, source) - before, 16 / 1.3 * combat.TICK, places=5)
+                self.assertNotIn(source.body, fight.heal_boosts)
+
+    def test_future_ana_grenade_launch_and_retained_impact_use_their_own_frames(self):
+        helper, run, source, ana, ally = self.scenario(healing=False)
+        run.match.switch_hero(ana, heroes()[0x02E000000000013B])
+        ana.mover.position[:] = (0, 1, 4)
+        ally.mover.position[:] = (6, 1, 0)
+        fight = run.match.combat
+        launch = run.frame + 6
+        yaw, pitch = aim(fight._eye(ana), (0, 1.95, 0))
+        ana.take_commands([Command(launch, yaw=yaw, pitch=pitch, buttons=16)])
+        rocket, = fight.rockets
+        origin = rocket.position
+        self.assertEqual(rocket.last_tick, launch)
+        run.match.update(launch * combat.TICK, launch)
+        self.assertEqual(rocket.position, origin)
+        self.assertNotIn(source.body, fight.heal_denials)
+
+        endpoint = launch + 16
+        run.match.update(endpoint * combat.TICK, endpoint)
+        impact, expiry = fight.heal_denials[source.body]
+        self.assertGreater(impact, launch)
+        self.assertLess(impact, endpoint)
+        self.assertEqual(expiry, impact + 250)
+        self.assertEqual(helper.health(run, source), 150)
+        self.assertFalse(fight.rockets)
+
+    def test_ana_grenade_reapplication_keeps_prior_boost_samples(self):
+        def replay(gap=None):
+            helper, run, source, ana, ally = self.scenario()
+            run.match.switch_hero(ana, heroes()[0x02E000000000013B])
+            ana.team = source.team
+            ana.mover.position[:] = (0, 1, 4)
+            ally.mover.position[:] = (6, 1, 0)
+            run.match.collision_world = World([
+                (-20, 1, -20, -20, 1, 20, 20, 1, 20), (-20, 1, -20, 20, 1, 20, 20, 1, -20),
+                (-4, 1, -1, 4, 1, -1, 4, 6, -1), (-4, 1, -1, 4, 6, -1, -4, 6, -1),
+            ])
+            source.body_script.ult_seconds = 0
+            self.wound(run, source, 130)
+            fight = run.match.combat
+            direction = aim(fight._eye(ana), (0, 1.95, -1))
+            run.step({ana: (*direction, 16)})
+
+            def world(frames):
+                run.frame += frames
+                run.match.update(run.frame * combat.TICK, run.frame)
+
+            world(1)
+            start = run.frame
+            deadline = start + 5
+            fight.heal_boosts[source.body] = (start, deadline)
+            previous = helper.health(run, source)
+            meter = source.body_script.component.entity_var(ULT_CHARGE)
+            previous_charge = meter.value()
+            if gap is None:
+                for _ in range(20):
+                    world(1)
+                    if fight.heal_boosts.get(source.body, (0, 0))[1] > deadline:
+                        break
+            else:
+                world(gap)
+
+            impact, expiry = fight.heal_boosts[source.body]
+            self.assertEqual(impact, run.frame)
+            self.assertGreater(impact, deadline)
+            self.assertEqual(expiry - impact, 250)
+            elapsed = impact - start
+            # Four old boosted frames, then one new boosted impact frame.
+            expected = (elapsed + 2.5) * (16 / 1.3) * combat.TICK
+            self.assertAlmostEqual(helper.health(run, source) - previous - 50, expected, places=5)
+            self.assertAlmostEqual(meter.value() - previous_charge, expected, places=5)
+            return elapsed
+
+        replay(replay())
+
+    def test_ana_grenade_denial_precedes_boost_and_both_retire_with_body(self):
+        def throw(run, ana, point, windows, body):
+            direction = aim(run.match.combat._eye(ana), point)
+            run.step({ana: (*direction, 16)})
+            for _ in range(40):
+                if body in windows:
+                    return
+                run.step({})
+            self.fail("Grenade did not apply its effect")
+
+        for end in ("expiry", "hero_switch", "death"):
+            with self.subTest(end=end):
+                helper, run, source, enemy, ally = self.scenario()
+                ana = heroes()[0x02E000000000013B]
+                run.match.switch_hero(enemy, ana)
+                run.match.switch_hero(ally, ana)
+                enemy.mover.position[:] = (-2, 1, 4)
+                ally.mover.position[:] = (2, 1, 4)
+                run.match.collision_world = World([
+                    (-20, 1, -20, -20, 1, 20, 20, 1, 20), (-20, 1, -20, 20, 1, 20, 20, 1, -20),
+                    (-4, 1, -1, 4, 1, -1, 4, 6, -1), (-4, 1, -1, 4, 6, -1, -4, 6, -1),
+                ])
+                fight = run.match.combat
+                body = source.body
+                throw(run, enemy, (0, 1.95, 0), fight.heal_denials, body)
+                self.assertEqual(helper.health(run, source), 150)
+                for _ in range(12):
+                    run.step({})
+                throw(run, ally, (0, 1.95, -1), fight.heal_boosts, body)
+                self.assertEqual(helper.health(run, source), 150)
+                _, denial_end = fight.heal_denials[body]
+                _, boost_end = fight.heal_boosts[body]
+                self.assertGreater(boost_end, denial_end)
+
+                if end == "death":
+                    direction = aim(fight._eye(enemy), (0, 1.95, 0))
+                    for _ in range(180):
+                        run.step({enemy: (*direction, FIRE)})
+                        if fight.is_dead(source):
+                            break
+                    self.assertTrue(fight.is_dead(source))
+                    self.assertLess(run.frame, denial_end)
+                    self.assertEqual(source.body, body)
+                    self.assertNotIn(body, fight.heal_denials)
+                    self.assertNotIn(body, fight.heal_boosts)
+                    deadline = next(when for when, actor in fight.respawns if actor is source)
+                    run.frame = round(deadline / combat.TICK) + 1
+                    run.match.update(run.frame * combat.TICK, run.frame)
+                    self.assertFalse(fight.is_dead(source))
+                    self.assertEqual(source.hero.guid, fixtures.LUCIO)
+                    self.assertEqual(helper.health(run, source), 200)
+                elif end == "hero_switch":
+                    run.match.switch_hero(source, heroes()[0x02E0000000000002])
+
+                if end != "expiry":
+                    self.assertNotEqual(source.body, body)
+                    for windows in (fight.heal_denials, fight.heal_boosts):
+                        self.assertNotIn(body, windows)
+                        self.assertNotIn(source.body, windows)
+                    continue
+
+                while run.frame + 1 < denial_end:
+                    run.step({})
+                self.assertEqual(helper.health(run, source), 150)
+                run.step({})
+                rate = 16 / 1.3 * combat.TICK
+                self.assertAlmostEqual(helper.health(run, source), 150 + rate * 1.5, places=5)
+                self.assertNotIn(body, fight.heal_denials)
+                while run.frame + 1 < boost_end:
+                    run.step({})
+                before = helper.health(run, source)
+                run.step({})
+                self.assertAlmostEqual(helper.health(run, source) - before, rate, places=5)
+                self.assertNotIn(body, fight.heal_boosts)
 
     def test_speed_song_does_not_heal_and_switching_stops_healing(self):
         helper, run, source, _, ally = self.scenario(healing=False)
@@ -122,6 +387,73 @@ class LucioAuraTests(unittest.TestCase):
         self.assertAlmostEqual(helper.health(run, ally), 100 + 52 * 64 * combat.TICK, places=5)
         self.assertAlmostEqual(helper.health(run, source), 100 + 40 * 64 * combat.TICK, places=5)
 
+    def test_amp_switch_world_gap_preserves_both_healing_windows(self):
+        def exercise(schedule):
+            batch = schedule != "contiguous"
+            helper, run, source, enemy, ally = self.scenario(healing=False)
+            source.body_script.ult_seconds = 0
+            meter = source.body_script.component.entity_var(ULT_CHARGE)
+
+            def advance(count, buttons=0, *, settle_each=True, sparse=False):
+                if sparse:
+                    run.frame += count - 1
+                    count = 1
+                for _ in range(count):
+                    run.frame += 1
+                    for player in run.players:
+                        command = Command(run.frame, buttons=buttons if player is source else 0)
+                        recipient = ally.body_script.component
+                        recipient_clock = (recipient.frame, recipient.now)
+                        player.take_commands([command])
+                        if sparse and player is source:
+                            self.assertEqual((recipient.frame, recipient.now), recipient_clock)
+                    if settle_each:
+                        run.match.update(run.frame * combat.TICK, run.frame)
+                if not settle_each:
+                    run.match.update(run.frame * combat.TICK, run.frame)
+
+            def sample():
+                return helper.health(run, source), helper.health(run, ally), meter.value()
+
+            advance(1, 16)
+            cast_frame = run.frame
+            advance(32)
+            for player in (source, enemy, ally):
+                self.wound(run, player)
+
+            for boosted_frames, message in ((17, "speed to heal"), (11, "heal to speed")):
+                advance(1, 8)
+                previous = sample()
+                advance(28, settle_each=not batch)
+                expected = (40, 52, 92)
+                with self.subTest(transition=message):
+                    for value, start, rate in zip(sample(), previous, expected, strict=True):
+                        self.assertAlmostEqual(
+                            value - start, rate * boosted_frames * combat.TICK, places=4,
+                        )
+            advance(1, 8)
+            advance(cast_frame + 165 - run.frame)
+            self.wound(run, source, amount=80)
+            self.wound(run, ally, amount=80)
+            previous = sample()
+            advance(70, settle_each=not batch, sparse=schedule == "sparse")
+            with self.subTest(transition="Amp expiry"):
+                normal_self = 16 / 1.3
+                expected = (40 * 34 + normal_self * 36, 52 * 34 + 16 * 36,
+                            92 * 34 + (normal_self + 16) * 36)
+                # Charge is accumulated in float32 for each submitted heal.
+                tolerances = (0.00001, 0.00001, 0.0002)
+                results = zip(sample(), previous, expected, tolerances, strict=True)
+                for value, start, rate_ticks, tolerance in results:
+                    self.assertAlmostEqual(value - start, rate_ticks * combat.TICK, delta=tolerance)
+                marker = source.body_script.component.entity_var(2381)
+                self.assertFalse(marker.value())
+            self.assertEqual(helper.health(run, enemy), 100)
+
+        for schedule in ("contiguous", "batched", "sparse"):
+            with self.subTest(schedule=schedule):
+                exercise(schedule)
+
     def test_amp_ends_and_represses_cannot_bypass_cooldown(self):
         _, run, source, _, _ = self.scenario()
         transitions, previous = [], False
@@ -152,6 +484,52 @@ class LucioAuraTests(unittest.TestCase):
         for _ in range(64):
             run.step({})
         self.assertAlmostEqual(helper.health(run, ally), 100 + 16 * 64 * combat.TICK, places=5)
+
+    def test_overlapping_amps_transfer_healing_credit_during_sparse_input(self):
+        def exercise(first_index, reverse_arrival):
+            helper = fixtures.LucioCombatTests()
+            run, left, right, ally = helper.scenario()
+            run.match.switch_hero(right, heroes()[fixtures.LUCIO])
+            right.team = left.team
+            right.mover.position[:] = (2, 1, 0)
+            right.mover.body = None
+            sources = (left, right)
+            first, second = sources[first_index], sources[1 - first_index]
+            for source in sources:
+                source.body_script.ult_seconds = 0
+
+            run.step({left: (0, 0, 8), right: (0, 0, 8)})
+            for _ in range(40):
+                run.step({})
+            run.step({first: (0, 0, 16)})
+            for offset in range(1, 166):
+                run.step({second: (0, 0, 16)} if offset == 60 else {})
+            self.wound(run, ally, amount=90)
+            before = helper.health(run, ally)
+            meters = [source.body_script.component.entity_var(ULT_CHARGE) for source in (first, second)]
+            charge = [meter.value() for meter in meters]
+            receiver = ally.body_script.component
+            receiver_clock = receiver.frame, receiver.now
+
+            run.frame += 70
+            order = reversed(sources) if reverse_arrival else sources
+            for source in order:
+                source.take_commands([Command(run.frame)])
+                self.assertEqual((receiver.frame, receiver.now), receiver_clock)
+            ally.take_commands([Command(run.frame)])
+            run.match.update(run.frame * combat.TICK, run.frame)
+
+            self.assertAlmostEqual(helper.health(run, ally) - before, 52 * 70 * combat.TICK, places=5)
+            # Both contribute 26/s while both Amps are active. After the
+            # first expiry, its share falls to 8/s and the other rises to 44/s.
+            rate_ticks = (26 * 34 + 8 * 36, 26 * 34 + 44 * 36)
+            for meter, start, expected in zip(meters, charge, rate_ticks, strict=True):
+                self.assertAlmostEqual(meter.value() - start, expected * combat.TICK, delta=0.0002)
+
+        for first_index in (0, 1):
+            for reverse_arrival in (False, True):
+                with self.subTest(first=first_index, reverse_arrival=reverse_arrival):
+                    exercise(first_index, reverse_arrival)
 
     def test_actual_npc_script_reads_source_song_and_receives_ally_healing(self):
         helper, run, _source, _, _ = self.scenario()

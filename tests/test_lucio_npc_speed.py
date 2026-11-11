@@ -24,7 +24,7 @@ class LucioNpcSpeedTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.fixture.tearDownClass()
 
-    def walk(self, run, bot, frames=70):
+    def walk(self, run, bot, frames=70, *, source=None):
         bot.position = (0, 1, 2)
         bot.route = ((0, 1, 2), (0, 1, 100))
         bot.index = 1
@@ -34,6 +34,11 @@ class LucioNpcSpeedTests(unittest.TestCase):
         bot.wait = 0
         bot.pace = 0
         for _ in range(frames):
+            if source is not None:
+                # A moving-source fixture keeps fast bodies inside the aura.
+                # Rebuild its collision body after relocating the feet.
+                source.mover.position[:] = (bot.position[0] + 2., bot.position[1], bot.position[2])
+                source.mover.body = None
             run.step({})
         return math.hypot(bot.velocity[0], bot.velocity[2])
 
@@ -55,7 +60,7 @@ class LucioNpcSpeedTests(unittest.TestCase):
                     value = f32(0.6) if amp else 0.25
                     self.assertEqual(controller.vars[1002].value(), value)
                     base_speed, base_accel, base_brake = bot.speed, bot.accel, bot.brake
-                    speed = self.walk(run, bot)
+                    speed = self.walk(run, bot, source=source)
                     self.assertAlmostEqual(speed, base_speed * (1.6 if amp else 1.25), delta=0.001)
                     self.assertEqual((bot.speed, bot.accel, bot.brake), (base_speed, base_accel, base_brake))
                     bot.route = ()
@@ -65,7 +70,19 @@ class LucioNpcSpeedTests(unittest.TestCase):
                     for _ in range(40):
                         run.step({})
                     self.assertEqual(controller.vars[1002].value(), 0)
-                    self.assertAlmostEqual(self.walk(run, bot), base_speed, delta=0.001)
+                    self.assertAlmostEqual(self.walk(run, bot, source=source), base_speed, delta=0.001)
+
+    def test_fast_real_assassin_leaves_stationary_source_and_loses_speed(self):
+        definition = next(d for d in self.definitions.values() if d.name == "Assassin")
+        _, run, _, bot = self.fixture.scenario(definition, team=0, position=(0, 1, 2))
+        if bot.speed != 14.:
+            self.skipTest("requires the actual Assassin mover row, not generic defaults")
+        for _ in range(40):
+            run.step({})
+        controller = next(i for i in bot.body_script.component.instances.values() if i.graph.index == 0x07C7)
+        self.assertEqual(controller.vars[1002].value(), 0.25)
+        self.assertAlmostEqual(self.walk(run, bot), 14., delta=.001)
+        self.assertEqual(controller.vars[1002].value(), 0.)
 
     def test_enemy_bodies_keep_base_route_speed_without_a_controller(self):
         for definition in self.definitions.values():

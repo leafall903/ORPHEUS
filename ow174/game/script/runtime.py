@@ -29,6 +29,7 @@ import logging
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
+from types import NotImplementedType
 
 from ow174.game.script import expr
 from ow174.game.script.expr import ENTITY, INSTANCE, Context, Entity
@@ -141,7 +142,7 @@ class Var:
         self.key = key  # (instance id or 0 for the entity, var id)
         self.base = None
         self.links: list[Link] = []
-        self.watchers: dict[State, None] = {}
+        self.watchers: dict[State, bool | None] = {}  # True also observes link/priority structure
         self.resolving = False
         self.partial = None
 
@@ -283,7 +284,7 @@ class InstanceContext(Context):
             return False
         target = self.instance.find_var(var[0], var[1], create=True)
         if self.watcher is not None:
-            self.watcher.watch(target)
+            self.watcher.watch(target, stack=True)
         return would_stack_to_top(target, priority)
 
     def poll_native(self, cfg: dict):
@@ -392,6 +393,16 @@ class World:
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State"):
+        pass
+
+    def animation_duration(self, state: "State") -> float | None:
+        """Return the resolved clip duration in seconds."""
+        return None
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -419,8 +430,20 @@ class World:
         """Explicit shared voice host/manager and separate +80 poll owner."""
         return NotImplemented
 
+    def voice_definition_component_absent(self, entity: int) -> bool:
+        """Whether the owner has explicitly declared native component 78 absent."""
+        return self.voice_definition_component(entity) is None
+
+    def voice_definition_component(self, entity: int):
+        """Explicit component 78 storage, known absence, or unknown."""
+        return NotImplemented
+
     def animation_aliases(self, entity: int):
         """Known component55 alias list, known absence, or unknown."""
+        return NotImplemented
+
+    def animation_set_aliases(self, entity: int) -> frozenset[int] | NotImplementedType:
+        """Alias GUIDs from the owner's active animation set, when supplied."""
         return NotImplemented
 
     def model_look_context(self, entity: int):
@@ -484,6 +507,12 @@ class World:
     def message_state_context(self, entity: int, *, component: "Component | None" = None):
         """Persistent State manager, explicit native frame/role/priority services."""
         return NotImplemented
+
+    def create_compatible_pet(self, state):
+        return NotImplemented
+
+    def retire_compatible_pet(self, state, entity: int) -> None:
+        pass
 
     def game_message_subject(self, instance: "Instance", node: Node, instigator: int):
         instance.component.unsupported(instance, 'game message subject', node.cls, node)
@@ -650,7 +679,8 @@ class Component:
 
     # --- variables ---------------------------------------------------------------------------------
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None):
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None,
+                stack_changed: bool = False):
         """Notify watchers and return the checked value without resolving a live getter twice."""
         after = var.value()
         changed = not expr.same(before, after)
@@ -668,9 +698,9 @@ class Component:
             if state.reads_below(var):
                 if above_source is not None and state not in above_source:
                     continue
-            elif not changed:
+            elif not changed and not (stack_changed and state.watched.get(var) is True):
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -993,8 +1023,9 @@ class Instance:
                 link.state.var_written(var)
         self.changed(var, before)
 
-    def changed(self, var: Var, before, *, stack_source: "State | None" = None) -> None:
-        self.component.changed(var, before, stack_source=stack_source)
+    def changed(self, var: Var, before, *, stack_source: "State | None" = None,
+                stack_changed: bool = False) -> None:
+        self.component.changed(var, before, stack_source=stack_source, stack_changed=stack_changed)
 
     # --- states ------------------------------------------------------------------------------------
 
@@ -1415,7 +1446,7 @@ class State:
         self.start = 0
         self.ended_at = 0
         self.ticked_at = None
-        self.watched: dict[Var, None] = {}
+        self.watched: dict[Var, bool | None] = {}
         self.flags_changed = False
         self.flags_check = False
         self.polled = False
@@ -1485,6 +1516,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Coalescing markers describe the queued events removed by cancel.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1517,10 +1550,11 @@ class State:
 
     # --- watching ----------------------------------------------------------------------------------
 
-    def watch(self, var: Var) -> None:
+    def watch(self, var: Var, *, stack: bool = False) -> None:
         if self.active and not self.ending:
-            var.watchers[self] = None
-            self.watched[var] = None
+            mode = True if stack or self.watched.get(var) is True else None
+            var.watchers[self] = mode
+            self.watched[var] = mode
 
     def unwatch(self) -> None:
         for var in self.watched:
@@ -1620,7 +1654,7 @@ class State:
         var = self.instance.find_var(*target)
         before = var.value()
         insert_link(var, Link(self, slot, priority, above, stack))
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, stack_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
         return var
@@ -1630,7 +1664,7 @@ class State:
         if bake:
             var.base = self.output(0)
         var.links = [item for item in var.links if item.state is not self]
-        self.instance.changed(var, before)
+        self.instance.changed(var, before, stack_changed=True)
         for state in var.stack_states():
             state.stack_changed(var)
 

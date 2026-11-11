@@ -46,6 +46,7 @@ import json
 import math
 from functools import cache
 
+from ow174.game.commands import Command
 from ow174.game.mover import GRAVITY_SCALE, SPEED, Mod, modded, mover_data, statescript_mods
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
@@ -125,6 +126,7 @@ class Bot:
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
+        self.impulse_mover = None  # unresisted external-force reconstruction, then return to the route
         self.records_from: int | None = None  # a respawned bot's first record tick (after its create)
         self.hero = int(spawner["hero"], 16)
         self.name = hero["name"]
@@ -161,6 +163,12 @@ class Bot:
         """Walk the route up to `tick`, a tick being `seconds` long, on the map's collision if loaded."""
         if self.dead:
             return
+        if self.impulse_mover is not None:
+            if self.last_tick is not None and tick <= self.last_tick:
+                return
+            self._impulse_step(tick, seconds, collision)
+            self.last_tick = tick
+            return
         if not self.route:
             if tick < paused_until:
                 self._pause(tick)
@@ -175,6 +183,23 @@ class Bot:
                 self._pause(at)
             else:
                 self._tick(at, seconds, collision)
+
+    def _impulse_step(self, tick, seconds, collision):
+        """Let the ordinary capsule mover handle a forced arc, independent of route input/stun.
+
+        Native AI/force arbitration and resistance remain unverified. Route
+        ownership resumes only after the grounded mover comes to rest.
+        """
+        mover = self.impulse_mover
+        mover.use(world=collision)
+        mover.step(Command(tick, yaw=s16(round(self.yaw)), pitch=s16(round(self.pitch))), seconds, tick)
+        self.position, self.velocity = tuple(mover.position), tuple(mover.velocity)
+        self.held = (0, 0)
+        self.pace = 0.0
+        self.moved_tick = tick
+        if not mover.airborne and not any(mover.velocity) and not mover.velocity_changes:
+            self.impulse_mover = None
+            self.start = self.position
 
     def _pause(self, tick: int) -> None:
         self.pace = 0.0
@@ -325,6 +350,7 @@ class Bot:
         self.dead = True
         self.attack_target = None
         self.attack_input = False
+        self.impulse_mover = None
         self.keys = False
         self.held = (0, 0)
         self._stand()
@@ -359,16 +385,18 @@ class Bot:
             input_frame = None
         else:
             input_frame = self.input_tick
+        forced = self.impulse_mover
         return Movement(
             self.position,
             s16(round(self.yaw)),
             s16(round(self.pitch)),
             self.velocity,
-            DEAD if self.dead else 0,
+            DEAD if self.dead else forced.flags if forced is not None else 0,
             throttles=self.held,
             input_frame=input_frame,
             input_throttles=self.last_held,
             gravity=GRAVITY_SCALE,
+            air_ticks=forced.air_ticks if forced is not None else 0,
         )
 
 

@@ -10,7 +10,8 @@ import test_lucio_combat as fixtures
 
 from ow174.game import combat
 from ow174.game.collision import World
-from ow174.game.commands import CROUCH, FIRE
+from ow174.game.commands import CROUCH, FIRE, SECONDARY
+from ow174.game.content import heroes
 from ow174.game.script import graph
 
 
@@ -54,6 +55,72 @@ class LucioGeometryTests(unittest.TestCase):
                     for _ in range(35):
                         run.step({source: (0, 0, stance)})
                     self.assertEqual(helper.health(run, enemy), 120 if overhead else 200)
+
+    def test_soundwave_checks_both_vertical_samples_around_cover(self):
+        for crouched in (False, True):
+            for cover, hit in (("open", True), ("low", True), ("high", True),
+                               ("full", False), ("centre_gap", False)):
+                with self.subTest(crouched=crouched, cover=cover):
+                    helper, run, source, enemy, _ = self.scenario()
+                    fight = run.match.combat
+                    stance = (0, 0, CROUCH if crouched else 0)
+                    for _ in range(14):
+                        run.step({enemy: stance})
+                    target = next(t for t in fight._targets() if t.owner is enemy)
+                    eye = fight._eye(source)
+
+                    wall_height = {
+                        fraction: (eye[1] + target.feet[1] + target.height * fraction) / 2
+                        for fraction in (.40, .45, .55)
+                    }
+
+                    spans = {
+                        "open": (),
+                        "low": ((1, wall_height[.55]),),
+                        "high": ((wall_height[.40], 5),),
+                        "full": ((1, 5),),
+                        "centre_gap": ((1, wall_height[.45]), (wall_height[.55], 5)),
+                    }[cover]
+                    triangles = [
+                        (-50, 1, -50, -50, 1, 50, 50, 1, 50),
+                        (-50, 1, -50, 50, 1, 50, 50, 1, -50),
+                    ]
+                    for low, high in spans:
+                        triangles.extend(((-5, low, 2, 5, low, 2, 5, high, 2),
+                                          (-5, low, 2, 5, high, 2, -5, high, 2)))
+                    run.match.collision_world = World(triangles)
+                    serial = fight.knockbacks.serial
+                    run.step({source: (0, 0, SECONDARY), enemy: stance})
+                    self.assertEqual(helper.health(run, enemy), 175 if hit else 200)
+                    self.assertEqual(fight.knockbacks.serial - serial, int(hit))
+
+    def test_enemy_mccree_stance_uses_authored_eye_and_target_history(self):
+        for crouched,height in ((False,1.425),(True,.9975)):
+            with self.subTest(crouched=crouched):
+                _,run,_,enemy,_ = self.scenario()
+                run.match.switch_hero(enemy,heroes()[0x02E0000000000042])
+                enemy.mover.position[:] = (0,1,4)
+                stance = CROUCH if crouched else 0
+                run.step({enemy:(-32768,0,stance)})
+                run.step({enemy:(-32768,0,stance)})
+                fight = run.match.combat
+                self.assertAlmostEqual(fight._eye(enemy)[1]-enemy.mover.position[1],height)
+                target = next(t for t in fight._targets() if t.owner is enemy)
+                self.assertEqual(target.eye,height)
+                self.assertEqual(fight.history[enemy.body][-1][3],height)
+
+    def test_enemy_mccree_primary_respects_its_lower_eye_at_cover(self):
+        for crouched,cutoff in ((False,2.48),(True,2.05)):
+            for overhead in (False,True):
+                with self.subTest(crouched=crouched,overhead=overhead):
+                    helper,run,source,enemy,_ = self.scenario()
+                    run.match.switch_hero(enemy,heroes()[0x02E0000000000042])
+                    enemy.mover.position[:] = (0,1,4)
+                    self.wall(run,cutoff if overhead else 1,5 if overhead else cutoff)
+                    stance = CROUCH if crouched else 0
+                    run.step({enemy:(-32768,0,stance)})
+                    run.step({enemy:(-32768,0,FIRE|stance)})
+                    self.assertEqual(helper.health(run,source),130. if overhead else 200.)
 
     @unittest.skipUnless(graph.graph(0x0267), "requires actual0267 status supplement")
     def test_healing_sight_uses_the_same_lower_eye(self):

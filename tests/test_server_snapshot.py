@@ -15,14 +15,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_server_journal as journal_tests
 from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
+from ow174.game import bots, lucio, npc, velocity
 from ow174.game import mover as mover_module
 from ow174.game.collision import StaticCollisionProvider, flat_world
-from ow174.game.combat import Vitals
-from ow174.game.content import SOLDIER
+from ow174.game.combat import (
+    ANA_GRENADE_EFFECT, TICK, HitDef, Hitscan, Melee, NpcWeaponImpact, ProjectileImpact, Soundwave, Vitals,
+)
+from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.link import SYN
 from ow174.game.match import Match
 from ow174.game.mover import Mover
-from ow174.game.script import runtime
+from ow174.game.script import expr, graph, runtime
 from ow174.game.script.driver import BodyScript, Snapshot
 from ow174.game.server_journal import RecordingServerSession, ServerJournalError, _ReplaySession
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state, snapshot_digest
@@ -40,6 +43,142 @@ class ServerSnapshotTests(unittest.TestCase):
     def capture(session):
         return export_server_state(session.server, archives=session._matches.values(),
                                    collision_provider=session._collision_reads, assets=session.registry)
+
+    def test_pending_velocity_changes_are_stored_without_consuming(self):
+        session, _, players = self.scene()
+        actor = players[0].mover
+        empty = snapshot_digest(self.capture(session))
+        actor.velocity_changes.extend((velocity.numeric(101, 3, mover_module.MULTIPLY, 1.15),
+                                       velocity.vector(101, mover_module.ADD, (2.5, 0., 0.), actor.velocity)))
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(empty, pending)
+        self.assertEqual(len(actor.velocity_changes), 2)
+        self.assertEqual(pending, snapshot_digest(self.capture(session)))
+        actor.velocity_changes.clear()
+        self.assertEqual(empty, snapshot_digest(self.capture(session)))
+
+    def test_declared_npc_controller_context_is_causal_without_running_the_vm(self):
+        session, _, players = self.scene()
+        sample = bots.make(PRACTICE_RANGE.map_guid)[0]
+        bot = npc.spawn(players[0].match, npc.Definition(sample.hero, sample.body, sample.name, 200.),
+                        (0, 0, 3), team=1)
+        # This layout check owns an empty script fixture; actual13EB behavior
+        # and its authored body are exercised by test_lucio_enforcer.
+        with mock.patch.object(graph, "entity_body", return_value={"graphs": []}):
+            players[0].match._prepare_bot_script(bot)
+        self.assertIsNotNone(bot.body_script)
+        world = bot.body_script.component.world
+        self.assertIsNone(world.controller_components)
+        before = snapshot_digest(self.capture(session))
+        world.controller_components = (0x4B,)
+        declared = snapshot_digest(self.capture(session))
+        self.assertNotEqual(declared, before)
+        self.assertEqual(declared, snapshot_digest(self.capture(session)))
+        world.controller_components = (0x4B, 0x5C)
+        self.assertNotEqual(declared, snapshot_digest(self.capture(session)))
+        world.controller_components = None
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+        world.manual_target = players[0].body
+        bound = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, bound)
+        world.manual_target = None
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+        players[0].match.combat.pins[bot.entity] = players[0].body
+        pinned = snapshot_digest(self.capture(session))
+        self.assertNotEqual(before, pinned)
+        self.assertEqual(pinned, snapshot_digest(self.capture(session)))
+        players[0].match.combat.pins.clear()
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_pending_player_and_npc_external_impulses_are_stored_without_consuming(self):
+        session, _, players = self.scene()
+        player = players[0]
+        match = player.match
+        sample = bots.make(PRACTICE_RANGE.map_guid)[0]
+        bot = npc.spawn(match, npc.Definition(sample.hero, sample.body, sample.name, 200.), (0, 0, 3), team=1)
+        fight = match.combat
+        targets = {target.entity: target for target in fight._targets()}
+        empty = snapshot_digest(self.capture(session))
+        self.assertTrue(fight.knockbacks.apply(targets[player.body], expr.Vec3(0., 6., 12.)))
+        self.assertTrue(fight.knockbacks.apply(targets[bot.entity], expr.Vec3(0., 6., 12.)))
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(empty, pending)
+        self.assertEqual(pending, snapshot_digest(self.capture(session)))
+        self.assertEqual(fight.knockbacks.serial, 2)
+        self.assertIs(fight.knockbacks.active[bot.entity], bot.impulse_mover)
+        self.assertEqual(len(bot.impulse_mover.velocity_changes), 1)
+        self.assertEqual(len(player.mover.velocity_changes), 1)
+        impact = match.tick + 8
+        self.assertTrue(fight.knockbacks.apply(
+            targets[bot.entity], expr.Vec3(0., 6., 12.), impact_frame=impact,
+        ))
+        future = snapshot_digest(self.capture(session))
+        self.assertNotEqual(future, pending)
+        events = fight.knockbacks.pending_npc[bot.entity]
+        _, key, impulse = events[0]
+        events[0] = (impact + 1, key, impulse)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), future)
+        self.assertEqual(len(bot.impulse_mover.velocity_changes), 1)
+
+    def test_pending_lucio_impacts_store_frame_without_resolving(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        initial = snapshot_digest(self.capture(session))
+        frame = fight.tick + 8
+        source = (player, player.body, frame, float(frame), (0., 1., 0.), (0., 0., 1.))
+        wave = Soundwave(*source, 8., .8, HitDef(25), expr.Vec3(0., 6., 12.))
+        melee = Melee(*source, (0., 1., 1.5), 1., HitDef(30), (0., 0., 0.),
+                      frozenset((0x0D600000000002F9,)), (2., 1., 0.))
+        projectile = ProjectileImpact(player, player.body, frame, None, (0., 1., 4.), (0., 1., 4.),
+                                      None, HitDef(80), False)
+        hitscan = Hitscan(player, player.body, frame, frame - 1, float(frame), (0., 1., 0.),
+                          (0., 0., 1.), 40., HitDef(20))
+        for attack in (wave, melee, projectile, hitscan):
+            with self.subTest(attack=type(attack).__name__):
+                fight._queue_impact(attack)
+                pending = snapshot_digest(self.capture(session))
+                self.assertNotEqual(pending, initial)
+                self.assertEqual(fight.pending_impacts[0].frame, frame)
+                if isinstance(attack, (Melee, Soundwave)):
+                    fight.pending_impacts[0] = dataclasses.replace(attack, wraith_protected=frozenset({player.body}))
+                    protected = snapshot_digest(self.capture(session))
+                    self.assertNotEqual(protected, pending)
+                    fight.pending_impacts[0] = dataclasses.replace(
+                        fight.pending_impacts[0], mitigation={player.body: (0.6, True)},
+                    )
+                    mitigated = snapshot_digest(self.capture(session))
+                    self.assertNotEqual(mitigated, protected)
+                    if isinstance(attack, Melee):
+                        fight.pending_impacts[0] = dataclasses.replace(
+                            fight.pending_impacts[0], deflected=frozenset({player.body}),
+                        )
+                        self.assertNotEqual(snapshot_digest(self.capture(session)), mitigated)
+                if isinstance(attack, ProjectileImpact):
+                    fight._discard_impacts(player.body)
+                    self.assertEqual(fight.pending_impacts, [projectile])
+                fight._discard_impacts(player.body, retiring=True)
+                self.assertEqual(snapshot_digest(self.capture(session)), initial)
+
+    def test_landed_npc_hit_is_causal_until_resolution_or_removal(self):
+        session, _, (player,) = self.scene()
+        fight = player.match.combat
+        sample = bots.make(PRACTICE_RANGE.map_guid)[0]
+        bot = npc.spawn(player.match, npc.Definition(sample.hero, sample.body, sample.name, 200.),
+                        (0, 0, 3), team=1)
+        target = next(target for target in fight._targets() if target.owner is player)
+        initial = snapshot_digest(self.capture(session))
+        impact = NpcWeaponImpact(bot, bot.entity, fight.tick, fight.tick - 1, target, 20., False, None, None)
+        fight._queue_impact(impact)
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pending, initial)
+        fight.pending_impacts[0] = dataclasses.replace(impact, pin=(3, 2, 1))
+        self.assertNotEqual(snapshot_digest(self.capture(session)), pending)
+        fight.pending_impacts[0] = impact
+        fight._discard_impacts(bot.entity)
+        self.assertEqual(fight.pending_impacts, [impact])
+        self.assertEqual(npc.remove_spawned(player.match), (bot.entity,))
+        self.assertFalse(hasattr(fight, "pending_impacts"))
 
     def test_export_never_evaluates_or_sends_and_keeps_rng_queue_and_allocation_order(self):
         session, _, players = self.scene()
@@ -80,6 +219,53 @@ class ServerSnapshotTests(unittest.TestCase):
         vitals.remove_temporary_shields("barrier")
         self.assertNotEqual(snapshot_digest(self.capture(session)), absorbed)
 
+    def test_pending_sound_barrier_grant_is_causal_without_publishing(self):
+        session, _, (source, recipient) = self.scene(two=True)
+        barriers = source.match.combat.lucio_barriers
+        before = snapshot_digest(self.capture(session))
+        grant = lucio.BarrierGrant(source.body, (0., 1., 0.), 30., 6.0, source.match.tick + 1)
+        barriers.pending.append(grant)
+        scheduled = snapshot_digest(self.capture(session))
+        self.assertNotEqual(scheduled, before)
+        self.assertEqual(scheduled, snapshot_digest(self.capture(session)))
+        self.assertFalse(barriers.leases)
+        barriers.pending[0] = dataclasses.replace(grant, tick=grant.tick + 1)
+        self.assertNotEqual(scheduled, snapshot_digest(self.capture(session)))
+        barriers.pending[0] = dataclasses.replace(grant, radius=grant.radius - 1)
+        self.assertNotEqual(scheduled, snapshot_digest(self.capture(session)))
+        barriers.pending[0] = grant
+        barriers.retire(recipient.body)
+        self.assertEqual(barriers.pending, [grant])
+        barriers.retire(source.body)
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_depleted_sound_barrier_retains_receiver_grant_frame(self):
+        session, _, (source, recipient) = self.scene(two=True)
+        barriers = source.match.combat.lucio_barriers
+        before = snapshot_digest(self.capture(session))
+        barriers.latest_grants = {recipient.body: source.match.tick}
+        self.assertFalse(barriers.leases)
+        self.assertNotEqual(before, snapshot_digest(self.capture(session)))
+        barriers.retire(recipient.body)
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+
+    def test_active_healing_denial_is_causal_snapshot_state(self):
+        session, _, players = self.scene()
+        player = players[0]
+        fight = player.match.combat
+        target = next(target for target in fight._targets() if target.owner is player)
+        fight.vitals_of(target)
+        before = snapshot_digest(self.capture(session))
+        fight._hit_effect(target, ANA_GRENADE_EFFECT)
+        active = snapshot_digest(self.capture(session))
+        self.assertNotEqual(active, before)
+        self.assertEqual(active, snapshot_digest(self.capture(session)))
+        start, deadline = fight.heal_denials[player.body]
+        fight.heal_denials[player.body] = (start, deadline + 1)
+        self.assertNotEqual(active, snapshot_digest(self.capture(session)))
+        fight.heal_denials.clear()
+        self.assertEqual(before, snapshot_digest(self.capture(session)))
+
     def test_hidden_vm_counter_transport_and_physics_changes_change_digest(self):
         session, _, players = self.scene()
         player, client = players[0], players[0].client
@@ -91,6 +277,21 @@ class ServerSnapshotTests(unittest.TestCase):
         player.match.combat.stuns[player.body] = player.match.tick + 50
         self.assertNotEqual(snapshot_digest(self.capture(session)), initial)
         player.match.combat.stuns.pop(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        fight = player.match.combat
+        fight.stun_poses = {player.body: [(fight.tick, fight.tick + 50)]}
+        pending = snapshot_digest(self.capture(session))
+        self.assertNotEqual(pending, initial)
+        fight.stun_poses[player.body][0] = (fight.tick, fight.tick + 49)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), pending)
+        fight._discard_stun_poses(player.body)
+        self.assertEqual(snapshot_digest(self.capture(session)), initial)
+        fight.begin_pin(123, player.body)
+        active_pin = snapshot_digest(self.capture(session))
+        fight.pin_pose_starts[123] -= 1
+        self.assertNotEqual(snapshot_digest(self.capture(session)), active_pin)
+        fight.pin_pose_starts[123] += 1
+        fight.end_pin(123)
         self.assertEqual(snapshot_digest(self.capture(session)), initial)
         next(player.body_script.component.seq)
         changed = snapshot_digest(self.capture(session))
@@ -233,7 +434,10 @@ class StoredJournalTests(unittest.TestCase):
         players = session.server.matches[0].players
         for peer, player in zip(peers, players, strict=True):
             peer.message(21616, pick(player.entity, SOLDIER), now=100.8)
-        peers[0].commands(players[0].body_script.frame + 1, 60, 1)
+        shot_frames = 60
+        peers[0].commands(players[0].body_script.frame + 1, shot_frames, 1)
+        # Let the world settle the future hits reported by the command batch.
+        session.tick(100.8 + shot_frames * TICK, missed=shot_frames - 1)
         self.assertTrue(players[1].match.combat.is_dead(players[1]))
         dead_body = players[1].body
         session.tick(105.0, missed=200)

@@ -6,7 +6,7 @@ not restored native autonomous acquisition, navigation or enemy special behavior
 
 import math
 
-from ow174.game import bots, combat
+from ow174.game import assassin, bots, combat
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 
@@ -60,6 +60,27 @@ def start(match, player):
     return bot.entity
 
 
+# Manual NPCs do not have the native controller producer for these exits.
+_RELEASE_SCOPE = {
+    0x1122: 58,  # Sniper recharge guard; the graph's node 59 then aborts the attack stack.
+    0x114F: 28,  # Heavy Assault attack stack owns spin-up and its repeating volley.
+}
+
+
+def end_attack_scope(component, *, terminal=False):
+    for instance in tuple(component.instances.values()):
+        graph_index = instance.graph.index
+        # The recharge guard's ordinary exit relies on a live input switch.
+        # Death aborts its owning stack before the terminal graph is dispatched.
+        position = 34 if terminal and graph_index == 0x1122 else _RELEASE_SCOPE.get(graph_index)
+        if position is None or instance.stopped:
+            continue
+        node = instance.graph.node(position)
+        state = instance.states.get(node.state) if node is not None else None
+        if state is not None and state.active:
+            state.end(False)
+
+
 def stop(match):
     count = 0
     for bot in match.bots:
@@ -70,11 +91,13 @@ def stop(match):
         bot.attack_input = False
         if bot.body_script is not None:
             component = bot.body_script.component
+            assassin.bind(component.world, component, None)
             values = set(component.held)
             primary = component.world.ai_weapon_button(0)
             if type(primary) is int:
                 values.add(primary)  # also cancel a down edge queued before the next VM update
             component.edges([(value, False) for value in sorted(values)])
+            end_attack_scope(component)
             component.shots.clear()
         for shot in list(match.combat.projectiles.shots):
             if shot.player is bot:
@@ -96,7 +119,8 @@ def update_input(fight, bot):
         point = fight._eye(target)
         dx, dy, dz = (b - a for a, b in zip(origin, point, strict=True))
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-        enabled = 0 < distance <= AIM_RANGE
+        reach = assassin.PIN_RANGE if bot.hero == assassin.HERO else AIM_RANGE
+        enabled = 0 < distance <= reach
         if enabled:
             direction = tuple(v / distance for v in (dx, dy, dz))
             wall = combat.ray_world(fight.match.collision_world, origin, direction, distance)
@@ -106,7 +130,13 @@ def update_input(fight, bot):
             bot.moved_tick = fight.tick
     value = button(bot)
     component = bot.body_script.component
+    desired = target.body if enabled else None
+    if bot.hero == assassin.HERO and component.world.manual_target != desired:
+        assassin.bind(component.world, component, desired)
+        bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         component.edges([(value, bool(enabled))])
+        if not enabled:
+            end_attack_scope(component)
     bot.attack_input = bool(enabled)
     return bool(enabled)

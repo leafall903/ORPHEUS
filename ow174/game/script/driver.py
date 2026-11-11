@@ -24,7 +24,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from ow174.game import pools
+from ow174.game import lucio, pools
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -95,9 +95,9 @@ TRUSTED_NATIVES = {
     "STU_D3EB8D87",  # ... AIIsPathFollowing: unused for a player
 }
 POLLED_SWITCHES = {"STUStatescriptStateBooleanSwitch", "STU_DEBD057B"}
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. The server has no damage or healing yet, so the
-# charge fills by itself in ULT_SECONDS (0: never), and not while the ultimate runs.
+# Charge #342e is server data and the ultimate graph spends it. Cost #338e
+# comes from the Entries. ULT_SECONDS is the legacy fill clock for other heroes.
+# On Lucio, zero disables the authored passive clock for manual charge fixtures.
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_SECONDS = 60.0
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -158,8 +158,139 @@ class BodyWorld(runtime.World):
         # Preserve the mode's configured scalar fallback in World.entity_var.
         return super().entity_var_slot(entity, var, create=create)
 
+    def create_compatible_pet(self, state):
+        from ow174.game import experimental_barrier
+
+        if self.match is None:
+            return NotImplemented
+        return experimental_barrier.create_barrier(self.match.combat, self, state)
+
+    def retire_compatible_pet(self, state, entity: int) -> None:
+        if self.match is not None:
+            self.match.combat.barriers.pop(entity, None)
+
+    def play_resolved_script(self, instance, node, resource):
+        from ow174.game import experimental_barrier, grasp
+
+        if self.hero == grasp.HERO and self.match is not None:
+            if (grasp.grant_shields(self.match.combat, instance, node, resource)
+                    or experimental_barrier.play_barrier_request(
+                        self.match.combat, self.body, instance, node, resource)):
+                return
+        if ((instance.graph.index, node.pos, resource.guid) == (0x0B1B, 141, 0x0580000000000B1F)
+                and self.match is not None):
+            self.play_hack_receiver(instance, node, resource)
+            return
+        super().play_resolved_script(instance, node, resource)
+
+    def play_hack_receiver(self, instance, node, resource):
+        # Reconstructed 104319 match routing for Sombra's single-target Hack.
+        from ow174.game.script.play import InvocationContext, resolve_request
+
+        request = resolve_request(
+            instance, node, resource,
+            context_provider=lambda: InvocationContext(self.body, self.body, self.body),
+        )
+        if request is None or len(request.targets) != 1 or request.wire_flag != 0:
+            return
+        definition = graph.graph(resource.guid & 0xFFFF)
+        if definition is None:
+            return
+        fight = self.match.combat
+        for target in fight._targets():
+            if target.entity != request.targets[0] or fight.vitals_of(target).dead:
+                continue
+            script = target.owner.body_script
+            if script is not None and not script.retired:
+                component = script.component
+                previous = component.now
+                # Queue the receiver for the pose after the observed completion.
+                # A silent target may still have earlier poses to recover.
+                dispatch_frame = max(self.match.tick, instance.component.frame)
+                component.now = max(previous, (dispatch_frame + 1) * component.frame_ms)
+                try:
+                    component.play_loaded_graph(
+                        definition, source=request.context.caller, instigator=request.context.instigator,
+                        params=request.params, overrides=resource.overrides, policy=request.policy,
+                    )
+                finally:
+                    component.now = previous
+            return
+
+    def hack_target_visible(self, instance, target_id: int) -> bool:
+        """Reconstructed completion check for the selected Hack target."""
+        from math import dist
+
+        from ow174.game import wraith
+
+        if self.match is None:
+            return False
+        fight = self.match.combat
+        bodies = {target.entity: target for target in fight._targets()}
+        source, target = bodies.get(self.body), bodies.get(target_id)
+        if (source is None or target is None or source is target or fight.vitals_of(source).dead
+                or fight.vitals_of(target).dead or wraith.protects(target.owner, fight.tick)
+                or (source.team == target.team and not self.match.game_map.free_for_all)):
+            return False
+        radius = expr.to_float(instance.evaluate(instance.graph.node(52).field("m_radius")))
+        origin = (source.feet[0], source.feet[1] + source.eye, source.feet[2])
+        destination = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+        distance = dist(origin, destination)
+        offset = tuple(end - start for start, end in zip(origin, destination, strict=True))
+        return distance <= radius and fight.hack_line_clear(source.owner, origin, target, offset, distance)
+
     def native(self, cfg: dict, instance):
         cls = cfg.get("$")
+        from ow174.game import experimental_barrier, mercy_boost
+        from ow174.game.lucio_movement import query
+
+        if self.hero == mercy_boost.HERO and cls == "STU_AC829876":
+            result = mercy_boost.award_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if (self.hero == mercy_boost.HERO and self.match is not None and instance is not None
+                and instance.graph.index == 0x01C7):
+            if cls == "STU_4A101787":
+                return True  # selected authoritative owner role
+            if cls == "STU_9622CAD6":
+                from ow174.game.world import GAME_MODE_ENTITY
+
+                return Entity(GAME_MODE_ENTITY)
+            if cls == "STU_ABB6C23E":
+                return Asset(0)  # ordinary mode category
+        if self.hero == experimental_barrier.HERO and instance is not None:
+            result = experimental_barrier.barrier_owner_query(self, cfg, instance)
+            if result is NotImplemented:
+                result = experimental_barrier.barrier_health_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+
+        movement_value = query(self, cfg, instance)
+        if movement_value is not NotImplemented:
+            return movement_value
+        if self.hero == lucio.HERO and cls in (
+            "STU_A6B80C63", "STU_A58C1E63", "STU_AC829876", "STU_25ECB55F",
+        ):
+            charge_value = lucio.damage_charge_query(self, cfg, instance)
+            if charge_value is not NotImplemented:
+                return charge_value
+        if cls == "STU_F7262B36" and self.hero == lucio.HERO and instance.graph.index == 0x0B8B:
+            component = instance.component
+            if instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body):
+                player = lucio.charge_player(self, component)
+                enabled = component.entity_var(lucio.ULTIMATE_ENABLED, create=False)
+                if (player is not None and player.body_script.ult_seconds > 0 and not component.owner_dead
+                        and (enabled is None or enabled.value() is not False)):
+                    return Entity(player.entity)
+                return Entity(0)
+        if (cls == "STU_E72F6348" and self.match is not None and instance is not None
+                and instance.graph.index == 0x0B1F
+                and cfg is instance.graph.node(19).field("m_condition")):
+            # Reconstructed match lookup for the Hack receiver's source body.
+            source = instance.evaluate(cfg.get("m_entity"))
+            return isinstance(source, Entity) and any(
+                target.entity == source.id for target in self.match.combat._targets()
+            )
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -180,7 +311,22 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
-        if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+        if cls == "STU_AC829876":
+            if (instance is not None and instance.graph.index == 0x0B1B
+                    and cfg is instance.graph.node(204).field("m_condition")):
+                target = instance.evaluate(cfg.get("m_entity"))
+                return isinstance(target, Entity) and self.hack_target_visible(instance, target.id)
+            # Reconstruct the bare player-body mask on the Hack receiver's self filter.
+            if (self.match is not None and instance is not None and instance.graph.index == 0x0B1F
+                    and cfg is instance.graph.node(21).field("m_condition")):
+                target = instance.evaluate(cfg.get("m_entity"))
+                mask = {key: value for key, value in cfg["m_filter"].items() if value not in (None, 0)}
+                if mask == {"$": "STUConfigVarFilter", "m_84065FD1": 1}:
+                    return target == Entity(self.body) and any(
+                        player.has_body and player.body == self.body and player.body_script is not None
+                        and player.body_script.component is instance.component
+                        for player in self.match.players
+                    )
             from ow174.game.lucio import barrier_owner_filter
 
             result = barrier_owner_filter(self, cfg, instance)
@@ -325,7 +471,18 @@ class BodyScript(ReplicatedBody):
         component.now = frame * self.frame_ms
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
+        if self.hero == lucio.HERO:
+            for identifier, value in lucio.SETTING_DEFAULTS.items():
+                component.set(identifier, value)
+            if self.world.ruleset(lucio.ULTIMATE_ENABLED) is False:
+                component.set(lucio.ULTIMATE_ENABLED, False)
+            for key in (lucio.ULTIMATE_GENERATION, lucio.PASSIVE_GENERATION, lucio.COMBAT_GENERATION):
+                value = self.world.ruleset(key)
+                if value is not None and value != 1:
+                    component.set(key, value)
         for instance in create_body_graphs(component, self.record):
+            if self.hero == lucio.HERO and self.world.match is not None and instance.graph.index == 0x0B8B:
+                instance.disabled_start_entries.add(2)  # the world clock owns this passive entry
             instance.init()
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
@@ -368,10 +525,18 @@ class BodyScript(ReplicatedBody):
             self._run(missing, [])
         self.world.throttles = (forward, right)
         self._run(frame, button_edges(self.buttons, buttons, action))
+        if self.hero == lucio.HERO and self.world.match is not None:
+            self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        if self.hero == lucio.HERO:
+            player = lucio.charge_player(self.world, self.component)
+            if player is not None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None and not common.node_state(common.graph.node(77)).active:
+                    runtime.send_instance_message(common, lucio.CHARGE_ACTIVE, {}, player.entity)
         self.component.run_frame(frame, edges)
         self._report_shots()
         self._charge_ult()
@@ -381,7 +546,8 @@ class BodyScript(ReplicatedBody):
         self.component.set(ULT_CHARGE, f32(points))
 
     def _charge_ult(self) -> None:
-        if self.ult_seconds <= 0 or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+        if (self.hero == lucio.HERO or self.ult_seconds <= 0
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())

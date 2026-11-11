@@ -431,7 +431,17 @@ class BodyTests(unittest.TestCase):
         (0x7FF789E761E4 <- 0x7FF78AAB78DF <- one_var 0x7FF78991D484). With these commands (the
         best fit: fire, release at 4093, running) the encoder as it was live (Effect 0254 st21 without its 2
         bits) makes exactly that frame, and the client's table reads it to an id-less variable of instance 12
-        whose store crashes, its reader at bit 857. Now the frame reads whole."""
+        whose store crashes, its reader at bit 857. Reproduce the historical scalar-only priority
+        dependency registration as well as the missing Effect payload. Current frames read whole
+        and retain the runtime's state, including priority changes with an unchanged scalar."""
+
+        def historical_priority_read(context, var, priority):
+            if var is None:
+                return False
+            target = context.instance.find_var(var[0], var[1], create=True)
+            if context.watcher is not None:
+                context.watcher.watch(target)
+            return runtime.would_stack_to_top(target, priority)
 
         def frame_at_4094():
             body = BodyScript(SOLDIER, 0xA0000101, 3880)
@@ -447,15 +457,18 @@ class BodyTests(unittest.TestCase):
                     body.command(k, FIRE if fire else 0, 0, 127 if k > 3900 else 0, 0)
                 for update in body.frames():
                     if k == 4094:
-                        return update, client
+                        return update, client, server_on(body) - UNSENDABLE
                     try:
                         client.apply(update)
                     except decode.DecodeError:  # misread as live: its instance list still applies
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
-            update, client = frame_at_4094()
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.object(runtime.InstanceContext, "would_stack_to_top", historical_priority_read),
+        ):
+            update, client, _ = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))
         positions = []
@@ -474,8 +487,9 @@ class BodyTests(unittest.TestCase):
             client.apply(update)
         self.assertEqual((caught.exception.where, positions), ("0x7FF78AAB78A0", [857]))
         self.assertIn("id-less variable of instance 12", caught.exception.what)
-        update, client = frame_at_4094()
+        update, client, expected = frame_at_4094()
         client.apply(update)
+        self.assertEqual(client.on(), expected)
 
     def test_a_frame_wait_finishes_and_sends_its_frame(self):
         # 01CF st120 (STU_D74D4F47) is on at the spawn; the client's class finishes it m_3016B9A1 (1) frames

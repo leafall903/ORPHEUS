@@ -155,6 +155,18 @@ class SonicAmplifierTests(unittest.TestCase):
                 self.assertEqual(weapon.vars[53].value(), 16)
                 self.assertFalse(run.match.combat.rockets)
 
+    def test_primary_terminal_sweep_includes_exact_capsule_contact(self):
+        for distance, expected_damage in ((100.5, 80), (100.5 + 1 / 1024, 0)):
+            with self.subTest(distance=distance):
+                helper, run, source, enemy, weapon = self.scenario()
+                enemy.mover.position[:] = (0, 1, distance)
+                run.step({source: (0, 0, FIRE)})
+                for _ in range(160):
+                    run.step({})
+                self.assertEqual(helper.health(run, enemy), 5000 - expected_damage)
+                self.assertEqual(weapon.vars[53].value(), 16)
+                self.assertFalse(run.match.combat.rockets)
+
     def test_primary_same_team_player_is_excluded_except_in_free_for_all(self):
         for free_for_all in (False, True):
             with self.subTest(free_for_all=free_for_all):

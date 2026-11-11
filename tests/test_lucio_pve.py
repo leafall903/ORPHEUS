@@ -83,8 +83,9 @@ class LucioPveTests(unittest.TestCase):
             with self.subTest(npc=definition.name):
                 helper, run, source, bot = self.scenario(definition)
                 before = helper.health(run, bot)
+                yaw, pitch = aim(run.match.combat._eye(source), (0, 1.8, 4))
                 for _ in range(25):
-                    run.step({source: (0, 0, FIRE)})
+                    run.step({source: (yaw, pitch, FIRE)})
                 for _ in range(8):
                     run.step({})  # let the fourth authored projectile reach the NPC
                 self.assertEqual(before - helper.health(run, bot), 80)
@@ -119,6 +120,89 @@ class LucioPveTests(unittest.TestCase):
                     self.assertEqual(weapon.vars[53].value(), 16)
                     self.assertEqual(before - helper.health(run, bot), 80 if team else 0)
                     self.assertFalse(bot.dead)
+
+    @patch("ow174.game.npc_control.update_input", return_value=True)
+    def test_three_real_npc_weapon_inputs_damage_lucio_and_stop_after_release(self, _input_policy):
+        # Raw native-VM diagnostic: bypass the later manual-controller gate.
+        # Its release/end failures remain open, separate from control.stop().
+        expected = {"Trooper": 20, "Sniper": 100, "Heavy Assault": 5}
+        for definition in self.definitions.values():
+            if definition.name not in expected:
+                continue  # Enforcer and Assassin attacks remain unimplemented.
+            with self.subTest(npc=definition.name):
+                helper, run, source, bot = self.scenario(definition)
+                bot.yaw = 32768  # explicit facing towards Lucio, not AI acquisition
+                component = bot.body_script.component
+                button = graph.entity_body(bot.body)["ai_weapon_buttons"]["0"]
+                component.edges([(button, True)])  # actual authored weapon input
+                for _ in range(200):
+                    run.step({})
+                    if helper.health(run, source) < 200:
+                        break
+                self.assertEqual(200 - helper.health(run, source), expected[definition.name])
+                component.edges([(button, False)])
+                for _ in range(80):
+                    run.step({})  # allow authored burst/in-flight impacts to settle
+                settled = helper.health(run, source)
+                self.assertGreater(settled, 0)
+                for _ in range(80):
+                    run.step({})
+                self.assertEqual(helper.health(run, source), settled)
+                self.assertIsNotNone(bot.body_script)
+
+    @patch("ow174.game.npc_control.update_input", return_value=True)
+    def test_heavy_release_retires_volley_and_repress_spins_up_again(self, _input_policy):
+        definition = next(d for d in self.definitions.values() if d.name == "Heavy Assault")
+        for gap in (1, 16):
+            with self.subTest(gap=gap):
+                helper, run, source, bot = self.scenario(definition)
+                bot.yaw = 32768
+                component = bot.body_script.component
+                button = graph.entity_body(bot.body)["ai_weapon_buttons"]["0"]
+                weapon = next(i for i in component.instances.values() if i.graph.index == 0x114F)
+                component.edges([(button, True)])
+                for _ in range(90):
+                    run.step({})
+                    if helper.health(run, source) < 200:
+                        break
+                self.assertEqual(helper.health(run, source), 195)
+                volley = weapon.state(weapon.graph.node(47).state)
+                self.assertTrue(volley.active)
+                activation = volley.counter
+                component.edges([(button, False)])
+                for _ in range(gap):
+                    run.step({})
+                self.assertNotIn(button, component.held)
+                self.assertFalse(volley.active)
+                self.assertEqual(helper.health(run, source), 195)
+                component.edges([(button, True)])
+                run.step({})
+                self.assertEqual(helper.health(run, source), 195)
+                for _ in range(90):
+                    run.step({})
+                    if helper.health(run, source) < 195:
+                        break
+                self.assertEqual(helper.health(run, source), 190)
+                self.assertNotEqual(volley.counter, activation)
+
+    @patch("ow174.game.npc_control.update_input", return_value=True)
+    def test_three_real_npc_weapons_respect_team_and_actual_static_wall(self, _input_policy):
+        for definition in self.definitions.values():
+            if definition.name not in {"Trooper", "Sniper", "Heavy Assault"}:
+                continue
+            for team, wall in ((0, False), (1, True)):
+                with self.subTest(npc=definition.name, team=team, wall=wall):
+                    helper, run, source, bot = self.scenario(definition, team=team)
+                    bot.yaw = 32768
+                    if wall:
+                        self.wall(run)
+                    component = bot.body_script.component
+                    button = graph.entity_body(bot.body)["ai_weapon_buttons"]["0"]
+                    component.edges([(button, True)])
+                    for _ in range(200):
+                        run.step({})
+                    self.assertEqual(helper.health(run, source), 200)
+                    self.assertIsNotNone(bot.body_script)
 
     def test_soundwave_damages_all_five_but_never_allied_bodies(self):
         for definition in self.definitions.values():
