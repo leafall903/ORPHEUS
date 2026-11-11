@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Orisa server checkpoint
+
+- Preserve the Orisa lane's Fusion Driver, Halt, Fortify, Protective Barrier,
+  Supercharger, and combat regression sources for unified server integration.
+- Bring over the authored Halt target request and explosion sequence from the
+  combined scratch checkpoint. Load the verified initial sphere records from
+  movement caches and capture match-owned sphere velocity and the active query
+  in controlled server snapshots.
+- Focused Halt, map collision and fingerprint regressions passed 57 tests.
+  Snapshot and VM regressions passed 29 tests. Original-client acceptance, native shot sampling and muzzle transforms,
+  later motion-4 modes, and cross-hero coverage remain open.
+
 ### 2026-11-09
 
 #### Fusion Driver versus Genji Deflect

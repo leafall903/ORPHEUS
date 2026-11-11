@@ -43,7 +43,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from ow174.game import contacts, props
 from ow174.game.casc import CascError, RecordCatalog, Storage, game_root
@@ -66,6 +66,8 @@ RAY_PROP_SCOPE = "indexed-static-models"
 RAY_ROOT_PROP_SCOPE = "indexed-and-authenticated-roots"
 ALL_CATEGORIES = 0xFFFF  # original per-triangle and per-shape masks are u16
 MAX_CACHE_HEADER = 1 << 20
+INITIAL_SPHERE_CATALOG = "initial_dynamic_spheres"
+INITIAL_SPHERE_READ_ERRORS = (OSError, CascError, props.PropError, struct.error, IndexError, KeyError, OverflowError)
 CELL = 2.0  # metres per grid column
 CELL_CACHE = 1024  # columns kept as ready triangle lists
 LARGE = 4096  # a triangle over more columns than this is checked by every query instead
@@ -663,6 +665,32 @@ def _placement_groups(header: dict, identifiers: frozenset[int]) -> frozenset[in
                           if int(text, 16) in identifiers)])
 
 
+def _cached_initial_spheres(records, identifiers: frozenset[int]) -> tuple[props.PlacedDynamicSphere, ...]:
+    if type(records) is not list:
+        raise CollisionError("invalid initial sphere catalog")
+    result = []
+    seen = set()
+    for row in records:
+        if type(row) is not list or len(row) != 7:
+            raise CollisionError("invalid initial sphere record")
+        identifier, placement, definition, shape, centre, radius, inverse_mass = row
+        if any(type(value) is not int or not 0 <= value < 1 << 64
+               for value in (identifier, placement, definition, shape)):
+            raise CollisionError("invalid initial sphere identifier")
+        if type(centre) is not list or len(centre) != 3:
+            raise CollisionError("invalid initial sphere centre")
+        if any(type(value) is not float or not math.isfinite(value) for value in (*centre, radius, inverse_mass)):
+            raise CollisionError("invalid initial sphere numeric field")
+        if radius <= 0 or inverse_mass < 0 or (placement, shape) in seen:
+            raise CollisionError("invalid initial sphere shape, mass or duplicate key")
+        seen.add((placement, shape))
+        if not identifier or identifier in identifiers:
+            result.append(props.PlacedDynamicSphere(
+                placement, definition, shape, tuple(centre), radius, initial_inverse_mass=inverse_mass,
+            ))
+    return tuple(result)
+
+
 class World(_TriangleScene):
     """A movement world with the static physics engine for character contacts."""
 
@@ -672,9 +700,13 @@ class World(_TriangleScene):
             mesh = soup_mesh(triangles, self.masks, self.surfaces)
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
+        self.initial_dynamic_spheres: tuple[props.PlacedDynamicSphere, ...] = ()
 
     @classmethod
-    def load(cls, path: str | Path, identifiers: frozenset[int] = frozenset()) -> "World":
+    def load(
+        cls, path: str | Path, identifiers: frozenset[int] = frozenset(), *,
+        read_legacy_spheres: Callable[[], tuple[props.PlacedDynamicSphere, ...]] | None = None,
+    ) -> "World":
         """A cache file's movement world for a mode that keeps these placeable identifiers."""
         with Path(path).open("rb") as file:
             header = _read_cache_header(file)
@@ -684,7 +716,12 @@ class World(_TriangleScene):
         groups = _placement_groups(header, identifiers)
         engine = engine_world(meshes, hulls, models, placements, groups)
         triangles, masks, surfaces = probe_triangles(meshes, hulls, models, placements, groups)
-        return cls(triangles, masks, surfaces, header.get("name", ""), engine)
+        world = cls(triangles, masks, surfaces, header.get("name", ""), engine)
+        if INITIAL_SPHERE_CATALOG in header:
+            world.initial_dynamic_spheres = _cached_initial_spheres(header[INITIAL_SPHERE_CATALOG], identifiers)
+        elif read_legacy_spheres is not None:
+            world.initial_dynamic_spheres = read_legacy_spheres()
+        return world
 
 
 class RayWorld(_TriangleScene):
@@ -870,6 +907,14 @@ def build(
     }
     if ray_geometry:
         source.update(geometry=RAY_GEOMETRY, category_mask=category, prop_scope=RAY_PROP_SCOPE)
+    else:
+        try:
+            source[INITIAL_SPHERE_CATALOG] = [
+                (identifier, row.placement, row.definition, row.shape, row.centre, row.radius, row.initial_inverse_mass)
+                for identifier, row in props.map_initial_dynamic_spheres(map_guid, storage.read_record)
+            ]
+        except INITIAL_SPHERE_READ_ERRORS as error:
+            log.warning("[game] no initial sphere catalog for %s: %s", name or hex(map_guid), error)
     if prop_records is not None:
         source.update(
             prop_scope=RAY_ROOT_PROP_SCOPE,
@@ -957,16 +1002,28 @@ def default_collision_provider() -> CollisionProvider:
 
 def _read_cache(map_guid: int, name: str, build_missing: bool, identifiers: frozenset[int]) -> World:
     path = cache_path(map_guid)
-    if build_missing and map_guid in collision_keys():
+    root = installed_game() if build_missing and map_guid in collision_keys() else None
+    if root is not None:
         with _building:
-            if cache_version(path) != VERSION and (root := installed_game()) is not None:
+            if cache_version(path) != VERSION:
                 started = time.monotonic()
                 build(map_guid, Storage(root), name)
                 log.info("[game] built the collision of %s in %.1f s", name or hex(map_guid),
                          time.monotonic() - started)  # fmt: skip
-    if path.is_file():
+    if not path.is_file():
+        raise CollisionError(f"no collision cache for {name or hex(map_guid)}")
+    if root is None:
         return World.load(path, identifiers)
-    raise CollisionError(f"no collision cache for {name or hex(map_guid)}")
+
+    def read_legacy_spheres() -> tuple[props.PlacedDynamicSphere, ...]:
+        try:
+            placements = props.map_dynamic_spheres(map_guid, Storage(root).read_record, identifiers=identifiers)
+            return tuple(row for row in placements if row.initial_inverse_mass is not None)
+        except INITIAL_SPHERE_READ_ERRORS as error:
+            log.warning("[game] no initial dynamic spheres for %s: %s", name or hex(map_guid), error)
+            return ()
+
+    return World.load(path, identifiers, read_legacy_spheres=read_legacy_spheres)
 
 
 def _load(map_guid: int, name: str, build_missing: bool, identifiers: frozenset[int]) -> World | None:

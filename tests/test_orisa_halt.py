@@ -1,6 +1,7 @@
 """Command-driven Halt engine reconstruction; no native physics equivalence claim."""
 
 import unittest
+from unittest.mock import patch
 
 import test_orisa_combat as fixture
 
@@ -9,6 +10,7 @@ from ow174.game.collision import World
 from ow174.game.combat import HIT
 from ow174.game.content import find_hero
 from ow174.game.mover import Mover, mover_data
+from ow174.game.props import PlacedDynamicSphere
 from ow174.game.script import expr
 
 
@@ -42,6 +44,86 @@ class HaltTests(unittest.TestCase):
         # Character contacts use oriented faces; this fixture wall has two sides.
         triangles += [face[:3] + face[6:] + face[3:6] for face in triangles[2:]]
         run.match.collision_world = World(triangles)
+
+    def test_authored_explosion_wait_runs_with_or_without_targets_and_retires_with_orb(self):
+        for case in ("enemy", "empty", "retired"):
+            with self.subTest(case=case):
+                run, caster, enemy = self.arena()
+                if case == "empty":
+                    x, y, z = caster.mover.position
+                    self.place(run, enemy, (x + 15, y, z + 7.6))
+                manager = run.match.combat.orisa
+                requests = []
+                with patch.object(run.match.collision_world, "dispatch_physics_explosion",
+                                  requests.append, create=True):
+                    orb = self.detonate(run, caster)
+                    run.step({})
+                    instance = orb.query.instance
+                    wait = instance.node_state(instance.graph.node(19))
+                    physics = instance.node_state(instance.graph.node(11))
+                    self.assertTrue(wait.active)
+                    self.assertEqual(wait.ms, 400)
+                    self.assertFalse(physics.active)
+                    self.assertEqual(manager.results[-1][1], () if case == "empty" else (enemy.body,))
+                    while run.frame < orb.requested + 24:
+                        run.step({})
+                        self.assertFalse(physics.active)
+                        self.assertEqual(physics.counter, 0)
+                        self.assertFalse(requests)
+                    if case == "retired":
+                        self.assertTrue(run.match.switch_hero(caster, find_hero("Soldier: 76")))
+                    for _ in range(20):
+                        run.step({})
+                    self.assertNotIn(orb.entity, manager.orbs)
+                    self.assertTrue(instance.stopped)
+                    self.assertFalse(physics.active)
+                    self.assertEqual(physics.counter, 0 if case == "retired" else 1)
+                    if case == "retired":
+                        self.assertFalse(requests)
+                    else:
+                        self.assertEqual(physics.start - wait.start, 400)
+                        request, = requests
+                        self.assertEqual((request.entity, request.start_ms), (orb.entity, physics.start))
+                        self.assertEqual(tuple(request.position), tuple(orb.query.origin))
+                        self.assertEqual((request.strength, request.radius, request.parameter, request.interval),
+                                         (-50, 7, 100, 0.5))
+
+    def test_halt_impulses_are_written_only_to_eligible_bodies_in_its_match(self):
+        run, caster, _ = self.arena()
+        other, _, _ = self.arena()
+        other.match.collision_world = run.match.collision_world
+        orb = self.detonate(run, caster)
+        run.step({})
+        x, y, z = orb.query.origin
+        near = PlacedDynamicSphere(1, 0x0400000000001567, 0, (x + 3, y, z), 0.01)
+        outside = PlacedDynamicSphere(2, near.definition, 0, (x + 7.02, y, z), 0.01)
+        below = PlacedDynamicSphere(3, near.definition, 0, near.centre, near.radius)
+        scene = run.match.dynamic_spheres
+        received = scene.register(near, inverse_mass=1)
+        missed = scene.register(outside, inverse_mass=1)
+        suppressed = scene.register(below, inverse_mass=0.25)
+        inside = scene.register(PlacedDynamicSphere(4, near.definition, 0, (x, y + 0.001, z), 0.01),
+                                inverse_mass=1)
+        coincident = scene.register(PlacedDynamicSphere(5, near.definition, 0, (x, y, z), 0.01),
+                                    inverse_mass=1)
+        isolated = other.match.dynamic_spheres.register(near, inverse_mass=1)
+        self.assertIs(other.match.collision_world, run.match.collision_world)
+        received.velocity = isolated.velocity = (0.25, 0, 0)
+
+        while run.frame < orb.requested + 24:
+            run.step({})
+        self.assertEqual(received.velocity, (0.25, 0, 0))
+        for _ in range(20):
+            run.step({})
+        self.assertAlmostEqual(received.velocity[0], 0.25 - 0.15432097, places=6)
+        self.assertEqual(received.velocity[1:], (0, 0))
+        self.assertEqual(missed.velocity, (0, 0, 0))
+        self.assertEqual(suppressed.velocity, (0, 0, 0))
+        self.assertAlmostEqual(inside.velocity[1], -0.15432097, places=6)
+        self.assertEqual((inside.velocity[0], inside.velocity[2]), (0, 0))
+        self.assertAlmostEqual(coincident.velocity[0], -0.15432097, places=6)
+        self.assertEqual(coincident.velocity[1:], (0, 0))
+        self.assertEqual(isolated.velocity, (0.25, 0, 0))
 
     def test_second_press_routes_real_message_freezes_then_pulls_enemy_without_damage(self):
         run, caster, enemy = self.arena()

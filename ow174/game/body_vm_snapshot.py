@@ -11,8 +11,9 @@ import random
 
 from ow174.game import replay_values
 from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import expr, graph, message_receive, message_scope, nodes, play, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -51,6 +52,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     runtime.State: ((), ()),
+    HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -106,6 +108,7 @@ _VALUE_LAYOUTS = {
     message_receive.ParamScope: ("instance", "node", "packet"),
     message_scope.ParamScope: ("receiver", "sender"),
     graph.SyncVar: ("index", "var", "scope", "flag"),
+    play.InvocationContext: ("caller", "owner", "instigator"),
 }
 
 
@@ -387,7 +390,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, DeviceWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld, BarrierWorld, DeviceWorld, PullQuery):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -398,9 +401,11 @@ class _Export:
                                "match", "manual_target"))
             if kind in (BarrierWorld, DeviceWorld):
                 fields.update(("fight", "entity", "location"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+            if kind is PullQuery:
+                fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
+            # The match and dispatch callback belong to the enclosing server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match", "fight"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "fight", "explosion_sink"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

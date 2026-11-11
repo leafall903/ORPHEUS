@@ -3,10 +3,11 @@
 import json
 import math
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from ow174.game.mover import MOD_OPS, statescript_mods
-from ow174.game.script import expr, graph, target_visibility
+from ow174.game.script import expr, graph, play, runtime, target_visibility
 from ow174.paths import DATA_DIR
 
 
@@ -93,6 +94,101 @@ def configured_path(definition, *, orb, origin, candidate, position, yaw, ray):
                                             origin=evaluate(query.field("m_D59188D5")),
                                             evaluate=evaluate, ray=ray,
                                             test_offset_leg=evaluate(query.field("m_E8474EE8")))
+
+
+@dataclass(frozen=True)
+class ExplosionRequest:
+    entity: int
+    start_ms: int
+    position: expr.Vec3
+    strength: float
+    radius: float
+    parameter: float
+    interval: float
+
+
+@runtime.state_class("STUStatescriptStatePhysicsExplosion")
+class HaltPhysicsExplosion(runtime.State):
+    def on_enter(self):
+        world = self.instance.component.world
+        if isinstance(world, PullQuery):
+            world.dispatch_explosion(self)
+
+
+class PullQuery(runtime.World):
+    """Evaluate the authored radius and request around the static candidate scan."""
+
+    def __init__(self, definition, orb, origin, caster, *, explosion_sink=None):
+        super().__init__()
+        self.explosion_sink = explosion_sink
+        self.origin = expr.Vec3(*origin)
+        self.caster = expr.Entity(caster)
+        self.context = play.InvocationContext(orb, orb, caster)
+        component = runtime.Component(orb, world=self, strict=True)
+        self.instance = component.create(definition, init=False)
+        self.track = definition.node(1)
+        for position in (25, 26, 31):
+            setter = definition.node(position)
+            self.instance.write(expr.lvalue(setter.field("m_out_Var")),
+                                self.instance.evaluate(setter.field("m_value")))
+        self.radius = expr.to_float(self.instance.evaluate(self.track.field("m_radius")))
+
+    def native(self, cfg, instance):
+        kind = cfg.get("$")
+        if kind == "STU_71A87E92":
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if expr.to_entity(entity) == instance.component.entity:
+                return self.origin
+        if kind == "STU_2B2E2F6D" and cfg.get("m_7BDB02D1") == 2:
+            entity = instance.evaluate(cfg.get("m_81A364DE"))
+            if expr.to_entity(entity) == instance.component.entity:
+                return self.caster
+        return super().native(cfg, instance)
+
+    def dispatch_explosion(self, state):
+        if self.explosion_sink is None:
+            return
+        entity = state.instance.component.entity
+        position_owner = state.evaluate(state.node.field("m_position"), watch=False)
+        if expr.to_entity(position_owner) != entity:
+            return
+        strength, radius, parameter, interval = (
+            expr.to_float(state.evaluate(state.node.field(field), watch=False))
+            for field in ("m_6EFD110C", "m_radius", "m_65438EEB", "m_D80AEDB1")
+        )
+        self.explosion_sink(ExplosionRequest(entity, state.start, self.origin,
+                                            strength, radius, parameter, interval))
+
+    def start_tail(self, tick):
+        """Run the authored post-query states on the orb's simulation clock."""
+        instance = self.instance
+        component = instance.component
+        component.frame = tick
+        component.now = tick * component.frame_ms
+        instance.init()
+        # The match already completed TrackTargets and submitted node 12.
+        # Run only its outgoing branch. The explosion dispatches on entry.
+        instance.queue.clear()
+        component.strict = False
+        instance.follow(instance.graph.node(12), "m_outPlug")
+        component.run_now()
+
+    def complete(self, targets):
+        links = self.track.links("m_transitionPlug[0]")
+        if len(links) != 1:
+            return None
+        position, plug = links[0]
+        node = self.instance.graph.node(position)
+        if node is None or node.cls != "STUStatescriptActionPlayScript" or plug != "m_inPlug":
+            return None
+        output = self.track.field("m_8A2905A0")
+        self.instance.write(expr.lvalue(output), tuple(expr.Entity(target) for target in targets))
+        # Resolve the linked action's request. Its output also starts detached
+        # states whose native lifecycle is outside this immediate pull bridge.
+        resource = play.resolve_resource(self.instance, node)
+        if resource is None:
+            return None
+        return play.resolve_request(self.instance, node, resource, context_provider=lambda: self.context)
 
 
 def native(world, cfg, instance):

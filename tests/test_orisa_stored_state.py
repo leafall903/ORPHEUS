@@ -8,6 +8,7 @@ import test_server_snapshot as fixture
 
 from ow174.game import combat, orisa_charge, orisa_halt
 from ow174.game.content import find_hero
+from ow174.game.props import PlacedDynamicSphere
 from ow174.game.server_snapshot import snapshot_digest
 
 
@@ -74,6 +75,10 @@ class OrisaStoredStateTests(unittest.TestCase):
 
         for index in range(27):
             step(2 if index in (0, 25) else 0)
+        orb = next(iter(match.combat.orisa.orbs.values()))
+        self.assertIsNotNone(orb.query)
+        placement = PlacedDynamicSphere(1, 2, 3, (0.0, 0.0, 0.0), 0.18)
+        sphere = match.dynamic_spheres.register(placement, inverse_mass=1.0)
         pull = match.combat.orisa.pulls[target.body]
         instance = pull.script
         self.assertIs(instance.component, target.body_script.component)
@@ -81,6 +86,9 @@ class OrisaStoredStateTests(unittest.TestCase):
         with (patch.object(orisa_halt, "control_graph", side_effect=AssertionError("external reread")),
               patch.object(orisa_halt, "query_graph", side_effect=AssertionError("external query reread"))):
             before = self.digest(session)
+            sphere.velocity = (1.0, 0.0, 0.0)
+            self.assertNotEqual(self.digest(session), before)
+            sphere.velocity = (0.0, 0.0, 0.0)
             wait = instance.states[instance.graph.node(13).state]
             wait.ms += 1  # hidden-state probe, restored before combat continues
             self.assertNotEqual(self.digest(session), before)

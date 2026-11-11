@@ -15,11 +15,10 @@ from ow174.game.commands import Command
 from ow174.game.mover import Mover, mover_data
 from ow174.game.orisa_barrier import Barriers
 from ow174.game.orisa_supercharger import Superchargers
-from ow174.game.script import expr, runtime
+from ow174.game.script import expr, graph, runtime
 
 HALT_GRAPH = 0x0CCB
 DETONATE = 0x024000000000003F
-RADIUS = 5.0
 WINDUP = 0.4
 ORB_END = 0.5
 TARGET_UP = 1.3  # 0CCC TrackTargets visibility endpoints
@@ -36,6 +35,7 @@ class Orb:
     rocket: object
     requested: int | None = None
     pulled: bool = False
+    query: orisa_halt.PullQuery | None = None
 
 
 @dataclass
@@ -152,6 +152,9 @@ class Orisa:
     def _finish(self, orb: Orb, reason: str) -> None:
         rocket = orb.rocket
         self.orbs.pop(orb.entity, None)
+        if orb.query is not None:
+            instance = orb.query.instance
+            instance.component.destroy(instance)
         rocket.ended = reason
         if rocket in self.fight.rockets:
             if reason == "retired":
@@ -161,6 +164,13 @@ class Orisa:
         # Entity destruction does not rewrite the body's cached handle. Its
         # authored existence watchers start cooldown and clear their own scopes.
 
+    def _dispatch_halt_explosion(self, request: orisa_halt.ExplosionRequest) -> None:
+        match = self.fight.match
+        match.dynamic_spheres.dispatch(request)
+        dispatch = getattr(match.collision_world, "dispatch_physics_explosion", None)
+        if dispatch is not None:
+            dispatch(request)
+
     def _pull(self, orb: Orb, tick: int) -> None:
         from ow174.game.combat import ray_world, segment_distance
 
@@ -169,11 +179,13 @@ class Orisa:
         if self.halt_graph is None or self.halt_query_graph is None:
             self.results.append((orb.entity, ()))
             return  # missing authored inputs must not silently revive the old50-speed substitute
+        query = orisa_halt.PullQuery(self.halt_query_graph, orb.entity, centre, orb.rocket.shooter.entity,
+                                     explosion_sink=self._dispatch_halt_explosion)
         for target in self.fight._enemies(orb.rocket.shooter):
             if self._immune(target.owner):
                 continue
             a, b = target.segment()
-            if segment_distance(centre, a, b) - target.radius > RADIUS:
+            if segment_distance(centre, a, b) - target.radius > query.radius:
                 continue
             body = getattr(target.owner, "body_script", None)
             if body is None:
@@ -198,21 +210,38 @@ class Orisa:
             sample = (target.feet[0], target.feet[1] + TARGET_UP, target.feet[2])
             if visible.segment is None and blocked(centre, sample):
                 continue
+            selected.append((target, body))
+        targets = tuple(target.entity for target, _ in selected)
+        request = query.complete(targets)
+        if not targets:
+            query.start_tail(tick)
+            orb.query = query
+            self.results.append((orb.entity, ()))
+            return
+        expected = (graph.GRAPH_TYPE << 48) | self.halt_graph.index
+        if (request is None or request.resource.guid != expected or request.targets != targets
+                or request.policy != 3 or request.wire_flag != 0):
+            self.results.append((orb.entity, ()))
+            return
+        query.start_tail(tick)
+        orb.query = query
+        # This immediate 0CCE receiver consumes the authored one-value parameters
+        # as scalars. General PlayScript requests retain their array parameters.
+        params = tuple((identifier, value) for identifier, (value,) in request.params)
+        for target, body in selected:
             self._drop(target.entity)
-            mover = None
             if isinstance(target.owner, bots.Bot):
                 body.component.world.owner_position = expr.Vec3(*target.feet)
-            instance = body.component.create(self.halt_graph)
-            instance.start_entries(((0x0A40000000000078, expr.Vec3(*centre)),
-                                    (0x0A4000000000007B, RADIUS),
-                                    (0x0A4000000000000A, expr.Entity(orb.rocket.shooter.entity))), orb.entity)
+            instance = body.component.play_loaded_graph(
+                self.halt_graph, source=request.context.caller, params=params,
+                overrides=request.resource.overrides, policy=request.policy, instigator=request.context.instigator,
+            )
             body.component.run_now()
             seconds = sum(expr.to_float(instance.evaluate(instance.graph.node(pos).field("m_timeout")))
                           for pos in (13, 9, 30, 5))
             self.pulls[target.entity] = Pull(target.entity, target.owner, centre,
-                                             tick + math.ceil(seconds / TICK), tick, mover, instance)
-            selected.append(target.entity)
-        self.results.append((orb.entity, tuple(selected)))
+                                             tick + math.ceil(seconds / TICK), tick, script=instance)
+        self.results.append((orb.entity, targets))
 
     def _valid(self, pull: Pull, tick: int) -> bool:
         owner = pull.owner
@@ -277,6 +306,8 @@ class Orisa:
                 orb.pulled = True
             if tick >= orb.requested + math.ceil(ORB_END / TICK):
                 self._finish(orb, "detonated")
+            elif orb.query is not None:
+                orb.query.instance.component.run_frame(tick)
         for entity, pull in tuple(self.pulls.items()):
             if not self._valid(pull, tick):
                 self._drop(entity)

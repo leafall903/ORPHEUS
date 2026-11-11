@@ -20,13 +20,16 @@ from ow174.game import (
     bots,
     combat,
     correction,
+    dynamic_spheres,
     heroselect,
     notices,
     observers,
     orisa,
     orisa_barrier,
+    orisa_halt,
     orisa_supercharger,
     projectiles,
+    props,
     replay_values,
     statescript,
     stats,
@@ -41,7 +44,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
+from ow174.game.script import driver, expr, play, runtime
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -86,7 +89,7 @@ FIELDS = {
     _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update"),
     Match: _names("environment id game_map card skin_of tick controller assemble_ends assembled players "
                   "_body_messages started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
-                  "collision_provider collision_state collision_world _collision_failed "
+                  "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error"),
     Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
@@ -99,6 +102,8 @@ FIELDS = {
         "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
         "projectiles observers voice stuns pins ability_impacts orisa"
     ),
+    dynamic_spheres.DynamicSpheres: _names("_bodies"),
+    orisa_halt.PullQuery: _names("hero mode explosion_sink origin caster context instance track radius"),
     orisa.Orisa: _names("fight charge_metadata halt_graph halt_query_graph orbs pulls results "
                         "barriers superchargers"),
     orisa_barrier.Barriers: _names("fight geometry definition_graph active retiring pending"),
@@ -157,6 +162,7 @@ DATACLASSES = (
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
     statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map,
+    dynamic_spheres.SphereBody, props.PlacedDynamicSphere, play.InvocationContext,
     orisa.Orb, orisa.Pull, orisa_barrier.Barrier, orisa_supercharger.Device, script_graph.SyncVar,
 )
 

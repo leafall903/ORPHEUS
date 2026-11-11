@@ -58,6 +58,7 @@ from ow174.game.collision import (
 )
 from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, GameMap, Hero, heroes, spawn_point
+from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
@@ -445,6 +446,7 @@ class Match:
         self._pending_bot_scripts = deque(bot for bot in self.bots if graph.entity_body(bot.body) is not None)
         self.bots_shown: dict[int, int] = {}  # player slot -> the tick the bots' creates went to its queue
         self.notices = notices.Notices(self)  # joined / left / hero switch lines in the clients' chat
+        self.dynamic_spheres = DynamicSpheres()
         self.combat = combat.Combat(self)  # hits, health, deaths, respawns (combat.py)
         self.collision_provider = (
             default_collision_provider() if collision_provider is None else collision_provider
@@ -467,6 +469,7 @@ class Match:
             )
             if self.collision_state.status == "ready":
                 self.collision_world = self.collision_state.world
+                self.dynamic_spheres.register_initial(self.collision_world.initial_dynamic_spheres)
                 for player in self.players:
                     player.mover.use(world=self.collision_world)
         return self.collision_world is not None

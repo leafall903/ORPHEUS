@@ -223,7 +223,9 @@ class OrisaHaltGraphTests(unittest.TestCase):
         self.assertIs(instance.component, target.body_script.component)
         self.assertEqual(instance.vars[40].value(), expr.Entity(orb.entity))
         self.assertEqual(instance.vars[41].value(), expr.Entity(caster.entity))
-        self.assertEqual(instance.vars[431].value(), expr.Vec3(*orb.rocket.position))
+        origin = expr.Vec3(*(expr.f32(axis) for axis in orb.rocket.position))
+        self.assertEqual(instance.vars[431].value(), origin)
+        self.assertEqual(instance.source_entity(), caster.entity)
         self.assertEqual(instance.vars[422].value(), 5)
         original = tuple(target.mover.position)
         for _ in range(23):
@@ -238,6 +240,54 @@ class OrisaHaltGraphTests(unittest.TestCase):
         self.assertEqual(speed, 20)
         self.assertAlmostEqual(math.dist(tuple(destination), orb.rocket.position), 1, places=4)
         self.assertGreater(destination.y, original[1])
+
+    def test_actual_halt_uses_play_script_anchor_from_authored_setters(self):
+        helper = fixture.HaltTests()
+        run, caster, target = helper.arena()
+        fight = run.match.combat
+        fields = fight.orisa.halt_query_graph.node(26).fields
+        # A controlled alternate setter value distinguishes request evaluation
+        # from a receiver that always binds the unmodified frozen position.
+        offset = {"$": "STU_919FD47C", "m_expression": {
+            "m_opcodes": [6, 0, 6, 1, 6, 1, 58, 0], "m_D99EF254": [1, 0],
+        }}
+        with patch.dict(fields, {"m_value": offset}):
+            orb = helper.detonate(run, caster)
+            run.step({})
+        pull = fight.orisa.pulls[target.body]
+        x, y, z = orb.rocket.position
+        expected = expr.Vec3(expr.f32(x + 0.5), expr.f32(y), expr.f32(z))
+        self.assertEqual(pull.script.vars[431].value(), expected)
+        self.assertEqual(pull.script.vars[422].value(), 5)
+        self.linger(run, target, pull)
+        self.assertLess(math.dist(target.mover.position, expected), 2)
+
+    def test_actual_halt_uses_authored_query_radius_and_transition(self):
+        for radius, offset, linked, acquired in (
+            (5, 4, True, True),
+            (3, 4, True, False),
+            (3, 2.5, True, True),
+            (5, 4, False, False),
+        ):
+            with self.subTest(radius=radius, offset=offset, linked=linked):
+                helper = fixture.HaltTests()
+                run, caster, target = helper.arena()
+                fight = run.match.combat
+                definition = fight.orisa.halt_query_graph
+                setter = definition.node(31).fields
+                track = definition.node(1).fields
+                x, y, z = caster.mover.position
+                helper.place(run, target, (x + offset, y, z + 7.6))
+                orb = helper.detonate(run, caster)
+                transitions = track["m_transitionPlug"] if linked else []
+                with (patch.dict(setter, {"m_value": {**setter["m_value"], "m_value": radius}}),
+                      patch.dict(track, {"m_transitionPlug": transitions})):
+                    run.step({})
+                expected = (target.body,) if acquired else ()
+                self.assertEqual(fight.orisa.results[-1], (orb.entity, expected))
+                self.assertEqual(target.body in fight.orisa.pulls, acquired)
+                if acquired:
+                    self.assertEqual(fight.orisa.pulls[target.body].script.vars[422].value(), radius)
 
     def test_actual_arrival_owns_slow_then_recovers_and_retires_status(self):
         run, _, target, _, pull = self.cast()

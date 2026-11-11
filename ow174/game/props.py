@@ -27,8 +27,8 @@ from its holder (STUs with their class defaults, the field offsets as the builde
        (default 0), else 1 with m_B4D8D9BB (default 1), else 0x100
     2, STU_E62A2EFC (0x7FF78A9CC460): made when m_E5FB1A8B != 0 (default 3); 0x80 (or 0x1000) with
        m_B4D8D9BB (default 1), else 0x100
-    4, STU_82C2BA2C (0x7FF78AA31B80): made when m_8C9E3EE1 != 0 (default 3); 1 (or 0x1000) with
-       m_B4D8D9BB (default 0), else 0x100 (a dynamic body: office chairs on wheels, bottles, cones)
+    4, STU_82C2BA2C (0x7FF78AA31B80): made when m_2A4B47DF != 0 (default 3); 1 (or 0x1000) with
+       m_DDD741A0 (default 0), else 0x100 (a dynamic body: office chairs on wheels, bottles, cones)
 Motion type 1 goes to another list (0x7FF78AA3CDE0, not the physics world), type 3 entries have no shape.
 Checked against the running client's own world: every prop shape of the Practice Range (762) has the
 category this rule gives. The client-only breakables are dynamic bodies too.
@@ -49,6 +49,7 @@ player's own game install, like the collision chunk.
 import json
 import math
 import struct
+from dataclasses import dataclass
 from functools import cache
 
 from ow174.paths import DATA_DIR
@@ -71,9 +72,10 @@ MOTION, NODE = 0x89AABA94, 0x30F925F4  # the list entry's motion type and node n
 NODE_CLASSES = (0xCB79EE74, 0xBE9DDFDF)  # bones and hardpoints of the model
 NODE_ID, PARENT, TRANSLATION, ROTATION = 0xEDF0511C, 0xFF592924, 0x7DC1550F, 0xAF9D3A0C
 STATIC, SENSOR = 0xB4D8D9BB, 0x8BE69838
+MOTION4_STATIC = 0xDDD741A0
 # By motion type: (the holder class its builder reads, the holder's enum that makes the part (0: none,
 # default 3), m_B4D8D9BB's default in that class).
-BUILDERS = {0: (0x897BADC9, 0x983EB565, 1), 2: (0xE62A2EFC, 0xE5FB1A8B, 1), 4: (0x82C2BA2C, 0x8C9E3EE1, 0)}
+BUILDERS = {0: (0x897BADC9, 0x983EB565, 1), 2: (0xE62A2EFC, 0xE5FB1A8B, 1), 4: (0x82C2BA2C, 0x2A4B47DF, 0)}
 SIDES = 12  # of the prisms that stand in for capsules and spheres
 _F32 = struct.Struct("<f")
 
@@ -319,6 +321,8 @@ def static_part(stu: Structured, wrapper: int, holder: int | None) -> bool:
     """Whether the client makes a model's list entry a static shape (category 1, 0x80 or 0x1000), the
     only ones the character mover meets (see the module notes)."""
     motion = _byte(stu, stu.fields[wrapper], MOTION, 0)
+    if motion == 4:
+        return holder is not None and _motion4_category(stu, wrapper, holder) in (0x0001, 0x1000)
     builder = BUILDERS.get(motion)
     if builder is None or holder is None or stu.hashes[holder] != builder[0]:
         return False
@@ -390,6 +394,95 @@ def _moved(point, frame) -> tuple:
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
 
 
+@dataclass(frozen=True)
+class BoneTransform:
+    rotation: tuple[float, float, float, float]
+    scale: tuple[float, float, float]
+    translation: tuple[float, float, float]
+
+
+def model_reference_bones(data: bytes) -> dict[int, tuple[int | None, BoneTransform]]:
+    """Read the mskl parent-relative reference transforms, with each parent first."""
+    skeleton = chunks(data).get("mskl")
+    if skeleton is None:
+        return {}
+    if len(skeleton) < 94:
+        raise PropError("truncated model skeleton header")
+    count, = struct.unpack_from("<H", skeleton, 92)
+    if not count:
+        return {}
+    hierarchy, = struct.unpack_from("<q", skeleton)
+    transforms, = struct.unpack_from("<q", skeleton, 32)
+    ids, = struct.unpack_from("<q", skeleton, 48)
+    if any(not 0 < offset <= len(skeleton) - count * stride
+           for offset, stride in ((hierarchy, 6), (transforms, 48), (ids, 4))):
+        raise PropError("truncated model skeleton table")
+    names = struct.unpack_from(f"<{count}I", skeleton, ids)
+    bones = {}
+    for index, bone in enumerate(names):
+        parent, = struct.unpack_from("<h", skeleton, hierarchy + 6 * index + 4)
+        if not -1 <= parent < index or bone in bones:
+            raise PropError("invalid model skeleton hierarchy")
+        row = struct.unpack_from("<12f", skeleton, transforms + 48 * index)
+        # The fourth scale and position lanes are padding.
+        transform = BoneTransform(row[:4], row[4:7], row[8:11])
+        values = (*transform.rotation, *transform.scale, *transform.translation)
+        if not all(math.isfinite(value) for value in values):
+            raise PropError("invalid model skeleton transform")
+        bones[bone] = (names[parent] if parent >= 0 else None, transform)
+    return bones
+
+
+def _model_shape_descriptors(data: bytes):
+    payload = chunks(data).get("MSTU")
+    if payload is None or len(payload) < 16:
+        return
+    offset, size = struct.unpack_from("<qq", payload)
+    stu = Structured(payload[offset : offset + size])
+    for item in stu.array(0, SHAPES, 8):
+        wrapper = struct.unpack_from("<i", item)[0]
+        if not 0 <= wrapper < len(stu.hashes):
+            continue
+        shape = stu.ref(wrapper, SHAPE)
+        holder = stu.ref(wrapper, HOLDER)
+        if shape is not None:
+            node = stu.raw(stu.fields[wrapper], NODE)
+            node_id = struct.unpack_from("<I", node)[0] if node and len(node) >= 4 else None
+            yield stu, wrapper, shape, holder, node_id
+
+
+def _shape_geometry(stu: Structured, shape: int, holder: int | None, category: int) -> tuple | None:
+    mask = _mask(stu, holder)
+    kind, fields = stu.hashes[shape], stu.fields[shape]
+    if kind == MESH:
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
+        raw = b"".join(stu.array(shape, TRIANGLES, 1))
+        records = []
+        for k in range(0, len(raw) - 31, 32):
+            a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
+            if own & category and max(a, b, c) < len(points):
+                wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
+                records.append((a, b, c, *wings, own, surface))
+        if records:
+            return ("mesh", mask, points, records)
+    elif not mask & category:
+        return None
+    elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
+        points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
+        planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
+        edges = b"".join(stu.array(shape, HALF_EDGES, 1))
+        half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
+        faces = list(b"".join(stu.array(shape, FACES, 1)))
+        if points and len(planes) == len(faces):
+            return ("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half)
+    elif kind == CAPSULE:
+        a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
+        return ("capsule", mask, a, b, _float(stu.raw(fields, RADIUS)))
+    elif kind == SPHERE:
+        return ("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS)))
+    return None
+
+
 def model_shapes(data: bytes, category: int = MOVER, *, static_only: bool = True) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
@@ -398,57 +491,66 @@ def model_shapes(data: bytes, category: int = MOVER, *, static_only: bool = True
     centre, radius). A mesh's triangles carry their own masks; the other shapes the holder's. Only the
     static ones (static_part) by default, each moved to its node's place in the model.
     Dynamic consumers may request all parts explicitly; their runtime filter policy is separate."""
-    payload = chunks(data).get("MSTU")
-    if payload is None or len(payload) < 16:
-        return []
-    offset, size = struct.unpack_from("<qq", payload, 0)
-    stu = Structured(payload[offset : offset + size])
-    table = nodes(stu)
     out = []
-    for item in stu.array(0, SHAPES, 8):
-        wrapper = struct.unpack_from("<i", item, 0)[0]
-        if not 0 <= wrapper < len(stu.hashes):
-            continue
-        shape = stu.ref(wrapper, SHAPE)
-        if shape is None:
-            continue
-        holder = stu.ref(wrapper, HOLDER)
+    table = None
+    for stu, wrapper, shape, holder, node in _model_shape_descriptors(data):
         if static_only and not static_part(stu, wrapper, holder):
             continue
-        node = stu.raw(stu.fields[wrapper], NODE)
-        frame = node_frame(table, struct.unpack_from("<I", node, 0)[0]) if node and len(node) >= 4 else None
-        before = len(out)
-        mask = _mask(stu, holder)
-        kind, fields = stu.hashes[shape], stu.fields[shape]
-        if kind == MESH:
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 16)]
-            raw = b"".join(stu.array(shape, TRIANGLES, 1))
-            records = []
-            for k in range(0, len(raw) - 31, 32):
-                a, b, c, w0, w1, w2, _material, surface, own, _ = struct.unpack_from("<3I3i4H", raw, k)
-                if own & category and max(a, b, c) < len(points):
-                    wings = tuple(w if 0 <= w < len(points) else -1 for w in (w0, w1, w2))
-                    records.append((a, b, c, *wings, own, surface))
-            if records:
-                out.append(("mesh", mask, points, records))
-        elif not mask & category:
+        geometry = _shape_geometry(stu, shape, holder, category)
+        if geometry is None:
             continue
-        elif kind == CONVEX:  # faces as loops of half edges {s8 twin, u8 origin, u8 face, u8 next}
-            points = [_vector(raw) for raw in stu.array(shape, VERTICES, 12)]
-            planes = [struct.unpack_from("<4f", raw, 0) for raw in stu.array(shape, PLANES, 16)]
-            edges = b"".join(stu.array(shape, HALF_EDGES, 1))
-            half = [struct.unpack_from("<bBBB", edges, 4 * n) for n in range(len(edges) // 4)]
-            faces = list(b"".join(stu.array(shape, FACES, 1)))
-            if points and len(planes) == len(faces):
-                out.append(("hull", mask, _vector(stu.raw(fields, CENTROID)), points, planes, faces, half))
-        elif kind == CAPSULE:
-            a, b = _vector(stu.raw(fields, POINT_A)), _vector(stu.raw(fields, POINT_B))
-            out.append(("capsule", mask, a, b, _float(stu.raw(fields, RADIUS))))
-        elif kind == SPHERE:
-            out.append(("sphere", mask, _vector(stu.raw(fields, CENTRE)), _float(stu.raw(fields, RADIUS))))
-        if frame is not None and len(out) > before:
-            out[-1] = at_node(out[-1], frame)
+        if table is None:
+            table = nodes(stu)
+        frame = node_frame(table, node)
+        out.append(at_node(geometry, frame) if frame is not None else geometry)
     return out
+
+
+def _motion4_category(stu: Structured, wrapper: int, holder: int | None) -> int | None:
+    holder_class, selector_field, flag_default = BUILDERS[4]
+    if holder is None or _byte(stu, stu.fields[wrapper], MOTION, 0) != 4 or stu.hashes[holder] != holder_class:
+        return None
+    fields = stu.fields[holder]
+    selector = _byte(stu, fields, selector_field, 3)
+    if selector == 0:
+        return None
+    if _byte(stu, fields, MOTION4_STATIC, flag_default):
+        return 0x0001 if selector == 3 else 0x1000
+    return 0x0100
+
+
+def _model_dynamic_spheres(
+    data: bytes,
+) -> tuple[tuple[tuple[float, float, float], float, float | None], ...]:
+    descriptors = tuple(_model_shape_descriptors(data))
+    moving_nodes = {
+        node for stu, wrapper, _, holder, node in descriptors
+        if _motion4_category(stu, wrapper, holder) is not None
+        and _byte(stu, stu.fields[holder], BUILDERS[4][1], 3) != 3
+    }
+    spheres = []
+    table = None
+    bones = None
+    for stu, wrapper, shape, holder, node in descriptors:
+        if stu.hashes[shape] != SPHERE or _motion4_category(stu, wrapper, holder) != 0x0100:
+            continue
+        geometry = _shape_geometry(stu, shape, holder, 0xFFFF)
+        if geometry is None or geometry[3] <= 0:
+            continue
+        if table is None:
+            table = nodes(stu)
+        if bones is None:
+            try:
+                bones = model_reference_bones(data)
+            except PropError:
+                bones = {}
+        frame = node_frame(table, node)
+        _, _, centre, radius = at_node(geometry, frame) if frame is not None else geometry
+        # A fresh mode-2 body has zero inverse mass, even with multiple colliders.
+        # Only infer that mode when every eligible shape on the resolved node selects it.
+        inverse_mass = 0.0 if node in bones and node not in moving_nodes else None
+        spheres.append((centre, radius, inverse_mass))
+    return tuple(spheres)
 
 
 def at_node(shape, frame) -> tuple:
@@ -600,6 +702,55 @@ def _catalog_record(records: dict, guid: int) -> dict:
     if guid not in records:
         raise PropError(f"missing CASC record for {guid:#018x}")
     return records[guid]
+
+
+@dataclass(frozen=True)
+class PlacedDynamicSphere:
+    placement: int
+    definition: int
+    shape: int
+    centre: tuple[float, float, float]
+    radius: float
+    category: int = 0x0100
+    initial_inverse_mass: float | None = None
+
+
+def map_dynamic_spheres(map_guid: int, read, *, identifiers=frozenset()) -> tuple[PlacedDynamicSphere, ...]:
+    """Read indexed motion-4 dynamic spheres at their original, uniformly scaled placements."""
+    return tuple(row for _, row in _map_dynamic_spheres(map_guid, read, identifiers))
+
+
+def map_initial_dynamic_spheres(map_guid: int, read) -> tuple[tuple[int, PlacedDynamicSphere], ...]:
+    """Read verified initial bodies with their placement identifiers for the collision cache."""
+    return tuple((identifier, row) for identifier, row in _map_dynamic_spheres(map_guid, read, None)
+                 if row.initial_inverse_mass is not None)
+
+
+def _map_dynamic_spheres(map_guid: int, read, identifiers: frozenset[int] | None):
+    catalog = props_data()
+    entry = placement_record(map_guid)
+    if entry is None:
+        return
+    by_model = {}
+    for placement, record in enumerate(placements(read(entry))):
+        definition, identifier, translation, scale, rotation = record
+        if identifiers is not None and identifier and identifier not in identifiers:
+            continue
+        if not scale[0] == scale[1] == scale[2] > 0 or not math.isfinite(scale[0]):
+            continue
+        model = catalog["defs"].get(f"0x{definition:016X}")
+        if model is None:
+            continue
+        if model not in by_model:
+            by_model[model] = _model_dynamic_spheres(read(catalog["models"][model]))
+        for shape, (centre, radius, inverse_mass) in enumerate(by_model[model]):
+            placed_radius = radius * scale[0]
+            placed_centre = place(centre, translation, scale, rotation)
+            if not math.isfinite(placed_radius) or not all(map(math.isfinite, placed_centre)):
+                continue
+            yield identifier, PlacedDynamicSphere(
+                placement, definition, shape, placed_centre, placed_radius, initial_inverse_mass=inverse_mass,
+            )
 
 
 def map_shapes(
