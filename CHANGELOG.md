@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Lucio passive timer ownership
+
+- Retire the 0B8B passive timer after 01C7 creates its child component and
+  before subsequent command frames. The server world clock owns passive
+  generation, including disabled generation, while combat messages retain
+  their authored charge path. The overlapping Amp credit regression passed.
+
 ### Lucio NPC speed integration
 
 - Consume the delivered Crossfade movement modifiers on existing NPC routes

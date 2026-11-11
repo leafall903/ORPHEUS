@@ -52,6 +52,15 @@ def restore_charge(script, ratio, controller):
         component.run_now()
 
 
+def stop_passive_timer(component):
+    """The charge child is created by 01C7 after the body's initial graphs."""
+    for instance in tuple(component.instances.values()):
+        if instance.graph.index == 0x0B8B:
+            gate = instance.states.get(0)
+            if gate is not None and gate.active:
+                gate.end(False)
+
+
 def advance_passive_charge(player, tick, *, due_only=False):
     """Drive actual 0B8B's passive formula on the reconstructed world clock."""
     from ow174.game.combat import TICK

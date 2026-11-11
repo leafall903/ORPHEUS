@@ -1625,6 +1625,8 @@ class BodyScript(ReplicatedBody):
                     if not (event.kind == runtime.ENTRY and event.node.pos == 2)
                 ]
         component.run_frame(frame)
+        if self.hero == lucio.HERO and self.world.match is not None:
+            lucio.stop_passive_timer(component)
         self.server_only = self.initial_exclusions()
         for instance in component.instances.values():
             for node in instance.graph.states:
@@ -1693,6 +1695,7 @@ class BodyScript(ReplicatedBody):
         from ow174.game import lucio
 
         if self.hero == lucio.HERO:
+            lucio.stop_passive_timer(self.component)
             player = lucio.charge_player(self.world, self.component)
             if player is not None:
                 common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
