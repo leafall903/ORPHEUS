@@ -5,14 +5,22 @@ This installs no guessed engine consumers or auxiliary scope/rewind phases.
 """
 
 from dataclasses import dataclass
+from math import isfinite
 
-from ow174.game.script import graph, play_queue, runtime, scene, startup
+from ow174.game.script import expr, graph, message_receive, play_queue, runtime, scene, startup
 
 
 @dataclass
 class Unit:
     component: runtime.Component
     startup: startup.ComponentStartup
+
+
+@dataclass(frozen=True)
+class WaveSubmission:
+    component: runtime.Component
+    definition: graph.Graph
+    packet: message_receive.Packet
 
 
 class SceneHost:
@@ -30,6 +38,31 @@ class SceneHost:
         self.closed = False
         self.error: dict | None = None
         self.play_requests_configured = False
+        self.wave_submissions: list[WaveSubmission] = []
+
+    def queue_retribution_wave(self, owner: int, index: int, identifier: int, positions, directions):
+        """Schedule an explicitly selected wave on the scene's next ordinary frame."""
+        unit = self.units.get(owner)
+        profiles = self.world.profile_spawns
+        if (self.closed or self.error is not None or unit is None
+                or self.world.script_components.get(owner) is not unit.component
+                or profiles is None or (index, identifier) not in profiles.waves):
+            raise ValueError("wave needs a live scene owner and a configured identifier")
+        positions, directions = tuple(positions), tuple(directions)
+        if (not positions or len(positions) != len(directions)
+                or not all(isinstance(value, expr.Vec3)
+                           and all(type(axis) in (int, float) and isfinite(axis) for axis in value)
+                           for value in (*positions, *directions))):
+            raise ValueError("wave needs paired finite position and direction vectors")
+        definition = self.graph_loader(index)
+        if not isinstance(definition, graph.Graph) or definition.index != index:
+            raise ValueError("wave graph is not loaded in this scene")
+        packet = message_receive.Packet(0x0240000000000862, 0, 0, (
+            (0x0A40000000000483, expr.Asset(identifier)),
+            (0x0A40000000000490, positions),
+            (0x0A400000000004B1, directions),
+        ))
+        self.wave_submissions.append(WaveSubmission(unit.component, definition, packet))
 
     def add(self, entity: int, definition: dict, placed: dict | None = None, *, values=None):
         """Bind every component before evaluating any component's startup schema."""
@@ -110,6 +143,14 @@ class SceneHost:
                 for unit in self.units.values():
                     unit.startup.start()
                 self.prepared = True
+            submissions, self.wave_submissions = self.wave_submissions, []
+            for submission in submissions:
+                component = submission.component
+                if self.world.script_components.get(component.entity) is not component:
+                    continue
+                instance = component.create(submission.definition)
+                if message_receive.receive(instance, submission.packet) != 1:
+                    raise ValueError("wave graph did not accept its authored entry")
             for unit in self.units.values():
                 if (queue := self.world.play_queues.get(unit.component.entity)) is not None:
                     queue.flush()
@@ -126,6 +167,10 @@ class SceneHost:
         if self.closed:
             return
         self.closed = True
+        self.wave_submissions.clear()
+        if self.world.profile_spawns is not None:
+            self.world.profile_spawns.close()
+        self.world.profile_spawns = None
         for queue in tuple(self.world.play_queues.values()):
             queue.retire()
         for unit in reversed(tuple(self.units.values())):

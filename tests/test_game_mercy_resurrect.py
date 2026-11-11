@@ -6,26 +6,31 @@ host policies. Full native effect ownership and client presentation remain open.
 
 import unittest
 
+import test_game_mercy_boost as boost_tests
 import test_game_mercy_staff as staff_tests
-from test_game_combat import aim
+from test_game_combat import aim, in_world
 from test_game_mover import FLOOR, wall
 
 from ow174.game import combat, pools, stats
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, Command
-from ow174.game.content import find_hero
+from ow174.game.content import find_hero, heroes
+from ow174.game.script.driver import ULT_CHARGE
+from ow174.game.script.regeneration import MERCY
 
 RESURRECT = 0x10
 
 
 class ResurrectTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, *, ally_hero=None):
         fixture = staff_tests.MercyStaffTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         self.fixture = fixture
         self.run, self.match, self.fight = fixture.run, fixture.match, fixture.fight
         self.mercy, self.ally, self.enemy = fixture.mercy, fixture.ally, fixture.enemy
+        if ally_hero is not None:
+            self.assertTrue(self.match.switch_hero(self.ally, heroes()[ally_hero]))
         self.ally.spawn = ((0.0, 1.0, 3.0), 0.0)
         self.ally.mover = self.ally.new_mover()
         self.target = next(t for t in self.fight._targets() if t.owner is self.ally)
@@ -81,6 +86,65 @@ class ResurrectTests(unittest.TestCase):
         self.assertEqual(self.ally.body, body)
         self.assertFalse(self.fight.is_dead(self.ally))
 
+    @unittest.skipUnless(boost_tests.EFFECT_BUNDLE.is_file(), "explicit extracted staff effect pack required")
+    def test_pre_revive_staff_command_cannot_heal_same_body_after_revival(self):
+        fixture = boost_tests.MercyBoostTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        f = fixture.fixture
+        f.ally.spawn = ((0, 1, 3), 0.0)
+        f.ally.mover = f.ally.new_mover()
+        healer = f.match.add_player(4, "Late healer", MERCY, 3, False)
+        in_world(f.match, healer)
+        healer.team = f.ally.team
+        self.assertTrue(f.match.switch_hero(healer, heroes()[MERCY]))
+        healer.spawn = ((2, 1, 2), 0.0)
+        healer.mover = healer.new_mover()
+        script = healer.body_script
+        script.component.set(12918, 0.0)
+        f.run.step({})
+        healer.take_commands([Command(f.run.frame)])
+        f.run.step({})
+        old_frame = f.run.frame
+        self.assertFalse(f.vitals.dead)
+        body = f.ally.body
+
+        f.run.step({})
+        f.fight._damage(f.enemy, f.target, 500, False, None, f.run.frame)
+        self.assertTrue(f.vitals.dead)
+        f.step(3, buttons=0)
+        f.step(1, buttons=RESURRECT)
+        for _ in range(120):
+            f.step(1, buttons=0)
+            if not f.vitals.dead:
+                break
+        self.assertFalse(f.vitals.dead)
+        self.assertEqual(f.ally.body, body)
+        self.assertEqual(f.vitals.total, 200)
+        revived_frame = f.run.frame
+        while (f.run.frame + 1) * combat.TICK < f.vitals.invulnerable_until:
+            f.run.step({})
+        x, y, z = f.ally.mover.position
+        rifle = (*aim(f.fight._eye(f.enemy), (x, y + 0.8, z)), FIRE)
+        f.run.step({f.enemy: rifle})
+        self.assertEqual(f.vitals.total, 180)
+
+        yaw, pitch = aim(f.fight._eye(healer), (x, y + 1, z))
+        charge = script.component.entity_var(ULT_CHARGE)
+        healer.take_commands([Command(old_frame, yaw=yaw, pitch=pitch, buttons=FIRE)])
+        self.assertEqual(script.frame, old_frame)
+        self.assertEqual(f.vitals.total, 180)
+        self.assertEqual(healer.stats.value(stats.HEALING), 0)
+        self.assertEqual(charge.value(), 0)
+        self.assertIsNone(f.fight.seen(f.target, revived_frame - 1))
+        self.assertIsNotNone(f.fight.seen(f.target, revived_frame))
+
+        f.run.step({})
+        healer.take_commands([Command(f.run.frame, yaw=yaw, pitch=pitch, buttons=FIRE)])
+        self.assertAlmostEqual(f.vitals.total, 180.88, places=4)
+        self.assertAlmostEqual(healer.stats.value(stats.HEALING), 0.88, places=4)
+        self.assertAlmostEqual(charge.value(), 0.88, places=4)
+
     def test_subject_is_temporarily_immune_then_can_take_real_damage_again(self):
         self.cast()
         vitals = self.fight.vitals_of(self.target)
@@ -92,6 +156,44 @@ class ResurrectTests(unittest.TestCase):
         self.step(2)
         self.fight._damage(self.enemy, self.target, 50, False, None, self.run.frame)
         self.assertEqual(vitals.total, 150)
+
+    def test_real_rifle_rewind_cannot_hit_before_same_body_revival(self):
+        body = self.ally.body
+        self.cast()
+        revived_frame = self.run.frame
+        self.step(142)
+        vitals = self.fight.vitals_of(self.target)
+        self.assertLessEqual(vitals.invulnerable_until, self.fight.now)
+        self.assertEqual(self.ally.body, body)
+        ammo = self.enemy.body_script.component.instances[11].vars[53]
+        before_ammo = ammo.value()
+        before_damage = self.enemy.stats.value(stats.HERO_DAMAGE)
+        before_hits = self.enemy.client.messages(combat.HIT)
+        x, y, z = self.ally.mover.position
+        yaw, pitch = aim(self.fight._eye(self.enemy), (x, y + 0.8, z))
+
+        def shoot(view_offset_ms):
+            self.run.frame += 1
+            frame = self.run.frame
+            self.match.update(frame * combat.TICK, frame)
+            delay = (frame - revived_frame) * self.enemy.quanta // 1000 + view_offset_ms
+            self.enemy.take_commands([Command(frame, yaw=yaw, pitch=pitch, buttons=FIRE, extra=delay)])
+            return frame
+
+        shoot(1)
+        self.assertEqual(ammo.value(), before_ammo - 1)
+        self.assertEqual(vitals.total, 200)
+        self.assertEqual(self.enemy.stats.value(stats.HERO_DAMAGE), before_damage)
+        self.assertEqual(self.enemy.client.messages(combat.HIT), before_hits)
+
+        self.step(20)
+        hit_frame = shoot(0)
+        self.assertEqual(ammo.value(), before_ammo - 2)
+        self.assertEqual(vitals.total, 180)
+        self.assertEqual(self.enemy.stats.value(stats.HERO_DAMAGE), before_damage + 20)
+        hit, = self.enemy.client.messages(combat.HIT)[len(before_hits):]
+        self.assertEqual((hit["+0x78"]["+0x0"]["+0x0"], hit["+0x78"]["+0x4"], hit["+0x84"]),
+                         (body, 20, hit_frame))
 
     def test_subject_cannot_fire_during_rising_lock_then_can_fire(self):
         self.cast()

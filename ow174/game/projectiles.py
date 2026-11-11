@@ -48,6 +48,30 @@ RELEASE_AHEAD = 4096  # frames: the release's frame, far past the rocket's own
 RELEASE_POS = (0.0, -1000.0, 0.0)  # where a count above the client's would play one more explosion
 
 
+def deployable_contact(flight, tick: int, collision) -> int | None:
+    """Advance a ballistic deployable in fixed chords and report its first static contact."""
+    for frame in range(flight.tick + 1, tick + 1):
+        dt = min(0.016, flight.remaining)
+        vx, vy, vz = flight.velocity
+        offset = (vx * dt, vy * dt - 0.5 * flight.gravity * dt * dt, vz * dt)
+        length = math.hypot(*offset)
+        if length > 0:
+            direction = tuple(axis / length for axis in offset)
+            hit = collision.cast_ray(flight.position, direction, length)
+            if hit is not None:
+                flight.position = tuple(
+                    a + b * hit.distance for a, b in zip(flight.position, direction, strict=True)
+                )
+                return frame
+            flight.position = tuple(a + b for a, b in zip(flight.position, offset, strict=True))
+        flight.tick = frame
+        flight.remaining -= dt
+        flight.velocity = vx, vy - flight.gravity * dt, vz
+        if flight.remaining <= 0:
+            break
+    return None
+
+
 def _count(out: BitWriter, value: int) -> None:
     """1 + 4 bits, 01 + 8 bits, 00 + 32 bits."""
     if value < 16:
@@ -211,7 +235,8 @@ class Shot:
     frame: int  # f: the command frame the VM fired it in
     instance: int
     state: int
-    activation: tuple[int, int]  # full volley counter and start time at emission
+    # State counter,start,frozen firing generation; old fixtures may omit the last.
+    activation: tuple[int, ...]
     spawn: int | None = None  # the entity it leaves where it lands (03DC.003), else None
     where: tuple = (0.0, 0.0, 0.0)  # the shooter's feet when it fired
     bound: int = 0  # frames the projectile lives at most (lifetime, range / speed)
@@ -276,7 +301,7 @@ class Projectiles:
 
     def fired(
         self, player, state, frame: int, definition: int, bound_seconds: float, origin=None, direction=None,
-        *, activation: tuple[int, int], snapshot: Snapshot | None = None,
+        *, activation: tuple[int, ...], snapshot: Snapshot | None = None,
     ) -> Shot | None:
         """Register a volley projectile on the owner and observer paths that apply to its source."""
         npc = isinstance(player, bots.Bot)
@@ -325,7 +350,7 @@ class Projectiles:
                 tuple(origin),
                 tuple(direction),
                 (entity,),
-                volleys=state.volleys & 0xFF,
+                volleys=(shot.activation[2] if len(shot.activation) > 2 else state.volleys) & 0xFF,
             )
             launch = EntityUpdate(shot.body)
             launch.ch2 = shot_events([record])
@@ -345,6 +370,10 @@ class Projectiles:
                 delivery.pending_create = create
             else:
                 viewer.client.queue_entities([create])
+
+    def absorbed(self, shot: Shot) -> None:
+        """Retire an intercepted projectile without impact release or spawned field."""
+        self._end(shot, self.match.tick, explode=False)
 
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
@@ -386,7 +415,7 @@ class Projectiles:
             if (
                 report.number > shot.seen_reports and report.received is not False
                 and shot.frame <= report.cmfd <= shot.frame + REPORT_WINDOW
-                and report.volleys.get(key) == shot.activation
+                and report.volleys.get(key) == shot.activation[:2]
             ):
                 shot.reports.append(report)
         shot.seen_reports = script.report_count

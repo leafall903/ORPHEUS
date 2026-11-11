@@ -23,8 +23,20 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   resurrection cast/cooldown reaches reconstructed full-pool player revival,
   control/immunity windows and NPC-corpse rejection;247 regressions pass.
   Six actual descent controls and nine Valkyrie lifecycle/ammo/self-heal controls
-  also pass. Full staff filters/statuses/charge, native resurrection effects,
-  Valkyrie free flight/chains, NPC AI and original-client acceptance remain open.
+  also pass. Pending embedded-profile execution gives actual9m/s backward speed;
+  five NPCs pass visible/wall melee and airborne blaster controls; three have
+  actual incoming weapon damage on Mercy. Reconstructed free-flight collision and
+  actual Flashbang interruption/immunity/recovery controls exist. Full staff
+  filters/statuses/charge and native resurrection/flight fidelity remain open.
+  Original effect graphs now apply Valkyrie60/s chains and30% boost. Selected
+  Ana0C71/0B99/0C72 hosts apply actual anti-heal/amplification to staff, chains
+  and passive health;21 focused health/impact/storage controls pass, including
+  all five NPC bodies. Native chain/status/filter parity, NPC AI and
+  original-client acceptance remain open.
+  Selected tagged staff/chain health now awards through original0044/0B8B;
+  17 focused health/charge/storage controls and567 combined regressions pass.
+  Engine event/clock/ownership bindings,damage/boost charge and full static
+  acceptance remain OPEN. See [healing charge](MERCY_HEALING_CHARGE.txt).
   See [Mercy combat](MERCY_COMBAT.txt).
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
@@ -68,3 +80,46 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+Mercy verification update:532 combined regressions PASS824.883s before the authored
+passive-charge restoration; separately7 selected combat controls PASS40.561s using
+the parent read-only43-row extracted NPC height/radius/speed table. Static fixtures
+do not establish native animated hitboxes, full NPC AI/navigation or client geometry.
+Mercy Match now runs original0B8B's passive5-point1s timer with explicit reconstructed
+mode/role/possession hosts;49 charge/Valkyrie/Res controls PASS71.905s. Expanded146
+had145 PASS and one capture-fixture error;corrected charge/VM34 PASS37.108s.
+Selected original0044 healing charge now passes17 focused controls;567 combined
+regressions PASS789.094s. Damage/boost charge remains OPEN. A6B80C63 metadata fold
+now executes original0B8B subtraction,with16 focused controls and9 native loop/8
+provider comparisons under declared adapters.10 actual Mercy input controls cover
+expired/held/fresh presses across resource and cooldown recovery,including
+Valkyrie's authored0.15s window. See MERCY_CHARGE.txt,CONFIG_FOLD.txt and
+MERCY_INPUT_BUFFER.txt. Full native event/filter/clock and combat acceptance remain OPEN.
+Latest fixed-source593 combination PASS1167.050s;five additional actual Res cast
+movement checks PASS18.389s separately. All changed Python Ruff/diff checks PASS.
+A58C1E63 relationship query frontend now passes15 focused controls and578 native
+query/runtime comparisons under explicit adapters.4614 separate native guard/
+decision cases use a declared association-resolution seam. Full relationship
+backend,filters and actual damage/boost charging remain OPEN;see
+ENTITY_RELATION_QUERY.txt. No full combat completion follows from these prerequisites.
+The historical held-primary/Valk expiry failure is now restored with a cost
+observer,old-segment settlement and next-shot rebasing.6 native cases match the
+actual runtime under declared host adapters;7 rebind and98 selected regressions
+pass.4 actual Mercy/McCree eye/low-cover controls pass after resource-height
+correction.3 separate all-five-NPC Res refusal tests pass15 scenarios. Current
+667 fixed-source regression finished666PASS/one old rifle activation-pair
+assertion failure in1533.514s;the expectation now includes generation1.
+The subsequent automatic-reload failure is fixed through shot-consumption
+notifications and the original graph,23 focused controls PASS45.829s;expanded
+163-case validation PASS503.955s with all five reload controls. See MERCY_WEAPON_LIFETIME.txt,
+MERCY_RELOAD_LIFETIME.txt and MERCY_EYE_HEIGHT.txt. Selected player/all-five
+NPC body20/high40,100m edge and boost52 after release PASS within131 focused
+checks;scoped server geometry in MERCY_BLASTER_IMPACT.txt. Neutral actual
+0012 damage charge is implemented through original0B8B;56 selected PASS239.213s.
+Selected boost share through original0D9A->00EB and0624 fold passes192 selected
+regressions. Actual Genji reflected damage and Sigma absorption tally pass
+within102 selected defense controls. See MERCY_DAMAGE_CHARGE.txt,
+MERCY_BOOST_CHARGE.txt and MERCY_PROJECTILE_DEFENSE.txt.The selected Reinhardt barrier lifecycle and Sigma temporary shield grant,
+decay and consumption now have direct projectile evidence. Special damage 0148,
+additional defensive actors and the full functional matrix remain incomplete.
+Full Mercy acceptance stays unchecked.

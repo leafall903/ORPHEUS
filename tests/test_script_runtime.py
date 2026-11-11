@@ -66,8 +66,10 @@ class SpawnTests(unittest.TestCase):
     def test_the_instances(self):
         body = soldier()
         made = {item.id: item.graph.index for item in body.component.instances.values()}
-        self.assertEqual([made[number] for number in range(1, 12)], [
-            0x0033, 0x004B, 0x0043, 0x0251, 0x0255, 0x0257, 0x0259, 0x091B, 0x08B6, 0x0015, 0x0254,
+        # 08B6 runs its authored self-stop during startup, leaving its ID vacant.
+        self.assertNotIn(9, made)
+        self.assertEqual([made[number] for number in (*range(1, 9), 10, 11)], [
+            0x0033, 0x004B, 0x0043, 0x0251, 0x0255, 0x0257, 0x0259, 0x091B, 0x0015, 0x0254,
         ])  # fmt: skip
         self.assertEqual(made[HUD], 0x01CF)
         hud = body.component.instances[HUD]

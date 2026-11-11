@@ -1,0 +1,28 @@
+Mercy FirstPerson heights and low cover -- selected restoration
+=============================================================
+Original104319 body00E4 STUFirstPersonComponent authors standing1.45 and
+crouched1.015 (m_E29993A5/m_816B830F). McCree02A3 authors1.425/.9975.
+The own combat layer previously used general1.55/1.15 for both. An eye_height
+helper now supplies both Combat._eye and playerTarget.eye from explicit body
+rows;other bodies retain their previous declared fallback,including Soldier's
+existing crouch1.085. This mirrors the parent's uncommitted McCree helper plus
+an own Mercy row;reconcile the common hunk once. No parent source was modified.
+
+Four actual-command controls first failed in7.489s on the old source,then all
+pass6.360s:Mercy stand/crouch/stand origins and target values,enemy McCree
+stand/crouch values,and actual horizontal blaster projectiles at two cover
+heights per stance. A standing ray clears2.40m and is blocked by2.50m;
+a crouched ray clears1.98m and is blocked by2.05m. At the time both clear paths
+dealt20 and blocked paths dealt0. The selected blaster critical restoration
+changes the standing clear hit to40; the geometry is unchanged. See
+MERCY_BLASTER_IMPACT.txt. The floor puts feet aty1.0. These counterexamples
+verify actual occlusion consequences,not only a dictionary lookup.
+
+Read-only XML hashes/provenance are external research/mercy-mccree-eye-heights.json:
+Mercy f6b393649517cef1f1479335ce6cbcf2ad3878cae574e51f28297901773fe3dc;
+McCree c2cef822f24e0b66102fabc72c0c1684f65f7de7b7de84b64bec3c868935e5bf.
+No canonical runtime data was written. Camera-based combat origins and target
+head approximations are declared server reconstructions. Native animated muzzle,
+head bone hitboxes,prediction and all other hero camera rows remain unproven.
+Full static/player/NPC interaction acceptance and original-client acceptance
+are not inferred from these four controls.

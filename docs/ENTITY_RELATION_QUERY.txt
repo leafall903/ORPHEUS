@@ -1,0 +1,78 @@
+Entity relationship query A58C1E63 -- selected frontend restoration
+================================================================
+Target: original PC104319, scalarCE5020. Full C1CF60 backend remains OPEN.
+
+Native query contract
+---------------------
+Obtain the native context first. An absent context fails without writing the
+caller destination;it is distinct from a successfulfalse. With a watcher and
+an available dependency hub,subscribe kind2 before evaluating children.
+
+Evaluate target(+10),source(+18),then AFBBE9C3(+20). Missing/failed selectors
+default to Entity0;missing/failed flag defaultsfalse. The native zero literal
+was read from the immutable image. Entity conversion uses the first nested
+member and uint32 identity;tag conversion itself is an explicit probe adapter.
+
+Walk source's namespace bucket first,then target's. Even zero/invalid identities
+are looked up. Missing objects become null inputs;they do not forcefalse or
+skip the required backend. Call C1CF60(target,source,flag,watcher),then write a
+Boolean and return success. Query lookup order and backend argument order differ.
+
+Runtime services
+----------------
+entity_relation.Context declares owner,context availability,lookup,dependency
+and full relationship callbacks. Target retains the exact uint32 identity and
+an opaque host payload. Unknown services/results reject execution;None explicitly
+declares a missing object or dependency hub. A missing native context preserves
+the destination. The frontend never replaces the backend with team inequality.
+
+Every host callback consumes shared work and rechecks component/instance/context
+ownership. Retirement,replacement,stale components,bad identities and non-Boolean
+backend outputs reject execution. Source and target lookups remain independent
+when identities match,so callback changes are observed. Existing native polling
+remains in the dispatcher. No new stored world/component fields were added.
+
+Normal BodyWorld/SceneWorld do not automatically mount this context. This is
+an explicit service interface,not proof of native lookup/ownership/lifetime,
+snapshot storage for a mounted custom host or real Mercy damage-event production.
+The original0B8B/node28 selector now runs with a declared backend in its focused
+control,including target393,owner,backendfalse/true and a missing target object.
+
+Execution evidence
+------------------
+15 test_script_entity_relation checks PASS2.197s. The external
+research/probe_native_relation_query.py executes unchangedCE5020 through native
+namespace bucket walks and compares578 cases with the actual runtime. Results,
+success flags,child order,lookup order,kind2 dependency and backend argument order
+match,including two missing-context no-write cases. Child/tagged conversions,
+context/observer services and final relationship return are explicit adapters;
+the namespace key/table and actor pointers are synthetic. Source hashes and
+immutable image SHA256 are recorded in native-relation-query-results.json.
+
+Backend evidence and remaining work
+----------------------------------
+Separate unchanged direct suffix probes compare1536 team/spectator bit records:
+lowest team bit23..27 wins0..4/-1;bit28 is spectator. SeparateC1CF60 guard/final
+decision probes pass4614 cases,including special-mode target-team1,missing-object
+pointer inequality,effective-identity equality,original teams-1/4,spectators and
+pending association pointers. The special helper receives(source,target).
+
+Those4614 probes explicitly SKIP component/decryption/association resolution
+C1CFE4..C1D7D0 via an input seam. C1F000/C1B570 and C6C0A0 are declared adapters.
+They establish guards/decisions under those inputs,not full native relationship.
+Do not assume ordinary live bodies lack association components. Full resolution,
+special-pair service,AC829876 filters,actual0012/0148/0624 damage events and
+0D9A->00EB boost production remain required before charge/static acceptance.
+
+Further unchanged D6B260 getter execution passes800 cases with an observer-
+append adapter. A positive signed count at component+1E0 selects the raw entity
+at+238;otherwise a valid+244 value wins,else+1C. It always writes the selected
+uint32 and returns the caller's output pointer. Watcher subscription occurs
+when a watcher is present and component+D0's byte iszero. These raw field inputs
+are synthetic;no field class/name or live component mapping is assumed.
+BD5EF0's executed literal selector returns component index50/bit50/array0.
+
+Final fixed-source231 query/expression/budget/fold/driver/ability/scope/VM/server
+snapshot/Mercy passive and tagged healing-charge regressions PASS446.416s.
+All changed Python Ruff and diff checks PASS. Earlier593 is a historical broad
+baseline before this frontend addition;no new593 rerun or full static claim.

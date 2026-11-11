@@ -53,6 +53,14 @@ class Vars(Context):
 
 
 class ValueTests(unittest.TestCase):
+    def test_assist_classifier_preserves_native_integer_values(self):
+        for classifier in (0, 1, 2, 3, 4, -1, 123456):
+            with self.subTest(classifier=classifier):
+                cfg = {"$": "STU_073FFE4A", "m_86DFF239": classifier}
+                result = expr.evaluate(cfg, Vars())
+                self.assertIs(type(result), int)
+                self.assertEqual(result, classifier)
+
     def test_truthiness(self):
         for value, expected in [
             (None, False), (False, False), (True, True), (0, False), (3, True), (0.0, False), (0.5, True),

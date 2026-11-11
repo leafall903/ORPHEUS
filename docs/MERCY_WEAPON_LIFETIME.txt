@@ -1,0 +1,88 @@
+Mercy held-primary/Valkyrie expiry -- selected restored server behavior
+=====================================================================
+Target104319. Full static hero acceptance remains OPEN;client validation separate.
+
+Historical counterexample and notification lifetime
+---------------------------------------------------
+The parent notification lifetime controls both failed before the private fix:
+State.end canceled CHANGED/CHECK events but retained their coalescing markers.
+The own runtime clears those markers after cancel and avoids notifying ending
+states. The two controls pass. These hunks/tests duplicate the parent's
+uncommitted fix;reconcile once during eventual integration. Parent source was
+read only. The separate parent Ability.stop cleanup-before-arbitration policy
+was reviewed but NOT imported.
+
+A new actual two-cycle Q/action2/held-primary check then failed in both cycles:
+842 cleared,the original006D/node69 switch wentfalse and the current per-shot
+expression returned1,but the same active node10 volley kept cachedcost0 and
+ammo20. Authoritative shots continued. Initial immediate action2 after Q was a
+fixture mistake;the actual post-activation gate required the35-frame settle.
+That correction exposed the real cache defect. The failing ordinary test was
+kept until the mechanism was restored;it was never skipped/expected-failure.
+
+Restored selected mechanism
+---------------------------
+WeaponVolley samples m_5F40D9D3 with its state observer and a failed-child
+initial1. Cost dependency invalidation now settles the old outputs with the
+existing native+1ms rule,cancels old timers,and keeps the State counter while
+advancing the firing generation. The old next-shot boundary becomes the new
+start;there is no immediate bonus shot and no retroactive cost for free shots.
+Then parameters are sampled again and min/end timers use remaining ammunition.
+Current selected host dependency delivery is reconstructed around this native
+settle/rebase/resample/rearm sequence;complete native input epochs/phase order
+and variable-rate acceleration are not claimed.
+
+Queued shot identity now freezes (State counter,segment start,firing generation).
+Old records can drain after this mutable State has rebound without borrowing
+its new generation. Owner report matching still uses the original counter/start
+pair;observer ShotRecord uses the frozen generation's low byte. Historical
+explicit two-item activation fixtures remain accepted. Native wire fields are
+unchanged. The full generation stays uint32 in memory and wraps only at the
+wire byte. No new persistent VM field was added;pending tuples are passively
+captured and affect the causal digest.
+
+Native execution evidence
+--------------------------
+OWLib WeaponVolley EED6D952:priority2,index635,vtable26547A8 in the immutable
+104319 image. D5E160 evaluates raw190 with the state observer and publishes
+clamped cachedcost288. Eight unchanged sampling cases pass,including same-state
+0 then1;node/config/int/output lookup/release and skip-role/link flags are
+explicit adapters. The probe's saved child traces were corrected to copy the
+mutable trace list;results were rerun rather than retaining aliased row traces.
+
+Six unchanged D6165D suffix cases execute actualD5F310 settlement,D5FB50
+shot-index arithmetic,D5E160 resampling,D605F0 timer arming andD602E0 timing.
+They match actual runtime start,remaining ammo,cost,State/firing counters and
+timers. Free->paid,paid->free,rate changes and long old free segments are covered.
+The component-resolution prefix is excluded. Context/node/clock,typed child
+conversion,variable input/output/binding publication,cancel and weapon binding
+are declared adapters. No full native queue,emission,lookup or prediction claim.
+AE3C70 saves a snapshot;the initial static interpretation of that function as
+stop-firing was corrected. Native rebind,not that serializer alone,defines the
+segment transition. Data and exact adapters remain outside Git in
+research/probe_native_volley_rebind.py and native-volley-rebind-results.json.
+
+Executed controls and limits
+----------------------------
+Seven runtime controls PASS0.039s:cadence/no extra shot/no retroactive charge,
+spent-ammo retention,rate resampling,min/end timer replacement,release before
+new first shot,frozen pending-shot passive storage and firing-generation wrap.
+A projectile delivery control keeps an old queued record's generation1 while
+the State already hasgeneration9. Two old tests now compare the ACK pair
+separately from the internal frozen generation;packet expectations are intact.
+
+Actual two-cycle held-fire and notification3 controls PASS23.497s after the
+first restoration. Final focused98 projectile/VM/driver/rebind/actual Mercy/
+notification controls PASS56.717s on the subsequent fixed rebind implementation.
+667 broader regressions finished in1533.514s:666 pass and one old rifle
+activation-pair assertion fails. That assertion now expects generation1 in
+the frozen triple. Source hashes matched after the run. A subsequent actual
+empty-magazine reload failure exposed missing shot-consumption notifications;
+see MERCY_RELOAD_LIFETIME.txt for the fix and its separately selected validation.
+Neither result establishes complete static readiness.
+
+The latest user instruction permits resource-based server reconstruction with
+original differences and unproven matters stated. This selected functional
+boundary is restored under declared hosts;full native actor/phase/animation/
+input-epoch parity remains unproven. Complete damage/boost charging,criticals,
+defense/status/cross-hero/all-five-NPC behavior still gates the final own commit.

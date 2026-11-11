@@ -1,0 +1,51 @@
+Mercy pistol reload -- selected server execution
+===============================================
+Target1.74.0.0.104319; full static acceptance remains OPEN.
+
+An ordinary actual-input test failed: holding primary for500 frames consumed
+the20-round magazine but neither reloaded nor emitted a21st shot. Partial
+manual reload and full-magazine reload refusal passed. No ammo variable was
+written by the fixture. The original006D/node3 automatic-reload condition was
+stillfalse at zero ammo, although a fresh evaluation returnedtrue. Merely
+observing that condition with its dependency watcher could mask the bug, so
+the acceptance test does not invoke it.
+
+WeaponVolley's live output had decreased with the clock without notifying its
+consumers. Report now compares ammunition with the previous emitted-shot
+boundary and notifies the existing variable watchers after recording shots.
+The original BooleanSwitch/stack/reload graph owns the transition. No reload
+button is synthesized and no host-side magazine refill is added. The existing
+reported count supplies the previous consumption boundary; no new persistent
+VM field is introduced. Pending notifications remain causal snapshot state.
+
+The notification phase is a resource-based server reconstruction. Exact native
+binding epochs, actor update order and prediction/animation synchronization
+remain unproven. This change does not establish native engine equivalence.
+
+Original006D supplies20 maximum ammo,1.4s reload duration and its staged refill
+wait. Node3 requires zero ammo/nonzero clip/no post-shot delay/enabled reload,
+or a manually requested reload; node9 rejects a full magazine. Node32 starts
+the duration animation and wait54; wait54 uses #581*#6884. At the neutral
+configured scalar the observed refill is910ms after reload start and the
+reload flag clears at1400ms. Commands include a16ms prediction window: the
+first boundary is reached in the56th subsequent frame. An initial new test
+incorrectly expected the56th frame still to precede refill; direct timing
+showed start+911ms and the fixture was corrected to compare frames55 and56.
+The failure was a boundary expectation error, not a further runtime change.
+
+Initial fix:23 reload/abilities/rebind/held-Valk tests PASS45.829s.
+Expanded five reload controls cover held automatic reload/resumed shots,
+manual partial reload,full-magazine refusal,refill versus fire-lock boundary,
+and automatic reload after releasing primary at zero. The expanded selected
+163-case projectile/combat/driver/VM/snapshot/Mercy run PASS503.955s, including
+all five reload controls. All185 recorded source hashes matched after the run.
+Native rebind6 and parameter8 cases were rerun and pass under their existing
+declared adapters; they do not prove this new notification phase.
+
+Previous fixed-source broad run:667 tests/1533.514s,666 pass and one old
+RifleTests tuple assertion fails. The implementation emits the intentional
+frozen(State counter,segment start,firing generation) triple. Its old pair
+expectation was updated to include generation1. All original scheduled-shot,
+amount and count assertions remain. The manifest hashes matched after that
+run. That historical run predates the new consumption notification and is not
+reported as a current full green run. Client acceptance remains separate.

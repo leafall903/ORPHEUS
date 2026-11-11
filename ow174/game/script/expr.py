@@ -305,6 +305,9 @@ class Context:
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
 
+    def referenced_ruleset(self, selector):
+        return NotImplemented
+
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
 
@@ -315,6 +318,11 @@ class Context:
         unimplemented queries; strict runtime worlds reject unknown services.
         """
         return default_native(cfg)
+
+    def fold(self, cfg: dict, *, initial=None):
+        """Contexts without a VM provider retain their ordinary native-query policy."""
+        result = self.native(cfg)
+        return initial if result is EVALUATION_FAILED else result
 
 
 _warned: set[str] = set()
@@ -372,6 +380,7 @@ CONSTANTS = {
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
+    "STU_073FFE4A": lambda cfg: i32(cfg.get("m_86DFF239") or 0),  # Assist classifier, same getter.
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
@@ -391,6 +400,7 @@ RESOURCES = {
     "STUConfigVarSkinTheme": "m_skinTheme",
     "STU_105E1BCC": "m_graph",  # Graph: keep an empty resource typed as Asset(0).
     "STU_357DABBB": "m_7D7C86A1",  # TargetTag, same native resource evaluator (1B85C30).
+    "STU_D9978054": "m_9CF147D3",  # 0D6 state configuration resource (1B85C30).
     "STU_BCD1C634": "m_id",  # Enumeration: an identifier of an enum type
     "STU_8A491388": "m_priority",  # StackPriority: a .024 asset
 }
@@ -399,7 +409,7 @@ RESOURCES = {
 KEYED_RESOURCES = {
     "STUConfigVarVoiceStimulus", "STUConfigVarAnimation", "STUConfigVarHero",
     "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
-    "STUConfigVarDataFlow",
+    "STUConfigVarDataFlow", "STU_D9978054",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
@@ -416,6 +426,8 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if not isinstance(cfg, dict):
         return cfg
     cls = cfg.get("$")
+    if cls == "STU_A6B80C63":
+        return ctx.fold(cfg, initial=initial)
     if cls == "STU_7BD2CA19" and cfg.get("m_resourceKey") is None:
         # 104319: a live empty-key instance caches the base ConfigVar evaluator
         # (vtable RVA 26292E0). Its +20 method, 123CC10, returns false and writes
@@ -444,6 +456,9 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
         key = cfg.get("m_value")
+        selected = ctx.referenced_ruleset(key)
+        if selected is not NotImplemented:
+            return selected
         found = dynamic(key)
         return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
     if cls == "STU_91EFD5B1":  # ValueOrDefault

@@ -10,8 +10,10 @@ from unittest.mock import Mock, patch
 
 from test_game_combat import Run, aim
 from test_game_mercy_staff import SCENE
+from test_game_mover import FLOOR, wall
 
-from ow174.game import bodytrace, combat, movelog, npc, stats
+from ow174.game import bodytrace, combat, movelog, npc, npc_control, stats
+from ow174.game.collision import World
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
 from ow174.game.script import graph
@@ -89,19 +91,136 @@ class MercyNpcTests(unittest.TestCase):
                 self.assertLess(vitals.total, before)
                 self.assertAlmostEqual(player.stats.value(stats.HERO_DAMAGE), before - vitals.total)
 
-    def test_each_npc_source_can_damage_mercy_and_restart_actual_self_healing(self):
+    def test_each_npc_attack_starts_the_actual_self_healing_wait(self):
+        hit = {"Trooper": 20, "Enforcer": 50, "Sniper": 100, "Assassin": 25, "Heavy Assault": 5}
         for definition in self.catalog.values():
             with self.subTest(npc=definition.name):
                 run, player, bot, _ = self.spawn(definition, 1)
+                player.client.bot_stream = Mock(return_value=None)
+                if definition.name == "Assassin":
+                    bot.position = (0, 1, 2.5)
                 fight = run.match.combat
                 victim = next(t for t in fight._targets() if t.owner is player)
                 vitals = fight.vitals_of(victim)
-                fight._damage(bot, victim, 50, False, None, run.frame)
-                self.assertEqual(vitals.total, 150)
-                self.tick(run, player, bot, 62, buttons=0)
-                self.assertEqual(vitals.total, 150)
-                self.tick(run, player, bot, 63, buttons=0)
-                self.assertAlmostEqual(vitals.total, 170.16, places=4)
+                self.tick(run, player, bot, 1, buttons=0)
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
+                for _ in range(200):
+                    self.tick(run, player, bot, 1, buttons=0)
+                    if vitals.total < 200:
+                        break
+                remaining = 200 - hit[definition.name]
+                self.assertEqual(vitals.total, remaining)
+                self.assertEqual(fight.is_stunned(player), definition.name == "Assassin")
+                npc_control.stop(run.match)
+                self.assertFalse(fight.is_stunned(player))
+                self.tick(run, player, bot, 61, buttons=0)
+                self.assertEqual(vitals.total, remaining)
+                self.tick(run, player, bot, 1, buttons=0)
+                self.assertAlmostEqual(vitals.total, remaining + 0.32, places=4)
+
+    def test_actual_npc_kills_end_valkyrie_and_keep_death_credit(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, _ = self.spawn(definition, 1)
+                player.client.bot_stream = Mock(return_value=None)
+                if definition.name == "Assassin":
+                    bot.position = (0, 1, 2.5)
+                self.tick(run, player, bot, 35, buttons=0)
+                script = player.body_script
+                script.set_ult_charge(1820)
+                self.tick(run, player, bot, 1, buttons=0x20)
+                self.tick(run, player, bot, 35, buttons=0)
+                self.assertTrue(script.component.entity_var(842).value())
+                self.assertEqual(player.mover.flight_scale, 1)
+
+                fight = run.match.combat
+                victim = next(t for t in fight._targets() if t.owner is player)
+                vitals = fight.vitals_of(victim)
+                vitals.damage(vitals.total - 1)
+                fight._sync_body_health(player, vitals)
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
+                for _ in range(200):
+                    self.tick(run, player, bot, 1, buttons=0)
+                    if vitals.dead:
+                        break
+                self.assertTrue(vitals.dead)
+                self.assertEqual(vitals.killer, bot.entity)
+                self.assertFalse(fight.pins)
+                self.assertFalse(fight.is_stunned(player))
+                npc_control.stop(run.match)
+                self.tick(run, player, bot, 30, buttons=0)
+                self.assertEqual(vitals.total, 0)
+                self.assertFalse(script.component.entity_var(842).value())
+                self.assertIsNone(player.mover.flight_scale)
+
+    def test_each_npc_takes_actual_melee_only_without_an_intervening_static_wall(self):
+        for definition in self.catalog.values():
+            for blocked in (False, True):
+                with self.subTest(npc=definition.name, wall=blocked):
+                    run, player, bot, target = self.spawn(definition, 1)
+                    bot.position = (0, 1, 1.5)
+                    run.match.collision_world = World(FLOOR + (wall(-5, 0.75, 5, 0.75) if blocked else []))
+                    player.mover.use(world=run.match.collision_world)
+                    vitals = run.match.combat.vitals_of(target)
+                    before = vitals.total
+                    self.tick(run, player, bot, 1, buttons=0x800)
+                    self.tick(run, player, bot, 40, buttons=0)
+                    self.assertEqual(before - vitals.total, 0 if blocked else 30)
+
+    def test_four_authored_npc_weapons_actually_damage_mercy_then_stop(self):
+        expected = {"Trooper": 20, "Enforcer": 50, "Sniper": 100, "Heavy Assault": 5}
+        for definition in self.catalog.values():
+            if definition.name not in expected:
+                continue
+            with self.subTest(npc=definition.name):
+                run, player, bot, _ = self.spawn(definition, 1)
+                # Explicitly omit observer projectile transport, retaining the
+                # original VM weapon, shot generation and authoritative impact.
+                player.client.bot_stream = Mock(return_value=None)
+                self.tick(run, player, bot, 1, buttons=0)
+                self.assertEqual(npc_control.start(run.match, player), bot.entity)
+                victim = next(t for t in run.match.combat._targets() if t.owner is player)
+                vitals = run.match.combat.vitals_of(victim)
+                open_world = run.match.collision_world
+                run.match.collision_world = World(FLOOR + wall(-5, 2.5, 5, 2.5))
+                self.tick(run, player, bot, 30, buttons=0)
+                self.assertEqual(vitals.total, 200)
+                run.match.collision_world = open_world
+                for _ in range(200):
+                    self.tick(run, player, bot, 1, buttons=0)
+                    if vitals.total < 200:
+                        break
+                self.assertEqual(vitals.total, 200 - expected[definition.name])
+                self.assertIsNotNone(bot.body_script)
+                npc_control.stop(run.match)
+                before = vitals.total
+                self.tick(run, player, bot, 60, buttons=0)
+                self.assertEqual(vitals.total, before)
+
+    def test_actual_valkyrie_ascent_and_airborne_blaster_hit_each_enemy_npc(self):
+        for definition in self.catalog.values():
+            with self.subTest(npc=definition.name):
+                run, player, bot, target = self.spawn(definition, 1)
+                self.tick(run, player, bot, 35, buttons=0)
+                player.body_script.set_ult_charge(1820)
+                self.tick(run, player, bot, 1, buttons=0x20)
+                self.tick(run, player, bot, 35, buttons=0)
+                self.assertEqual(player.mover.flight_scale, 1)
+                self.tick(run, player, bot, 20, buttons=0x40)
+                self.assertGreater(player.mover.position[1], 2)
+                run.frame += 1
+                run.match.update(run.frame * combat.TICK, run.frame)
+                player.take_commands([Command(run.frame, action=2)])
+                self.tick(run, player, bot, 35, buttons=0)
+                vitals = run.match.combat.vitals_of(target)
+                before = vitals.total
+                self.tick(run, player, bot, 25, buttons=FIRE)
+                self.tick(run, player, bot, 10, buttons=0)
+                self.assertLess(vitals.total, before)
+                self.assertIsNotNone(bot.body_script)
+                weapon = next(i for i in player.body_script.component.instances.values()
+                              if i.graph.index == 0x006D)
+                self.assertEqual(weapon.find_var(0, 53).value(), 20)
 
     def test_actual_blaster_kills_each_base_pool_body_and_keeps_its_corpse(self):
         for definition in self.catalog.values():

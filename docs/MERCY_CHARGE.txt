@@ -1,0 +1,104 @@
+Mercy charge -- original0B8B passive timer -- partial acceptance
+Build1.74.0.0.104319; hero02E0000000000004
+
+Actual Match commands now run the existing0B8B instance's ordinary passive
+charge branch. Its original BooleanSwitch1 tests entity2426, charge<cost,
+F726(GetOwner)'s typed Entity and absence of842. Switch63 tests mode-member
+11002; Switch64 tests entity11942. Their false branches begin Wait3 and stat
+state66. The authored1s wait invokes SetVar4, adding5*Default9532*Default12918
+and clamping to cost338. Its output begins the next wait. No timer or numeric
+formula was copied into Combat or a separate charge accumulator.
+
+The previous cost/60s per-frame placeholder is bypassed for Mercy in Match.
+Other/standalone bodies retain their existing configurable placeholder; this
+change does not restore all heroes' charge. Explicit set_ult_charge remains a
+GM override. The original15s Valkyrie sets842 and spends1820, aborting the
+passive wait. Ending Valkyrie starts another full1s wait, not an immediate award.
+
+Eligibility correction
+-----------------------
+2426 is not an engine corpse-health boolean. Original001C7 entry41 checks
+server-role4A, then40->67->38->39 produces local1927,local59 and entity2426.
+Original39 expression is:
+  (local59 != Identifier16 AND local59 != Identifier18)
+  AND NOT local1927.member7775
+Message002D updates local59 through original37;054B repeats40. Original0694/
+0700 states can temporarily stack2426 true. These are authored mode/eligibility
+paths. set_health no longer overwrites them in Mercy Match.2426 is observable
+as an authored entity variable instead of being hidden as an engine input.
+
+The existing foreign653 fallback now reads owner_dead independently of2426.
+It remains a reconstructed corpse-eligibility bridge, pending the full native
+001C7 marker/filter/death scope. Actual living allies must still reject Res.
+
+Declared engine hosts / native boundaries
+-----------------------------------------
+Mercy001C7 uses an explicit authoritative role, ordinary mode category Asset0
+(excluding identifiers16/18) and the known Match mode entity. Mode-member
+7775/11002 comes from the selected mode variable table; known absent values
+remain null. Complete native server-mode/category/global ownership is OPEN.
+Native PC scalar9622/CC8000 writes a global typed Entity, while ABB6/CEB0E0
+writes zero Identifier. These client methods do not prove the server bindings.
+
+F726/CDBDE0 evaluates its entity config, invokes D15520's component43 lookup,
+then BD42D0 and the typed Entity writer F66C80. BD42D0's real return span4576
+decrypts fieldsD8/E0. Match's explicit retained body->controller relation supplies
+the returned Entity. Gone/absent bodies return Entity0. This is not a Boolean
+constant or an equation between body and controller IDs. Native component43
+fields, observers, possession changes and network lifetime parity remain OPEN.
+The existing VM query dependency polling observes relation changes. A restored
+relation is observed in its first command frame, then begins its full wait.
+
+Execution evidence
+--------------------
+Initial9 passive-charge tests plus23 Valkyrie and17 Res controls:49 PASS71.905s.
+The first run's two mismatches were timer expectations: one relation polling
+frame plus1s, and a full1s after Valkyrie expiry. Runtime arithmetic was unchanged
+between those runs. Two additional passive storage/death-replacement controls
+and the expanded146-case combination were verified separately.146 ran343.335s:
+145 passed;one new capture fixture incorrectly patched native on the world
+instance, adding a stored field and correctly triggering layout rejection.
+The fixture now patches the class, preserving the actual world layout. Final
+charge/VM snapshot34 tests PASS37.108s;all11 charge checks are included. Source
+changes after146 were formatting/comments and this fixture correction. There
+was no final146-case rerun and no claim of full static acceptance.
+Later fixed-source567 combined regressions PASS789.094s,including the final
+charge/storage controls and selected tagged healing awards. This supersedes
+the historical146-case fixture verification;full static acceptance remains OPEN.
+
+The checks execute actual Match updates and owner commands, original timers,
+variable watchers and Vitals. They cover5-point1s cadence,9532/12918 multipliers,
+cost cap/restart, duplicate inputs, original002D mode exclusions/recovery,
+typed relation loss/recovery, health updates preserving authored eligibility,
+842 suspension/restart and rejection of Res on a living ally. Storage inspection
+must preserve timer causality without calling native queries or ticking states.
+
+Remaining full charge acceptance
+--------------------------------
+Selected tagged support healing now delivers0044 from actual capped health;
+original0B8B filters/arithmetic award its charge. See MERCY_HEALING_CHARGE.txt.
+Selected actual0012 and staff0D9A->00EB now execute under declared server
+producers;see MERCY_DAMAGE_CHARGE.txt and MERCY_BOOST_CHARGE.txt. Native0148,
+complete source attribution and additional effect paths remain open. Their source,
+amount,filter/tag and NPC11E0.75 semantics still need integration and execution
+evidence. Full charge/native timing acceptance remains OPEN.
+Mode/server role, native ownership/death policy, client acceptance and the whole
+Mercy defense/control/cross-hero/five-NPC matrix remain OPEN. No final own commit
+or new integration patch until full static acceptance passes.
+
+Later native-backed metadata fold and shared input timestamp restoration pass
+593 combined regressions in1167.050s.5 additional actual cast movement controls
+PASS18.389s separately. See CONFIG_FOLD.txt,MERCY_INPUT_BUFFER.txt and
+MERCY_CAST_MOVEMENT.txt. The new prerequisite does not bind damage/boost awards.
+
+Clock boundary:the current body component advances on owner commands and bounded
+gap catch-up. This evidence establishes the original timer under those commands;
+it does not establish native server-time advancement with no new input, long-gap
+award history, rewind or command/world phase arbitration. An independent server
+clock cannot be added by advancing unrelated predicted ability states early.
+
+External research inputs and execution probes stay in the lane's research
+directory:ultimate-b8b-graphs.json,ultimate-2426-condition.json,
+ultimate-eligibility-nodes.json,native-charge-dependencies.json,
+native-charge-mode-and-related.txt,native-related-entity-tail.txt.
+Canonical runtime and native image are read-only; no client session was started.

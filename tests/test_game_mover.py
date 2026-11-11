@@ -21,15 +21,18 @@ from ow174.game.content import PRACTICE_RANGE, SOLDIER, _map_entries, heroes
 from ow174.game.match import Match
 from ow174.game.mover import (
     ADD,
+    BACKWARD_THROTTLE,
     CROUCH_INTENT,
     CROUCHED,
     FELL,
+    FORWARD_THROTTLE,
     JUMP_LATCH,
     JUMPED,
     REAL_JUMP,
     SET,
     SPEED,
     STEP,
+    STRAFE_THROTTLE,
     TOUCHING,
     TURN_HELD,
     Mod,
@@ -685,6 +688,20 @@ class MoverStateTests(unittest.TestCase):
 
 
 class ModTests(unittest.TestCase):
+    def test_directional_throttle_mods_stop_movement_until_their_end_frame(self):
+        for slot, forward, right in (
+            (FORWARD_THROTTLE, 127, 0),
+            (BACKWARD_THROTTLE, -127, 0),
+            (STRAFE_THROTTLE, 0, 127),
+            (STRAFE_THROTTLE, 0, -127),
+        ):
+            with self.subTest(slot=slot, forward=forward, right=right):
+                mover = soldier((0.0, 1.0, 0.0), FLOOR)
+                mover.track_mods({(1, 0, 0): (slot, SET, 0.0, 99.0)}, 0)
+                self.assertEqual(walk(mover, 5, forward, right, start=1)[-1], (0.0, 1.0, 0.0))
+                mover.track_mods({}, 5)
+                self.assertNotEqual(walk(mover, 5, forward, right, start=6)[-1], (0.0, 1.0, 0.0))
+
     def test_a_mod_acts_from_the_frame_after_the_statescript_turned_it_on_up_to_the_one_it_went_off(self):
         mover = soldier((0.0, 1.0, 0.0))
         mover.track_mods({(5, 0, 0): (SPEED, ADD, 0.5, 0.0)}, 10)

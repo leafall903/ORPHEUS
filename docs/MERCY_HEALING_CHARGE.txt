@@ -1,0 +1,85 @@
+Mercy actual support healing -> original0B8B charge -- partial acceptance
+Build1.74.0.0.104319; hero02E0000000000004
+
+Health and event flow
+---------------------
+Selected0079/10DC effect VMs evaluate active ModifyHealth amounts and original
+m_148F3152 tag expressions. Reports retain frame,target,amount,typed tags. Their
+real source/anchor/instigator contexts supply34BF and the conditional34C0 tag.
+Combat consumes each report once. The selected received-healing status031A
+modifies actual health, respecting supplied tag exclusions; Vitals caps it to
+missing health. Only positive health actually restored enters0044's amount.
+
+charge.healed reconstructs the engine event at the current body-component clock:
+  0044 to the actual healer's body;3F=target Entity;40=actual amount;41=typed tags.
+The normal message dispatcher delivers it to the body's original receivers and
+drains their queued work at that clock. It does not write charge342 directly.
+
+0B8B Entry31 binds40->499,41->659,3F->536. Original34/80 reject292/25A tags;
+85 rejects target.member17625;35 rejects842;21 requires2426. SetVar32 evaluates
+  min(cost338,charge342 +499*Default9532*Default13022).
+Original9532/12918 remains the separate passive timer formula. Actual passive
+self-regeneration does not emit team-healing0044. A missing effect binding keeps
+the earlier untagged health bridge and cannot invent tagged charge evidence.
+
+Observed actual-input result:50 ordinary16ms staff frames heal44 health and
+award44 charge, using original34BF. Capped .25 health awards .25, not the nominal
+.88 report. The original filters and modifiers execute in the real body VM.
+Selected1.5 amplification is charged from actual amplified health;anti-heal
+produces zero health and no award.842 suppresses primary/secondary Valkyrie heal
+charge, then the normal beam can earn charge after expiry. Definitions and
+runtime inputs remain external; none are installed into the canonical runtime.
+
+Validation scope
+-----------------
+17 focused tests PASS71.438s. Final fixed-source567 combined regressions
+PASS789.094s (session17934,exit0),including all Mercy,healing-status,charge,
+prepared NPC geometry,combat,projectile,VM,PlayScript and snapshot controls.
+All changed Python Ruff and git diff checks PASS. No test handles remain.
+
+test_game_mercy_healing_charge exercises actual Match commands, health and charge,
+cost cap,multipliers,duplicate input/consumption,full/missed/hostile/dead targets,
+original mode changes,target17625,passive no-charge and missing binding. Pending
+real report tags alter the passive VM digest;capturing runs no native queries;
+consuming the same emptied report list cannot award again.292/25A and293E cases
+are explicit engine-event tag fixtures;ordinary beam tags come from the graph.
+
+All five NPC rows use the parent's43-row mover table with actual capsule inputs
+in the selected test. Actual friendly staff commands heal and award44 per NPC.
+This establishes selected static geometry/health/charge behavior;NPC AI,special
+abilities,native animated hitboxes/navigation and full bidirectionality remain
+OPEN. See HEALING_STATUS.txt for table hash,read-only input and provenance.
+
+Full charge / native acceptance still OPEN
+------------------------------------------
+Engine0044 production,world/command ordering,long gaps/no-input timing,native
+source/ownership/role/mode fidelity and complete modifier/tag services are
+reconstructed or unaccepted. No full charge acceptance follows from this path.
+Later selected0012 and staff0D9A->00EB production is recorded in
+MERCY_DAMAGE_CHARGE.txt and MERCY_BOOST_CHARGE.txt. Native0148 and additional
+source/effect classes remain unintegrated.
+006B/173 binds074D->476,074C->6581;189 forwards476 as00EB/002A after its original
+filters. Native074D/074C production/meaning is not yet established.
+
+Next damage prerequisite:original0B8B folds0624 metadata and subtracts rows
+tagged3EBB before awarding.9 unchanged native A6B80C63 loop probes plus8 native
+parameter lookup probes PASS under explicit iterator/value/evaluator adapters.
+Empty collection skips initial;failed final preserves caller output while the
+fold returns success. The runtime now implements this primitive;16 focused
+controls pass and the actual runtime matches all9 loop/8 provider traces.
+See CONFIG_FOLD.txt. Actual damage-event production/filters remain unbound.
+Direct NPC tag extraction does not establish the complete dynamic tag catalog;
+the authored11E0.75 branch must not be applied to every NPC by name alone.
+
+Native research found CombatModFilter6226036A priority1/state vtable266DB98.
+D275A0 evaluates filters/tags and outputs source,coefficient,mode;D27C30 caches
+its fields. These are filter-execution findings,not a proven0D9A producer.
+Seven selected message/parameter IDs were checked through the104319 offline
+CASC reader and are absent as extractable resources. Their unavailable schema
+assets are recorded in external charge-message-provenance.json;no placeholder
+XML/schema or guessed parameter name was substituted. Native call/context
+spans and selected raw graphs stay in the lane's research directory.
+
+Full Mercy static combat,critical impacts,all defense/status/cross-hero and
+five-NPC interactions remain required. New work stays uncommitted;no final own
+patch,shared merge,push or client session follows from these partial controls.

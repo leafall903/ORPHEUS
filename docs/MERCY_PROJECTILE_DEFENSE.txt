@@ -1,0 +1,567 @@
+Mercy blaster and projectile defenses
+=====================================
+
+Target 1.74.0.0.104319. Full static acceptance remains open.
+
+Genji E enables 03A3/node18/state10. Sigma Shift enables 1D02/node7/state1.
+Both authored StateDeflectProjectiles states supply local box bounds and
+lifetime. The server uses an eye-relative aim frame and interprets the angle
+field as a full cone. Each sweep compares the box entry with nearer world,
+body and Reinhardt shield contacts. The Sigma off-body test uses the same
+shot with Grasp off and on. Without Grasp it misses the body. With Grasp it
+adds 20 to the original graph tally.
+
+Genji returns the authoritative projectile with the defender's team and aim.
+The original predicted segment ends and damage credit follows the new
+owner. The server removes the original attacker's launch boost and preserves
+the remaining flight budget. The tested return deals 20 to Mercy and awards
+Genji the damage credit. Backside and expired defense allow normal contact.
+
+Sigma's absorb callback receives the actual shooter in #41 and amount in
+#6584. Original 1D02/32 tallies 20 in #21312. The authored end request at
+1D02/34 targets self with 1D03. The compatible server host uses its actual
+amount and cap to grant 12 temporary shields in the one-shot test. The pool
+has a distinct ID and is consumed before base shields. Its decay uses the
+authored delay and rate. The test observes decay to about 7 and a later
+blaster hit consumes the remaining temporary pool before base shields.
+
+Reinhardt secondary starts original 0095/51 StatePet. The selected
+ORPHEUS_REINHARDT_COLLISION descriptor comes from lane 0007's prepared
+104319 shield model. Its SHA256 is
+8f897586159fefcbf67786bebedd4a55fbbf212a006b115ea7e499e5167286f3.
+The server uses the model triangles, bind-pose attachment anchors and aim.
+The geometry input can also be installed as reinhardt_collision_174.json
+under the configured runtime data directory. Lane 0007 retains the original
+descriptor and preparation tool.
+
+The earlier baseline let a frontal shot remove 15 from Reinhardt's body.
+With the geometry mounted, that shot removes 20 from the separate 1600
+durability pool. The body keeps its health. Shots at the back or after
+lowering the shield still remove 15 from the body. A real shot at the last
+20 durability breaks the barrier, early input is refused, durability
+recovers and a new press raises it again. The descriptor uses 0095's #586
+regeneration at 200/s after 2 seconds and the default 5-second break
+cooldown. The separate #502 chase has a rate of 150.
+
+The break test exposed the missing cooldown-zero notification for live
+Ability outputs. At expiry the VM now notifies subscribers. The shield
+input branch observes that transition and enables new presses.
+
+The server pose and pool handling remain reconstructions. Original-client
+presentation, native attachment animation, other projectiles and defensive
+states remain separate acceptance cases.
+
+Assassin manual pounce against Mercy
+------------------------------------
+The original Assassin body loads graph 1157. Its manual controller context
+exposes the selected Mercy body through key 1650, with logical input 36 and
+authoritative health queries for the attacker and victim. State 25 deals 25
+health on contact. State 15 begins about one second later and applies the
+authored amount as 100 health per second using the elapsed state clock.
+
+The server bridge reconstructs a 3 m acquisition distance, current-body
+binding, static collision visibility and pin control. The extracted mover
+profile is used for the Assassin capsule. Range, factions, obstruction, stop,
+source removal and victim death retire the relevant control or reject contact.
+Mercy input is released during the pin and her damage-sensitive regeneration
+resumes after damage ceases. The static tests exercise real graph execution.
+Native pounce motion, animated contact and autonomous acquisition remain open.
+
+Zarya personal and projected barriers
+-------------------------------------
+The private Mercy lane adapts the Zarya lane's damage and energy host for
+graphs 0244 and 025C. Resource 0256 provides the 200 durability pool and
+0242 receives absorbed damage and the attacker body. The 104319 graph
+owns activation, duration, cooldown and energy. The server reconstructs
+projected ally selection with aim and static visibility. The breaking hit
+is absorbed in full, with energy limited to the remaining durability.
+Incoming damage interception also suppresses the associated Assassin pin
+or hit-effect callback. Native pet replication and forced-interaction
+parity remain separate.
+
+Actual Mercy bullets and melee consume 20 or 30 barrier durability and
+give Zarya 4 or 6 energy. Actual hits also verify expiry, break and early
+recast rejection. A projected barrier on Mercy blocks an enemy rifle hit
+and Assassin's first 25 damage without applying the pin.
+
+D.Va Defense Matrix against Mercy
+---------------------------------
+The private lane reuses the 007A lane's extracted 0407 graph and mover
+supplements and projectile-tag catalog. Supply those files with
+ORPHEUS_GRAPH_SUPPLEMENT, ORPHEUS_MOVERS_SUPPLEMENT and
+ORPHEUS_PROJECTILE_TAGS. The graph supplement cannot replace base rows.
+0407 uses the original 300 health and 300 armor pools and 0.7 m mover radius.
+The 0276 startup lock resolves the current possessor through the server's
+body-to-controller relationship. Three 02CC ruleset selectors read current
+mech option slots or authored defaults.
+
+The real 02CC ability owns the active Matrix box state, resource drain,
+release, cooldown and depletion. The server places the four authored boxes
+in the mech's current aim frame at its combat eye. Known projectile
+definitions without tag 0145 are eligible. The finite Mercy blaster sweep
+checks cover, earlier bodies and other projectile defenses before retiring
+the intercepted projectile without an impact release or damage award.
+Forward absorption, away-facing body damage, release, early recast rejection
+and held depletion run through actual Match inputs. Native attachment,
+filter parity, historical poses and other attack classes remain open.
+
+Mei Cryo against Mercy
+----------------------
+The permissive body host completes the unresolved 05FE state 41 startup
+gate and lets the original duration state 6 own protection. The server
+rejects damage and hit control during that state. The static capsule
+remains a projectile contact, so an immune hit still retires the bullet.
+The existing resurrection deadline and Assassin contact checks share the
+same admission gate.
+
+Mercy blaster and melee reach the damage handler for 20 and 30 respectively,
+and neither changes Mei's health or gives Mercy hero damage. Secondary
+cancel, early cooldown refusal and natural end reopen actual damage.
+The startup completion and immunity gate are reconstructed. Mei's
+self-heal and native client behavior remain separate.
+
+Reaper Wraith and Moira Fade
+----------------------------
+Original graphs 0020 and 0F7C activate by real commands. The selected
+server adapter completes their authored zero-delay unresolved entry gate
+and reads each graph's active protection stack. State 3 supplies 3000 ms
+and 750 ms respectively, with cooldown data of eight and six seconds.
+The server excludes actively phased bodies from hostile attack candidates.
+A Mercy bullet can therefore reach an enemy behind an active phase. The
+central damage and control gate also checks active phase. Tests exercise
+actual blaster and melee rejection, resumed damage and early recast
+refusal. In the server fixtures, allied Wraith, Fade and Cryo remain
+eligible for Mercy's staff and Guardian Angel. The staff restores 17.6
+over 20 ticks and continues healing during flight. An independently
+selected Valkyrie secondary restores 19.2 over 20 ticks to each protected
+hero. Native phase parity remains open.
+
+An enemy Biotic Grenade passes through active Wraith or Fade and can
+detonate on a target behind them. It detonates on Cryo-Freeze, which
+rejects the hostile damage and anti-heal. The friendly Cryo fixture
+still receives the authored heal and healing amplifier. Existing anti-heal
+ends through the original 0C72/node8 switch and node9 StopScript. The
+status host mirrors the four entity variables read by that switch from
+the live player body. Actual Wraith, Fade and Cryo write the stacks that
+trigger the original stop path, and Mercy's staff can heal again while
+each protection remains active.
+
+Ana Sleep Dart against Mercy
+----------------------------
+Original 0BDD/14 launches a five-damage projectile carrying effect026F.
+The selected server host installs a five-second sleep after the dart's
+own positive hit. An admitted later positive damage event wakes the target.
+Healing and passive regeneration preserve sleep. Damage immunity and a
+Zarya barrier prevent the dart's sleep callback. Death or replacement
+retires sleep with the victim body. The sleep deadline is included in
+the causal server snapshot.
+
+The actual lethal-hit fixtures cover both normal respawn and Mercy's
+same-body Resurrection before the old sleep deadline. Resurrection
+restores full pools and removes the scheduled normal respawn. Its own
+rising lock still applies, and movement resumes when that lock ends.
+
+The four-player overlap fixture sleeps Mercy first, then projects an
+authored Zarya barrier onto her. Three actual Peacekeeper hits spend
+the barrier down to 130, 60 and zero. Mercy remains asleep on the
+breaking hit and continues passive self-healing. The next unshielded
+hit deals 70 to her health and wakes her.
+
+Actual input tests cover movement and ability suppression, passive
+regeneration, expiry, wake by a later rifle shot, interruption of Guardian
+Angel and Resurrect, friendly and missed darts, and revived-body immunity.
+The five-second host clock and input/control policy are reconstructed.
+Native fall and wake recovery timing remain separate.
+
+Mei spray frost against Mercy
+-----------------------------
+A positive hit with spray loadout 00D3 advances the target's frost for
+that attacker body. The default 104319 resource values used here are
+0.2 initial progress and 0.0285 per subsequent hit. The server uses the
+highest live source contribution, a one-second lapse, a 70 percent slow
+cap and a 1.3-second freeze at full progress. The frozen interval does
+not extend from more spray hits. Frozen bodies reuse the shared control
+and ability interruption path. Active shield or immunity rejection
+happens before accumulation. Death and revival retire the target's
+frost, and server snapshots capture progress and deadlines.
+
+Actual Mei spray against Mercy covers partial movement speed, full input
+suppression, thaw with resumed motion, faction and out-of-range misses.
+These are default spray settings and a server reconstruction of movement
+and freeze admission. Blizzard, custom stacking rules, native view lock
+and airborne slowdown remain separate.
+
+Mei Blizzard against Mercy
+---------------------------
+Mei 064A/state 3 launches definition 0946 through the real 1610-charge
+ability. The server sweeps fixed 16 ms ballistic chords with authored
+speed, gravity and lifetime. First static contact anchors the area.
+After a 200 ms delay, it applies 20 damage per second for 4250 ms in
+a 10 m radius, checking faction and static line of sight. Positive
+exposure accumulates area frost at 200 ms intervals in a separate
+source channel. D.Va Matrix can cancel the eligible flying device
+before area creation. Body retirement clears owned flights and areas.
+
+Actual input tests cover uncharged refusal, launch, grounded exposure,
+85 total damage, freeze and thaw, post-area Mercy regeneration, ally
+immunity, static wall cover, and Matrix absorption. Ballistic chords,
+area timing and frost are reconstructed from the extracted resources.
+Genji reflection, other attack defenses, client field rendering and
+custom effect settings remain separate.
+
+Sombra Hack against Mercy
+--------------------------
+The original 0B1B secondary cast acquires an enemy body using its search
+radii, capsule geometry and static or Reinhardt cover checks. The server
+supplies the retained-target ray and scoped body filter, then routes the
+actual PlayScript request to 0B1F on the target VM. Node 96 supplies the
+five-second lock. Mercy's server gate rejects Guardian Angel, Resurrect
+and Valkyrie starts and interrupts active Guardian Angel and Resurrect
+through their authored exits. Ordinary blaster input remains available.
+The lock follows the target body and its deadline is stored.
+
+Real-input tests cover Guardian Angel rejection and recovery, blaster
+damage during the lock, interruption and restart rejection for Resurrect,
+Valkyrie rejection with charge retained and later consumption, and wall,
+faction and range rejection. The target geometry and silence admission
+are reconstructed. EMP and native general-purpose tag routing remain open.
+
+Sombra EMP against Mercy
+------------------------
+The original 0B31 spends 1400 charge and releases a radial target query.
+The host evaluates the authored radius against current enemy capsules
+and static line of sight. It routes 0B31 to 0B32 on each admitted body and
+then routes 0B32 to the original 0B1F silence. The five-second Mercy lock
+uses the shared Hack host. The 0B32/9 health event is capped to current
+base and temporary shield pools. Mercy's unshielded body loses no health.
+Tests cover cast delay, undercharge, a target behind the caster, paid
+whiffs, wall, range, faction, skill recovery and a real Zarya shield drain.
+The target filter and shield mask are server reconstructions. Barrier
+devices, general hero silence and original-client parity remain separate.
+
+Lucio Soundwave against Mercy
+-----------------------------
+Original 0776 state 11 supplies 25 damage and its impulse expression.
+The selected native-scalar adapter evaluates the resource's look direction,
+basis and limiter. State 10 supplies range and angle. The server searches
+historical capsule poses, interpreting the angle as a full cone and
+checking static line of sight. It applies damage once per activation and
+adds the unresisted impulse to the living victim's next posed movement
+step. The pending impulse is part of causal server storage. Death or
+body retirement clears it. Immunity and absorbed damage reject the impulse.
+
+Real input verifies Mercy damage and displacement, next-pose delivery,
+range/faction/static-wall rejection and a projected Zarya barrier
+absorbing both damage and knockback. The impulse host and target search
+are reconstructions. Native resistance, NPC impulse movement and
+interactions with sustained world-target movement remain open.
+
+Assassin melee rescue
+----------------------
+An actual damaging melee contact against the Assassin releases its pinned
+victim if the rescuer shares the victim's team. The host exits the original
+1157 pin and charge states and releases the logical attack button. The
+release animation's unresolved duration uses the parallel authored wait
+at position 37. Manual attack input cannot restart during this recovery.
+The standing manual engagement may resume afterward.
+
+The Mercy fixtures verify 30 damage to the Assassin, immediate teammate
+release, a recovery interval without another hit, renewed pounce afterward
+and wall rejection while the victim's own pin line stays unobstructed.
+The animation-time fallback and manual reacquisition are reconstructed.
+
+Enforcer ring volley against Mercy
+-----------------------------------
+Original 13EB/24 supplies 25 projectiles, the ring sizes/radii and
+spread. The server expands that one authored shot into 25 normalized
+rays and sweeps each projectile independently. The angular projection
+and ring phase are reconstructed. The volley and ammo lifecycle stay
+in the original graph. Actual first volleys against the prepared Mercy
+capsule dealt 50 at 2 m and 5 m, and 24 in the measured 12 m window.
+A partial wall blocked only part of a real volley. Full cover and
+manual stop remain tested. Native fan distribution and presentation
+remain separate.
+
+Mercy boost on Enforcer and Assassin
+-----------------------------------
+An actual Enforcer ring volley snapshots the connected Mercy's boost for
+each pellet at launch. At 2 m it deals 65 rather than 50 and awards Mercy
+15 charge even when she releases the beam before impact. The Assassin's
+original 1157 contact and damage-clock events read the active beam at
+each application. Contact deals 32.5 and awards 7.5. A full boosted
+16 ms tick deals 2.08 and awards 0.48. Releasing the beam leaves later
+ticks at 1.6 with no bonus charge. The per-tick sampling policy is
+reconstructed. Valkyrie chain boost now drives actual attacks from all
+five NPCs, including an Enforcer volley and an Assassin contact.
+
+Trooper and Heavy Assault melee
+--------------------------------
+Manual NPC attack start supports an explicit melee selection for the
+Trooper and Heavy Assault bodies. It uses logical button 31 and their
+original 1422 and 140E target and ModifyHealth states. The sphere offset
+and radius are evaluated from the tracker. Reconstructed capsule and
+static visibility checks revalidate the selected enemy at impact.
+Damage and resource-supplied radial impulse use the shared combat host.
+
+Real inputs verify 30 Trooper damage with no horizontal displacement,
+80 Heavy Assault damage with knockback, one hit per held activation,
+and wall/range rejection. NPC autonomous choice, native collision pose,
+and Heavy Assault's charge are separate acceptance cases.
+
+Heavy Assault charge travel and graze
+-------------------------------------
+The explicit manual charge mode drives logical button 35 of original
+1408. The graph owns windup, travel enable, wall exit and cooldown.
+The server consumes movement row 71 at 15 m/s with the authored wall
+ray at 172. Its graze host uses the authored 32 and 35 search and
+health states, excludes the authored front cone and applies each
+victim's damage once per travel. Original impulse scalars feed the
+shared next-pose movement host. Stop, death and removal retire the
+active graze record.
+
+Actual tests cover stationary windup, movement, static wall exit,
+recovery and a 50-damage side contact with knockback against Mercy.
+Static collision and contact pose are reconstructed. Frontal capture,
+body impact and wall crush remain separate acceptance cases.
+
+Heavy Assault frontal capture and wall crush
+--------------------------------------------
+The original 1408 front search and state 158 issue a 1407 PlayScript
+request for the admitted player body. The target VM owns the attachment
+lifetime. The server blocks voluntary input during carry and places the
+victim ahead of the source by the two capsule radii. The native animated
+bone transform remains unresolved. Wall contact runs original health
+state 29 against the bound victim before exiting. Manual stop and source
+removal destroy the attachment without damage. The binding is included
+in causal server storage.
+
+Actual input verifies Mercy carry, input suppression, lethal wall crush
+with correct source ownership, and release without crush on manual stop.
+The broader defense and forced-movement matrix remains open.
+
+Heavy Assault close-body impact
+-------------------------------
+The 1408 contact search at 100 excludes the already carried body.
+The phase-two branch uses original health state 102 and the state 189
+request for 224E, with its two-second duration. The contact victim
+takes 175 damage and loses input for 125 ticks. The server resolves
+the authored health and control requests against its static contact
+volume and stored stun clock. A second body stops the carry and
+runs the original state 29 damage on the carried victim. The hit on
+the second body retains separate health and control ownership.
+
+Sniper reposition
+-----------------
+The manual controller requests the original Sniper 142C state 16.
+The original MoveTo owns the requested speed of 20 metres per second.
+The static host reconstructs a visible walkable destination four metres
+away, checks a hostile player within three metres, and uses a six-second
+controller recast window. Its capsule mover reports arrival or blocking
+to the state. Existing primary input is suppressed while moving and
+resumes after completion. Stop, removal and death retire the move.
+The controller stores the active mover in the causal server state.
+Native anchor selection and controller messages remain unverified.
+
+Sniper alternate weapon
+-----------------------
+The manual attack controller sends the original selector buttons 15
+and 16 for the primary and alternate slots. It releases an active fire
+edge before selecting a different slot. Graph 1134 emits the alternate
+shot at 200 metres per second with an authored 100-metre reach.
+Mercy takes 5 damage on a body hit. A projected barrier loses 5
+durability while Mercy keeps her health. Actual Mercy staff boost
+raises the hit to 6.5 and credits 1.5 ultimate charge.
+
+Enforcer movement modifier
+--------------------------
+Mount enforcer-controller-supplement.json.gz with the prepared NPC graph
+bundle via ORPHEUS_GRAPH_SUPPLEMENT. A manual Enforcer spawn reserves
+distinct body 2279 and controller 227A entity IDs. The controller clock
+runs ahead of the body clock. Explicit manual entry into 13EA state 62
+enables Stack 65 and publishes controller member 12299. Only 13EF's
+scoped related-entity expression reads that member across the two VMs.
+The route walker consumes property 0's authored multiplier, 0.4.
+Stopping ends state 62 and the body clock clears the speed modifier.
+Removal and death retire the controller. Server storage retains the
+separate VM, and a component-only export remains local to the body.
+The route and explicit branch admission are sandbox inputs. Native AI
+target acquisition and the 1506 animation event remain open.
+
+Trooper and Enforcer magazines
+------------------------------
+Original Trooper 102E binds its volley to the 30-round magazine.
+Sustained fire reaches zero and enters the authored reload gate.
+The manual NPC control can also pulse original logical button 14
+to reload a partly used magazine while idle. Enforcer 13EB enters
+automatic reload after the fourth shot. Both graphs can refill
+before their firing gates clear. A held trigger emits no shots
+while the tested gates remain active, and stopping fire does
+not stop the reload clock. Actual shots after recovery take 20
+and 50 health respectively from Mercy.
+
+Mei alternate melee projectile defense
+-------------------------------------
+Hero DD's original entity definition is 08BA. Snowball Deathmatch
+(mode 0x0230000000000059) player startup reads 2250's body registration
+and initializes 22F0 once for that body. Original 22F0 owns the
+0.9-second defense window and one-second cooldown. The host uses node
+14's forward box and 90-degree angle, and the same prepared tag 0145
+exclusion catalog as Matrix. On a contact it retires the projectile and
+writes the authored source output, which runs the contact branch and
+ends the window. The default Mei melee slot remains ordinary.
+The prepared map catalog binds the mode on Ecopoint: Antarctica and
+Black Forest (Winter). The Ecopoint match fixture uses a controlled
+collision scene. It verifies logical button 31, Mercy projectile contact,
+cooldown and fresh initialization on body replacement. The remaining
+2250 graph-to-graph remaps and native client behavior are outside this
+body registration. Pose and projectile filtering are reconstructed.
+
+Sombra EMP against Zarya projected barrier
+-----------------------------------------
+The original 0B32 hit graph checks tag 003A at node 8 before
+choosing the barrier-only health branch at node 3 or the normal
+shield and hack branch at node 9. The host resolves this exact
+predicate against the active Zarya barrier on the affected body.
+Node 3 submits the authored 10000 value to barrier interception,
+which caps energy credit at consumed barrier durability.
+Mercy keeps 200 health and can immediately use Guardian Angel.
+A full projected barrier yields 40 Zarya energy on destruction.
+Placed barrier entities still require separate coverage.
+
+Sombra EMP against Reinhardt's raised shield
+--------------------------------------------
+Reinhardt 0095 state 51 selects shield entity 011A, whose extracted
+target tags include 003A. The existing 0095 host owns shield durability
+and cooldown. At original EMP 0B31 node 8, the host consumes the 0B32
+barrier packet using the shield anchor for radius and static sight.
+It applies the authored amount through the existing barrier break path.
+The actual cast breaks the enemy shield and still applies the separate
+body effect to Mercy behind it. A friendly shield or one behind a wall
+keeps its durability. The shield anchor and contact routing are
+reconstructed. Independent deployed shield entities remain open.
+
+Winston sphere against Mercy and EMP
+-------------------------------------
+The server observes the authored 00FA deployment completion and reads
+the shield health and lifetime from its graph variables. It places the
+prepared five-metre sphere at the cast position using a reconstructed
+anchor and sphere-crossing policy. Enemy projectile sweeps can strike
+it independently of the owner. The original EMP action checks the
+sphere surface against its radius and static sight even without a
+selected enemy body. The same authored barrier amount destroys it.
+World ticks retire it on break or expiry. Native entity replication,
+exact attachment and other attack classes remain open.
+
+Orisa deployed shield against Mercy and EMP
+-------------------------------------------
+A 0BD7 volley requesting definition 14A1 follows its authored speed
+and gravity through static collision. On world contact the host uses
+the 0252 delay and starts original 0BD8, whose variables supply 600
+health and the shield lifetime. Set ORPHEUS_ORISA_GEOMETRY to the
+prepared 4062 model mesh descriptor. Mercy's actual blaster hits the
+mesh for 20. EMP uses the nearest mesh point and a static sight check.
+Cooldown rejection and expiry without subsequent input are exercised.
+The host reconstructs flight, landing orientation and device transport
+boundaries. Independent networked device replication remains open.
+
+Sigma Experimental Barrier against Mercy and EMP
+------------------------------------------------
+The permissive host binds original 1B55's Pet and its 1A2A child
+request to a separate shield actor using the integrity-checked C015
+mesh. Set ORPHEUS_SIGMA_BARRIER_MODEL to the prepared 00C file.
+The owner graph supplies the phases and the child supplies motion
+and recharge inputs. Actual Mercy blaster contact consumes 20 of
+700 durability. Actual EMP uses the reconstructed shield anchor and
+static line of sight and breaks the barrier. Recall, early redeploy
+refusal, recharge and renewed projectile protection are tested.
+Independent network replication remains open.
+
+Incoming fire against deployed barriers
+---------------------------------------
+Hitscan and non-explosive direct projectile paths use the shared
+nearest hostile barrier query, with static cover and earlier bodies
+limiting the sweep. An actual Soldier rifle hit drains 20 from a
+friendly Sigma Experimental Barrier and an actual Enforcer volley
+drains 50 from a friendly Orisa shield. Mercy remains at 200 health.
+
+Explosive impact against barriers
+----------------------------------
+A hostile barrier can detonate a damaging projectile before a body
+or wall impact. The server checks splash visibility from the approach
+side to each body capsule before applying the combined impact and
+splash amount to the intercepted barrier. Actual Helix consumes 120
+durability on both a Winston sphere and an Orisa mesh. A sphere with
+20 durability breaks while still protecting Mercy for that event.
+A later unshielded Helix hits her for 120. Other splash-to-device damage is covered separately below.
+
+Melee against barrier surfaces
+------------------------------
+The static host tests the authored attack sphere against shield
+surfaces independently of the existing target-body query. The
+nearest surface point must be within the attack volume and visible
+from the attack origin. Real Mercy input consumes 30 Orisa barrier
+durability and 25 armour on the body. The actual Trooper attack
+consumes 30 Winston sphere durability and 30 Mercy health. These
+are scoped runtime checks using reconstructed contact geometry.
+
+Splash against a nearby barrier
+-------------------------------
+The host queries each hostile barrier's nearest surface point at
+the explosion and evaluates the authored splash falloff. Static
+cover and closer barriers occlude the splash before damage is
+applied. A direct barrier contact receives one combined event.
+The staged runtime test confirms an actual terrain-impact Helix
+drains 80 from a visible Winston sphere and zero through a wall.
+
+Ana grenade against barriers
+----------------------------
+The grenade detonates on the same dynamic shield surfaces as other
+explosive projectiles. Its outer authored 50-point packet applies to
+barriers. On a body, original 0267's faction branches continue to own
+health and healing status. A hostile projected barrier consumes the
+outer packet before the status graph can start. An actual grenade
+breaks a 20-HP sphere while the same event leaves Mercy at 200 and
+without antiheal. Actual friendly grenade restores 100 through a
+friendly sphere and applies its 1.5 received-healing modifier.
+
+Sleep dart against projectile defenses
+--------------------------------------
+The 0BDD dart enters the authored projectile-defense query. Its
+five damage and 026F sleep follow the projectile through Genji's
+reflection. Hostile bubble and projected barriers block both.
+Projectile asset identity is stored independently of observer
+presentation, so D.Va uses the verified 15E8 tag entry even
+without an observer shot. Sigma's original tally receives five
+and converts it to three temporary shields when Grasp ends.
+Ana's Biotic Grenade uses the same projectile definition and Matrix tag
+check as Sleep Dart. An active hostile Matrix can remove the grenade
+before the nearest body, world surface or projected barrier. Absorption
+ends the flight before detonation, damage and healing status processing.
+The paired encounter confirms that an exposed Mercy takes 60 damage and
+receives anti-heal from the same throw.
+
+Genji reflects the grenade with his faction and status source. In the
+reflected flight test Mercy takes the 0267 hostile 60 and receives anti-heal
+attributed to Genji. Sigma's Grasp consumes the outer 50-point projectile
+event without detonation and the original 1D02 graph converts the tally to
+30 temporary shields. The outer event supplies the server absorption amount.
+
+Talon traveling shots
+---------------------
+Enforcer 13EB/24 (23F0) and the two Sniper weapon paths 1122/6
+(1E80) and 1134/6 (23BB) enter the same ordered projectile-defense
+contact sweep. Their extracted entity tags omit the 145 exclusion.
+Reflected flights preserve the projectile definition, switch to the
+reflector and discard the original launch boost credit.
+
+Talon immediate shots
+---------------------
+Trooper 102E/60 resolves entity 1FE6, and Heavy Assault 114F/47
+resolves dynamic variable 5875 to entity 206A. Both extracted tag sets
+omit the 145 exclusion. These two exact rows resolve defense contact
+in the same tick, ahead of farther walls, barriers and bodies. Matrix
+uses the verified tag data. Grasp receives the immediate shot amount
+and the source body. A reflected ray uses the defender's aim and
+faction, the remaining distance and the attack's base damage. A
+repeat contact with the same reflector ends the ray to bound
+overlapping boxes. This is a server rule pending native comparison.

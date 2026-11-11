@@ -330,7 +330,8 @@ class OwnerProjectileDeliveryTests(unittest.TestCase):
         self.assertIn(self.shot.state, frame.instances[self.shot.instance].states)
         report = script.reports[-1]
         self.assertEqual((report.number, report.cmfd, report.last), (before + 1, frame.cmfd, frame.last))
-        self.assertEqual(report.volleys[(self.shot.instance, self.shot.state)], self.shot.activation)
+        self.assertEqual(report.volleys[(self.shot.instance, self.shot.state)], self.shot.activation[:2])
+        self.assertEqual(self.shot.activation[2], 1)  # frozen firing generation is internal,not an ACK field
         self.assertIsNone(report.received)
         self.assertFalse(self.shot.created)
         self.ack()
@@ -579,7 +580,7 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
         delivery = player.match.combat.projectiles
         shots = delivery.shots
         self.assertEqual([shot.frame for shot in shots], [1042, 1054, 1067, 1079])
-        self.assertEqual({shot.activation for shot in shots}, {(1, 16676)})
+        self.assertEqual({shot.activation for shot in shots}, {(1, 16676, 1)})
         definition = 0x0400000000000158
         leases = [delivery.lease_id(player, definition, shot.frame) for shot in shots]
         start_lease = delivery.lease_id(player, definition, 1043)
@@ -785,6 +786,17 @@ class ObserverProjectileDeliveryTests(unittest.TestCase):
             vars={(instance.id, 32): (value, ())} if value is not None else {},
             states={(instance.id, state.index): (state.node.cls, False, state.payload())},
         )
+
+    def test_queued_old_segment_keeps_frozen_firing_generation_after_rebind(self):
+        bot, state = self.npc_source()
+        state.volleys = 9  # same State object has advanced before this queued shot drains
+        self.fight.projectiles.fired(
+            bot, state, self.tick + 1, HELIX, 2.0, (0.0, 0.0, 0.0), (0.0, 0.0, 1.0),
+            activation=(state.counter, state.start, 1),
+        )
+        self.assertEqual(len(self.fight.projectiles.observed), 1)
+        self.assertEqual(self.fight.projectiles.observed[0].record.volleys, 1)
+        self.assertEqual(state.volleys, 9)
 
     def npc_volley(self, bot, state):
         self.client.queue_bot_live(bot.entity, self.npc_snapshot(state))

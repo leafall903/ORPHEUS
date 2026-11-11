@@ -104,6 +104,8 @@ class SceneWorld(runtime.World):
         self.references: dict[uuid.UUID, int] = {}
         self.placements: dict[int, Placement] = {}
         self.definitions: dict[int, dict] = {}
+        self.target_tags: dict[int, frozenset[int]] = {}
+        self.target_tag_scopes: dict[runtime.State, tuple[int, int]] = {}
         self.possessors: set[int] | None = None  # None means component availability is unknown.
         self.primary_possessors: dict[int, int] = {}
         self.modifier_components: dict[int, modifiers.NumericModifiers | None] = {}
@@ -116,11 +118,14 @@ class SceneWorld(runtime.World):
         self.data_flow_contexts: dict[int, data_flow.Context] = {}
         self.script_components: dict[int, runtime.Component | None] = {}
         self.play_queues: dict[int, play_queue.Queue] = {}
+        self.profile_spawns = None
         self.voice_contexts: dict[int, voice_stimulus.Context | None] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.hero_contexts: dict[int, controller_heroes.Context] = {}
         self.team_contexts: dict[int, entity_team.Context] = {}
         self.message_contexts: dict[int, message_state.Context] = {}
+        self.session_entity_roster = None
+        self.array_filter_inputs = None
 
     def bind(self, entity: int, reference=None, position=None,
              *, placement: Placement | None = None) -> SceneEntity:
@@ -145,6 +150,12 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        if self.profile_spawns is not None:
+            self.profile_spawns.unbind(entity)
+        self.target_tags.pop(entity, None)
+        for state, (target, _) in tuple(self.target_tag_scopes.items()):
+            if target == entity:
+                self.release_target_tag(state)
         self.modifier_components.pop(entity, None)
         self._retire_control_contexts(entity=entity)
         aliases = self.alias_components.pop(entity, None)
@@ -172,6 +183,27 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def set_target_tags(self, entity: int, tags) -> None:
+        """Declare the owner's tags for a bound entity, including a known empty set."""
+        self._bound_entity(entity)
+        identifiers = tuple(tags)
+        if any(type(tag) is not int or tag >> 48 != 0x0D60 for tag in identifiers):
+            raise ValueError("target tags must be TargetTag resource GUIDs")
+        self.target_tags[entity] = frozenset(tag & 0xFFFFFFFF for tag in identifiers)
+
+    def attach_target_tag(self, state: runtime.State, entity: int, tag: int):
+        """Add a state-owned contribution when the owner has declared the target's tags."""
+        instance = state.instance
+        component = instance.component
+        if (not state.active or state.ending or component.instances.get(instance.id) is not instance
+                or self.script_components.get(component.entity) is not component or entity not in self.target_tags):
+            return NotImplemented
+        self.target_tag_scopes[state] = (entity, tag & 0xFFFFFFFF)
+        return True
+
+    def release_target_tag(self, state: runtime.State) -> None:
+        self.target_tag_scopes.pop(state, None)
 
     def bind_script_component(self, entity: int, component: runtime.Component | None) -> None:
         """Publish the actual component, or explicitly declare component absence."""
@@ -224,6 +256,9 @@ class SceneWorld(runtime.World):
         if voice is not None:
             voice.retire()
         if previous is not None:
+            for state in tuple(self.target_tag_scopes):
+                if state.instance.component is previous:
+                    self.release_target_tag(state)
             self._notify_script_retired(previous)
 
     def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
@@ -345,15 +380,35 @@ class SceneWorld(runtime.World):
     def play_script_context(self, instance, node):
         """Entity-instance262E740's +60/+70 share its actual component VM."""
         component = instance.component
-        if (self.script_components.get(component.entity) is not component
+        if (self._play_endpoint(component.entity)[0] is not component
                 or component.instances.get(instance.id) is not instance or instance.stopped):
             component.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
         component.ensure_valid()
         inherited = instance.source_entity()
-        if (self.script_components.get(component.entity) is not component
+        if (self._play_endpoint(component.entity)[0] is not component
                 or component.instances.get(instance.id) is not instance or instance.stopped):
             component.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
         return play.InvocationContext(component.entity, component.entity, inherited)
+
+    def _play_endpoint(self, entity):
+        if entity in self.script_components:
+            return self.script_components[entity], self.play_queues.get(entity)
+        profiles = self.profile_spawns
+        bot = profiles.created.get(entity) if profiles is not None else None
+        if bot is None:
+            return NotImplemented, None
+        if bot.dead:
+            return None, None
+        script = bot.body_script
+        queue = profiles.queues.get(entity)
+        if script is None or queue is None or queue.closed or queue.component is not script.component:
+            return NotImplemented, None
+        return script.component, queue
+
+    def profile_play_queue(self, component):
+        profiles = self.profile_spawns
+        queue = profiles.queues.get(component.entity) if profiles is not None else None
+        return queue if queue is not None and self._play_endpoint(component.entity) == (component, queue) else None
 
     def set_play_queue(self, entity: int, queue: play_queue.Queue) -> None:
         self._bound_entity(entity)
@@ -382,14 +437,14 @@ class SceneWorld(runtime.World):
 
     def submit_script_request(self, instance, node, request):
         source = instance.component
-        if (self.script_components.get(source.entity) is not source
+        if (self._play_endpoint(source.entity)[0] is not source
                 or source.instances.get(instance.id) is not instance or instance.stopped):
             source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
         source.ensure_valid()
         for entity in request.targets:
             if entity not in self.entities:
                 continue
-            receiver = self.script_components.get(entity, NotImplemented)
+            receiver, queue = self._play_endpoint(entity)
             if receiver is None:
                 continue
             if receiver is NotImplemented or receiver.fault is not None:
@@ -397,17 +452,15 @@ class SceneWorld(runtime.World):
             if (request.policy == 3 and receiver is source
                     and request.resource.guid == (graph.GRAPH_TYPE << 48) | instance.graph.index):
                 source.unsupported(instance, 'scene PlayScript active self replacement', node.cls, node)
-            queue = self.play_queues.get(entity)
             if queue is None:
                 source.unsupported(instance, 'scene PlayScript queue', node.cls, node)
             try:
                 queue.submit(request)
             except ValueError as error:
                 source.unsupported(instance, 'scene PlayScript queue', str(error), node)
-            if (self.script_components.get(entity) is not receiver
-                    or self.play_queues.get(entity) is not queue or receiver.fault is not None):
+            if self._play_endpoint(entity) != (receiver, queue) or receiver.fault is not None:
                 source.unsupported(instance, 'scene PlayScript target lifecycle', node.cls, node)
-            if (self.script_components.get(source.entity) is not source
+            if (self._play_endpoint(source.entity)[0] is not source
                     or source.instances.get(instance.id) is not instance or instance.stopped):
                 source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
 
@@ -593,6 +646,8 @@ class SceneWorld(runtime.World):
         actual = self.script_components.get(component.entity, NotImplemented)
         if actual is not NotImplemented and actual is not component:
             return  # A stale source cannot retire its replacement's engine services.
+        if self.profile_spawns is not None:
+            self.profile_spawns.cancel_wave_spawns(component)
         messages = self.message_contexts.pop(component.entity, None)
         if messages is not None:
             messages.retire()
@@ -692,9 +747,35 @@ class SceneWorld(runtime.World):
         owner = self.primary_possessors.get(entity, 0)
         return owner if owner in self.entities and owner in self.possessors else 0
 
+    def configure_retribution_profiles(self, match, definitions, acquire=None, *, hardpoints=None, waves=None) -> None:
+        from ow174.game import npc
+
+        if self.profile_spawns is not None:
+            raise ValueError("scene profile catalog is already configured")
+        self.profile_spawns = npc.RetributionProfiles(match, self, definitions, acquire, hardpoints, waves)
+
+    def create_profile_entity(self, instance, node, profile):
+        if self.profile_spawns is None:
+            return NotImplemented
+        return self.profile_spawns.create(instance, node, profile)
+
+    def create_wave_entity(self, instance, node, identifier):
+        if self.profile_spawns is None:
+            return NotImplemented
+        return self.profile_spawns.create_wave(instance, node, identifier)
+
+    def complete_wave_spawn(self, instance, node, identifier):
+        if self.profile_spawns is None:
+            return NotImplemented
+        return self.profile_spawns.complete_wave_spawn(instance, node, identifier)
+
     def position(self, entity: int):
         record = self.entities.get(entity)
-        return record.position if record is not None else None
+        if record is None:
+            return None
+        if self.profile_spawns is not None and (bot := self.profile_spawns.created.get(entity)) is not None:
+            return expr.Vec3(*bot.position)
+        return record.position
 
     def entity_var(self, entity: int, var: int):
         slot = self.entity_var_slot(entity, var)
@@ -706,7 +787,105 @@ class SceneWorld(runtime.World):
         # Catalog bindings do not activate the entity's script component.
         return NotImplemented
 
+    def session_script_entities(self, instance):
+        if (self.script_components.get(instance.component.entity) is not instance.component
+                or not callable(self.session_entity_roster)):
+            return NotImplemented
+        roster = self.session_entity_roster()
+        if type(roster) is not tuple or any(type(entity) is not int or entity not in self.entities
+                                            for entity in roster):
+            return NotImplemented
+        return tuple(expr.Entity(entity) for entity in roster)
+
+    def filter_array_candidate(self, state, candidate, config):
+        if config is None:
+            return True
+        component = state.instance.component
+        masks = ("m_84065FD1", "m_1E14CCA8", "m_4EA686DB")
+        if (self.script_components.get(component.entity) is not component
+                or not callable(self.array_filter_inputs) or config.get("$") != "STUConfigVarFilter"
+                or any(value not in (None, 0) for key, value in config.items()
+                       if key != "$" and key not in masks)):
+            return NotImplemented
+        any_bits, all_bits, excluded = (0 if config.get(key) is None else config[key] for key in masks)
+        if any(type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF
+               for bits in (any_bits, all_bits, excluded)):
+            return NotImplemented
+        binding = self.entities.get(candidate.id)
+        if binding is None:
+            return False
+        inputs = self.array_filter_inputs(candidate.id)
+        if (self.script_components.get(component.entity) is not component
+                or self.entities.get(candidate.id) is not binding
+                or type(inputs) is not tuple or len(inputs) != 2):
+            return NotImplemented
+        present, bits = inputs
+        if type(present) is not bool or (bits is not None and
+                (type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF)):
+            return NotImplemented
+        if not (any_bits | all_bits | excluded):
+            return True
+        if not present and any_bits != 0x3FFFFFFF:
+            return False
+        bits = bits or 0
+        return bool((any_bits == 0x3FFFFFFF or bits & any_bits)
+                    and bits & all_bits == all_bits and not bits & excluded)
+
+    def static_target_tag(self, tag: int):
+        """Resolve one bound placement with an unambiguous authored tag source."""
+        target = None
+        for record in self.entities.values():
+            placement = record.placement
+            if placement is None:
+                continue
+            components = self.definitions[placement.definition].get("components") or {}
+            defaults = [row["value"].get("m_targetTags") or ()
+                        for row in components.get("entries") or ()
+                        if row["value"].get("$") == "STUTargetTagComponent"]
+            placed = [row["fields"].get("m_targetTags") or ()
+                      for row in placement.source.get("components") or ()
+                      if row["class"] == "STUTargetTagInstanceData"]
+            if not any(tag == graph.guid(value) for tags in defaults + placed for value in tags):
+                continue
+            if target is not None or len(defaults) != 1 or len(placed) > 1:
+                return NotImplemented
+            if defaults[0] and placed and placed[0]:
+                # Either source selection gives the same tags in this case.
+                if set(map(graph.guid, defaults[0])) != set(map(graph.guid, placed[0])):
+                    return NotImplemented
+            target = expr.Entity(record.id)
+        return target if target is not None else NotImplemented
+
     def native(self, cfg: dict, instance: runtime.Instance):
+        if cfg.get("$") == "STU_25ECB55F":
+            tag = graph.guid(cfg.get("m_88B0050A"))
+            if tag is not None and tag >> 48 == 0x0D60:
+                value = play.evaluate_scalar(instance, cfg.get("m_entity"))
+                entity = expr.to_entity(value) & 0xFFFFFFFF
+                if not expr.valid_entity(entity):
+                    return False
+                if entity in self.target_tags:
+                    # CE5890 -> DB2D40 -> DB51F0 compares the 32-bit tag id.
+                    identifier = tag & 0xFFFFFFFF
+                    return identifier in self.target_tags[entity] or (entity, identifier) in self.target_tag_scopes.values()
+        if cfg.get("$") == "STU_71A87E92":
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"))
+            entity = expr.to_entity(value) & 0xFFFFFFFF
+            if entity in self.entities:
+                position = self.position(entity)
+                return super().native(cfg, instance) if position is None else position
+            if isinstance(value, expr.Vec3) and value != expr.Vec3(0, 0, 0):
+                return value
+            return expr.EVALUATION_FAILED
+        if cfg.get("$") == "STU_B3E67A36":
+            primary, required = cfg.get("m_9C7BD8B8"), cfg.get("m_B486603E")
+            if (cfg.get("m_filter") is None and cfg.get("m_8B2A4DF3") is None
+                    and (primary is None) != (required is None)):
+                tag = instance.evaluate(primary if primary is not None else required)
+                if isinstance(tag, expr.Asset) and tag.guid >> 48 == 0x0D60:
+                    target = self.static_target_tag(tag.guid)
+                    if target is not NotImplemented:
+                        return target
         if cfg.get("$") == "STU_DB742151" and self.possessors is not None:
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
             return expr.Entity(self.primary_possessor(expr.to_entity(value)))

@@ -32,9 +32,12 @@ def _numbers(entries) -> dict[int, float]:
 
 
 @cache
-def hero_pools(hero: int) -> tuple[float, float, float] | None:
+def hero_pools(hero: int, definition: int | None = None) -> tuple[float, float, float] | None:
     """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
-    record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    if definition is None:
+        record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    else:
+        record = graph.bodies().get(definition) or graph.entity_body(definition)
     body = graph.graph(BODY_GRAPH)
     item = next((item for item in (record or {}).get("graphs", []) if item["graph"] == BODY_GRAPH), None)
     if item is None or body is None:
@@ -45,6 +48,6 @@ def hero_pools(hero: int) -> tuple[float, float, float] | None:
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
 
 
-def body_pools(hero: int) -> tuple[float, float, float]:
+def body_pools(hero: int, definition: int | None = None) -> tuple[float, float, float]:
     """hero_pools, or FALLBACK (logged) for a hero without data."""
-    return hero_pools(hero) or FALLBACK
+    return hero_pools(hero, definition) or FALLBACK

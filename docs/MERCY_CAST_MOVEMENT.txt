@@ -1,0 +1,32 @@
+Mercy Resurrect cast movement -- selected actual-input acceptance
+==============================================================
+
+Five test_game_mercy_movement_scope controls PASS18.389s with actual Match
+commands,original00CA/001C7 graphs,collision-backed mover and same-body revival.
+No runtime behavior changed for these new controls. They are additional to the
+593-case combination,whose suite was fixed before this test module was added.
+
+00CA/node107 stacks +0.75 into entity23184. Common001C7/node152 negates the
+23184+23186 sum into a speed modifier,so ordinary movement runs at25% during
+the cast. Forward and both lateral directions settle at1.375m/s;backward uses
+its original4.95m/s basis and settles at about1.2375m/s. All four directions
+complete the actual cast and restore their original5.5/4.95m/s speeds. The
+temporary stack restores its original null value,not an invented numeric0.
+Raw command throttle bytes and retained last-input bytes remain intact.
+
+00CA/node100 locks jump20 and crouch21 during the cast. Actual combined jump/
+crouch commands cannot leave the ground or crouch. In the current host the
+subject revives while these two records remain on that command;the next owner
+command clears them. A subsequent fresh jump moves upward again. This records
+the selected server boundary;native frame/phase ordering is still OPEN.
+
+Initial fixture expectations wrongly assumed a negative raw23184 value,
+identical backward/forward speed,numeric0 restoration and same-command removal
+of jump/crouch. The assertions were corrected after observing authored config,
+actual variable/mover records and command boundaries. Runtime code was unchanged.
+
+The parent's uncommitted throttle17/18/19 fix was read only. Selected006E,
+00CA,10DA and001C7 movement nodes have no direct17/18/19 rows;these checks do
+not prove that new shared mechanism or an entire dynamic graph closure.
+Native movement/phase parity,cross-hero interruptions,full defenses/NPC matrix
+and original-client acceptance remain OPEN. No final own commit or patch.

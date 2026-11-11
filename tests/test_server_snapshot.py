@@ -49,6 +49,203 @@ class ServerSnapshotTests(unittest.TestCase):
         script.self_healing = 0.0
         self.assertEqual(snapshot_digest(self.capture(session)), before)
 
+    def test_world_expiry_retained_flight_is_stored_and_retires_with_the_body(self):
+        from ow174.game import combat
+        from ow174.game.commands import Command
+        from ow174.game.script import regeneration
+
+        session, _, players = self.scene()
+        mercy = players[0]
+        session.apply("switch_hero", {"account": 1, "hero": regeneration.MERCY})
+        script = mercy.body_script
+        for frame in range(script.frame + 1, script.frame + 36):
+            mercy.take_commands([Command(frame)])
+        script.set_ult_charge(1820)
+        mercy.take_commands([Command(script.frame + 1, buttons=0x20)])
+        self.assertEqual(mercy.mover.flight_scale, 1.0)
+        world_frame = script.frame + 1000
+        mercy.match.update(world_frame * combat.TICK, world_frame)
+        self.assertIsNone(mercy.mover.flight_scale)
+        retained = mercy.valkyrie_pose
+        self.assertGreater(retained.through, script.frame)
+        original = snapshot_digest(self.capture(session))
+        mercy.valkyrie_pose = dataclasses.replace(retained, through=retained.through - 1)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), original)
+        mercy.valkyrie_pose = dataclasses.replace(retained, expires_ms=retained.expires_ms - 1)
+        self.assertNotEqual(snapshot_digest(self.capture(session)), original)
+        mercy.valkyrie_pose = retained
+        self.assertEqual(snapshot_digest(self.capture(session)), original)
+        session.apply("switch_hero", {"account": 1, "hero": SOLDIER})
+        self.assertFalse(hasattr(mercy, "valkyrie_pose"))
+
+    def test_pending_mercy_projectile_keeps_damage_charge_origin_in_stored_digest(self):
+        from ow174.game import combat
+        from ow174.game.commands import FIRE, Command
+        from ow174.game.script import charge, regeneration
+
+        session, _, players = self.scene()
+        mercy = players[0]
+        session.apply("switch_hero", {"account": 1, "hero": regeneration.MERCY})
+        first = mercy.body_script.frame
+        for offset in range(1, 73):
+            mercy.take_commands([Command(first + offset, yaw=16384,
+                action=2 if offset == 36 else 0, buttons=FIRE if offset == 72 else 0)])
+        rocket, = mercy.match.combat.rockets
+        original = rocket.damage_charge
+        self.assertEqual(original[0], mercy.body)
+        self.assertEqual(len(original[1]), 5)
+        with (
+            mock.patch.object(combat.Combat, "_fly", side_effect=AssertionError("no projectile advance")),
+            mock.patch.object(charge, "damaged", side_effect=AssertionError("no damage award")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            rocket.damage_charge = (original[0], original[1][:-1])
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+            rocket.damage_charge = original
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_pending_boosted_rocket_keeps_exact_retired_caster_in_stored_digest(self):
+        from test_game_combat import aim
+        from test_game_mercy_boost import EFFECT_BUNDLE
+        from test_game_mercy_npc import clear_graphs
+
+        from ow174.game import combat
+        from ow174.game.commands import SECONDARY, Command
+        from ow174.game.script import graph, regeneration
+
+        if not EFFECT_BUNDLE.is_file():
+            self.skipTest("external extracted effect pack required")
+        self.enterContext(mock.patch.object(graph, "GRAPHS_PATH", EFFECT_BUNDLE))
+        clear_graphs()
+        self.addCleanup(clear_graphs)
+        session, _, players = self.scene(two=True)
+        caster, shooter = players
+        session.apply("switch_hero", {"account": 1, "hero": regeneration.MERCY})
+        shooter.team = caster.team
+        script = caster.body_script
+        fight = caster.match.combat
+        x, y, z = shooter.mover.position
+        yaw, pitch = aim(fight._eye(caster), (x, y + 1, z))
+        first = script.frame
+        for offset in range(1, 11):
+            caster.take_commands([Command(first + offset, yaw=yaw, pitch=pitch, buttons=SECONDARY)])
+        self.assertAlmostEqual(fight.damage_scale(shooter), 1.3)
+        shooter.take_commands([Command(shooter.body_script.frame + 1, yaw=16384, buttons=SECONDARY)])
+        rocket, = fight.rockets
+        credit = rocket.boost_credit
+        self.assertIs(credit[0], script)
+        session.apply("switch_hero", {"account": 1, "hero": regeneration.MERCY})
+        self.assertTrue(script.retired)
+        self.assertIn(rocket, fight.rockets)
+        with mock.patch.object(combat.Combat, "_fly", side_effect=AssertionError("no projectile advance")):
+            before = snapshot_digest(self.capture(session))
+            rocket.boost_credit = None
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+            rocket.boost_credit = credit
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_pending_secondary_attack_is_stored_and_retires_with_its_shooter(self):
+        from ow174.game import combat
+        from ow174.game.commands import FIRE, Command
+        from ow174.game.script import regeneration
+
+        session, _, players = self.scene(two=True)
+        mercy, shooter = players
+        session.apply("switch_hero", {"account": 1, "hero": regeneration.MERCY})
+        shooter.team = mercy.team
+        script = mercy.body_script
+        for frame in range(script.frame + 1, script.frame + 36):
+            mercy.take_commands([Command(frame)])
+        script.set_ult_charge(1820)
+        mercy.take_commands([Command(script.frame + 1, buttons=0x20)])
+        ultimate = next(i for i in script.component.instances.values() if i.graph.index == 0x10DA)
+        start = ultimate.state(2).start // script.frame_ms
+        world_frame = start + 958
+        mercy.match.update(world_frame * combat.TICK, world_frame)
+        shooter.take_commands([Command(start + 927, buttons=FIRE)])
+        pending = mercy.match.combat.pending_attacks
+        attack, = pending
+        self.assertEqual(attack.waiting, (script,))
+        self.assertIs(attack.source, shooter.body_script)
+        with mock.patch.object(combat.Combat, "_commit_attack", side_effect=AssertionError("no attack")):
+            before = snapshot_digest(self.capture(session))
+            pending[0] = dataclasses.replace(attack, deadline=attack.deadline - 1)
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+            pending[0] = attack
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+        session.apply("switch_hero", {"account": 2, "hero": SOLDIER})
+        self.assertFalse(mercy.match.combat.pending_attacks)
+
+    def test_actual_support_effect_vm_is_stored_without_running_its_callbacks(self):
+        import test_game_mercy_boost as boost_tests
+        from test_game_combat import aim
+        from test_game_mercy_npc import clear_graphs
+
+        from ow174.game.commands import FIRE, Command
+        from ow174.game.script import graph, support_effects
+
+        if not boost_tests.EFFECT_BUNDLE.is_file():
+            self.skipTest("explicit extracted effect pack required")
+        self.enterContext(mock.patch.object(graph, "GRAPHS_PATH", boost_tests.EFFECT_BUNDLE))
+        clear_graphs()
+        self.addCleanup(clear_graphs)
+        session, _, players = self.scene(two=True)
+        healer, target = players
+        session.apply("switch_hero", {"account": 1, "hero": 0x02E0000000000004})
+        target.team = healer.team
+        fight = healer.match.combat
+        body = next(t for t in fight._targets() if t.owner is target)
+        vitals = fight.vitals_of(body)
+        vitals.damage(100)
+        fight._sync_body_health(target, vitals)
+        first = healer.body_script.frame
+        for offset in range(1, 11):
+            yaw, pitch = aim(fight._eye(healer), (body.feet[0], body.feet[1] + 1, body.feet[2]))
+            healer.take_commands([Command(first + offset, yaw=yaw, pitch=pitch, buttons=FIRE)])
+        self.assertTrue(fight.support_effects.attachments)
+        item = next(iter(fight.support_effects.attachments.values()))
+        with (
+            mock.patch.object(support_effects.Effects, "advance",
+                              side_effect=AssertionError("no effect tick")),
+            mock.patch.object(support_effects.EffectWorld, "native", side_effect=AssertionError("no query")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            item.last_frame += 1
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+            item.last_frame -= 1
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+
+    def test_actual_healing_status_vm_is_stored_without_running_its_callbacks(self):
+        from test_game_mercy_healing_status import STATUS_BUNDLE
+        from test_game_mercy_npc import clear_graphs
+
+        from ow174.game.script import graph, healing_status
+
+        if not STATUS_BUNDLE.is_file():
+            self.skipTest("explicit extracted status pack required")
+        self.enterContext(mock.patch.object(graph, "GRAPHS_PATH", STATUS_BUNDLE))
+        clear_graphs()
+        self.addCleanup(clear_graphs)
+        session, _, players = self.scene(two=True)
+        ana, target = players
+        session.apply("switch_hero", {"account": 1, "hero": 0x02E000000000013B})
+        target.team = 1 - ana.team
+        fight = ana.match.combat
+        body = next(t for t in fight._targets() if t.owner is target)
+        fight.healing_status.impact(ana, body)
+        self.assertTrue(fight.healing_status.applied)
+        item = next(iter(fight.healing_status.applied.values()))
+        with (
+            mock.patch.object(healing_status.Statuses, "update",
+                              side_effect=AssertionError("no status tick")),
+            mock.patch.object(healing_status.StatusWorld, "native", side_effect=AssertionError("no query")),
+        ):
+            before = snapshot_digest(self.capture(session))
+            item.damage_scale = 1.3
+            self.assertNotEqual(snapshot_digest(self.capture(session)), before)
+            item.damage_scale = 1.0
+            self.assertEqual(snapshot_digest(self.capture(session)), before)
+
     def test_mercy_owned_scope_host_is_stored_without_dispatching_callbacks(self):
         session, _, players = self.scene()
         session.apply("switch_hero", {"account": 1, "hero": 0x02E0000000000004})

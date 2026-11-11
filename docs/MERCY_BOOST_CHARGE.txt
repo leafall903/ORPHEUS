@@ -1,0 +1,65 @@
+Mercy boost charge -- selected actual damage attribution
+=======================================================
+Target1.74.0.0.104319; full static acceptance remains OPEN.
+
+At attack creation the same maximum-bonus policy selects the exact Mercy
+source script. A tie uses the first eligible source in match player order.
+Ordinary hitscan, melee and ballistic direct/splash hits carry this credit.
+Pending ballistic hits retain it with their launch scale, so releasing the
+beam after firing does not lose the damage bonus or change its attribution.
+Retiring the launch caster prevents a replacement body from receiving the
+award. The in-flight attack keeps its existing damage multiplier.
+
+At actual impact, use the same shield/armour/health loss computation with
+and without amplification against the pre-hit pools. Only the difference
+in actual losses can be attributed as boost damage. No award follows from
+a miss, immunity or excess raw damage which removed no extra pool value.
+For a Mercy attacker, the0012 metadata row carries3EBB and the actual bonus;
+original0B8B's0624 fold subtracts that amount from the attacker's share.
+
+The boost caster gets0D9A with074D=applied bonus,074C=positive coefficient,
+0013=actual total and005C=typed victim. These are declared producer bindings;
+the native producer and complete tag/mode services are not recovered.
+Original006B/173 receives this event, executes its conditions including the
+victim's6442 marker, then189 sends00EB. Original0B8B applies its own842 and
+2426 gates, multiplier9532 and cost clamp. Match queues preserve source/
+recipient lifetime and the existing two-stage delivery, without an extra
+direct host increment. The selected ordinary actor filter profile supplies
+mask1/64 and evaluates the resource's marker condition; it does not claim
+full native AC829876 or dynamic tag3A equivalence.
+
+Baseline3/7.694s:2 missing-award failures (rifle actual6 bonus and Helix36
+after beam release), overkill-with-no-extra control passes. Initial15
+boost/damage/critical cases PASS42.215s. Expanded20 passed19; the sole error
+was a snapshot fixture invoking an external skin lookup outside the journal's
+controlled root. The fixture now uses the recorded switch_hero root.
+
+Expanded cases cover actual40/12 split from a52 critical, two eligible equal
+sources awarding6 once, positive overkill cap3 versus zero, the victim
+marker guard, caster replacement, and causal storage of the exact retired
+caster while the projectile remains in flight. Fixed-source192 regression
+PASS699.611s;188 source hashes matched. It includes these checks plus existing
+damage/healing/chain/VM/projectile/health behavior, before the later selected
+projectile defense binding.
+
+Special damage0148, other scripted effect damage, full boost statistics/assist tracking,
+complete NPC attack and dynamic defense interactions and original-client
+behavior remain open. No final commit/export follows from this selected pass.
+An actual boosted Helix can land after Mercy dies. The hit keeps its
+launch multiplier and awards 36 to the original Mercy body. On normal
+Mercy respawn the server copies the charge balance to the new body.
+The threshold probe seeds 1784, earns the final 36 through that hit,
+then uses the actual ultimate input after respawn to spend 1820 and
+start Valkyrie. Native respawn timing remains a separate comparison.
+
+Ana's scripted 0267 impact also forwards its launch boost caster to the
+actual hostile 0C72 health transaction. A boosted grenade deals 78 and
+awards 18 charge after beam release. Later status frames do not repeat
+the award. The credit travels with the existing projectile snapshot and
+is consumed by the immediate damage transaction.
+
+Original 006B/node172 records the applied bonus in stat 048A, the
+Mercy scoreboard entry, and 048C. The host runs this selected TrackStat
+action for the exact current owner body. The actual grenade controls
+cover 18 extra damage without overkill, 10 when the target has 70
+remaining, and zero when the unboosted amount would already kill.

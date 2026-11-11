@@ -1,6 +1,13 @@
 Mercy combat restoration -- build 1.74.0.0.104319 -- OPEN
 Hero GUID: 02E0000000000004
 
+Before passive-charge restoration:532 fixed-source tests PASS824.883s;separately7 NPC mover
+revalidation controls PASS40.561s with the parent's read-only43-row table.
+Earlier NPC controls used the default38-row table and generic fallback values.
+The new controls verify extracted height/radius/speed inputs in selected combat
+paths with static collision fixtures; native animated hitboxes, full AI/map and
+client geometry remain OPEN. See HEALING_STATUS.txt for input hash and scope.
+
 Implemented in this lane
 ------------------------
 The server previously provided current health253 but not input1762. The
@@ -20,12 +27,20 @@ The authored active0019 effect reports parameter002A once per simulated frame;
 Combat applies55/s from variable6578 to the same living friendly body lifecycle,
 updates its real pools/HUD and credits only health actually restored.
 
-With an explicit extracted effect bundle, active0016 reads006C's0.3 modifier.
+With an explicit extracted effect bundle, active0016 runs006C's0.3 modifier.
 Rifle/projectile damage captures that outgoing multiplier at attack creation.
 Projectiles keep it across later beam release/attachment. Multiple sources use
 the greatest bonus, not a compounded stack; damage credit stays on the attacker.
 Effect-tag exclusions, boost assists/statistics and heal/damage ult charge remain
-open. This is a narrow consumer, not the complete native effect-script owner.
+open. Independent selected-effect VMs now run the health/filter states; complete
+native effect ownership, status and transport semantics remain open.
+
+Selected Ana0267 impacts now run original faction/PlayScript/health/filter/timer
+graphs. Actual100 friendly healing/60 hostile damage is consumed once; received
+healing1.5/0 changes Mercy's real staff, chains and passive regeneration. An
+actually boosted grenade retains78 damage after beam release. Death/replacement,
+refresh, mixed-source expiry, five-NPC health and passive storage controls pass.
+See docs/HEALING_STATUS.txt for the explicit host assumptions and remaining gaps.
 
 Provenance and limits
 ---------------------
@@ -38,6 +53,8 @@ parameter schema and other hero damage receivers are not implemented here.
 The regeneration receiver itself uses no parameters. Other0071 receivers still
 receive an empty parameter map. Their voice behavior needs client acceptance.
 No general ModifyHealth, anti-heal or healing amplification consumer is claimed.
+Selected Ana0267 graphs now supply actual received-healing modifiers as described
+in docs/HEALING_STATUS.txt; general native status semantics remain open.
 Input gaps use the driver's existing bounded command simulation; unprocessed
 time is not granted an unbounded heal. With no simulated commands no passive
 health is accumulated, consistent with current owner-body scheduling.
@@ -93,16 +110,17 @@ No column has original-client acceptance. P means partial headless evidence;
 O means open. Rows with ally semantics need a separate friendly-target fixture.
 
 Blaster damage          P P P P P P
-Quick melee damage      P O O O O O
-Incoming damage/death   P P P P P P -- NPC-source events, not AI attacks
+Quick melee damage      P P P P P P -- visible30; static-wall-blocked0
+Incoming damage/death   P P P P P P -- actual primary for Trooper/Sniper/Heavy only
 Passive regeneration   P P P P P P
 Healing beam            P P P P P P -- friendly recipients only
-Damage boost beam       P O O O O O -- friendly sources only
+Damage boost beam       P P P P P P -- friendly sources; three actual NPC weapon controllers
 Guardian Angel          P P P P P P -- friendly alive/corpse player; living NPC only
 Resurrect               P P P P P P -- friendly player revival; all NPC corpses rejected
 Angelic Descent         P O O O O O -- actual falling/input/collision; NPC interactions open
-Valkyrie                P O O O O O -- lifecycle/ammo/self-heal; flight/chain beams open
+Valkyrie                P P P P P P -- flight/chains/airborne blaster; native/status parity open
 Statuses/presentation   O O O O O O
+Ana heal modifiers      P P P P P P -- player throws; NPC impact-service/health controls
 
 Required interaction controls still open: armor/shields, barriers, projectile
 reflect/absorb, invulnerability, anti-heal/amplification, stun/silence, knockback,
@@ -116,9 +134,10 @@ Concrete remaining code dependencies
 ------------------------------------
 TrackTargets has an explicit service for staff006B states4/5/51, Guardian
 Angel006E states5/14 and Resurrect00CA states14/38. Staff431F3FCC
-has narrow health/outgoing-bonus consumers; the complete effect owner,
+mounts selected effect VMs with health/outgoing-bonus consumers; the complete native owner,
 0DB9E66B state20 and shared modifier/status semantics remain absent.
-Valkyrie10DA/C1BA7545 engine consumers remain incomplete. Native modifier
+Valkyrie10DA/C1BA7545 has a reconstructed kind16 movement consumer; native
+callback parity and full engine ownership remain incomplete. Native modifier
 storage alone is not effective gameplay.
 These must be restored with real target services and cross-hero status rules,
 then verified against player and five-enemy actors in the original client.
@@ -165,11 +184,150 @@ recovery, death and hero replacement. Flag842 keeps0071's existing20/s self-heal
 active under repeated damage. The blaster generates more than20 actual shots
 while ammunition remains20; after expiry it consumes ammunition again. These
 fifteen tests pass in15.359s; no runtime changes were needed for these controls.
-Free flight, embedded mover-component replacement (ED2B22BD), C1BA7545 and
-chained effect ownership still need actual consumers and acceptance. The normal
-scalar movement-mod extractor skips the embedded mover component. Activation
-alone is not evidence of working flight or chains. NPC/status/native/client
-coverage and damage/healing ultimate charge remain open.
+The pending ED2B22BD consumer decodes the existing34 MoverData fields and applies
+them before scalar mods on the next pose; the base body data is preserved and
+expiry restores it. Actual backward speed changes from4.95 to about9m/s.
+Stored physics includes the pending profile before its first movement pose.
+Native D3C925..978 publishes typed data; C3CC80..CECE selects and copies an
+active record before numeric mods and restores the base when no record acts.
+Simultaneous-profile arbitration, native controller flags and unmapped fields
+are not implemented. This alone does not implement free flight or vertical input.
+C1BA7545's native movement-hook factory uses kind16 and parameter default1.
+C33DA0 installs it in mover+500's hook array, not the scalar-modifier array.
+C433F0/case16 creates vtable265AC08; its context40 and velocity58 callbacks
+are C48A00 and C42B70. C4A4B0 consumes modified jump/crouch intents and builds
+the3D input, while C49820 handles the velocity cap. A reconstructed owner-frame
+binding now applies this path using owner yaw/pitch, flight-plane friction,
+3D acceleration, speed cap and existing capsule collision. It retains prior
+overspeed, gives MoveTo priority and resumes ordinary gravity on expiry.
+Python trig/normalization and explicit command-frame mapping are not an exact
+replay of the native quaternion/SSE/controller paths. Other hook arbitration,
+native flags/pose fidelity and E56BA8D8/tag477 remain open, as does chained effect
+ownership. Activation/profile speed alone do not prove working flight or chains.
+NPC/status/native/client coverage and damage/healing ultimate charge remain open.
+
+Shared parent fixes were reviewed and imported into the owned source only:
+fbcaf76(manual engagement),d1286b7(weapon roots),6debff3(array selection) and
+7cd1ed7(static-wall melee). Their lane cherry-picks are duplicate parent work,
+not new Mercy integration patches. The dashboard-only33a634d was not imported.
+Actual Mercy melee now has all ten visible/wall controls across the five NPC
+base-pool bodies. Manual input drives original Trooper/Sniper/Heavy weapons into
+actual20/100/5 damage on Mercy; all stop for60 frames before passive regen begins.
+Observer projectile transport is explicitly omitted in these attack fixtures.
+Enforcer/Assassin actual attacks and full autonomous AI/specials remain open.
+The earlier injected five-source damage controls remain separate weaker evidence.
+Post-import combined regression:318 tests PASS in367.363s, including the Mercy
+visible/occluded enemy-player melee pair. Ruff/diff checks pass. New lane changes
+remain uncommitted; complete static acceptance is still required before final
+lane submission/merge. Existing partial patches remain separately identified.
+
+Current additional actual-input controls cover free rise/sink, view-pitched and
+diagonal flight, opposing vertical intents, static walls/ceiling/floor, released
+horizontal input, duplicate commands, expiry, uncharged rejection and authored
+Valkyrie-startup refusal followed by boosted Guardian Angel and free ascent.
+All five real enemy NPC bodies take airborne blaster hits with ammunition20.
+Pending flight parameters are visible in passive stored physics snapshots.
+
+Reviewed parent64bf71c is imported asdf9554c; its public status manager is not
+new Mercy patch content. Six Mercy-specific actual Flashbang controls cover
+staff release, GA and resurrect interruption, extended-stun passive healing,
+revived-subject immunity and expiry, and autonomous Valkyrie survival/recovery.
+Input suppression now follows passive report consumption, so legitimate healing
+is not discarded. The declared resurrection immunity window rejects the effect
+as well as damage. Mercy10DA/Ability9 has no hold/continue/continuing-stack gate;
+the reconstructed policy preserves its15s timed transformation while suppressing
+new control input. Full native immunity/cleanse/interruptibility remains open.
+The expanded fixed-source384-test regression passes in425.886s; Ruff/diff checks
+pass. The source's current parent import isdf9554c, with new Mercy work still
+uncommitted and absent from the earlier partial patch series. No client lease,
+normal-runtime changes, shared merge or push occurred.
+
+Resource-owned support and Valkyrie chains (pending full acceptance)
+------------------------------------------------------------------
+support_effects.Effects mounts actual0079/006C VMs for selected staff roots.
+The real000F message binds002A to499 and caller/instigator to40/41. Nested
+431F3FCC evaluates output375 and mounts02CC/02CD as10DC/10DD, with the primary
+anchor as caller40 and original Mercy as subject42. Active ModifyHealth states
+provide actual healing reports; active CombatModFilter and174 provide boost.
+Each attachment has a separate component, owner clock and passive stored state.
+Parameter refresh changes60 to55 at Valkyrie expiry without restarting the root.
+
+0079/state19 and006C/state12 select allies within reconstructed10m capsule-centre
+distance and static visibility, excluding caster and anchor. The original tag3A,
+numeric filter flags, native ownership/clock/transport and shared status-variable
+semantics remain unbound. D3EB8D87=False and4049CF77/2162=1.0 are explicit neutral
+healing inputs, not acceptance of anti-heal or amplification. Without the explicit
+healing pack the earlier direct beam fallback remains; it creates no chains.
+
+Fourteen player controls prove actual60/s primary and secondary healing, real
+30% rifle/Helix boost with shooter credit and launch snapshot, range/LOS/faction,
+release/repress, non-recursive selection, death cleanup, expiry and stored causal
+state. Two additional controls exercise all five real NPC definitions as anchors
+and recipients: each gains48 health over50x16ms frames, while actual boosted
+Trooper/Sniper/Heavy shots deal26/130/6.5. Enforcer/Assassin weapon execution is
+still open. Manual NPC removal destroys the associated effect tree. A server
+snapshot control captures actual nested VMs without executing their callbacks.
+
+The parent2ca9178 native distinct-input join fix is imported asacc2a9c;76 focused
+controls pass. Final fixed-source411 combined regressions pass in400.831s, with
+Ruff/diff checks passing. Current HEAD isacc2a9ce3b37ba2aebafe4c7ec573c819c211bdb;
+all new Mercy work remains uncommitted and absent from the earlier patch series.
+The actual tool goal remains active: ultimate charge, critical impacts, complete
+cross-hero status/shield/reflect/absorb rules, native parity and full five-NPC
+bidirectional ability/AI acceptance are still required before the final commit.
+No test handles, client lease, runtime changes, shared merge or push remain.
+
+Ultimate and critical-impact investigation (still open)
+------------------------------------------------------
+Mercy Match passive charging now runs original0B8B's5-point1s timer; the fixed60s
+placeholder remains on other/standalone paths. See MERCY_CHARGE.txt for declared
+mode/role/possession bindings and validation. Selected tagged staff/chain health
+now emits0044 from actual capped health to original0B8B;see
+MERCY_HEALING_CHARGE.txt. Damage/boost generation and full native timing/filter/
+ownership parity remain unaccepted. Activation cost1820 alone proves no awards.
+
+The104319 native volley compiler evaluates STU_00D9C7E1 offset68/66D29548 as an
+integer (default3), and offset98/A872C70E as a float (default-1), rather than the
+current hit_def fallback1. Mercy006D/node10 has explicit mode2 and null A872.
+The -1 sentinel's downstream policy is not yet identified, so neither raw2 nor
+the default is treated as sufficient evidence for actual headshot damage.
+Lane research/probe_native_hit_defaults.py executes unchanged native slices
+D8B3C0..D8B449 andD8B514..D8B54D, including original float getter8F6350, in an
+isolated Unicorn VM. Eight null/value1/value2/failed-getter cases pass; graph
+evaluation, tagged conversion, dependency registration and release are declared
+adapters. No client process is used. This proves conversion/defaults only.
+Selected later server restoration gives006D/node10 a scoped2x policy and uses
+the existing capsule high-hit threshold. Actual player and all five prepared
+NPC body20/high40 impacts pass their initial focused checks. The policy and
+native limits, as well as range/boost validation, are recorded in
+MERCY_BLASTER_IMPACT.txt. Full critical/defense interactions remain open.
+
+Four further actual-chain controls pass in15.196s: full-health primary retains
+secondary healing, secondary replacement destroys/reacquires its VM, caster
+replacement destroys its tree and ends transformation, and duplicate commands
+grant no extra healing/stat credit/effect ticks. Full static acceptance stays
+open and all new Mercy work stays uncommitted.
+The complete expanded20-test chain module passes in109.144s. The earlier411-test
+combined run predates these four added cases; it is not a415-test combined run.
+
+Earlier status lifetime prerequisite (later health consumer described above)
+-----------------------------------------------------------------
+The selected Ana0267 effect adds original0C71/0B99/0C72 to a separate675-graph
+research pack. Original friendly/enemy received-healing filters expose1.5/0,
+with an authored4s lifetime ending through22926252. The previously unimplemented
+action now queues event7 and preserves output-before-teardown ordering. Six
+focused runtime controls and two original modifier lifetime controls pass in
+4.421s; eight isolated native action selection/order cases pass with declared
+engine adapters. Native parent notification and transport are still unsupported.
+Those earlier VM-only controls did not prove actual Ana impacts or health
+changes. The subsequent21 actual-health/impact/storage controls now pass in
+137.872s; see docs/HEALING_STATUS.txt for their scope and remaining native gaps.
+See docs/SCRIPT_STOP.txt for the stop-action provenance and adapters.
+The runtime-fixed421-case run passes419 and finds two historical bad-packet
+fixture mismatches. Their old absent-stop behavior is now explicit only while
+rebuilding historical malformed frames, preserving the original crash offsets.
+Final driver/stop35 tests PASS9.281s; PlayScript88 PASS0.073s; Ruff/diff PASS.
+No final423-case combined run is claimed. Actual full static acceptance is OPEN.
 
 Effect-script dependency recovery
 ---------------------------------------------------------------
@@ -186,6 +344,9 @@ tools/extract_effect_scripts.py extends a separate external bundle from existing
 DragonML, follows both nested01B and053 references and refuses conflicting,
 missing or unread graph inputs. Starting with effects0016/0019 recovered four
 effect bindings (also02CC/02CD) and623 total graphs in the lane research output.
+Using the parent retribution NPC graph bundle as the base produces the separate
+research/game_graphs_support_npcs_174.json.gz with4 bindings and672 graphs;
+neither the normal runtime nor the parent NPC input is modified.
 The tool preserves the base bundle and rejects an output inside the repository
 or one replacing the base. Six focused controls and16 existing graph extraction
 controls pass. The generated bundle is not installed in runtime-104319. Use

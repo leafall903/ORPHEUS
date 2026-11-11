@@ -106,16 +106,28 @@ class RuntimeBudgetTests(unittest.TestCase):
             seen.append(True)
             return True
 
+        dispatched = []
+        original_dispatch = runtime.Instance.dispatch
+
+        def track_dispatch(instance, event):
+            if instance is rifle:
+                dispatched.append(event)
+            return original_dispatch(instance, event)
+
         with (
             mock.patch.object(runtime, "EVENTS_PER_TIME", 8),
             mock.patch.dict(runtime.HANDLERS, {"AuditCount": count}),
+            mock.patch.object(runtime.Instance, "dispatch", track_dispatch),
         ):
             for _ in range(10):
                 rifle.post(runtime.Event(body.component.now, 0, runtime.ENTRY, node=event_node))
             with self.assertRaisesRegex(ScriptBudgetError, "event budget 8"):
                 body.command(1002, 0)
         self.assertEqual(body.frame, 1001)  # the driver did not commit the failed command
-        self.assertEqual(len(seen), 8)
+        self.assertEqual(len(dispatched), 8)
+        # Script events already queued by firing share the budget with our entries.
+        self.assertGreater(len(seen), 0)
+        self.assertEqual(len(seen), sum(event.node is event_node for event in dispatched))
         self.assert_failed(body.component)
         for callback in (
             lambda: body.command(1002, 0),

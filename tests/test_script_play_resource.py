@@ -59,6 +59,16 @@ class TraceWorld(runtime.World):
 
 
 class PlayResourceTests(unittest.TestCase):
+    def test_state_config_resource_keeps_empty_asset_and_delegates_keyed_evaluation(self):
+        world = TraceWorld([expr.EVALUATION_FAILED])
+        caller, _ = requesting(world=world)
+        cfg = {"$": "STU_D9978054", "m_resourceKey": None, "m_9CF147D3": "0x0AB0000000000002"}
+        self.assertEqual(caller.evaluate(cfg), expr.Asset(0x0AB0000000000002))
+        self.assertEqual(caller.evaluate({**cfg, "m_9CF147D3": None}), expr.Asset(0))
+        self.assertFalse(world.seen)
+        self.assertEqual(caller.evaluate({**cfg, "m_resourceKey": "0x0D80000000000001"}, initial=17), 17)
+        self.assertEqual(world.seen, [("STU_D9978054", caller.id)])
+
     def test_inline_primary_evaluates_overrides_once_and_does_not_touch_fallback(self):
         world = TraceWorld([17])
         caller, action = requesting(inline([row(IDENT | 7, {'$': 'Trace'})]), {'$': 'Unused'}, world)

@@ -275,7 +275,9 @@ or observed output, rather than sorting it into a superficially stable shape:
   - ticking and deferred-work order, parameter stacks and held-button order;
   - disabled-button State lists, destroyed-instance order and extra-root order;
   - BodyScript.ultimates and the undrained Component.shots queue, including each
-    referenced volley, shot number and stored shot time;
+    referenced volley, shot number,stored shot time and frozen State counter/
+    segment-start/firing-generation tuple (historical explicit fixtures may
+    retain the old two-item tuple). Native owner ACKs still use counter/start;
   - ordered arrays, expression Map pairs and nested stored mappings.
 
 Canonical attribute-name presentation does not authorize reordering the stored

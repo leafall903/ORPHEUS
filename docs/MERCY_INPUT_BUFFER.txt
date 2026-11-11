@@ -1,0 +1,38 @@
+Mercy early ability presses -- selected actual-input acceptance
+=============================================================
+
+The parent identified an uncommitted shared Ability.can_start bug:unready
+abilities repeatedly reinserted the retained press at the current time. A
+released press could therefore remain fresh until cooldown or resource recovery.
+The own clone reproduced this with actualMercyMatch:1800 charge,one-frame Q,
+release beyond the authored0.15s window,then real staff healing to full charge.
+Before the fix this incorrectly started Valkyrie.
+
+The private nodes.py fix preserves the original press timestamp while gates are
+closed and consumes it only when all gates pass. Held input still follows the
+authored held policy. The retain=True hunk duplicates the parent's uncommitted
+fix;eventual integration must reconcile it once. No parent tree was modified
+and no parent commit or final own patch has been produced for this work.
+
+Original Valkyrie10DA/state9 explicitly authors a0.15s early-press window.
+Guardian Angel006E states19/22 and Resurrect00CA/state19 have m_246438AD=None,
+decoded as0 by the current runtime. These tests do not invent a0.15s window for
+them. Native implicit-default parity for absent fields remains OPEN.
+
+10 test_game_mercy_input_buffer checks PASS24.501s:
+- Valkyrie:released early Q expires before real healing fills charge;short Q
+  within0.15s buffers;held Q across resource recovery starts;fresh full-charge Q
+  starts. Passive charge is isolated and final resource points come from healing.
+- Guardian Angel:released early Shift expires across its actual1.5s cooldown;
+  a near-expiry short press gets no invented window;held/fresh Shift can start.
+- Resurrect:actual first cast starts30s cooldown;expired and near-expiry released
+  presses cannot revive a new corpse;held/fresh presses can complete a second
+  same-body revive and restart cooldown. Match commands advance the clock.
+
+Earlier87 combined input/GA/Res/Valk/ability/fold controls PASS89.007s before the
+three additional Res tests. Full combat,input transport/native timing,defense,
+cross-hero,NPC and original-client acceptance remain OPEN.
+
+Final fixed-source593 combined regressions PASS1167.050s,including all10 input
+buffer and16 fold controls;all changed Python Ruff/diff checks PASS. Five later
+cast movement controls PASS18.389s separately. No final own commit/export.

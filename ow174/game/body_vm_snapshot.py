@@ -10,7 +10,19 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime, scopes
+from ow174.game.orisa_barrier import BarrierWorld
+from ow174.game.script import (
+    expr,
+    fold,
+    graph,
+    healing_status,
+    message_receive,
+    message_scope,
+    nodes,
+    runtime,
+    scopes,
+    support_effects,
+)
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld
 
@@ -53,7 +65,9 @@ _STATE_LAYOUTS = {
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
                            "control_targets", "control_previous", "control_generation"), ()),
+    nodes.ModifyHealth: (("last_applied",), ()),
     nodes.AnimationAlias: (("alias_handle",), ()),
+    nodes.ScopedTargetTag: ((), ()),
     nodes.ModelLook: (("scope_registry", "look", "look_target"), ()),
     nodes.DataFlowMapping: (("mapping", "mapping_target", "mapping_self"), ()),
     nodes.VoiceStimulus: (("voice_handle", "voice_attempts", "voice_duration", "voice_part",
@@ -90,11 +104,13 @@ _STATE_LAYOUTS = {
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()),
+    nodes.TrackBodyRay: (("result", "outputs"), ()),
     nodes.TrackTargets: (("targets", "target_started", "target_var", "target_empty_since"), ()),
     nodes.Effect: ((), ()),
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 _VALUE_LAYOUTS = {
+    fold.Scope: ("values", "accumulator", "index"),
     scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
     scopes.History: ("records", "initial", "dispatched"),
     scopes.Edge: ("frame", "active"),
@@ -388,7 +404,8 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld):
+        if kind in (runtime.World, BodyWorld, BotWorld,
+                    support_effects.EffectWorld, healing_status.StatusWorld, BarrierWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -396,11 +413,20 @@ class _Export:
                 fields.update(("body", "throttles", "match"))
                 if "scope_host" in vars(obj):
                     fields.add("scope_host")
+                if "pending_ult_credits" in vars(obj):
+                    fields.add("pending_ult_credits")
+                if "passive_healing_scales" in vars(obj):
+                    fields.add("passive_healing_scales")
             if kind is BotWorld:
-                fields.update(("weapon_buttons", "owner_position"))
-            # The match and its pending deliveries belong to the enclosing server snapshot.
+                fields.update(("weapon_buttons", "owner_position", "controller_components",
+                               "manual_target", "match", "enforcer_controller"))
+            if kind in (support_effects.EffectWorld, healing_status.StatusWorld):
+                fields.update(("match", "source", "owner"))
+            if kind is BarrierWorld:
+                fields.update(("fight", "entity", "location"))
+            # Foreign world state and the separate NPC controller belong to the server snapshot.
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, exclude={"match"})}
+                    "fields": self.fields(obj, fields, exclude={"match", "enforcer_controller", "fight"})}
         if kind is random.Random:
             if obj is not self.component.rng:
                 raise BodyVMSnapshotError("foreign RNG reference")

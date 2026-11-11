@@ -43,6 +43,106 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_hardpoint_position_requires_a_host_and_preserves_no_output(self):
+        identifier = 0x0DC0000000000029
+        query = {
+            '$': 'STU_FC99C77E',
+            'm_entity': {'$': 'STU_B5A0CAF0'},
+            'm_hardPoint': {'$': 'STUConfigVarHardPoint', 'm_hardPoint': f'0x{identifier:016X}'},
+        }
+        world = scene.SceneWorld()
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_FC99C77E"):
+            caller(world).evaluate(query)
+        active = caller(world)
+        position = expr.Vec3(15, 6, -8)
+        with mock.patch.object(world, 'hardpoint_position', return_value=position) as resolve:
+            self.assertEqual(active.evaluate(query), position)
+            resolve.assert_called_once_with(123, identifier)
+        with mock.patch.object(world, 'hardpoint_position', return_value=None):
+            self.assertEqual(active.evaluate(query, initial=42), 42)
+
+    def test_position_config_preserves_bound_origin_and_reports_missing_entity(self):
+        world = scene.SceneWorld()
+        world.bind(456, ALPHA, position=(0, 0, 0))
+        instance = caller(world)
+        query = {'$': 'STU_71A87E92', 'm_entity': reference()}
+        self.assertEqual(instance.evaluate(query, initial=41), expr.Vec3(0, 0, 0))
+        world.unbind(456)
+        self.assertEqual(instance.evaluate(query, initial=41), 41)
+        query['m_entity'] = {'$': 'STUConfigVarVec3', 'm_value': {'X': 9, 'Y': 2, 'Z': 3}}
+        self.assertEqual(instance.evaluate(query), expr.Vec3(9, 2, 3))
+        query['m_entity']['m_value'] = {}
+        self.assertEqual(instance.evaluate(query, initial=41), 41)
+
+    def test_identical_default_and_placed_target_tags_resolve_only_one_entity(self):
+        tag = '0x0D60000000000554'
+        other = '0x0D6000000000030E'
+        first = placement(0, client_id=1)
+        second = placement(1, client_id=2, value=BETA)
+        data = manifest(first, second)
+        data['definitions'][DEF]['components']['entries'].append(
+            {'value': {'$': 'STUTargetTagComponent', 'm_targetTags': [tag]}}
+        )
+        first['components'].append({'class': 'STUTargetTagInstanceData', 'fields': {'m_targetTags': [tag]}})
+        query = {'$': 'STU_B3E67A36', 'm_9C7BD8B8': {'$': 'STU_357DABBB', 'm_7D7C86A1': tag}}
+        world = scene.SceneWorld.from_map(data, entity_start=419)
+        self.assertIs(world.static_target_tag(int(tag, 16)), NotImplemented)
+        world.unbind(0xC0000002)
+        self.assertEqual(caller(world).evaluate(query), expr.Entity(0xC0000001))
+        first['components'][-1]['fields']['m_targetTags'] = [tag, other]
+        ambiguous = scene.SceneWorld.from_map(data, entity_start=419)
+        ambiguous.unbind(0xC0000002)
+        self.assertIs(ambiguous.static_target_tag(int(tag, 16)), NotImplemented)
+
+    def test_target_tag_membership_distinguishes_known_empty_from_reused_binding(self):
+        tag = 0x0D6000000000051E
+        world = scene.SceneWorld()
+        world.bind(456, ALPHA)
+        world.set_target_tags(456, [tag])
+        query = {"$": "STU_25ECB55F", "m_88B0050A": f"0x{tag:016X}", "m_entity": reference()}
+        instance = caller(world)
+        self.assertIs(instance.evaluate(query), True)
+        world.set_target_tags(456, [])
+        self.assertIs(instance.evaluate(query), False)
+        self.assertIs(instance.evaluate({**query, "m_entity": None}), False)
+
+        world.set_target_tags(456, [tag])
+        world.unbind(456)
+        world.bind(456, ALPHA)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_25ECB55F"):
+            instance.evaluate(query)
+
+    def test_overlapping_target_tag_scopes_release_only_their_own_contributions(self):
+        tag = 0x0D6000000000051E
+        literal = f"0x{tag:016X}"
+        world = scene.SceneWorld()
+        world.bind(123)
+        world.bind(456, ALPHA)
+        world.set_target_tags(456, [])
+        observer = caller(world)
+        component = runtime.Component(123, world=world, strict=True)
+        world.bind_script_component(123, component)
+        definition = graph([node(0, "STU_E56BA8D8", state=0, m_31714AFC=reference(),
+                                 m_targetTags={"$": "STU_357DABBB", "m_7D7C86A1": literal})])
+        first = component.create(definition, init=False)
+        second = component.create(definition, init=False)
+        query = {"$": "STU_25ECB55F", "m_88B0050A": literal, "m_entity": reference()}
+
+        first.state(0).begin()
+        second.state(0).begin()
+        self.assertIs(observer.evaluate(query), True)
+        component.destroy(first)
+        self.assertIs(observer.evaluate(query), True)
+        second.state(0).end(False)
+        self.assertIs(observer.evaluate(query), False)
+
+        world.set_target_tags(456, [tag])
+        second.state(0).begin()
+        world.unbind_script_component(123, component)
+        self.assertIs(observer.evaluate(query), True)
+        world.set_target_tags(456, [])
+        self.assertIs(observer.evaluate(query), False)
+
     def test_client_id_namespace_is_independent_of_local_and_flat_indexes(self):
         data = manifest(placement(0, client_id=55))
         world = scene.SceneWorld.from_map(data, entity_start=419)
@@ -98,7 +198,10 @@ class SceneIdentityTests(unittest.TestCase):
         world.bind(0xC0000001)
         world.bind(0xC0000002, scene.ZERO_UUID)
         self.assertFalse(world.references)
-        self.assertEqual(caller(world).evaluate(reference(str(scene.ZERO_UUID)), initial=7), 7)
+        for host in (world, runtime.World()):
+            self.assertEqual(caller(host).evaluate(reference(str(scene.ZERO_UUID)), initial=7), 7)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            caller(runtime.World()).evaluate(reference())
 
     def test_duplicate_bindings_invalid_ids_and_nonfinite_positions_are_rejected(self):
         world = scene.SceneWorld()
@@ -215,6 +318,37 @@ class NativeFailureTests(unittest.TestCase):
         self.assertEqual(play.evaluate_value(active, array(empty, empty)), (expr.Asset(0), expr.Asset(0)))
         with self.assertRaises(runtime.UnsupportedScriptError):
             active.evaluate({**empty, 'm_resourceKey': '0x0D80000000000001'})
+
+    def test_carrier_empty_tag_action_advances_without_changing_bound_tags(self):
+        empty = {'$': 'STU_357DABBB', 'm_7D7C86A1': None}
+        own = {'$': 'STU_B5A0CAF0'}
+        foreign = reference()
+        for target, tags, accepted in (
+            (own, empty, True),
+            (own, {**empty, 'm_7D7C86A1': '0x0D60000000000011'}, False),
+            (foreign, empty, False),
+            (own, None, False),
+        ):
+            with self.subTest(target=target, tags=tags):
+                world = scene.SceneWorld()
+                world.bind(123)
+                world.bind(456, ALPHA)
+                tag = 0x0D6000000000051E
+                world.set_target_tags(123, [tag])
+                action = node(8, 'STU_3E5D9838', m_31714AFC=target, m_targetTags=tags,
+                              m_outPlug=plug((9, 'm_inPlug')))
+                model = graph([*(node(i, 'STUStatescriptEntry') for i in range(8)), action, setter(9, 1)])
+                model.index = 0x121D
+                active = runtime.Component(123, world=world, strict=True).create(model, init=False)
+                if accepted:
+                    self.assertTrue(active._run_node(model.node(8), None))
+                    self.assertEqual(active.find_var(0, 7).value(), 1)
+                else:
+                    with self.assertRaises(runtime.UnsupportedScriptError):
+                        active._run_node(model.node(8), None)
+                    self.assertIsNone(active.find_var(0, 7, create=False))
+                query = {'$': 'STU_25ECB55F', 'm_88B0050A': f'0x{tag:016X}', 'm_entity': own}
+                self.assertIs(caller(world).evaluate(query), True)
 
     def test_reference_state_polls_binding_liveness_without_fake_success(self):
         world = scene.SceneWorld()

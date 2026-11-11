@@ -389,7 +389,13 @@ class BodyTests(unittest.TestCase):
         took the 32 bits after st120 as its frame, so instance 14's (02C5) variable mask picked an
         m_syncVars entry without an id, whose own-instance binding read the bag of a null variable
         (0x7FF78991D6DB, 'reading 0x90' at payload bit 2842 in both crash dumps)."""
-        with mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}):
+        # Recreate the historical server's missing stop action as well as its
+        # missing payload. Current instance termination legitimately changes
+        # this generated packet; the captured crash offsets remain fixed.
+        with (
+            mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}),
+            mock.patch.dict(runtime.HANDLERS, {"STU_22926252": None}),
+        ):
             body, client = spawned(9198)
             body.command(9199, 0)
             with without_payloads("STU_D74D4F47"):
@@ -454,7 +460,12 @@ class BodyTests(unittest.TestCase):
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
+        # The bad-frame fixture reproduces both omissions of the old server.
+        # The healthy frame_at_4094 below exercises today's unpatched runtime.
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.dict(runtime.HANDLERS, {"STU_22926252": None}),
+        ):
             update, client = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))

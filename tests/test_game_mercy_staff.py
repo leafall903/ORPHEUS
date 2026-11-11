@@ -166,7 +166,7 @@ class MercyStaffTests(unittest.TestCase):
         self.step(5)
         script = self.mercy.body_script
         before = snapshot_digest(export_body_vm(script))
-        script.support_healing.append((self.run.frame, self.ally.body, 0.88))
+        script.support_healing.append((self.run.frame, self.ally.body, 0.88, None))
         self.assertNotEqual(snapshot_digest(export_body_vm(script)), before)
         script.support_healing.clear()
         self.assertEqual(snapshot_digest(export_body_vm(script)), before)

@@ -390,7 +390,7 @@ def _moved(point, frame) -> tuple:
     return _f32(x + t[0]), _f32(y + t[1]), _f32(z + t[2])
 
 
-def model_shapes(data: bytes, category: int = MOVER) -> list:
+def model_shapes(data: bytes, category: int = MOVER, *, include_dynamic: bool = False) -> list:
     """The physics shapes of a 00C model that stop the category, in model space, as the engine keeps them:
     ("mesh", mask, vertices, triangles (a, b, c, wing0, wing1, wing2, mask, surface: the 32 B records of
     chunk 0x11, wing = the far corner of the neighbour across each edge, -1 none)), ("hull", mask,
@@ -412,7 +412,7 @@ def model_shapes(data: bytes, category: int = MOVER) -> list:
         if shape is None:
             continue
         holder = stu.ref(wrapper, HOLDER)
-        if not static_part(stu, wrapper, holder):
+        if not include_dynamic and not static_part(stu, wrapper, holder):
             continue
         node = stu.raw(stu.fields[wrapper], NODE)
         frame = node_frame(table, struct.unpack_from("<I", node, 0)[0]) if node and len(node) >= 4 else None

@@ -95,6 +95,19 @@ def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):
         for child in cfg.get("m_configVars") or ():
             yield from _iter_pairs(instance, child, _depth=_depth + 1, watcher=watcher)
         return
+    if isinstance(cfg, dict) and cfg.get("$") == "STU_BD2D717B":
+        instance.context(watcher).poll_native(cfg)
+        component = instance.component
+        entities = (component.world.session_script_entities(instance)
+                    if cfg.get("m_B257A3A4", 0) == 0 else NotImplemented)
+        if type(entities) is not tuple:
+            component.unsupported(instance, "session entity enumeration", cfg["$"])
+        for entity in entities:
+            component.consume_work("session entity enumeration")
+            if type(entity) is not expr.Entity or not expr.valid_entity(entity.id):
+                component.unsupported(instance, "session entity identity", cfg["$"])
+            yield 0, entity
+        return
     iterator = controller_heroes.values(instance.context(watcher), cfg)
     if iterator is not NotImplemented:
         try:
@@ -278,6 +291,10 @@ def evaluate_scalar_result(instance, cfg, *, initial=None, watcher=None, _depth=
             configs = cfg.get('m_configVars') or ()
             return (evaluate_scalar_result(instance, configs[0], initial=initial, watcher=watcher,
                                            _depth=_depth+1) if configs else (initial, False))
+        if isinstance(cfg, dict) and cfg.get('$') == 'STU_A6B80C63':
+            #1B7804E returns true even when its final child failed and preserved
+            # the caller's destination. A sentinel comparison loses that AL.
+            return instance.evaluate(cfg, watcher, initial=initial), True
         result = controller_heroes.scalar_result(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result

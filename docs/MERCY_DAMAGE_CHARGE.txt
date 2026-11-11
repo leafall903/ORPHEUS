@@ -1,0 +1,53 @@
+Mercy actual damage charge -- selected original0012 consumer
+===========================================================
+Target1.74.0.0.104319; full static acceptance remains OPEN.
+
+The server now sends0012 to the original0B8B when neutral Mercy blaster
+or quick melee actually reduces a target's health pools. The event carries
+0013 applied amount,0015 typed target,003D original ModifyHealth tag array,
+and0624 metadata (empty for these selected unamplified attacks). Applied
+amount follows immunity, armour/shield/health handling and remaining pool
+limits. The graph still executes its own exclusions, the0624 fold, mode and
+842 guards, multipliers9532/13022 and cost clamp. No separate host increase
+to342 is made.
+
+Body and tags are sampled from the actual firing state. A pending blaster
+projectile retains the launch identity and tags in Rocket.damage_charge;
+the snapshot captures them with the existing registered dataclass storage.
+Old leased shots retire through the existing body-retirement path. The
+producer also checks the source body against the current script before
+delivery. Quick melee captures tags directly from its actual0043 state and
+only supplies the event on an actual intersection.
+
+BodyWorld has a narrowly scoped0B8B fallback for the ordinary combat actor
+profile: mask1 accepts a current combat body and the selected ordinary
+relationship uses distinct enemy bodies (FFA handled explicitly). The
+selected host has no special dynamic2ED/3C3/11E categories. Direct NPC tags
+do not justify a global0.75 adjustment. Full native C1CF60 association and
+filter/tag resolution are unproven; the separately tested native frontend
+and externally mounted Context interface are unchanged. Event producer and
+phase are declared server reconstructions. Fatal pool damage is reported
+before death finalization, after the actual pool deduction.
+
+This checkpoint covers neutral actual hits. The later selected boost bridge
+preserves the attacker's base share and attributes the actual extra loss to
+the launch caster. See MERCY_BOOST_CHARGE.txt for its separately validated
+scope and explicitly reconstructed0624/0D9A producer. Native0148 special
+origin, complete native metadata/tags and other damage sources remain open.
+
+Baseline4 tests/6.327s:3 missing-award failures (actual body shot, capped7
+lethal damage, actual30 melee at0.5 multiplier), miss/immunity control passes.
+After binding,36 selected actual damage/healing and relationship controls
+PASS136.634s. First expanded8 controls passed7; the test expected the old
+leased projectile to persist across hero replacement, while existing
+retire_player_body removes it. Corrected the fixture to require removal,
+unchanged victim health and zero gain on the new body.
+
+56-case fixed-source verification PASS239.213s with179 source hashes matched.
+It includes actual player20/40
+awards and authored tags, lethal pool limit, melee multiplier/cap, miss
+and invulnerability, actual Valk suspension, body retirement, actual
+all-five NPC neutral awards, passive storage of a real pending projectile,
+and existing critical/passive/healing/query regressions. Damage/boost/
+dynamic defenses/cross-hero/five-NPC acceptance is
+not complete; client acceptance is separate.

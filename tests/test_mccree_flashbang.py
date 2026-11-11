@@ -27,9 +27,11 @@ class FlashbangTests(unittest.TestCase):
             player.client.queue_entities(match.remote_movements(player))
             if player is caster:
                 command = Command(run.frame, yaw=yaw, pitch=pitch, buttons=cast)
-            else:
+            elif player is target:
                 y, p = aim(match.combat._eye(player), match.combat._eye(caster))
                 command = Command(run.frame, yaw=y, pitch=p, buttons=target_buttons, forward=forward)
+            else:
+                command = Command(run.frame)
             player.take_commands([command])
 
     def cast(self, run, caster, target, *, target_buttons=0, forward=0):

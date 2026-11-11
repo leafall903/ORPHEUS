@@ -1,0 +1,77 @@
+104319 queued script termination -- partial native action support
+
+Why Mercy needs it
+------------------
+The extracted Ana grenade0267 effect chooses friendly0B99 or hostile0C72.
+Their original CombatModFilter nodes expose received-healing values1.5/0 and
+their original4s Wait ends at22926252. Previously this action was a permissive
+no-op, so active states and queued timers could outlive their authored duration.
+This repair supplies a prerequisite for actual Mercy anti-heal/amplification;
+it does not yet connect those modifiers to Combat health or projectile impacts.
+
+Evidence and implementation
+---------------------------
+104319 action registration22926252 selects vtable27AC3C8, action+48=1B6C8F0.
+Its config+90 is m_67B81D25. A missing/failed/zero int selects the current
+instance. Otherwise low16 bits select an instance through component lookup;
+a missing target does nothing. Nonzero values truncating to zero do not fall
+back to self. The action calls1B92C30(target,-1), then follows base output.
+1B92C30 queues native event7. Dispatcher1B91A6D calls Instance+170; constructor
+1B90800 identifies vtable27AEE28 and its+170 method1B95240. That method enters
+teardown and aborts active states. The runtime maps queued event7 to the existing
+component destroy lifecycle, including owned subgraphs and timer cancellation.
+Immediate action output runs before queued teardown; no synchronous plug-walk
+destruction is substituted.
+
+Optional+98/m_EB35D2F1 has a separate native parent-notification path1B949A0.
+Non-null/nonzero use is explicitly unsupported. Its parameters/parent counters
+and native network termination descriptors are not accepted. The native method's
+additional control and parent hooks also require broader ownership fidelity.
+General runtime Component.destroy remains the existing reconstructed host.
+The selected675-graph pack contains151 stop nodes, all with absent+98 input;
+that inventory does not establish absence in other resource packs.
+
+Validation
+-----------
+test_script_stop has6 targeted controls for queued self termination/output,
+uint16 selection/missing target/failed eval, passive pending-event digest, and
+owned-subgraph/timer cleanup. Two original resource controls run0B99/0C72 using
+explicit filter/neutral-stat/alive-source adapters. Their actual modifier states
+are active through frame249 and retire at frame250 (4000ms). Eight tests pass
+in4.421s. No actual health, Ana projectile/faction arbitration or native filter
+parity is claimed by those two VM controls.
+
+Lane research/probe_native_stop_action.py runs unchanged1B6C8F0 code in Unicorn.
+Eight null/zero/value/wrapped/missing/failed cases pass, verifying target lookup,
+event7 request and output order. Each original-code trace also matches the
+current Python action's actual lookup/enqueue/output trace. Config/tagged conversion, lookup, queue enqueue
+and output are explicit adapters; native event dispatch and+98 are not executed.
+It uses the existing verification/client-image.bin, SHA256
+e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d.
+No client process is started or accessed.
+
+The runtime-fixed421-case combination completed in678.014s with419 passing and
+two historical crash-packet fixture failures. Those fixtures dynamically rebuilt
+old malformed frames using the current model, so legitimate instance retirement
+changed their sizes/bit positions. Only their bad-frame construction now models
+the old absent229 handler explicitly; recorded977-bit/2842-bit/857-bit evidence
+is unchanged. Healthy round trips still exercise the current unpatched runtime.
+Final test_script_driver+test_script_stop:35 PASS in9.281s; separate PlayScript
+source/resource/request/queue/loaded:88 PASS in0.073s; Ruff/diff PASS. The two
+additional original status tests were added after the421-case suite was loaded.
+There was no final423-case combined rerun and no full hero acceptance claim.
+
+The separate research/game_graphs_support_status_174.json.gz contains5 effect
+bindings/675 graphs. Reproduce using tools.extract_effect_scripts with the
+support+NPC672-graph research pack as base, selected effect0267 and a distinct
+output path. Normal runtime and parent inputs stay immutable.
+
+Next
+-----
+Route actual0267 impact through original0C71/PlayScript context into original
+friendly/hostile graphs; apply active filter031A to actual Mercy direct/chained
+healing and passive self-heal, with expiry/death/replacement/stack/immune controls.
+Full Mercy static acceptance, native effect ownership/status/filter rules,
+ultimate economy and critical impacts remain OPEN; no final own commit/patch.
+
+Later fixed-source verification:532 combined regressions PASS824.883s,including current driver/stop/PlayScript and actual Ana/Mercy health consumers. This supersedes the historical partial421-case verification above;full static acceptance and native parent notification remain OPEN.

@@ -1,0 +1,49 @@
+104319 collected fold A6B80C63 -- selected runtime acceptance
+==========================================================
+
+The runtime now executes the scalar fold used by original0B8B node83 to sum
+damage-event0624 rows whose16056 member is Identifier3EBB. Node84 subtracts that
+sum from damage336 and clamps at zero. This restores a prerequisite;it does
+not bind the actual0012/0148 event producer or accept damage/boost charging.
+
+Native evidence:unchanged1B77D80 loop and1B76A60 parameter-provider slices from
+104319 client image SHA256
+e7ce15c45774dc9f3865dc059a5f789790f0e4e19a0024218a341af689b79e8d.
+The external research/probe_native_fold.py compares9 loop cases and8 provider
+cases against the actual runtime,including callback order,results,success flag,
+index and scope depths. All match. Collection iteration,tagged-value storage,
+child evaluation,release and cookie operations use explicit adapters;this is
+not native child arithmetic or full iterator parity.
+
+Contract
+--------
+Collect all m_814F8EC3 input items before installing the temporary scope.
+The accumulator starts null. Empty input skips initial m_418D9D9D and reducer
+m_C239F989. Nonempty input evaluates initial once and reducer per item.
+Missing reducer still advances the index. Failed children preserve the current
+accumulator. Final m_8054375D runs once at index=count;missing final returns the
+accumulator. A failed final preserves the caller destination while the fold's
+scalar evaluator returns success. Destination equality cannot infer failure.
+
+Scope parameters:000C index,041A count,050D accumulator (successful even when
+null),050E current item only within bounds. Unknown,negative and out-of-range
+queries fail without writing,so outer scopes may answer. Nested folds restore
+the outer scope;exceptions and budget exhaustion also unwind it.
+
+Execution/storage
+-----------------
+fold.py reuses play._iter_values and the existing component operation/work
+budget. Its depth64 limit is an explicit host safeguard,not native gameplay.
+InstanceContext dispatches folds;the base expression context retains its native
+query policy. Child watchers propagate dependencies. Passive VM storage captures
+the temporary Scope's values,accumulator and index without evaluating configs.
+
+16 test_script_fold controls PASS1.701s,including native contract cases,nesting,
+frozen membership,failed children,outer fallback,scope cleanup,budget/depth,
+watchers,snapshot and the original0B8B nodes83/84. Earlier155 fold/expression/
+array/PlayScript/VM tests PASS14.829s before two additional focused cases.
+Later fixed-source593 combined regressions PASS1167.050s,including all16 fold
+and10 Mercy input-buffer controls. Runtime source stayed fixed during that run.
+Five new cast movement tests passed separately and are outside that593 count.
+All changed Python Ruff and git diff checks PASS. Full Mercy static combat and
+native event/filter/tag/clock services remain OPEN.

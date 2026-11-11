@@ -1,0 +1,92 @@
+104319 Mercy / Ana healing interactions -- partial static evidence
+
+Selected original graphs now affect real health
+-----------------------------------------------
+healing_status.Statuses mounts0267's actual0C71 graph and delivers000F with the
+original impact caller/instigator. The original faction branch resolves actual
+PlayScript requests into loaded0B99 or0C72 using the existing native-backed
+request/queue/schema/start-entry path. Explicit same-owner routing opts in only
+for these hosts; permissive ordinary body PlayScript remains unchanged.
+
+The active original ModifyHealth state supplies instant100 friendly healing or
+60 hostile damage. A stored instance/state/counter set consumes it once. The
+selected0267 impact host delegates health to these graphs and does not also
+apply its outer50 event amount; that is a resource-specific reconstructed host
+policy, not proof of general native hit-effect/health ordering. Other projectiles
+retain their existing direct/blast consumers. A Rocket damage_scale stores the
+actual outgoing launch multiplier for the graph-owned hostile impact. Friendly
+instant healing is not damage-boosted; damage credit remains on Ana.
+
+The original active CombatModFilter channel031A supplies1.5/0. Combat applies
+the selected received-healing scale to actual staff, Valkyrie chain, passive
+self-regeneration and area heals. No second multiplier is inserted into the
+staff's separate4049CF77/2162 query. Zero wins over positive modifiers; multiple
+positive sources use their maximum as a declared non-stacking policy. The
+filter's excluded293E tag is retained by the scale API; general tag propagation
+and native filter-table parity remain open.
+
+Original4s timers and queued22926252 retire graph instances. Repeated hits run
+the authored replace policy and reset the original timer. One source's expiry
+removes only its own effect component. Target death/body retirement/manual NPC
+removal destroys all statuses on that target. Applied effects retain their
+source context after caster death until authored expiry. Host clocks use world
+ticks independently of new caster input. Both passive storage formats include
+status components, original graph states, source/target, launch scale and the
+already-consumed counter set. Capturing does not run their native queries/ticks.
+
+Execution evidence
+-------------------
+Twenty health/impact tests plus one controlled-server passive capture test pass
+in137.872s. They exercise actual original graph state and Combat Vitals:
+* Real Ana ability input launches a projectile. Hostile impact deals60 once;
+  friend impact heals100 once. A target five metres away remains untouched.
+* A Mercy-boosted Ana grenade deals78 after the beam is released in flight.
+* Staff55/s heals66 over50x16ms under1.5; Valkyrie secondary60/s heals72.
+* Anti-heal blocks staff, Valkyrie secondary and passive regeneration. The
+  unmodified primary chain target continues healing, and health resumes on expiry.
+* Passive20/s is amplified without team-healing credit. Caps credit only health
+  actually restored; instant grenade healing is not re-applied every frame.
+* Refresh, mixed-source expiry, positive/zero overlap, caster death, target
+  death/replacement, declared invulnerability/expiry and missing pack are covered.
+* All five real NPC body definitions reject actual healing during the selected
+  hostile effect, recover after expiry, receive1.5 friendly amplification, and
+  release their effect VMs on manual removal. NPC effect application is an
+  explicit impact-service fixture; their own AI does not throw Ana grenades.
+
+Use test_game_mercy_healing_status and
+test_server_snapshot.ServerSnapshotTests.test_actual_healing_status_vm_is_stored_without_running_its_callbacks.
+The selected external675-graph pack and its reproduction inputs are documented
+in SCRIPT_STOP.txt. No prepared runtime files or game assets enter Git.
+
+Limits / remaining acceptance
+------------------------------
+Before passive-charge restoration:532 fixed-source tests PASS824.883s (session78340,
+terminal exit0). It includes the health/impact/storage controls above and the
+current driver/stop/PlayScript/snapshot regressions. Its NPC fixtures used the
+normal38-row mover table, whose missing NPC rows fall back to generic values;
+those results alone do not establish native NPC capsule/speed fidelity.
+
+Separate read-only-input revalidation:7 tests PASS40.561s in
+test_game_mercy_npc_geometry (session96574,terminal exit0). The parent prepared
+43-row table adds five NPC profiles from104319 body XML using the established
+mapping; SHA256 e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+Input: verification/retribution/npc-navigation-runtime/data/game_movers_174.json.
+Height/radius/forward-speed:Trooper1.7/.5/5.75;Enforcer1.9/.5/5;
+Sniper1.75/.5/4.5;Assassin1.5/.5/14;Heavy2.3/.7/2.2.
+Actual target fields,staff/blaster/melee/static-wall/GA and selected received-
+healing status controls pass across these profiles. No input files were written.
+This is parameter-table/static-fixture evidence, not native bones/animated
+hitboxes/eyes, full AI/navigation, real map collision or client acceptance.
+
+Ordinary combat-body faction/filter predicates, neutral/default stat queries,
+original-instigator mapping, independent VMs, retained source context, health
+event priority, positive-source arbitration and world-clock policy are explicit
+reconstructed host bindings. The full native filter/tag2ED table, modifier roles,
+shared entity variables, cleanse/status immunity, projectile motion/fuse parity,
+replication/icons/audio and original-client behavior are not accepted. Historic
+input-gap/status-time arbitration also needs full native comparison.
+
+The whole Mercy static goal remains OPEN: ultimate damage/heal/boost economy,
+critical impacts, complete shield/reflect/absorb/control/cross-hero interactions,
+native resurrection/flight fidelity and complete five-NPC bidirectional skills/
+AI remain required. New Mercy work stays uncommitted until full static passes.

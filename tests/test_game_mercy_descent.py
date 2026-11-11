@@ -7,7 +7,9 @@ status/filter fidelity and original-client animation remain outside this scope.
 import unittest
 
 import test_game_mercy_staff as staff_tests
+from test_game_mover import FLOOR, ramp
 
+from ow174.game.collision import World
 from ow174.game.commands import Command
 
 JUMP = 0x40
@@ -31,6 +33,15 @@ class AngelicDescentTests(unittest.TestCase):
         instance = next(i for i in self.mercy.body_script.component.instances.values()
                         if i.graph.index == 0x0071)
         return instance.state(1)
+
+    def place_at_elevated_firing_platform(self, height):
+        fixture = self.fixture
+        fixture.match.collision_world = World(
+            FLOOR + ramp(-2, 2, height, 0, x0=3, x1=6))
+        self.mercy.spawn = ((0, height, 0), 0.0)
+        self.mercy.mover = self.mercy.new_mover()
+        fixture.enemy.spawn = ((4, height, 0), 0.0)
+        fixture.enemy.mover = fixture.enemy.new_mover()
 
     def test_hold_jump_uses_authored_two_meter_per_second_terminal_modifier(self):
         self.step(30, JUMP)

@@ -38,7 +38,7 @@ from ow174.game.world import GAME_MODE_ENTITY
 log = logging.getLogger("ow174.script")
 
 # Event kinds.
-STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 8, 9, 10
+STATE_OP, TIMER, CHECK, ENTRY, ASSIGN, STOP, BUTTON, CHANGED, MESSAGE = 0, 1, 2, 3, 4, 7, 8, 9, 10
 BEGIN, FINISH, ABORT = 0, 1, 2
 NO_BUTTON = 171
 EVENTS_PER_TIME = 1000  # the client stops an instance that queues more at one time
@@ -204,7 +204,10 @@ class InstanceContext(Context):
         return var.value()
 
     def var(self, scope: int, var: int):
-        return self._read(self.instance.find_var(scope, var, create=self.watcher is not None))
+        value = self._read(self.instance.find_var(scope, var, create=self.watcher is not None))
+        if scope == ENTITY:
+            return self.instance.component.world.entity_value(self.instance, self.watcher, var, value)
+        return value
 
     def proxy_var(self, levels: int, scope: int, var: int):
         instance = self.instance
@@ -283,6 +286,25 @@ class InstanceContext(Context):
         value = self.instance.component.world.ruleset(key)
         return 0 if value is None else value
 
+    def referenced_ruleset(self, selector):
+        expression = (selector or {}).get("m_expression") or {}
+        references = expression.get("m_dynamicVars") or ()
+        if len(references) != 1:
+            return NotImplemented
+        key = references[0].get("m_identifier")
+        graph = self.instance.graph.index
+        # 02CC addresses the current mech or its possessor for these options.
+        if graph == 0x02CC and key in (9743, 9777, 9778):
+            return self.ruleset(key)
+        # 1536/1 selects the current Ashe body for the pet duration scalar.
+        configs = (selector or {}).get("m_configVars") or ()
+        if (graph == 0x1536 and key == 0x32E8
+                and expression.get("m_opcodes") == [14, 0, 7, 0, 15, 0]
+                and len(configs) == 1 and isinstance(configs[0], dict)
+                and configs[0].get("$") == "STU_B5A0CAF0"):
+            return self.ruleset(key)
+        return NotImplemented
+
     def would_stack_to_top(self, var, priority):
         if var is None:
             return False
@@ -300,6 +322,11 @@ class InstanceContext(Context):
                 self.watcher.polled = True
                 self.watcher.ticks()
 
+    def fold(self, cfg: dict, *, initial=None):
+        from ow174.game.script import fold
+
+        return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
+
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         if cfg.get("$") == "STU_4BD39CFD":
@@ -307,13 +334,15 @@ class InstanceContext(Context):
 
             return play.array_item(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
-        from ow174.game.script import controller_heroes, entity_queries, entity_team
+        from ow174.game.script import controller_heroes, entity_queries, entity_relation, entity_team
 
         result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_heroes.scalar(self, cfg)
         if result is NotImplemented:
             result = entity_team.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = entity_relation.evaluate(self, cfg)
         if result is NotImplemented:
             return self.instance.component.world.native(cfg, self.instance)
         return result
@@ -391,14 +420,44 @@ class World:
         """A declared live foreign variable slot, known absence, or unknown service."""
         return NotImplemented
 
+    def entity_value(self, instance: "Instance", state: "State | None", identifier: int, value):
+        """Scoped read of the graph's own entity variable, with its watcher if present."""
+        return value
+
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
+
+    def movement_target(self, state, entity: int):
+        """Resolve a supported entity destination for a MoveTo state."""
+        return None
+
+    def hardpoint_position(self, entity: int, hardpoint: int):
+        """Resolve a world-space attachment point, or declare missing pose data."""
+        return NotImplemented
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
+
+    def permissive_state_enter(self, state: "State") -> None:
+        """Optional completion for a selected unresolved body state."""
+
+    def ability_allowed(self, state: "State") -> bool:
+        return True
+
+    def ability_resource_available(self, state: "State") -> bool:
+        return True
+
+    def track_ray(self, state: "State"):
+        return NotImplemented
 
     def track_targets(self, state: "State"):
         """Explicit owner target service, or unknown. Results are ordered body IDs."""
@@ -406,6 +465,28 @@ class World:
 
     def respawn_body(self, instance: "Instance", node: Node):
         """Explicit authoritative respawn consumer, or unknown."""
+        return NotImplemented
+
+    def create_body(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def destroy_script_body(self, instance: "Instance", node: Node):
+        return NotImplemented
+
+    def create_hero_entity(self, instance: "Instance", node: Node, hero: int):
+        """Submit the authored hero request with its position configuration."""
+        return NotImplemented
+
+    def create_profile_entity(self, instance: "Instance", node: Node, profile: int):
+        """Submit an explicit creation profile to its authoritative placement owner."""
+        return NotImplemented
+
+    def create_wave_entity(self, instance: "Instance", node: Node, identifier: int):
+        """Submit a type-5 wave identifier to its authoritative placement owner."""
+        return NotImplemented
+
+    def complete_wave_spawn(self, instance: "Instance", node: Node, identifier: int):
+        """Close an authored spawn submission after its creation actions."""
         return NotImplemented
 
     def property_modifiers(self, entity: int):
@@ -432,6 +513,9 @@ class World:
         """Explicit shared voice host/manager and separate +80 poll owner."""
         return NotImplemented
 
+    def animation_duration(self, state: "State"):
+        return None
+
     def animation_aliases(self, entity: int):
         """Known component55 alias list, known absence, or unknown."""
         return NotImplemented
@@ -456,18 +540,50 @@ class World:
         """Native context, two entity lookups and filter/environment dependencies."""
         return NotImplemented
 
+    def entity_relation_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit CE5020 lookup/dependency and full C1CF60 relationship backend."""
+        return NotImplemented
+
     def script_failed(self, component: "Component") -> None:
         """Discard external effects of a component that strict execution poisoned."""
 
     def native(self, cfg: dict, instance: "Instance | None"):
+        if (cfg.get("$") == "STUConfigVarEntityReference"
+                and cfg.get("m_4A2AD74A") == "00000000-0000-0000-0000-000000000000"):
+            return expr.EVALUATION_FAILED
         if cfg.get("$") == "STU_A3DEF368" and self.mode and mode_variables(self.mode) is not None:
             return Entity(GAME_MODE_ENTITY)
+        if cfg.get("$") == "STU_FC99C77E" and instance is not None:
+            target = instance.evaluate(cfg.get("m_entity"))
+            point = instance.evaluate(cfg.get("m_hardPoint"))
+            if (isinstance(target, Entity) and expr.valid_entity(target.id)
+                    and isinstance(point, expr.Asset) and point.guid >> 48 == 0x0DC0
+                    and point.guid & 0xFFFFFFFFFFFF):
+                position = self.hardpoint_position(target.id, point.guid)
+                if position is None:
+                    return expr.EVALUATION_FAILED
+                if isinstance(position, expr.Vec3):
+                    return position
         if instance is not None and instance.component.strict and cfg.get("$") not in expr.NATIVE_DEFAULTS:
             instance.component.unsupported(instance, "world query", cfg.get("$", "?"))
         return expr.default_native(cfg)
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         expr.warn_once(f"message{message:X}", "game message %X to %08X is not delivered", message, target)
+
+    def attach_target_tag(self, state: "State", entity: int, tag: int):
+        return NotImplemented
+
+    def release_target_tag(self, state: "State") -> None:
+        pass
+
+    def filter_array_candidate(self, state: "State", candidate, config):
+        """World predicate for the authored array filter, native virtual +0x150."""
+        return NotImplemented
+
+    def session_script_entities(self, instance: "Instance"):
+        """Ordered, resolved session entities supplied by the scene owner."""
+        return NotImplemented
 
     def send_script_message(self, instance: "Instance", node: Node, target: int,
                             message: int, params: dict, sender: int) -> None:
@@ -508,6 +624,11 @@ class World:
         resource = resolve_resource(instance, node)
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
+
+    plays_scripts = False  # explicit loaded owner routing may opt in outside strict mission VMs
+
+    def play_compatible_script(self, instance: "Instance", node: Node) -> None:
+        """Optional authoritative host for specific requests in permissive body VMs."""
 
     def play_resolved_script(self, instance: "Instance", node: Node, resource) -> None:
         """Construct the native request before asking the backend to submit it.
@@ -683,7 +804,7 @@ class Component:
                     continue
             elif not changed:
                 continue
-            if state.active and not state.flags_changed:
+            if state.active and not state.ending and not state.flags_changed:
                 state.flags_changed = True
                 state.instance.post(Event(self.now, 0, CHANGED, state=state))
         return after
@@ -1242,6 +1363,10 @@ class Instance:
         elif event.kind == ASSIGN:
             scope, identifier, value = event.assignment
             self.write((scope, identifier), value)
+        elif event.kind == STOP:
+            # 1B91A6D dispatches event7 to Instance+170 (1B95240): abort
+            # active states and retire the instance at the queued FIFO boundary.
+            self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:
@@ -1498,6 +1623,8 @@ class State:
         self.ending = True
         self.on_ending()
         self.instance.cancel(self)
+        # Canceled notifications no longer own their coalescing markers.
+        self.flags_check = self.flags_changed = False
         self.instance.exit_subgraph(self.node, "m_subgraphPlug")
         self.on_end(finished)
         self.on_cleanup()
@@ -1579,6 +1706,8 @@ class State:
 
     def on_enter(self) -> None:
         """OnEnter (vt+0x60)."""
+        if not self.instance.component.strict:
+            self.instance.component.world.permissive_state_enter(self)
 
     def reentry(self) -> None:
         """A begin while active (vt+0x68)."""

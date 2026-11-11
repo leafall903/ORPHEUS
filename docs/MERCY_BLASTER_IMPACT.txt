@@ -1,0 +1,51 @@
+Mercy blaster direct impact -- selected server model
+===================================================
+Target1.74.0.0.104319; full static acceptance remains OPEN.
+
+Original006D/node10 defines the blaster projectile0400000000000158, loadout
+0B9000000000003E, 100m range cap, and direct STU_00D9C7E1 hit record. The neutral
+body attack is20. The record supplies integer66D29548=2 and no floatA872C70E.
+The immutable source bundle SHA256 is
+54e0ef8e249246137d507b698a4f5750cc1ffbcc9bb310a51b7102645f269e63.
+External research/mercy-blaster-hit-resource.json records the exact row and
+launch fields without modifying the runtime bundle.
+
+The existing eight native hit-conversion cases show missing/failed float
+default-1, missing/failed integer default3 and the explicit authored integer2.
+They do not establish what the native server does after compiling those
+fields. In this reconstructed server, the selected Mercy row receives an
+explicit2x default at launch. The integer is a row guard, not a conversion
+to a multiplier. Other projectile loadouts keep their existing behavior.
+
+Classify the first actual direct capsule impact using its point height and
+the existing server head threshold (feet + target eye -0.2m). The player eye
+uses its present stance; the five NPCs use their prepared capsules and the
+existing default eye approximation. Native animated head/weak spot geometry,
+critical override policy, prediction and hit marker interpretation are not
+proven. Static collision and faction still choose whether a target was struck
+before this classification. The normal damage/pool/stat/hit-marker path
+receives the result; no second damage event is generated. Launch-time boost
+is multiplied by the critical result without reading the beam at impact.
+
+Corrected baseline:3 actual projectile tests,9.709s, six high-ray assertion
+failures (one player and all five NPCs); normal20 body hits, the wall and
+above-capsule controls pass. Two earlier fixture attempts changed player
+positions without changing spawn anchors, so subsequent commands restored
+the spawn. The final fixture uses actual authored fixture spawns and places
+the wall across that measured ray. This was a fixture correction, not a
+collision-engine change.
+
+Initial implementation65-case focus:64 pass, one old camera cover damage
+expectation changes20->40 because its clear standing ray now hits the declared
+critical zone. Both cover heights remain, including the0 damage obstruction.
+The crouched clear path remains20. No packet, VM, or causal snapshot field
+was added by this change.
+
+Expanded131-case selected run PASS209.446s with183 source hashes matched.
+It includes five new projectile controls:
+player20/40 and real damage/stat/hit-marker output; wall and above-capsule
+miss with ammunition consumed; all five prepared Talon types body/high hits;
+actual100m range boundary; and actual52 boosted critical after beam release.
+Dynamic barriers,
+reflection, absorption, full damage/boost charge and full cross-hero/NPC
+interactions remain open. No original client session or final commit follows.

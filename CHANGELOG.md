@@ -4,7 +4,250 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-11
+
+#### Mercy server integration checkpoint
+
+- Deliver the current Mercy implementation and tests for staff support, blaster,
+  melee, movement, Resurrection, Valkyrie and the combat interactions with
+  players and the five Talon NPCs. Include the shared combat and statescript
+  changes used by those paths.
+- Five delivery smoke tests passed for late boost and same-body Resurrection.
+  Earlier runs passed seven focused cases, 37 chain cases and 19 Resurrection cases.
+- Full static and original-client acceptance remain open. A Helix Rocket crossing
+  the Valkyrie expiry still misses the 36-point charge award if the boost caster
+  dies and sends no further input. Prepared build data and research traces stay
+  outside the source tree.
+
 ### 2026-11-09
+
+#### Enforcer incoming damage against Mercy
+
+- Route the actual manual Enforcer 13EB predicates to the declared controller
+  component profile and current aggregate health. The first hit applies 2.
+- The four incoming weapon cases cover blocking by a wall, resumption and
+  stopping. The NPC and VM suite passed 69 tests. Assassin remains open.
+
+#### Mercy projectile defense lifecycle
+
+- Use the active Genji and Sigma resource boxes in the projectile sweep. Sigma's
+  authored end request now grants and decays a separate temporary shield pool.
+- Use the prepared Reinhardt shield mesh for blaster interception. Cover real
+  impact, lowering, break, regeneration and reopening after cooldown.
+- Notify script subscribers when an Ability cooldown reaches zero. The shield
+  re-entry regression and existing cooldown and input tests pass. The selected\n  defense suite passed 161 tests.
+
+#### Selected Mercy projectile defense contacts (pending full acceptance)
+
+- Use actual Genji03A3 and Sigma1D02 defense state lifetimes on Mercy blaster
+  contacts. Genji's aimed return transfers damage credit, Sigma's absorb
+  executes the original tally, and neither grants Mercy a damage award.
+- 102 selected controls PASS139.938s;182 source hashes matched. Capsule and
+  cone geometry are explicit reconstructions. Native contact shape, temporary
+  shields, other defenses and complete static acceptance remain open.
+
+#### Mercy actual boost share (pending full acceptance)
+
+- Retain the exact launch caster and compute the bonus from actual pool
+  losses using the same armour/shield calculation. Feed that share to
+  original006B/0D9A->00EB, and let original0B8B subtract the3EBB metadata
+  share from Mercy attack charge. Native producer/filter details remain open.
+- Initial15 controls PASS42.215s. Expanded20 has19 pass and one snapshot
+  fixture error corrected to use the recorded root;192 selected PASS699.611s
+  and188 source hashes matched. See MERCY_BOOST_CHARGE.txt for limits.
+
+#### Mercy neutral damage awards (pending full acceptance)
+
+- Send actual applied blaster and melee damage and original tags through
+  0012 to0B8B. Preserve projectile launch identity in causal storage, with
+  a declared ordinary actor filter/relationship profile for this graph.
+- Baseline4:three missing charge failures, miss/immunity pass. After the
+  bridge36 focused PASS136.634s. Expanded56 PASS239.213s/179 hashes includes actual
+  all-five NPC, Valk/retirement and pending projectile storage controls.
+  See the later boost entry for the amplified path.0148/full native filter
+  and full static remain open.
+
+#### Mercy blaster body and critical impacts (pending full acceptance)
+
+- Give the selected006D/node10 projectile a declared2x critical policy and
+  classify the actual direct capsule intersection using the existing head
+  threshold. The raw integer2 guards the resource row; native default and
+  animated hitboxes remain unproven.
+- Six high-ray baseline assertions (one player, five NPC types) fail before the fix;
+  the initial65-case focus passes64 with one stale20 damage expectation for
+  the now critical standing low-cover shot. That expectation now checks40;
+  the blocked path remains0. Expanded131-case verification PASS209.446s,
+  with183 hashes matched and actual range/boost-after-release controls.
+  No final commit.
+
+#### Mercy volley rebinding and explicit camera heights (pending full acceptance)
+
+- Watch the original per-shot cost and settle/cancel/rebase/resample/rearm on
+  dependency invalidation. Preserve the old next-shot time and State counter;
+  advance/freeze the firing generation so queued old shots keep their identity.
+  Owner ACK fields stay counter/start;observer records use the frozen generation.
+- Six native rebind cases match actual runtime clock/ammo/cost/counters/timers
+  under declared adapters.7 runtime controls PASS0.039s and98 selected projectile/
+  VM/driver/rebind/actual Mercy/lifetime checks PASS56.717s. The historical held-
+  Valkyrie failure below is resolved in the current selected implementation.
+- Use authored Mercy standing/crouched1.45/1.015 and McCree1.425/.9975 in the
+  shared eye_height helper.4 actual pose/low-cover controls fail before and pass
+  after in6.360s. Camera rays remain a stated server reconstruction.
+- Add3 actual Res refusal controls across all5 NPC types/15 live-corpse-faction
+  scenarios,PASS14.031s on prepared43-row capsules. These are separate from the
+  completed667 fixed-source broad run:666 pass,one old rifle activation-pair
+  assertion fails in1533.514s. Recorded source hashes match;the assertion now
+  includes the frozen firing generation1.
+- Restore automatic reload through the original graph by notifying ammo
+  consumers at emitted-shot boundaries. The actual zero-magazine counterexample
+  passes within23 focused checks in45.829s. All five expanded reload controls
+  pass within163 selected regressions in503.955s with185 source hashes matched.
+  Notification phase/native binding
+  epochs remain explicitly reconstructed;see MERCY_RELOAD_LIFETIME.txt.
+  Complete static acceptance stays OPEN;no final own commit/export.
+
+#### Earlier state notification lifetime and held-Valkyrie counterexample
+
+- Reproduce both parent notification lifetime controls failing in the private
+  clone. Clear CHANGED/CHECK coalescing markers after State.end cancels events;
+  skip notifications to ending states. Both controls now pass. These hunks and
+  tests duplicate the parent's uncommitted fix;reconcile once at integration.
+- Earlier actual two-cycle Q/held-primary checks failed:after Valkyrie842 and
+  its weapon gate clear,the active volley still caches per-shot0 and ammo20.
+  Eight native parameter getter probes pass with declared adapters,but native
+  dependency delivery/time/ammo rebasing are unproven. Do not count prior
+  release-before-expiry checks as this boundary's acceptance.
+- Parent Ability.stop cleanup/arbitration reordering was read but not imported.
+  See [weapon lifetime](docs/MERCY_WEAPON_LIFETIME.txt). Full static acceptance
+  remains OPEN;no final own commit/export.
+- That earlier177 selected lifecycle/VM/Mercy run PASS270.170s,explicitly
+  excluding the then-new held-primary test. Its historical separate3-test run FAIL
+  (two cycle subtests,19.118s). All changed Python Ruff/diff checks PASS.
+
+#### Native relationship query frontend (pending full acceptance)
+
+- Restore A58C1E63/CE5020 child ordering,source-first namespace lookup,target-first
+  backend arguments,kind2 dependencies and missing-context no-write semantics
+  through explicit owner-bound services. Require the full relationship backend;
+  normal bodies do not silently gain a team-comparison substitute.
+- 15 focused checks PASS2.197s;578 unchanged native query cases match actual
+  runtime traces/results under declared child/tag/context/backend adapters.
+  Separate4614 native guard/decision cases pass with an explicit skipped
+  association-resolution seam;full C1CF60 and damage/boost charge remain OPEN.
+  See [relationship query](docs/ENTITY_RELATION_QUERY.txt). No final own commit/export.
+- Final231 related query/script/snapshot/Mercy charge regressions PASS446.416s;
+  all changed Python Ruff/diff checks PASS.800 unchanged D6B260 field-selector
+  cases also pass with explicit synthetic inputs/observer adapter. Full backend,
+  real damage events and complete static/client acceptance remain OPEN.
+
+#### Collected fold and Mercy early input (pending full acceptance)
+
+- Implement A6B80C63 collected reduction,temporary parameter scopes,watcher
+  propagation,budget cleanup and passive storage. Actual runtime matches9
+  original native loop/8 parameter-provider probes under declared adapters;
+  16 focused controls PASS1.701s. Original0B8B metadata subtraction executes,
+  but actual damage/boost event production and charge acceptance remain OPEN.
+- Preserve buffered press timestamps until ability gates pass,reproducing and
+  fixing expired Q starting Valkyrie after later real healing.10 actual Mercy
+  input controls PASS24.501s cover Valkyrie0.15s window and GA/Res cooldowns.
+  This shared hunk duplicates the parent's uncommitted fix;reconcile once.
+- See [fold](docs/CONFIG_FOLD.txt) and [input](docs/MERCY_INPUT_BUFFER.txt).
+  Full static/client acceptance remains OPEN;no final own commit or patch.
+- Five additional actual Res movement controls PASS18.389s:four directional
+  cast slowdowns/restoration,raw input retention and jump/crouch recovery by the
+  command after revival. No runtime changes;native phase parity remains OPEN.
+  See [cast movement](docs/MERCY_CAST_MOVEMENT.txt).
+- Final fixed-source593 combined regressions PASS1167.050s,including16 fold
+  and10 input-buffer controls;the five later movement checks are separate.
+  All changed Python Ruff and git diff checks PASS. Runtime source was fixed
+  throughout593;parent throttle follow-up was read only. No final own export.
+
+#### Mercy original healing charge (pending full acceptance)
+
+- Carry original0079/10DC ModifyHealth tags with once-consumed support reports.
+  Emit0044 from actual capped/status-modified health;original0B8B applies its
+  excluded tags,target17625,eligibility/suspension,multipliers and cost cap.
+  Honor supplied health-tag exclusions in the selected031A status consumer.
+- Pass17 focused actual-health/charge/storage controls in71.438s,including
+  actual staff commands on all five NPC capsules using the parent's read-only
+  extracted mover inputs. Final fixed-source567 combined regressions
+  PASS789.094s;all changed Python Ruff and diff checks PASS.
+- Engine event/phase bindings remain reconstructed. Damage/boost charging,
+  full native clock/filter/ownership and all other static/client requirements
+  remain OPEN. See [healing charge](docs/MERCY_HEALING_CHARGE.txt).
+
+#### Mercy authored passive charge (pending full acceptance)
+
+- Replace Mercy Match's60s fill placeholder with existing0B8B's original1s wait,
+ 5-point award,9532/12918 multipliers,cost cap and842 suspension/restart.
+ Run001C7's authored mode/eligibility2426 path;health updates no longer replace
+ it with a corpse boolean. Keep foreign653's reconstructed corpse bridge separate.
+ Typed F726 uses the explicit Match body/controller relation. Role,ordinary mode
+ category and ownership bindings remain reconstructed; other/standalone hero
+ charge behavior and damage/heal/boost awards still require restoration.
+- Initial49 charge/Valkyrie/Res controls PASS71.905s. Expanded146:145 PASS and
+ one capture-fixture layout error;corrected fixture plus charge/VM snapshots
+34 PASS37.108s. Timer-storage/death-replacement evidence and limits are recorded in
+ [Mercy charge](docs/MERCY_CHARGE.txt). Full static acceptance remains OPEN.
+
+#### Mercy received-healing status graphs (pending full acceptance)
+
+- Route actual Ana0267 impacts through original0C71 and loaded PlayScript queue
+  into0B99/0C72. Apply original instant100 healing/60 damage once; consume active
+  031A1.5/0 filters in real Mercy primary/chain/passive health. Preserve actual
+  damage-boost launch scale: a boosted grenade deals78 after beam release.
+- Original4s timers/replacement own expiry/refresh. Retire target effects on
+  death/replacement/manual NPC removal and isolate different sources' expiry.
+  Persist real status VMs and consumed-counter state without executing callbacks.
+- Pass20 actual-health/impact controls plus one server capture in137.872s,
+  including five real NPC body definitions. Predicate/stat/ownership/clock and
+  health-event-priority host policies remain explicit reconstructions; full
+  native filters, charge/critical/defense/status/NPC AI/client acceptance OPEN.
+  See [received-healing status](docs/HEALING_STATUS.txt). New work uncommitted.
+- Final fixed-source combined regression:532 PASS824.883s. Separately,7 controls
+  PASS40.561s with the parent's read-only43-row extracted NPC mover table.
+  These verify selected combat paths using actual height/radius/speed inputs;
+  static fixtures do not establish native animated hitboxes or full NPC AI.
+
+#### Mercy resource-owned support and Valkyrie chains (pending full acceptance)
+
+- Implement queued22926252 script termination for authored status lifetimes:
+  explicit instance selection, event7/output ordering and existing owned-tree
+  cleanup. Six focused controls and two original Ana4s modifier lifetime controls
+  pass; eight original native action probes match with declared engine adapters.
+  Optional parent notification and native transport remain OPEN. See
+  [queued script termination](docs/SCRIPT_STOP.txt). Actual anti-heal/amp health
+  consumers are still pending; the separate status research pack has675 graphs.
+- The421-case run passes419 with two historical malformed-packet fixtures needing
+  their old absent-stop model. Preserve their original crash offsets and patch
+  only bad-frame construction; current healthy frames remain unpatched. Final
+  driver/stop35 tests PASS9.281s and separate PlayScript88 PASS0.073s, Ruff/diff
+  PASS. No final423-case combined rerun or full static acceptance is claimed.
+- Extend actual chain controls to20 passing tests in109.144s: primary full-health
+  gating, recipient/caster body replacement and duplicate-command accounting.
+  Eight isolated native hit-definition conversion probes confirm integer mode
+  default3 and A872 float sentinel-1. Graph/tagged-value adapters are declared;
+  downstream critical-hit and ultimate charge generation remain OPEN.
+- Mount the extracted0079/006C/10DC/10DD graphs in explicit effect hosts. Deliver
+  000F through native-backed message reception, retaining root/anchor/original
+  source identities and the authored002A parameter. Consume actual active health
+  states and CombatModFilter value174 rather than inventing chained amounts.
+- Run the authored10m selectors and child02CC/02CD effects. Prove direct55/s,
+  Valkyrie primary/extra-target60/s, real chained rifle26 and Helix52+104,
+  launch snapshots, release/reacquisition, range/static-LOS/faction rejection,
+  no recursive flood, source/anchor death and15s expiry back to55/s.
+- Retire complete owned trees on body death/replacement/manual removal. Preserve
+  effect VMs, contexts, parameters and deadlines in passive server storage.
+  A capture test prohibits effect ticks/queries and still observes causal changes.
+- All five real NPC bodies anchor/receive chain healing and receive outgoing
+  bonus. Actual Trooper/Sniper/Heavy attacks apply26/130/6.5 damage. Independent
+  effect VMs, neutral healing inputs and centre/static-LOS filters are declared
+  reconstructions; complete native filter/status/ownership/transport is OPEN.
+- Review/import parent2ca9178 asacc2a9c;76 focused regressions pass afterward.
+  The final411-test fixed-source combination passes in400.831s; Ruff/diff pass.
+  New NPC+effect research pack has672 graphs/four bindings and is outside Git.
+  Full charge/critical/status/NPC-special/static acceptance remains OPEN; no new
+  Mercy commit, final integration patch, shared merge, deployment or push.
 
 #### Native state-input joins and Deadeye timing
 
@@ -54,6 +297,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   replication/HUD/animation/audio and original-client acceptance remain open.
   Deadeye/full hero combat and NPC AI/navigation/specials remain open; no hero
   lane merged. Normal runtime/services and original working changes preserved.
+
+#### Mercy reconstructed Valkyrie flight and cross-hero control (pending)
+
+- Decode the sole active ED2B22BD embedded component's34 existing mover fields
+  before numeric movement modifiers, retaining the base profile and restoring it
+  when the state ends. Missing/nonfinite values and simultaneous profiles are
+  not guessed. Include the pending profile in stored physics snapshots.
+- Bind10DA's C1BA7545 kind16 callback to three-dimensional owner movement:
+  modified rise/sink intents, yaw/pitch direction, air friction/acceleration,
+  speed cap, capsule collisions and ordinary gravity after expiry. Preserve
+  Guardian Angel priority and resume free movement on its release. Trig/frame
+  and callback arbitration are explicit reconstructed semantics, not bit parity.
+- Actual input covers ascent/descent, pitched/diagonal movement, walls/ceiling/
+  floor, release, duplicate commands, expiry/death and uncharged refusal. All
+  five enemy NPCs take actual airborne blaster hits without consuming ammo.
+- Import parent64bf71c's resource-backed Flashbang services separately. Preserve
+  frame-based passive healing during suppressed input; resurrection immunity
+  rejects both damage and control. Keep Mercy's ungated timed transformation
+  alive under stun while releasing staff, Guardian Angel and resurrection casts.
+  These are reconstructed policies, not complete native224E status execution.
+- Pass159 Mercy/movement/physics/server-storage controls before importing the
+  reviewed parent NPC weapon/input, array-selection and static-wall fixes.
+  Pass42 follow-up controls, including actual30/0 melee damage across all five
+  visible/occluded NPC bodies and actual Trooper20/Sniper100/Heavy Assault5
+  incoming damage to Mercy, followed by a successful stop command.
+- Enforcer/Assassin attacks, native flight parity/chained support, charge/status and
+  native/client fidelity remain OPEN. The expanded post-import regression passes
+  318 tests in367.363s, including Mercy player visible/wall melee controls.
+  The fixed-source expanded regression passes384 tests in425.886s after flight,
+  control and public-history alignment; Ruff/diff checks pass. Lane changes
+  remain uncommitted pending full static acceptance.
 
 #### McCree melee static-wall occlusion
 

@@ -44,6 +44,70 @@ def model(index=1, *entries):
 
 
 class StartupTests(unittest.TestCase):
+    def test_elapsed_transition_rechecks_at_deadline_and_cancels_with_owner_state(self):
+        for abort in (False, True):
+            with self.subTest(abort=abort):
+                model = graph([
+                    node(0, 'STUStatescriptState', state=0, m_transitionPlug=[plug((1, 'm_inPlug'))]),
+                    node(1, 'STU_4E2BCAAB', m_ADEB6E05=False, m_AA6E611E=value(1),
+                         m_truePlug=plug((2, 'm_inPlug'))),
+                    node(2, 'ObserveElapsedTransition'),
+                ])
+                component = runtime.Component(1, strict=True)
+                instance = component.create(model)
+                state = instance.state(0)
+                seen = []
+
+                def record(_instance, _node, _caller):
+                    seen.append(component.now)
+                    return True
+
+                with mock.patch.dict(runtime.HANDLERS, ObserveElapsedTransition=record):
+                    state.request(runtime.BEGIN)
+                    component.run_now()
+                    component.run_frame(61)
+                    self.assertTrue(state.active)
+                    self.assertEqual(seen, [])
+                    if abort:
+                        state.request(runtime.ABORT)
+                        component.run_now()
+                    component.run_frame(62)
+                    self.assertFalse(state.active)
+                    self.assertEqual(seen, [] if abort else [1000])
+
+    def test_weighted_startup_action_selects_one_output_before_ordinary_output(self):
+        def weighted(weight, destination):
+            return {'$': 'STU_2AA453C0', 'm_weight': weight, 'links': [[destination, 'm_inPlug']]}
+
+        dynamic = {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': 0}
+        for random_value, weight, expected in (
+            (0.0, 3, [2, 4]),
+            (0.25, 3, [3, 4]),
+            (0.75, 0, [2, 4]),
+        ):
+            with self.subTest(random_value=random_value, weight=weight):
+                definition = graph([
+                    node(0, 'STUStatescriptEntry', m_outPlug=plug((1, 'm_inPlug'))),
+                    node(1, 'STU_8502CA73', m_D84D6E03=[
+                        weighted(value(1), 2), weighted(dynamic, 3), {'m_weight': None, 'links': []},
+                    ], m_outPlug=plug((4, 'm_inPlug'))),
+                    *(node(index, 'ObserveWeightedOutput') for index in (2, 3, 4)),
+                ], entries=[0])
+                component = runtime.Component(1, strict=True)
+                instance = component.create(definition)
+                instance.write((0, 7), weight)
+                seen = []
+
+                def record(_instance, destination, _caller):
+                    seen.append(destination.pos)
+                    return True
+
+                with (mock.patch.dict(runtime.HANDLERS, ObserveWeightedOutput=record),
+                      mock.patch.object(component.rng, 'random', return_value=random_value) as draw):
+                    component.run_now()
+                self.assertEqual(seen, expected)
+                draw.assert_called_once_with()
+
     def boot(self, defaults, instance=None, *, models=None, world=None):
         models = models or {1: model()}
         component = runtime.Component(0x800001A8, world=world, strict=True)

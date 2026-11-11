@@ -7,12 +7,15 @@ five-enemy PvE acceptance.
 import unittest
 from unittest.mock import patch
 
+import test_game_mercy_staff as staff_tests
 from test_game_combat import KANEZAKA_DM, Run, aim
+from test_game_mover import FLOOR, wall
 
 from ow174.game import bodytrace, combat, movelog, stats
-from ow174.game.commands import FIRE, Command
+from ow174.game.collision import World
+from ow174.game.commands import FIRE, SECONDARY, Command
 from ow174.game.content import SOLDIER, heroes
-from ow174.game.script.driver import HUD_HEALTH, OWNER_HEALTH, OWNER_MAX_HEALTH
+from ow174.game.script.driver import HUD_HEALTH, OWNER_HEALTH, OWNER_MAX_HEALTH, ULT_CHARGE
 from ow174.game.script.regeneration import MERCY
 
 
@@ -107,6 +110,47 @@ class MercyCombatTests(unittest.TestCase):
         self.assertAlmostEqual(self.vitals.total, 170.16, places=4)
         self.assertEqual(self.mercy.body_script.self_healing, 0)
 
+    def test_late_input_does_not_backdate_self_healing_before_real_helix_impact(self):
+        for timely in (True, False):
+            with self.subTest(timely=timely):
+                f = MercyCombatTests()
+                f.setUp()
+                try:
+                    x, y, z = f.mercy.mover.position
+                    f.enemy.spawn = ((x + 12, y, z), 0.0)
+                    f.enemy.mover = f.enemy.new_mover()
+                    direction = aim(f.fight._eye(f.enemy), (x, y + 0.8, z))
+
+                    def step(buttons=0):
+                        f.run.frame += 1
+                        f.match.update(f.run.frame * combat.TICK, f.run.frame)
+                        if timely:
+                            f.mercy.take_commands([Command(f.run.frame)])
+                        f.enemy.take_commands([Command(f.run.frame, yaw=direction[0], pitch=direction[1],
+                                                       buttons=buttons)])
+
+                    for _ in range(100):
+                        step()
+                    step(SECONDARY)
+                    for _ in range(50):
+                        if f.vitals.total < 200:
+                            break
+                        step()
+                    self.assertEqual(f.vitals.total, 80)
+                    for _ in range(20):
+                        step()
+                    f.mercy.take_commands([Command(f.run.frame)])
+                    self.assertEqual(f.vitals.total, 80)
+                    for _ in range(60):
+                        step()
+                    f.mercy.take_commands([Command(f.run.frame)])
+                    self.assertAlmostEqual(f.vitals.total, 86.08, places=4)
+                    f.mercy.take_commands([Command(f.run.frame - 1), Command(f.run.frame)])
+                    self.assertAlmostEqual(f.vitals.total, 86.08, places=4)
+                    self.assertEqual(f.mercy.stats.value(stats.HEALING), 0)
+                finally:
+                    f.doCleanups()
+
     def test_training_npc_damage_restarts_self_healing_without_healing_enemies(self):
         npc_run = Run()
         mercy, = npc_run.players
@@ -147,3 +191,59 @@ class MercyCombatTests(unittest.TestCase):
         self.step(40)
         self.assertEqual(self.fight.vitals[self.enemy.body].total, 170)
         self.assertEqual([h["+0x78"]["+0x4"] for h in self.mercy.client.messages(combat.HIT)], [30])
+
+    def test_actual_mercy_melee_hits_visible_player_and_rejects_static_wall(self):
+        for blocked in (False, True):
+            with self.subTest(wall=blocked):
+                fixture = staff_tests.MercyStaffTests()
+                fixture.setUp()
+                try:
+                    collision = World(FLOOR + (wall(-5, 0.75, 5, 0.75) if blocked else []))
+                    fixture.match.collision_world = collision
+                    fixture.mercy.mover.use(world=collision)
+                    fixture.enemy.mover.use(world=collision)
+                    fixture.enemy.mover.position[:] = (0, 1, 1.5)
+                    target = next(t for t in fixture.fight._targets() if t.owner is fixture.enemy)
+                    vitals = fixture.fight.vitals_of(target)
+                    fixture.step(1, target=fixture.enemy, buttons=0x800)
+                    fixture.step(40, target=fixture.enemy, buttons=0)
+                    self.assertEqual(vitals.total, 200 if blocked else 170)
+                finally:
+                    fixture.doCleanups()
+
+    def test_same_frame_lethal_rifle_cancels_only_unresolved_quick_melee(self):
+        for rifle_first in (False, True):
+            with self.subTest(rifle_first=rifle_first):
+                fixture = MercyCombatTests()
+                fixture.setUp()
+                try:
+                    run, mercy, enemy = fixture.run, fixture.mercy, fixture.enemy
+                    fight = fixture.fight
+                    x, y, z = mercy.mover.position
+                    enemy.mover.position[:] = (x, y, z + 1.5)
+                    enemy.mover.body = None
+                    melee = aim(fight._eye(mercy), (x, y + 1, z + 1.5))
+                    rifle = aim(fight._eye(enemy), (x, y + 1, z))
+                    fixture.damage(185)
+                    component = mercy.body_script.component
+                    component.set(12918, 0.0)
+                    charge = component.entity_var(ULT_CHARGE)
+                    charge_before = charge.value()
+                    enemy_target = next(t for t in fight._targets() if t.owner is enemy)
+                    enemy_health = fight.vitals_of(enemy_target)
+                    frame = run.frame + 1
+                    if rifle_first:
+                        run.players.reverse()
+                    run.step({mercy: (*melee, 0x800), enemy: (*rifle, FIRE)})
+                    self.assertTrue(fixture.vitals.dead)
+                    self.assertEqual(fixture.vitals.death_tick, frame)
+                    self.assertEqual(fixture.vitals.killer, enemy.body)
+                    damage = 0 if rifle_first else 30
+                    self.assertEqual(enemy_health.total, 200 - damage)
+                    self.assertEqual(mercy.stats.value(stats.HERO_DAMAGE), damage)
+                    self.assertEqual(charge.value() - charge_before, damage)
+                    fixture.step(40)
+                    self.assertEqual(enemy_health.total, 200 - damage)
+                    self.assertEqual(mercy.stats.value(stats.HERO_DAMAGE), damage)
+                finally:
+                    fixture.doCleanups()
