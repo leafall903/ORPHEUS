@@ -102,11 +102,11 @@ from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
 from ow174.game.content import JUNKENSTEIN_SHOCKING_SURPRISE, heroes
-from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, STEP, Mover, clamp_linked_target_command, mover_data, quantise
+from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, REPEAT, STEP, Mover, clamp_linked_target_command, mover_data, quantise, statescript_mods
 from ow174.game.props import ModelPose
 from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
+from ow174.game.script.driver import MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -1892,6 +1892,7 @@ class Combat:
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
         self.replacement_ticks[body] = self.match.tick
+        self.input_locks.pop(body, None)
         self.stuns.pop(body, None)
         self.frost_hits.pop(body, None)
         self.clear_pins(body)
@@ -2003,6 +2004,7 @@ class Combat:
             if floor > max(vitals.sleep_until, self.stuns.get(target.entity, 0)):
                 vitals.sleep_wake_floor = floor
                 vitals.sleep_until = self.tick + SLEEP_TICKS
+                self.record_input_lock(target.entity, effect, vitals.sleep_until)
                 self._interrupt(target)
             return
         # Scoped Fortify consumer: require both the actual0CF4 CombatModFilter
@@ -2017,7 +2019,9 @@ class Combat:
             if deadline <= vitals.sleep_until:
                 return
             vitals.clear_sleep()
+            self.close_input_lock(target.entity, SLEEP_DART_EFFECT)
         self.stuns[target.entity] = max(deadline, self.stuns.get(target.entity, 0))
+        self.record_input_lock(target.entity, effect, self.stuns[target.entity])
         self._interrupt(target)
         self._begin_npc_hit_reaction(target, duration, self.stuns[target.entity], shooter=shooter)
 
@@ -2075,6 +2079,10 @@ class Combat:
         return immunity.control_immune(target.owner, target.entity) or self.orisa._immune(target.owner)
 
     def _interrupt(self, target: Target) -> None:
+        actor = target.owner
+        mover = actor.control_mover if isinstance(actor, bots.Bot) else getattr(actor, "mover", None)
+        if mover is not None and (last := mover.last_command) is not None:
+            mover.last_command = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
         self.zenyatta.interrupt(target.owner)
         self.sombra_controls.interrupt(target.owner, hack_only=True)
         self.recalls.interrupt(target.entity)
@@ -2085,10 +2093,13 @@ class Combat:
         self.orisa.interrupt_supercharger_cast(target.owner)
         self.brigitte.interrupted(target.entity)
         self.walls.cancel_preview(target.owner)
-        self.interrupt_controlled(getattr(target.owner, "body_script", None))
+        script = getattr(actor, "body_script", None)
+        self.interrupt_controlled(script, actor=actor)
+        if script is not None and mover is not None and not isinstance(actor, bots.Bot):
+            active = self.movement_mods(actor, statescript_mods(script.component))
+            mover.track_mods(active, script.frame)
 
-    @staticmethod
-    def interrupt_controlled(script) -> None:
+    def interrupt_controlled(self, script, *, actor=None) -> None:
         """Reconstructed input/channel interruption, shared by hosted control effects."""
         if script is None:
             return
@@ -2097,7 +2108,22 @@ class Combat:
 
         component.discard_button_presses()
         assassin.bind(component.world, component, None)
+        matrices = dict(deflection.matrix_abilities(script))
+        impact = component.now
+        if matrices and isinstance(actor, bots.Bot) and actor.control_mover is not None:
+            impact = max(impact, (self.tick + actor.clock_offset) * component.frame_ms - 1)
+        settled = {}
+        if impact > component.now:
+            for ability in matrices:
+                natural = deflection.matrix_close_before(ability.instance, impact)
+                if natural is None and impact - component.now > 2 * REPEAT * component.frame_ms:
+                    continue
+                close = impact if natural is None else natural
+                deflection.settle_matrix_drain(ability, close, natural=natural is not None)
+                settled[ability] = close
         component.edges([(value, False) for value in tuple(component.held)])
+        # Let authored release paths establish their cooldown before forced stop.
+        component.run_now()
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):
                 if instance.graph.index == 0x01DB and isinstance(state, nodes.MoveTo) and state.active:
@@ -2105,18 +2131,26 @@ class Combat:
                     #Ability subgraph. Stop the phase too: a short control must
                     #not merely pause and then resume the old dash destination.
                     state.end(False)
-                    self.genji_strikes.pop(target.entity, None)
+                    self.genji_strikes.pop(component.entity, None)
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
                     # Genji0317's persistent transform has no continue condition
                     # or continuing stack priority. Preserve its authored timer;
                     # the stunned command gate still blocks drawing new swings.
                     # This scoped server control policy is reconstructed.
-                    if (not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ()))
-                            and not lucio.keep_active_amp_on_stun(script, state)
-                            and support.interrupt_on_stun(script, state)):
+                    if ((volume := matrices.get(state)) is not None and volume.active
+                            and state.remaining() == 0):
+                        instance.run_node(instance.graph.node(97), None)
+                    elif (not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ()))
+                            and (not isinstance(script, BodyScript)
+                                 or (not lucio.keep_active_amp_on_stun(script, state)
+                                     and support.interrupt_on_stun(script, state)))):
                         state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
+        if impact > component.now:
+            for ability in matrices:
+                close = settled.get(ability, impact)
+                deflection.anchor_matrix_close(ability, close, recharge=ability in settled)
         component.shots.clear()
         if hasattr(component.world, "velocity_requests"):
             component.world.velocity_requests.clear()
@@ -3019,7 +3053,7 @@ class Combat:
             state = instance.states.get(index)
             if state is None:
                 continue
-            counters = self.melee_seen.setdefault(script.entity, {})
+            counters = self.melee_seen.setdefault(script.component.entity, {})
             key = (instance.id, index)
             seen = counters.get(key, 0)
             counters[key] = state.counter
@@ -3369,6 +3403,12 @@ class Combat:
                 self._respawn(who)
         self.voice.expire(now)
         current = {target.entity: target for target in self._targets()}
+        for entity, locks in list(self.input_locks.items()):
+            kept = [lock for lock in locks if lock.end is None or lock.end > tick - MAX_GAP]
+            if entity in current and kept:
+                self.input_locks[entity] = kept
+            else:
+                del self.input_locks[entity]
         for entity, frost in list(self.frost_hits.items()):
             target = current.get(entity)
             if target is None or target.owner.body_script is None:
@@ -7061,9 +7101,11 @@ class Combat:
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = attacker
             vitals.clear_sleep()
+            self.close_input_lock(target.entity, SLEEP_DART_EFFECT)
         elif self.tick < vitals.sleep_until:
             wake = max(vitals.sleep_wake_floor, self.tick + SLEEP_WAKE_RECOVERY_TICKS)
             vitals.sleep_until = min(vitals.sleep_until, wake)
+            self.record_input_lock(target.entity, SLEEP_DART_EFFECT, vitals.sleep_until)
         if not isinstance(shooter, (bots.Bot, SceneHazard)):
             flags = (CRITICAL if critical else 0) | (KILLING if killed and not copy_break else 0)
             if shooter is not target.owner:

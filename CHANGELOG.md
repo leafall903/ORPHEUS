@@ -4,6 +4,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile delivered D.Va control interruption and retained input
+
+- Release held inputs and drain authored release handlers before stopping
+  channels. Preserve Matrix's authored forced-close cooldown, settle retained
+  resource drain and anchor its close/recharge clock. Refresh player movement
+  rows before the first controlled pose to stop the old Boosters throttle.
+- Retain the combined Genji transformation, Lucio Amp and Mercy transformation
+  exceptions for player VMs; owned bot VMs use their delivered ordinary stop
+  policy. Resolve quick-melee counters through the actual Component identity,
+  and fix the existing Genji cleanup path's undefined self/target references.
+- Record timed-control input intervals, reject late commands from those intervals
+  for both pilot and owned mech, and prune expired history. Reconcile sleep
+  wake/cleanse/death and replacement with that history without changing the
+  combined Vitals-based sleep representation.
+- Retain four original control/buffer/Ana/sleep check files. Only two imports
+  name the already retained created-body fixture; all original expectations
+  remain unchanged. Preserve both original control/buffer records with a
+  historical-delivery header. No new acceptance matrix or gameplay feature.
+- With the existing full projectile-tag input, all33 final control, buffering,
+  runtime, Genji and owned-mech regression checks passed. Four original delayed
+  Flashbang/aged-Flashbang cases also passed for pilot and controlled mech.
+  The rear-dart controlled-Matrix check passed separately.
+- Full Ana/sleep acceptance remains open: original sleep fixtures expect
+  ana_sleeps/frost interfaces and a Matrix interception callback that differ
+  from the combined host. Keep these failing checks. The separate Genji bubble
+  check still fails health113 versus26, reproduced identically on cleanc0c558b0
+  intake before this change. No whole-line or original-client acceptance claimed.
+
 ### Reconcile owned-body hostility and retained Self-Destruct messages
 
 - Restore the delivered exclusion of an owned bot's source body and of the

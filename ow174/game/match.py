@@ -419,6 +419,12 @@ class Player:
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
             return
         stunned = self.match.combat.is_stunned(self, tick=tick)
+        received = self.mover.last_command is command
+        admitted, input_suppressed = fight.suppress_input(self, command, tick=tick, active=stunned)
+        if received and admitted is not command:
+            self.mover.last_command = admitted
+        command = admitted
+        stunned = stunned or input_suppressed
         frost = fight.frost_progress(self, tick=tick)
         command = fight.sombra_controls.input(self, command)
         command = fight.clamp_sleep_command(self, command)
@@ -523,7 +529,8 @@ class Player:
         if self.body in self.match.combat.punch_impacts:
             self.match.combat.punch_wall_contact(self, command, tick)
         self._advance_body_frame(
-            command, movement_end=movement_end, charge_start=charge_start, seconds=seconds,
+            command, posed=not input_suppressed, movement_end=movement_end,
+            charge_start=charge_start, seconds=seconds,
         )
 
     def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):

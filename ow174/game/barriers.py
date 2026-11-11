@@ -618,6 +618,9 @@ def _init_health(fight, barrier):
             recipient = fight.vitals.get(protected_body)
             if recipient is not None:
                 recipient.clear_sleep()
+                from ow174.game.combat import SLEEP_DART_EFFECT
+
+                fight.close_input_lock(protected_body, SLEEP_DART_EFFECT)
 
 
 def _recipient_live(fight, barrier):

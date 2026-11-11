@@ -1,0 +1,160 @@
+Historical delivery record: hero-deliveries/007A (a2353c60).
+This retained source-lane record does not certify the combined server.
+Current integration results and limitations are recorded in CHANGELOG.md.
+
+D.Va control/interruption -- build104319, partial static acceptance
+=================================================================
+
+Resource-backed policy and shared dependencies
+---------------------------------------------
+Adapt the parent's reviewed64bf71c Flashbang control foundation. HitDef retains
+ModifyHealth.m_277A4ECA from actual volley data. Resource053/0079 resolves through
+0228 to224E; the known duration branch is0.8s, or1.7s when mode variable13408
+is true. A body-keyed exclusive world-tick deadline implements this selected
+server policy. It does NOT execute all224E effects, native immunity/cleansing/
+stacking/unstoppable rules or original-client status presentation.
+
+Actual grenade flight, body/world/splash collision, team filtering and Matrix
+interception decide whether the hit reaches this policy. An absorbed grenade
+ends without damage, splash or control. A dead body does not gain the effect.
+Expiry, body replacement, death and explicit manual NPC removal clear its state.
+Repeated known effects use a bounded max-deadline refresh, a reconstruction.
+
+On impact, release held inputs and run authored release handlers before stopping
+remaining Ability channels. This order lets active release handlers write their
+own cooldown variables. Clear buffered Ability presses and queued shot reports.
+Player pose input/movement and combat reports are suppressed while the deadline
+is active; NPC route progress pauses without simulating the paused interval on
+resumption. Existing already-launched attacks are not generally cancelled by a
+stun; manual entity removal remains responsible for owned-flight teardown.
+
+D.Va needs an additional movement bridge: after ability exit, synchronize its
+movement rows at the script frame before the next pose. Otherwise an old forced
+throttle/typed Boosters row can remain effective for one more movement frame.
+Tests inspect the first stunned pose, not just the subsequent settled position.
+
+Also reuse reviewed2ca9178 native1113EBD5 distinct-input joins. Producer/plug
+arrivals are retained per Instance, exact duplicates do not accept output,
+completion clears arrivals before following output and accepted output aborts
+referenced active states. Nested producer context restores in finally; destroy
+clears pending arrivals. Both new fields are part of passive VM observations;
+the stun deadline map is included in passive server storage. See
+STATE_INPUT_JOIN.txt. Its40 original-handler comparisons belong to the parent;
+this lane runs the imported ten source tests and D.Va/storage regressions.
+
+Executed original-input cases
+-----------------------------
+Actual McCree0042 grenade input16 against explicit pilot040A and mech0407:
+- Pilot loses25 health; mech loses20 armour under the existing armour policy.
+- The default50-tick deadline is exclusive. Movement, primary, secondary,
+  ability, melee and jump inputs are suppressed; movement/fire recover after it.
+- Enemy-facing active Matrix absorbs the grenade with no damage or control.
+- A rear hit after Matrix's minimum hold ends its deflection/drain, starts its
+  authored release cooldown and permits later reuse.
+- An active Boosters channel stops without a residual forced-throttle pose.
+- A Micro Missile burst, after its first actual volley, is interrupted, writes
+  its authored cooldown and launches no further missiles or immediate new burst.
+- Walls, allies and distant targets receive neither damage nor the effect.
+- An explicitly supplied mode-flag branch gives ceil(1.7/0.016) ticks; repeated
+  resource application refreshes the deadline. Replacement clears old identity.
+
+A separate actual-input test casts the grenade on Trooper, Sniper and Heavy
+Assault while they attack a D.Va mech. They take25 damage, release primary20,
+cause no new primary damage during the selected effect, and attack after an
+explicit primary re-press following expiry. This is controlled input recovery,
+NOT autonomous targeting or the parent's console-control loop. Enforcer and
+Assassin incoming attacks remain unaccepted; none of their predicates is forced.
+
+Unaccepted branches and proof boundary
+-------------------------------------
+Actual Sleep Dart and Flashbang interrupt the normally controlled mech
+inside 1128/15's 0.25 s windup. The running ability and wait end, with
+no launch, damage to the missile target, or cooldown spend. A fresh
+press on the first eligible frame after control expires starts a new
+windup. Its first report is at the exact authored deadline, and all
+18 missiles deal 126 total. The 1128/10 volley exit reaches node 8 to
+write cooldown, while the aborted wait never enters that volley.
+The host's forced ability stop is a reconstructed control bridge.
+See ../dva-micro-windup-authored-path.txt and
+../dva-micro-windup-control-regression.txt (6 passed).
+
+When forced control ends a live Matrix before its normal release can
+write cooldown, the host invokes 02CC/97. This writes variable 472 to
+cooldown variable 61 and follows 02CC/50 to stop the ability. The
+authored value is 1 s. After the tap minimum, releasing logical input
+uses 02CC/68 to write the same cooldown. For either path on a
+controlled mech missing command frames,
+the host maps the world contact to the end of the preceding command
+frame using the last clock offset. The cooldown counts from that
+boundary and the live box closes immediately. Native control routing
+and inter-object phase order remain open.
+
+Actual rear Flashbang during the tap allows a hit in the interval
+between stun expiry and cooldown expiry. Matrix then intercepts an
+actual shot after reactivation. The missing-command case verifies the
+same cooldown boundary before and after the tap minimum, after 26
+frames without a mech command. See ../dva-matrix-post-tap-gap-final.txt
+(8 passed).
+Front Hook closes the box and keeps the original cooldown start through
+recovery. See ../dva-matrix-early-interrupt-boundaries.txt (2 passed)
+and ../dva-matrix-early-interrupt-final.txt (38 passed).
+
+The native input-join fix is a shared dependency, not evidence that D.Va's
+unimplemented ultimates or form lifecycle now work. Native224E execution,
+status flags/immunity/cleanse/stacking, historical input timing, other control
+resources, NPC automatic recovery/AI/specials, full weapon/defense matrices,
+transformations and original-client HUD/animation/audio remain OPEN.
+Full static_acceptance_complete must remain false. Under the latest user
+instruction, this partial work remains uncommitted until full static acceptance.
+
+Use the existing external0407/NPC graph and mover supplements and target-tag
+catalog before imports. Tests:test_game_dva_control,test_game_dva_npc_control,
+test_script_join and the passive VM/server snapshot suites. Missing authored
+inputs cause skips; those cannot be reported as executed hero acceptance.
+
+D.Va delayed timed-control input
+--------------------------------
+Flashbang, Sleep Dart and freeze keep a bounded history of their input
+locks by body. The host compares late command frame IDs with half-open
+world-frame intervals after the live effect ends. A blocked command
+advances the script without attack or directional input. A late
+freeze command also preserves the recorded aim. Commands older than the
+retained history advance neutrally. The live world tick still owns
+movement effects, projectile flight and damage.
+
+Damage-triggered wake shortens the sleep lock. Projected Barrier
+cleanse closes the freeze lock at application, preserving history up
+to that frame. Re-exposure or retirement clears a body's old command
+history. Clock admission and history retention are host rules.
+
+Both D.Va forms accept fresh fire at the release frame and reject
+delayed fire and directional input from earlier frames. The 12 cases
+cover Flashbang, aged Flashbang beyond retention, natural sleep,
+damage-triggered wake, natural freeze and Projected Barrier cleanse.
+The Mei fixture seeds the authored minimum setting at 1. The passive
+snapshot distinguishes expired freeze history and its aim from the
+live status. The final suite also rechecks initial mech routing with
+the actual eye origin and a body-hit aim. See
+../dva-delayed-control-history-final.txt, 8 tests passed.
+
+Delayed input after forced movement and pins
+--------------------------------------------
+Chain Hook opens a body input lock on admitted contact. Recovery,
+caster interruption and body retirement close it at the authoritative
+release tick. A barrier that takes the hook before body contact leaves
+no victim lock. The history only filters late commands and uses the
+existing live hook for displacement.
+
+Assassin opens a pin lock on the victim's active body. Multiple pin
+sources share the lock, so retiring one source leaves it open until
+the final source releases. Released intervals remain available to
+filter delayed input. Pin contact, hook movement and clock admission
+remain host reconstructions.
+
+Both forms reject delayed input after natural Hook recovery, caster
+replacement and the last of two live Assassin pins. Fresh input
+regains fire. The final eight-test suite also covers caster death,
+Projected Barrier before Hook contact, pin-source retirement, body
+replacement and Graviton separation. See
+../dva-forced-control-release-final.txt. Active pin and expired lock
+storage checks passed in ../dva-forced-control-storage.txt.
