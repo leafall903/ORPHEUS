@@ -2,6 +2,7 @@
 
 import math
 
+from ow174.game import immunity
 from ow174.game.script import expr, runtime
 from ow174.game.script.graph import graph
 
@@ -41,7 +42,7 @@ def bind(world, component, target, *, dying=False):
 
 
 def native(world, cfg, instance):
-    if not scoped(world, instance):
+    if not scoped(world, instance) or cfg.get('$') not in {'STU_DB742151', 'STU_9B7648C3'}:
         return NotImplemented
     entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
     if cfg.get('$') == 'STU_DB742151' and entity == instance.component.entity:
@@ -123,6 +124,7 @@ def victim(world, state):
             or target.owner.entity != source.attack_target):
         return None
     if (fight._invulnerable(target.owner, phases=PIN_EXCLUDED_PHASES)
+            or immunity.control_immune(target.owner, target.entity)
             or not contact(match, source, target)):
         return None
     return source, target
@@ -137,7 +139,9 @@ def modify_health(world, state, elapsed_ms):
         return True
     source, target = pair
     fight = world.match.combat
-    if fight.pins.get(source.entity) != target.entity:
+    if fight.barriers.for_target(target.owner) is not None:
+        fight.release_pin(source.entity)
+    elif fight.pins.get(source.entity) != target.entity:
         fight.pins[source.entity] = target.entity
         fight._interrupt(target)
         attach_victim(source.entity, target)

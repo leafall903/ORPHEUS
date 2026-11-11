@@ -119,6 +119,7 @@ class BotWorld(runtime.World):
         heavy_assault.emit_charge_voice(self, state)
 
 
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
@@ -238,6 +239,7 @@ class BotScript(ReplicatedBody):
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
+        assassin.bind(component.world, component, None)
         if self.behavior is not None:
             component.destroy(self.behavior)
             self.behavior = None

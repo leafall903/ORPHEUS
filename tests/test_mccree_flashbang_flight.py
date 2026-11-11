@@ -1,7 +1,7 @@
 """Actual grenade flight/airburst and storage of new projectile motion state."""
 
-import unittest
 import math
+import unittest
 
 import test_mccree_combat as scenes
 
@@ -94,7 +94,8 @@ class FlashbangFlightTests(unittest.TestCase):
                                     'roots': {'projectile': root}, 'nodes': graph.finish(), 'assets': {}})
 
         previous = digest()
-        for name, value in (('gravity', 20.0), ('velocity', (0, -1, 30)), ('detonate_on_expiry', True)):
+        for name, value in (('gravity', 20.0), ('velocity', (0, -1, 30)), ('detonate_on_expiry', True),
+                            ('source_body', 123)):
             setattr(rocket, name, value)
             changed = digest()
             self.assertNotEqual(previous, changed, name)

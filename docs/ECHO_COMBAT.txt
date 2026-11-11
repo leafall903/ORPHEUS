@@ -1,0 +1,1261 @@
+Echo (02E0000000000206) combat restoration -- OPEN
+Target: Overwatch 1.74.0.0.104319
+Lane: verification/hero-lanes/0206; development branch main
+
+Evidence boundary
+-----------------
+Native resource-backed: body 0400000000002593, primary graph 19E5/st3,
+three 17-damage projectiles, 75 m/s, 100 m range; fixed ring record .6,
+entity spread #2601=1.4. Primary costs one round, clip size 12.
+The 19E5 ring uses the measured D80310 angular units and sampled phase.
+The server reconstructs the event seed identity and uses the eye origin.
+Native projectile crit defaults, muzzle transforms and owner/observer
+presentation remain open.
+
+Native resource-backed: beam graph 1FBD/st17 lifetime follows the actual
+ability graph; #11984=50 DPS, #22665=4 low-health multiplier, #1648 range,
+TrackRay radius .2. Reconstructed: capsule expansion and per-command health
+sampling, strict total-health < 50% threshold, shared health-pool damage.
+Beam armour uses the documented OW1 retail reduction. Native receiver
+classification, trace details, target wire bindings and visuals remain open.
+This patch does not add status, barrier, deflect or absorption services.
+
+Acceptance matrix (P=enemy player, N=all five requested manual PvE classes)
+------------------------------------------------------------------------
+Action                  P offline        N                  Original client
+Primary Tri-Shot        health tested    OPEN               OPEN
+Quick melee             health tested      OPEN               OPEN
+Sticky Bombs            partial tested             OPEN               OPEN
+Flight                  movement tested             OPEN               OPEN
+Glide                   movement tested             OPEN               OPEN
+Focusing Beam           health tested    OPEN               OPEN
+Duplicate               lifecycle partial             OPEN               OPEN
+Receive player attacks  Soldier kill     OPEN               OPEN
+Receive NPC attacks     OPEN             OPEN               OPEN
+
+NPC classes are Trooper, Enforcer, Sniper, Assassin and Heavy Assault. None
+is replaced by a training bot for acceptance. Current external NPC table has
+only training/friendly bots in the normal runtime. The parent supplementary NPC
+input package is now mounted explicitly and read-only for actual five-class
+health tests; production spawning and AI remain parent-owned.
+Training-NPC primary/beam health tests pass as narrower regression evidence.
+Manual retained-corpse behavior is preserved and tested through lethal fire
+and >3 seconds without replacement. Complete five-class death scripts and
+visible corpses remain OPEN.
+
+Cross-hero checks
+-----------------
+Actual command-driven primary against native Zarya shields and Reinhardt
+armour pools is tested. Soldier fire can damage and kill Echo and delivers
+both death and elimination notices. Enemy filtering, walls, independent
+scatter misses, beam range, repeat-command deduplication and authored end
+are tested. Invulnerability, barriers, deflect, absorb, CC/hack, beam armour
+policy and projectile criticals remain OPEN. Copied Soldier Biotic Field
+heals the original team and excludes enemies in direct tests; other copied
+healing/abilities and accelerated ultimate charge remain OPEN. Existing _damage has no general status gate; passing ordinary
+pool tests does not cover these missing services.
+
+Missing services identified by code/resource inspection
+------------------------------------------------------
+- Sticky Bombs graph1C36 now has reconstructed gravity from authored9.8,
+  six independent5 contact hits and25/radius2 blasts, attachment by immutable
+  body identity, moving-target following and delayed detonation. The one-second
+  fuse is a declared inference from22B8 visual timing, not native server proof.
+  Barriers, reflect/absorb/immunity and visual lifecycle remain OPEN.
+- 1FBD TrackRay/ModifyHealth has no general world damage consumer. This lane
+  adds only the documented reconstructed Echo consumer; native ray targets
+  and presentation are still absent.
+- Flight now consumes authored embedded mover parameters and active1BB6 mode
+  through the existing swept capsule path. #1002=8 and#19686=20 are interpreted
+  as sustain/boost speed; takeoff direction/lift and 3D input are reconstructed.
+  Native prediction/boost semantics and client timing/animation remain OPEN.
+- Glide uses actual command JUMP0x40 while airborne, authored terminal4 and
+  speed+.5; release restores normal fall. Native passive graph target/query
+  bindings and original-client behavior remain OPEN.
+- Duplicate now has a reconstructed enemy-player selection/copy/return manager.
+  It reads2254 cost/15s duration/40 radius, preserves pose/team, initializes a
+  copied hero and pools, and returns original Echo pools at expiry or copied
+  health break without player death/elimination. Native transition protection,
+  copied charge generation and full copied ability/ultimate behavior stay OPEN.
+- Native shields/control/status/reflect/absorb/immunity services are required
+  before complete bidirectional cross-hero acceptance can pass.
+
+Client access
+-------------
+Observed shared Overwatch PID 12292 during preflight. No lane lease was
+acquired; no game controls, starts, stops, service changes or client captures
+were performed. Existing client ownership was not inferred from missing
+lease data. Offline tests are not original-client evidence.
+
+Validation
+----------
+21 Echo command-to-health/lifecycle tests pass. Shared combat/projectile/
+NPC-script/Soldier ability regression group: 120 tests pass.
+New shared fixes: quick-melee static LOS and original-timestamp preservation
+for buffered ability presses. Released presses now expire instead of being
+renewed every eligibility check. The previous failure reproduced an unsolicited
+melee at frame62 after a short cooldown press at frame26.
+Flight, secondary and beam cooldown start/reject/expiry/restart run directly;
+beam cooldown also gates health damage. Clip exhaustion/reload run directly.
+An aimed Sticky Bombs tap and release also settles all six contacts and
+fuses, leaving the 200 HP target at 20. A press while 1C36's cooldown
+variable remains positive produces no new bombs or damage. The next press
+after the variable reaches zero kills the target with contact damage.
+An enemy Soldier rifle can kill Echo after the first bomb attaches and
+before all six launch. The bombs already emitted settle 5 contact and 25
+blast damage each. Continued secondary input from the dead Echo emits no
+more bombs in this server fixture.
+
+An actual enemy Flashbang also stops a Sticky Bombs volley before
+all six launch and starts the ability cooldown. Held secondary during
+stun emits no additional bombs. Each bomb emitted before the stun
+still deals 5 contact and 25 fuse damage to the enemy caster.
+
+All five Talon attacks hit Echo after the Sticky Bombs volley starts
+and before the sixth launch. The four ranged attacks allow the volley
+to complete. Assassin pins Echo and stops the remaining launches.
+The fixture manually starts the NPC attack and uses a lead-in for
+each ranged weapon so its hit falls during the volley.
+
+Unattached Sticky Bombs use 1C36 state 0's 100 s flight lifetime.
+An actual six-bomb volley leaves a small platform into clear space.
+The test advances the combat scheduler to either side of expiry.
+All six remain unfused before their deadlines and retire after 100 s
+of flight without damage or hit notices.
+
+Quick melee misses at 4 m and behind a triangle wall at 2 m. In a
+same-frame melee and lethal Soldier rifle exchange, the server applies
+the first resolved command. Melee resolves for 30 if its command is
+first. A lethal rifle command first prevents melee damage, including
+further held melee input. This ordering is a server fixture result.
+
+The quick melee fixture also checks the authored 0043 state 6
+cooldown. An ally miss starts the countdown. An early repeat after
+switching the target to hostile neither hits nor restarts the timer.
+At zero, a fresh tap deals 30. Release produces no extra hit and
+the Tri-Shot magazine remains unchanged.
+
+A triangle wall stops all three Tri-Shot projectiles while consuming
+one round. The same aim after wall removal consumes another round and
+deals 51 damage with three hit notices. A real enemy rifle kill also
+prevents held primary input from spending ammo or launching projectiles.
+
+Build 104319 Tri-Shot state 3 sets 75 m/s, a 5 s lifetime and a
+100 m range. The range limits the flight to about 1.333 s. Targets
+staged on an emitted ray at 98.5 m and 101.5 m distinguish range
+from scatter. The nearer target takes 17, while the farther target
+keeps full health and the projectile retires at 100 m.
+
+Tri-Shot's volley completion writes the firing interval to #173,
+which then counts down. In actual input tests, a repeat press two
+frames after the first volley consumes no round. Releasing that
+press leaves a single volley. Holding it produces further volleys
+at observed frames 20 and 41 on the server's 16 ms clock.
+Ruff and git diff checks are required before commit. No client acceptance,
+normal deployment, root merge, publication or GitHub synchronization claimed.
+
+Further read-only research found projectile 2CBA -> visual graph22B8 in
+research-rialto/xml. Extracted only its graph record into this lane outside Git.
+It has one- and two-second visual timers, while volley blast config contains
+unknown field8A3E3883=.5. These are not yet proof of authoritative fuse timing.
+The new implementation uses a declared one-second contact-fuse reconstruction,
+without claiming the unknown.5 field is authoritative fuse timing. Seven sticky
+behavior tests pass: player/training-NPC damage, actual-command moving targets,
+friendly/miss, surface/LOS, ballistic drop, catchup and retired-body anchoring.
+
+Parent NPC prerequisite commits c2d3ae1/a15d554 were reviewed and cherry-picked
+locally as13d1ab3/fd7fa32, preserving authorship. No shared source was modified.
+Supplemental input verification/retribution/npc-runtime/data is read-only.
+Four NPC tests pass across all five actual classes: primary/melee/sticky/beam
+health and ally filtering, plus Trooper and Heavy Assault real graph fire input
+damage against Echo, plus actual primary-fire deaths and retained corpses for
+all five classes, including repeated reloads for Heavy Assault. Both immediate
+and later terminal updates are collected by the adapter. Explicit manual fire
+input, flat collision, permissive VM
+and adapter transport are fixture limits; remaining three incoming attack paths
+remain OPEN. NPC221 is correctly represented as shield type2.
+
+A139-test run was invalidated by source mutation during the snapshot test and
+an obsolete moving-direction assertion. These are not green evidence. The
+assertion is corrected. A subsequent frozen expanded regression passes all152
+tests in447.128 seconds (tests-frozen-regression.log), including13 snapshot
+tests. An added actual-five-NPC death test passes in the separate4-test NPC
+suite (tests-five-npc-final2.log). No runtime source changed during the frozen
+run. The old Glide counterexample used wrong button0x04 and is WITHDRAWN;
+actual JUMP is0x40. Flight baseline staying grounded/5.5 remains valid.
+Movement implementation now passes8 unique command-driven tests (including
+all four attacks while flying), and a173-test movement/combat/physics group
+passes (tests-movement-regression.log). A preliminary18-test movement run
+collected10 imported primary tests twice; use tests-movement-final-unique.log
+for the8-test independent count. Flight rises, moves at modeled20 then8, hovers,
+ascends/descends, collides with real geometry, cancels, rejects cooldown input,
+recovers and stops on death. Glide limits fall, adds the authored speed scalar
+and restores normal movement on release. Duplicate resource probe confirms2254 cost and40
+target radius. A subsequent explicit copy manager now mounts a partial lifecycle.
+
+In a two-player movement fixture, a real Soldier rifle hit kills Echo
+during active Flight or Glide. The Flight starts from the ground. The
+Glide starts from a staged airborne pose and uses held jump. Both modes
+become unavailable on death, and held movement input leaves the corpse
+at the recorded death position.
+
+All five Talon NPCs are also exercised against Flight and Glide. The
+four ranged classes damage Echo during both modes. Assassin damages
+the gliding Echo. In Flight, its pin first ends the hovering mode and
+then deals 25 damage. The controlled fixture manually starts the NPC
+inputs and stages the Glide starting height.
+
+Build 104319 movement graphs 1BB6 and 1DFC contain no direct health,
+projectile or weapon nodes. In twelve controlled proximity cases,
+Flight and Glide each approach an enemy Soldier and all five Talon NPCs
+within 0.8 m without changing health, spawning projectiles or producing
+hit notices. The Glide fixture starts above its target. Attacks issued
+separately during Flight use their own damage paths.
+
+Held Glide also permits all four attack inputs. From a staged airborne
+pose, Echo hits an enemy Soldier for 51 with Tri-Shot, 30 with melee
+and 30 with Sticky Bombs contacts. Beam ticks at 0.8 against the same
+health range. Each attack starts and deals damage while Glide is active.
+
+An actual Cassidy Flashbang deals 25 and suppresses Glide's mover
+modifier and held jump during stun. When the stun expires in midair,
+the still-held jump restores the 4 m/s fall limit. Both players start
+at staged airborne positions so the target stays above the floor
+throughout the stun.
+
+After actual takeoff and ascent, a second Flight press ends Flight
+and starts its cooldown. Held jump enters Glide. Releasing and
+pressing jump again restores Glide during the same Flight cooldown.
+An early Flight press leaves Glide active, and neither mode spends ammo.
+
+Flight and Glide each cross an enemy Reinhardt's raised Barrier Field.
+The test traces the actual movement segment through the external
+104319 mesh while the mode is active. Neither shield nor body takes
+damage. A separate projectile control confirms that the mesh can still
+intercept enemy Tri-Shot.
+
+Tri-Shot fired during active Flight or Glide retains its defense
+interactions. Actual Genji Deflect returns 51 damage to airborne Echo
+while Genji stays unharmed. Actual Sigma Grasp records 51 absorbed
+damage while both players' health stays unchanged. Glide begins at
+a staged airborne pose.
+
+Tri-Shot also passes through Wraith while Flight or Glide is active.
+All three emitted rays intersect the phased Reaper's capsule in the
+fixture. Reaper stays unharmed, the enemy behind takes 51, and only
+that enemy appears in the hit notices and contributes charge.
+
+Movement causal-state check
+--------------------------
+The dedicated Echo encrypted-input journal/stored-state replay PASSED in984.854s
+(tests-movement-snapshot-stored.log), before the Duplicate manager addition.
+Session18099 is terminal; PID56892 no longer exists. The stored profile was
+verify_stored_state=True. Native structure sampling showed the time was spent
+in replay graph-definition encoding, not an abandoned client or an unverified wait.
+The test now lives in test_echo_stored_replay.py and is an explicit expensive
+gate via ORPHEUS_RUN_EXPENSIVE_REPLAY=1. Re-run it on final full-goal source;
+default skip is not complete acceptance. Prior uncontrolled/wire-only fixtures
+were corrected; they are not counted as stored replay passes.
+
+Duplicate lifecycle evidence and limits
+---------------------------------------
+Build 104319 graph 19EB state 19 supplies the 40 m range and the angle
+expression (10 multiplied by entity variable 29053). The server treats the
+result as a half-angle in degrees and uses 10 degrees if the variable is
+absent. Visible direct hits rank first by ray distance. Other candidates
+within the cone use capsule visibility and rank by angular alignment, then
+distance. Angle interpretation, default and ordering are reconstructed.
+
+echo_duplicate.Duplicates is mounted before the old body VM for posed commands.
+Regular body ownership now accepts explicit pose/frame preservation so a cast
+inside a command batch does not skip the copied weapon's remaining inputs.
+Expiry and copied-pool depletion restore Echo without death/respawn or enemy
+elimination credit. The controller keeps its team. Graph 19EB state 31 begins
+with a check for current/max health below 0.5 (node 228). Its true branch
+reaches state 49, whose amount is max health / 2 minus current health.
+Blizzard's 2021-04-22 OW1 retail notes identify the greater of pre-cast health
+and 100 HP as the Duplicate return rule for Echo. The server applies the
+half-health floor to the restored pools during immediate body replacement.
+The native transition timing and rejection of active Echo copies remain
+reconstructed.
+
+Actual authored NPC attacks damage Echo while she is copying Soldier.
+The first losses are 20 from Trooper, 2 from Enforcer, 100 from Sniper,
+25 from Assassin and 5 from Heavy Assault. The Assassin's continuing pin
+breaks the copied body, releases the old body's pin, and returns Echo alive.
+
+The separate base Echo counterfire fixture receives each of the five
+Talon attacks, then stops the NPC input and fires one Tri-Shot at the
+same NPC. All five targets take 51 damage. Stopping the Assassin input
+also releases its pin before Echo can reply.
+
+The same counterfire fixture at 2 m also exercises quick melee. Each
+of the five NPCs lands its actual attack on Echo, then takes 30 from
+one melee press after the NPC attack input stops. The Assassin's
+pin is released before the melee reply.
+
+Reference: https://overwatch.blizzard.com/en-us/news/patch-notes/live/2021/04/
+
+The strict stored-state replay suite includes a Duplicate scenario. Encrypted
+neutral commands advance passive charge to the authored cost. An encrypted Q
+switches to Soldier, and a later controlled tick returns to Echo. The test
+checks both body replacements and replay verification of the recorded roots.
+Four encrypted neutral frames on the copied body exercise the 6.5 times
+passive gain. The return check verifies that Echo no longer has the bonus.
+
+The timed-return command fixture also holds Q until the returned Echo's
+passive meter reaches its full cost. Held Q leaves both the body and the
+full meter intact. Release followed by a fresh Q starts another copy and
+spends the charge. The fixture advances passive simulation with bounded
+command gaps. The held-input latch belongs to the reconstructed server
+copy manager.
+
+An uncharged Q on the copied Soldier leaves the copy active. A later
+Q with a deliberately filled copied meter starts Tactical Visor, which
+lands off-axis rifle hits near the end of Duplicate. Timed return retires
+the Soldier script. Echo's next Tri-Shot at the same off-axis aim misses.
+This fixture isolates the copied ultimate lifecycle from charge generation.
+
+Twelve Duplicate tests and five actual-NPC tests pass together (17 total).
+See tests-duplicate-npc-current.log and TEST_CONTEXT.json source/input hashes. They execute Q charge gates, miss/range/real-wall/team/Echo filters,
+new-body create pose, copied primary damage,15s expiry, copied-health break,
+no charge reuse, disabled logical37, batched copy/fire, original-team healing
+and registered passive state. The five actual nonplayable NPCs are rejected
+without charge consumption. The current active-copy passive export passes;
+this is not a new full controlled-copy replay. A183-test shared regression
+passed before the final control/batch/passive/identity cases were appended.
+
+Actual health-event charge evidence
+----------------------------------
+The26-test charge/Duplicate/NPC group passes in39.506s on the source before
+the latest three shared prerequisites (tests-charge-final.log). Actual enemy
+health loss and allied healing now generate charge for Echo and copied bodies,
+with overkill/full-health/team rejection, authored cost cap, ruleset0x2819
+scaling and running-ultimate suppression. One health point per charge point is
+explicit reconstruction policy. Real Heavy Assault damage fills2254 and enables
+Duplicate without injected charge. Copied Soldier weapon/healing checks isolate
+the legacy passive clock. Echo0032593 FirstPerson eye1.7/crouch1.1 is data-backed.
+The earlier search for a literal 6.5 missed Duplicate's child graph.
+Build 104319 19EB node 155 plays 1544 on the copied body. State 2 watches
+charge #342 and stores its previous value in #7457. Nodes 3 and 5 select
+the positive delta into #499. Node 4 writes the lesser of the copied cost
+#338 and the current charge plus 5.5 times the delta. This gives a total
+rate of 6.5 times the ordinary gain.
+
+The server applies the authored bonus synchronously to passive and
+health-event gains on the copied body, and registers it in both snapshot
+paths. Duplicate reads the literal from 1544 at activation. An older
+reduced graph bundle without 1544 uses ordinary charge gain. Direct
+meter setters and ultimate expenditure bypass the bonus.
+Native watcher scheduling and the ordinary base gain conversion remain
+separate. Actual rifle damage to Heavy Assault fills the copied meter;
+Q spends it and Tactical Visor lands off-axis shots.
+
+Shared prerequisite checkpoint
+------------------------------
+Reviewed parent d1286b7/6debff3/7cd1ed7 are reused locally as
+1a0cb68/3aa2a46/a4b1e19. NPC weapon manager/sparse-slot mounting and native array
+selection are present. Quick melee uses the shared nearest-capsule-surface
+visibility policy. The148-test regression passes in91.785s on fixed source
+(tests-shared-npc-final.log), including all current Echo tests, bot script,
+array selection, McCree melee, shared combat and driver tests. Actual Trooper20,
+Heavy5 and Sniper100 damage Echo. NPC projectile observer transport explicitly
+returnsNone in this health fixture. Enforcer and Assassin incoming paths remain
+open. The preceding run failed on missing fixture bot_stream and a misspelled
+test module; it is retained as failed evidence, not counted as a pass.
+
+Copied Soldier combat checkpoint
+--------------------------------
+The off-axis Visor baseline fails: actual copied ultimate runs, but a target20
+degrees from aim retains200HP (tests-copied-visor-baseline.log). The new copied
+rifle consumer reads active0259/st7 TrackTargets radius45 and angle parameter45.
+It picks a visible enemy capsule and feeds the ordinary rifle damage consumer.
+Angle-as-degrees, angular-first/distance/body-id ranking and capsule-centre aim
+are reconstruction policy; native weighted ranking/filters, target bindings and
+presentation remain open. It applies only to copied0254/st10, so normal Soldier
+behavior and Helix aim are unaffected by this consumer.
+
+Seven copied-Soldier tests plus the additional actual-five-NPC Visor case pass
+within156 frozen-source regressions in112.696s (tests-copied-visor-regression.log).
+Executed evidence covers actual Sprint8.25->5.5 and weapon cancellation,
+Helix40+80 damage/charge/cooldown rejection/reuse, copied Visor charge spend,
+startup/run/end/rejection without fresh charge, actual off-axis hits during the
+tracking state and ordinary manual fire after end. All five actual NPCs take80
+from four off-axis rifle rounds. Team, real static wall,90-degree aim,50m actual
+target distance and dead-target cases reject auto-targeting. Helix still misses
+with off-axis aim while Visor is running. Copied ultimate charge injection is
+explicit and does not prove accelerated or natural copied-ultimate acquisition.
+See local COPIED_SOLDIER_RESOURCE_EVIDENCE.json: cost2310, duration6, radius45,
+angle45, Helix40+80 and cooldown6. The earlier33-test targeted group also passes;
+an intermediate range fixture failed because its direct position edit was
+restored by command replay. The current test installs a50m Mover and confirms
+actual distance remains above49m before firing. Failed logs are retained.
+
+Reflection and foreign-control checkpoint
+-----------------------------------------
+Reviewed parent fbcaf76 and64bf71c are applied locally asd62300a/7b1d4bd.
+NPC manual target selection/input/stop and shared Flashbang control are mounted.
+The merge preserves Echo contact/fuse/explosion flow, adds hit-effect routing to
+both contact and delayed blast, and uses nearest-capsule visibility for splash.
+The44-test merge group passes (tests-shared-stun-merge.log). NPC incoming now
+uses actual npc_control.start/stop rather than direct shot-report consumption.
+
+The real Genji E baseline fails: active Deflect still takes51 from Echo's three
+projectiles (tests-deflect-baseline.log). deflections.intercept now consumes the
+active03A3/st10 boxes/90 angle parameter before body contact or a later wall.
+The three evaluated boxes and03A3/st59 matching zero-scalar melee tags are saved
+in local DEFLECT_RESOURCE_EVIDENCE.json with the source XML hash. Eye-relative
+look coordinates, angle-as-degrees, aim-directed reflected velocity, source/team
+transfer and once-per-defender-per-tick arbitration are reconstructed. Reflected
+travel uses the remainder of the same simulation tick. No new persistent state
+is added; native projectile filters, hit-scan deflection, full combat filters and
+reflected observer/projectile presentation remain unaccepted.
+
+The9-test targeted group passes in10.066s (tests-deflect-control-final.log), before
+the copied-Deflect cooldown extension. Real primary returns51, real sticky
+contact+delayed blasts return180, front melee blocks without reflecting damage,
+rear melee/primary hit, Beam passes Deflect, wall/miss/expiry reject reflection.
+Echo copied into Genji reflects an enemy Echo's projectiles and gains51 from
+actual reflected health damage. Real foreign Flashbang input deals25 and blocks
+Echo movement/weapons/Flight/Beam/full-charge copy, interrupts active Flight and
+Beam through authored ability-stop paths, and permits primary/copy after expiry.
+The initial Beam-control fixture checked before its damage state was entered;
+waiting20 real input frames corrects it. A frozen195-test regression, including13
+ordinary server snapshots, passes in598.375s before Genji camera correction
+(tests-deflect-stun-regression.log). The copied-Genji case now also exercises
+cooldown rejection and a second successful reflection after cooldown expiry,
+causing another51 actual damage/charge while the copy is still active.
+
+Genji0225 FirstPerson resources override standing1.2 and crouched.84. The generic
+1.55/1.15 defaults were wrong and are now replaced. A prospective process-only
+camera-table probe revealed that the sticky fixture reset Echo's pitch to0 during
+the delayed six-shot volley: the reflected horizontal shots passed above Echo.
+The current fixture maintains actual aim through emission. Current source passes
+183 combat tests in90.786s (tests-deflect-stun-camera-final.log), including8
+Deflect tests and2 foreign-control tests, with direct standing/crouched view-height
+checks. The earlier ordinary snapshot pass is explicitly pre-camera-correction;
+it is not the final-source Echo strict stored-replay gate.
+
+An independent current Enforcer probe supplies only owner health in a temporary
+query adapter. It still deals0 damage and stops at the F7262B36/B96D3A98 gate;
+no guessed production query mapping is installed (enforcer-current-owner-query.log).
+
+Wraith immunity and join checkpoint
+------------------------------------
+Parent2ca9178 is reviewed and reused locally as03d502a. The129-test Echo/join/
+Soldier/driver group passes in110.772s (tests-shared-join-echo.log), including
+active-copy passive export with the new join_inputs/plug_source VM fields.
+This is not a new final-source strict Echo stored replay.
+
+The real Wraith baseline fails: SHIFT enters the ability but Echo still deals51,
+and the zero-parameter native startup service0020/st1 never completes. The new
+explicit adapter finishes only that zero-valued0020/st1 service synchronously;
+the authored graph now owns its3s Wait, registered phase0,0.4s exit,0.4s input
+cancel gate and8s cooldown. The54FEB21C native service is still unknown; this
+does not interpret it globally as a timer, opacity state or immunity. Generic
+entity flag530 was not used as an immunity shortcut. Resource values and XML
+hash are saved in local WRAITH_RESOURCE_EVIDENCE.json.
+
+Reconstructed policy: a running0020 ability with active registered phase0 rejects
+health damage and Flashbang effects. Damage traces/projectiles skip the phase;
+support healing/team filters remain intact. Raw enemy enumeration used by
+Duplicate is unchanged; native protected-target selection remains open. The
+phase has no new persistent state and ends with its existing body/graph lifetime.
+Combat guards use component.entity for players and NPCs. Transport-only body
+fixtures without a VM are not assigned immunity.
+
+Current215 combat tests pass in110.619s (tests-wraith-join-final.log), including9
+Wraith methods and8 actual-NPC methods. Real Echo primary/sticky/beam/melee give
+no damage/hit credit/charge during Wraith. Projectiles pass through to another
+enemy, giving51 actual damage/charge there. Actual SHIFT/primary inputs cover
+early-cancel refusal, cancel/expiry, post-exit vulnerability, cooldown rejection/
+expiry/reuse, real magazine7->8 refill, attack lock and resumed fire. Copied
+Wraith rejects actual foreign Flashbang, then takes25 and control after phase
+expiry. Real allied Biotic Field heals injured Wraith while an injured enemy
+Echo inside the field stays unhealed. Expiring the copy during Wraith restores
+Echo, and actual incoming Echo fire deals51 to the new body.
+
+Trooper/Sniper/Heavy inputs drive real volleys while copied Wraith stays250HP;
+the real emission wrapper still calls the engine consumers. After expiry they
+deal20/100/5. Sniper gets40 actual windup frames before phasing, with no prior
+damage; no attack/damage is injected. Both observer clients explicitly omit NPC
+projectile transport. The first failure used a missing BotScript.entity, and a
+subsequent transport-only fixture lacked component; both guards are corrected.
+The added observer also needed explicit bot_stream=None. A boundary fixture
+used frame beginnings although the VM runs through frame end; it now compares
+component.now plus the next quantum to the authored deadline. Failed runs are
+retained and are not green evidence. A40-test Wraith/NPC/bot group passed before
+the final additional magazine-refill assertion.
+
+Native startup duration/semantics, exact intangible collision/target filters,
+damage/status bypass, cleanse/stacking/unstoppable and presentation remain open,
+as do other immunity sources and the remaining Reaper/copied-hero abilities.
+
+Still OPEN: native base passive rate, ultimate-source tags and
+cross-body projectile/field charge ownership,
+copied ultimates and all copied abilities (especially other supports), native
+start/end protection and interrupt policy, skin/hero identity presentation,
+barriers/reflect/absorb/immunity, and the rest of STATIC_MATRIX.json.
+Full static acceptance remains ACTIVE/OPEN.
+
+Sigma Grasp absorption checkpoint (partial)
+-------------------------------------------
+The actual1D02/st1 mode is now explicitly absorption; Genji3A3/st10 remains
+reflection. Captured projectiles end without a sticky fuse, blast, damage, hit
+credit or charge. Hitscan absorption clips the ray before its first body/wall.
+The authored6584 output and node32 callback accumulate21312; node34 requests
+PlayScript1D03 with captured*.6 and cap400. Resource duration2s/cooldown12s,
+box/angle parameters, shield tag5847 and raw flags are retained in the lane's
+GRASP_RESOURCE_EVIDENCE.json with source hashes.
+
+The permissive VM still lacks native PlayScript hosting. An explicit consumer
+grants the requested temporary shields only when the authored ChaseVar reached
+normally, then interprets native delay3 and ModifyHealth5/period1 as5HP/s decay.
+This timing/unit interpretation, one merged layer and wire pool2 combination
+are reconstructed. Temporary shields take damage first and cannot be healed;
+copy expiry/retirement discard their body-owned state. All five causal Vitals
+fields are registered for snapshots. Sigma2AB1 camera heights2.1/1.75 are read
+from FirstPerson resources.
+
+Twelve direct-input tests cover Echo primary/sticky, copied Soldier hitscan,
+beam/melee bypass, wall/miss/team/rear filtering, cap, expiry/cooldown/reuse,
+decay, actual allied Field healing exclusion, copied-body expiry, passive
+snapshot registration and actual rear Flashbang interruption. The first abort
+implementation granted shields because both normal and abort paths zero215;
+the corrected consumer uses ChaseVar.reached/interrupted. The focused real
+Flashbang plus three-NPC absorption tests pass in5.354s. All278 fixed-source
+regressions pass in647.712s (tests-grasp-full-regression.log), including13
+ordinary server snapshots. Ruff and Git whitespace checks pass. Current-source
+encrypted Echo Flight strict stored replay passes1 test in1407.788s
+(tests-grasp-echo-stored-replay.log). This is an interim Flight-only scope gate;
+full Duplicate/Grasp/interaction causal replay and the final implementation's
+integration gate remain open.
+
+Trooper/Sniper/Heavy use actual npc_control emission and capture callbacks,
+without synthetic damage. Sniper receives100 windup frames, still400HP before
+Grasp. The copied Sigma stays400 during the conservative capture window and
+receives min(captured*.6,400) after normal completion; no copied charge is
+granted. Observers explicitly omit NPC projectile transport. Enforcer/Assassin
+incoming remains open.
+
+Native projectile exception filtering remains open. Accretion entity18B7 has
+tag0145 and graph1EB9, missing from the prepared graph bundle; both Grasp and
+Deflect reference set0D600145, but its inclusion/exclusion semantics are not
+proved. No guessed tag classifier is installed. Native separate tagged shield
+replication, stacking, bypass, ultimate-source rules, full copied Sigma skills
+and presentation are also open. Partial tests do not complete Echo acceptance.
+
+A supplemental real-input probe in grasp-stun-recovery-probe.py/log passes:
+rear Flashbang interrupts the51 capture with0 temporary shields and375HP;
+after full cooldown, native capture counter advances to2 and accumulator resets
+to0. A fresh51 capture grants30.6 shields after normal completion. This extends
+the abort/recovery evidence without adding native policy acceptance.
+
+Read-only follow-up research records a real Zarya barrier counterexample:
+SHIFT activates0244's pet phase, but actual Echo primary still damages400->349.
+The phase/repress/cooldown/reuse probe covers only graph lifetime. StatePet
+13F4/03DA creation/attachment and shared0256 HealthPool hosting/collision/energy
+remain open. Saved graph/entity/native-query research is not a production fix.
+
+Finite personal barrier checkpoint (partial)
+---------------------------------------------
+The above400->349 counterexample is the pre-barrier baseline. The new explicit
+barriers consumer gives the actual0244/st2 StatePet a separate finite static
+collision record. Model10D7.00C has a native sphere radius1.5 at local0, tied to
+bone0001. An owned C# inspector reads the existing DataTool/TankLib assemblies
+and immutable104319 archive; XML/chunks/logs stay in the owned lane/barrier-assets.
+The original debug dump produced no chunks because its Release build disables
+dummy chunks. Receiver002A overrides are preserved, not guessed as decoded.
+
+0256's native pool default/ruleset is200/1D43;0244 supplies the actual2s pet phase
+and10s cooldown. Capsule-centre following of standing/crouched bodies, a private
+static identity, whole-impact overkill consumption and pool break -> StatePet
+completion are reconstructed. The identity is not sent as a fake native pet
+creation or written into the VM's pet output. Native hosting/attachment/wire
+creation remain open. No body-wide invulnerability flag is installed.
+
+Ray/projectile sweeps meet the sphere before bodies, with static walls winning
+when nearer. Friendly shots pass. Melee can reach the sphere without reaching
+the body; beam uses the barrier pool for its strict below-half threshold.
+Stickies attach to the finite record, follow its current centre while active,
+then freeze when it retires. Their native-contact/fuse reconstruction is retained.
+Explosion damage hits each intersecting barrier pool once and does not overflow
+onto its owner in the same impact. Other-body AoE occlusion and native receiver
+filter semantics remain open. Blocked health events do not deliver Flashbang
+to the protected body, including the blast that breaks the remaining20HP pool.
+
+Native0256/n10 forwards pool loss through full message GUID0240000000000146:
+2A amount and12 instigator. The explicit bridge uses actual clamped pool loss;
+0242/n5->n6 owns min(100,energy87+damage499*.2) rather than a new charge formula.
+The first bridge used only the message index and delivered to0 receivers;
+the full GUID correction is tested. Upstream0011 damage filters, PlayScript0256
+hosting, exact overkill/energy/credit policy and full decay/stacking remain open.
+Zarya003/03BF FirstPerson standing1.6/crouched1.12 replace generic defaults.
+
+Thirteen real-input barrier methods cover primary/outer-sphere/miss/wall/team/
+rear, finite break/next-hit health charge, sticky contact+blast, outer melee,
+low-pool beam, actual Flashbang/high+breaking-low pool, normal expiry/cooldown/
+refusal/reuse, real allied Field body healing without pet healing, native copy
+expiry before the pet's own deadline, standing/crouched following, and passive
+snapshot registration. The active finite pool, phase reference, seen counters
+and allocation cursor are registered in stored snapshots. Strict full causal
+barrier/copy replay remains open; Grasp's Flight-only strict result is historical
+to the pre-barrier source.
+
+The actual Trooper/Sniper/Heavy emission test copies Zarya, receives20/100/5 in
+the barrier while its owner stays400, stops the shooter, expires the shield,
+then restarts real fire and receives that damage in the body. No attack/damage
+is injected; the emission wrapper calls the real consumer. The initial fixture
+forgot to disable the legacy passive ultimate clock; its nonzero meter was not
+shield damage charge and is corrected in the dedicated fixture.
+
+Parent input correction: runtime-104319 has38 mover rows and omitted all five
+Talon definitions. Older NPC tests therefore used generic fallback geometry.
+The immutable npc-navigation-runtime now has43 rows, with authored dimensions
+and speeds for each real NPC. The lane verifies the preparation/XML hashes in
+NPC_MOVER_REVALIDATION.json and requires the spawned NPC's explicit mover row.
+Both runtime and NPC graph/catalog input now use that coherent directory; no
+hardlinked metadata is written and no real-map collision cache is generated.
+Stand-in collision, capsule/critical/eye reconstruction and transport remain open.
+All292 frozen-source regressions pass in813.034s
+(tests-barrier-full-authored-movers.log), including13 barrier methods, ten
+actual-NPC methods and13 ordinary server snapshots. Ruff/whitespace checks pass.
+A subsequent _damage return-type annotation correction changes no executable
+method-body AST (POST_TEST_ANNOTATION_CHECK.json); runtime logic remains fixed.
+
+The standalone npc-geometry-range-los-probe.py also executes60 combinations:
+five actual definitions x primary/sticky/melee/beam x miss/beyond-range/static-wall.
+All preserve NPC health with native attack-state counters>0; primary ammunition
+is actually12->11. Observed target height/radius and runtime hashes are saved in
+NPC_GEOMETRY_RANGE_LOS_RESULT.json, with the activation-checked log. This closes
+those explicit reconstructed-geometry examples, not native animated hitboxes,
+range-boundary fidelity, muzzle poses, actual map collision or full NPC AI.
+
+Projected Zarya barriers, other heroes' barriers/absorption/immunity, Enforcer/
+Assassin incoming paths, all remaining matrix cells and original-client checks
+remain open. This checkpoint does not complete the full Echo static goal.
+
+Projected barrier target/provider checkpoint (partial)
+------------------------------------------------------
+Baseline: actual E finds no1691/375 target arrays,536 stays null and pet10 never
+starts; actual Echo fire damages the ally200->149. An initial baseline moved
+the caster by changing an already-running mover's position and the old pose
+snapped back into the line of fire. The corrected baseline uses a real fresh
+mover at the intended pose and asserts the51 health loss; both logs are retained.
+
+World.track_targets is now an explicit provider. BodyWorld supports025C states4
+and7 only; other graphs retain the legacy unsupported empty-target behavior.
+TrackTargets links its authored array variable, refreshes supported searches
+and releases the link at end. Native array selection writes375->536; native
+StopAbility handles a rejected query without cooldown. The pet's native2s
+timer and default8s cooldown/rejection/reuse are not replaced by an E-key timer.
+Supported arrays/links are registered in the VM stored-state layout.
+
+DATA: search radius30, angle10*entity9595, query/filter masks and weighted scorer
+configurations. RECONSTRUCTED: centre distance, degrees, absent9595 default1,
+angular/distance/entity ordering, allied player/NPC eligibility and existing
+Zarya-shield exclusion. Raw native filter/weight semantics, protected-phase
+exceptions and precise range/visibility boundaries remain open. Wire target
+age0 is an explicit placeholder; target history and creation/ACK dependencies
+are unaccepted. Headless HUD state4 is not activated by the current UI branch;
+the executed cast path is state7. No fake HUD activation is counted as evidence.
+
+Bubble records separate caster/caster-body from protected actor/body. Both
+13F4 personal and03DA projected pets share native0256/default200 and sphere1.5.
+NPC centres use the authored43-row mover data. Real health loss is sent through
+0146 to the caster, never to the protected player's meter. The recipient may
+move outside cast range while its already-created native pet timer continues.
+Personal+projected pools coexist; a second caster cannot stack on a currently
+protected target under this explicit reconstruction policy.
+
+The initial script-stop test incorrectly expected retirement to clear the
+stored historical state.active bit. Correcting that assumption reveals a real
+stale pool: script.retired is true yet the old pet record still protects its
+ally. sync now clears retired/missing script owners; live_source also checks
+the current component identity, so another caster need not wait for a scheduler
+scan. Seen stamps include instance/counter/start, and body/script replacement
+cannot reuse an old pool. These do not mutate retired VM history for a green test.
+
+Actual tests cover enemy/self/miss/range/wall/dead/FFA refusal with real query
+activation and0 cooldown; accepted cast, expiry/repress/cooldown/reuse; dual
+pools; second-caster exclusion; target following; friendly projectile passage;
+target body replacement; native copy expiry on an unchanged ally; script stop,
+same-body restart and immediate replacement caster. A passive encrypted-session
+capture observes the real state7 array during on_begin, its375->536 selection,
+and the live projected pool; snapshot export must not evaluate the provider.
+This is not a full causal replay. Codec regression retains typed target-list form.
+
+Each actual Talon class is tested both as ally and enemy of an Echo-copied Zarya.
+Real E shields only the ally; a real opposing Echo damages its200 pool by51,
+leaves NPC health unchanged, then damages NPC health after expiry. Enemy NPCs
+are rejected with0 cooldown and take actual health damage. Team setup and
+ultimate-meter preparation are explicit; no target arrays or damage are injected.
+
+Real foreign Flashbang causes25 to the unshielded caster and stops Ability9,
+but the native pet phase remains active. Its sphere also takes25 from that
+explosion. A separate ready Echo weapon then causes51 to the remaining shield
+while the caster is still stunned; the ally stays200. After pet expiry the same
+weapon causes51 health damage. A first exploratory Cassidy primary did not fire
+through its own Flashbang lockout; it was not used as proof of shielding.
+
+47 projected/NPC/codec regressions pass63.021s and44 Flashbang/VM snapshot/alias
+methods pass16.413s. The pre-death-fix full regression passed360 methods in
+829.015s; it does not cover the later death fix. A fresh
+60-case authored-NPC activation-checked range/LOS/miss probe also passes.
+
+An additional actual-fire probe injures the caster to94, casts E, then kills it
+with two real Echo volleys. Its script remains live and its native pet timer
+continues. The old consumer removed the projected pool on caster death
+(probe-projected-caster-death.log). The consumer now retains a projected pet
+while its original script and native phase remain live. An actual-fire test
+verifies the dead caster cannot cast again, the ally remains protected by the
+existing200 pool, the next Echo volley consumes51, and native expiry exposes
+the ally to51 health damage. Retirement/copy-expiry still removes the pool;
+these three affected tests pass12.932s (tests-projected-death-fix.log).
+
+The shared press-buffer fix retains the original (time, button, activation)
+tuple when eligibility fails. Parent's newer retain=True approach has the same
+original-age gate; this lane has not applied uncommitted parent changes.
+025C/st9 has a null m_246438AD: this VM interprets its buffer as zero, so a
+released tap80ms before expiry must not activate. The initial test incorrectly
+assumed Roll's150ms buffer and failed; its log remains as a counterexample
+(tests-projected-cooldown-death.log). Corrected actual-input tests cover zero
+window rejection, held E and a fresh post-cooldown press. Actual McCree01F0/node2
+has native0.15s and separately exercises early expiry, near-end released tap,
+held input and fresh recast. Target-build engine handling of null remains
+unverified; no nonzero Zarya buffer is fabricated.
+
+The final frozen death/buffer source passes364 regressions in1223.061s
+(tests-projected-death-cooldown-regression.log), including all17 projected
+methods, the actual-input Roll buffer method and ordinary server snapshots.
+Its380 source/document hashes and3 prepared input hashes are recorded separately
+in TEST_CONTEXT-projected-death-cooldown-executed.json. A deliberate in-process
+timestamp-renewal mutation fails precisely the early released-tap assertion;
+the production source stays unchanged (SHARED_INPUT_REVIEW.json).
+
+The archived364 checkpoint predates the generic mover17/18/19 consumer now
+implemented below. Its separate real Flight probe compares neutral
+with full backward/right input. During the authored1BB6/st23 takeoff they have
+equal velocities while raw throttles remain(127,-127). The phase ends in1040,
+the modifier end boundary is1041, and the1041 pose resumes sustained steering
+(probe-flight-throttle-scope.log). Flight uses its dedicated request path;
+this is not acceptance of missing generic modifiers, Duplicate transitions or
+remaining copied input restrictions. Direct resource inventory also finds
+input mods in Echo19EB/st33, Genji0157/st9 and Reaper00F2/st8.
+
+Native hosting/transport, all other shields,
+remaining copied kits and the full original goal stay open.
+
+Copied Cassidy Roll and generic input modifiers (partial)
+The next private source consumes17=forward magnitude,18=backward magnitude,
+19=unsigned lateral input. It restores the original lateral sign and clamps
+before ordinary acceleration, after recording the unchanged raw input bytes.
+A real copied Cassidy Roll exposed the old failure: native movement scope on,
+but a lateral command moved0.048828125m. Six actual direction cases now keep
+the native Roll heading and resume normal input after its scope ends.
+An independently rerun captured104319 prefix C33960..C33A8D matches120 cases;
+scalar mod resolution is a declared add/multiply/replace stub. This does not
+prove full native mover equivalence (OWNED_THROTTLE_NATIVE_RESULT.json).
+
+copied_roll.py adapts only the reviewed parent01F0/n8/n11/n17 bridge, not its
+Deadeye work. Native n7 supplies1648=15 and the graph waits0.4s, refills the
+weapon and runs6s cooldown. FF3471E9's row95A10547 is sampled as desired minus
+current velocity, queued for source frame+1, consumed once before the existing
+swept mover. Its end row748FC65A supplies5.5; horizontal-only clamping and
+authoritative yaw/velocity getters remain explicit server reconstruction.
+Unsupported graphs/rows/worlds remain NotImplemented. Native motion-property
+ordering, hardpoint basis and complete velocity services remain unaccepted.
+
+Actual Q copies the enemy Cassidy, then neutral Roll travels6m. Four input/yaw
+branches select signed directions, a real wall stops the capsule, and duplicate
+commands cannot reapply a delta. Real native cooldown rejects an early released
+tap and permits fresh reuse while the copy remains active. Actual foreign
+Flashbang interrupts the scope, clears pending motion, blocks movement and then
+allows ordinary motion again. Actual Echo volleys first injure the copied pool,
+then break it during Roll: Echo returns alive and the old motion owner retires.
+Native15s copy expiry also retires old requests and modifiers. Duplicate's
+existing pose/velocity policy can preserve inertia; an initial requirement that
+it stop within20 frames was unjustified and failed. The corrected check verifies
+no old requests/mods survive and the restored body's inertia decays.
+
+A separate actual empty-magazine case exposed a shared VM defect: Roll restored
+ammo6 but its reload BooleanSwitch retained a canceled CHANGED marker, preventing
+the next shot. State.end now clears canceled CHANGED/CHECK coalescing flags and
+Component.changed skips ending states. Ability.stop queues outgoing scope exit,
+on-stop plugs and resource cleanup before releasing its stack link. This avoids
+the newly unblocked weapon sampling old ammo before the refill. The cross-object
+order is a server reconstruction. Two minimal reentry/cleanup tests and the real
+empty-magazine input fail before repair and pass after it.
+
+53 Roll/input/VM methods pass42.905s before the notification fix;35 relevant
+notification/Roll/ability/join methods pass39.669s after it. The broader old364
+checkpoint is historical and does not cover this source. Remaining full copied
+Cassidy weapon/Flashbang/Deadeye matrices, native filters and the full original
+matrix/client acceptance remain open. See COPIED_ROLL_RESOURCE_EVIDENCE.json,
+SHARED_INPUT_REVIEW.json and tests-notification-empty-roll-baseline.log.
+
+The actual five-NPC recovery test passes25 subcases in39.708s: each authored
+Trooper/Enforcer/Sniper/Assassin/Heavy body receives a real copied Roll from a
+partial or empty clip followed by primary70 or six Fan rounds (50 each, capped
+by remaining health); allied primary/Fan consume ammo and cause0 health loss.
+The health/ammo fixture explicitly omits projectile and death transport. The
+first fixed30-frame Fan window ended with two rounds and was too short; the
+corrected test follows real input until the native clip is empty, without
+injecting ammo or damage. It also supplies the omitted fake death callback;
+the clean final log has no hidden adapter exception.
+
+The frozen combined regression passes431 tests in855.636s, including current
+notification repair, ordinary server snapshots and stored replay cases. Nine
+map-dependent mover cases are skipped and do not establish map acceptance.
+The exact executed checkpoint is TEST_CONTEXT-copied-roll-431-executed.json.
+A subsequently added test switches actual encrypted peers to Echo/enemy Cassidy,
+prepares Q meter, copies, then casts Roll and captures while a real next-frame
+request is pending. Removing that actual pending list changes the server digest;
+capture cannot call apply_velocity. It passes17.124s. This is passive capture
+with explicit meter preparation, not full controlled causal replay. Before the
+camera change below, production Python remained byte-identical to the431-test
+checkpoint (POST_431_PRODUCTION_CHECK.json); extra test/result documentation
+is recorded separately. Full original acceptance stays open.
+
+Copied Cassidy camera and primary critical policy (partial)
+02A3 FirstPerson raw standing m_E29993A5 is1.425 and crouched m_816B830F is0.9975.
+Both now enter the shared eye_height lookup used by shot origin and player
+Target.eye. Echo2593 is independently rechecked at1.7/1.1. The actual copied
+Cassidy fixture reproduces three previous failures: generic height1.55 instead
+of1.425; a straight body shot wrongly clearing a1.49m wall for70; and a head shot
+causing70 instead of the declared140 reconstruction policy. Native standing
+1.425 now blocks that wall, standing clears1.2m and crouched0.9975 blocks1.2m.
+
+The implicit2x primary policy is limited to hero0042, world.body matching its
+component entity, graph01D2/node31. The resource leaves that critical field null;
+this fallback is explicit server reconstruction, not a recovered global default.
+Fan's explicit1 remains authoritative and a first actual head-height Fan round
+causes50. Other heroes retain their previous defaults. Native bone hit regions,
+the current eye-minus0.2 head threshold, muzzle/camera animation and scatter
+remain unproved. See CASSIDY_EYE_CRITICAL_RESOURCE_EVIDENCE.json.
+
+Current post-camera regression passes187 tests in259.635s, including the new
+view/cover/critical methods, real copied Roll and passive encrypted capture,
+all actual NPC methods, general damage/projectile/control/codecs and VM aliases.
+The archived431-test suite predates the camera/critical change. It is not
+promoted to a full rerun of this source; the full original acceptance and final
+causal replay remain open.
+
+Copied Winston world actor/host checkpoint (partial)
+The original real copied E ran00FA's13s cooldown but left38 absent; a real Echo
+volley damaged Winston500->464. The scoped body provider now handles only
+00FA/n26 B6E3C77D entity01C3 and its n2 PlayScript00FC. Actual position evaluation
+required a scoped8CBDD81C getter; without it the old fallback yielded scalar0.
+The body provider uses authoritative own pose for that graph/context. Native
+position expression adds(0,.1,0). Native model0D02's sphere radius is5; spawn
+option/transform/scale interpretation remains unproved.
+
+Creation allocates an independent private entity/component and writes actual
+instance38. The existing request resolver and PlayScript queue consume actual
+target38 and parameter arrays0044=700/0494=9. Native00FC start-entry bindings
+populate587/567, HealthPool0 supplies capacity and ChaseVar11 supplies lifetime.
+No separate9s substitute timer is injected. Component clock advances16ms per
+world tick anchored to the source invocation; this clock/owner/instigator mapping
+is reconstruction. Compatibility execution of the callee is explicit. Strict
+components reject this provider, and strict PlayScript routing is unchanged.
+
+The finite fixed sphere clips entering and exiting rays. Origins already inside
+can damage bodies before crossing its surface; it does not protect one chosen
+recipient like Zarya. Caster movement leaves the sphere in place. Outside
+primary consumes51 of700 without body damage/charge; inside primary damages
+native Winston armour by36 and leaves the pool700. Actual ammo/reload permits
+14 volleys to break700; only a fresh volley then damages the body. Friendly fire
+passes its own team's sphere. Wall priority, nearest overlapping sphere, Beam,
+sticky contact/fuse anchors, once-per-area-event pool loss and multiple protected
+body paths have command-driven evidence. A real Helix direct hit can break the
+last37 while its same explosion still leaves the inside ally200.
+
+Melee bypass, area-centre visibility, whole-event break cover and source-body
+retirement are declared reconstruction policies. Real native9s expiry and13s
+cooldown reject an early tap then allow a new identity. Actual Flashbang from
+inside stuns/damages the caster while the independent host persists. A real
+uncopied caster death continues the timer while its source script remains live;
+source retirement/copy expiry remove it, including same-tick stale-source checks.
+Allied Field heals the body without refilling the world pool. Five authored NPC
+classes pass10 protected-target/shot-team subcases, using real copied E/primary.
+
+The actor is not transported. Its38 remains in authoritative VM and full server
+snapshots but is omitted from match-backed00FA wire projection to avoid an
+uncreated private reference. Typed owner snapshots at multiple lifetime phases
+contain no private IDs. Passive encrypted server capture includes the actor,
+its real00FC component, clock and pool; actual damage is verified separately.
+Native creation/health/effects/animation transport remains open.
+
+19 lifecycle/NPC methods pass67.516s and3 range/overkill methods pass15.293s
+before final guards. An intermediate protocol/VM command used an invalid module
+name (test_script_play); its one import error is retained, not reported as a
+passing whole group. The corrected frozen full regression runs547 tests in
+1174.029s:538 pass and9 map-dependent tests skip, including23 world-barrier
+methods and the10 authored-NPC world-barrier team subcases. Resource and
+policy limits are in WORLD_BUBBLE_RESOURCE_EVIDENCE.json. Parent's uncommitted
+spread_ramp/native random-table/Fan ray work is not applied in this checkpoint;
+actual scatter/native seed and the full original goal remain open.
+
+Manual Enforcer incoming fire (partial)
+
+The authored 13EB weapon graph resolves its own B96D3A98 and 9B7648C3 queries
+through a scoped manual BotWorld. The build 104319 predicate tail at CC9F61 and
+bitset reader at 182C470 check for component 4B and exclude 5C. The sandbox's
+choice to declare 4B is reconstructed. The owner-health query reads the shared
+authoritative health slot, synchronized after all spawn pools are installed.
+VM and server snapshots include the declared controller component tuple.
+
+With the authored Enforcer body and mover, actual manual engagement releases
+attack input behind a triangle wall and on the same team. After re-engagement
+in clear space the first 13EB hit reduces Echo's health by 2. Explicit stop
+holds that health for the next 100 frames. Native controller creation, pellet
+spread, difficulty and phase timing, cross-hero interactions and original-client
+presentation remain open.
+
+Manual Assassin incoming pin (partial)
+
+Manual Assassin input routes slot 0 to button 36 and the build 104319 graph
+1157. The scoped possessor Map supplies key 1650 for the engaged body. The
+graph writes target 536 and reads it in the two health states. Node 25 reads
+amount 13230, which resolves to 25 at entry. Node 15 reads amount 11984, which
+resolves to 100 with mode 1. The server interprets mode 1 as damage per second
+on the state VM clock. Pin scope 23 carries victim control across the delay.
+
+With the authored body and mover, actual engagement costs Echo 25 health at
+entry and 16 across ten subsequent 16 ms ticks of continuous damage. Pinned
+primary input leaves ammo intact. Stop releases control and Echo can fire
+again. Distance, a triangle wall and ally team prevent acquisition. Inserting
+the wall after contact releases the pin and stops damage. The actual damage
+clock can kill Echo and clears control before respawn. A real Duplicate into
+Reaper rejects the pin while Wraith is active and takes the opening hit after
+the phase ends.
+
+An allied Cassidy Flashbang deals 25 damage to the Assassin and releases the
+victim. The Assassin cannot pin or deal damage during the observed 30 stunned
+frames. Actual copied Zarya personal barrier takes the 25-point opening hit
+without reducing body health or starting victim control. Passive export of
+the active 1157 VM includes controller components, target and damage clock.
+
+The sandbox declares controller components and a 3 m contact limit. Contact,
+mode 1 clock, control suppression and personal-barrier policy are server
+reconstructions. Full original pin recovery, native controller allocation,
+teammate escape, other defenses, autonomous pursuit and client presentation
+remain open. Observer NPC projectile transport is omitted in these fixtures.
+
+Copied Cassidy Flashbang flight and control (partial)
+
+Owned 01E9 node 7 resolves lift 0.05 from the launch record and unconditional
+gravity 20 from E1A5B579. Launch normalization and the float32 gravity update
+follow build 104319 D5ECB4-D5ECEA and D71ACD-D71ADE. The lane adapts the parent
+flight evidence to the existing Echo projectile collision path.
+
+Flashbang uses reconstructed velocity-before-sweep order at 16 ms intervals
+and detonates at its existing range or lifetime limit. The tested resource
+limits are 7 m and 30 m/s. The existing collision path handles impacts,
+barriers and control. Echo Sticky retains its midpoint sweep and contact
+fuse. The new expiry flag is captured with projectile causal state.
+
+Actual Duplicate into Cassidy launches and lands Flashbang for 25 damage,
+rejects a second input during the authored 10-second cooldown, then lands a
+fresh cast after expiry while Duplicate is active. An off-axis allied
+Flashbang runs for 7/30 seconds, stuns the Assassin and releases its pin on
+Echo. Flight tests also cover player and NPC airbursts, ally and wall
+rejection, radius and world catch-up. Native flight scheduling, expiry
+detonation and the original-client presentation remain separate evidence gaps.
+Actual Genji Deflect returns the copied grenade for 25 damage and stun.
+Sigma Grasp consumes it for 25 capture and suppresses the burst. These cases
+use the lane's reconstructed interception and reflection rules.
+
+Copied Cassidy Deadeye (partial)
+
+The 104319 runtime supplies 022F and 01EE. Scoped 022F nodes 26 and 86 publish
+the broad and visible enemy arrays. Scope 11 creates an authored 01EE per
+broad target, binds 536 and sends the authored reapply message with parameter
+92. The effect reads authoritative health and charges through its own graph.
+The queries preserve their authored arrays at exit for the firing subgraph.
+Each volley aims at its bound target and uses the shared hitscan and barrier
+path. The VM snapshot includes the owned child map.
+
+Actual Duplicate and Q inputs lock and hit an off-axis player and all five
+Talon NPC classes. An allied NPC is excluded. A triangle wall pauses charge
+without destroying broad membership, and clearing it permits a hit. A target
+at 150 m can lock but falls outside the firing range. A spent meter rejects
+another Q. Secondary cancel, actual Flashbang stun and copy expiry clear the
+effects without firing. A personal Zarya barrier can take the whole shot
+without body damage. Actual Wraith removes an existing lock.
+
+Those tests fill the copied meter to isolate activation. Cone geometry, visibility, target
+hardpoint, effect ownership and age are server reconstructions. Native
+filters, full copied-kit and client presentation remain open.
+
+Copied Cassidy Fan scatter (partial)
+
+The authored 01D2 node 37 uses the no-decay 239B571E normalized spread output.
+Its ramp is baked at activation and registered in VM snapshots. The damage
+ray converts the authored 0-to-6-degree cone using the recovered 104319
+uniform table and rotation arithmetic. Both complete generated table
+fingerprints match the captured reference. Other launch classes and native
+spread decay are outside this implementation.
+
+The server reconstructs seed inputs from the body ID, instance ID, node
+position and activation counter. That identity mapping and the choice of
+uniform radius for the scoped shot remain reconstructed. Actual input
+produces six distinct rays and spends the whole magazine. For each of the
+five authored Talon NPCs, at least one of two offset scenes is hit while
+the command's centre ray misses the capsule. The Roll refill, same-team
+rejection and authored primary/Fan damage cases also pass. Native handle
+mapping, muzzle quantization and client presentation remain open.
+
+The follow-up Echo 19E5 probe runs original D80310 with prepared aspect-1
+parameters from the Echo ring resource. It matches 171 vectors within
+5.96e-8 per component. Paired cases hold aim constant while changing the
+seed or shot number. The resulting triangles retain a 0.84-degree angular
+radius and rotate with the sampled phase. Production now uses that transform
+for actual 19E5 projectiles. Its comparison matches all 171 native vectors
+within 5.96e-8 per component. Successive volleys at the same command aim
+emit different triangles while preserving the measured angular radius.
+The probe uses scalar sin/cos adapters and prepared launch inputs. Native
+seed identity, engine parameter setup and nonunit aspect remain open.
+An additional D8870C-D887C2 baking probe with the Echo spread input and
+absent optional fields yields float32 1.4, zero jitter and the -1 phase
+sentinel. Dependency registration and the scalar getter are adapters.
+
+Fortify and Transcendence (partial)
+
+Orisa 0CF4 state 4 supplies the authored negative damage scalar. The server
+applies it before armour and prevents Flashbang control and Assassin pin
+acquisition while the state is active. Three Echo projectiles lose about
+15.6 health from an armoured Orisa during Fortify and 36 after expiry.
+Actual copied Flashbang deals about 10 through Fortify without stunning.
+
+Zenyatta 017B state 3 prevents body damage and control while preserving
+collision. A scoped zero-duration completion at state 13 starts the
+authored lifetime. Actual tri-shot and beam produce no health loss or
+hit/charge credit during the phase. A normal volley damages after expiry.
+Copied Flashbang also leaves the protected body undamaged and unstunned.
+
+The 017B target query state 0 and health state 6 drive the allied aura.
+In the tested base resource configuration the evaluated radius is 10 m,
+the healing expression returns 1800 and duration 567 resolves to six
+seconds. The reconstructed clock applies 4.8 healing per 16 ms tick.
+The query publishes the target array for the next health tick. A real wall
+blocks healing, and clearing it permits healing after the query refresh.
+Enemies and out-of-range allies remain unchanged. A real Duplicate into
+Zenyatta heals an ally and stops when the copy expires. The health fixture
+seeds injuries, and tests fill the ultimates to isolate ability execution.
+Actual Assassin engagement refuses both copied defenses while active and
+resumes pin damage after they expire.
+
+Control immunity, startup completion, healing membership and clock are
+server reconstructions. Native filter tags, barrier-mediated healing,
+full Zenyatta and Orisa kits and original-client presentation remain open.
+
+Reinhardt Barrier Field (partial)
+
+The optional ORPHEUS_REINHARDT_COLLISION descriptor supplies the build 104319
+shield mesh, bind anchors and resource policy. The scoped 0095 Pet17 state
+gates the directional collision target. The server aligns the mesh to aim,
+clears the owner's capsule and mirrors remaining pool to variable 586.
+The descriptor supplies 1600 health, 200 per second regeneration after a
+two-second lowered delay, and a five-second broken deadline.
+
+Actual input verifies that frontal tri-shot hits the pool while a rear attack
+hits the body. Focusing Beam and delayed stickies deplete the frontal shield
+without damaging the covered body. Quick melee can debit 30 shield and reach
+the armoured body for 25 when its attack volume overlaps both. The shot that
+breaks the pool consumes the remaining shield health. An early recast fails
+and a fresh recast after expiry succeeds. The computed cooldown now notifies
+Statescript dependants when it reaches zero. Release, regeneration and body
+retirement are verified. A real Duplicate into Reinhardt protects an ally
+from incoming tri-shot while their outgoing shot passes through. The mesh
+and pool are registered in passive server capture.
+
+The shield pose, receiver filters and blast policy are reconstructed.
+Directional blast cover uses target-centre rays. Pool damage uses the
+configured splash curve at the nearest visible mesh surface. Actual Helix
+ground impacts show lower shield loss farther from the mesh, while contact
+detonations use zero surface distance. Native receiver falloff, skeletal attachment,
+actor transport, additional copied skills and original-client acceptance
+remain open.
+
+Duplicate body boundaries for health-event charge (partial)
+
+An already armed Sticky Bomb retains its authoritative fuse across body
+replacement. Its old projectile lease retires through the transport path.
+The delayed hit still resolves damage and normal combat credit. Ultimate
+charge is scoped to the emitting body, or the reflecting body after a
+reflection. Biotic Field uses its existing cast body identity and retires
+when that body is replaced. These are reconstructed server policies.
+
+Actual Sticky Bomb input deals 30 contact damage before Duplicate and 150
+blast damage afterward. The old blast adds no copied charge. The copied
+Biotic Field test observes ally-only healing and copied charge before expiry,
+then verifies that healing and its charge end when Echo returns. The test
+accounts for passive charge on the return frame. Projectile transport parity
+and cross-body kill attribution remain open.
+
+Focusing Beam armour and earned threshold (partial)
+
+Blizzard's OW1 retail notes for 2020-08-31 specify 30 percent beam damage
+reduction against armour. The server applies that rule to 1FBD/st17, with
+a reconstructed split when a tick exhausts armour. Unspent damage reaches
+health at the normal rate. The shield pools retain their existing policy.
+
+Actual base Beam input removes 0.56 armour per 16 ms tick. A fixture with
+0.28 armour remaining verifies that the same hit removes that armour and
+0.4 health. Two actual tri-shot volleys leave an enemy at 98 of 200 health.
+The empowered Beam then deals 3.2 per tick and kills the enemy. The two
+attacks together grant 200 points for the actual health loss with passive
+charge disabled. Native receiver classification and client timing remain open.
+
+Actual melee and one Tri-Shot leave a separate 200 HP target at 119.
+One continuous Beam deals 0.8 per tick through the tick that brings the
+target below 100 HP. The next tick deals 3.2 with the same damage-state
+activation and no additional press.
+
+Reference: https://overwatch.blizzard.com/en-us/news/patch-notes/live/2020/8/
+
+Focusing Beam input and trace boundary (partial)
+
+The damage consumer uses active 1FBD states 10 and 17. Range comes from
+the TrackRay direction record and radius from its configured expression.
+The server still reconstructs collision using capsule expansion and a
+static centreline trace. Actual input grazes within the authored radius
+and misses beyond it.
+
+An actual triangle wall and an allied target each prevent the active
+beam from applying damage. Removing the wall or restoring the NPC's
+enemy team permits the next 0.8 damage tick without a new cast.
+
+A short tap starts Beam, and release leaves it running. A second press
+before the authored state 26 listener opens does not cancel. Once the
+listener is active, a new press stops the damage state before the same
+frame can damage the target. A fresh press during cooldown deals no
+damage. After cooldown expires, a new tap deals damage again.
+
+The Beam input fixture checks Tri-Shot ammunition before the cast,
+during damage, after cancellation and after reuse. It stays unchanged,
+and active Beam emits no projectile. The Sticky Bombs cooldown fixture
+also verifies that two volleys and a rejected press preserve the magazine.
+
+An enemy Soldier rifle kill during the active beam stops its damage even
+when Echo continues sending the held input. In a separate actual-NPC
+fixture, the Talon Assassin's pin ends state 17. Returning the held aim
+to the Assassin during the pin causes no further beam damage.
+
+Trooper, Enforcer, Sniper and Heavy Assault each damage Echo during
+an active Beam. Each case still applies the next 0.8 tick to the NPC
+without a new cast. The Assassin pin case instead ends the damage
+state. The fixture starts NPC attacks manually and aligns their first
+ranged hit with the active channel using per-weapon lead-in frames.
+
+Against an active Sigma copy, Tri-Shot adds 51 to the Grasp accumulator
+without damaging the copy. A following enemy Focusing Beam damages the
+copy during the same Grasp and leaves its accumulator at 51. The Grasp
+ends with 30.6 temporary shields from the projectiles.
+
+Copied Genji's second Deflect reflects an actual Tri-Shot volley after
+the authored cooldown. The next enemy Focusing Beam damages the copy
+while Deflect is still active. The attacker takes no returned damage
+and the copy retains exactly the charge earned by the two reflected volleys.
+
+Two enemy Echo inputs exercise the copied Reaper's Wraith transition.
+In one case all six Sticky Bombs attach before phase, then detonate
+without further damage during phase. In the other case Beam damages
+the copy before phase and stops damaging it while Wraith is active.
+Tri-Shot damages the same copy for 51 after Wraith expires in both cases.
+
+During each of Flight and Glide, a single Focusing Beam channel leaves
+Soldier unharmed at 20 m, on off-target aim, as an ally under team rules,
+and behind a static wall. Removing that wall yields 0.8 damage on the
+next tick of the same channel. The Glide fixture starts 4 m above its
+settled position.
+
+Quick melee consumes one 0043 state 4 activation per strike. Turning
+toward a stationary enemy after a missed swing does not produce damage
+or hit credit while state 6 recovers. The next legal press activates
+state 4 again and produces one 30-damage hit without applying stun.
+The once-per-activation target sampling is reconstructed server behavior.
+
+An enemy Soldier rifle kills Echo on the same frame, after Tri-Shot
+launches. The three projectiles still hit Soldier for 51 in total
+without stunning him. Held primary after death launches nothing else
+and the weapon spends just one round. Command ordering and retention
+of in-flight shots are reconstructed server behavior.
+
+An enemy Flashbang lands during quick melee state 6 recovery. The
+first 30-damage hit remains applied and state 4 stays inactive.
+Repeated melee input during stun produces no new strike. After stun
+and recovery end, a fresh press produces one more 30-damage hit.
+
+After copying enemy Soldier, Echo kills the source hero with the copied
+rifle and earns the kill notice. The copied body, script and expiry
+remain the same. Updates immediately before and after the expiry
+confirm that the copy persists until its original deadline and restores
+Echo alive. This is reconstructed server lifecycle behavior.
+
+The 19EB state 19 query evaluates to 40 m. An aligned Soldier at
+40.125 m is rejected with full charge preserved even though the aim
+ray reaches the capsule within 40 m. At 39.875 m the same setup
+activates Duplicate and consumes the charge. Measuring the outer
+cutoff at the target's feet is reconstructed server behavior.
+
+Two Tri-Shot volleys leave enemy Soldier at 98 health. Focusing Beam
+deals 3.2 on contact as Soldier deploys Biotic Field. Echo aims away
+while the field heals him above half health, then reacquires him during
+the same channel. The rounded hit notice drops from 3 to 1, consistent
+with the authored change from 3.2 to 0.8 per server tick.
+
+Tri-Shot projectile criticals remain open. The 104319 19E5 state 3
+direct hit definition leaves m_A872C70E null. At 2 m, actual volleys
+whose three capsule contacts are all below or all above the server's
+1.35 m reconstructed Soldier head cutoff each deal 51 and generate
+no critical flags. This measures the current server path. The native
+meaning of the null field and native projectile hit volumes remain open.
+
+The later server reconstruction gives only the Tri-Shot loadout a 2x
+fallback. Explicit hit configuration takes precedence. At 2 m, the
+same capsule-based diagnostic now produces 51 body damage and 102
+head damage with three critical flags. Reflection retains the loadout
+and classifies the returned impact against its new target. The default
+multiplier and eye-height cutoff are reconstructed, and the original
+client's collision and null-field handling still require verification.
+
+Soldier's copied Helix Rocket launches before Duplicate expires. The
+timed return retires its projectile before contact. The target remains
+at full health, no hit notice is emitted, and restored Echo earns no
+damage charge. Retiring leased projectiles with the copied body is
+reconstructed server behavior.
+
+Six enemy Sticky Bombs attach to the copied Soldier before Duplicate
+expires and deal 30 contact damage to the copy. The bombs retain the
+old anchor ID and their last world positions after Echo returns at 200
+health. Their fuses still expire and deal 150 splash damage to restored
+Echo at the same location. Anchor retirement and splash evaluation
+against the current body are reconstructed server behavior.
+
+An enemy Flashbang damages and stuns copied Cassidy shortly before
+Duplicate expires. The return removes the old body's stun entry.
+Restored Echo lands a 51-damage Tri-Shot before that stun's original
+deadline. Status ownership by body is reconstructed server behavior.
+
+The same five Talon NPCs can engage restored Echo after damaging the
+Soldier copy. The ranged cases return at expiry. Assassin breaks the
+copy, clears the retired body's pin, and pins the new body after a
+fresh attack input. The manual release is delivered on its own server
+frame. A diagnostic with stop and restart on the same frame left
+Assassin's release animation active and produced no second hit.
+
+Flight cancellation restores gravity and starts the 1BB6 graph's
+variable 61 cooldown. A fresh press on the last positive cooldown
+frame is rejected without resetting the timer. After release and
+zero, the next press starts another upward boost.
+
+Holding Flight through its natural end leaves variable 61 at zero
+through the active frames and starts cooldown on the first inactive
+frame. Release and immediate re-press are rejected. The base mover
+resumes and Echo lands.
+
+A jump from the floor enters Glide with Jump held. Landing ends
+Glide even while the key stays down and restores the base mover.
+A fresh jump immediately after release enters Glide again.

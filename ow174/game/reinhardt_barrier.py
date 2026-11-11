@@ -187,3 +187,147 @@ def damage(combat, player, amount):
     if state.current == 0:
         state.broken_until = combat.now + geometry.break_delay
     sync(combat, player)
+
+
+def surface_distances(geometry: Geometry, feet, yaw, pitch, a, b, radius, owner_radius, owner_height,
+                      *, visible=None):
+    """Yield visible mesh contact distances within the query capsule's radius."""
+    position, axes = frame(geometry, feet, yaw, pitch, owner_radius, owner_height)
+    points = tuple(tuple(sum((p[k] - position[k]) * axis[k] for k in range(3)) for axis in axes)
+                   for p in (a, b))
+    low = tuple(min(points[0][k], points[1][k]) - radius for k in range(3))
+    high = tuple(max(points[0][k], points[1][k]) + radius for k in range(3))
+    for triangle in geometry.triangles:
+        corners = tuple(tuple(triangle[n:n + 3]) for n in (0, 3, 6))
+        if any(max(v[k] for v in corners) < low[k] or min(v[k] for v in corners) > high[k]
+               for k in range(3)):
+            continue
+        distance = contacts.gjk(corners, points, reach=radius)
+        if distance.distance <= radius:
+            point = tuple(position[k] + sum(axes[n][k] * distance.point_a[n] for n in range(3))
+                          for k in range(3))
+            if visible is None or visible(point):
+                yield distance.distance
+
+
+FIRST = 0xA0180000
+
+
+@dataclass
+class RaisedBarrier:
+    entity: int
+    owner: object
+    body: int
+    instance: object
+    geometry: Geometry
+    state: Barrier
+
+    @property
+    def active(self):
+        return self.state.active
+
+    @property
+    def health(self):
+        return self.state.current
+
+    @health.setter
+    def health(self, value):
+        self.state.current = value
+
+    @property
+    def broken_until(self):
+        return self.state.broken_until
+
+    @property
+    def maximum(self):
+        return self.geometry.maximum
+
+    def pose(self):
+        mover = self.owner.mover
+        data = mover.data
+        height = data.crouch_height if mover.crouched else data.stand_height
+        return mover.position, mover.yaw, mover.pitch, data.stand_radius, height
+
+    def centre(self):
+        return frame(self.geometry, *self.pose())[0]
+
+    def trace(self, origin, direction, length, radius=0.0):
+        feet, yaw, pitch, owner_radius, height = self.pose()
+        return intersect(self.geometry, feet, yaw, pitch, origin, direction, length,
+                         radius, owner_radius, height)
+
+    def near(self, point, radius, visible):
+        return next(self.surface_distances(point, radius, visible), None) is not None
+
+    def surface_distances(self, point, radius, visible):
+        feet, yaw, pitch, owner_radius, height = self.pose()
+        return surface_distances(self.geometry, feet, yaw, pitch, point, point, radius, owner_radius,
+                                 height, visible=visible)
+
+
+class ReinhardtBarriers:
+    def __init__(self, fight):
+        self.fight = fight
+        self.geometry = fight.reinhardt_geometry
+        self.actors = {}
+        self.next_id = 0
+
+    def sync(self, owner):
+        if self.geometry is None or getattr(getattr(owner, "hero", None), "guid", None) != HERO:
+            return
+        script = owner.body_script
+        if (script is None or script.retired or script.component.strict or not owner.has_body
+                or not owner.spawned or owner.gone or owner.client is None):
+            self.actors.pop(owner.body, None)
+            return
+        instance = next((i for i in script.component.instances.values() if i.graph.index == 0x95), None)
+        if instance is None:
+            self.actors.pop(owner.body, None)
+            return
+        sync(self.fight, owner)
+        state = self.fight.reinhardt_barriers[owner.body]
+        actor = self.actors.get(owner.body)
+        if actor is None or actor.instance is not instance or actor.state is not state:
+            self.actors[owner.body] = RaisedBarrier(
+                FIRST + self.next_id, owner, owner.body, instance, self.geometry, state,
+            )
+            self.next_id += 1
+
+    def enemies(self, shooter):
+        for owner in self.fight.match.players:
+            self.sync(owner)
+        return [actor for actor in self.actors.values() if actor.active and actor.owner is not shooter
+                and (self.fight.match.game_map.free_for_all or actor.owner.team != shooter.team)]
+
+    def damage(self, actor, amount):
+        if not actor.active or amount <= 0:
+            return 0.0
+        before = actor.health
+        damage(self.fight, actor.owner, amount)
+        if actor.health == 0:
+            actor.instance.write((0, 61), actor.geometry.break_delay)
+            actor.instance.component.run_now()
+        return before - actor.health
+
+    def explosion(self, shooter, point, blast, visible_from, forced):
+        from ow174.game.combat import capsule_visible
+
+        radius = max((ring[0] for ring in blast.rings), default=0.0)
+        actors = {actor.entity: actor for actor in (*self.enemies(shooter), *forced)}
+        protected = set()
+        for actor in actors.values():
+            for target in self.fight._enemies(shooter, damageable=True):
+                a, b = target.segment()
+                centre = tuple((x+y)*.5 for x,y in zip(a,b,strict=True))
+                delta = tuple(x-y for x,y in zip(centre,visible_from,strict=True))
+                length = math.sqrt(sum(v*v for v in delta))
+                if length and actor.trace(visible_from, tuple(v/length for v in delta), length) is not None:
+                    protected.add(target.entity)
+            collision = self.fight._collision()
+            def visible(surface, collision=collision):
+                return capsule_visible(collision, visible_from, surface, surface, .001)
+            distance = 0.0 if actor in forced else min(actor.surface_distances(point, radius, visible),
+                                                      default=None)
+            if distance is not None:
+                self.damage(actor, blast.amount * blast.splash(distance))
+        return protected

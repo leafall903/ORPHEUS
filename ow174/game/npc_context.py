@@ -27,15 +27,16 @@ def controller_predicate(components):
 
 
 def native(world, cfg, instance):
+    query = cfg.get("$")
     if (world.hero != ENFORCER or world.controller_components is None or instance is None
-            or instance.graph.index != WEAPON):
+            or instance.graph.index != WEAPON or query not in {"STU_B96D3A98", "STU_9B7648C3"}):
         return NotImplemented
     target = cfg.get('m_entity')
     if not isinstance(target, dict) or instance.evaluate(target) != expr.Entity(instance.component.entity):
         return NotImplemented
-    if cfg.get('$') == 'STU_B96D3A98':
+    if query == 'STU_B96D3A98':
         return controller_predicate(world.controller_components)
-    if cfg.get('$') == 'STU_9B7648C3':
+    if query == 'STU_9B7648C3':
         # ReplicatedBody.set_health supplies the authoritative aggregate here.
         from ow174.game.script.driver import OWNER_HEALTH
 

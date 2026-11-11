@@ -17,10 +17,12 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    barriers,
     bots,
     brigitte,
     combat,
     correction,
+    echo_duplicate,
     heroselect,
     mei_wall,
     notices,
@@ -103,7 +105,7 @@ FIELDS = {
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts projected_barriers projected_casts sigma_barriers charge_contacts "
-        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls"
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen echo_duplicates barriers"
     ),
     combat.WaveHealthPool: _names("capacity current"),
     orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
@@ -117,6 +119,10 @@ FIELDS = {
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"
     ),
+    echo_duplicate.Duplicates: _names("combat states held busy"),
+    barriers.Barriers: _names("fight live seen next_entity world reinhardt"),
+    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
+    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -132,7 +138,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds passive_charge_ms ultimates reports report_count self_healing"
+        "retired first_owner_frame server_only ult_seconds passive_charge_ms ult_gain_bonus ultimates reports report_count self_healing"
     ),
     driver.BodyWorld: _names("hero mode body body_definition throttles match communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
                              "_body_owner_context _entity_query_context"),
@@ -178,6 +184,8 @@ DATACLASSES = (
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,
     brigitte.BashStun,
+    echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
+    reinhardt_barrier.RaisedBarrier,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

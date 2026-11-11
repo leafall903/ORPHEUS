@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Echo server integration
+
+- Integrate Echo's Tri-Shot, Sticky Bombs, Focusing Beam, Flight, Glide, and
+  Duplicate with the shared combat and StateScript implementation. Share
+  Reinhardt Barrier Field health and Sigma's temporary shield pool with
+  the existing authoritative state.
+- Pass 18 targeted projectile, reflection, absorption, and shield tests
+  with the 104319 runtime. Broader regression and original-client
+  verification remain open.
+
 #### Combined hero server intake
 
 - Bring the Brigitte combat bridge and its shared barrier, impulse and body
