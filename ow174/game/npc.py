@@ -91,6 +91,7 @@ def remove_spawned(match) -> tuple[int, ...]:
         bot.died(match.tick)
         bot.navigation = None
         match.combat._end_npc_hit_reaction(bot.entity)
+        match.combat.clear_pins(bot.entity)
         script, bot.body_script = bot.body_script, None
         if script is not None:
             component = script.component

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import test_script_join as join_tests
 
 from ow174.game.script import runtime
-from tests.test_script_runtime_budget import graph, node
+from test_script_runtime_budget import graph, node, plug
 
 
 class NotificationLifetimeTests(unittest.TestCase):
@@ -33,12 +33,12 @@ class NotificationLifetimeTests(unittest.TestCase):
         component.run_frame(1000)
         self.assertTrue(gate.current)
 
-    def scene(self):
+    def scene(self, extra=()):
         component = runtime.Component(1)
         instance = component.create(graph([node(
             0, 'STUStatescriptStateBooleanSwitch', state=0,
             m_condition={'$': 'STUConfigVarDynamic', 'm_identifier': 41, 'm_60DB8F99': 0},
-        )]), init=False)
+        ), *extra]), init=False)
         instance.initialized = True
         instance.write((runtime.INSTANCE, 41), False)
         state = instance.state(0)
@@ -93,3 +93,31 @@ class NotificationLifetimeTests(unittest.TestCase):
         self.assertFalse(case.arrive(instance, 4, caller=first))
         self.assertTrue(any(event.kind == runtime.CHECK and event.state is second
                             for event in instance.queue))
+
+    def test_canceled_join_check_does_not_suppress_a_later_join_activation(self):
+        component, instance, state = self.scene((
+            node(1, "STU_1113EBD5", m_B24D1794=2, m_122DF0CA=[0],
+                 m_outPlug=plug((4, "m_inPlug"))),
+            node(2, "STUStatescriptActionSetVar", m_outPlug=plug((1, "m_inPlug"))),
+            node(3, "STUStatescriptActionSetVar", m_outPlug=plug((1, "m_inPlug"))),
+            node(4, "STUStatescriptActionSetVar",
+                 m_out_Var={"$": "STUConfigVarDynamic", "m_identifier": 42, "m_60DB8F99": 0},
+                 m_value={"$": "STUConfigVarBool", "m_value": True}),
+        ))
+        instance.follow(instance.graph.node(2), "m_outPlug")
+        self.assertTrue(any(event.kind == runtime.CHECK for event in instance.queue))
+        state.end(False)
+        state.request(runtime.BEGIN)
+        component.run_now()
+        instance.follow(instance.graph.node(3), "m_outPlug")
+        component.run_now()
+        self.assertTrue(instance.vars[42].value())
+        self.assertFalse(state.active)
+        state.request(runtime.BEGIN)
+        component.run_now()
+        instance.follow(instance.graph.node(2), "m_outPlug")
+        self.assertTrue(any(event.kind == runtime.CHECK for event in instance.queue))
+
+
+if __name__ == "__main__":
+    unittest.main()

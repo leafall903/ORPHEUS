@@ -49,10 +49,12 @@ class BarrierWorld(runtime.World):
 
 class Geometry:
     def __init__(self, path):
-        data = json.loads(path.read_text(encoding="utf-8"))
+        self.load(json.loads(Path(path).read_text(encoding="utf-8")), model="0x0D00000000004062")
+
+    def load(self, data, *, model):
         if (data.get("schema") != "orpheus-orisa-geometry-v1"
                 or data.get("build") != "1.74.0.0.104319"
-                or data.get("model") != "0x0D00000000004062" or data.get("raw_sha256") != MODEL_SHA256):
+                or data.get("model") != model):
             raise ValueError("Orisa deployable geometry has wrong schema/build/model")
         triangles, masks = data["triangles"], data["masks"]
         if (not triangles or len(triangles) != len(masks)
@@ -61,11 +63,15 @@ class Geometry:
             raise ValueError("invalid Orisa barrier geometry")
         encoded = json.dumps({"triangles": triangles, "masks": masks}, sort_keys=True,
                              separators=(",", ":"), allow_nan=False).encode()
-        if hashlib.sha256(encoded).hexdigest() != MESH_SHA256:
+        if model == "0x0D00000000004062" and (
+                data.get("raw_sha256") != MODEL_SHA256 or hashlib.sha256(encoded).hexdigest() != MESH_SHA256
+        ):
             raise ValueError("Orisa barrier geometry does not match the verified104319 mesh")
         # Use the existing fingerprinted static-world asset type; queries still
         # use this model-local triangle mesh, with no character mover attached.
         self.world = World(triangles, masks)
+        self.triangles = tuple(tuple(tuple(t[k:k + 3]) for k in (0, 3, 6)) for t in triangles)
+        self.source = data["raw_sha256"]
 
     def cast(self, position, yaw, origin, direction, length, radius=0.0):
         cosine, sine = math.cos(yaw), math.sin(yaw)
@@ -83,6 +89,18 @@ class Geometry:
         hit = self.world.cast_ray(start, toward, length, category=0xFFFF)
         return hit.distance if hit is not None else None
 
+
+
+    def closest(self, position, yaw, point):
+        """Closest actual mesh point for blast radius/distance, in world coordinates."""
+        cosine, sine = math.cos(yaw), math.sin(yaw)
+        x, y, z = (a - b for a, b in zip(point, position, strict=True))
+        local = (cosine * x - sine * z, y, sine * x + cosine * z)
+        candidates = (contacts.closest_on_triangle(a, b, c, local) for a, b, c in self.triangles)
+        near = min(candidates, key=lambda p: math.dist(p, local))
+        x, y, z = near
+        return (position[0] + cosine * x + sine * z, position[1] + y,
+                position[2] - sine * x + cosine * z)
 
 
 @dataclass
@@ -193,23 +211,35 @@ class Barriers:
             team = shooter.team
         return tuple(b for b in self.active.values()
                      if b.health > 0 and b.owner is not shooter
-                     and (b.blocking() if b.script is not None else self.fight.tick < b.until)
+                     and (b.blocking() if isinstance(b, Barrier) and b.script is not None else self.fight.tick < b.until)
                      and (self.fight.match.game_map.free_for_all or b.team != team))
 
     def intersection(self, shooter, origin, direction, length, *, radius=0.0):
+        return self.trace(shooter, origin, direction, length, radius=radius)
+
+    def trace(self, shooter, origin, direction, length, *, radius=0.0, barriers=None):
+        if self.geometry is None:
+            return None
         nearest = None
-        for barrier in self.opponents(shooter):
+        for barrier in self.opponents(shooter) if barriers is None else barriers:
             distance = self.geometry.cast(barrier.position, barrier.yaw, origin, direction, length, radius)
             if distance is not None and (nearest is None or distance < nearest[0]):
                 nearest = distance, barrier
         return nearest
 
-    def damage(self, barrier, amount):
-        barrier.health = max(0.0, barrier.health - max(0.0, amount))
+    def damage(self, barrier, amount, distance=None, *, multiplier=1.0):
+        if distance is not None:
+            amount = amount.amount * amount.scale(distance) * multiplier
+        taken = min(barrier.health, max(0.0, amount))
+        barrier.health -= taken
         if barrier.component is not None:
             barrier.component.set(253, barrier.health)
         if barrier.health <= 0:
             self.remove(barrier.entity)
+        return taken
+
+    def splash(self, barrier, definition, distance, *, multiplier=1.0):
+        return self.damage(barrier, definition.amount * definition.splash(distance) * multiplier)
 
     def remove(self, entity):
         barrier = self.active.pop(entity, None) or self.retiring.pop(entity, None)

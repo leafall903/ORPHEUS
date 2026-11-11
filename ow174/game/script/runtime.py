@@ -584,6 +584,12 @@ class World:
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
+    def modify_health(self, state: "State", elapsed_ms: int):
+        return NotImplemented
+
+    def end_health(self, state: "State") -> None:
+        pass
+
     def property_modifiers(self, entity: int):
         """An explicitly known native component 31, None if absent, or unknown."""
         return NotImplemented

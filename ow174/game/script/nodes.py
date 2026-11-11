@@ -2223,6 +2223,7 @@ class WeaponVolley(State):
         self.spread_ramp: float | None = None
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
+        self.last_values: dict[tuple, object] = {}
 
     def on_enter(self) -> None:
         self.offset = 0
@@ -2230,6 +2231,15 @@ class WeaponVolley(State):
         self.reported = 0
         self.params()
         self.arm()
+        self.ticks()
+
+    def tick(self) -> None:
+        # Linked ammo/spread outputs are functions of the clock. Watchers must
+        # see their transitions even when no external SetVar writes the slot.
+        # In particular, the authored empty-magazine branch starts auto reload.
+        for var in self.links:
+            before = self.last_values.get(var.key, var.value())
+            self.last_values[var.key] = self.instance.changed(var, before)
 
     def report(self, until: int) -> None:
         """Put the shots fired up to `until` (ms) that are not on the component's list yet on it: shot k
@@ -2279,6 +2289,7 @@ class WeaponVolley(State):
             var.base = value
             self.links.append(self.link(target, slot))
             self.instance.changed(var, before)
+        self.last_values = {var.key: var.value() for var in self.links}
 
     def _out(self, name: str) -> Var | None:
         target = lvalue(_field(self, name))
@@ -2323,17 +2334,16 @@ class WeaponVolley(State):
         return self.spread_at(self.now - self.start - self.offset)
 
     def spread_at(self, elapsed: int) -> float:
-        """239B571E normalized spread, captured PC104319 D80A50-D80A99.
+        """D80A50 normalized spread for the launch without between-shot decay."""
+        return self.spread_for_index(self.shots_at(elapsed) + 1)
 
-        The ramp is baked when firing starts; the output is not an angle.
-        D5F979-D5F996 passes completed shots plus one to the ramp function.
-        Optional between-shot decay and other launch classes remain unmodeled.
-        """
+    def spread_for_index(self, index: int) -> float:
+        """D80A50 accepts a count supplied by its caller."""
         if self.spread_ramp is None:
             return self.spread0
         if self.spread_ramp < f32(1e-7):
             return 1.0
-        increase = f32(max(0, self.shots_at(elapsed) + 1) / self.spread_ramp)
+        increase = f32(max(0, index) / self.spread_ramp)
         return min(1.0, f32(increase + f32(self.spread0)))
 
     def on_end(self, finished: bool) -> None:
@@ -2343,11 +2353,12 @@ class WeaponVolley(State):
         for var in self.links:
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
-                before = var.value()
+                before = self.last_values.get(var.key, var.value())
                 var.base = values.get(link.slot)
                 self.unlink(var)
                 self.instance.changed(var, before)
         self.links = []
+        self.last_values = {}
 
     def payload(self) -> dict:
         return {"start": self.start, "offset": self.offset, "volleys": self.volleys, "counter": self.counter}

@@ -1,6 +1,6 @@
 """The NPC body's statescript, shared by all observers."""
 
-from ow174.game import observers
+from ow174.game import assassin, observers
 from ow174.game.bits import BitWriter
 from ow174.game.bots import FIRING
 from ow174.game.content import PRACTICE_RANGE_MODE
@@ -45,7 +45,7 @@ class BotWorld(runtime.World):
         self.manual_target = None
 
     def ai_weapon_button(self, slot: int) -> int | None:
-        if self.hero == 0x02E00000000001BB and self.controller_components is not None and slot == 0:
+        if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
             return 36
         return self.weapon_buttons.get(str(slot))
 
@@ -53,14 +53,29 @@ class BotWorld(runtime.World):
         # Reconstruction policy for the single authored firing placement behavior.
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
+    def entity_var(self, entity: int, var: int):
+        # 1157's timed release reads these members on the engaged victim.
+        if (self.hero == assassin.HERO and self.match is not None and entity == self.manual_target
+                and var in (478, 2380)):
+            for player in self.match.players:
+                script = player.body_script
+                if (player.body == entity and player.spawned and not player.gone
+                        and script is not None and script.component.entity == entity):
+                    value = script.component.entity_var(var, create=False)
+                    return value.value() if value is not None else None
+        return super().entity_var(entity, var)
+
     def native(self, cfg: dict, instance: runtime.Instance):
-        from ow174.game import assassin, npc_context
+        from ow174.game import assassin, npc_context, orisa_halt
 
         result = assassin.native(self, cfg, instance)
         if result is NotImplemented:
             result = npc_context.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
+        halt = orisa_halt.native(self, cfg, instance)
+        if halt is not NotImplemented:
+            return halt
         if cfg.get("$") == "STU_AC829876" and self.match is not None:
             result = self.match.combat.brigitte.native(cfg, instance)
             if result is not NotImplemented:
