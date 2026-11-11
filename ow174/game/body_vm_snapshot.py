@@ -13,6 +13,7 @@ import random
 import types
 
 from ow174.game import replay_values
+from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
@@ -64,7 +65,7 @@ _STATE = frozenset((
 _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
-    "ult_gain_bonus", "ultimates", "reports", "report_count",
+    "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing",
 ))
 _SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
 _GRAPH = frozenset((
@@ -75,6 +76,7 @@ _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only",
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
     nodes.FilterArray: ((), ()),
+    nodes.StaticTagTarget: ((), ()),
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
@@ -501,7 +503,7 @@ class _Export:
         if kind is graph.Node:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld):
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -522,6 +524,8 @@ class _Export:
                 fields.add("barrier")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
+            if kind is SupportWorld:
+                fields.update(("match", "source", "owner"))
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
             if kind is PullQuery:

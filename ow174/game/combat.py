@@ -90,6 +90,7 @@ from ow174.game import (
     world,
     world_bubbles,
 )
+from ow174.game.script import support, support_effects
 from ow174.game import knockback, lucio, orisa, orisa_charge, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
@@ -1225,6 +1226,7 @@ class Combat:
         self.lucio_auras = lucio.Auras(self)
         self.knockbacks = knockback.Knockbacks(self)
         self.soundwaves = []
+        self.support_effects = support_effects.Effects(match)
         self.health_packs, self.health_pack_digest = health_packs.mount(match, match.tick)
         # Bounded flight results for ability impact/deployable consumers.
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
@@ -1390,6 +1392,7 @@ class Combat:
                 charge.pinned = None
         self.sombra_controls.retire(player.body)
         self.sound_barriers.retire(player.body)
+        self.support_effects.retire(player.body)
         self.lucio_auras.retire(player.body)
         self.knockbacks.retire(player.body)
         self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != player.body]
@@ -1634,7 +1637,8 @@ class Combat:
                     # the stunned command gate still blocks drawing new swings.
                     # This scoped server control policy is reconstructed.
                     if (not (instance.graph.index == 0x0317 and state in getattr(script, "ultimates", ()))
-                            and not lucio.keep_active_amp_on_stun(script, state)):
+                            and not lucio.keep_active_amp_on_stun(script, state)
+                            and support.interrupt_on_stun(script, state)):
                         state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
         component.shots.clear()
@@ -1946,6 +1950,7 @@ class Combat:
             self.genji_strikes.pop(player.body, None)
             self.genji_blades.pop(player.body, None)
         healing, script.self_healing = script.self_healing, 0.0
+        support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
         if healing > 0.0:
@@ -1954,6 +1959,8 @@ class Combat:
                 vitals = self.vitals_of(target)
                 if vitals.heal(healing * vitals.healing_factor(self.now)) > 0.0:
                     self._sync_body_health(player, vitals)
+        for frame, entity, amount, tags in support_healing:
+            self.heal_target(player, entity, amount, frame, tags=tags)
         if player.hero.guid == 0x02E0000000000068:
             self._sync_projected_barrier(player, script)
         reinhardt_barrier.sync(self, player)
@@ -2750,6 +2757,7 @@ class Combat:
         self.healing.prepare()
         self.baptiste.update(tick)
         self.healing.prune()
+        self.support_effects.prune({target.entity for target in self._targets()})
         self.absorption.update()
         self.match.deliver_body_messages()
         if frames:
@@ -3111,6 +3119,75 @@ class Combat:
         return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner,
                       target.critical_allowed, target.capsule)
 
+    def script_targets(self, source: int, state):
+        """Reconstructed Mercy staff selection, restricted to its actual query states.
+
+        Radius and cone angle are evaluated from104319 fields. Capsule-centre
+        aim ranking/occlusion and half-angle interpretation await native/client
+        comparison. Other target geometries and status filters remain unmounted.
+        """
+        staff = state.instance.graph.index == 0x006B and state.index in (4, 5, 51)
+        guardian = state.instance.graph.index == 0x006E and state.index in (5, 14)
+        resurrect = state.instance.graph.index == 0x00CA and state.index in (14, 38)
+        if not staff and not guardian and not resurrect:
+            return NotImplemented
+        player = next((p for p in self.match.players if p.has_body and p.body == source), None)
+        if player is None or player.hero.guid != regeneration.MERCY:
+            return NotImplemented
+        if self.is_dead(player) or self.match.game_map.free_for_all:
+            return ()
+        radius = _number(state.evaluate(state.node.field("m_radius"), watch=False), 0.0)
+        angle = _number(state.evaluate(state.node.field("m_A30B383E"), watch=False), 360.0)
+        origin = self._eye(player)
+        direction = aim(player.mover.yaw, player.mover.pitch)
+        retained = None
+        if staff and state.index == 5:
+            selected = state.instance.find_var(graph.INSTANCE, 375).value()
+            retained = {item.id for item in selected if isinstance(item, expr.Entity)} if isinstance(
+                selected, tuple) else set()
+        elif staff:
+            hold = state.instance.states.get(5)
+            if hold is not None and hold.active:
+                # A retiring hold cancels its queued begins. Let its authored
+                # reset finish before the acquisition state hands off again.
+                return ()
+        component = state.instance.component
+        frame = component.frame
+        expiry = component.world.historical_valkyrie_deadline() if staff else None
+        historical_boost = (expiry is not None and frame < self.tick and state.now < expiry
+                            and support_effects.staff_boost_selected(state.instance))
+        candidates = []
+        for target in self._targets():
+            if (target.entity == source or target.team != player.team
+                    or isinstance(target.owner, actors.Deployable)):
+                continue
+            dead = self.vitals_of(target).dead
+            if resurrect and (not dead or isinstance(target.owner, bots.Bot)):
+                continue
+            if historical_boost:
+                target = support_effects.boost_target_at(self, target, frame)
+                if target is None:
+                    continue
+            elif dead and not resurrect and (not guardian or isinstance(target.owner, bots.Bot)):
+                continue
+            if retained is not None and target.entity not in retained:
+                continue
+            centre = (target.feet[0], target.feet[1] + target.height * 0.5, target.feet[2])
+            offset = _sub(centre, origin)
+            distance = math.sqrt(_dot(offset, offset))
+            if distance > radius or distance <= EPSILON:
+                continue
+            forward = tuple(value / distance for value in offset)
+            alignment = _dot(direction, forward)
+            if angle < 360 and alignment < math.cos(math.radians(max(0.0, angle) * 0.5)):
+                continue
+            wall = self.ray_obstruction(origin, forward, distance)
+            if wall is not None and wall < distance:
+                continue
+            candidates.append((-alignment, distance, target.entity))
+        candidates.sort()
+        return tuple(row[2] for row in candidates[:1])
+
     def _hit_targets(self, shooter, definition: HitDef | None) -> list[Target]:
         """Direct healing selects living teammates, excluding the source and FFA opponents.
 
@@ -3256,6 +3333,18 @@ class Combat:
             if actor.entity == entity:
                 return actor.vitals.total, actor.vitals.maximum
         return NotImplemented
+
+    def heal_target(self, healer, entity, amount, frame, *, allow_self=False, tags=None):
+        if (amount <= 0 or (entity == healer.body and not allow_self)
+                or (self.match.game_map.free_for_all and entity != healer.body)
+                or self.replacement_ticks.get(entity, frame) > frame):
+            return 0.0
+        target = next((target for target in self._targets() if target.entity == entity), None)
+        if (target is None or target.team != healer.team or self.vitals_of(target).dead
+                or isinstance(target.owner, actors.Deployable)):
+            return 0.0
+        identifiers = tuple(tag.guid for tag in tags or ())
+        return self._heal_target(healer, target, amount, source_entity=healer.body, tags=identifiers)
 
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
                      end_tick=None):
@@ -3435,6 +3524,19 @@ class Combat:
         height = eye_height(player.hero.body, crouched)
         return (x, y + height, z)
 
+    def _support_hit(self, shooter, definition):
+        if definition is None or definition.healing or self.match.game_map.free_for_all:
+            return definition
+        source = _source_entity(shooter)
+        bonus = max((
+            support.boost_amount(player.body_script, source)
+            for player in self.match.players
+            if player is not shooter and player.has_body and not player.gone
+            and player.team == shooter.team and player.body_script is not None
+            and not self.is_dead(player)
+        ), default=0.0)
+        return replace(definition, amount=definition.amount * (1.0 + bonus)) if bonus else definition
+
     def _shoot(
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None,
@@ -3485,7 +3587,7 @@ class Combat:
             # Declared server identity and uniform-radius sampling policy.
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
-        direct = hit_def(state, node.field("m_6396149F"))
+        direct = self._support_hit(shooter, hit_def(state, node.field("m_6396149F")))
         entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
         asset = state.evaluate(entity_def, watch=False) if entity_def is not None else None
         definition = asset.guid if isinstance(asset, expr.Asset) else None
@@ -3504,7 +3606,7 @@ class Combat:
                 gravity = projectiles.unconditional_gravity(state)
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
-            blast = hit_def(state, node.field("m_D2D11CE9"))
+            blast = self._support_hit(shooter, hit_def(state, node.field("m_D2D11CE9")))
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
             if biotic_grenade:
@@ -5937,6 +6039,7 @@ class Combat:
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
         self.sound_barriers.retire(bot.entity)
+        self.support_effects.retire(bot.entity)
         self.lucio_auras.retire(bot.entity)
         self.knockbacks.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
@@ -6002,6 +6105,7 @@ class Combat:
         """Dispatch notices, authored death, and the respawn."""
         self.sombra_controls.retire(victim.body)
         self.sound_barriers.retire(victim.body)
+        self.support_effects.retire(victim.body)
         self.lucio_auras.retire(victim.body)
         self.knockbacks.retire(victim.body)
         self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != victim.body]

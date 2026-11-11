@@ -349,6 +349,11 @@ def bodies() -> dict[int, dict]:
     return {int(key, 16): record for key, record in _data()["bodies"].items()}
 
 
+def effect_script(definition: int) -> dict | None:
+    """An extracted .053 gameplay-effect binding, when present in the runtime pack."""
+    return (_data().get("effect_scripts") or {}).get(f"0x{definition:016X}")
+
+
 def entity_body(body: int) -> dict | None:
     """An optional non-player body definition from the same graph bundle."""
     return (_data().get("entities") or {}).get(f"0x{body:016X}")

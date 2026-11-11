@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mercy staff and Guardian Angel integration
+
+- Mount the delivered staff selection, healing reports, and support-effect
+  components in the Python server. Use the existing healing service for
+  actual restored health, grenade modifiers, and source statistics.
+- Mount Guardian Angel's authored target search, flight, cancellation, and
+  cooldown. The target check reads the prepared script's resolved destination.
+  All 26 staff and Guardian Angel tests passed. The 33 core combat and
+  three weapon-effect checks also passed.
+- The extracted effect pack supplies the original healing and damage-boost
+  graphs. Weapon launches capture the strongest active boost and keep it
+  through projectile flight. Resurrection, Valkyrie clock and pose, expanded
+  charge attribution, and original-client acceptance remain in progress.
+
 ### Lucio passive timer ownership
 
 - Retire the 0B8B passive timer after 01C7 creates its child component and

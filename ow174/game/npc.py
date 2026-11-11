@@ -133,6 +133,7 @@ def remove_spawned(match) -> tuple[int, ...]:
             continue
         match.combat.clear_pins(bot.entity)
         match.combat.knockbacks.retire(bot.entity)
+        match.combat.support_effects.retire(bot.entity)
         match.combat.sound_barriers.retire(bot.entity)
         match.combat.lucio_auras.retire(bot.entity)
         match.combat.sombra_controls.retire(bot.entity)

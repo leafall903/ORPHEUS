@@ -337,6 +337,10 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if self.hero == regeneration.MERCY and self.match is not None and not state.instance.component.strict:
+            targets = self.match.combat.script_targets(self.body, state)
+            if targets is not NotImplemented:
+                return tuple(expr.Entity(entity) for entity in targets)
         from ow174.game import sound_barrier
 
         if (self.hero == sound_barrier.HERO and self.match is not None and not state.instance.component.strict
@@ -365,6 +369,13 @@ class BodyWorld(runtime.World):
 
             return () if self.match is None else nano.targets(self.match.combat, self.body, state)
         return immunity.transcendence_targets(self, state)
+
+    def historical_valkyrie_deadline(self):
+        if self.hero != regeneration.MERCY or self.match is None:
+            return None
+        player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        history = getattr(player, "valkyrie_pose", None)
+        return history.expires_ms if history is not None else None
 
     def ability_start_allowed(self, state) -> bool:
         # The hosted projection supplies its overlap gate while the native
@@ -1580,6 +1591,7 @@ class BodyScript(ReplicatedBody):
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
         self.self_healing = 0.0
+        self.support_healing = []
         initial_pools = (pools.body_pools(hero) if body_definition is None
                          else pools.active_pools(hero, body_definition))
         self._spawn(start_frame, sum(initial_pools) if health is None else health)
@@ -1598,6 +1610,10 @@ class BodyScript(ReplicatedBody):
         component.now = frame * self.frame_ms
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
+        if self.hero == regeneration.MERCY:
+            # The delivered targeting graphs multiply their authored cones by these inputs.
+            component.set(9583, 1.0)
+            component.set(9582, 1.0)
         from ow174.game import lucio
 
         if self.hero == lucio.HERO and self.world.match is not None:
@@ -1703,6 +1719,9 @@ class BodyScript(ReplicatedBody):
                     runtime.send_instance_message(common, lucio.CHARGE_ACTIVE, {}, player.entity)
         self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
+        from ow174.game.script import support
+
+        self.support_healing.extend(support.healing_reports(self, frame))
         immunity.advance_startup(self.component)
         self._report_shots()
         self._charge_ult()

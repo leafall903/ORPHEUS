@@ -1210,7 +1210,7 @@ class Match:
                                         plan_budget=budgets.get(bot.entity, 0))
                     continue
                 script = bot.body_script
-                mods = statescript_mods(script.component) if script is not None else {}
+                mods = statescript_mods(script.component) if script is not None and not bot.dead else {}
                 pull_mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
                 if pull_mods:
                     mods.update(pull_mods)
