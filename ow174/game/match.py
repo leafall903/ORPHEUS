@@ -1465,7 +1465,12 @@ class Match:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
-        orisa_charge.restore(script, charge_ratio, player.entity)
+        from ow174.game import lucio
+
+        if script.hero == lucio.HERO:
+            lucio.restore_charge(script, charge_ratio, player.entity)
+        else:
+            orisa_charge.restore(script, charge_ratio, player.entity)
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
@@ -1681,6 +1686,8 @@ class Match:
             pose = (tuple(mover.position), mover.yaw, mover.pitch,
                     mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
+        from ow174.game import lucio
+
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
@@ -1692,6 +1699,8 @@ class Match:
             # The old script stays live until the replacement ID is secured.
             if old_hero == hero.guid == GENJI and player.body_script is not None:
                 ult_fraction = player.body_script.ult_fraction()
+            if old_hero == hero.guid == lucio.HERO:
+                charge_ratio = lucio.replacement_charge_ratio(player.body_script, hero.guid, entity)
             self.combat.retire_player_body(player)
         player.hero = hero
         if old is not None:

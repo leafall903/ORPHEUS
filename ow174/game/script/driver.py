@@ -662,7 +662,12 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import lucio_movement, mccree, sombra_control
+        from ow174.game import lucio, lucio_movement, mccree, sombra_control
+
+        if self.hero == lucio.HERO:
+            charge_value = lucio.damage_charge_query(self, cfg, instance)
+            if charge_value is not NotImplemented:
+                return charge_value
 
         movement_value = lucio_movement.query(self, cfg, instance)
         if movement_value is not NotImplemented:
@@ -1598,6 +1603,12 @@ class BodyScript(ReplicatedBody):
         if self.hero == lucio.HERO and self.world.match is not None:
             for identifier, value in lucio.SETTING_DEFAULTS.items():
                 component.set(identifier, value)
+            if self.world.ruleset(lucio.ULTIMATE_ENABLED) is False:
+                component.set(lucio.ULTIMATE_ENABLED, False)
+            for key in (lucio.ULTIMATE_GENERATION, lucio.PASSIVE_GENERATION, lucio.COMBAT_GENERATION):
+                value = self.world.ruleset(key)
+                if value is not None and value != 1:
+                    component.set(key, value)
         if self.hero == GENJI and self.world.match is not None:
             # Normal server profile, not a claim about original server-only
             #01C7 initialization/mode flags. Authored mode/ultimate gates still run.
@@ -1606,6 +1617,13 @@ class BodyScript(ReplicatedBody):
             component.set(11942, False)
         for instance in create_body_graphs(component, self.record):
             instance.init()
+            if self.hero == lucio.HERO and self.world.match is not None and instance.graph.index == ULT_GAIN_GRAPH:
+                # init queues ordinary entries. The world clock owns the passive
+                # entry, while combat, restore and spawn messages stay available.
+                instance.queue[:] = [
+                    event for event in instance.queue
+                    if not (event.kind == runtime.ENTRY and event.node.pos == 2)
+                ]
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
         for instance in component.instances.values():
@@ -1666,10 +1684,20 @@ class BodyScript(ReplicatedBody):
                 self.component.set(545, grounded)
             self.component.set(2070, bool(forward or right))
         self._run(frame, button_edges(self.buttons, buttons, action))
+        if self.hero == 0x02E0000000000079 and self.world.match is not None:
+            self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
         self.frame = frame
 
     def _run(self, frame: int, edges: list) -> None:
+        from ow174.game import lucio
+
+        if self.hero == lucio.HERO:
+            player = lucio.charge_player(self.world, self.component)
+            if player is not None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None and not common.node_state(common.graph.node(77)).active:
+                    runtime.send_instance_message(common, lucio.CHARGE_ACTIVE, {}, player.entity)
         self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
         immunity.advance_startup(self.component)
@@ -1751,6 +1779,8 @@ class BodyScript(ReplicatedBody):
         return after - before
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E0000000000079 and self.world.match is not None:
+            return
         if self.hero == baptiste.HERO and self.ult_seconds is None:
             if self.retired or self.component.owner_dead or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
                 self.passive_charge_ms = 0

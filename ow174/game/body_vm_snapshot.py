@@ -66,6 +66,7 @@ _SCRIPT = frozenset((
     "create_arrived", "retired", "first_owner_frame", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
     "ult_gain_bonus", "ultimates", "reports", "report_count",
 ))
+_SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -730,7 +731,7 @@ class _Export:
         }
         if script is not None:
             result["body_script_fields_identity"] = self.identity(vars(script))
-            result["body_script"] = self.fields(script, _SCRIPT, exclude=TRANSPORT_FIELDS)
+            result["body_script"] = self.fields(script, _SCRIPT, _SCRIPT_OPTIONAL, exclude=TRANSPORT_FIELDS)
         cursor = 0
         while cursor < len(self.pending):
             kind, obj = self.pending[cursor]
@@ -806,7 +807,7 @@ def export_component_vm_with_identities(component, *, extra_roots=(), _graph_def
 def export_body_vm(script) -> dict:
     if type(script) is not BodyScript:
         raise BodyVMSnapshotError("unknown body script class")
-    data = _layout(script, _SCRIPT)
+    data = _layout(script, _SCRIPT, _SCRIPT_OPTIONAL)
     if data["world"] is not data["component"].world or data["entity"] != data["component"].entity:
         raise BodyVMSnapshotError("body script component/world identity mismatch")
     return _document(data["component"], data["ultimates"], script)[0]

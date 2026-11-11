@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Lucio ultimate charge integration
+
+- Route Lucio's charge through the authored 0B8B gates and health events.
+  Apply configured spawn, passive and combat generation rules on the world
+  clock, credit effective healing and damage to base pools, and restore the
+  unspent ratio through the authored same-hero respawn message.
+- Store the passive deadline and last command tick in the server and body
+  snapshots. Headless checks cover sparse input, lethal impact ordering,
+  temporary shields, and re-entry after Sound Barrier. Original-client
+  acceptance remains pending.
+
 ### Lucio wall movement and knockback integration
 
 - Mount the delivered 0263 wall-contact controller and next-frame velocity
@@ -27,8 +38,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   temporary shield. EMP removes it, Adaptive Shield retains damage precedence,
   and Biotic Rifle can heal injured teammates under temporary shields.
 - The combined test runtime mounts the external 0267, 073B and 07C7 graphs
-  with the existing ORPHEUS_GRAPH_SUPPLEMENT setting. The ultimate-rule
-  changes and original-client acceptance remain pending.
+  with the existing ORPHEUS_GRAPH_SUPPLEMENT setting.
 
 ### Sombra control integration
 

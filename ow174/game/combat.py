@@ -2725,6 +2725,9 @@ class Combat:
                 for wave in due:
                     self._resolve_soundwave(wave)
             self._bot_weapons(at)
+            for player in self.match.players:
+                if player.hero.guid == lucio.HERO:
+                    lucio.advance_passive_charge(player, at)
             self._advance_timed_hits()
             if self.lucio_auras.leases or self.lucio_auras.healing:
                 self.lucio_auras.update(at)
@@ -5727,6 +5730,8 @@ class Combat:
             self.barriers.damage(bubble, amount, shooter)
             return False
         base_before = vitals.base_total
+        if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
+            lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
         if self.now < vitals.nano_until:
             amount *= 0.5
         adaptive = vitals.extra.get(("adaptive", moira.ADAPTIVE_SHIELD_TAG))
@@ -5770,6 +5775,8 @@ class Combat:
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
                 orisa_charge.damage(shooter, target, dealt, loadout)
+                if source_body is None or source_body == shooter.body:
+                    lucio.charge_damage(shooter, target, base_before - vitals.base_total, loadout)
                 moira.gain_combat_charge(
                     shooter, dealt, body=source_body, damage_target=target, damage_tags=hit_tags,
                     adaptive_loss=adaptive_loss,
@@ -5786,7 +5793,7 @@ class Combat:
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source
-                    and hero not in (0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, moira.MOIRA)
+                    and hero not in (0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 script.gain_ult_charge(points)
