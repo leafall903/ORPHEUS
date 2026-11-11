@@ -5,6 +5,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### Preserve Genji's delivered posthumous projectile credit
+
+- Scope the delivered Ana owner-dead charge rejection to Ana. Keep Genji's
+  delivered policy allowing owned projectiles to credit the same dead body
+  until retirement, while retired/faulted scripts remain ineligible.
+- Both the actual Genji posthumous projectile and Ana death-credit rejection
+  checks pass. The 27-check Genji ultimate/carry rerun retains only two existing
+  subtest failures in the old native-query injection fixture. Before this fix,
+  the 113-check combat/weapon/mobility/strike/blade/input/ultimate/carry selection
+  had that regression plus three baseline subtest failures; the exact-flight
+  boundary and native-query cases reproduce in the pre-change intake tree.
+- Preserve implemented generic array reduction rather than restoring the old
+  native query interception solely for that fixture. No client acceptance or
+  full cross-hero acceptance is claimed.
+
+
+
 ### McCree delivery history integration
 
 - Merge delivery 5f8423c0. Its complete McCree implementation is retained with
