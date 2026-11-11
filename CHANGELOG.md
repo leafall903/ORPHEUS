@@ -5,6 +5,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 
+### McCree delivery history integration
+
+- Merge delivery 5f8423c0. Its complete McCree implementation is retained with
+  the combined movement speed scalar and dedicated spread adapter. The three
+  barrier-only scene publication helpers are covered by the existing generalized
+  spawned-entity publication path, which handles barriers and the Vengeful Ghost.
+  Keep collection_index and the generic removal action rather than older helpers.
+- The merge introduces no gameplay changes. The preceding eight-module check
+  and repaired snapshot fixture cover the delivered combat/storage selection;
+  no client acceptance or completion of other delivery lines is claimed.
+
+
+
 ### McCree delivery snapshot fixture reconciliation
 
 - Supply the existing snapshot graph's explicit definition-digest registry in
