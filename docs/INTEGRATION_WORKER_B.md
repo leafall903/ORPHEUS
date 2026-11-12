@@ -1971,3 +1971,37 @@ No original-client acceptance run. Next exact action: restore complete original
 023B grasp_shields fixture with actual state/pool/ledger observers, retain all
 numeric expectations, and audit legitimate fresh second-cast/decay/lifecycle
 against same1D03 and native queue. Then source typedfilter/query caller audit.
+
+
+## B73 — complete original Grasp shield consumers/checks, exact host observers
+
+Restore full source023B test_sigma_grasp_shields.py. Map constants to actual
+absorption/sigma_charge, original single named-pool amount to sum of actual
+TemporaryPool5847 records (including retainedzero tombstones), live decay owners
+to actual living positive pool groups, and originalgrasp_grants to existing
+absorption.converted. Read declared delay from the actual entered Wait71,
+recovery deadline from actual0033 expression/lastdamage, and invoke actual
+interception.play_shield_script for that specific compatible action. Helpers
+read same runtime records; they do not create a health/decay manager or run VM.
+
+Wire getter selects the actual TemporaryPool.slot: combined reserves slot1 for
+other existing shields, so typed1D03 allocates slot2. Original payload/id/kind/
+amount/max assertions stay unchanged; source hardcoded slot1 otherwise read
+None. Wire test now1/1 pass2.771s. All source assertion-call ASTs match under
+explicit real observer mappings, no numeric expectation is changed.
+
+Original11run33.685s initially8pass2fail1wiregettererror; correctedwire passes.
+Fresh legitimate secondcast,400cap, realdamage/healing, selfdamage/recovery,
+death/replacement and all base pool expectations pass. Two sourcefailures are
+REAL missing world-decay consumers, not stale observations: inputless/sparse
+worldupdate leaves36 rather than26, and436 rather than400 before replay.
+Current update_pools only enters decay after bodyVM28 is active; source
+ShieldDecay independently consumes Wait71's declared deadline. Preserve both
+original assertions and fix actual producer/worldclock in next small batch.
+Logs worker-b-sigma-grasp-shields-{source,wire}.log retain both stages.
+
+No production change/client acceptance in this batch. Next exact action:
+restore actual original decay deadline/rate on existing soleTemporaryPoolgroup,
+using precise grant receipt bodyms/worldtick association, with zero/capped
+grants unable to extend an existing delay. No global clock/VM advancement or
+input lease; prove raw unequal epoch and same-domain sparse fixtures.
