@@ -1,0 +1,215 @@
+{
+  "observed_at": "2026-11-12T15:11:54.014319+00:00",
+  "implementation_closure_head": "6ed3cb8edfbcf1be1961087423b6a81c2052a75a",
+  "closure_basis": [
+    "A105/A106/A107 original owner and tool consumers",
+    "B96-B100 original owners, explicit SDK and exact force endpoint",
+    "C71-C76 original owners, precise platform queries, Sniper scopes and baseline actual consumers",
+    "root actual original platform lifecycle and primary/explicit/automatic Sniper receipts",
+    "root final-force-sdk joint43/43 pass98.148s"
+  ],
+  "reviewed_tree": "efc94230675da157b6c588c34fc93d6b9737c733",
+  "final_tree": "efc94230675da157b6c588c34fc93d6b9737c733",
+  "final_head": "79721cf664e19008320912e7fcc5d383ed7f37f2",
+  "source_records": [
+    {
+      "ref": "refs/hero-deliveries/0002",
+      "source_sha": "4babd03311d49f89b9a819522fe23f72a5b2306a",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "964eb8851657ebc42ae5543d426e7c57e3c6bd50"
+    },
+    {
+      "ref": "refs/hero-deliveries/0003",
+      "source_sha": "8a3ece2db99405a6c14e3e36c0492fc71d4bb48c",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "4f1ca2d0ccfb85a0511e20b90be1cba9035210c0"
+    },
+    {
+      "ref": "refs/hero-deliveries/0004",
+      "source_sha": "14a69f134b36767ca7bfd2978a1468a7b6c37cb7",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "ad96ccde9ffee44f0e7b1f27d48b09a7fb140938"
+    },
+    {
+      "ref": "refs/hero-deliveries/0005",
+      "source_sha": "2b67b154a11b7e930ee431182d8e3a70cb90b8bb",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "23a95dcea29bdf59a4385fc3a50149b34b057456"
+    },
+    {
+      "ref": "refs/hero-deliveries/0006",
+      "source_sha": "3d4d42993cfcd78a954e20c1d273ce8b5e0905f5",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "218426c72295325e3decf7957cbc01876d3eafc1"
+    },
+    {
+      "ref": "refs/hero-deliveries/0007",
+      "source_sha": "84d5169caba76cc4e5656fa22a95a8ad268a9eb1",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "d01c9094e296d298106feb1980c62e8d32568a16"
+    },
+    {
+      "ref": "refs/hero-deliveries/0008",
+      "source_sha": "49c079c48b8ef0b72b770c17f8ad943e2adbe615",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "3aecccdbf490e9a956f84c186b3146f676b3c277"
+    },
+    {
+      "ref": "refs/hero-deliveries/0009",
+      "source_sha": "a16208f070c96f76e235000dd8bd314e08a852a3",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "4889f9066e0167fc030421b99233e2eb2f83e2f7"
+    },
+    {
+      "ref": "refs/hero-deliveries/000A",
+      "source_sha": "0bbf016a88d6272db5358c5e4f6a611d4db5b327",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "bc15d91cdf9f83f4485300075ed2ddbf06a1d7d4"
+    },
+    {
+      "ref": "refs/hero-deliveries/0015",
+      "source_sha": "034e5ffbc1b31761a669a520710f2e47c5f863e8",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "5250e870ec2571505a86870befeef23f1f9cfcba"
+    },
+    {
+      "ref": "refs/hero-deliveries/0016",
+      "source_sha": "82c3883eb64697290ba75c7ed47af906e093eab6",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "3364901f265f01c7dc65da1040779b7423f0482f"
+    },
+    {
+      "ref": "refs/hero-deliveries/0020",
+      "source_sha": "c81057dc27c9a6aee1fc277b7266396f112d0ef9",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "2c7435cb06d665f5b10a9b4178fbeaef44149dbc"
+    },
+    {
+      "ref": "refs/hero-deliveries/0029",
+      "source_sha": "e7e1706797c49055c0a34f5b4482892450718697",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/0040",
+      "source_sha": "989ebf7c600f832dd0be2bf3efb0d20151b4be4e",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "0100810a6e5562808810c4f51b9c49fe082f92e2"
+    },
+    {
+      "ref": "refs/hero-deliveries/0042",
+      "source_sha": "5f8423c014f0ebcfaabe8135a4ce2c0428f190f3",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/0065",
+      "source_sha": "c31d926214d74bbb6d5f308cabce92c65d8a48fc",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "a06ec5fa6f0ac7d4bf7db5e992c86c0a47f0c785"
+    },
+    {
+      "ref": "refs/hero-deliveries/0068",
+      "source_sha": "f5b7366d27c572125d1422618ec407d17794787d",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "42d206261689e2e571d0f45cc64e540158be865e"
+    },
+    {
+      "ref": "refs/hero-deliveries/006E",
+      "source_sha": "c5607bc4ee3b49e9af04f56949aa13f100143391",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/0079",
+      "source_sha": "17da4f0fd916759b4ad1df4546d10a7f9bd9ba7e",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/007A",
+      "source_sha": "a2353c6036c270bb1359b8e3ba3e203437ad6264",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "040e9a6f3ca420841618e8b06f7262c22445f12a"
+    },
+    {
+      "ref": "refs/hero-deliveries/00DD",
+      "source_sha": "9d876544dda6426b89ad750f907ba6c6dd083baa",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "4903b616506b81431ad2a157730c4a67c7203910"
+    },
+    {
+      "ref": "refs/hero-deliveries/012E",
+      "source_sha": "f7e26ff68e979c9cf999124848f0e69a5ef1d3de",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "62ab82411c879c160f00b827c0a9c77584d91ee0"
+    },
+    {
+      "ref": "refs/hero-deliveries/012F",
+      "source_sha": "58d8e57e8650acea158b82df28743f3169a90b49",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "11bff7a9ffceb78dc90d5814d7265c620dfc64ee"
+    },
+    {
+      "ref": "refs/hero-deliveries/013B",
+      "source_sha": "14f691f6eea6d70e9623ef1061ca7e8ff0471d58",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/013E",
+      "source_sha": "5b38741c097433b04e977d7e499d176ccc816d44",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/0195",
+      "source_sha": "a3004ec6c35139e80a39e2153cecd70c9687811b",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/01A2",
+      "source_sha": "df51065e8163f569f75f1f1596d626210ffea119",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/01CA",
+      "source_sha": "9911dfc1cf6a4d1b55ecf826bf77721805043181",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "2f5c3473cc4e8ea91147a5b40f0b7c6d89d998ac"
+    },
+    {
+      "ref": "refs/hero-deliveries/0200",
+      "source_sha": "8b991768223a98ff97f2618a53f0947dc6477c4b",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "ebc02e7be70675f40c5259ba795b575a6ba9f9bb"
+    },
+    {
+      "ref": "refs/hero-deliveries/0206",
+      "source_sha": "fe7877307a3a10ac53df86d8eebb171b53254fe5",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/0221",
+      "source_sha": "6f0bdcc4d146c30e5dc812efd07229e025119503",
+      "action": "already_integrated_parent"
+    },
+    {
+      "ref": "refs/hero-deliveries/023B",
+      "source_sha": "3f8a48f1d3ee8ee46fce1dc3e91b451dd8c0ed7f",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "73f7c9b48f40eeb48b6927d09f0264086a364add"
+    },
+    {
+      "ref": "refs/source-checkpoints/0068",
+      "source_sha": "104b8057ae8ccbb24393af230d43129eab965c32",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "e6570a66c01ae0084f6eb39de92ea07353315390"
+    },
+    {
+      "ref": "refs/source-checkpoints/012F",
+      "source_sha": "b6d0581c7e493c80873ec5ea203e6951cdfc6f2c",
+      "action": "recorded_reconciled_source_parent",
+      "merge_sha": "79721cf664e19008320912e7fcc5d383ed7f37f2"
+    }
+  ],
+  "source_count": 34,
+  "all_source_parents_integrated": true,
+  "tree_preserved": true,
+  "new_source_record_merges": 24,
+  "recording_tree_identity_note": "Git tree object identity checked before/after every parent recording"
+}
