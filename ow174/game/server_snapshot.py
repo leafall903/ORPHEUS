@@ -258,7 +258,7 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
-    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales"),
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),

@@ -129,6 +129,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Mount delivered Hanzo charge, interruption and bow ballistics
+
+- Mount the original hanzo_charge/hanzo_control modules unchanged. Preserve the
+  authored passive/damage0B8B path as Hanzo's default, explicit debug override,
+  cast charge gate, draw cancellation before input release and Storm/manual-cast
+  interruption through existing control cleanup. Capture the climb context slot
+  without claiming that its movement consumer is mounted yet.
+- Mount00B9's scoped critical default and E1A5B579 acceleration. Preserve the
+  delivered analytical arrow sweep, including explicit gravity-only arrows and
+  clipped lifetime across skipped ticks, alongside other projectile policies.
+- Allseven original focused bow/Fortify/charge/melee/death/ballistic checks
+  passed. Original Storm count now correctly stops at five through A11. Its
+  later damage assertion and the draw-recovery final health assertion retain
+  camera/contact differences (140 vs70 and lethal vs125), with checks unchanged.
+- Preserve the original control file including its currently unavailable Sonic/
+  Dragon fixture imports. Lunge/climb, Sonic reveal and moving Dragon consumers
+  remain real next code work; neither whole0005 nor client acceptance is claimed.
+
 ### Restore delivered variable-driven transition rechecks
 
 - Preserve0005's generic CHANGED dispatch: run the state's dependency callback

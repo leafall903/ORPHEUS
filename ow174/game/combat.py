@@ -2379,8 +2379,9 @@ class Combat:
         if script is None:
             return
         component = script.component
-        from ow174.game import assassin
+        from ow174.game import assassin, hanzo_control
 
+        hanzo_control.cancel_draw(script)
         component.discard_button_presses()
         assassin.bind(component.world, component, None)
         matrices = dict(deflection.matrix_abilities(script))
@@ -2399,6 +2400,7 @@ class Combat:
         component.edges([(value, False) for value in tuple(component.held)])
         # Let authored release paths establish their cooldown before forced stop.
         component.run_now()
+        hanzo_control.interrupt(script)
         if isinstance(script, BodyScript):
             script.interrupt_control()
         for instance in list(component.instances.values()):
@@ -4882,6 +4884,14 @@ class Combat:
         entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
         asset = state.evaluate(entity_def, watch=False) if entity_def is not None else None
         definition = asset.guid if isinstance(asset, expr.Asset) else None
+        hanzo_bow = (not npc and shooter.hero.guid == 0x02E0000000000005
+                     and state.instance.graph.index == 0x00B9
+                     and (node.pos, definition) in (
+                         (5, 0x0400000000000144), (5, 0x040000000000020B), (5, 0x040000000000270F),
+                         (114, 0x0400000000000149), (114, 0x040000000000020D)))
+        if (hanzo_bow and direct is not None
+                and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
+            direct = replace(direct, critical=2.0, projectile_headshot=True)
         field_canister = (not npc and state.instance.graph.index == 0x0257 and state.index == 1
                           and definition == 0x040000000000072D)
         rebound_limit, rebound_scale = None, 0.0
@@ -4907,6 +4917,10 @@ class Combat:
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
+            if hanzo_bow:
+                gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                              for motion in node.field("m_projectileMotions") or ()
+                              if motion.get("$") == "STU_E1A5B579")
             if field_canister:
                 gravity = projectiles.unconditional_gravity(state)
             if flashbang_gravity is not None:
@@ -4941,7 +4955,7 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
-            if reach and range_left is None and not field_canister and not barrage:
+            if reach and range_left is None and not field_canister and not barrage and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
                            and state.instance.graph.index == 0x00E2 and node.pos == 3
@@ -5579,6 +5593,10 @@ class Combat:
 
     def _fly_current(self, rocket: Rocket) -> None:
         """Sweep elapsed world time against the current bodies and static collision."""
+        if (rocket.gravity and rocket.velocity is None
+                and (rocket.source_graph == 0x00B9
+                     or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)):
+            rocket.velocity = tuple(value * rocket.speed for value in rocket.direction)
         if rocket.shot is not None and rocket.shot.spawn == projectiles.FIELD_ENTITY:
             cursor = rocket.flight_cursor()
             first = self.tick if cursor is None else cursor + 1
@@ -5769,7 +5787,9 @@ class Combat:
             # Apply the recovered velocity update before this frame's sweep.
             # This semi-implicit sweep order is a server reconstruction.
             velocity = rocket.velocity
-            if rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False):
+            hanzo_arrow = (rocket.source_graph == 0x00B9
+                           or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
+            if (rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False)) or hanzo_arrow:
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
