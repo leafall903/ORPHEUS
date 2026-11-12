@@ -759,3 +759,35 @@ policy for Genji/Orisa from source0006. Existing _damage already measures the
 same real Vitals.extra pool loss for Torb/Moira. Orisa existing012 packet still
 sends empty0x624; Genji existing generic gain receives full dealt. Restore those
 single hosts without another012, passive/profile change or Fortify replacement.
+
+### A29 root-directed Genji/Orisa pool-loss restoration (this commit)
+
+Clean sync committed032f2ed1 from canonical a7728f76. Source policy refs:
+0006 3d4d42993cfcd78a954e20c1d273ce8b5e0905f5;
+0029 e7e1706797c49055c0a34f5b4482892450718697;
+013E 5b38741c097433b04e977d7e499d176ccc816d44.
+Source0006 torbjorn_charge supports3EBB deduction for Torb/Genji/Orisa. Preserve
+source0029/current Genji generic gain and source013E/current Orisa metadata-gated
+012 host rather than activate another copy of source0006 charge routing.
+Combat's same authoritative extra pool before/after produces adaptive_loss:
+Orisa existing012 now gets ((3EBB,f32(loss)),) in0x624, with emptytuple for0;
+only exact3EBB-selector/pair representation invokes shared pure reducer from
+its existing0B8B runtime fold. Other native folds/representations keep original
+provider; Torb reuses its already-read records. Genji existing generic points
+subtract same loss, keeping all existing source/death/enemy/ultimate gates.
+No profile, passive, original credit route or historical Fortify change. No
+snapshot fields or observer compatibility pool added.
+New test_delivered_pool_loss_charge normal3 methods/10 subcases pass using real
+Vitals.extra via original grant_temporary_shields and actual Ball1566 cast.
+70 damage into100 shields gives0 charge, into50 gives20, unrelated5847 gives70;
+400 damage into50shield+200base gives200 charge. Actual Ball100 Adaptive +130
+incoming yields100shield loss/25basearmour loss/25 charge;600 ticks removes the
+same pool without generating another012. Spies wrap actual calls: Orisa one012
+andzero genericgain, Genji zero012 andone genericgain. Log pool-loss-final.log.
+Original selected Torb rivet/mixed attacks/actual cast expiry3; Orisa actual
+passive/critical/restore+ruleset/armour+Fortify/melee/overkill7; full Genji passive13;
+Damage/runtime21 =44 original methods pass, no skips (pool-loss-original-shared.log).
+Final focused new3 + original Torb rivet1 =4 pass after reducer factoring
+(pool-loss-final-boundary.log). All logs verification/worker-a-*.
+Next exact action: root receive independent A29, then continue concrete cross-owner
+pool event/credit audit; do not introduce another012 or any new feature/matrix.

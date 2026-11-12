@@ -2,7 +2,7 @@
 
 Formulas, clamps, ruleset scalars, blocked-charge#842 and timers remain authored.
 Known combat-body classification and lifecycle activation are reconstructed.
-Only static target tags and empty non-chargeable-damage detail arrays are handled;
+Static target tags and explicit012 tagged pool-loss detail arrays are handled;
 native filter/phase/dynamic-tag/fold/credit equivalence remains unaccepted.
 """
 
@@ -145,14 +145,27 @@ def activate(script):
     return True
 
 
-def damage(shooter, target, amount, loadout):
+def pool_loss_fold(world, cfg, instance):
+    """Decode only delivered3EBB loss rows in the existing metadata-gated host."""
+    if (world.hero != ORISA or world.match is None or instance.graph.index != 0xB8B
+            or _metadata(world) is None):
+        return NotImplemented
+    from ow174.game.torbjorn_charge import adaptive_shield_fold
+
+    return adaptive_shield_fold(instance, cfg)
+
+
+def damage(shooter, target, amount, loadout, *, adaptive_shield_loss=0.0):
     script = getattr(shooter, "body_script", None)
     if script is None or not activate(script):
         return
-    # Vitals damage here already excludes overkill and deployable-only damage.
-    # Current body pools have no implemented non-chargeable damage layer.
+    # Preserve the actual same-hit pool loss measured by authoritative Vitals.
+    # The original0B8B fold deducts3EBB without another damage event/charge host.
+    from ow174.game.torbjorn_charge import ADAPTIVE_SHIELD_TAG
+
+    records = ((ADAPTIVE_SHIELD_TAG, expr.f32(adaptive_shield_loss)),) if adaptive_shield_loss > 0 else ()
     params = ((0x13, float(amount)), (0x15, expr.Entity(target.entity)),
-              (0x3D, expr.Asset(loadout) if loadout is not None else None), (0x624, ()))
+              (0x3D, expr.Asset(loadout) if loadout is not None else None), (0x624, records))
     packet = message_receive.Packet(DEALT, script.entity, script.entity, tuple(
         (message_receive.PARAMETER_TYPE | key, value) for key, value in params))
     charge = next((i for i in script.component.instances.values() if i.graph.index == 0xB8B), None)
