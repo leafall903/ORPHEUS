@@ -713,3 +713,30 @@ when advancing the actual component. The original live probe's seven cases
 6.4/zero. Its startup selects the combined graph/catalog and explicit34924 mode
 rather than the old isolated review tree. Root-v13 joint remains frozen on
 canonical330fc5bb session23880; do not mutate that source until terminal.
+
+
+## Revised remaining-time estimate and live intake
+
+All three authorized persistent agents remain running. Updated low-confidence
+remaining active worker-hours: A4-10, B22-48, C14-28; work runs concurrently.
+Allow30-60 continuous elapsed hours including root integration/audit, and3-5
+calendar days as planning reserve. B remaining Ball/Sigma/Hog/Zarya actual
+consumers are the largest uncertainty. No completion percentage follows from
+this estimate, batch count or test pass rate. Preserve original-language code,
+exclude appearance migration and keep committing before complete acceptance.
+
+Root34924 is committed2a8933ef: original seven live ray/mode cases and runtime
+14pass2.111s. B38 original45d9b5d8 receivedab63b8e6, A48 original5a2f163f
+received8ead7a6c. C35 dependency already present; no duplicate control host.
+Canonical8ead7a6c is frozen for root original Bob14 session28430.
+
+Earlier v13 joint23880 is terminal28run10fail4error3skip186.726s. Original
+Coach pending-observer and precise surface distances plus old spread call
+argument positions are assigned A without changing expectations. V14 combined
+Bob/Grapple/34924/runtime40run26pass14skip41.481s; all Bob cases skipped on their
+original GRAPH_EXTENSION presence selector, despite actual runtime graph union.
+V15 now selects the original raw Ashe file for that fixture gate only; runtime
+still uses the reconciled39graph union. Actual Bob14 runs now, not claimed passed.
+V14/15 also select original Translocator and Sombra ultimate data and strictly
+verified current-bound BOB mover extension: all43 original/current records equal,
+original input hashes checked, no original bytes or fingerprint guard changed.
