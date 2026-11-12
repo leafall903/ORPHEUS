@@ -479,6 +479,11 @@ def _step(match, bot, tick, seconds, search_budget):
 
         if sniper_retreat.controls_motion(bot):
             return  # Original automatic host owns this motion, rather than manual pursuit.
+    from ow174.game import sniper_reposition
+
+    primary = sniper_reposition.reposition_state(bot) if sniper_reposition.primary_scoped(bot) else None
+    if primary is not None and (primary.active or sniper_reposition.retreat_phase(primary) in (1, 2)):
+        return  # Same142C primary host advances after aim/input in Combat._bot_weapons.
     if bot.attack_mode == "reposition":
         from ow174.game import sniper_reposition
 

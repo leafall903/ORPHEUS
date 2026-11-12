@@ -282,10 +282,13 @@ class BotWorld(runtime.World):
         return project_movement_flags(self, instance, node)
 
     def search_position(self, state):
-        from ow174.game import sniper_retreat, sniper_special
+        from ow174.game import sniper_reposition, sniper_retreat, sniper_special
 
         if sniper_retreat.scoped(self, state.instance) and state.node.pos == 39:
             return None  # Original automatic host resolves the active search after VM advance.
+        result = sniper_reposition.primary_search(self, state)
+        if result is not NotImplemented:
+            return result
         return sniper_special.search(self, state)
 
     def position(self, entity):
@@ -672,9 +675,12 @@ class BotWorld(runtime.World):
                 return result
 
         if self.hero == 0x02E00000000001B8:
-            from ow174.game import sniper_retreat, sniper_special
+            from ow174.game import sniper_reposition, sniper_retreat, sniper_special
 
             result = sniper_retreat.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            result = sniper_reposition.primary_native(self, cfg, instance)
             if result is not NotImplemented:
                 return result
             result = sniper_special.native(self, cfg, instance)
