@@ -91,6 +91,25 @@ class Geometry:
 
 
 
+    def overlaps(self, position, yaw, start, end, radius, visible):
+        cosine, sine = math.cos(yaw), math.sin(yaw)
+
+        def local(point):
+            x, y, z = (a - b for a, b in zip(point, position, strict=True))
+            return cosine * x - sine * z, y, sine * x + cosine * z
+
+        segment = (local(start), local(end))
+        for triangle in self.triangles:
+            hit = contacts.gjk(triangle, segment, reach=radius)
+            if hit.distance <= radius:
+                x, y, z = hit.point_a
+                point = (position[0] + cosine * x + sine * z, position[1] + y,
+                         position[2] - sine * x + cosine * z)
+                if visible(point):
+                    return True
+        return False
+
+
     def closest(self, position, yaw, point):
         """Closest actual mesh point for blast radius/distance, in world coordinates."""
         cosine, sine = math.cos(yaw), math.sin(yaw)

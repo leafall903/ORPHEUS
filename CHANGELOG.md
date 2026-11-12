@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Charge impacts on Superchargers
+
+- Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
+  visibility query on the existing Charge. Feed the real device entity into
+  the authored end output and007D125 health node, retaining native damage175.
+- Use the same actual Device pool and original GJK mesh helper. No second
+  charge driver/actor or Brigitte1408 takeover. Preserve team and world cover.
+- Three original device cases pass: enemy200->25 once and authored termination,
+  allied skip/capture beyond it, and static cover. Existing Charge movement,
+  contacts, mutual counters and runtime55/55 pass. Client acceptance open.
+
 ### Restore delivered Fire Strike deployment object contacts
 
 - Route existing Photon plane/mesh actors and Orisa Superchargers through the
