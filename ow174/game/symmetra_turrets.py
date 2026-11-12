@@ -207,7 +207,7 @@ class Turrets:
         return tuple(sentry.bot.entity for sentry in self.sentries)
 
     def _ice_support_rocket(self, support, frozen, previous_tick, end_tick):
-        from ow174.game import heavy_charge, phase_defenses
+        from ow174.game import heavy_charge, immunity
         from ow174.game.combat import TICK, _along, ray_capsule, respawn_seconds
 
         fight = self.combat
@@ -219,7 +219,7 @@ class Turrets:
                 or rocket.shooter not in fight.match.players or rocket.team != rocket.shooter.team):
             return False
         # The authored Pharah launch marker survives Deflect.
-        pharah_primary = rocket.definition is None and rocket.implicit_absorbable
+        pharah_primary = rocket.source_graph == 0x0076
         shooter_hero = rocket.shooter.hero.guid
         reflected_pharah = (
             pharah_primary and rocket.reflected and shooter_hero == deflection.GENJI
@@ -230,15 +230,19 @@ class Turrets:
         ):
             return False
         projected = None
-        if fight.zarya_barriers.projected:
-            projected = fight.zarya_barriers.single_replay_projection()
+        if _projected_barriers(fight):
+            projected = _single_replay_projection(fight)
             if (projected is None or rocket.definition != HELIX_PROJECTILE
                     or rocket.team != self.sentries[0].owner.team):
                 return False
         projected_player = projected is not None and not isinstance(projected, bots.Bot)
-        # Resolve the known flight with stable poses until contact.
+        # Resolve the known flight with stable poses until contact. The original
+        # route proof assumes no owned physical mover; never mutate one through
+        # a shallow preview copy, including an already settled manual mover.
+        if any(bot.impulse_mover is not None or bot.control_mover is not None for bot in fight.match.bots):
+            return False
         if any(
-            bot is not frozen.owner and heavy_charge.phase(heavy_charge.instance(bot))
+            bot is not frozen.owner and heavy_charge.active(bot) is not None
             for bot in fight.match.bots
         ):
             return False
@@ -246,16 +250,16 @@ class Turrets:
             if not self._recorded_pose(target, previous_tick):
                 return False
             if not isinstance(target.owner, bots.Bot) and (
-                phase_defenses.active(target.owner)
-                or (phase_defenses.has_active_projectile_cover(target.owner)
+                immunity.phased_out(target.owner)
+                or (_projectile_cover(target.owner)
                     and not (reflected_pharah and target.owner is rocket.shooter))
             ):
                 return False
-        hit = fight.ice_wall.cast(rocket.position, rocket.direction, rocket.speed * rocket.left)
+        hit = fight.walls.cast(rocket.position, rocket.direction, rocket.speed * rocket.left)
         if hit is None or hit[1] is not support:
             return False
         distance = hit[0]
-        thaw = math.ceil(fight.frost(frozen.owner)[2] / round(TICK * 1000))
+        thaw = math.ceil(fight.frost(frozen.owner, tick=previous_tick)[2] / round(TICK * 1000))
         impact_tick = previous_tick + math.ceil(distance / (rocket.speed * TICK))
         if impact_tick >= support.expires:
             return False
@@ -267,10 +271,10 @@ class Turrets:
         barrier = fight.trace_barrier(rocket.shooter, rocket.position, rocket.direction, distance)
         if barrier is None or barrier[1] is not support:
             return False
-        if rocket.impact_damage() + rocket.blast.amount * rocket.blast.splash(0) < support.health:
+        if _impact_damage(rocket) + rocket.blast.amount * rocket.blast.splash(0) < support.health:
             return False
         fixed_body = None
-        for target in fight._enemies(rocket.shooter):
+        for target in _unit_targets(fight, rocket.shooter):
             contact = ray_capsule(rocket.position, rocket.direction, *target.segment(), target.radius)
             if contact is not None and contact <= distance:
                 if not projected_player or target.owner is not projected or contact == distance:
@@ -298,8 +302,8 @@ class Turrets:
             recipient = next((target for target, _ in splash_targets if target.owner is projected), None)
             if recipient is None or not frozen.owner.retain_corpse:
                 return False
-            cover = fight._splash_barriers(rocket, impact, visible_from, (support, fight.ice_wall))
-            if any(service is not fight.ice_wall for _, service, _ in cover):
+            cover = fight._splash_barriers(rocket, impact, visible_from, (support, fight.walls))
+            if any(service is not fight.walls for _, service, _ in cover):
                 return False
             # The hit destroys the support before that tick's beam update.
             if not self._isolated_player_lock_history(
@@ -313,13 +317,13 @@ class Turrets:
             splash_cover = tuple(fight._splash_barriers(rocket, impact, visible_from, None))
             if late_projected and (splash_cover or not frozen_in_splash):
                 return False
-            if any(service is not fight.ice_wall for _, service, _ in splash_cover):
+            if any(service is not fight.walls for _, service, _ in splash_cover):
                 return False
             if projected_player and not any(
                 shield is support and amount >= support.health for shield, _, amount in splash_cover
             ):
                 players = [
-                    target for target in fight._enemies(self.sentries[0].owner)
+                    target for target in _unit_targets(fight, self.sentries[0].owner)
                     if not isinstance(target.owner, bots.Bot)
                 ]
                 tracked_player_lock = not self._out_of_range_history(players, previous_tick)
@@ -368,7 +372,7 @@ class Turrets:
         tracked = {frozen.entity, recipient.entity}
         if npc_interceptor is not None:
             tracked.add(npc_interceptor.entity)
-        others = [target for target in fight._enemies(sentry.owner) if target.entity not in tracked]
+        others = [target for target in _unit_targets(fight, sentry.owner) if target.entity not in tracked]
         if sentry.slow is None:
             return False
         if allow_recorded_players:
@@ -399,17 +403,19 @@ class Turrets:
         preview = copy(frozen.owner)
         npc_preview = copy(npc_interceptor.owner) if npc_interceptor is not None else None
         for tick in range(previous_tick + 1, last_tick + 1):
-            fight.match.step_bot_pose(preview, tick)
+            if not _step_route_preview(fight, preview, tick):
+                return False
             target = replace(frozen, feet=preview.position)
             distance = max(0.0, segment_distance(origin, *target.segment()) - target.radius)
             if (distance >= player_distance or distance > reach or not fight.visible_target(origin, target)
-                    or fight.barriers.occludes(sentry.bot, origin, target)):
+                    or _barrier_occludes(fight, sentry.bot, origin, target)):
                 # After thaw the recorded player can take the lock if a respawn
                 # cannot enter the replay window.
                 return allow_later_lock and tick > impact_tick and not fight.is_stunned(preview, tick=tick)
             if npc_preview is not None:
                 # A lethal hit can only remove this competing capsule.
-                fight.match.step_bot_pose(npc_preview, tick)
+                if not _step_route_preview(fight, npc_preview, tick):
+                    return False
                 segment = npc_interceptor.segment(npc_preview.position)
                 npc_distance = max(0.0, segment_distance(origin, *segment) - npc_interceptor.radius)
                 if npc_distance <= distance:
@@ -429,7 +435,7 @@ class Turrets:
             return False
         return all(
             not isinstance(target.owner, bots.Bot) and self._recorded_pose(target, previous_tick)
-            for target in fight._enemies(sentry.owner) if target.entity != frozen.entity
+            for target in _unit_targets(fight, sentry.owner) if target.entity != frozen.entity
         )
 
     def _support_retarget_isolated(self, rocket, distance, previous_tick):
@@ -438,7 +444,7 @@ class Turrets:
         fight = self.combat
         if rocket.team != self.sentries[0].owner.team or fight.reinhardt_barriers.states:
             return False
-        targets = fight._enemies(rocket.shooter)
+        targets = _unit_targets(fight, rocket.shooter)
         if any(isinstance(target.owner, bots.Bot) and not target.owner.retain_corpse for target in targets):
             return False
         players = [target for target in targets if not isinstance(target.owner, bots.Bot)]
@@ -462,7 +468,7 @@ class Turrets:
         from ow174.game.combat import TICK, _along, ray_capsule, segment_distance
 
         fight = self.combat
-        targets = fight._enemies(rocket.shooter)
+        targets = _unit_targets(fight, rocket.shooter)
         previews = [
             (target, copy(target.owner)) for target in fight._targets()
             if (moving_frozen or target.entity != frozen.entity)
@@ -485,7 +491,8 @@ class Turrets:
             origin = _along(rocket.position, rocket.direction, travelled)
             nearest = step
             for target, preview in previews:
-                fight.match.step_bot_pose(preview, tick)
+                if not _step_route_preview(fight, preview, tick):
+                    return None
                 segment = target.segment(preview.position)
                 if target.entity != frozen.entity and any(
                     target.team != team and segment_distance(beam_origin, *segment) - target.radius <= reach
@@ -520,7 +527,8 @@ class Turrets:
         preview.last_tick = thaw - 1
         preview._pause(thaw - 1)
         for tick in range(thaw, contact + 1):
-            preview.step(tick, TICK, self.combat.match.collision_world, ice_wall=self.combat.walls)
+            if not _step_route_preview(self.combat, preview, tick):
+                return False
             if preview.position != frozen.feet:
                 return False
         return True
@@ -671,6 +679,85 @@ class Turrets:
         history = self.combat.history.get(target.entity, ())
         return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
                    for sample in history)
+
+
+def _barrier_occludes(fight, shooter, origin, target):
+    direction, reach = _capsule_ray(origin, target)
+    return bool(reach and fight.trace_barrier(shooter, origin, direction, reach) is not None)
+
+
+def _impact_damage(rocket):
+    if rocket.direct is None:
+        return 0.
+    scalar = rocket.direct.scale(rocket.flown * rocket.speed) if rocket.distance_falloff else 1.
+    return rocket.direct.amount * scalar
+
+
+def _projectile_cover(actor):
+    from ow174.game import defenses
+
+    script = getattr(actor, "body_script", None)
+    if defenses.deflect_state(actor) is not None or defenses.grasp_state(actor) is not None:
+        return True
+    if (script is None or getattr(script, "retired", False) or script.component.owner_dead
+            or script.component.fault is not None):
+        return False
+    return any(instance.graph.index == 0x02CC
+               and (state := instance.states.get(3)) is not None and state.active
+               and state.node.cls == "STUStatescriptStateDeflectProjectiles"
+               for instance in script.component.instances.values())
+
+
+def _single_replay_projection(fight):
+    from ow174.game.combat import _source_entity
+
+    projected = _projected_barriers(fight)
+    if len(projected) != 1:
+        return None
+    actor = projected[0]
+    if actor.vitals is None or actor.vitals.total <= 0:
+        return None
+    active = []
+    for player in fight.match.players:
+        if player.hero.guid != 0x02E0000000000068:
+            continue
+        script = player.body_script
+        if script is None or script.retired or script.component.owner_dead:
+            continue
+        for instance in script.component.instances.values():
+            index = {0x0244: 2, 0x025C: 10}.get(instance.graph.index)
+            pet = instance.states.get(index) if index is not None else None
+            if pet is not None and pet.active and not pet.ending:
+                active.append((player, pet))
+    if len(active) != 1 or active[0][0] is not actor.parent:
+        return None
+    _, pet = active[0]
+    if pet.instance.graph.index != 0x025C or pet.instance.id != actor.instance or pet.counter != actor.activation:
+        return None
+    slot = pet.instance.vars.get(536)
+    recipient = actor.recipient
+    if slot is None or recipient is None or expr.to_entity(slot.value()) != _source_entity(recipient):
+        return None
+    if isinstance(recipient, bots.Bot) and not recipient.retain_corpse:
+        return None
+    return recipient
+
+
+def _step_route_preview(fight, preview, tick):
+    from ow174.game import ice_wall
+    from ow174.game.combat import TICK
+    from ow174.game.mover import statescript_mods
+
+    if preview.impulse_mover is not None or preview.control_mover is not None:
+        return False
+    script = preview.body_script
+    mods = statescript_mods(script.component) if script is not None and not preview.dead else {}
+    mods.update(fight.orisa.npc_movement_mods(preview.entity, tick) or {})
+    mods = fight.movement_mods(preview, mods, tick=tick)
+    preview.step(tick, TICK, fight.match.collision_world,
+                 paused_until=fight.movement_pause_until(preview), movement_mods=mods,
+                 pillars=ice_wall.pillar_actors(fight))
+    return True
 
 
 def _unit_targets(fight, shooter):

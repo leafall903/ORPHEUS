@@ -2351,3 +2351,57 @@ inside Sentry proof. Source imports phase_defenses and calls old heavy phase/
 instance, zarya_barriers.projected, rocket.implicit_absorbable/impact_damage,
 Match.step_bot_pose; these are not yet real current consumers. Generic owner
 phase-expiry/respawn history remains separate. Preserve original guards/asserts.
+
+
+## C53 terminal outcome and C54 retained-impact service adapters
+
+C53 handle60071 reached its natural terminal: original two selected Ice-supported
+Sentry expiry/cancel methods,25 source subcases,allpass134.540s. Earlier pending
+text above is superseded by this terminal result. Original expectations unchanged.
+
+C54 synchronized faec1f1c (root five readonly geometry queries plus current A/B
+hosts). The original support-impact proof now consumes actual Walls identity,
+Heavy charge active instance, phased-out/Deflect/Grasp/Matrix state, original
+Pharah launch marker and the actual Rocket direct falloff fields. Route previews
+use the same Bot.step/data/modifiers/pause/pillar inputs as the sole live NPC
+host. Preview rejects owned physical movers rather than mutating them through a
+shallow copy; this is an explicit conservative impact-proof boundary, distinct
+from C50's natural-expiry admission of already-settled manual movers.
+
+Combat now actually enables support-impact admission into the existing world/NPC
+loop. Five original-source setup scenarios (Trooper/Enforcer/Sniper/Assassin/Heavy)
+with actual in-flight Helix and82tick frozen gap all return nonempty admission;
+world tick,flight position,actual support health and NPC pose are unchanged by
+the query. Reproducer ../parallel-merge/worker-c-frozen-impact-admission-probe.py,
+log ../worker-c-frozen-impact-admission-probe.log. This extracts the original
+fixture setup up to its observer phase, preserving its setup assertions; it is
+not a passing full source method or a second driver.
+
+Original full selected Helix method remains5failure records19.238s: every
+stepped baseline fails the original sentry-presence assertion at source line2173,
+before comparison with the skipped schedule. No assertion or numeric expectation
+was removed. Its old nonexistent _projectile_body_impact observer is excluded for
+this support-only scenario (no body-contact outcome), and its explosion observer
+forwards the current keyword-only signature. Both changes are external fixture
+adaptations, not production aliases. Reproducer
+../parallel-merge/worker-c-frozen-ice-impact-source-check.py; log
+../worker-c-symm-frozen-ice-impact-check.log. Earlier5missing helper errors2.852s
+are retained diagnostics, superseded by loading the original rifle helper.
+
+The single projected-recipient query reads the existing native Pet/activation/
+slot536 and actual Vitals pool, not the old separate Zarya manager. Actual native
+cast identifies the same recipient without running components or changing the
+pool; actual break retires it and query returnsNone. New focused regression plus
+Sentry and Damage suites:25/25pass26.969s, log
+../worker-c-c54-shared-check.log. The old encounter(protect=True) fixture itself
+still fails its cast-active precondition; the real NativePetApplicationTests
+setup/cast is used for this single-host query evidence.
+
+Remaining: the global projected-barrier/respawn guard still declines those
+complex replay windows; restoring the read query does not claim their complete
+consumer admission. Next C55 audit phase/respawn and actual projected windows,
+then Pharah impact-force and Bastion Heavy stance/push interlocks. Preserve all
+original files/assertions and current A/B hosts. Estimated remaining C effort
+6–15 active hours, low confidence; largest uncertainty is complex old phase/
+retarget timing versus actual native owner lifecycles. No client operation,
+publication or network access performed.
