@@ -1,5 +1,16 @@
 # Changelog
 
+## C72 — layered lift world serves current precise ray and sphere consumers
+
+Preserved original LayeredWorld four-field storage and reused its combined engine
+for current sphere casts. A temporary ray view retains exact base ray geometry
+and unions moving platform contacts; actual Baptiste placement accepts the layer.
+Original00DD platform review found all25 functions/methods mapped,22 exact AST,
+with one Lift VM, native wall actors/parents and strict causal storage retained.
+Precise ray/material +sphere +actual live lift FireStrike and snapshot/fingerprint
+checks34/34pass4.009s. Original79 assertions and old110tick difference preserved;
+no client/network/publication action and no second geometry host.
+
 ## C71 — owned-mech quick melee keeps the original polymorphic hero guard
 
 Reused _melee existing actual hero identity for Mei size scaling, avoiding a real

@@ -3208,3 +3208,52 @@ No additional C gameplay producer has been established by the bounded path audit
 this is not a claim that every foreign inherited helper/test has been exhaustively
 verified. Remaining source legacy literals/data-policy differences stay enumerated
 in earlier entries; do not turn those into new functionality or acceptance gates.
+
+
+## C72 — original Volskaya bounded review and current strong collision consumers
+
+Synced canonical673c5607 into workerf851a1f1 before this review. Original00DD
+volskaya.py has25 functions/methods: all25 remain in current,22 are exact AST
+matches. The three adapted source methods retain the same Lift/scene/actor
+lifecycle while resolving the actual shared Scene and same native wall actors.
+Reviewed root355ff15d through81e2f640 against source and current entry points:
+select restricts map01DB/mode0014 and validates the immutable explicit bundle;
+LiftFactory/LiftHost/LiftScene instantiate one original2ABA VM, scene targets
+use raw IDs through the current single typed writer, and motion/reset natives
+retain the original route/speed/progress arithmetic. Match.spawn_updates and
+remote_movements publish the same actor once and obey seen/ACK movement gating.
+Native IceWall actors bind their parent before publication; the sole Walls/Pillar
+views carry the same actor ID and Vitals pool. Parent-relative carry/reset/close
+restore the base collision world. Geometry-only shallow copies avoid writing
+actor health/expiry during wall placement prediction. Strict Lift/Host/Scene/
+Factory and VM-motion layouts remain explicit and reject unrelated unknown hosts.
+Root's original79 assertions and full natural return/reload/close receipt remain
+preserved; the old fixed110tick assertion is a recorded timing discrepancy, not
+an omitted producer or gate. See docs/INTEGRATION_ROOT_VOLSKAYA.md for that receipt.
+
+Parent review identified a real integration gap: original LayeredWorld lacked
+current strong Combat/Match ray_geometry, sweep_sphere and cast_sphere consumers.
+Added a temporary read-only ray query view that queries base.ray_geometry when
+present and the current moving layer, returning the nearer original RayHit with
+its material metadata. It never substitutes coarse static movement geometry for
+an available precise static ray world. Sphere methods reuse World methods over
+the existing combined engine. LayeredWorld still stores exactly the original
+four fields(base,moving,lowest,engine); no extra persistent geometry/cache/host.
+Baptiste field sphere placement now accepts that actual layered world as well.
+
+Verification: test_layered_combat_queries + test_collision_fingerprint +
+test_physics_snapshot =34/34pass4.009s, ../worker-c-c72-layered-combat-check.log.
+Tests distinguish precise-static versus moving ray contacts and sphere material,
+assert stable fingerprints/four-field storage, and run a real Rein00E2 FireStrike
+against the live original Volskaya platform with actual ray_cover and sphere
+calls, no projectile/body VM fault. No source assertion changed and no client
+started. No active handles remain.
+
+Finite handoff update: B97a961e6f2 owns the previously listed0008 controller_query
+SDK boundary; do not duplicate it here. B owns generic012E recipient-force replay.
+Root's platform chain plus this strong-query bridge has no further established
+missing C implementation in this bounded review. Original private observer,
+absolute timing/numeric and client verification tails remain recorded separately.
+Estimated remaining active C implementation work is0–2hours for any specifically
+confirmed cross-owner integration omission; there is no additional known owner
+module awaiting a second host. Broader verification is not included in that range.

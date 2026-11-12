@@ -765,6 +765,24 @@ class LayeredEngine:
     def query(self, low, high):
         return [*self.base.query(low, high), *self.moving.query(low, high)]
 
+@dataclass(frozen=True, slots=True)
+class _LayeredRayQuery:
+    """Temporary query view; preserve each layer's exact RayHit metadata."""
+
+    base: object
+    moving: object
+
+    def cast_ray(self, *args, **kwargs):
+        base = self.base.cast_ray(*args, **kwargs)
+        moving = self.moving.cast_ray(*args, **kwargs)
+        if moving is not None and (base is None or moving.distance < base.distance):
+            return moving
+        return base
+
+    def nearby(self, *args, **kwargs):
+        return [*self.base.nearby(*args, **kwargs), *self.moving.nearby(*args, **kwargs)]
+
+
 class LayeredWorld:
     """Query the immutable cached map and the lift at the current frame."""
 
@@ -774,6 +792,16 @@ class LayeredWorld:
         self.base, self.moving = base, moving
         self.lowest = min(base.lowest, moving.lowest)
         self.engine = LayeredEngine(base.engine, moving.engine)
+
+    @property
+    def ray_geometry(self):
+        # Query the verified static ray geometry, including its prop metadata,
+        # together with the current platform layer. No new persistent world.
+        return _LayeredRayQuery(self.base.ray_geometry or self.base,
+                                self.moving.ray_geometry or self.moving)
+
+    sweep_sphere = World.sweep_sphere
+    cast_sphere = World.cast_sphere
 
     def nearby(self, *args, **kwargs):
         return [*self.base.nearby(*args, **kwargs), *self.moving.nearby(*args, **kwargs)]
