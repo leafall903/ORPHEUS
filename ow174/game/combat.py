@@ -2480,6 +2480,7 @@ class Combat:
         component = script.component
         from ow174.game import assassin, hanzo_control
 
+        self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
         component.discard_button_presses()
@@ -2546,6 +2547,8 @@ class Combat:
     def charge_contact(self, player, command: Command, start, seconds: float) -> None:
         """Use the delivered contact consumer on the existing Charge/mover state."""
         reinhardt_charge.advance(self, player, command, start, seconds)
+
+    _counter_duration = staticmethod(reinhardt_charge.profile_duration)
 
     def charge_blocked(self, player, *, impact=True, frame=None):
         """Delivered obstruction/control exit using the existing Charge record."""
@@ -2859,6 +2862,7 @@ class Combat:
             if instance is not None:
                 reinhardt_charge.drain_end(instance)
         component.shots.clear()
+        self.punches.interrupt(target.owner)
 
         cast = self.meteors.casts.get(target.entity)
         if not isinstance(target.owner, bots.Bot):
