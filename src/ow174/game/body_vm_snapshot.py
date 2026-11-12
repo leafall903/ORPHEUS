@@ -97,7 +97,8 @@ _STATE_LAYOUTS = {
     nodes.SendGameMessageState: (("message_context", "message_frame", "message_sequence", "message_keys",
                                   "message_notified"), ()),
     nodes.CosmeticEntity: ((), ("var",)),
-    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("count_var", "targets", "managed"), ()),
+    nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (
+        ("count_var", "targets", "managed", "period", "searched"), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied", "hit_entities"), ()),
     nodes.SprayPlacement: (("placement",), ()),

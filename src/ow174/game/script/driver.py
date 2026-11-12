@@ -131,7 +131,11 @@ ACTION_BUTTONS.update({17: 97, 18: 98, 19: 99})
 ACTION_BUTTONS.update({action: 81 + action for action in range(10, 16)})  # 10..15 -> 91..96
 # Entity variables no graph of the body writes: the server's own code sets them.
 WEAPON_SLOTS, DEFAULT_SLOT, OWNER_HEALTH, HUD_HEALTH, HUD_MAX_HEALTH = 29, 16515, 253, 1732, 1737
-NOT_SENT = {OWNER_HEALTH}  # the client derives it itself (never sent)
+# How wide Guardian Angel's, the staff's and Hack's target cones are, as a share of the authored angle.
+# reconstruction: no graph writes them, so they are taken to be the player's sensitivity options
+# for those abilities, and the server plays the options' 100 %.
+TARGET_SENSITIVITY = (9582, 9583, 9584)
+NOT_SENT = {OWNER_HEALTH, *TARGET_SENSITIVITY}  # the client derives them itself (never sent)
 BODY_SCALE_OVERRIDE = 31210  # the common body graph's size modifier input
 # The world's config vars whose server answer is the client's for a human player's own body (computed, or
 # answered null/false). A BooleanSwitch that reads any other one is uncertain and is not sent.
@@ -710,9 +714,56 @@ class BodyWorld(runtime.World):
             )
             return state.targets + new_targets
 
+        if self.match is not None and state.aimed_search():
+            return self.aimed_targets(state)
+
         from ow174.game import mccree
 
         return mccree.targets(self, state)
+
+    def aimed_targets(self, state) -> tuple[int, ...]:
+        """One refresh of a search from the owner's eye along its aim (nodes.TrackTargets.aimed_search)."""
+        from ow174.game import combat
+        from ow174.game.script import play
+
+        fields = state.node.fields
+        component = state.instance.component
+        for var in TARGET_SENSITIVITY:
+            found = component.entity_var(var, create=False)
+            if found is None or found.value() is None:
+                component.set(var, 1.0)
+
+        def number(config, default=0.0) -> float:
+            return default if config is None else expr.to_float(state.evaluate(config, watch=False))
+
+        radius, aperture = number(fields.get("m_radius")), number(fields.get("m_A30B383E"), 360.0)
+        if not (math.isfinite(radius) and radius > 0.0 and math.isfinite(aperture)):
+            return ()
+        search = fields["m_filter"]
+        score = None
+        if fields.get("m_84E5DE4E") is not None:
+            screen, distance = fields["m_84E5DE4E"]["m_503F0304"]
+            bounds = distance["m_84E5DE4E"]
+            score = (number(screen.get("m_weight")), number(bounds.get("m_ABC68B33")),
+                     number(bounds.get("m_2AFC083F")), number(distance.get("m_weight")))
+        limit = fields.get("m_C39691D9")
+        condition = search.get("m_condition")
+
+        def admits(entity: int) -> bool:
+            if condition is None:
+                return True
+            # 1B8D970: the filter's condition reads the candidate as parameter 8.
+            with component.parameter_scope({8: Entity(entity)}):
+                return bool(expr.truthy(play.evaluate_scalar(state.instance, condition, initial=True)))
+
+        # shortcut: m_93AB8C13, the time a lost target is kept (CAF8C2), is not played: a target
+        # goes the refresh it is lost. Keep each target's last time on the state to add it.
+        return self.match.combat.track_targets(self.body, combat.TargetSearch(
+            radius, aperture,
+            tuple(search.get(name) or 0 for name in (
+                "m_84065FD1", "m_1E14CCA8", "m_4EA686DB", "m_27CF71D5", "m_66747E7D", "m_89831602")),
+            score, None if limit is None else max(0, int(number(limit))),
+        ), state.targets, admits)
 
     def modify_health(self, state, elapsed_ms):
         """Queue one hit per body for the supported tracked damage configuration."""

@@ -307,6 +307,68 @@ Read from data: the four `.097` assets are one instance of `STU_8EFC337B` each.
 - `0x17A8FC0` packs a row of 13 flag bytes into the mask (read from code). Byte 6 is bit 0, then
   bytes 8, 0, 9 and 10; bit 5 is always clear; then bytes 4, 3, 1, 7, 11, 12 and 2.
 
+## The conditions
+
+Read from data. A filter's condition reads the candidate as parameter 8; `c.#478` below is the
+candidate's own variable `#478`.
+
+- **Guardian Angel**: when `c.#478`, then `c.#653` and not `c.#11264`; otherwise not `c.#11264`.
+- **Staff**, node 6: true for a player (`STU_D3EB8D87` is the test for an AI's controller,
+  `0xCDB700`); for an AI the candidate must be `STU_A37A910D`'s entity.
+- **Staff**, node 7: the candidate is the target already in `#375`. So this node only says whether
+  the present target is still within the radius and in sight, and keeps it one second longer
+  (`m_93AB8C13`).
+- **Hack**, nodes 50 and 68: the owner's `#2426`, not `c.#11264`, not the owner's `#61`, then a
+  choice between kinds of target made with `STU_AC829876` (does an entity pass a filter,
+  `0xCF4340`) on five filters, four of them with a required tag (`029C.0D6`, `0034.0D6`,
+  `03A6.0D6`, `06E6.0D6`) and one with a condition of its own on `STU_53F4CA65` (`0xCEAD90`);
+  with `STU_7C005F8F` (`0xCCBF90`), `STU_1A3FA5B0` (`0xCC99A0`) compared with the entity
+  definition `0216.004`, and `c.#7982`, `c.#842` and `c.#14679`. Those evaluators are not read.
+
+The cone's width on Guardian Angel, the staff and Hack is the authored angle times `#9582`, `#9583`
+and `#9584`, entity variables that no graph writes.
+
+## What the server implementation takes on trust
+
+`combat.track_targets` plays the search for the nodes whose source is the owner's eye and whose
+direction is the owner's aim, in Mercy's two graphs: Guardian Angel's and the staff's. Zarya's,
+Zenyatta's and Ana's ally searches have the same shape and are left unanswered until they are
+checked. Where the decode stops, it does this, and each point is a reconstruction:
+
+1. **Filter bits.** Every player's and bot's body has bit 0, and bit 4 while dead. Nothing has
+   bit 21.
+2. **Candidates** are the match's player and bot bodies, not the world's lists.
+3. **Other bodies' variables.** A condition reads the candidate's variables as unset, so
+   Guardian Angel's `c.#478`, `c.#653` and `c.#11264` rules do not turn anyone away.
+4. **`#9582` to `#9584`** are taken to be the player's target sensitivity options and played at
+   1, the options' 100 %.
+5. **Sight** uses the static mask 0x1FDF against the map only. Other bodies and barriers do not
+   block, and the rays go to the wheel's points: the body's hardpoints when its pose is known,
+   else 30 % and 60 % of its height.
+6. **The search frame.** The period of `m_DD792FF0` is played; the hash that offsets each state's
+   frame is not.
+7. **`m_93AB8C13`** is not played: the staff's node 7 drops its target the refresh it is lost.
+
+Hack's nodes are not answered: their sight goes through two hardpoint fields and their condition
+through evaluators that are not read.
+
+## Seen live against ORPHEUS
+
+2026-11-12, the original client in the Practice Range as Mercy, driven by a virtual gamepad, one
+run.
+
+- **Seen.** With a Friendly Bot about 15 m ahead at the crosshair, the Guardian Angel button flew
+  Mercy to it: the next picture, 0.7 s later, has the bot filling the view. The server's log has
+  the flight's own nodes running in that second.
+- **Not seen.** No target mark on the bot before the press, so the client's own search (node 30)
+  did not pick it. Holding primary fire at the same bot from 3 m and from 10 m drew no beam. The
+  bot was at full health, so healing could not show either.
+- **Not tried.** An ally outside the cone or behind a wall, an enemy, a second player.
+
+A likely reason for the missing mark and beam, not checked: the client runs the same filters on
+the filter bits the server gave the bot's body, which are the team bit alone, and both filters ask
+for bit 0.
+
 ## Not decoded
 
 The server implementation states which of these it had to assume.
