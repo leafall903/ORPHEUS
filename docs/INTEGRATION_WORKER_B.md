@@ -1759,3 +1759,29 @@ missing test_sigma_symmetra_beam for original CLI consumers. Root owns Flux,
 A owns Zarya. Hog cross-control/device/vector/victim-credit and full NPC fixture
 audits remain open. Current remainder estimate12–25 active B hours, low
 confidence; largest unaudited source scope is Sigma non-Flux integration.
+
+
+## B65 — Sigma base shields use existing0033 recovery and actual pool query
+
+The shared recovery integrator and0033 own-body pool query both excluded Sigma.
+Adding Sigma only to those existing allowlists restores its original3s/30pps
+base-shield consumer without another deadline field, heal path or health pool.
+An actual damaged Sigma probe showed delay3/rate0 despite modifiers1: rate's
+existing current/max query returned the fallback. After exact query admission
+the original rifle interruption and respawn/recovery tests both pass unchanged.
+Use existing Vitals.last_damage_at/shield_accounted_at, already serverregistered.
+
+Two original Sigma checks + Zarya actual status2 + shared Damage8/runtime13
+=25/25 pass10.851s (worker-b-sigma-recovery-joint.log). Broader source23run
+41.184s:4failing subcases and2errors retained in recovery-native.log. Sigma's
+original Helix gap health260.24 remains actual260.0 paced/262.64 sparse on this
+older base, before its legacy shield_recovery_tick observer. Zarya twoerrors
+read old zarya_recovery.bodies; impact1244/1262 vs1245 also retained. A confirms
+A83 already repairs sparse admission on canonical, making paced/sparse1244,
+with original0068 point0 vs current authored extent.2 remaining1tick difference.
+Do not alter original numbers/geometry or call this a new Sigma regression.
+
+Next exact action: sync parent current canonical on clean boundary; audit
+Hypersphere real shared impulse and source Sigma charge/Grasp consumers. Root
+Flux and A Zarya remain sole owners. Source test/CLI module names must be
+verified from actual paths before claiming a file missing. No client acceptance.

@@ -1106,7 +1106,7 @@ class BodyWorld(runtime.World):
             value = symmetra_charge.native(self, cfg, instance)
             if value is not NotImplemented:
                 return value
-        if self.hero in (symmetra.HERO, 0x02E0000000000068):
+        if self.hero in (symmetra.HERO, 0x02E0000000000068, 0x02E000000000023B):
             value = symmetra.pool_query(self, cfg, instance)
             if value is not NotImplemented:
                 return value
