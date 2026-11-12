@@ -61,6 +61,19 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Preserve delivered Zenyatta dependency interfaces
+
+- Retain the original barrier graph/hero and Flashbang hero constants used by
+  the delivered Zen/NPC fixtures. Mount the original Matrix catalog validator
+  and public metadata queries over the combined immutable projectile catalog;
+  keep the verified Ana-only fallback when no catalog is configured. Preserve
+  existing Matrix geometry and avoid a second mutable catalog/cache.
+- The previously imported-blocked four original cooldown checks now pass.
+  The original invalid/unknown Matrix catalog check passes unchanged via its
+  isolated class (the full Matrix fixture still has other old form interfaces).
+  Earlier combat/support/FFA checks passed68; these were import reconciliation
+  gaps, so no gameplay checks or expectations were removed to admit the code.
+
 ### Reconcile delivered Mercy passive regeneration chronology
 
 - Retain0004's original damage-wait anchoring and passive scale retention/prune

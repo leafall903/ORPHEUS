@@ -230,3 +230,18 @@ passed using the integrated input profile. A9 `6be926ba` is received by the
 merge named `merge: receive worker A Mercy regeneration chronology`; all66
 combined original timing/passive/Valkyrie/runtime/boost/effect checks passed
 with that same profile, without skips. Retained anti/amp history joins snapshots.
+
+B8 `e67d0d8a` is received as `bbd9d3da`;49 of52 combined original Winston
+charge/Tesla/runtime checks passed. Preserve the pending Jump launch, old bubble
+observer and protected controlled-D.Va pilot differences; worker B continues the
+actual Jump/Primal punch consumers. Only one Tesla route remains active.
+A10 `b63da622` is received by the merge named `merge: receive worker A Zenyatta
+dependency interfaces`; all30 combined original cooldown/runtime/Mercy boost/
+effects checks passed with the integrated profile. Original constants/public
+tag queries use existing managers and the immutable projectile catalog.
+
+Worker C now owns the narrow original Bot impulse/mover helpers and necessary
+hook mover reuse, retaining root's attack_mode/reposition cleanup. Root keeps
+NPC input/navigation ownership. Do not mount a second Roadhog controller; B
+owns0040. This ownership change is explicitly coordinated to preserve existing
+shared behavior while the remaining NPC impulse checks are reconciled.

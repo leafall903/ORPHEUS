@@ -1,7 +1,52 @@
 """Ana projectile eligibility and authored D.Va Matrix box intersection."""
+import json
 import math
+import os
+import re
+from pathlib import Path
+
+from ow174.game import deflection
 
 from ow174.game.script.expr import Vec3
+
+BUILD = "1.74.0.0.104319"
+EXCLUDED_TAG = deflection.EXCLUDED_TAG
+_path = os.environ.get("ORPHEUS_PROJECTILE_TAGS")
+TAGS_PATH = Path(_path).resolve() if _path else None
+
+
+def read_tags(path):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if type(data.get('version')) is not int or data['version'] != 1 or data.get("build") != BUILD:
+        raise ValueError("projectile tags require build104319 version1")
+    entities = data.get("entities")
+    if not isinstance(entities, dict):
+        raise ValueError("projectile tag entities must be a mapping")
+    result = {}
+    for key, tags in entities.items():
+        if not re.fullmatch(r"0x0400[0-9A-F]{12}", key):
+            raise ValueError("projectile tag key must be a full003 GUID")
+        if (not isinstance(tags, list)
+                or any(not isinstance(tag, str) or not re.fullmatch(r"0x0D60[0-9A-F]{12}", tag)
+                       for tag in tags)
+                or len(set(tags)) != len(tags)):
+            raise ValueError("invalid projectile target tags")
+        result[int(key, 16)] = frozenset(int(tag, 16) for tag in tags)
+    return result
+
+
+def tags():
+    """Read the combined immutable catalog; no second process-global cache."""
+    catalog = deflection.catalog()
+    if catalog.blob is not None:
+        return deflection._rows(catalog.blob)
+    return {guid: frozenset(0x0D60000000000000 | tag for tag in values)
+            for guid, values in ANA_PROJECTILE_TAGS.items()}
+
+
+def loaded_tags():
+    return tags()
+
 
 HERO, MECH = 0x02E000000000007A, 0x0400000000000407
 # Build104319 .003 target-tag components. 15E9 has the Matrix exclusion
@@ -16,8 +61,8 @@ ANA_PROJECTILE_TAGS = {
 
 
 def absorbable(definition):
-    tags = ANA_PROJECTILE_TAGS.get(definition)
-    return tags is not None and 0x145 not in tags
+    known = tags().get(definition)
+    return known is not None and EXCLUDED_TAG not in known
 
 
 def ray_box(origin, direction, lower, upper, reach):

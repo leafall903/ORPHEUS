@@ -197,3 +197,16 @@ combat/support/FFA/cooldowns run passed68 of69; the remaining module import is
 the original public barriers.PROJECTED constant (025C), not missing gameplay.
 Next exact action: preserve the original barrier constants/import interface,
 then finish0020/0003 owner reconciliation and progress0005/000A.
+
+Mercy chronology committed `6be926ba`; final focused2 getter-free/history cases
+passed after removing imported fixture classes from test discovery. The prior67
+combined run included14 fixture checks (root's equivalent final command is53).
+The0020 original barrier/Flashbang constants and Matrix metadata interfaces now
+resolve the earlier import chain. Allfour cooldown checks passed; the original
+invalid/unknown Matrix catalog class also passed. Matrix reads the already
+captured immutable deflection catalog and retains verified Ana metadata fallback.
+The68 combat/support/FFA checks were already green; no assertion was weakened.
+Root still owns0020 formal source admission and cross-owner old defense managers.
+Next exact code work is0005's missing Hanzo charge/control/movement modules, with
+0003 Recall/Pulse reconciled against its already-mounted combined managers, then
+000A. Avoid copying old cross-owner managers merely to recover their names.

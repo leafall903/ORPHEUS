@@ -3,6 +3,8 @@
 from ow174.game import weapon_spread
 from ow174.game.script import expr
 
+HERO = 0x02E0000000000042
+
 
 def launch(shooter, state, forward):
     if (shooter.hero.guid != 0x02E0000000000042 or shooter.body_script is None
