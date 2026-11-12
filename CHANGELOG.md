@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original stance metadata extraction
+
+- Restore original012F FirstPerson extraction alongside the existing34 mover
+  values and retain its complete original tests. Actual XML-to-loader checks
+  preserve physical data; current view catalog remains the runtime provider.
+- Preserve two old mover-view API test errors and four opt-in skips explicitly;
+  no source assertion, game geometry or numeric expectation was changed.
+
+
 ### Restore original NPC evidence and status extraction tools
 
 - Restore the original optional NPC associated-entity evidence export and status

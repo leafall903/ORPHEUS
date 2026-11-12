@@ -32,9 +32,18 @@ existing lobby/GameServer host. _mode_identifier is current _identifier_guid;
 _ai_entity_path now resolves through _ai_association and existing caller path
 construction. Names alone do not prove or disprove integration.
 
-Original012F first_person_of/mover extractor metadata remains next for code and
-consumer review. Existing current view_offsets catalog/geometry policy remains
-the runtime owner; do not add a second mover/view source solely to satisfy old
-field observations. Original0079 map add_animation_sets is appearance extraction
+Original012F first_person_of and its actual mover_of metadata extraction are
+now restored exactly, together with the complete unchanged test_first_person
+module. Both parser methods pass. Its other two legacy API methods error on
+authored_mover_data/MoverData.eye_height; four actual-runtime methods require
+their original explicit input flag and are skipped here, not counted as passed.
+The actual XML-to-mover loader probe preserves2.1/1.75 metadata and confirms
+all34 physical fields load unchanged. Current view_offsets remains the existing
+runtime source; its optional catalog already owns authored stance geometry.
+No extra physical fields/view source or fixture-only facade was introduced.
+The old declared-mover view interface remains a source-contract reconciliation
+item; the original failing assertions and opt-in checks remain intact. Original0079 map add_animation_sets is appearance extraction
 and excluded from this goal. This audit does not declare other nonhero source
 variants, game owners or full nonappearance integration complete.
+
+First-person evidence: root-original-first-person-tools-check.log (8run,2pass,2errors,4skips), root-first-person-mover-loader-probe.log (actual extraction/loader passed). These results do not establish whole original first-person acceptance.
