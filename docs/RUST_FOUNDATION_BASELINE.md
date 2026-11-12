@@ -1,0 +1,94 @@
+# Rust foundation baseline, 2026-11-12
+
+Source commit `13acf15`, Windows x64, stable Rust. Both workspace public lanes, both Clippy lanes and formatting passed. Default ran 354 public tests and inspector ran 357. All 66 opt-in library tests were attempted individually with a 40-second timeout. No test timed out.
+
+The target-tagged base 104319 pack passed 65 tests. The remaining test requires Practice Range graph `0B92` and passed with the target-tagged enriched pack. Catalog validation needs `ORPHEUS_CATALOG_DATA` set to the pack's `data` directory. An initial attempt omitted that variable and failed. It passed after supplying the documented prerequisite.
+
+Set `ORPHEUS_RUNTIME_DIR`, `ORPHEUS_CATALOG_DATA` and `ORPHEUS_BNET_DESCRIPTORS` to the appropriate local pack paths. For the timing workload, also set `ORPHEUS_TIMING_BENCH_RUNTIME` to the base pack and `ORPHEUS_TIMING_BENCH_SECONDS=1`. This enables the workload instead of taking its early return. The one-second run is a smoke check.
+
+Each test was run in a separate process with `--exact <name> --ignored --nocapture`. Full outputs remain local. After extraction, the two `jam_codec` tests belong to `orpheus-wire` and keep the same test names. Run the remaining listed tests in the server library.
+
+## Runtime identity
+
+Only manifest digests are recorded here. Runtime inputs remain separate from the source repository.
+
+- Base manifest SHA-256: `b11115f3201ebd0765cc8f0cf2ec0e72de6620b9913f8d17962c71649b528d58`
+- Enriched manifest SHA-256: `db7a7bdbddfb8b40e5e4c9a392d498ac36b13aed5144108311a985ea98e6d8f8`
+
+## Base-pack passing tests
+
+```text
+bnet_protocol::tests::loads_external_descriptors
+bnet_rpc::tests::connect_logon_and_referral_match_the_python_rpc_frames
+catalog::tests::matches_the_local_retail_catalog_counts_and_order
+collection::tests::progression_and_gallery_wire_bytes_match_python_for_three_profiles
+debug_geometry::tests::prepared_practice_geometry_samples_the_highest_patrol_waypoint
+game_body::tests::all_heroes_match_python_owner_and_observer_create_bytes
+game_bots::tests::fifteen_practice_bots_match_python_roster_and_patrol_frames
+game_combat::tests::repeated_rifle_hits_retire_and_respawn_only_the_hit_bot
+game_combat_messages::tests::combat_notice_messages_match_python
+game_connection::tests::encoded_lobby_ticket_authenticates_a_loopback_udp_peer
+game_content::tests::map_catalog_and_mode_selections_match_the_python_corpus
+game_controller::tests::practice_and_pvp_controller_frames_match_reference_graphs_and_bytes
+game_heroes::tests::actual_hero_catalog_matches_the_ordered_python_reference
+game_hitscan::tests::practice_capsule_hits_and_health_notices_match_reference_geometry
+game_ingress::tests::matches_a_python_mixed_frame_and_pong_with_the_runtime_schema
+game_instance::tests::map_load_and_roster_updates_match_python_for_teams_and_free_for_all
+game_parameters::tests::reliable_21616_messages_match_the_python_reader_and_hero_select_requests
+game_pools::tests::all_hero_pools_match_python_defaults_overrides_and_component_bytes
+game_projectiles::tests::authored_soldier_leases_match_python_and_exclude_the_rifle
+game_replication::tests::native_world_resumes_a_gap_before_switching_the_body_and_acknowledging_input
+game_replication::tests::prepared_worker_resumes_unposed_vm_frames_before_advancing_physics
+game_service::tests::benchmark::prepared_worker_timing_two_solo_rooms
+game_service::tests::busy_peers_resume_in_round_robin_order_after_the_global_input_budget
+game_service::tests::prepared_rooms_keep_patrol_script_state_local
+game_service::tests::prepared_worker_delivers_a_volley_hit_and_replaces_the_bot_over_encrypted_udp
+game_service::tests::prepared_worker_delivers_helix_flight_damage_and_predicted_release_over_encrypted_udp
+game_service::tests::prepared_worker_retries_a_concrete_owner_vm_on_encrypted_loopback
+game_service::tests::prepared_world_waits_for_ownership_and_retries_baselines_before_scripts
+game_service::tests::worker_serves_loading_using_the_retail_schemas
+game_stats::tests::actual_scoreboard_components_match_the_python_wire_corpus
+jam_codec::tests::all_shipped_lobby_and_game_schemas_round_trip_defaults
+jam_codec::tests::lobby_wire_vectors_match_python
+lobby_arcade::tests::arcade_and_pass_wire_bytes_match_python_across_events_seasons_and_dates
+lobby_celebrations::tests::login_messages_match_python_for_events_challenges_and_content_key_order
+lobby_mode_rules::tests::mode_rules_matches_three_python_104319_message_bodies
+lobby_party::tests::solo_and_group_party_payloads_match_the_python_wire_bytes
+lobby_player_messages::tests::prepared_player_message_wire_bytes_match_python
+lobby_practice::tests::practice_request_hands_off_an_authenticated_udp_seat_and_releases_failed_sends
+lobby_presence::tests::own_and_friend_presence_match_python_wire_values
+lobby_ranked::tests::state_card_and_party_rating_messages_match_python_wire_vectors
+lobby_session::tests::native_server_logs_in_saved_profile_and_loads_practice_over_udp
+lobby_session::tests::prepared_subset_matches_the_python_login_in_wire_order
+match_scene::tests::matches_the_python_practice_range_create_frame_and_budget
+match_scene::tests::mode_ui_preserves_its_shared_variable_state_with_or_without_countdown
+mover::tests::practice_range_player_movement_records_match_python
+mover_ground::tests::practice_range_ground_probes_match_python
+mover_kinematics::tests::movement_velocity_matches_python_across_authored_mover_settings
+mover_settings::tests::actual_mover_components_match_the_python_reference
+retail_templates::tests::real_templates_and_localized_login_match_python_wire_hashes
+scene_assets::tests::elevated_practice_patrols_reach_their_hints_without_crossing_walls
+scene_assets::tests::prepared_practice_debug_view_contains_real_collision_layers
+scene_assets::tests::repeated_rooms_share_collision_indexes_and_keep_independent_bodies
+scene_assets::tests::stock_soldier_owner_session_idles_fires_reloads_and_sprints
+script_codecs::tests::actual_payloads_match_python_in_owner_and_both_observer_modes
+script_expr::tests::authored_controller_hud_and_soldier_config_values_match_python
+script_graph::tests::whole_retail_wire_index_matches_the_python_reference
+script_init::tests::authored_helix_uses_its_six_second_cooldown_before_the_next_volley
+script_init::tests::authored_soldier_rifle_holds_releases_and_reloads_on_the_reference_clock
+script_init::tests::authored_sprint_stack_gates_track_input_and_reveal_the_base_on_release
+script_init::tests::controller_and_training_bot_supported_startup_edges_match_python
+script_init::tests::isolated_soldier_sprint_ability_matches_the_authored_toggle_and_modifier_states
+script_init::tests::soldier_sprint_graph_reads_primary_crouch_and_melee_edges_as_in_python
+script_player::tests::authored_armour_and_shield_roots_reproduce_the_reference_body_pools
+script_player::tests::prepared_soldier_starts_the_reference_body_and_weapon_tree
+script_snapshot_wire::tests::actual_shared_ui_graph_baselines_match_python
+```
+
+## Enriched-pack passing test
+
+```text
+script_init::tests::firing_placement_reset_and_timer_boundaries_match_python
+```
+
+These are headless results. Original-client presentation, audio and gameplay acceptance remain open.

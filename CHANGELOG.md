@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-12
+
+#### Rust foundation review baseline
+
+- Recorded the maintainer-supplied review as a scoped task tracker, including typed IR, unavailable World queries, room retirement, reference fixtures and diagnostic boundaries.
+- Verified formatting, both Clippy lanes and 354 default / 357 inspector public tests at `13acf15`. Passed 65 base-pack prepared tests and the graph `0B92` test with an enriched pack. Recorded per-test prerequisites and manifest digests. Original-client acceptance remains open.
+
 ### 2026-11-11
 
 #### Rust contribution rules

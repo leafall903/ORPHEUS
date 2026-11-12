@@ -43,6 +43,8 @@ Keep pure geometry tests and frozen arithmetic fingerprints with the collision c
 
 See the [structure review](RUST_STRUCTURE_REVIEW.md) for the dependency graph findings and remaining migration decisions.
 
+The [foundation review and task tracker](RUST_FOUNDATION_REVIEW.md) records the 2026-11-12 refactor findings, validation gates and remaining work.
+
 ## Room authority and transport
 
 Give each active room one authoritative ECS world. Store body identity, transform and collider, vitals, rewind poses, and lifetime on the same entity. A stable spawner slot identifies the authored spawn across respawns. A body handle includes a generation, so a delayed event cannot affect the replacement body. Keep retail wire IDs in a separate mapping with the existing lifetime and reuse rules. Keep controller identity separate from the body it possesses.
