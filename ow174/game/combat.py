@@ -2732,6 +2732,10 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        if isinstance(actor, bots.Bot):
+            from ow174.game import sniper_retreat
+
+            sniper_retreat.interrupt(actor)
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
             self.ball_contacts.pop(actor.body, None)
@@ -5647,6 +5651,11 @@ class Combat:
                     continue
                 if advanced:
                     archives_thunderstorm.advance(self, bot, script.component)
+                    if (bot.spawner.get("acquire_targets") and bot.spawner.get("acquire_specials")
+                            and getattr(bot, "wall_mover", None) is None):
+                        from ow174.game import sniper_retreat
+
+                        sniper_retreat.advance(self, bot)
                 from ow174.game import assassin
 
                 assassin.refresh_control(script.component.world, script.component)

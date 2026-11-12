@@ -272,7 +272,7 @@ FIELDS = {
     ),
     BotWorld: _names(
         "hero mode weapon_buttons owner_position controller component controller_inputs "
-        "heavy_counter_stuns match controller_components manual_target manual_nameplate"
+        "heavy_counter_stuns match controller_components manual_target manual_nameplate sniper_target sniper_retry_at"
     ),
     AssassinControllerWorld: _names(
         "hero mode mover body_entity match button_edges button_holders movement_bits candidates "

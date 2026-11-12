@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount the original automatic Sniper retreat consumer
+
+- Restore original013B opt-in retreat state/native/search/advance/interrupt on
+  the existing BotWorld and NPC weapon loop, plus both strict stored fields.
+  Manual navigation no longer aborts this automatic motion when firing stops.
+  Reuse current trap, wall ground/constrain and mover interfaces; retain the
+  separate existing manual reposition path and no additional controller.
+- Configured original baseline retired the VM on missing sniper_target. Actual
+  retreat/storage/resumed-rifle case now passes; opt-in/range/cover, rear wall,
+  EMP interruption and62 shared input/navigation checks pass. Original Ana Dart
+  moving-during-windup assertion remains failing and unchanged. The additional
+  manual Zen fixture needs its explicit NPC_DATA environment; no client run.
+
 ### Preserve the original standalone graph-extension reader
 
 - Restore original0200 load_bundle byte for byte for explicit fingerprint-bound

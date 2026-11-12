@@ -282,8 +282,10 @@ class BotWorld(runtime.World):
         return project_movement_flags(self, instance, node)
 
     def search_position(self, state):
-        from ow174.game import sniper_special
+        from ow174.game import sniper_retreat, sniper_special
 
+        if sniper_retreat.scoped(self, state.instance) and state.node.pos == 39:
+            return None  # Original automatic host resolves the active search after VM advance.
         return sniper_special.search(self, state)
 
     def position(self, entity):
@@ -357,6 +359,8 @@ class BotWorld(runtime.World):
         self.controller_components = controller_components
         self.manual_nameplate = manual_nameplate
         self.manual_target = None
+        self.sniper_target = None
+        self.sniper_retry_at = 0
         self.controller: runtime.Component | None = None
         self.component: runtime.Component | None = None
         self.controller_inputs: dict[int, int] = {}
@@ -630,8 +634,11 @@ class BotWorld(runtime.World):
         from ow174.game import assassin, npc_context, npc_shields, orisa_halt
 
         if self.hero == 0x02E00000000001B8:
-            from ow174.game import sniper_special
+            from ow174.game import sniper_retreat, sniper_special
 
+            result = sniper_retreat.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
             result = sniper_special.native(self, cfg, instance)
             if result is not NotImplemented:
                 return result
