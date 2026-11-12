@@ -626,11 +626,19 @@ class Player:
                 moira.grasp_command(self.match.combat, self, command)
                 if posed and script.hero == moira.MOIRA and command.buttons & 2 else nullcontext()
             )
+            from ow174.game.symmetra_portals import ABILITY, INTERACT
+
+            pressed = command.buttons & ~script.buttons if posed else 0
+            portals = self.match.combat.portals
+            if pressed & ABILITY and portals.pairs:
+                portals.dismiss(self)
             previous_frame = script.frame
             previous_fortify = combat._active_fortify(self) if posed else None
             previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
                 self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+                if pressed & INTERACT and self.body_script is not None and portals.pairs:
+                    portals.interact(self)
                 if posed and self.body_script is script and script.frame > previous_frame:
                     fortify = combat._active_fortify(self)
                     if fortify is not None:

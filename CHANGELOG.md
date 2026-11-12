@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect original Symmetra portal pair lifecycle
+
+- Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with
+  existing health/replication/retirement; input edges dismiss/interact through
+  original eligibility, ready time, transit cooldown and1647 relocation.
+- Probe the exit using current capsule stance/peer mask and original temporary
+  pillar movement overlay over the immutable base world. Preserve current body
+  drivers, exact cleanup and configured Photon placement; no duplicate pool.
+- Restore source1571/30 cancel-animation finish only for its permissive match
+  owner. Preserve generic animation flags and strict behavior. Keep the original
+  Winston hero/body metadata constants, coordinated with the Winston owner.
+- Final21 original portal owner cases pass33.697s. First full29 run retains
+  eight old-owner observation errors and Cryo/projected-barrier differences;
+  assertions stay unchanged. Shared27:26 pass/one retained generic Anim flag
+  failure outside this batch's graph scope. Controlled real server input creates
+  the pair; endpoint shields and ready time independently change stored digest.
+  Full cross-owner behavior and client acceptance remain unfinished.
+
 ### Mount original Symmetra static placement preview
 
 - Connect delivered projection/sampling/surface math, typed result publication,

@@ -3401,7 +3401,10 @@ class Anim(State):
         self.timer_at(delay, 1)
         suppress_finish = any(truthy(self.evaluate(_field(self, key), watch=False))
                               for key in ("m_154DBA91", "m_2DEAE6A9"))
-        if not suppress_finish:
+        portal_cancel = (not self.instance.component.strict
+                         and self.instance.graph.index == 0x1571 and self.node.pos == 30
+                         and getattr(self.instance.component.world, "match", None) is not None)
+        if portal_cancel or not suppress_finish:
             self.request_finish(max(0, delay))
 
     def timer(self, param: int) -> None:

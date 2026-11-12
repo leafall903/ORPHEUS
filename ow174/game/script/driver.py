@@ -719,6 +719,10 @@ class BodyWorld(runtime.World):
             result = fight.barriers.world.create(self, instance, node)
             if result is not NotImplemented:
                 return result
+            if instance.graph.index == 0x1571:
+                result = fight.portals.factory(instance, node)
+                if result is not NotImplemented:
+                    return result
             portals = getattr(fight, "symmetra_portals", None)
             if portals is not None:
                 return portals.create(instance, node)

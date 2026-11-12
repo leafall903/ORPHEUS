@@ -73,6 +73,7 @@ from ow174.game import (
     torbjorn_charge,
     symmetra_charge,
     symmetra_turrets,
+    symmetra_portals,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -2047,6 +2048,7 @@ class Combat:
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
         self.sentries = symmetra_turrets.Turrets(self)
+        self.portals = symmetra_portals.Portals(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2216,6 +2218,7 @@ class Combat:
         body_entities.retire_source(self.match, player.entity, player.body)
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
+            self.portals.retire_owner(player)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -4128,6 +4131,7 @@ class Combat:
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
         self.sentries.update({}, {}, ())
+        self.portals.update()
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
