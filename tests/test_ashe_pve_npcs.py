@@ -13,15 +13,15 @@ from unittest.mock import patch
 
 import test_ashe_combat as fixtures
 
-from ow174.game import ashe, combat, heavy_charge, immunity, mover, npc, npc_control, npc_melee, world
+from ow174.game import ashe, combat, heavy_assault, immunity, mover, npc, npc_control, npc_melee, world
 from ow174.game.collision import flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script import expr, graph, nodes
 
-INPUTS = Path(os.environ.get("ORPHEUS_PVE_NPC_DIR", "."))
+INPUTS = Path(os.environ.get("ORPHEUS_PVE_NPC_DIR", os.environ.get("ORPHEUS_NPC_DATA_DIR", ".")))
 CATALOG = INPUTS / "pve_npcs_174.json"
-BUNDLE = INPUTS / "game_graphs_174.json.gz"
+BUNDLE = graph.GRAPHS_PATH
 
 
 @unittest.skipUnless(CATALOG.is_file() and BUNDLE.is_file(), "requires explicit external PvE inputs")
@@ -32,21 +32,16 @@ class AshePveNpcTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.catalog = npc.load_catalog(CATALOG)
-        bundle = graph.load_bundle(BUNDLE, os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION"))
-        cls.bundle_patch = patch.object(graph, "_data", return_value=bundle)
-        cls.bundle_patch.start()
-        cls.mover_patch = patch.dict(os.environ, {
-            "ORPHEUS_MOVER_EXTENSION": os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION", "")})
-        cls.mover_patch.start()
-        mover._movers.cache_clear()
+        # Use the actual composed graph provider and current locked mover table.
+        # The explicit current-bound mover extension is already selected by the profile.
+        cls.bundle = graph._data()
+        mover._clear_movers()
         graph._records.cache_clear()
         graph.graph.cache_clear()
 
     @classmethod
     def tearDownClass(cls):
-        cls.bundle_patch.stop()
-        cls.mover_patch.stop()
-        mover._movers.cache_clear()
+        mover._clear_movers()
         graph._records.cache_clear()
         graph.graph.cache_clear()
 
@@ -87,7 +82,7 @@ class AshePveNpcTests(unittest.TestCase):
                     self.assertEqual(vitals.now[world.SHIELDS_POOL], max(0, definition.shields - damage))
                     self.assertFalse(bot.dead)
 
-    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION", ".")).is_file(),
+    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_MOVER_EXTENSION", ".")).is_file(),
                          "requires extracted NPC mover extension")
     def test_viper_critical_hits_kill_all_five_authored_npcs_from_full_health(self):
         self.assertEqual({item.name for item in self.catalog.values()},
@@ -195,7 +190,7 @@ class AshePveNpcTests(unittest.TestCase):
                 self.assertEqual(before - vitals.total, 90)
                 self.assertFalse(bot.dead)
 
-    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION", ".")).is_file(),
+    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_MOVER_EXTENSION", ".")).is_file(),
                          "requires extracted NPC mover extension")
     def test_live_dynamite_shot_and_fuse_apply_blast_and_burn_to_authored_npcs(self):
         from test_ashe_impulses import wall_scene
@@ -657,7 +652,7 @@ class AshePveNpcTests(unittest.TestCase):
         run.step({mei: (0, 0, 8)})
         self.assertTrue(immunity.cryo_active(mei, mei.body))
         charge = next(item for item in bot.body_script.component.instances.values()
-                      if item.graph.index == heavy_charge.CHARGE)
+                      if item.graph.index == heavy_assault.CHARGE_GRAPH)
         targets = {item.entity: fight.vitals_of(item) for item in fight._targets() if item.owner is not bot}
         before = {body: vitals.total for body, vitals in targets.items()}
         for _ in range(100):
@@ -690,7 +685,7 @@ class AshePveNpcTests(unittest.TestCase):
                 player.mover.yaw, player.mover.pitch = fixtures.aim(fight._eye(player), (0, 2, 12))
                 self.assertEqual(npc_control.start(run.match, player), bot.entity)
                 charge = next(item for item in bot.body_script.component.instances.values()
-                              if item.graph.index == heavy_charge.CHARGE)
+                              if item.graph.index == heavy_assault.CHARGE_GRAPH)
                 movement = charge.graph.node(71)
                 for _ in range(90):
                     run.step({})
@@ -744,7 +739,7 @@ class AshePveNpcTests(unittest.TestCase):
         player.mover.yaw, player.mover.pitch = fixtures.aim(fight._eye(player), (0, bot.position[1] + 1, 12))
         self.assertEqual(npc_control.start(run.match, player), bot.entity)
         charge = next(item for item in bot.body_script.component.instances.values()
-                      if item.graph.index == heavy_charge.CHARGE)
+                      if item.graph.index == heavy_assault.CHARGE_GRAPH)
         return run, player, bot, charge
 
     def start_melee(self, name, *, distance=None):
@@ -859,7 +854,7 @@ class AshePveNpcTests(unittest.TestCase):
                     hits = player.client.messages(combat.HIT)
                     self.assertEqual(len(hits), 0 if wall else 1)
 
-    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION", ".")).is_file(),
+    @unittest.skipUnless(Path(os.environ.get("ORPHEUS_MOVER_EXTENSION", ".")).is_file(),
                          "requires extracted NPC mover extension")
     def test_authored_capsules_control_viper_upper_side_edges_and_wall_occlusion(self):
         from test_ashe_impulses import wall_scene

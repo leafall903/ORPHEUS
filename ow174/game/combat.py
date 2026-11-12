@@ -157,6 +157,24 @@ EYE_STANDING = {
     0x0400000000001B1B: 1.58, 0x04000000000002A3: 1.425,
     0x0400000000002593: 1.7, 0x0400000000000225: 1.2,
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
+    0x040000000000001C: 1.5,
+    0x0400000000000022: 1.55,
+    0x0400000000000024: 1.8,
+    0x04000000000000E4: 1.45,
+    0x0400000000000141: 1.35,
+    0x04000000000001C0: 1.5,
+    0x04000000000001FD: 1.82,
+    0x0400000000000216: 1.55,
+    0x040000000000028F: 1.6,
+    0x0400000000000380: 1.25,
+    0x04000000000003CF: 1.55,
+    0x04000000000003FC: 1.175,
+    0x04000000000008BA: 1.3,
+    0x040000000000121C: 1.3,
+    0x0400000000001498: 1.78,
+    0x040000000000200B: 1.83,
+    0x04000000000026F0: 1.3,
+    0x04000000000028B6: 1.0,
 }
 EYE_CROUCHED = {
     0x040000000000251C: 1.0115,
@@ -169,6 +187,23 @@ EYE_CROUCHED = {
     0x04000000000003CF: 1.085, 0x0400000000001B1B: 1.2, 0x04000000000002A3: 0.9975,
     0x0400000000002593: 1.1, 0x0400000000000225: 0.84,
     0x0400000000002AB1: 1.75, 0x04000000000003BF: 1.12,
+    0x040000000000001C: 1.05,
+    0x0400000000000022: 1.085,
+    0x0400000000000024: 1.26,
+    0x04000000000000E4: 1.015,
+    0x0400000000000141: 0.945,
+    0x04000000000001C0: 1.05,
+    0x04000000000001FD: 1.35,
+    0x0400000000000216: 1.15,
+    0x040000000000028F: 1.12,
+    0x0400000000000380: 0.875,
+    0x04000000000003FC: 0.8225,
+    0x04000000000008BA: 0.91,
+    0x040000000000121C: 0.91,
+    0x0400000000001498: 1.246,
+    0x040000000000200B: 1.5,
+    0x04000000000026F0: 0.91,
+    0x04000000000028B6: 0.7,
 }
 EYE_CROUCHED_DEFAULT = 1.15
 TRACER_BODY = 0x0400000000000001
@@ -5834,6 +5869,7 @@ class Combat:
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
             direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
+            direction = ball.cannon_direction(shooter, state, direction, number, time, activation)
             if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
                     and state.instance.component is shooter.body_script.component):
                 direction = ashe.viper_direction(direction, number, viper_launch)
@@ -9016,11 +9052,24 @@ class Combat:
             target.owner.position, target.owner.velocity = tuple(mover.position), tuple(mover.velocity)
             target.owner.moved_tick = self.tick
 
+    def _release_heavy_companion(self, source):
+        # Original companion carry ends at impact; Player native recovery stays unchanged.
+        for actor in tuple(self.companions.active.values()):
+            script = actor.bot.body_script
+            if script is None:
+                continue
+            for application in tuple(script.component.instances.values()):
+                if application.graph.index == 0x1407 and application.source_entity() == source:
+                    script.component.destroy(application)
+
     def advance_heavy_capture(self, component) -> None:
         """Sweep the source and captured player, then feed contact into the authored transition."""
         instance = next((i for i in component.instances.values() if i.graph.index == 0x1408), None)
         if instance is None:
             return
+        phase = instance.find_var(runtime.INSTANCE_SCOPE, 59, create=False)
+        if phase is not None and phase.value() == 2:
+            self._release_heavy_companion(component.entity)
         recovery = instance.states.get(instance.graph.node(10).state)
         if recovery is not None and recovery.active:
             gate = instance.graph.node(15)
@@ -9087,6 +9136,9 @@ class Combat:
             instance.write(expr.lvalue(contact.node.field("m_26DA7CF8")), True)
             drive.try_complete()
             component.run_now()
+            phase = instance.find_var(runtime.INSTANCE_SCOPE, 59, create=False)
+            if phase is not None and phase.value() == 2:
+                self._release_heavy_companion(component.entity)
             return
         # The close trackers belong to the drive. Sample them before the separate body tracker.
         for pos in (85, 100, 134):
@@ -9139,7 +9191,11 @@ class Combat:
                 self._damage(attacker, target, amount, False, loadout, frame, world_tick=frame)
             if lateral_force and not self.vitals_of(target).dead:
                 forward = deflection.basis(attacker.yaw, 0)[2]
-                reinhardt_charge.lateral_impulse(attacker.position, target, state, forward)
+                if self.companions.actor_for(target.entity) is not None:
+                    reinhardt_charge.lateral_impulse(attacker.position, target, state, forward,
+                                                     fight=self, frame=frame)
+                else:
+                    reinhardt_charge.lateral_impulse(attacker.position, target, state, forward)
 
     def heavy_melee(self, state) -> None:
         attacker = self._npc_melee_attacker(state)
@@ -9317,6 +9373,7 @@ class Combat:
         amount *= self.zenyatta.boost(target)
         self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
+        temporary_before = vitals.temporary_shields
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
         if self.now < vitals.nano_until:
@@ -9464,10 +9521,13 @@ class Combat:
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
+                    and not (hero == ball.HERO and loadout == 0x0B900000000001ED)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
+                if hero == ball.HERO:
+                    points = dealt - (temporary_before - vitals.temporary_shields)
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))

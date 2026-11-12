@@ -882,3 +882,66 @@ the existing location; no profile/runtime copies. This handoff is now complete,
 superseding the earlier pending default-launcher statements. No services or
 client were started; occupied-port guard remains effective. Remaining runtime
 source consumers are still being integrated by all three persistent workers.
+
+
+Root all32 source EYE_STANDING/EYE_CROUCHED audit finds35 missing original
+literal fields, zero source conflicts/differences. Three symbolic DVa.MECH
+keys resolve to original0407, whose1.74 values are already present. Current
+VIEW_OFFSETS selection was absent, so missing fields actually hit generic
+fallbacks. Source33body catalog006E/prepared/view_offsets_174.json is unchanged,
+SHA1ad16eacd4464f13db61725f99b212cb6a2f7c4d2ab7bf2c3853348c65290d10
+matches original input-hash receipt. Every current+original legacy field found
+in that catalog matches exactly. Root merges35 original code fields preserving
+all existing maps and the current strict catalog-first reader. Provenance lives
+in parallel-merge/original-eye-field-union.json; no runtime/game archive copied.
+Candidatev16 adds only original ORPHEUS_VIEW_OFFSETS via existing loader. Source
+bodies verified from canonical graph data:0024Reinhardt,08BAMei,200BBall,2AB1Sigma;
+prior informal chat labels were corrected, exact GUIDs alone drive integration.
+Original all32hero ray/stance checks are next; current default entry remainsv15
+until v16 has actual checks, while the code fields are committed independently.
+A53 df1f8a9c receivedd873f2e1 normalizes original PvE fixtures to actual composed
+graph provider/locked mover without old loaders. B41 493093e2 received21e1b364
+mounts original Cannon spread/combat charge; no separate temporary pool.
+
+
+A54 d412a283 received40a43036 preserves actual Heavy/BOB source carry semantics:
+impact retires only that BOB1407; original Player recovery and stop phase remain.
+Root frozen99790 on40a43036 usingv16 terminal25run52.368s with9retained subcases
+across2original all32hero methods (5fail4error),23other methods pass,no skips.
+The retained cases are only DVa007A _targets StopIteration after fixture clears
+mover.body and crouch restriction proof, and Tracer0003 standing critical proxy
+20vs40. Source fixture assumptions versus current DVa/Tracer owners are assigned
+A; no numerical expectations or geometry are changed. All other catalog/Ashe eye/
+actual BOB carry/Ball spread/runtime methods execute. Original33body catalog
+activation is source-preserving and not blocked by complete acceptance.
+Workspace input selection promotesv16; all27original source hashes reverified.
+
+New original shared source gap reported by A:0200 player_controller.py and
+controller_filter.py, actual empty000E Player controller VM, PinEffectServices,
+wire namespace, lifecycle, heroselect and stored state integration. Root owns
+this audit/merge. Canonical graph base already has exact original000E metadata.
+Existing current Player/heroselect encodes controller wire without this VM;
+root must preserve that sole wire ownership rather than enable another manager.
+Original filter_bits prerequisite also missing. A owns only its hero/status
+consumers and does not duplicate these hosts. Overall goal remains incomplete.
+
+
+C37 original9ec17472 accepted owner replay is mounted in actual existing
+Combat/Player/Translocator paths. Root found two current-contract differences:
+_step_body_pose tick is world-at, not body-frame; target history has seven
+fields after B37, not four. Root corrects the passed tick and preserves all
+history tail fields. C confirmed both current contracts. Root91995 terminal
+31pass48.227s onv16: normal original SombraCharge15, focused adapter history/
+epoch/clocks, prepared entry and runtime. No changed original numbers. Worker
+also reports normal shared Genji/nav/mover/Mercy115pass175.104s and5original
+accepted Translocator world checks44.677s. Incoming application replay remains
+unmounted; C38 owns real Queue/start-entry/gate delivery, no fake Wait states.
+
+A actual contract evidence for v16 retained source cases: parked DVa Player
+040A has a different mover from live mech Bot0407; actual combat.player_target
+is the mech, eye1.74 and original21/SET/0 crouch restriction. The old uniform
+fixture queries Player ownership/parked modifiers/body catalog. Tracer raw
+proxy ray1.09 misses the unchanged original head sphere localY1.56701195,
+radius.16, so actual20 follows the source0003 geometry. This is static same-source
+plus actual combined evidence, not an alleged full frozen-source baseline run.
+Do not alter original body/head geometry or numeric assertions to force green.

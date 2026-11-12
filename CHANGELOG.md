@@ -14,6 +14,40 @@ This log records tested changes and their acceptance status. Entries are grouped
   source constants/assertions retained. Recipient-clock/retirement and existing888
   modifier gaps remain; no original-client acceptance performed.
 
+
+### Retain current pose clocks and target history during original Sombra replay
+
+- Receive original accepted owner replay, retaining separate body/world epochs.
+  Root resolves the current movement adapter with world tick and preserves all
+  existing history shape/critical fields when updating only recall feet.
+- Original SombraCharge15 plus adapter, entry and runtime31pass48.227s onv16.
+  The adapter check covers distinct epochs and seven-field history with restored
+  scheduling clocks; it does not replace the original live ability checks.
+  Incoming application replay and actual Hack start entries remain C38 work.
+
+
+### Select original FirstPerson inputs for the integrated local entry
+
+- Workspace entry now selects v16, adding only the existing original33body
+  FirstPerson catalog. All recorded source hashes and every legacy eye field
+  match; current native constants and input loaders remain unchanged.
+- Original all32hero ray checks plus actual BOB carry, Ball spread, Ashe eye and
+  runtime execute25 methods52.368s. Nine retained subcases in two methods concern
+  DVa body/stance fixture and Tracer critical proxy;23other methods pass, no skips.
+  No original value or assertion was changed and acceptance does not block merge.
+
+
+### Restore all delivered FirstPerson fallback fields and original catalog selection
+
+- Union35 missing original standing/crouched fields from32 delivered source
+  maps, preserving every current field and external catalog priority. Shared
+  source values have zero conflicts; all fields match the original33body catalog.
+- Prepare v16 selecting unchanged006E view_offsets_174.json through the existing
+  strict loader, with its original recorded SHA256 verified. No camera feature,
+  eye value, geometry, source input or assertion was invented or rewritten.
+- Static original-source/current/catalog comparison passes. Existing original
+  all32hero view/ray and shared checks follow; no acceptance gate blocks commit.
+
 ### Replay original Sombra accepted owner reactions and charge deadlines
 
 - Replace Camo-only idle replay with the original bounded owner scheduler for
@@ -48,6 +82,32 @@ This log records tested changes and their acceptance status. Entries are grouped
   Python CLI--help passes; native CMD entry correctly refuses an occupied local
   port without starting services. Original unconfigured CLI test import lacked
   external descriptors, fixed by selecting existing inputs rather than copying.
+### Connect delivered Quad Cannon spread and Ball combat charge
+
+- Mount original deterministic1514 cone/ramp through the existing shot path;
+  retain actual volley/muzzle options and duplicate-command rejection.
+- Restore source Ball effective-permanent-damage charge, exclude Minefield1ED,
+  and use original general/combat ruleset factors plus cap/death/ultimate guards.
+  Other heroes retain their existing charge API behavior.
+- All six original spread/charge/cap cases pass; actual native175 tagged shield
+  hit for200 loses20 armor and grants only20 charge. Damage/runtime25 pass.
+  Source Spread23 assertion AST unchanged. No extra pool/acceptance matrix.
+- Natural passive generation and full Ball/client acceptance remain open.
+
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
 
 
 ### Preserve Mercy scope execution during Sombra charge integration
@@ -9595,3 +9655,24 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A52 - original Ashe FirstPerson fields
 
 - Restore251C standing1.445/crouched1.0115 while preserving current full shared lookup/catalog priority. Original eye/low-cover/history and movement checks passed; original exact Coach15m distance/count assertions now all pass, exposing only the existing obsolete add_impulse spy. No expectations changed.
+
+### Worker A synchronization after A52
+
+Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain all parallel source and local launcher commits.
+
+### Worker A53 - activate original Ashe NPC checks on shared inputs
+
+- Use one composed graph provider/current locked mover table and existing actual catalog/current-bound extension for original fixtures; remove obsolete secondary-loader/cache calls and stale input gate. Preserve all numeric assertions. Normal15 methods now run without skips; original API/one Heavy hit differences retained in logs.
+
+### Worker A54 - BOB impact and retired-victim cleanup
+
+- Bind original Heavy fixture graph ID to actual1408 host. Restore BOB1407 release at same-frame wall impact and stop the actual carrier when its BOB body retires, preserving shared Player recovery and stop/cooldown states.
+- Original full carry/300HP/gun-resume and opposing capture passed; retain old static phase2 versus current stop phase0 assertions unchanged.
+
+### Worker A55 - preserve original Ashe status consumers and queries
+
+- Preserve14 remaining original fixtures and original native Sombra constants/read-only actual-VM queries; keep sole SombraControls host. Original status baseline exposed missing real receiver entry/Wait delivery, assigned to C; no fake compatibility state or weakened assertion. Shared player-controller delivery is owned by root.
+
+### Worker A56 - preserve Heavy lateral force on BOB
+
+- Route original Heavy graze force through the current shared impulse host onto the same BOB mover; retain native offset5 and all existing Reinhardt/Player paths. Actual health/30+10 force/same-mover probe and shared40 checks passed.

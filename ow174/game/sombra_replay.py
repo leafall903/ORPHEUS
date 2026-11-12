@@ -101,11 +101,11 @@ def replay_player(fight, player, tick, dt):
             command = Command(frame, yaw=mover.yaw, pitch=mover.pitch)
             if player.body in fight.translocators.recall_poses:
                 mover.last_command = command
-                player._step_body_pose(command, dt, frame, replay_accepted=True)
+                player._step_body_pose(command, dt, at, replay_accepted=True)
                 history = fight.history.get(player.body)
                 if history and history[-1][0] >= at:
-                    when, _, height, eye = history[-1]
-                    history[-1] = when, tuple(mover.position), height, eye
+                    when, _, *shape = history[-1]
+                    history[-1] = (when, tuple(mover.position), *shape)
             else:
                 player._advance_body_frame(command, posed=False, replay_accepted=True)
     finally:
