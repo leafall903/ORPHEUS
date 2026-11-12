@@ -1814,3 +1814,40 @@ Next exact action: clean sync parent canonical, then mount source normalized
 Hypersphere wall contact/fractional gravity/count retirement on same Rocket;
 retain current C55same-wall piece candidate and C56Pharah force-plan branches.
 After that continue Sigma charge/Grasp original consumer audit.
+
+
+## B67 — original Hypersphere wall response on sole Rocket
+
+Clean sync accepted canonical faec1f1c at merge4fe40993; only changelog conflict
+kept both sides. Preserve root query helpers/A Graviton/C Sentry changes.
+
+Consume the remaining original profile wall radius/normal/tangent/count. Use
+actual contacts.scene_sweep and existing terrain_bounce tuple; the existing
+terrain_bounce_limit stores remaining Sphere budget, distinct from Junkrat's
+existing count interpretation. Do not misuse field_bounces (other field actor
+reflection history). No persistent field added. An initial bounces old-name
+error is retained in worker-b-sigma-bounce-mount.log, then corrected to actual
+registered terrain budget in source fixture and consumer.
+
+Pass the actual pre-integration velocity only as local call arguments through
+flight/sweep. Original fractional float32 gravity at contact, normal/tangent
+response, normalization tospeed1, decrement and final no-airburst retirement
+are retained. Unspent flight re-enters the same step with remaining time.
+Existing amplification contact accounting stays on the travelled segment; no
+new instance, host or geometry mesh. Ordinary Junkrat/Hanzo flight unchanged.
+
+Original normalized-bounce observer now wraps actual sigma_projectiles.bounce
+(the same contact-before-remainder boundary), forwards its extra geometric
+arguments, and reads actual terrain_bounce_limit. All original assertion-call
+ASTs match after only that field mapping; numbers and fractional math stay.
+Source normalized/final-contact/ricochet-only-owner3/3 pass2.832s. Those with
+sparse/opt-in5 +Junkrat2/Deflect endpoint1 +Damage8/runtime13 =29/29 pass6.453s.
+Logs worker-b-sigma-bounce-{mount,corrected,original,joint}.log preserve stages.
+
+Remaining full-source corner retry-budget, same-wall native covers, deflected
+Sphere ownership/leases and causal server storage still require original
+consumer audit. Current tests prove the original normal wall response, not all
+Sigma interactions. No original-client acceptance run. Next exact action: real
+active/bounced Sphere strict-server snapshot causal probe then remaining
+Sigma charge/Grasp/barrier consumers and missing original fixture/CLI imports.
+Root owns Flux; A owns Zarya; Hog cross-owner remainder remains open.

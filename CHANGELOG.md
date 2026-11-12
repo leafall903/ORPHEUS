@@ -147,13 +147,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Restore original Hypersphere wall response
 
-- Restore original cover/target/barrier/splash prediction entry points over the
-  existing solid walls and current shield geometry, preserving actual actor and
-  service identities without advancing hosts or spending health.
-- Actual Mei/predicted-pose and raised Reinhardt stored-state checks pass;
-  remaining native shield input fixtures are explicitly pending, and do not
-  prevent submitting these existing-source consumers. No new runtime pool.
+- Same Rocket consumes the original wall radius, fractional gravity, normalized
+  reflection and remaining bounce budget; final contact retires without airburst.
+  Existing other projectile flight and amplification accounting remain connected.
+- Original response/retirement and cross-projectile shared29 checks pass with
+  unchanged numeric assertions. Full interaction/storage audit continues; no
+  original-client acceptance run.
 
 
 ### Restore explicit NPC mover export options
@@ -195,6 +196,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original offset0 and all earning-readiness subcases pass with unchanged
   numbers. Full31 checks had only four stale motion-observer mappings, corrected
   against the selected ledger in a focused pass. No client acceptance run.
+
+### Restore shared original Sentry geometry queries
+
+- Restore original cover/target/barrier/splash prediction entry points over the
+  existing solid walls and current shield geometry, preserving actual actor and
+  service identities without advancing hosts or spending health.
+- Actual Mei/predicted-pose and raised Reinhardt stored-state checks pass;
+  remaining native shield input fixtures are explicitly pending, and do not
+  prevent submitting these existing-source consumers. No new runtime pool.
+
+
+### Restore explicit NPC mover export options
+
+- Restore original006E --base/--npc-catalog/--output on the existing mover export
+  tool, retaining stance metadata and the original34 physical fields.
+- Actual extraction/loader checks preserve base records and bytes, reject base
+  overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
 
 ### Apply WholeHog world motion to the actual controlled mech
 

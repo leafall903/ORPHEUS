@@ -6582,8 +6582,10 @@ class Combat:
                         matrix_absorbable=(definition in self.matrix_definitions
                                            if self.matrix_definitions is not None
                                            else projectile_tags.absorbable(definition)),
-                        terrain_bounce=junkrat_profile[2] if junkrat_profile is not None else None,
-                        terrain_bounce_limit=junkrat_profile[3] if junkrat_profile is not None else 0,
+                        terrain_bounce=(sphere_profile[2], sphere_profile[4], sphere_profile[5]) if sphere_profile is not None
+                            else junkrat_profile[2] if junkrat_profile is not None else None,
+                        terrain_bounce_limit=(sphere_profile[3] if sphere_profile is not None
+                                              else junkrat_profile[3] if junkrat_profile is not None else 0),
                         storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
@@ -7404,7 +7406,9 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.terrain_bounce is not None or rocket.mine is not None:
+        sphere = rocket.source_graph == 0x187F and rocket.terrain_bounce is not None
+        previous_velocity = rocket.velocity
+        if (rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None:
             # Source0065's direction/speed pair is authoritative for each chord.
             rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
@@ -7417,7 +7421,7 @@ class Combat:
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
             if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
                     or hanzo_arrow or _zarya_world_timed_flight(rocket.definition, rocket.spawn)
-                    or rocket.terrain_bounce is not None or rocket.mine is not None):
+                    or (rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -7426,10 +7430,11 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining,
+                        previous_velocity=previous_velocity)
         if rocket.mine is not None:
             self.junkrat.sync_pose(rocket.mine)
-        if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
+        if ((rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
             # The delivered grenade stores the end velocity after sweeping its
             # ballistic chord; the next frame and public direction share it.
             rocket.speed = math.hypot(*rocket.velocity)
@@ -7437,7 +7442,7 @@ class Combat:
                 rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
 
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0, previous_velocity=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -7460,7 +7465,8 @@ class Combat:
         # deflectors that could repeatedly collide at distance zero.
         reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
-            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining)
+            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining,
+                                              previous_velocity=previous_velocity)
             if isinstance(continuation, Rocket):
                 return continuation
             duration = continuation
@@ -7507,7 +7513,7 @@ class Combat:
         elif duration - consumed > EPSILON:
             self._fly_step(rocket, duration - consumed, reflected=reflected)
 
-    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0) -> float | Rocket:
+    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0, previous_velocity=None) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
         integrated_duration = duration
         step = rocket.speed * duration
@@ -7580,7 +7586,12 @@ class Combat:
         if rocket.terrain_bounce is not None:
             from ow174.game import junkrat_projectile
 
-            wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
+            if rocket.source_graph == 0x187F:
+                from ow174.game import sigma_projectiles
+
+                wall, terrain_normal = sigma_projectiles.surface(rocket, collision, heading, step)
+            else:
+                wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
         storm_normal = None
         if rocket.storm_ricochets:
             hit = collision.cast_ray(rocket.position, heading, step)
@@ -7744,8 +7755,14 @@ class Combat:
         if (terrain_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
                                                   redirect, absorption, scripted_shield))):
-            junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
-                                      integrated_duration, reflected, range_ends)
+            if rocket.source_graph == 0x187F:
+                remaining = sigma_projectiles.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                                     previous_velocity, reflected)
+                if remaining is not None and remaining > 0:
+                    self._fly_step(rocket, remaining, reflected=reflected)
+            else:
+                junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                          integrated_duration, reflected, range_ends)
             return 0.0
         if (storm_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
