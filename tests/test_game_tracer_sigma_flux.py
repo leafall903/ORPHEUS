@@ -5,10 +5,12 @@ from dataclasses import replace
 
 import test_game_tracer as tracer_tests
 from test_game_combat import aim
+from test_game_mover import box
 
 from ow174.game import combat, sigma_flux, tracer
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.commands import CROUCH, FIRE, JUMP
+from ow174.game.collision import World
 from ow174.game.content import heroes
 from ow174.game.script import expr
 from ow174.game.script.nodes import Ability
@@ -32,6 +34,13 @@ class TracerSigmaFluxTests(unittest.TestCase):
         self.ability = next(s for s in self.instance.states.values() if isinstance(s, Ability))
         self.point = tuple(self.tracer.mover.position)
         self.cost = self.script.component.entity_var(338).value()
+
+    def wall(self, x, y, z0, z1):
+        floor = [(-5000, y, -5000, -5000, y, 5000, 5000, y, 5000),
+                 (-5000, y, -5000, 5000, y, 5000, 5000, y, -5000)]
+        self.run.match.collision_world = World(floor + box(x - 4, x + 4, y, y + 4, z0, z1))
+        for player in self.run.players:
+            player.mover.use(world=self.run.match.collision_world)
 
     def step(self, *, sigma_buttons=0, tracer_buttons=0):
         yaw, pitch = aim(self.fight._eye(self.sigma), self.point)
@@ -301,7 +310,7 @@ class TracerSigmaFluxTests(unittest.TestCase):
 
     def test_static_wall_occludes_target_inside_the_selected_radius(self):
         x, y, z = self.point
-        accretion_tests.TracerSigmaAccretionTests.wall(self, x, y, z + 1.5, z + 2)
+        self.wall(x, y, z + 1.5, z + 2)
         self.point = (x, y, z + 4)
         self.select()
         self.step(sigma_buttons=FIRE)

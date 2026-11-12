@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Flux fixture geometry and explicit source contract differences
+
+- Extract the original parent wall helper with unchanged geometry into the
+  standalone Flux fixture; the original occlusion case now passes1/1.
+- Full Flux/flat-floor/modifier25 checks had22pass, a pending Pulse owner charge
+  assertion and the documented0003/023B caster-death contract difference, plus
+  the now-fixed fixture lookup. Actual death trace confirms original023B descent
+  already committed; preserve that original boundary and all failed assertions.
+
 ### Mount original Gravitic Flux on the existing body and movement hosts
 
 - Preserve original023B placement/selection/receiver/lift/slam functions in the

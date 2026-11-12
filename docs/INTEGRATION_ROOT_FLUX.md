@@ -33,3 +33,23 @@ passes in30.690s with selected v18: original1960 cost, placement, entry50,
 lift above3m, grounded75 slam, effect end and both passive body VM exports.
 Log: ../parallel-merge/root-flux-original-full-path.log. Full source suite and
 shared movement regressions remain next; no original-client acceptance run.
+
+Full original13 Flux +12 flat-floor/modifier checks finish25run22pass,
+two retained assertions and one incomplete wall fixture extraction. Restore the
+original parent's exact wall helper too; that original wall method then passes
+1/1 in5.480s. No numeric or gameplay assertion changes.
+
+The original Pulse-to-airborne-Sigma case deals the correct355 damage but credits
+Tracer355 ultimate points instead of original0. Worker A owns that Pulse charge
+consumer and has received the exact case; do not change Flux damage/charge to
+hide it.
+
+The other original0003 case expects caster death always to cancel slam. Its
+_flux_source explicitly excludes dead casters. Original023B instead keeps source
+identity and interrupt_flux_lift cancels only before descent commits. An actual
+read-only trace at lethal Pulse world1316 observes recipient frame1315/now21055,
+lift state16 inactive with counter1: descent has committed, so this owner path
+keeps the original75 slam (target25 versus old100). Preserve023B's explicit
+phase boundary and retain the original0003 failing assertion. This is source
+contract comparison plus an actual combined trace, not a full frozen baseline.
+Probe: ../parallel-merge/root-flux-caster-death-domain-probe.py and matching log.
