@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-12
+
+#### Shared Python and Rust behavior contract
+
+- Replaced the inline JAM framing vector with a versioned synthetic JSON contract shared with Python PR #27. Rust and the pinned Python consumer use their production sender and receiver against the same fixed bytes and fragmented stream.
+- Added a differential CI lane and contribution rules for fixture provenance, gradual backfill, documented evidence gaps and separate original-client acceptance. Documented topic-branch PR publication for protected branches. CI verifies that the registered Rust test exists before running it.
+- Passed formatting, both Clippy lanes, 354 default / 357 inspector public tests, exact Rust 1.85.0 checking, all 66 prepared baseline checks, headless runtime startup, 20 local documentation links and the Python consumer against this checkout's fixture. Hosted cross-language and Linux results are pending. The synthetic contract establishes framing agreement only; gameplay and original-client acceptance remain open.
+
+#### Minimum Rust and portable crate CI
+
+- Added a Windows Rust 1.85.0 workspace/all-targets check with inspector enabled and an Ubuntu stable test lane for collision, runtime and wire. Retained both existing public check names.
+- The exact Rust 1.85.0 command passed locally. Both public lanes, both Clippy lanes, formatting and all 66 prepared baseline checks passed for the same Rust source. Hosted Linux verification is pending.
+
+#### Independent protocol crate
+
+- Extracted bits, commands, JAM cipher/codecs/framing and the game datagram codec into `orpheus-wire`, preserving existing server import paths and sharing the array-count limit with its collection caller.
+- Passed formatting, both Clippy lanes, 354 default / 357 inspector public tests and all 66 prepared baseline checks using their recorded base or enriched pack. The new crate runs 23 public and two prepared tests independently. Original-client acceptance remains open.
+
+#### Rust foundation review baseline
+
+- Recorded the maintainer-supplied review as a scoped task tracker, including typed IR, unavailable World queries, room retirement, reference fixtures and diagnostic boundaries.
+- Verified formatting, both Clippy lanes and 354 default / 357 inspector public tests at `13acf15`. Passed 65 base-pack prepared tests and the graph `0B92` test with an enriched pack. Recorded per-test prerequisites and manifest digests. Original-client acceptance remains open.
+
 ### 2026-11-11
 
 #### Rust contribution rules

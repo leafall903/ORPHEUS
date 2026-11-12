@@ -7,17 +7,16 @@ pub use orpheus_collision::{
     contact_hull, contact_manifolds, contact_math, contact_mesh, contact_round, contact_solver,
     contact_triangle, contact_world, static_ray,
 };
+pub use orpheus_wire::{bits, commands, game_link, jam_cipher, jam_codec, jam_framing};
 
 pub mod accounts;
 pub mod battle_tag_query;
-pub mod bits;
 pub mod bnet_protocol;
 pub mod bnet_rpc;
 pub mod bnet_service;
 pub mod bnet_session_key;
 pub mod catalog;
 pub mod collection;
-pub mod commands;
 #[cfg(any(test, feature = "inspector"))]
 mod debug_geometry;
 #[cfg(feature = "inspector")]
@@ -36,7 +35,6 @@ pub mod game_heroes;
 pub mod game_hitscan;
 pub mod game_ingress;
 pub mod game_instance;
-pub mod game_link;
 pub mod game_messages;
 pub mod game_parameters;
 pub mod game_pools;
@@ -45,9 +43,6 @@ mod game_replication;
 pub mod game_service;
 pub mod game_stats;
 mod game_timing;
-pub mod jam_cipher;
-pub mod jam_codec;
-pub mod jam_framing;
 pub mod jam_handshake;
 pub mod lobby_arcade;
 pub mod lobby_celebrations;

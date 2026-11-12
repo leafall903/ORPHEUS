@@ -11,7 +11,8 @@ use std::path::Path;
 
 const BOOL: u8 = 0;
 const STRUCT: u8 = 14;
-pub(crate) const MAX_ARRAY_COUNT: usize = 0x40000;
+/// Maximum decoded variable-length array count, also used when building collection messages.
+pub const MAX_ARRAY_COUNT: usize = 0x40000;
 
 /// A JAM message or inline struct, keyed by the field's in-memory offset.
 pub type Fields = BTreeMap<u32, Value>;
