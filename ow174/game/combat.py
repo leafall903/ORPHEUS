@@ -4421,6 +4421,7 @@ class Combat:
     def frozen_sentry_replay(self, tick):
         """Admit the delivered bounded frozen lock through the existing NPC driver."""
         from ow174.game import cryo
+        from ow174.game.symmetra_turrets import _external_motion
 
         freeze_ticks = math.ceil(mei.FREEZE_MS / round(TICK * 1000))
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
@@ -4430,7 +4431,7 @@ class Combat:
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
-                or any(bot.firing or bot.impulse_mover is not None for bot in self.match.bots)):
+                or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
         # Ice-support/projected-impact proofs remain in the delivered owner
         # module; admit them only after their original service consumers map.
@@ -4477,6 +4478,11 @@ class Combat:
         self.pulse_bombs.prepare_gap(tick, self._targets())
         for player in self.match.players:
             self.barriers.sync(player)
+        replay_ice_sentries = bool(self.walls.pieces) and any(
+            sentry.support_pillar is not None
+            or (sentry.attached_at is None and sentry.bot.moved_tick is not None)
+            for sentry in self.sentries.sentries
+        )
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
         if self.tick and tick > self.tick + 1 and (
@@ -4487,7 +4493,7 @@ class Combat:
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
             or self.barriers.world.actors
-            or self.lucio_auras.healing or self.soundwaves
+            or self.lucio_auras.healing or self.soundwaves or replay_ice_sentries
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
                    and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
@@ -4677,6 +4683,9 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             observe_sentry_cover_ends()
+            if at < tick and replay_ice_sentries:
+                self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends,
+                                     replay_ice=True)
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -4954,10 +4963,15 @@ class Combat:
         return poses
 
 
+    @staticmethod
+    def _owns_shield_recovery(owner):
+        return (symmetra.owns_shield_recovery(owner)
+                or getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068)
+
     def _regenerate_shields(self) -> None:
         for target in self._targets():
             vitals = self.vitals.get(target.entity)
-            if vitals is not None and symmetra.owns_shield_recovery(target.owner):
+            if vitals is not None and self._owns_shield_recovery(target.owner):
                 self._recover_shields(target.owner, vitals, self.now)
 
     def _recover_shields(self, owner, vitals: Vitals, through: float) -> None:
@@ -4967,8 +4981,12 @@ class Combat:
         damage-free world time here reconstructs the server's missing health
         service; it does not implement the unknown B591EBFE native State.
         """
-        if not symmetra.owns_shield_recovery(owner):
+        if not self._owns_shield_recovery(owner):
             return
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            # Original recovery consumes accepted world ticks, not a duplicate
+            # scheduler call carrying a newer wall-time value.
+            through = min(through, self.tick * TICK)
         if vitals.dead or vitals.last_damage_at is None or vitals.most[SHIELDS_POOL] <= 0:
             return
         previous = vitals.shield_accounted_at
@@ -4981,6 +4999,13 @@ class Combat:
                          if i.graph.index == pools.BODY_GRAPH), None)
         if instance is None:
             return
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            # Original Zarya does not invent either missing recovery scalar.
+            for identifier in (21868, 21869):
+                slot = script.component.entity_var(identifier, create=False)
+                if slot is None or slot.value() is None:
+                    vitals.shield_accounted_at = through
+                    return
         wait, heal = instance.state(27), instance.state(2)
         delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
         start = max(previous if previous is not None else through, vitals.last_damage_at + delay)
@@ -5021,7 +5046,7 @@ class Combat:
         for bot in self.match.bots:
             if bot.detached_bomb:
                 continue
-            data = mover_data(bot.body)
+            data = bot.movement_data or mover_data(bot.body)
             controlled = bot.control_mover
             crouched = controlled is not None and controlled.crouched
             height, radius, eye, critical = (getattr(bot, "combat_geometry", None) or (
@@ -8542,6 +8567,8 @@ class Combat:
                 self._cleanse_biotic_block(target.owner, vitals)
 
     def _cleanse_biotic_block(self, owner, vitals: Vitals | None) -> None:
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            return  # Native Pet application owns Zarya's original cleanse event.
         if vitals is None or self.now >= vitals.healing_block[1]:
             return
         if self._personal_barrier_pet(owner) is not None:
@@ -9014,8 +9041,7 @@ class Combat:
                     caster.body, self.now + seconds, capacity,
                 )
                 vitals = self.vitals_of(target)
-                if self.now < vitals.healing_block[1]:
-                    vitals.healing_block = vitals.healing_block[0], self.now
+                # Actual native Pet application owns the recipient cleanse.
 
     @staticmethod
     def _particle_barrier_capacity() -> float:
@@ -9646,7 +9672,7 @@ class Combat:
                                   armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
-        if symmetra.owns_shield_recovery(target.owner):
+        if self._owns_shield_recovery(target.owner):
             vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
         if award_ult:

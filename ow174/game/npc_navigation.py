@@ -419,7 +419,7 @@ def start_reposition(match, state, world, bot, target, tick):
     x, y, z = bot.position
     dx, dz = x - target.feet[0], z - target.feet[2]
     distance = math.hypot(dx, dz)
-    data = mover_data(bot.body)
+    data = (bot.movement_data or mover_data(bot.body))
     for angle in (0, math.pi / 4, -math.pi / 4):
         cos, sin = math.cos(angle), math.sin(angle)
         nx = x + (dx * cos - dz * sin) * 4 / distance
@@ -536,7 +536,7 @@ def _step(match, bot, tick, seconds, search_budget):
             stop(bot)
             return
         if nav is None or nav.mover.world is not world or math.dist(nav.mover.position, bot.position) > 0.1:
-            nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, mover_data(bot.body)))
+            nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body))))
         nav.path, nav.goal, nav.search = (), None, None
         destination, speed = motion
         x, y, z = bot.position
@@ -587,11 +587,11 @@ def _step(match, bot, tick, seconds, search_budget):
             stop(bot)
             return
     if nav is None:
-        nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, mover_data(bot.body)))
+        nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body))))
     if nav.last_tick is not None and tick <= nav.last_tick:
         return
     if nav.mover.world is not world or math.dist(nav.mover.position, bot.position) > 0.1:
-        nav.mover = Mover(bot.position, round(bot.yaw), world, mover_data(bot.body))
+        nav.mover = Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body)))
         nav.path, nav.goal, nav.search = (), None, None
     nav.last_tick = tick
     if movement is not None:
@@ -836,7 +836,7 @@ def update(fight, bot, target, reach):
             stop_pursuit(bot)
             pursuit.retry_at = fight.tick + RETRY_FRAMES
         return
-    if advance(search, fight.match.collision_world, mover_data(bot.body), reach, PLAN_SLICE,
+    if advance(search, fight.match.collision_world, (bot.movement_data or mover_data(bot.body)), reach, PLAN_SLICE,
                contact=bot.hero == assassin.HERO) and search.path:
         bot.route = list(search.path)
         bot.index, bot.wait, bot.last_tick = -1, 0.0, fight.tick

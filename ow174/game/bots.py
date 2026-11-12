@@ -48,7 +48,7 @@ from functools import cache
 
 from ow174.game.collision import MOVER, TEAM0, TEAM1
 from ow174.game.commands import Command
-from ow174.game.mover import FELL, GRAVITY_SCALE, IN_AIR, Mod, Mover, encode_spring, modded, mover_data, loaded_mover_table, statescript_mods
+from ow174.game.mover import FELL, GRAVITY_SCALE, IN_AIR, Mod, Mover, MoverData, encode_spring, modded, mover_data, loaded_mover_table, statescript_mods
 from ow174.game.ice_wall import route_stride
 from ow174.game.world import NO_INPUT, Movement
 from ow174.paths import DATA_DIR
@@ -119,7 +119,7 @@ DEAD = 0x2000  # the movement state's dead flag (combat.py): the 3P animation's 
 
 
 class Bot:
-    def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict) -> None:
+    def __init__(self, entity: int, spawner: dict, hero: dict, hints: dict, *, mover: MoverData | None = None) -> None:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
@@ -146,7 +146,8 @@ class Bot:
         self.body = int(hero["body"], 16)
         self.team = spawner["team"]
         self.health = hero["health"]
-        values = mover_data(self.body)
+        self.movement_data = mover  # Original explicit per-definition prepared input.
+        values = self.movement_data or mover_data(self.body)
         self.speed = values.run_forward
         self.accel = values.accel_ground * values.run_forward  # m/s^2 up to full speed
         self.brake = values.decel_ground_base * values.run_forward  # m/s^2 down to a stop
@@ -194,7 +195,7 @@ class Bot:
         if movement_mods:
             mods = [Mod(index, op, value, tick, priority=priority, key=key)
                     for key, (index, op, value, priority) in movement_mods.items()]
-            values = modded(mover_data(self.body), sorted(mods, key=Mod.order))
+            values = modded(self.movement_data or mover_data(self.body), sorted(mods, key=Mod.order))
             speed = values.run_forward
             pace_limits = (speed, values.accel_ground * speed, values.decel_ground_base * speed)
         for at in range(tick - min(ticks, CATCH_UP) + 1, tick + 1):
@@ -232,12 +233,12 @@ class Bot:
             self._apply_legacy_impulse(velocity, tick, collision, category=category)
             return any(velocity)
         if (self.dead or self.spawner.get('manual_spawn') is not True or self.route
-                or collision is None or self.body not in (loaded_mover_table() or {})):
+                or collision is None or (self.movement_data is None and self.body not in (loaded_mover_table() or {}))):
             return False
         mover = self.impulse_mover
         if mover is None:
             mover = Mover(self.position, s16(round(self.yaw)), collision,
-                          mover_data(self.body), category=category)
+                          self.movement_data or mover_data(self.body), category=category)
             mover.velocity = self.velocity
         mover.use(world=collision)
         if mover.category != category:
@@ -261,9 +262,9 @@ class Bot:
     def ensure_manual_mover(self, tick, collision, category):
         if (self.impulse_mover is None and not self.dead and not self.route
                 and self.spawner.get('manual_spawn') is True and collision is not None
-                and self.body in (loaded_mover_table() or {})):
+                and (self.movement_data is not None or self.body in (loaded_mover_table() or {}))):
             self.impulse_mover = Mover(self.position, s16(round(self.yaw)), collision,
-                                       mover_data(self.body), category=category)
+                                       self.movement_data or mover_data(self.body), category=category)
             self.impulse_mover.velocity = self.velocity
             self.last_tick = tick
         return self.impulse_mover
@@ -318,7 +319,7 @@ class Bot:
 
                 npc_navigation.stop(self)
             self.impulse_mover = Mover(self.position, round(self.yaw), collision,
-                                       mover_data(self.body), category=category)
+                                       self.movement_data or mover_data(self.body), category=category)
             self.impulse_mover.velocity = self.velocity
             self.impulse_mover.last_command = Command(tick)
             self.last_tick = tick
@@ -346,7 +347,7 @@ class Bot:
                 from ow174.game import npc_navigation
 
                 npc_navigation.stop(self)
-            self.impulse_mover = Mover(self.position, round(self.yaw), collision, mover_data(self.body),
+            self.impulse_mover = Mover(self.position, round(self.yaw), collision, self.movement_data or mover_data(self.body),
                                        category=category)
             self.impulse_mover.velocity = carry
         else:
@@ -363,7 +364,7 @@ class Bot:
 
     def _impulse_step(self, tick: int, seconds: float, collision) -> None:
         if (self.spawner.get('manual_spawn') is True and not self.route
-                and self.body in (loaded_mover_table() or {})):
+                and (self.movement_data is not None or self.body in (loaded_mover_table() or {}))):
             component = getattr(self.body_script, "component", None)
             match = getattr(getattr(component, "world", None), "match", None)
             category = MOVER if match is None or match.game_map.free_for_all or self.team not in (0, 1) else (TEAM0, TEAM1)[self.team]
@@ -592,7 +593,7 @@ class Bot:
                 spring_speed = mover.spring_speed
         elif manual:
             # Wire step zero decodes to the bottom of the spring range.
-            spring = encode_spring((0.0, 0.0), *mover_data(self.body).spring_range())
+            spring = encode_spring((0.0, 0.0), *(self.movement_data or mover_data(self.body)).spring_range())
         return Movement(
             self.position,
             s16(round(self.yaw)),
@@ -612,7 +613,7 @@ class Bot:
 
 def respawned(bot: Bot, entity: int, records_from: int) -> Bot:
     """The bot made again at its spawner under a new entity id, its records from `records_from` on."""
-    fresh = Bot(entity, bot.spawner, bot.hero_data, bot.hints)
+    fresh = Bot(entity, bot.spawner, bot.hero_data, bot.hints, mover=bot.movement_data)
     fresh.records_from = records_from
     return fresh
 

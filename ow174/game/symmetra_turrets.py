@@ -103,11 +103,16 @@ class Turrets:
                 self._retire(sentry)
 
     def _target(self, sentry, origin, reach):
-        from ow174.game import cryo
+        from ow174.game import actors, cryo, ice_wall
         from ow174.game.combat import segment_distance
 
         best = None
         for target in self.combat._enemies(sentry.owner):
+            # The delivered acquisition searches units, not the separate solid
+            # Ice Wall object that may also back this same sentry's support.
+            if (isinstance(target.owner, actors.Deployable)
+                    and target.owner.definition == ice_wall.PILLAR):
+                continue
             # Original0016 acquisition excludes Cryo itself as well as using
             # its solid capsule to occlude a body behind it.
             if cryo.active(target.owner):
@@ -653,7 +658,7 @@ class Turrets:
         from ow174.game.combat import TICK
 
         actor = target.owner
-        if not isinstance(actor, bots.Bot) or actor.impulse_mover is not None:
+        if not isinstance(actor, bots.Bot) or _external_motion(self.combat, actor):
             return False
         frost = self.combat.frost(actor, tick=previous_tick)
         # A live full freeze records its activation time in milliseconds.
@@ -665,6 +670,23 @@ class Turrets:
         history = self.combat.history.get(target.entity, ())
         return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
                    for sample in history)
+
+
+def _external_motion(fight, actor):
+    """An owned manual mover can remain after its external displacement ends."""
+    if fight.knockbacks.affecting(actor.entity) or fight.knockbacks.has_pending(actor.entity):
+        return True
+    hooks = getattr(fight, "hooks", None)
+    if hooks is not None and hooks.controlled(actor.entity):
+        return True
+    if fight.orisa.controls(actor.entity, fight.tick):
+        return True
+    mover = actor.impulse_mover
+    if mover is None:
+        return False
+    command = mover.last_command
+    return (mover.airborne or any(mover.velocity)
+            or (command is not None and bool(command.forward or command.right)))
 
 
 def _projected_barriers(fight):

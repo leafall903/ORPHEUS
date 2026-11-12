@@ -226,7 +226,8 @@ FIELDS = {
     combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
     barriers.Barrier: _names(
         "entity parent parent_body source instance state activation component "
-        "mesh geometry_digest vitals retired recipient recipient_body recipient_component"),
+        "mesh geometry_digest vitals retired recipient recipient_body recipient_component "
+        "application_tick cleanse_applied"),
     assassin_victim.Lease: _names(
         "source source_instance sender_state activation target source_component target_component instance"),
 
@@ -306,7 +307,7 @@ FIELDS = {
         "combat_owner combat_geometry entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
         "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode reposition_body pitch navigation impulse_mover "
-        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
+        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb movement_data"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),

@@ -9,6 +9,60 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
+## Current shared000E and nine-owner handoff after A72
+
+A64-A72 now complete the specifically reassigned0200 shared000E consumers on
+existing original-language hosts. This supersedes the A63 next-actions below:
+owner-full optional dynamic/bound_vars and `_dynamic_owner_full` use the sole
+statescript encoder; Match/heroselect effects and delta-key refresh use existing
+reliable full wire; LinkedTarget strict1177/224E scopes preserve the four cinematic
+placements; exact Pin services/messages/numeric backends are causal storage;
+manual NPC associations use composed graph.npc_controller and one original
+NpcContext linking the distinct actual body/controller pair. Manual Assassin
+receivers use the actual Player ControllerVM Queue, target_filter_bits, source
+recipient/effect and original contact/delayed damage, with no duplicate body1177.
+Original automatic NPC/Phase2 hosts remain separate and unique. Original
+script/sleep_view.py has no duplicate host file: its two owner-angle queries,
+strict224E LinkedTarget sampling and authored Wait29 delay are mounted in the
+existing BodyWorld/Combat paths (A71). All source functionality is mapped.
+
+A72 fab067ab additionally closes a real0003 cross-owner omission: Tracer damage
+now delivers actual loss/recipient/tags into the sole existing012/0B8B host,
+not the generic points-only path. Common39 and passive-owner60/zero gates are
+restored without duplicate charge. Original focused six tests passed7.293s.
+Clean synchronization1bfd7ec2 absorbs root f715efdd with only CHANGELOG union;
+all source merges automatic. On that combined tree the unchanged original
+`TracerSigmaFluxTests.test_actual_pulse_released_during_flux_hits_the_airborne_caster`
+passed6.827s: Sigma355 damage, Tracer0 charge and original effect/slam assertions.
+Log `worker-a-pulse-flux-charge-final.log`. Root separately owns the conflicting
+023B lethal/post-commit slam policy; A did not alter it.
+
+Verification is deliberately bounded. Root independently ran A67/controller/
+linked/full/match/manual/Pin and shared group54/54,245.116s; v18 actual five
+associations/manual inputs27 passed; A70 original recipient core4 plus original
+Flux1 passed5/5 on combined root. No new acceptance matrix or full-suite rerun.
+Original failures remain: older Ana warmup Recall policy conflicts, old uniform
+DVa/Tracer geometry observations, source observer/API differences, and original
+Moira sleep-view fixture comparing seconds against tick sleep_until after its
+sampling assertions pass. These are preserved, not claimed green or removed.
+Root froze and successfully replayed original Widow independently.
+
+The nine source refs and owner reconciliation below remain valid; latest0003
+charge correction explicitly supersedes the previous no-known-omission wording.
+No known remaining consumer from the specifically assigned shared000E task is
+identified. Formal large cross-owner ref admission/global reconciliation remains
+root-owned. Client acceptance and publication were not performed. No internet,
+Rust, appearance, duplicate actor/Vitals/manager/encoder or input-package change.
+
+Next exact action: hand this boundary to root for confirmation, then take the
+already delegated0068 Zarya scope using the sole existing scripted Particle
+Barrier Vitals and Graviton host. B has no Zarya WIP; its Hook release_target
+interface is available after f715efdd. Inspect original barrier clocks/cleanse/
+energy/ShieldRecovery and Graviton source consumers before editing. B estimated
+that owner scope6-12 active hours with low confidence; no missing-name-only
+copies, second bubble pool or new features. Nine-owner residual audit remains
+recorded above and below; it does not gate source integration.
+
 ## Current nine-owner handoff after A63
 
 A owns the original seven hero cores plus reassigned0065 Junkrat and0200 Ashe.
@@ -1523,3 +1577,95 @@ sigma_accretion dependency; root reports its current fixture is already adapted.
 Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
+
+## A74 — Zarya native-pet attachment releases incoming Hook
+
+Root transferred0068 source f5b7366d27c572125d1422618ec407d17794787d
+exclusively to A after A73; B has no Zarya WIP. Clean baseline b1680290 absorbs
+root4968d512, retaining original shared projected-history/native-pet pool changes.
+First actual consumer gap: successful0256 health initialization now releases the
+protected body from the existing sole Hooks manager immediately at accepted Pet
+attachment. It does not wait for the next world Hook update and does not cancel
+the protected player's own outgoing Hook or create a barrier/health/control pool.
+Current successful projected sleep cleanse and all native-pet validation remain.
+
+Original AnaHook projected-release whole method failed before this change at
+is_stunned=True, then passed3.471s. Its only observation adapter reads the actual
+single scripted pet's Vitals.total instead of obsolete body_barriers.health;
+all original numeric/control/movement assertions unchanged (pool200, body170).
+Logs worker-a-zarya-hook-attach-{baseline,after}.log. No full suite/client/network.
+
+Next exact action: audit original0068 antiheal-cleanse application/queued-start
+clock against actual pet constructor/application pair, then expiry/cooldown and
+world-energy consumers; integrate ShieldRecovery onto current Vitals recovery
+accounting rather than a second ledger, and source Graviton into existing field
+host. Original assertions and known failures remain. Remaining estimate stays
+6-12 active hours, low confidence until original temporal checks expose overlap.
+
+## A75 — single native Pet application clock and real Ana cleanse
+
+Zarya's successful native Pet now records the actual constructor/application
+world tick independently of its body/component frame. The same Pet stores its
+one-time cleanse_applied flag; both exact fields are registered in causal server
+snapshot storage. No second barrier, health pool, pending-manager or regen ledger.
+The existing barrier advance applies at that tick only while actual source,
+recipient/team/body/health remain valid. It calls current clean_ana_effects via
+`Combat.cleanse_ana_effects` (same HealingEffects.anti host), retains the earlier
+fallback block interval, and keeps A74 sole Hook release plus existing projected
+sleep clear together at actual application. Old personal/legacy projected early
+cleanse paths yield to this event; all legacy/history pool data remains intact.
+
+Focused normal-module checks: original projected-allied queued cleanse method
+plus actual two-Pet application/pair methods and original Hook release =4/4 pass
+6.902s. Further explicit both-Pet future pair test3cases passes3.571s. This proves
+body source.frame differs from application_tick, actual original anti Modifier
+identity remains at application-1, recipient team change prevents clear, and
+successful application removes actual anti and releases Hook without pool loss.
+Logs worker-a-zarya-native-cleanse-final.log and
+worker-a-zarya-both-pet-future-cleanse.log. No full matrix/client/network run.
+
+Original0068 cleanse methods/helpers are preserved in normal runnable
+`test_zarya_native_cleanse`: observer adapters read existing Pet and actual
+HealingEffects.end (absolute ticks), and the absent old ANA_GRENADE symbol uses
+its identical original literal1426. Original source assert50 is unchanged:
+baseline4 cast variants see actual current013B native60 damage and fail before
+its cleanse assertions. Those conflicting source numbers remain, not changed
+to60 or claimed passing. Initial legacy healing_block_until access errors are
+saved in baseline log; final original queued ally method runs and passes using
+the actual single-host deadline adapter. No fake runtime alias/observer pool.
+
+Next exact action: source0068 expiry/start/cooldown/world-energy consumers and
+existing Vitals shield-recovery accounting, then existing Graviton host. Preserve
+C47/C49 projected history and current native Pet/Vitals identity. Scope remains
+6-12 active hours low confidence; partial original check failures do not block
+this independent actual consumer boundary.
+
+## A76 — Zarya shield recovery on existing Vitals accounting
+
+Expanded the existing Combat shield-recovery owner admission to0068 while keeping
+Symmetra behavior. Reuses exactly Vitals.last_damage_at/shield_accounted_at and
+actual shield pool; no source ShieldRecovery.bodies manager/second ledger. Source
+0033 current/maximum-kind queries use the existing pure pool_query provider,
+expanded only to Zarya in the same scoped runtime0033 path (C confirmed no WIP).
+Undeclared21868/21869 scalars do not regenerate or accumulate a backlog. Actual
+world tick caps recovery through-time so a duplicate/older update with inflated
+wall-time cannot grant shields. No duplicate healing/wire/snapshot counters.
+
+Original Recovery normal module preserved in test_zarya_recovery_native with
+original beam fixture setUp/health inlined; all numeric assertions remain.
+Initial5 delay/rate/HUD/Stack-modifier/zero-rate checks now5/5 pass14.718s.
+Full focused Recovery18methods ran42.016s:13pass,1duplicate-time fail (fixed),
+1projectile method with2 beam-damage subcase failures,2old private-ledger observer
+errors. Final duplicate/fully-absorbed/skipped-world3/3pass6.685s; unchanged shared
+Symmetra shield-recovery whole method passes6.469s. Logs
+worker-a-zarya-recovery-{original-all,core-after,clock-final}.log and
+worker-a-zarya-shared-symmetra-recovery.log. No broad acceptance rerun/client run.
+
+Known remaining actual work: integrate original Ana suppression/boost intervals
+into this same ledger, then barrier lifetime/start/cooldown/world-energy and
+Graviton consumers. Projectile recovery test currently stops before recovery at
+original initial beam expected60 loss vs actual122.4; preserve this real owner
+consumer discrepancy for following audit, not an observer excuse. Two source
+zarya_recovery.bodies observer errors remain; do not create a compatibility ledger.
+The source module and every original failed assertion are preserved. This actual
+recovery boundary is independently committable without waiting for those checks.

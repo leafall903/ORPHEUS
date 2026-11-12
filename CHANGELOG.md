@@ -12,6 +12,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Restore retained ice-supported sentry damage
+
+- Original eligible ice-supported/airborne Sentries settle on each retained world
+  tick using the existing wall/Sentry hosts. Unit acquisition excludes only solid
+  Ice Wall pillars; existing other Deployable consumers remain.
+- Original expiry check passes contiguous/gap and59 retained beam ticks; cancel
+  and natural-expiry attachment subcases pass. Preserve one actual wall-pool
+  identity break difference for the next owner integration batch.
+- Actual settled mover remains eligible for frozen proof; active displacement is
+  excluded by its real state/control owners. Original31 shared methods pass.
+
 
 ### Restore original Roadhog secondary expiry fragments
 
@@ -62,6 +73,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
+### Restore original per-definition NPC movement inputs
+
+- Restore original0016 optional Definition.mover/controller catalog fields and
+  finite complete34-field mover validation. Spawn retains the original controller
+  hint without overriding the composed controller association or adding a host.
+- Actual capsule selection, route/manual/impulse/navigation movers and wire spring
+  data use the same explicit movement_data; absent input retains the global table.
+  Respawn retains the definition input and strict server storage includes it.
+- Four original metadata tests and existing NPC/input/navigation checks73/73 pass.
+  Actual spawned NPC has the same provided data and physical mover; whole-server
+  mutation/restoration changes/restores the digest and unknown fields still fail.
+  Source inputs remain unchanged; no client acceptance run.
+
 ### Reuse the NPC driver for proven frozen sentry history
 
 - Mount original bounded no-support frozen-lock proof through the existing
@@ -85,6 +110,28 @@ This log records tested changes and their acceptance status. Entries are grouped
   early exit; four other bodies lift and land but retain their existing shared
   impulse mover, conflicting with old dedicated-mover None assertions. Those
   assertions and the dependent final count remain unchanged. No client run.
+
+
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 
 ### Preserve Flux fixture geometry and explicit source contract differences
 
@@ -292,6 +339,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
+
 
 ### Preserve controller Pin services in causal server storage
 
@@ -10424,6 +10473,8 @@ blocking delivery on these preserved old boundary assertions.
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
 
+
+
 ## A72 — Tracer authored damage-tag and charge entry reconciliation
 
 Restored original0003 damage credit through the existing sole `ultimate_charge`
@@ -10445,3 +10496,110 @@ sigma_accretion dependency; root reports its current fixture is already adapted.
 Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
+
+
+### Tank owner consumer convergence audit
+
+Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
+
+## A73 — shared controller and nine-owner handoff
+
+Saved final consumer mapping for A64-A72 and retained all known original
+policy/observer/unit differences. Clean1bfd7ec2 absorbs explicit f715efdd; the
+unchanged original airborne Flux/Pulse whole method passes6.827s with355 damage
+and0 Tracer charge. No additional production change, broad suite, source-assert
+edit, client session or publication. Next delegated owner is0068 Zarya after
+root confirms the handoff; existing single barrier/Graviton pools are required.
+
+
+## A74 — Zarya native-pet attachment releases incoming Hook
+
+Root transferred0068 source f5b7366d27c572125d1422618ec407d17794787d
+exclusively to A after A73; B has no Zarya WIP. Clean baseline b1680290 absorbs
+root4968d512, retaining original shared projected-history/native-pet pool changes.
+First actual consumer gap: successful0256 health initialization now releases the
+protected body from the existing sole Hooks manager immediately at accepted Pet
+attachment. It does not wait for the next world Hook update and does not cancel
+the protected player's own outgoing Hook or create a barrier/health/control pool.
+Current successful projected sleep cleanse and all native-pet validation remain.
+
+Original AnaHook projected-release whole method failed before this change at
+is_stunned=True, then passed3.471s. Its only observation adapter reads the actual
+single scripted pet's Vitals.total instead of obsolete body_barriers.health;
+all original numeric/control/movement assertions unchanged (pool200, body170).
+Logs worker-a-zarya-hook-attach-{baseline,after}.log. No full suite/client/network.
+
+Next exact action: audit original0068 antiheal-cleanse application/queued-start
+clock against actual pet constructor/application pair, then expiry/cooldown and
+world-energy consumers; integrate ShieldRecovery onto current Vitals recovery
+accounting rather than a second ledger, and source Graviton into existing field
+host. Original assertions and known failures remain. Remaining estimate stays
+6-12 active hours, low confidence until original temporal checks expose overlap.
+
+## A75 — single native Pet application clock and real Ana cleanse
+
+Zarya's successful native Pet now records the actual constructor/application
+world tick independently of its body/component frame. The same Pet stores its
+one-time cleanse_applied flag; both exact fields are registered in causal server
+snapshot storage. No second barrier, health pool, pending-manager or regen ledger.
+The existing barrier advance applies at that tick only while actual source,
+recipient/team/body/health remain valid. It calls current clean_ana_effects via
+`Combat.cleanse_ana_effects` (same HealingEffects.anti host), retains the earlier
+fallback block interval, and keeps A74 sole Hook release plus existing projected
+sleep clear together at actual application. Old personal/legacy projected early
+cleanse paths yield to this event; all legacy/history pool data remains intact.
+
+Focused normal-module checks: original projected-allied queued cleanse method
+plus actual two-Pet application/pair methods and original Hook release =4/4 pass
+6.902s. Further explicit both-Pet future pair test3cases passes3.571s. This proves
+body source.frame differs from application_tick, actual original anti Modifier
+identity remains at application-1, recipient team change prevents clear, and
+successful application removes actual anti and releases Hook without pool loss.
+Logs worker-a-zarya-native-cleanse-final.log and
+worker-a-zarya-both-pet-future-cleanse.log. No full matrix/client/network run.
+
+Original0068 cleanse methods/helpers are preserved in normal runnable
+`test_zarya_native_cleanse`: observer adapters read existing Pet and actual
+HealingEffects.end (absolute ticks), and the absent old ANA_GRENADE symbol uses
+its identical original literal1426. Original source assert50 is unchanged:
+baseline4 cast variants see actual current013B native60 damage and fail before
+its cleanse assertions. Those conflicting source numbers remain, not changed
+to60 or claimed passing. Initial legacy healing_block_until access errors are
+saved in baseline log; final original queued ally method runs and passes using
+the actual single-host deadline adapter. No fake runtime alias/observer pool.
+
+Next exact action: source0068 expiry/start/cooldown/world-energy consumers and
+existing Vitals shield-recovery accounting, then existing Graviton host. Preserve
+C47/C49 projected history and current native Pet/Vitals identity. Scope remains
+6-12 active hours low confidence; partial original check failures do not block
+this independent actual consumer boundary.
+
+## A76 — Zarya shield recovery on existing Vitals accounting
+
+Expanded the existing Combat shield-recovery owner admission to0068 while keeping
+Symmetra behavior. Reuses exactly Vitals.last_damage_at/shield_accounted_at and
+actual shield pool; no source ShieldRecovery.bodies manager/second ledger. Source
+0033 current/maximum-kind queries use the existing pure pool_query provider,
+expanded only to Zarya in the same scoped runtime0033 path (C confirmed no WIP).
+Undeclared21868/21869 scalars do not regenerate or accumulate a backlog. Actual
+world tick caps recovery through-time so a duplicate/older update with inflated
+wall-time cannot grant shields. No duplicate healing/wire/snapshot counters.
+
+Original Recovery normal module preserved in test_zarya_recovery_native with
+original beam fixture setUp/health inlined; all numeric assertions remain.
+Initial5 delay/rate/HUD/Stack-modifier/zero-rate checks now5/5 pass14.718s.
+Full focused Recovery18methods ran42.016s:13pass,1duplicate-time fail (fixed),
+1projectile method with2 beam-damage subcase failures,2old private-ledger observer
+errors. Final duplicate/fully-absorbed/skipped-world3/3pass6.685s; unchanged shared
+Symmetra shield-recovery whole method passes6.469s. Logs
+worker-a-zarya-recovery-{original-all,core-after,clock-final}.log and
+worker-a-zarya-shared-symmetra-recovery.log. No broad acceptance rerun/client run.
+
+Known remaining actual work: integrate original Ana suppression/boost intervals
+into this same ledger, then barrier lifetime/start/cooldown/world-energy and
+Graviton consumers. Projectile recovery test currently stops before recovery at
+original initial beam expected60 loss vs actual122.4; preserve this real owner
+consumer discrepancy for following audit, not an observer excuse. Two source
+zarya_recovery.bodies observer errors remain; do not create a compatibility ledger.
+The source module and every original failed assertion are preserved. This actual
+recovery boundary is independently committable without waiting for those checks.
