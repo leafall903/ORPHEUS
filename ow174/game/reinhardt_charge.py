@@ -239,13 +239,20 @@ def counter(fight, player, instance, forward, enemies, *, tracker=None, aim_trac
     for target in enemies:
         owner = target.owner
         script = getattr(owner, "body_script", None)
-        if (script is None or isinstance(owner, bots.Bot)
-                or script.component.world.hero not in (barrier.REINHARDT, 0x02E000000000012F)
-                or fight.is_stunned(owner)):
+        other_heavy = isinstance(owner, bots.Bot) and owner.hero == 0x02E00000000001BA
+        if (script is None or (isinstance(owner, bots.Bot) and not other_heavy)
+                or (other_heavy and aim_tracker)):
+            continue
+        impact = not aim_tracker and any(
+            expr.truthy(slot.value()) for key in (9161, 6601)
+            if (slot := script.component.entity_var(key, create=False)) is not None)
+        if not impact and not other_heavy and script.component.world.hero not in (barrier.REINHARDT, 0x02E000000000012F):
             continue
         flag = script.component.entity_var(596, create=False)
-        tx, _, tz = aim(owner.mover.yaw, 0)
-        if flag is None or not expr.truthy(flag.value()) or fx * tx + fz * tz >= -expr.EPSILON:
+        other_yaw = round(owner.yaw) if other_heavy else owner.mover.yaw
+        tx, _, tz = aim(other_yaw, 0)
+        if not impact and (fight.is_stunned(owner) or flag is None or not expr.truthy(flag.value())
+                           or fx * tx + fz * tz >= -expr.EPSILON):
             continue
         a, b = target.segment()
         if segment_distance(centre, a, b) > radius + target.radius:
@@ -279,10 +286,17 @@ def counter(fight, player, instance, forward, enemies, *, tracker=None, aim_trac
         if not aim_tracker and (not capsule_visible(fight._collision(), centre, a, b, target.radius)
                                 or not _wall_clear(fight, centre, a)):
             continue
+        if impact:
+            # Delivered immovable receiver path, before capture or side damage.
+            instance.write((expr.INSTANCE, 559), True)
+            instance.write((expr.INSTANCE, 11401), True)
+            instance.component.run_now()
+            fight.charge_blocked(player)
+            return True
         own = next((t for t in fight._targets() if t.owner is player), None)
         if own is None:
             continue
-        duration, other_duration = profile_duration(player.body_script), profile_duration(script)
+        duration, other_duration = profile_duration(player.body_script), profile_duration(script, heavy=other_heavy)
         if duration > 0 and other_duration > 0:
             fight.stun(own, duration)
             fight.stun(target, other_duration)

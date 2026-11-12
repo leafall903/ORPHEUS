@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Charge immovable receiver contacts
+
+- Restore source9161/6601 receiver handling before capture or side damage,
+  including Heavy Assault, Fortify and Cryo. Feed the existing authored impact
+  flags and ordinary phase exit; windup exits also work before a drive record
+  exists. Reuse existing NPC movement and native1408 counter hosts.
+- Read the shared interruption guard from component.world.hero so BotScript
+  targets use their existing interface without a swallowed area exception.
+- All45 original Fortify/Cryo/expiry-to-capture, mutual, runtime/input/epoch
+  checks pass. Original NPC3 suites retain5 passive-charge subfailures and5
+  movement_flags host-interface errors; their original expectations remain.
+  Heavy side contact no longer removes health, and team-change release passes.
+- Keep the pending source movement-flags consumer and Reinhardt0B8B cadence
+  explicit: the legacy cost/60 debug fill produces22.997 instead of source0/5
+  over this fixture window. No numerical assertion change or extra NPC driver.
+  Client acceptance remains open; logs remain external.
+
+
 ### Restore delivered Rocket Punch collision completion
 
 - Apply source0007's actual-progress obstruction test to the existing Punch

@@ -2566,6 +2566,11 @@ class Combat:
         """Delivered obstruction/control exit using the existing Charge record."""
         charge = self.charges.get(player.body)
         if charge is None:
+            instance = self._charge_instance(player)
+            phase = instance.states.get(40) if instance is not None else None
+            if phase is not None and phase.active:
+                instance.write((0, 59), 0)
+                reinhardt_charge.drain_end(instance)
             return
         target = self._target_entity(charge.pinned)
         if impact and target is not None:
@@ -2869,7 +2874,7 @@ class Combat:
                     state.presses.clear()
                     state.stop()
         component.run_now()
-        if script.hero == barrier.REINHARDT:
+        if component.world.hero == barrier.REINHARDT:
             instance = next((i for i in component.instances.values() if i.graph.index == 0x7D), None)
             if instance is not None:
                 reinhardt_charge.drain_end(instance)
