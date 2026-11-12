@@ -2168,19 +2168,19 @@ def sniper_retreat_search(definition, mode):
     retry = instance.node_state(instance.graph.node(41))
     gate = instance.node_state(instance.graph.node(56))
     attempts = []
-    original_search = instance.component.world.destination_search
+    original_search = instance.component.world.search_position
     vitals = fight.vitals_of(next(t for t in fight._targets() if t.owner is player))
     shot = None
 
     def observe(state):
         attempts.append(state.now)
-        original_search(state)
+        return original_search(state)
 
     def destination():
         slot = instance.vars.get(1220)
         return slot.value() if slot is not None else None
 
-    with patch.object(instance.component.world, "destination_search", side_effect=observe):
+    with patch.object(instance.component.world, "search_position", side_effect=observe):
         for _ in range(90):
             run.step({})
             if len(attempts) >= 3:
