@@ -7744,3 +7744,28 @@ counters, C Molten/charge remain pending. All three workers continue separately.
 All root tests are terminal. Keep original languages, source packs and every
 implementation; incomplete acceptance is not a merge gate. No publication or
 client operations performed. Whole nonappearance integration remains active.
+
+
+### Restore delivered explicit volley geometry
+
+- Restore byte-identical0005 volley_geometry.py and its original test file.
+  Mount original explicit bool configuration, causal snapshot field and
+  reconstructed ring/paired directions through existing shot consumers.
+  Default current hero/NPC geometry remains unchanged, including DVa's
+  current owned-body path. Retain original explicit multi-player projectile
+  lease refusal; do not replace working default leases.
+- Restore original per-pellet NPC observer/flight records when explicit
+  reconstruction is selected; all records use existing Projectiles service.
+  Actual Enforcer two volleys now admit50 launches, damage, and stop cleanup.
+- Original RingGeometry + two actual Enforcer + control/navigation/projectile
+  checks109 pass. Evidence: parallel-root-explicit-volley-actual-check.log.
+  The original module/test bytes remain unchanged. No assertion rewritten.
+- The older NPC668-graph pack is an exact shared-graph subset of canonical702;
+  original fixtures now have external hardlink aliases to canonical base and
+  original catalog with v4 supplement, avoiding dangling Mercy effect refs.
+  Input hashes/provenance are retained outside Git. No runtime pack copied.
+- Broader original source test audit retains fake-state missing.index errors
+  and Sniper manual long-distance reposition: source0005 authored search is
+  not yet mounted alongside the delivered0015 nearby fallback. Preserve both
+  implementations and expectations; this is remaining integration, not a
+  reason to discard or hold current code. No client/publication operations.
