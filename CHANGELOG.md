@@ -11617,3 +11617,11 @@ vs native60 assertions remain visible and do not block real code integration.
   pose path. Original Flux impulse3 and preserved vertical speed now pass.
 - Actual/shared20 checks and modifier/state/floor16 checks pass. No new mover,
   persistent field or altered original gameplay assertion.
+
+### Restore existing orb and NPC omitted-route history
+
+- Reuse current flight ticks and the sole Match route/impulse driver for
+  original0016 admitted orb history, retaining its authored remaining-flight
+  budget and actual time-dependent NPC pace. No new mover, VM or stored field.
+- All20 actual stepped/gap causal pairs match; retain two original Assassin
+  absolute-position failures instead of altering their expected numbers.
