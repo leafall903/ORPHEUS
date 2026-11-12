@@ -250,6 +250,26 @@ def charge_ultimate(component, seconds, running):
         component.set(ULT_CHARGE, min(cost, f32(charge + step)))
 
 
+def project_movement_flags(world, instance, node):
+    """Delivered two-predicate query on an actual known physical flag source."""
+    from ow174.game.mover import IN_AIR
+
+    if node.cls != "STU_96F1DBCF" or node.field("m_entity") is None:
+        return None
+    other_outputs = ("m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29", "m_103A8581",
+                     "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27", "m_A10CC74B")
+    if (any(node.field(name) is not None for name in other_outputs)
+            or any((node.field(name) or {}).get("links") for name in ("m_2102C541", "m_E37BC6C2"))):
+        return None
+    if not any(node.field(name) is not None for name in ("m_105DF1D6", "m_49F4B33C")):
+        return None
+    entity = expr.to_entity(instance.evaluate(node.field("m_entity")))
+    flags = world.movement_flags(entity) if entity else None
+    if flags is NotImplemented:
+        return None
+    return 3, 0 if flags is None else (1 if flags & IN_AIR else 2)
+
+
 def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int, bool]]:
     """The logical-button edges of one command (0x7FF789C66AA0): one per changed bit, pressed = the bit is
     now set; an action byte presses and releases its button."""
@@ -835,15 +855,21 @@ class BodyWorld(runtime.World):
 
             barriers.retire(self.match.combat, entity)
 
+    def movement_flags(self, entity):
+        resolver = getattr(self.match, "script_movement_flags", None)
+        return resolver(entity, getattr(self, "body", 0)) if callable(resolver) else NotImplemented
+
     def movement_flag_projection(self, instance, node):
-        # Reconstructed only for Baptiste1983's single crouch output. The other
-        # 96F1DBCF projections remain unknown; do not synthesize their flags.
+        # Keep the existing scoped crouch consumer; delivered known-bit flags
+        # below read actual physics and leave other projections unsupported.
         if (self.match is not None and self.hero == 0x02E0000000000221
                 and instance.graph.index == 0x1983 and node.state == 8):
             for player in self.match.players:
                 if player.has_body and player.body == self.body:
                     crouched = player.mover.crouched and not instance.component.owner_dead
                     return 0x40, 0x40 if crouched else 0
+        if self.hero == barrier.REINHARDT:
+            return project_movement_flags(self, instance, node)
         return None
 
     def linked_target_sample(self, entity: int):

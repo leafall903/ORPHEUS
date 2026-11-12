@@ -312,6 +312,19 @@ alone is not evidence that a line's consumers are actually mounted.
   the existing combined Sombra module name; unrelated fixture cases still need
   their shared-service API reconciliation.
 
+## B19 delivered physical movement predicates
+
+- Read actual existing physical flags through Match and BodyWorld/BotWorld;
+  retain Graviton/Halt/Knockback precedence and decline DVa controlled movers.
+  Source two-predicate mask3 projection rejects unknown outputs/flows. Existing
+  Baptiste crouch and Assassin controller projections stay scoped and unchanged.
+- `worker-b-movement-flags-second.log`:32 checks,30 pass,2 original NPC health
+  assertion failures (340.56/490.56 versus300/450). All missing movement_flags
+  errors and Assassin initialization errors are resolved. No assertion edits.
+- Next: source0007 authored0B8B charge admission and passive cadence; investigate
+  health differences via actual source consumers. Do not change tolerances or
+  create a competing mover. Synchronize canonical after this clean commit.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at
