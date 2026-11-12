@@ -58,6 +58,7 @@ MODEL_FILES = (
     "src/ow174/game/script/expr.py",
     "src/ow174/game/script/game_message.py",
     "src/ow174/game/script/graph.py",
+    "src/ow174/game/script/grapple.py",
     "src/ow174/game/script/message_bindings.py",
     "src/ow174/game/script/message_manager.py",
     "src/ow174/game/script/message_parameters.py",

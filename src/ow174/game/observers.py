@@ -21,10 +21,11 @@ shows no weapon.
 import logging
 from functools import lru_cache
 
-from ow174.game.script import expr, graph, spray_placement
+from ow174.game.script import expr, graph
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.driver import BodyStream, ReplicatedBody, Snapshot, frame_callout
 from ow174.game.statescript import (
+    PAYLOAD_REQUIRED,
     InstanceWire,
     StateWire,
     family,
@@ -84,7 +85,7 @@ def snapshot(script) -> Snapshot:
                 expr.warn_once(f"observe{cls}", "remote state class %s has no H=0 payload", cls)
                 continue
             payload = state.payload() if codec != "none" else {}
-            if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
+            if codec in PAYLOAD_REQUIRED and not payload:
                 continue  # A permissive body can still hold the passive base State.
             snap.states[(instance.id, index)] = (cls, state.active, tuple(sorted(payload.items())))
     _add_vars(snap, 0, script.replicated_vars())

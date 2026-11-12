@@ -23,6 +23,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Passed Ruff, 920 public Python tests, six dashboard tests and 51 prepared
   runtime tests covering movement, Wrecking Ball and VM snapshots.
 
+#### Wrecking Ball Grappling Claw
+
+- Advance the authored hook trace to a static map hit or its range limit.
+  Reuse the graph's wall attachment, floor rejection, release and timeout
+  transitions.
+- Include the hook start time in owner state updates and retain the in-flight
+  trace in VM storage exports.
+- Passed 920 public Python tests, six dashboard tests, Ruff and 86
+  prepared-runtime checks. The latter cover hook travel and release, owner
+  and observer state filtering, codecs, snapshots, replay and movement.
+- Launch from the model's reference-pose hardpoint and query static geometry
+  using the body mover's collision category. Exact anchor filtering, dynamic
+  anchors, retraction geometry, swing, cooldown, high-speed impacts and
+  original-client acceptance remain open.
+
 ### 2026-11-11
 
 #### Wine and Proton plaintext relay hook compatibility

@@ -10,7 +10,7 @@ import json
 import random
 
 from ow174.game import replay_values
-from ow174.game.script import expr, graph, message_receive, message_scope, nodes, runtime
+from ow174.game.script import expr, graph, grapple, message_receive, message_scope, nodes, runtime
 from ow174.game.script.bot import BotWorld
 from ow174.game.script.driver import BodyScript, BodyWorld, WheelCallout, WheelSprayEvent
 
@@ -84,6 +84,7 @@ _STATE_LAYOUTS = {
     nodes.OwnerMovementSample: (("sample", "outputs"), ()),
     nodes.MoveTo: (("movement",), ()),
     nodes.RayCast: (("links", "values"), ()),
+    grapple.GrappleTrace: (("flight",), ()),
     nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (("flags", "presses", "cur", "cooldown_rate", "last", "var", "stack_var"), ()),
     nodes.Defer: ((), ()), nodes.Watch: ((), ("seen",)), nodes.Switch: (("case",), ()),

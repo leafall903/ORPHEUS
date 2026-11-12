@@ -265,6 +265,9 @@ def _meaning(name: str, fields: dict, frame_time: int, frame_ms: int) -> dict:
             out.update(top=bool(fields["top"]), under=bool(fields["under"]))
     elif name in ("button", "counter2", "frames", "subscript"):
         out.update({key: fields[key] for key in ("counter", "target", "child") if key in fields})
+    elif name == "start":
+        if "t" in fields:
+            out["start"] = frame_time - fields["t"]
     elif name == "volley":
         out.update(offset=get("offset", 0), volleys=get("volleys", 1), counter=fields["counter"])
         if "t1" in fields:

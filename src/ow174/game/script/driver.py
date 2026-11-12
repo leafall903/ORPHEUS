@@ -31,10 +31,18 @@ from ow174.game import animation_pose, pools, ult_charge
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime, spray_placement
+from ow174.game.script import (
+    expr,
+    graph,
+    grapple,  # noqa: F401 - registers the authored launch trace
+    nodes,
+    runtime,
+    spray_placement,
+)
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
+    PAYLOAD_REQUIRED,
     Binding,
     EventWire,
     InstanceWire,
@@ -300,7 +308,7 @@ class BodyWorld(runtime.World):
         return None
 
     def static_ray(
-        self, origin: Vec3, direction: Vec3, length: float, category: int,
+        self, origin: Vec3, direction: Vec3, length: float, category: int | None = None,
     ) -> runtime.RaycastResult | None:
         match = self.match
         if match is None or match.collision_world is None:
@@ -310,7 +318,11 @@ class BodyWorld(runtime.World):
         if (mover is None or not math.isfinite(norm) or norm == 0 or not math.isfinite(length)
                 or length <= 0 or not all(math.isfinite(axis) for axis in origin)):
             return None
-        geometry = match.collision_world.ray_geometry or match.collision_world
+        geometry = match.collision_world
+        if category is None:
+            category = mover.category
+        else:
+            geometry = geometry.ray_geometry or geometry
         hit = geometry.cast_ray(tuple(origin), tuple(axis / norm for axis in direction), length, category)
         if hit is None:
             return runtime.RaycastResult(False, None, None, None)
@@ -1191,7 +1203,7 @@ class BodyScript(ReplicatedBody):
             return
         codec = family(cls)
         payload = state.payload() if codec != "none" else {}
-        if codec in ("value_slot", "linked_target", spray_placement.CODEC) and not payload:
+        if codec in PAYLOAD_REQUIRED and not payload:
             return
         snap.states[(owner, index)] = (cls, state.active, tuple(sorted(payload.items())))
 

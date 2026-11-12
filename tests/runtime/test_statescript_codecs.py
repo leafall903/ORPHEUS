@@ -32,6 +32,7 @@ SAMPLES = {
         {"start": FRAME_TIME - 160, "counter": 5},
         {"start": FRAME_TIME + 3, "offset": -7, "subindex": 2, "volleys": 3, "counter": 70},
     ],
+    "start": [{"start": FRAME_TIME - 32}, {"start": FRAME_TIME + 8}],
     "anim": [{"counter": 6}, {"counter": 9}],
     "chase": [
         {"cur": 1.5, "reached": False, "remaining": None, "last": None},
@@ -72,6 +73,8 @@ def expected(kind: str, payload: dict) -> dict:
             return {**SPRAY_FIELDS, "has_entity": 1, "entity": payload["entity"],
                     "has_extra": 1, "extra": payload["extra"], "g": 1}
         return SPRAY_FIELDS
+    if kind == "start":
+        return {"start": payload["start"]}
     if kind == "switch":
         return {"current": get("current", False)}
     if kind == "two_bits":
