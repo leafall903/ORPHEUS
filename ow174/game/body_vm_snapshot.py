@@ -85,6 +85,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
+    nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
     nodes.AIControlOverride: (("remove_record",), ()),
     nodes.BodyPlacement: ((), ()),
