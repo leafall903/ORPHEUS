@@ -4280,6 +4280,47 @@ class BarrierTests(unittest.TestCase):
     def shield(self, player=None):
         return self.match.combat.reinhardt_barriers[(player or self.rein).body]
 
+    def test_original_shield_actor_is_created_followed_and_destroyed_for_every_viewer(self):
+        from ow174.game import observers, reinhardt_presentation, world
+
+        fight = self.match.combat
+        actor = fight.barriers.authored_for(self.rein.body)
+        self.assertIsNotNone(actor)
+        for viewer in self.run.players:
+            creates = [u for u in viewer.client.entities
+                       if u.entity == actor.entity and u.op == world.OP_CREATE]
+            self.assertEqual(len(creates), 1)
+            self.assertGreater(creates[0].build(0).count, 0)
+            self.assertIn(actor.entity, viewer.seen)
+        projection = reinhardt_presentation.projection(fight, actor.entity)
+        self.assertIs(projection.component, actor.component)
+        self.assertEqual(actor.component.world.body_definition, reinhardt_presentation.DEFINITION)
+        self.assertGreater(observers.full_frame(projection, projection.latest_live).count, 0)
+        # Exercise the production create consumer, using the same authoritative VM.
+        from types import SimpleNamespace
+        from ow174.game.server import Client
+
+        link = SimpleNamespace(player=self.enemy, _bot_scripts={}, _combat_notices={},
+                               _project_bot_snapshot=lambda snapshot, **kwargs: snapshot)
+        Client._track_body_create(link, actor.entity)
+        self.assertIs(link._bot_scripts[actor.entity].source.component, actor.component)
+        self.assertTrue(link._bot_scripts[actor.entity].stream.pending)
+        before = tuple(self.rein.mover.position)
+        self.place(self.rein, (before[0] + 3, before[1], before[2]))
+        self.advance(1, buttons=2)
+        updates = [u for u in self.enemy.client.entities
+                   if u.entity == actor.entity and u.movement is not None]
+        self.assertTrue(updates)
+        expected = reinhardt_presentation.reinhardt_barrier.frame(
+            fight.barriers.reinhardt.geometry, *fight.barriers.reinhardt.actors[self.rein.body].pose(),
+        )[0]
+        self.assertEqual(updates[-1].movement.position, expected)
+        self.advance(20, buttons=0)
+        self.assertNotIn(actor.entity, fight.barriers.scripted)
+        for viewer in self.run.players:
+            self.assertTrue(any(u.entity == actor.entity and u.op == world.OP_DESTROY
+                                for u in viewer.client.entities))
+
     def test_shield_bash_ends_at_barrier_before_later_drop(self):
         for early_drop in (False, True):
             with self.subTest(early_drop=early_drop):

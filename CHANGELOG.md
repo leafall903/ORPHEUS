@@ -22,6 +22,20 @@ late-expired-input adaptive_activation assertion. Neither was suppressed or
 rewritten for delivery. No game assets, running-client or server changes.
 
 
+## Reinhardt original shield entity delivery
+
+The authored011A shield already existed in the server barrier VM, but no create
+record or remote statescript reached clients. Replicate that same entity through
+the existing Client/BodyStream lifecycle, with its original definition, team,
+health pools, the collision mesh's owner pose, and retirement. Pose records are
+not retransmitted after newer movement. No second shield or combat VM is added.
+
+Minimal runtime checks cover the actual shield create consumer, shared component
+identity, encoded initial script, owner following and destroy for every viewer.
+Existing authored hammer damage/hit notices, penetrating Fire Strike damage and
+charge movement probes also pass. Shared input-clock repair is integrated
+separately; original-client shield/projectile visuals still require a live check.
+
 ## A108 — DVa accepted Booster force on the sole world replay host
 
 Integrated B101 shared accepted-force opt-in (source b93b1d3f, local b3fd2c63)

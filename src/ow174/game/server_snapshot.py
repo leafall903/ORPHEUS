@@ -237,7 +237,7 @@ FIELDS = {
     echo_duplicate.Duplicates: _names("combat states held busy"),
     barriers.Barriers: _names("fight live scripted seen next_entity world reinhardt expiries cooldown_deadlines"),
     barriers.BarrierExpiry: _names("owner duration generation frame tick started ended_ahead"),
-    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
+    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id wire_entities"),
     barriers.world_bubbles.WorldBubbles: _names("fight actors next_id pending"),
     combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
     barriers.Barrier: _names(

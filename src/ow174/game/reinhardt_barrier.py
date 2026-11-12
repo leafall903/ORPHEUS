@@ -294,6 +294,7 @@ class ReinhardtBarriers:
         self.geometry = fight.reinhardt_geometry
         self.actors = {}
         self.next_id = 0
+        self.wire_entities = set()
 
     def sync(self, owner):
         if self.geometry is None or getattr(getattr(owner, "hero", None), "guid", None) != HERO:

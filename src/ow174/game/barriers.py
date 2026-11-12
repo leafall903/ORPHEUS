@@ -787,6 +787,10 @@ def advance(fight, tick):
         _init_health(fight, barrier)
         _apply_bubble_cleanse(fight, barrier)
 
+    from ow174.game import reinhardt_presentation
+
+    reinhardt_presentation.sync(fight)
+
 
 def _init_health(fight, barrier):
     from ow174.game.combat import Vitals
