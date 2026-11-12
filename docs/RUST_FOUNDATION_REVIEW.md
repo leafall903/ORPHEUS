@@ -31,7 +31,7 @@ The numbers retain the supplied task list. A task is complete only when its stat
 | 3. Typed StateScript IR | The existing graph compiler builds structural indexes. The VM dispatches on authored class names and JSON field shapes. Expressions can depend on live state. | Lower one verified operation family through the normal loader and compare VM and wire results. | Open |
 | 4. World queries | Both the VM host and expression context can substitute origin or Null for unavailable queries. | Distinguish unavailable queries from known origin and known unset variables through the complete expression path. | Open |
 | 5. Room fault isolation | One worker owns rooms and shared peer maps. Invariant assumptions include `expect`, indexing and a discarded tick error. | Introduce complete room retirement and prove another room survives an injected fault. | Open |
-| 6. Test infrastructure | Synthetic vectors and prepared regressions exist. A shared cross-language fixture runner and differential CI remain to be built. | Add a versioned synthetic fixture for one protocol or gameplay boundary and run both implementations against it. | Open |
+| 6. Test infrastructure | Synthetic vectors and prepared regressions exist. A shared cross-language fixture runner and differential CI were missing. | Add a versioned synthetic fixture for one protocol or gameplay boundary and run both implementations against it. | First JAM framing contract passes both implementations locally; differential CI added, hosted result pending; gameplay fixtures, properties and fuzz remain open |
 | 7. CI | Public Windows CI covers stable Rust with default and inspector features. | Add a locked MSRV build and Linux tests for independent crates, then observe their CI results. | Implemented, Rust 1.85.0 passed locally, hosted Linux result pending |
 | 8. Benchmarks | Worker timing histograms and a two-room workload exist. Isolated VM and solver measurements are pending. | Record matched release measurements before changing their hot paths. | Open |
 | 9. Dedicated server, ECS, scripts and inspection | The native server uses Bevy ECS for bots and projectiles, a bounded Lua patrol pilot and an optional read-only inspector. Player authority and general script hosting remain incomplete. | Migrate one shared mechanism with lifecycle, replay and performance evidence. | Partial |
@@ -76,8 +76,9 @@ Inject a failure into one of two active rooms, verify the other continues receiv
 
 ## Reference and test work
 
-- [ ] Define a versioned cross-language fixture with target build, pinned reference, seed, logical frame, inputs, loss schedule and expected decoded outputs. Keep original traces and restricted runtime data local.
-- [ ] Run one public synthetic fixture through Python and Rust and compare registered state, event order and wire fields. Add differential CI only after both runners consume the same contract.
+- [x] Define a versioned [synthetic JAM framing contract](BEHAVIOR_CONTRACTS.md) with target build, pinned reference, explicit payloads and expected encrypted bytes and decoded payloads. Both implementations consume the same JSON. Python contribution rules and its runner are proposed in [PR #27](https://github.com/leafall903/ORPHEUS/pull/27).
+- [x] Run that fixture through Python and Rust locally. Add differential CI pinned to the Python consumer commit; hosted verification is pending.
+- [ ] Extend shared contracts to gameplay state and event order, including seed, logical frame, inputs and loss schedule. Keep original traces and restricted runtime data local.
 - [ ] Inspect the `kjs-picks` research on account kill-feed options, bot datagram composition and observer variable-binding widths. Reproduce each claim against the relevant 104319 trace or fixture before changing Rust. Record its source revision and acceptance result.
 - [ ] Add bounded-input fuzz targets for independent parsers and retain any discovered regression as a focused test.
 - [ ] Cover bit widths, truncation and alignment with round-trip and invalid-input properties. Reuse existing vector and snapshot formats where adequate.

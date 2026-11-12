@@ -17,6 +17,8 @@ Use a fork and a short topic branch for a pull request. Test with your own Git a
 
 Read the [Rust contribution rules](docs/NATIVE_SERVER_ARCHITECTURE.md#rust-contribution-rules) before changing the server. In your pull request, identify the simulation, transport, script or data boundary you changed. For behavior changes, include the reference or reproduction and the closest headless check. For collision changes, include the loaded geometry source, filter and contact evidence. Record original-client results separately when available.
 
+Use [shared behavior contracts](docs/BEHAVIOR_CONTRACTS.md) to compare Python and Rust against the same explicit input and expected output. Supply a synthetic or approved fixture for changed behavior, or document the reproduction, missing prerequisite and follow-up. Backfill older behavior as it is touched and keep client acceptance separate from fixture agreement.
+
 ## Public source checks
 
 Run the native source checks from the repository root with stable Rust, `rustfmt` and `clippy`. They use public synthetic fixtures and match the two lanes of the [public workflow](.github/workflows/public-checks.yml).
