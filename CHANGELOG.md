@@ -1,5 +1,29 @@
 # Changelog
 
+## A101 — original Moira single consumer proved; duplicate suspicion withdrawn
+
+Read frozen01A2 df51065e8163f569f75f1f1596d626210ffea119 original
+Combat.command→moira.grasp/coalescence and the current same path. Critical
+registry check corrects A100: BEAM_STATES admits only Symmetra/Zarya, not Moira.
+Thus two generic _weapon_beam calls return immediately for Moira; its actual
+single grasp uses current Match.grasp_command context/real selected contacts.
+The old generic function's Moira comment was insufficient evidence of a live
+consumer. No production defect or missing source implementation was proved.
+
+Read-only wraps on an actual secondary command record2 generic calls for that
+Moira but exactly1 actual _damage event0.8 and netloss0.8 (original50/s*.016).
+worker-a-moira-single-event-check.log. Unchanged original full secondary60frames
+health52/damage48 and20frames target84/self107.68 methods both pass2.067s.
+No new field, scheduler, manager or de-dup feature added. A100's first queued
+production gap is withdrawn based on concrete registry/source/health evidence.
+
+A remaining actual work is A102 Rocket.team frozen affiliation through the same
+native status VM, then A103 original typed mover multirow ordering. Root and C
+notified; C owns no samebeam WIP and will not duplicate the audit. Other generic
+owners remain as documented: Symmetra excluded from secondcall, Echo own seen
+frame, Zarya original activation/bodytime/worldelapsed gate. No global deletion
+of the second query call or unsupported all-beams claim.
+
 ## A100 — current consumer convergence and actual Matrix preservation
 
 Actual original Matrix geometry fixture now observes real native Applied child
