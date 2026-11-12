@@ -588,6 +588,12 @@ class World:
     def linked_tracked_targets(self, state: "State"):
         return NotImplemented
 
+    def move_ended(self, state: "State", finished: bool):
+        pass
+
+    def grapple_cast(self, state: "State"):
+        return None
+
     def tracked_targets(self, state: "State"):
         return NotImplemented
 

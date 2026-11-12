@@ -3213,6 +3213,47 @@ def report_active_volleys(component):
                 state.report(component.now)
 
 
+@state_class("STU_4BBC5D09")
+class GrappleCast(State):
+    """Selected host reconstruction for 005A's cast and static-surface outputs.
+
+    This is not the native class's full entity/bone/filter/prediction behavior.
+    Worlds without this service keep the previous inert presentation state.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.cast = None
+
+    def on_begin(self):
+        self.cast = self.instance.component.world.grapple_cast(self)
+        if self.cast is not None:
+            self.instance.write(lvalue(_field(self, "m_9E1A7C58")), False)
+            self.timer_at(max(0, seconds_to_ms(self.cast[1])), 1)
+
+    def timer(self, param):
+        if param != 1 or self.cast is None:
+            return
+        result, _ = self.cast
+        hit = result.hit and not self.instance.component.owner_dead
+        outputs = {
+            "m_9E1A7C58": hit, "m_9169D109": hit,
+            "m_58B4C4D7": result.point if hit else None,
+            "m_5ED803CF": result.point if hit else None,
+            "m_F2F8606D": result.point if hit else None,
+            "m_D7A2A03B": result.normal if hit else None,
+            "m_1FFD7AC0": Entity(0), "m_86CF0002": 0,
+        }
+        for field, value in outputs.items():
+            self.instance.write(lvalue(_field(self, field)), value)
+        self.request_finish()
+
+    def on_end(self, finished):
+        if not finished and self.cast is not None:
+            self.instance.write(lvalue(_field(self, "m_9E1A7C58")), False)
+        self.cast = None
+
+
 @state_class("STUStatescriptStateMoveTo")
 class MoveTo(State):
     """Expose a resolved fixed world target and speed for one state activation."""
@@ -3223,11 +3264,12 @@ class MoveTo(State):
 
     def on_begin(self) -> None:
         speed_config = _field(self, "m_speed")
-        unsupported = ("m_destinationEntity", "m_destinationBone")
-        if _field(self, "m_B060F688") != 0 or any(
-            _field(self, field) is not None for field in unsupported
-        ):
+        if _field(self, "m_B060F688") != 0:
             return
+        for field in ("m_destinationEntity", "m_destinationBone"):
+            config = _field(self, field)
+            if config is not None and self.evaluate(config, watch=False) != 0:
+                return  # Delivered no-entity/no-bone world-space branch.
         duration_config = _field(self, "m_5BEFF040")
         timed_entry = (
             self.instance.graph.index == 0x26A and self.node.pos in (85, 200)
@@ -3272,6 +3314,7 @@ class MoveTo(State):
 
     def on_end(self, finished: bool) -> None:
         self.movement = None
+        self.instance.component.world.move_ended(self, finished)
         if finished and self.instance.graph.index == 0x26A and self.node.pos == 200:
             match = self.instance.component.world.match
             if match is not None:

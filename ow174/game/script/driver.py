@@ -761,6 +761,18 @@ class BodyWorld(runtime.World):
         barriers.track_projected_target(self, state)
         return barriers.track_transcendence(self, state)
 
+    def move_ended(self, state, finished):
+        if (self.match is not None and self.hero == 0x02E000000000000A
+                and state.instance.graph.index == 0x005A and state.index == 1):
+            # Delivered terminal reconstruction for the unhosted typed-request
+            # phase: run the graph's own stop action, preserving its cooldown.
+            state.instance.run_node(state.instance.graph.node(93), state)
+
+    def grapple_cast(self, state):
+        if self.match is not None:
+            return self.match.combat.grapple_cast(state)
+        return None
+
     def assignment_value(self, instance, node, value):
         from ow174.game.zenyatta import weapon_assignment
 

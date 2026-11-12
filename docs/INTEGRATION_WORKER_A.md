@@ -573,3 +573,24 @@ test_game_hanzo_profiles:27 methods,25pass/2optional skips.
 Next exact action: native005A STU_4BBC5D09 GrappleCast plus BodyWorld/static/IceWall
 anchor consumers and snapshot layout. Then mount delivered venom.py into actual
 throw/tick/contact/damage/retirement consumers. Those features are still missing.
+
+### A24 delivered Widowmaker Grapple (this commit)
+
+A23 committed8be79f96. This batch mounts original STU_4BBC5D09 exactly,
+BodyWorld/Combat static+pillar service and terminal MoveTo graph node93.
+Source zero entity/bone conditions evaluate before admission to current swept
+mover; DVa current completion hook remains. Walls.contact/anchor methods ported
+without source oldmanager; anchors clean on retirement/ability stop/pillar remove.
+VM cast/RaycastResult and server Walls anchors have explicit stored layouts.
+Normal original Grapple6 pass (worker-a-widow-grapple-second.log); IceWall actual
+nearer pillar/removal before+after contact2 pass; old wall storage fixture mapped
+current required definition_digests parameter and expiry1 pass. SharedDamage+
+script_runtime21 pass (worker-a-widow-grapple-shared.log; its first two old import
+errors fixed by replacing only old mei_frost.HERO identity with mei_wall.MEI).
+Active cast manual export stable/read-only/sensitive, full source cast class
+retained. Native cast filtering/contact recheck/full typed-request phase remain
+original declared reconstruction limits, not new missing delivery functionality.
+Next exact action: source000A venom.py Flight/Mine/Poison/Mines, map current
+barrier/Deflect/absorption and transport APIs, mount throw/update/retire/hitscan/
+projectile/melee/explosion consumers and explicit snapshots. Do not fake old
+private pool views or replace newer native motion/deflection managers.
