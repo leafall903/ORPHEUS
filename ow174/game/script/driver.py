@@ -546,6 +546,9 @@ class BodyWorld(runtime.World):
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and not self.match.combat.barriers.ability_start_allowed(state)):
             return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and state.instance.graph.index == 0x0043 and state.node.pos == 14):
+            return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
         # The hosted projection supplies its overlap gate while the native
         # 025C recipient effect/tag system is unimplemented.
         if (self.match is not None and self.hero == 0x02E0000000000068
@@ -559,7 +562,10 @@ class BodyWorld(runtime.World):
             return 0.0
         from ow174.game.combat import TICK
 
-        ready = self.match.combat.barriers.cooldown_ready_tick(state)
+        if state.instance.graph.index == 0x0043 and state.node.pos == 14:
+            ready = self.match.combat.zarya_melee_ready.get(self.body, 0)
+        else:
+            ready = self.match.combat.barriers.cooldown_ready_tick(state)
         return min(state.cur, max(0, ready - self.match.tick) * TICK * state.cooldown_rate)
 
     def body_owner_context(self, entity):
@@ -2360,6 +2366,10 @@ class BodyScript(ReplicatedBody):
             self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
         if hero in (0x02E0000000000002, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
+        if ult_seconds is None and hero == 0x02E000000000023B and match is not None:
+            from ow174.game import sigma_charge
+
+            ult_seconds = sigma_charge.PASSIVE_FULL_CHARGE_SECONDS
         if ult_seconds is None and hero == 0x02E00000000000DD:
             from ow174.game import mei_ultimate
 
@@ -2552,6 +2562,15 @@ class BodyScript(ReplicatedBody):
         self.buttons = buttons
         self.frame = frame
         regeneration.prune_healing_scales(self)
+
+    def finish_idle_reload(self, wait: nodes.Wait) -> None:
+        """Finish a due world wait without consuming the next command frame."""
+        buttons = self.buttons & ~3
+        self.component.edges(button_edges(self.buttons, buttons, 0))
+        self.buttons = buttons
+        wait.request_finish()
+        self.component.run_now()
+
 
     def _run(self, frame: int, edges: list) -> None:
         from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge

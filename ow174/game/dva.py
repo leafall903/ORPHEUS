@@ -1,6 +1,7 @@
 """D.Va combat consumers for the 104319 graphs."""
 
 HERO = 0x02E000000000007A
+BOOSTERS = 0x047E
 MECH = 0x0400000000000407
 FUSION_CANNONS = 0x050A
 LIGHT_GUN = 0x02B8
@@ -53,3 +54,11 @@ def charge_damage(player, shooter, damage):
     charge = expr.to_float(component.entity_var(ULT_CHARGE).value())
     if charge < cost:
         component.set(ULT_CHARGE, expr.f32(min(cost, charge + damage)))
+
+
+def boosters(actor):
+    script = actor.body_script
+    if script is None or script.component.world.hero != HERO:
+        return None
+    return next((instance for instance in script.component.instances.values()
+                 if instance.graph.index == BOOSTERS), None)

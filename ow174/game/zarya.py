@@ -1,6 +1,7 @@
 """Original0068 energy and charge policy on the existing single body state host."""
 from ow174.game.script import nodes
 
+SECONDARY_RECOVERY_TICKS = 62  # Original paced0241 grenade recovery, build104319.
 ULT_PASSIVE_PER_SECOND = 5.0
 
 HERO = 0x02E0000000000068

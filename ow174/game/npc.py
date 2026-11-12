@@ -183,6 +183,9 @@ def remove_body(match, bot) -> None:
         pilot = match._message_player(bot.source_body)
         if pilot is not None and pilot.controlled_mech is bot:
             body_entities.release_control(pilot)
+    from ow174.game import barriers
+
+    barriers.retire_owner(match.combat, bot)
     match.combat.junkrat.release_trap_victim(bot.entity)
     match.combat.clear_pins(bot.entity)
     match.combat.knockbacks.retire(bot.entity)
