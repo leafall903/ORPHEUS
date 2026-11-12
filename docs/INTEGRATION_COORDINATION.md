@@ -471,3 +471,37 @@ its source boundary audit. Root has no live tests. A continues Mine/Trap/Tire,
 B original barrier/FireStrike and other seven-owner consumers, C original Mei.
 All three continue independently with committed durable records. Whole merge
 remains incomplete; overall remaining estimate2–5 continuous days unchanged.
+
+
+## Original status resource and support consumer audit
+
+Root inspected all ten previously merged owner module inventories, then traced
+changed helpers into current consumers. For example old Moira biotic.explode is
+preserved as source while current Ana HealingEffects owns grenade statuses;
+installing both would duplicate status/healing. The old Lucio BarrierLease/Grant
+implementation is represented by current SoundBarriers actual073B receiver and
+single Vitals temporary pool, pending grants, world clock and retirement.
+These mappings still require original executable evidence; module presence or
+Git ancestry alone is insufficient.
+
+Frozen611113f2 original support check97047 (57.958s) ran77 with6fails,1 missing
+NPC-fixture config error and41 external-resource skips. Inspection showed v5
+never selected the existing ORPHEUS_STATUS_BUNDLE loader. The unchanged original
+0079/lucio-status-mercy-006c.json.gz supplies0267/07C7/073B plus original other
+status children,6 graphs/4 definitions, no conflict with any base/v5 record.
+Prepared ../parallel-merge/runtime-inputs-v6/environment.json now selects that
+original resource through its existing loader. Its graph supplement is byte-
+identical to v5 and all original source hashes are unchanged. The original
+ORPHEUS_PVE_NPC_DATA fixture alias is explicitly configured to the prior hardlink
+fixture; all5 existing mover records are present. No copied full runtime or
+rewritten source data. Runtime environment and test_environment are separate.
+Root rerun99255 on frozen611113f2 is live; evidence goes to
+../parallel-merge/root-support-v6-source-check.log. Do not mutate canonical
+until terminal; intake remains available.
+
+B26 source4224404a is received as7ebe18f6 in intake: original Fire Strike
+MOVER sphere sweep and native RaisedBarrier pool/activation contacts on the
+existing projectile pipeline. Worker focused37 pass; remaining full original
+surface expectations stay documented without preventing submission. B21's
+long snapshot run82747 is now terminal (worker report:69 tests,3fail8errors,
+3skip,2325.838s); preserve the original retained differences, do not restart it.
