@@ -28,6 +28,22 @@ class Grapple:
     rope: float = 0.0
 
 
+def body_frame_at_world(script, tick):
+    """Map the actual creation pair, without enabling/changing input leases."""
+    from ow174.game.combat import TICK
+    world, body = script.ball_birth
+    return body + (tick - world) * round(TICK * 1000) // script.frame_ms
+
+
+def world_tick_at_body(script, frame):
+    """First real world tick whose mapped body cursor reaches this frame."""
+    from ow174.game.combat import TICK
+    world, body = script.ball_birth
+    quantum = round(TICK * 1000)
+    elapsed = (frame - body) * script.frame_ms
+    return world + (elapsed + quantum - 1) // quantum
+
+
 def instance(player, index=PILEDRIVER):
     script = player.body_script
     if player.hero.guid != HERO or script is None:
@@ -227,8 +243,9 @@ def _defer_grapple_interrupt(script, frame):
 
 def _grapple_interrupt_after(script, frame, tick):
     controls = script.world.match.combat.sombra_controls
-    skill_lock = controls.first_lock_after(script, frame, tick)
-    latest = tick if skill_lock is None else skill_lock
+    body_tick = body_frame_at_world(script, tick)
+    skill_lock = controls.first_lock_after(script, frame, body_tick)
+    latest = body_tick if skill_lock is None else skill_lock
     windows = (script.control_windows, script.sleep_windows, script.frost_windows)
     return min((start for group in windows for start, _ in group if frame < start <= latest),
                default=skill_lock)

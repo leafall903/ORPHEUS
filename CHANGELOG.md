@@ -64,6 +64,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
   pass with6.4 damage per16frames where authored, zero in blocked cases.
   No original numeric expectation or shield geometry was changed.
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
+
 ### Mount delivered Ball Fireball contacts on the same motion and impulse hosts
 
 - Consume original1203 high-speed search, capsule/cone/LOS,50 damage, pull/lift
@@ -76,6 +91,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   ledger. Active BodyVM/server captures pass; removing/restoring actual contact
   changes/restores server digest. No second actor/mover/pool is introduced.
 - Native geometry/filter acceptance and complete Ball line remain open.
+
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
 
 ### Mount delivered Ball Grapple lifecycle on the existing motion host
 

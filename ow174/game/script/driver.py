@@ -2267,6 +2267,8 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.world_frame_anchor: tuple[int, int] | None = None
+        if hero == 0x02E00000000001CA and match is not None:
+            self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
         if hero in (0x02E0000000000002, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero == 0x02E00000000000DD:
