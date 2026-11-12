@@ -164,13 +164,74 @@ def spawn(fight, instance, node):
             or not all(isinstance(v, (int, float)) and math.isfinite(v) and v > 0
                        for v in (duration, width, height))):
         return NotImplemented
-    health = child.node(1).field("m_amount")["m_value"]
+    return expr.Entity(_spawn_actor(fight, player, tuple(point), duration, width, height).entity)
+
+
+def _spawn_actor(fight, player, point, duration, width, height):
+    health = graph.graph(PILLAR_GRAPH).node(1).field("m_amount")["m_value"]
     actor = fight.create_deployable(player, PILLAR, "Ice Wall pillar", tuple(point), health=health,
                                     radius=width / 2, height=height, seconds=duration)
     actor.body_script = actors.PillarScript(runtime.Component(actor.entity))
     actor.body_script.component.run_frame(fight.tick)
     actor.body_script.set_health(health, health)
-    return expr.Entity(actor.entity)
+    return actor
+
+
+def geometry_actor(fight, instance, point, axis, *, anchor=None):
+    """Bind delivered rectangle/lift geometry to this body's real pillar slot."""
+    player = owner(fight, instance)
+    anchor = value(instance, 2478) if anchor is None else anchor
+    if player is None or not isinstance(anchor, (tuple, expr.Vec3)) or len(tuple(anchor)) != 3:
+        return None
+    anchor = tuple(anchor)
+    from ow174.game.mei_wall import EPS
+
+    nodes = [instance.graph.node(pos) for pos in _CREATE_NODES]
+    matches = [node for node in nodes
+               if isinstance(where := instance.evaluate(node.field("m_position")), expr.Vec3)
+               and math.dist(where, point) <= EPS]
+    if len(matches) == 1:
+        node = matches[0]
+    elif not matches:
+        # Original0016 accepted placement/rotation uses the same five columns.
+        # Recover its authored column ordinal, never an unrelated nearby actor.
+        span = sum((point[k] - anchor[k]) * axis[k] for k in (0, 2)) / 1.55
+        offset = round(span)
+        if offset not in range(-2, 3) or any(
+                abs(point[k] - anchor[k] - offset * 1.55 * axis[k]) > EPS for k in (0, 2)):
+            return None
+        node = nodes[2 - offset]
+    else:
+        raise ValueError("Ice Wall placement resolves multiple authored columns")
+    slot = expr.lvalue(node.field("m_B3019338"))
+    if slot is None or slot[0] != runtime.INSTANCE_SCOPE:
+        raise ValueError("Ice Wall creation lost its published instance slot")
+    entity = expr.to_entity(instance.find_var(*slot).value())
+    actor = fight.deployables.get(entity)
+    if actor is not None and (actor.definition != PILLAR or actor.owner is not player
+                              or actor.source_body != instance.component.entity):
+        raise ValueError("Ice Wall slot points outside its live owner")
+    if actor is not None and math.dist(actor.position, point) <= EPS:
+        return actor
+    if actor is not None:
+        fight.destroy_deployable(actor.entity)
+    duration, width, height = (value(instance, var) for var in (567, 6274, 1165))
+    if not all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in (duration, width, height)):
+        return None
+    actor = _spawn_actor(fight, player, point, duration, width, height)
+    instance.write(slot, expr.Entity(actor.entity))
+    for pos in _PLAY_NODES:
+        call = instance.graph.node(pos)
+        resource = play.resolve_resource(instance, call)
+        if resource is None:
+            continue
+        request = play.resolve_request(instance, call, resource, context_provider=lambda:
+                                       play.InvocationContext(player.body, player.body, player.body))
+        if request is not None and actor.entity in request.targets:
+            play_pillar(fight, instance, call)
+            return actor
+    fight.destroy_deployable(actor.entity)
+    raise ValueError("Ice Wall geometry has no authored PlayScript receiver")
 
 
 def play_pillar(fight, instance, node):

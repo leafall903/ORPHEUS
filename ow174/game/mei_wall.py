@@ -14,19 +14,61 @@ MEI = 0x02E00000000000DD
 EPS = 1e-5
 
 
-@dataclass
+@dataclass(init=False)
 class Pillar:
     entity: int
     owner: int
     team: int
     feet: tuple
     axis: tuple
-    health: float
-    expires: int
-    width: float = 1.55
-    depth: float = 0.5
-    height: float = 4.4
-    impact_marked: bool = False
+    _health: float
+    _expires: int
+    width: float
+    depth: float
+    height: float
+    impact_marked: bool
+    actor: object
+
+    def __init__(self, entity, owner, team, feet, axis, health, expires,
+                 width=1.55, depth=.5, height=4.4, impact_marked=False, *, actor=None):
+        self.entity, self.owner, self.team = entity, owner, team
+        self.feet, self.axis = feet, axis
+        self._health, self._expires = (health, expires) if actor is None else (0., 0)
+        self.width, self.depth, self.height = width, depth, height
+        self.impact_marked, self.actor = impact_marked, actor
+
+    @property
+    def health(self):
+        if self.actor is None:
+            return self._health  # unhosted placement/geometry candidates only
+        fight = self.actor.owner.match.combat
+        vitals = fight.vitals.get(self.entity)
+        return self.actor.health if vitals is None else vitals.total
+
+    @health.setter
+    def health(self, value):
+        if self.actor is None:
+            self._health = value
+            return
+        fight = self.actor.owner.match.combat
+        vitals = fight.vitals.get(self.entity)
+        if vitals is not None:
+            from ow174.game.world import HEALTH_POOL
+            vitals.now[HEALTH_POOL] = value
+        self.actor.health = value
+        if self.actor.body_script is not None:
+            self.actor.body_script.set_health(value, vitals.maximum if vitals is not None else value)
+
+    @property
+    def expires(self):
+        return self._expires if self.actor is None else self.actor.expires_tick
+
+    @expires.setter
+    def expires(self, value):
+        if self.actor is None:
+            self._expires = value
+        else:
+            self.actor.expires_tick = value
 
 
 @dataclass
@@ -146,7 +188,7 @@ class Walls:
         self.inputs: dict[int, Input] = {}
         self.anchors = {}
 
-    def create(self, player, points, axis):
+    def create(self, player, points, axis, *, command=None):
         from ow174.game.combat import TICK
 
         definition = graph.graph(0x0636)
@@ -154,6 +196,12 @@ class Walls:
             return False
         from ow174.game.bots import Bot
 
+        anchor = None
+        if command is not None:
+            from ow174.game.combat import aim
+            hit = self.combat.match.collision_world.cast_ray(
+                self.combat._eye(player), aim(*command.aim()), 35.)
+            anchor = hit.point if hit is not None else None
         players = []
         for target in self.combat._targets():
             owner = target.owner
@@ -162,9 +210,9 @@ class Walls:
 
                 match = self.combat.match
                 category = MOVER if match.game_map.free_for_all or owner.team not in (0, 1) else (TEAM0, TEAM1)[owner.team]
-                if owner.body not in (loaded_mover_table() or {}):
+                if owner.movement_data is None and owner.body not in (loaded_mover_table() or {}):
                     continue
-                known = mover_data(owner.body)
+                known = owner.movement_data or mover_data(owner.body)
                 mover = getattr(owner, "impulse_mover", None) or Mover(
                     owner.position, round(owner.yaw), match.collision_world, known, category=category,
                 )
@@ -178,20 +226,17 @@ class Walls:
             lifts = self.deployment_lifts(piece, players)
             if lifts is None:
                 continue
-            entity = self.combat.next_bot
-            if entity >= 0xD0000000:
-                raise ValueError("wall entity allocator exhausted")
-            self.combat.next_bot += 1
-            component = runtime.Component(entity)
-            instance = component.create(definition, init=False)
-            # Consume the original pillar marker entry. Health and retirement
-            # are hosted here while the rest of the pillar VM remains open.
-            instance.run_node(definition.node(27), None)
-            marked = expr.truthy(component.entity_var(961).value())
-            health = expr.to_float(instance.evaluate(definition.node(1).field("m_amount")))
-            expires = self.combat.tick + math.ceil(5 / TICK)
-            piece.entity, piece.health, piece.expires, piece.impact_marked = entity, health, expires, marked
-            self.pieces[entity] = piece
+            from ow174.game import ice_wall
+
+            source = self.instance(player)
+            actor = (ice_wall.geometry_actor(self.combat, source, point, axis, anchor=anchor)
+                     if source is not None else None)
+            if actor is None:
+                continue
+            marker = actor.body_script.component.entity_var(961, create=False)
+            piece = Pillar(actor.entity, player.body, player.team, point, axis, 0., 0,
+                           impact_marked=marker is not None and expr.truthy(marker.value()), actor=actor)
+            self.pieces[actor.entity] = piece
             created = True
             for owner, mover, position in lifts:
                 if isinstance(owner, Bot):
@@ -333,6 +378,8 @@ class Walls:
 
     def remove(self, piece):
         if self.pieces.pop(piece.entity, None) is not None:
+            if piece.actor is not None:
+                self.combat.destroy_deployable(piece.entity)
             for body, (entity, ability) in tuple(self.anchors.items()):
                 if entity == piece.entity:
                     self.anchors.pop(body)
@@ -378,9 +425,16 @@ class Walls:
         allied = not self.combat.match.game_map.free_for_all and team == piece.team
         if _source_entity(shooter) == piece.owner or allied or amount <= 0:
             return
-        piece.health = max(0.0, piece.health - amount)
-        if piece.health == 0:
-            self.remove(piece)
+        if piece.actor is not None:
+            if self.combat.deployables.get(piece.entity) is not piece.actor:
+                return
+            self.combat._damage(shooter, self.combat._deployable_target(piece.actor), amount, False,
+                                None, self.combat.tick, world_tick=self.combat.tick,
+                                source_scaled=True, award_ult=False)
+        else:
+            piece.health = max(0.0, piece.health - amount)
+            if piece.health == 0:
+                self.remove(piece)
 
     def fits(self, point, radius, height, *, tick):
         return not any(tick < piece.expires and occupies(piece, point, radius, height)
@@ -585,7 +639,7 @@ class Walls:
             state.rotated = not state.rotated
         if pressed & 1:
             placement = self.placement(player, command, state.rotated)
-            if placement is not None and self.create(player, *placement):
+            if placement is not None and self.create(player, *placement, command=command):
                 instance.write((0, 61), expr.f32(12.0))
                 self.stop_preview(instance)
                 state.preview = False
