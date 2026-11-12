@@ -2211,7 +2211,7 @@ class BodyScript(ReplicatedBody):
         separate configured policy; this does not establish native charge rates.
         """
         if self.hero == BASTION:
-            if (not self._ult_charge_allowed() or type(points) not in (int, float)
+            if (type(points) not in (int, float) or not self._ult_charge_allowed()
                     or not math.isfinite(points) or points <= 0):
                 return 0.0
             points = ultimate.combat_points(self, points, kind, target_definition)
