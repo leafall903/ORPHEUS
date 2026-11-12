@@ -488,7 +488,7 @@ class BodyWorld(runtime.World):
         return self._body_owner_context
 
     def spatial_query_context(self, entity):
-        if self.match is not None and entity == self.body:
+        if self.match is not None and entity == getattr(self, "body", None):
             return getattr(self, "_spatial_query_context", NotImplemented)
         return NotImplemented
 
