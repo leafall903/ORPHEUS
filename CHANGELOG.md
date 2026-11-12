@@ -11715,3 +11715,26 @@ AIControlOverride consumers under the sameGUID; do not overwrite those hosts
 with old registries merely to satisfy sourcefixture import names. Map semantics
 first and retain directly callable SDK where required. General42578342 B84 and
 source58twoheight/Slam B82/B83 are substantive restored code, not matrixgates.
+
+
+## B86 — retain original mask and tag-initialization public SDK
+
+Compare current replacement APIs first: entity_filter.matches_masks accepts a
+config mapping plus resolved RelationResult; original filter_masks exposes the
+Masks value object/combined property and lazy explicitowner/relation callback.
+Current entity_tags models effective runtime tag membership/context queries;
+it does not expose original base_tags(owner_resource,descriptor_resource) that
+validates two resolved uint32 tuples and preserves ordered deduplication.
+
+Preserve these two original directly callable Python SDK modules and their
+original fixtures byte-for-byte. No gameplay dispatch, World binding, automatic
+backend, cache or lifetime is created/replaced. Existing currentmask/tag runtime
+consumers remain. All10 original standalone checks pass0.000s in
+worker-b-mask-tag-sdk.log; all4 files exactsource bytes checked. No client check.
+
+Next exact action: controller_query original explicit watchedContext vs current
+controller_queries.Record; retain original selected backend ahead of default
+record query only when explicitly supplied, strictunknown otherwise. Then NPC
+callback query and distance/possession original public SDK mapping; do not
+replace currentstronger AI state registry registrations. Assassin13C2 service
+needs dependency/caller equivalence audit, not blind copy of its gameplayhost.
