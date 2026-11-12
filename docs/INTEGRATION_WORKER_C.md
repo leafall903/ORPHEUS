@@ -86,11 +86,27 @@ reflect-services,reflect-services-baseline}-check.log.
 Root received C5 asc254331d and C6 as37577fbd, with42 and14 focused checks passing.
 C6 full server_snapshot session33339 is still active; do not rerun or label green.
 
+Eighth batch SHA: `20598453`.
+Ninth batch: `feat: integrate delivered Pharah blast impulses` mounts actual
+Concussion/self-splash/ring/source force and modifier26/local ADD consumers.
+All34 impulse/Helix/Tank/physics checks pass and curve/reflection5 still pass.
+Explicit Rocket.is_barrage tags isolate the curve parser from Echo's motion
+payload; Echo8 complete without the reported parser exception (6 pass,2 payload/
+copied-charge differences in this pre-A7 tree). Root A7 must be synchronized
+before calling these two residual differences current canonical behavior.
+Logs: worker-c-pharah-{impulse-shared,motion-tag,echo-motion-tag}-check.log.
+Root's Bastion/NPC audit found two interlocks to retain: Heavy capture changes
+Sentry to Recon (wall295 versus235) and Heavy melee lacks displacement despite
+correct damage. Do not remove original stance/movement bridges or assertions.
+C6 full snapshot process53540/session33339 still runs; do not restart it.
+
 ## Exact next work
 
-1. Continue Pharah's original splash/self-splash/impulse and remaining
-   charge/control consumers (curve reflection and scoped002B interruption are mounted). Do not replace the combined projectile host.
-   Root owns NPC bots/navigation/snapshot edits while reconciling sniper helpers.
+1. At this clean boundary synchronize latest root canonical (retain all owners),
+   then review original Pharah charge, flight boundaries, NPC and barrier/phase
+   interlocks. Splash/self-splash/impulse, curve reflection and002B interruption
+   are mounted. Do not replace the combined host. Root owns NPC bots/navigation/
+   snapshot entry edits; reconcile their adapters without replacing that work.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
 3. Continue the other six deliveries. Substantial missing owner families include
