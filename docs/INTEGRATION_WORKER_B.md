@@ -1875,3 +1875,33 @@ failed observation and corrected run retained in worker-b-sigma-sphere-raw-
 storage{,-corrected}.log. No production fields or runtime changes this batch.
 No original-client acceptance run. Continue Sigma ultimate charge and Grasp
 source consumers; original aliases in frozen fixtures must map to true hosts.
+
+
+## B69 — original Sigma passive cadence and effective hosted damage credit
+
+Actual normal Match Sigma used genericULT_SECONDS60:125ticks earned65.33336
+rather than original10. Restore original PASSIVE_FULL_CHARGE_SECONDS1960/5
+only for normal Match default; explicit numeric ult_seconds and standalone
+BodyScript fallback are retained. Source0040/other hero clocks unchanged.
+
+Recover source damage_charge_script's own-Sigma selection in stateless
+sigma_charge.damage_script: original028C/028A/02F5 only, live shown current
+source, enemies, unsummoned combatant and current non-strict VM. Keep sole
+Vitals before/after base-pool delta and existinggain_ult_charge, excluding
+temporary pool loss. Remove Sigma from generic all-loadout credit branch so
+this same event cannot charge twice. No new charge ledger/VM/instance.
+
+Restore full original test_sigma_ult_economy.py. Whole-file AST is equal under
+only constants→actualsigma_charge/Flux/absorption providers and old temporary
+shield map→actualtagged_shields. Original10 tests run14.134s:8pass2fail. All
+passive+hits+Flux gate, cap/spend, temporary-only/base-only/overkill, running
+Flux rejection, body replacement and recoverable-base credit checks pass.
+Remaining sourcefailed respawn expects preserved110 but currentnewbody0;
+enemyField case reaches geometry5.2100 vs originalradius5 before healing/credit.
+Do not change either original assertion. Shared Damage8/runtime13 separately
+21/21 pass3.622s. Logs worker-b-sigma-{ult-economy,charge-shared}.log.
+
+Next exact action: source respawn preservation actualconsumer within existing
+Match snapshot/restore hooks, followed Grasp/other original contexts. Root owns
+Flux effects; this batch does not modify that dispatcher or add target effects.
+Still no original-client acceptance run or whole Sigma completion claim.
