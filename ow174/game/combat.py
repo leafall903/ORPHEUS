@@ -3394,6 +3394,10 @@ class Combat:
                 if landed and getattr(getattr(shooter, "hero", None), "guid", None) == winston.HERO:
                     self.winston_jump.knockback(shooter, target, state, 1.0)
                 assassin.rescue_with_melee(self, shooter, target)
+        from ow174.game import nano
+
+        world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
+        self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
         """Reconstructed 1FBD/st17 health consumer, driven by the authored ability lifetime.
@@ -3552,7 +3556,6 @@ class Combat:
 
         self.echo_duplicates.update(now)
         self.pulse_bombs.prepare_gap(tick, self._targets())
-        self.barriers.world.update(tick)
         for player in self.match.players:
             self.barriers.sync(player)
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
@@ -3562,6 +3565,7 @@ class Combat:
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
+            or self.barriers.world.actors
             or self.lucio_auras.healing or self.soundwaves
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
@@ -3572,6 +3576,15 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        bubble_releases = {}
+        for player in self.match.players:
+            release = winston.HostedBarriers(self).pending_release(player, round(TICK * 1000))
+            if release is not None:
+                release_tick, frame = release
+                at = max(retained, release_tick + 1)
+                if at <= tick and frame < projectiles.MAX_LEASE_FRAME:
+                    first = min(first, at)
+                    bubble_releases.setdefault(at, []).append((player, player.body_script, release))
         for target in self._targets():
             history = self.history.setdefault(target.entity, deque(maxlen=HISTORY))
             history.append(self._target_sample(tick, target))
@@ -3611,6 +3624,19 @@ class Combat:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
             self.now, self.tick = now - (tick - at) * TICK, at
+            for player, script, release in bubble_releases.get(at, ()):
+                if (player.body_script is not script or self.is_dead(player)
+                        or winston.HostedBarriers(self).pending_release(player, round(TICK * 1000)) != release):
+                    continue
+                release_tick, frame = release
+                saved_now, saved_tick = self.now, self.tick
+                try:
+                    self.now = now - (tick - release_tick) * TICK
+                    self.tick = release_tick
+                    player._advance_body_frame(Command(frame), posed=False, defer_effects=True)
+                finally:
+                    self.now, self.tick = saved_now, saved_tick
+            self.barriers.world.update(at)
             for player in self.match.players:
                 self._advance_idle_protection(player)
                 winston.charge_world(player, self)

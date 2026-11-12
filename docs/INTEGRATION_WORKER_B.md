@@ -136,6 +136,24 @@ alone is not evidence that a line's consumers are actually mounted.
   Active JumpPack enclosing-server getter-free repeatability/controller
   causality passes. Moira beam10 retains two subcase errors reading the older
   absent cryo_actors API; its other behavior assertions pass.
+- Jump/Primal batch `57e7dfe9` submitted. Source pending_release now schedules
+  idle bubble creation/hosting at its original release frame inside retained
+  combat replay. WorldBubbles lifetimes advance in that same chronological
+  loop, and Winston's Chase clock uses the current combat replay tick.
+- Mount the existing WorldBubbles.melee surface-damage consumer alongside its
+  existing body-bypass policy, retaining source simultaneous body/shell contact.
+  Source barrier28 plus Primal18:44 of46 pass. Retain the two original failures:
+  native f32 point1.10000002384 versus Python1.1 exact tuple, and health699.039978
+  versus699.04 at seven places. Do not downgrade native precision or relax them.
+- Real-path idle release probe verifies accepted+3 birth,700 health, stable
+  identity/no replay and nine-second expiry. Combined Bubble+Primal/700 silent
+  ticks additionally verifies both expire and exactly5 post-Primal points with
+ 200ms phase. Three original Primal/sparse-clock checks pass. Ana's old bubble
+  suite reports its absent winston_bubbles observation API; Tracer's import
+  still needs root's later TAGS_PATH public-alias batch in this worktree.
+- For0007 preserve separate input contracts: barrier.py consumes verified raw
+  model via ORPHEUS_REINHARDT_BARRIER_MODEL; reinhardt_barrier.py consumes its
+  JSON schema via ORPHEUS_REINHARDT_COLLISION. Never interchange descriptors.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -147,9 +165,9 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Audit source Winston bubble deployment/idle expiry and remaining cross-hero
-   barrier/status/volume suites against native WorldBubbles and current shared
-   services. Preserve original cases; no duplicate bubble/impulse controller.
+1. Synchronize latest accepted canonical after this clean batch. Continue
+   Winston cross-hero status/NPC equivalence audit, then advance remaining tank
+   owners; no duplicate bubble/impulse controller and no naming-only completion.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

@@ -381,7 +381,7 @@ class BodyWorld(runtime.World):
                 and not state.instance.component.strict
                 and state.instance.graph.index == 0x0109 and state.node.pos == 25
                 and state.instance.component.entity == self.body):
-            return self.match.tick * 16
+            return self.match.combat.tick * 16
         return NotImplemented
 
     def external_wait(self, state):
