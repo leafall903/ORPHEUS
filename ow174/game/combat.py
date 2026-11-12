@@ -2680,8 +2680,9 @@ class Combat:
         if script is None:
             return
         component = script.component
-        from ow174.game import assassin, hanzo_control
+        from ow174.game import assassin, hanzo_control, photon_barrier
 
+        photon_barrier.interrupt(script)
         self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
@@ -3842,7 +3843,9 @@ class Combat:
                 continue
             a, b = shown.segment()
             if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
-                    and capsule_visible(self._collision(), origin, a, b, shown.radius)):
+                    and capsule_visible(self._collision(), origin, a, b, shown.radius,
+                        mesh_blocks=lambda point,direction,length: self.photon_barriers.trace(
+                            shooter,point,direction,length) is not None)):
                 if (deflections.blocks_melee(self, shooter, target, state, modify)
                         or self._genji_deflects(target, contact.direction)):
                     continue
@@ -3859,6 +3862,8 @@ class Combat:
 
         world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
         self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
+        self.photon_barriers.melee(shooter, origin, centre, radius,
+                                   amount * self.orisa.superchargers.scale(shooter))
         self.venom.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
@@ -9500,6 +9505,7 @@ class Combat:
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
+            photon_barrier.interrupt(victim.body_script)
             self.primal_punches.interrupt(victim.body_script)
             self._winston_health(victim, victim.body_script)
 
