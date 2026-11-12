@@ -12122,3 +12122,34 @@ resolve that lastoriginalScene binding behavior with sameauthoritative current
 state registration and no secondactive host; report exact pendingimplementation
 rather than test/clienttails. Frozen58/stagedb6 finalpositive diff audit remains
 before finalDoominventory. No wholeline completion based solely on filecopy.
+
+
+## B91 — restore explicit distance registry Scene consumer on the same state
+
+Root approved exact explicitbackend restore, preserving every originalScene API
+rather than claiming sameGUID alone proves equivalence. Restore originalScene
+set_distance_constraints/distance_constraint_registry, unknownWorlddefault and
+unbindclear. AIBehaviorState for originalB61E/600E only chooses this backend when
+actually supplied; same state's registration is mutually exclusive with default
+richerAIBehaviorRequest. Default/CFA338CB path, payload reevaluation, priority
+resource validation and currentproductionhosts unchanged. Cleanup/failure removes
+only its own originalEntry. No secondcontroller/World/automaticregistration.
+
+Strict fields: existingAIBehaviorState addsregistration; distanceRegistry exact
+_entries/_sequence andEntry state/priority/sequence registered in both applicable
+exporters; Scene exactmetadata addsdistance_constraints. OriginalScene method
+assertions unchanged: equalpriority order, failurecleanup leaves otherentries,
+unbindclear andunknown getter pass. Joint27run26pass1 retainednewTargetSearch
+fixture expectation (sourceC test expects strict unsupported thoughC restoration
+now supports it), worker-b-distance-backend.log. Productiondefault branch for
+thatcase never reaches distance explicitbackend.
+
+ActualNPC-backed Phase2World with originalB61E state/explicitRegistry proved
+exactlyoneEntry and no defaultai_behavior_requests, strictComponentVM export,
+_sequence mutation changescausalhash/restoration recoverssamehash;
+worker-b-distance-storage.log. No clientacceptance or originalassertchanges.
+
+Next exact action: possession originalScene binding+Inputs(owner,clock) and
+selectionacceptance on sameAIControlOverride, separatebatch, sourceclasshandler
+not replaced. Preserve currentcomponent86/AIControl default. Then final sibling
+positiveconsumer inventory, do not gate code on legacyexpectation differences.

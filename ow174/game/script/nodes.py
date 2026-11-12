@@ -1825,6 +1825,7 @@ class AIBehaviorState(State):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.registration = None
         self.record = None
         self.remove_record = None
 
@@ -1857,6 +1858,13 @@ class AIBehaviorState(State):
             if asset >> 48 != 0x0C40 or (asset & 0xFFFFFFFF) not in expr.STACK_PRIORITIES:
                 component.unsupported(instance, "AI behavior priority resource", self.node.cls, self.node)
             priority, prefer_later = expr.STACK_PRIORITIES[asset & 0xFFFFFFFF]
+        # An explicitly selected original SDK registry owns this same state's
+        # registration instead of the default richer AI request backend.
+        if self.node.cls in ("STU_B61E6681", "STU_600E3C59"):
+            registry = component.world.distance_constraint_registry(component.entity)
+            if registry is not NotImplemented:
+                self.registration = registry, registry.register(self, priority, prefer_later)
+                return
         record = AIBehaviorRequest(self.node.cls, priority, prefer_later, *self._inputs())
         remove = component.world.register_ai_behavior_request(self, record)
         if remove is NotImplemented:
@@ -1869,6 +1877,10 @@ class AIBehaviorState(State):
             self.record.shared, self.record.inputs = self._inputs()
 
     def on_cleanup(self):
+        if self.registration is not None:
+            registry, entry = self.registration
+            registry.unregister(entry)
+            self.registration = None
         self.record = None
         remove, self.remove_record = self.remove_record, None
         if remove is not None:

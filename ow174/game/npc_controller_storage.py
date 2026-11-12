@@ -30,6 +30,7 @@ SCENE_WORLD_FIELDS = (
     'corpse_retirements',
     'current_possessions',
     'data_flow_contexts',
+    'distance_constraints',
     'definitions',
     'display_name_overrides',
     'effect_contexts',

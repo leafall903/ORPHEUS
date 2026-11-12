@@ -125,7 +125,7 @@ _STATE_LAYOUTS = {
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: (("selected", "ai_previous"), ()),
-    nodes.AIBehaviorState: (("record", "remove_record"), ()),
+    nodes.AIBehaviorState: (("record", "remove_record", "registration"), ()),
     nodes.ActiveOutput: ((), ()),
     nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
     nodes.AssassinPursuitCallbacks: (("pursuit_hosted", "pursuit_refresh"), ()),
@@ -177,7 +177,11 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 
+from ow174.game.script import distance_constraints
+
 _VALUE_LAYOUTS = {
+    distance_constraints.Entry: ("state", "priority", "sequence"),
+    distance_constraints.Registry: ("_entries", "_sequence"),
     nodes.AIBehaviorRequest: ("kind", "priority", "prefer_later", "shared", "inputs"),
     ControllerVM: ("definition", "retired", "component", "reserved_wire_ids"),
     ControllerFilterInputs: ("owner", "component_masks", "current_bits", "replicated_bits", "primary_status", "health_status", "flags28", "provenance", "revision", "retired", "bound_host"),

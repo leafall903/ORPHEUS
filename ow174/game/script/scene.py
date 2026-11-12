@@ -29,6 +29,7 @@ from ow174.game.script import (
     controller_heroes,
     controller_queries,
     data_flow,
+    distance_constraints,
     effect_routing,
     entity_control,
     entity_filter,
@@ -256,6 +257,7 @@ class SceneWorld(runtime.World):
         self.mode_score_thresholds = None  # Extracted mode GUID -> (float targets, difficulty limits).
         self.engine_settings: dict[int, bool | int | float] | None = None
         self.global_data_flow: dict[int, tuple[runtime.State, bool]] = {}
+        self.distance_constraints: dict[int, distance_constraints.Registry] = {}
         self.npc_query_contexts: dict[int, npc_queries.Context] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.controller_records: dict[int, controller_queries.Record] = {}
@@ -404,6 +406,9 @@ class SceneWorld(runtime.World):
         self.ai_weapon_records.pop(entity, None)
         self.ai_weapon_slots.pop(entity, None)
         self.ai_behavior_requests.pop(entity, None)
+        constraints = self.distance_constraints.pop(entity, None)
+        if constraints is not None:
+            constraints.clear()
         if record is not None:
             self.linked_controllers.pop(entity, None)
             for body, controller in self.linked_controllers.items():
@@ -466,6 +471,15 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def set_distance_constraints(self, entity: int, registry: distance_constraints.Registry) -> None:
+        self._bound_entity(entity)
+        if entity in self.distance_constraints:
+            raise ValueError("distance constraint registry is already bound")
+        self.distance_constraints[entity] = registry
+
+    def distance_constraint_registry(self, entity: int):
+        return self.distance_constraints.get(entity, NotImplemented)
 
     def set_npc_query_context(self, entity: int, context: npc_queries.Context) -> None:
         self._bound_entity(entity)
