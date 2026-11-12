@@ -6879,6 +6879,13 @@ class Combat:
                     guard = next(deflection._active_states(script, 0x02CC, 3), None)
                     closest = distance, target, None, True, guard
                 continue
+            if hero == 0x02E00000000000DD:
+                shown = self.seen(target, view_tick) if view_tick is not None else target
+                found = (None if shown is None else interception.mei_melee_contact(
+                    self, target, origin, direction, reach, shown=shown, admitted=absorbable))
+                if found is not None and (closest is None or found[0] < closest[0]):
+                    closest = found[0], target, found[2], True, found[1]
+                continue
             if (hero not in (deflection.GENJI, absorption.SIGMA)
                     or script is None or script.retired or getattr(owner, 'mover', None) is None
                     or self.is_stunned(owner)):
@@ -7039,7 +7046,7 @@ class Combat:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
             if tagged_contact[4].instance.graph.index == 0x1D02:
                 self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
-            elif tagged_contact[4].instance.graph.index == 0x02CC:
+            elif tagged_contact[4].instance.graph.index in (0x02CC, interception.MEI_MELEE_DEFENSE):
                 self._absorbed(tagged_contact[4], scaled.amount, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
@@ -7455,6 +7462,8 @@ class Combat:
                 return
             if absorbed is not None and absorbed[3] and (best is None or absorbed[0] < best[0]):
                 rocket.travel(absorbed[0])
+                if absorbed[4].instance.graph.index == interception.MEI_MELEE_DEFENSE:
+                    self._absorbed(absorbed[4], 0.0, rocket.source_entity)
                 self._landed(rocket, release=False)
                 return
             if best is None:
@@ -8300,7 +8309,7 @@ class Combat:
             if returned[3]:
                 if returned[4].instance.graph.index == absorption.GRASP:
                     self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
-                elif returned[4].instance.graph.index == 0x02CC:
+                elif returned[4].instance.graph.index in (0x02CC, interception.MEI_MELEE_DEFENSE):
                     amount = sum(hit.amount for hit in (rocket.direct, rocket.blast) if hit is not None)
                     self._absorbed(returned[4], amount, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
@@ -9297,11 +9306,19 @@ class Combat:
             grasp = matrix
         if matrix_only:
             grasp = False
-        if not matrix and not grasp:
+        mei_admitted = matrix and not matrix_only
+        if not matrix and not grasp and not mei_admitted:
             return None
         nearest = None
         for target in self._enemies(shooter):
             hero = getattr(target.owner, "hero", None)
+            if getattr(hero, "guid", None) == 0x02E00000000000DD:
+                shown = target if view_tick is None else self.seen(target, view_tick)
+                found = (None if shown is None else interception.mei_melee_contact(
+                    self, target, origin, direction, reach, shown=shown, admitted=mei_admitted))
+                if found is not None and (nearest is None or found[0] < nearest[0]):
+                    nearest = found[0], found[1]
+                continue
             if matrix and (isinstance(target.owner, bots.Bot)
                            or getattr(hero, "body", None) == 0x0400000000000407):
                 from ow174.game import matrix as matrix_service
@@ -9339,7 +9356,9 @@ class Combat:
     @staticmethod
     def _absorbed(state: runtime.State, amount: float, source: int) -> None:
         instance = state.instance
-        if instance.graph.index == 0x02CC:
+        if instance.graph.index == interception.MEI_MELEE_DEFENSE:
+            interception.mei_melee_absorbed(state, source)
+        elif instance.graph.index == 0x02CC:
             deflection.reflected_projectile(state, source, amount)
         elif instance.graph.index == 0x1D02:
             instance.write((expr.INSTANCE, 6584), amount)

@@ -2452,7 +2452,11 @@ class BodyScript(ReplicatedBody):
             component.set(2426, self.ult_seconds <= 0 and health > 0)
             component.set(842, False)
             component.set(11942, False)
-        for instance in create_body_graphs(component, self.record):
+        created = create_body_graphs(component, self.record)
+        mode_graph = graph.snowball_body_graph(self.world.mode, self.world.body_definition)
+        if mode_graph is not None and all(instance.graph.index != mode_graph.index for instance in created):
+            created.append(component.create(mode_graph, init=False))
+        for instance in created:
             instance.init()
             if self.hero == lucio.HERO and self.world.match is not None and instance.graph.index == ULT_GAIN_GRAPH:
                 # init queues ordinary entries. The world clock owns the passive

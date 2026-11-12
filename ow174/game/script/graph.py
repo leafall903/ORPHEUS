@@ -562,6 +562,25 @@ def mode_scripts(mode: int) -> dict | None:
     return _data().get("mode_scripts", {}).get(f"0x{mode:016X}")
 
 
+def snowball_body_graph(mode: int, body: int | None) -> Graph | None:
+    """Read Snowball Deathmatch's Mei body-scoped graph registration."""
+    if mode != 0x0230000000000059 or body != 0x04000000000008BA:
+        return None
+    binding = mode_scripts(mode)
+    if binding is None or guid(binding.get("graph")) != 0x0580000000002250:
+        return None
+    owner = graph(0x2250)
+    node = owner.node(0) if owner is not None else None
+    if node is None or node.cls != "STU_12F037C4":
+        return None
+    for entry in node.field("m_entries") or ():
+        if (entry.get("$") == "STU_4082287A"
+                and guid((entry.get("m_F026D40E") or {}).get("m_entityDef")) == body
+                and guid((entry.get("m_29C4583C") or {}).get("m_graph")) == 0x05800000000022F0):
+            return graph(0x22F0)
+    return None
+
+
 def mission_script(mode: int, map_guid: int) -> dict | None:
     """A map's configured mission script, keyed by both map and supported mode.
 
