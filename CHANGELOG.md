@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Select original Mine closure alongside the integrated Ball passive host
+
+- Select v17 with exactly one missing261E graph and2578 entity from the original
+  Mine pack;151A already matches the base. Keep all previous composed graphs,
+  controller names and inputs, without replacing the provider or copying assets.
+- Original source/addon rows and hashes match; scoped passive factors/owner/gap/
+  retirement, Cannon spread, Mercy, entry and runtime24pass33.215s. Full Minefield
+  host remains workerB43; original three missing-manager checks remain explicit.
+- Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
+  9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+
+
 ### Preserve original body silence state across Hack lifetimes
 
 - Existing Sombra Controls now saves/restores the original body888 base for

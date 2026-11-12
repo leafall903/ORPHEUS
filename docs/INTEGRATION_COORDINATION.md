@@ -818,7 +818,7 @@ that a server/client was started during integration.
 
 ```powershell
 Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
-$profile = Get-Content '../parallel-merge/runtime-inputs-v15/environment.json' -Raw | ConvertFrom-Json
+$profile = Get-Content '../parallel-merge/runtime-inputs-v17/environment.json' -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) {
     [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
 }
@@ -945,3 +945,28 @@ proxy ray1.09 misses the unchanged original head sphere localY1.56701195,
 radius.16, so actual20 follows the source0003 geometry. This is static same-source
 plus actual combined evidence, not an alleged full frozen-source baseline run.
 Do not alter original body/head geometry or numeric assertions to force green.
+
+
+A55 8d225ff0 received4bc9cb7d preserves original read-only Hack queries and14
+existing original status fixtures, without another lock host. A56 1d6df8fc
+received9f2da275 routes actual Heavy graze force through existing BOB mover.
+C38 6adbbabf received62a9a253 restores real Queue start entries and precise
+receiver predicates; C39 50161bd8 receivedf0dbf99d restores original888 base
+lifetime in the same Controls, preserving exact stored state. Root C38 check
+1678 terminal42run40pass2preserved expiry-Q failures9.691s. During lock the
+ordinary fire/movement/reload and interruption/lethal checks pass; at receiver
+expiry the same-frame Q spends0vsoriginal2240. C40 has actual endpoint evidence
+and owns input history/latch consumption, with no extended world timer.
+
+B42 553cf2e2 receivede425fc34 mounts original Ball0B8B gate/factors/own-body
+query and natural cadence, numeric fill separate. Root small-input union uses
+original6778B addon rows, original full pack SHAee12b2d6dfa31a099311427c847d1f8f307c203f6b71d9f1051e1b46b9ff9549.
+Both rows/entity exactly match source;151A already exists, so only261E/2578 add.
+Minimal composed supplement now40graphs17entities,0conflicts. Source inputs
+unchanged. Original passive fixture selector is presence-only and points the
+real selected source pack; it never patches provider. Future actual MineTests
+must use composed provider, not overwrite GRAPHS_PATH with the old full pack.
+Root52988 terminal24pass33.215s with actual passive factors/owner/gap/death,
+spread/Mercy/entry/runtime. Three missing Mine manager checks remain B43 scope.
+All root sessions terminal. Workspace selection promotesv17 without waiting for
+full Mine acceptance; root must still integrate shared000E ControllerVM next.
