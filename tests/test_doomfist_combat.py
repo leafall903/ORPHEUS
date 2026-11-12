@@ -480,9 +480,9 @@ class UppercutDamageTests(DoomfistFixture, unittest.TestCase):
                 self.assertEqual(shields.now[combat.SHIELDS_POOL], current)
                 self.assertEqual(shields.temporary_shields, grant)
                 if grant:
-                    self.assertEqual(shields.temporary_cap, 150)
+                    self.assertEqual(shields.temporary_shield.maximum, 150)
                 else:
-                    self.assertEqual(shields.temporary_decay_at, 0)
+                    self.assertEqual((shields.temporary_shield.decay_from if shields.temporary_shield is not None else 0), 0)
 
     def test_cooldown_rejects_repress_and_expires_before_next_damage(self):
         self.uppercut()
@@ -492,12 +492,12 @@ class UppercutDamageTests(DoomfistFixture, unittest.TestCase):
         owner = next(t for t in self.fight._targets() if t.owner is self.a)
         shields = self.fight.vitals_of(owner)
         self.assertEqual(shields.temporary_shields, 30)
-        first_decay_at = shields.temporary_decay_at
+        first_decay_at = (shields.temporary_shield.decay_from if shields.temporary_shield is not None else 0)
         ability = self.a.body_script.component.instances[6].state(0)
         self.assertGreater(ability.remaining(), 0)
         self.uppercut()
         self.assertEqual(self.vitals().total, 150)
-        self.assertEqual(shields.temporary_decay_at, first_decay_at)
+        self.assertEqual((shields.temporary_shield.decay_from if shields.temporary_shield is not None else 0), first_decay_at)
         self.settle(360)
         before = shields.temporary_shields
         self.assertGreater(before, 0)
@@ -512,7 +512,7 @@ class UppercutDamageTests(DoomfistFixture, unittest.TestCase):
         self.assertEqual(self.vitals().total, 100)
         self.assertEqual(len(self.a.client.messages(combat.HIT)), 2)
         self.assertAlmostEqual(shields.temporary_shields, before + 30 - 3 * combat.TICK)
-        self.assertAlmostEqual(shields.temporary_decay_at, self.fight.now + 1)
+        self.assertAlmostEqual((shields.temporary_shield.decay_from if shields.temporary_shield is not None else 0), self.fight.now + 1)
         refreshed = shields.temporary_shields
         self.settle(62)
         self.assertAlmostEqual(shields.temporary_shields, refreshed)

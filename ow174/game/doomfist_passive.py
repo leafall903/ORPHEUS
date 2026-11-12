@@ -2,7 +2,7 @@
 
 import math
 
-from ow174.game import accretion
+from ow174.game import defenses
 from ow174.game.script import expr, runtime
 from ow174.game.world import SHIELDS_POOL
 
@@ -17,7 +17,7 @@ def player(world):
 
 
 def targets(world, state):
-    from ow174.game.combat import aim, capsule_visible, segment_distance
+    from ow174.game.combat import aim, segment_distance, ray_cover
 
     fight = world.match.combat
     source = player(world)
@@ -31,12 +31,21 @@ def targets(world, state):
     origin = x, y + lift, z
     centre = x + reach * direction[0], y + lift, z + reach * direction[2]
     collision = fight._collision()
+    blockers = defenses.cryo_blockers(fight.match.players, exclude=source)
     result = []
     for target in fight._enemies(source):
         a, b = target.segment()
-        if (segment_distance(centre, a, b) <= radius + target.radius
-                and capsule_visible(collision, origin, a, b, target.radius)):
-            result.append(expr.Entity(target.entity))
+        if segment_distance(centre, a, b) > radius + target.radius:
+            continue
+        x, y, z = target.feet
+        for fraction in (.3, .6):
+            delta = (x - origin[0], y + fraction * target.height - origin[1], z - origin[2])
+            length = math.hypot(*delta)
+            direction = tuple(v / length for v in delta) if length > 1e-6 else (0., 0., 1.)
+            hit = ray_cover(collision, origin, direction, length, blockers)
+            if hit is None or hit >= length:
+                result.append(target.entity)
+                break
     return tuple(result)
 
 
@@ -51,27 +60,20 @@ def hit(world, state):
     amount = expr.to_float(state.evaluate(settings["m_amount"], watch=False))
     if not math.isfinite(amount) or amount <= 0:
         return
-    loadout = expr.guid_of(state.evaluate(settings["m_loadout"], watch=False))
-    tags = tuple(state.evaluate(row["m_EE3055BD"], watch=False) for row in settings["m_148F3152"])
+    loadout = state.evaluate(settings["m_loadout"], watch=False)
+    loadout = loadout.guid if isinstance(loadout, expr.Asset) else expr.guid_of(loadout)
     entities = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
-    selected = {expr.to_entity(value) for value in entities or ()}
+    selected = tuple(dict.fromkeys(expr.to_entity(value) for value in entities or ()))
     component = state.instance.component
-    passive = next((i for i in component.instances.values() if i.graph.index == PASSIVE), None)
-    knockback = accretion.knockback(state, settings)
+    horizontal = expr.to_float(state.evaluate(settings.get("m_E33EFEE1"), watch=False))
+    vertical = expr.to_float(state.evaluate(settings.get("m_583C208B"), watch=False))
     direction = aim(source.mover.yaw, 0)
-    for target in fight._enemies(source):
-        if target.entity not in selected:
-            continue
-        vitals = fight.vitals_of(target)
-        before = vitals.total
-        fight._damage(source, target, amount, False, loadout, component.frame)
-        if vitals.total >= before:
-            continue
-        distance = math.dist(source.mover.position, target.feet)
-        accretion.impulse(fight, target, knockback, direction, distance)
-        if passive is not None:
-            params = {0x3D: tags, 0x13: expr.Entity(source.body), 0x15: expr.Entity(target.entity)}
-            runtime.send_instance_message(passive, 0x0240000000000012, params, source.body)
+    velocity = None
+    if all(math.isfinite(v) and v >= 0 for v in (horizontal, vertical)):
+        dx, _, dz = direction
+        velocity = (dx * horizontal, vertical, dz * horizontal)
+    if selected:
+        component.health_reports.append((selected, amount, loadout, component.now, velocity))
 
 
 def qualified(world, instance, cfg):

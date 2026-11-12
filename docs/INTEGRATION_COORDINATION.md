@@ -113,3 +113,17 @@ seven errors remain in `verification/worker-b-doomfist-meteor-full.log`, includi
 Hand Cannon expectations, old cross-owner API imports and lazy respawn vitals.
 Keep the original expectations and continue their actual consumers. Mounted
 Meteor code remains submitted; focused green checks do not imply a full pass.
+
+A5 `3414016e` is received as `30072e64`; all32 combined D.Va entry immunity,
+projectile retirement, terminal-health, control/input-buffer/runtime checks
+passed with the existing external mech graphs/movers and full projectile tags.
+
+B4 `8759d171` mounts Uppercut target/health/impulse/passive consumers and stored
+health/motion reports. Original numeric assertions remain intact; five test
+accesses are adapted to the combined temporary-shield object rather than the
+source's flattened metadata properties. Both reports are included in VM storage
+and cleared on faults; posed combat consumes them, unposed endpoints discard them.
+Root's74-check combined run passed72. Preserve two original PassiveShield
+differences: absent `Vitals.add_temporary_shields` and temporary-pool transport
+tag0xffffffff versus expected2. Worker B owns the remaining consumer audit;
+neither failure prevents committing this mounted Uppercut batch.

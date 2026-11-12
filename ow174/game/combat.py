@@ -2470,7 +2470,7 @@ class Combat:
         old = shield.amount if shield is not None else 0.0
         current = min(max(0.0, cap - vitals.now.get(SHIELDS_POOL, 0.0)), old + gain)
         if current > old:
-            vitals.temporary_shield = TemporaryShield(current, current, self.now + delay, rate)
+            vitals.temporary_shield = TemporaryShield(current, cap, self.now + delay, rate)
             vitals.changed.add(SHIELDS_POOL)
             self._sync_body_health(player, vitals)
 
@@ -2559,6 +2559,8 @@ class Combat:
         reaper.advance_entry(player)
         self._shadow(player, command)
         shots, script.component.shots[:] = list(script.component.shots), []
+        health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
+        motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
         self.zenyatta.command(player, command)
         interception.update_pools(self, self.tick)
         barriers.advance(self, self.tick)
@@ -2607,6 +2609,22 @@ class Combat:
             self._blossom(player, register=command is not None)
         if command is not None:
             self._advance_protected_phases(script.component)
+            for entities, velocity, _ in motion_reports:
+                for entity in entities:
+                    self._launch(entity, velocity)
+            targets = {target.entity: target for target in self._enemies(player)}
+            for entities, amount, loadout, time, velocity in health_reports:
+                for entity in entities:
+                    target = targets.get(entity)
+                    if target is None:
+                        continue
+                    vitals = self.vitals_of(target)
+                    before = vitals.total
+                    self._damage(player, target, amount, False, loadout, time // script.frame_ms)
+                    if vitals.total < before:
+                        self._doomfist_shields(player, loadout)
+                        if velocity is not None and not vitals.dead:
+                            self._launch(entity, velocity)
             self._cleanse_biotic_block(player, self.vitals.get(player.body))
             moira.transition(player)
             moira.grasp(self, player, command)
@@ -6467,7 +6485,12 @@ class Combat:
             owner.health = vitals.total
         script = getattr(owner, "body_script", None)
         if script is not None:
-            script.set_health(vitals.total, vitals.maximum)
+            maximum = vitals.maximum
+            if getattr(getattr(owner, "hero", None), "guid", None) == doomfist.HERO:
+                # Delivered0DDD has a separate capped temporary pool; its HUD
+                # maximum stays the body's intrinsic declared health.
+                maximum = sum(vitals.most.values())
+            script.set_health(vitals.total, maximum)
 
     def _barrier_hit(self, shooter, origin, direction, length):
         trace = getattr(getattr(self.match, 'scene_host', None), 'trace_barrier', None)

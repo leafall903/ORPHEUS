@@ -17,6 +17,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Doomfist Uppercut consumers
+
+- Mount the retained Uppercut host with the delivered sphere, dual-height/Cryo
+  visibility, authored health effect, survivor launch and passive award. Queue
+  health/motion reports for posed consumption; discard unposed reports and clear
+  them on VM failure. Include both queues in stored component snapshots.
+- Keep the source passive cap in the temporary pool's declared maximum while
+  retaining Doomfist's intrinsic HUD maximum. Fix the old prototype's Asset
+  loadout conversion so admitted Uppercut hits award the original shield stack.
+- Uppercut23/Slam22/Punch21/runtime13:78 of79 checks passed; the one shield-cap
+  metadata failure was fixed and the focused cap/HUD/decay/incoming-damage
+  follow-up passes5 of5. Queued-report enclosing-server getter-free snapshot
+  repeatability and causality pass. All source behavior assertions remain.
+- The preceding full28 Meteor checks completed with4 assertion failures and7
+  errors. Retain that evidence and every check: remaining Hand Cannon scatter,
+  old shared-service field/API observations and lazy respawn-vitals lookup are
+  follow-up work. Uppercut now addresses its missing passive trigger. No whole
+  line/client acceptance claimed, no game client or publication performed.
 
 ### Mount delivered Doomfist Meteor host
 

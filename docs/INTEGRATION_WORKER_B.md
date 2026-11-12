@@ -38,12 +38,26 @@ alone is not evidence that a line's consumers are actually mounted.
   Original Slam expectations remain; four reads of the source persistent
   `temporary_pool_used` field use the canonical retained shield-object presence.
   McCree Roll, numeric modifier and Lucio velocity regressions: all41 pass.
+- Meteor batch `89d4114e` is accepted as canonical `67c2a296`.
 - Meteor's original capsule-boundary range test passes both subcases. Its
   enclosing-server active snapshot passes getter-free repeatability and stored
   confirmation causality after real neutral-input charging. The full28-check
-  original suite is running at this submission boundary; the unmodified
-  behavior assertions remain present, including older shared-service API reads
-  which still need reconciliation if reported by the run.
+  original suite completed in380s: four assertion failures (two are subcases of
+  one released-Hand-Cannon check), seven errors. Preserve the full log at
+  `verification/worker-b-doomfist-meteor-full.log`. Failures expose the remaining
+  eleven-pellet Hand Cannon and the then-unmounted Uppercut passive. Errors
+  include old protected/SOMBRA/ana_sleeps/ANA_SLEEP_EFFECT APIs and a direct
+  lookup before canonical's lazy respawn vitals creation. No check was removed.
+- Uppercut target/damage consumers now mount through the retained passive
+  module using the delivered sphere, lower/upper rays, active Cryo cover,
+  damage, passive shields and survivor launch. Health/motion reports are posed
+  queues, discarded on unposed input or VM fault and included in passive
+  snapshots; no unposed state callback may directly damage or launch a body.
+- Uppercut23+Slam22+Punch21+runtime13 ran79 checks, with78 passing and one
+  cap-metadata assertion then fixed. The focused cap/HUD/decay/incoming damage
+  follow-up passes all5 checks. Queued Uppercut report getter-free enclosing
+  server snapshot repeatability/causality also passes. Source fixture cap/delay
+  reads use the existing canonical shield-object fields; assertions remain.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -55,12 +69,11 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Consume the running Meteor suite result from
-   `verification/worker-b-doomfist-meteor-full.log` (exec session34963).
-   Reconcile original shared-service observations against current APIs without
-   dropping behavior assertions; report known failures rather than hiding them.
-2. Mount source Uppercut target/damage consumers while preserving/reconciling
-   the older unmounted `doomfist_passive.py` consumers.
+1. Mount original eleven-pellet Hand Cannon scatter and its remaining source
+   target/damage consumers. Reconcile Meteor's original shared-service API
+   observations against current APIs without dropping behavior assertions.
+2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
+   Uppercut or Meteor as a complete Doomfist line.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
    actual original source checks. Do not replace shared files wholesale.
 4. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
