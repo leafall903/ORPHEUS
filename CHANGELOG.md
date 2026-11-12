@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Sombra pistol spread and Camo damage timing
+
+- Connect original cone/ramp/seed policy to real pistol shots. Mount original
+  Camo received-damage dating and bounded exit/cooldown replay on the existing
+  owner frame anchor, retaining authored exclusion tags and neutral gap input.
+- Merge original optional message-time arguments into the two existing runtime
+  send functions; default callers retain the component clock and same queue.
+- Original spread9:7pass,2critical/timing differences. Original Sombra combat38:
+  29pass,3fail,6cases with old hack/fixture observer errors; preserve all original
+  expectations. Camo damage, exclusions, movement, cancellation and world-gap
+  cooldown pass. Shared runtime/budget/Damage46 pass2.613s.
+- Sombra application replay, translocator and actual Portal device consumers
+  remain separate pending integration work; this does not declare the line done.
+
 ### Connect original sampled Cryo healing to the existing health service
 
 - Consume original VM cumulative healing and CryoHealing history through one

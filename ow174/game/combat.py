@@ -70,6 +70,8 @@ from ow174.game import (
     hero_torbjorn,
     molten_core,
     mei_blizzard,
+    sombra_camo,
+    sombra_spread,
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
@@ -3112,7 +3114,7 @@ class Combat:
         script = player.body_script
         if script is None:
             return
-        if ((reaper.is_reaper(player) or script.hero == winston.HERO)
+        if ((reaper.is_reaper(player) or script.hero in (winston.HERO, sombra_camo.HERO))
                 and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
@@ -4063,6 +4065,20 @@ class Combat:
             target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed_ms // script.frame_ms - 1)
             if target > script.frame:
                 player._advance_body_gap(target + 1, world_idle=True)
+            return
+        if (script is not None and script.hero == sombra_camo.HERO
+                and script.world_frame_anchor is not None and not script.retired
+                and not script.component.owner_dead and player.spawned and player.has_body):
+            anchor_tick, anchor_frame = script.world_frame_anchor
+            elapsed = max(0, self.tick-anchor_tick) * round(TICK*1000)
+            target = min(projectiles.MAX_LEASE_FRAME-1, anchor_frame+elapsed//script.frame_ms-1)
+            for _ in range(480):  # original bounded accepted-reaction replay budget
+                frame = sombra_camo.next_frame(script)
+                if frame is None or frame > target:
+                    break
+                player._advance_body_gap(frame+1, world_idle=True)
+                if player.body_script is not script:
+                    break
             return
         if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
                 or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
@@ -5550,6 +5566,7 @@ class Combat:
             from ow174.game import mccree
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
+            direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
         if not npc and self.blizzard.fired(shooter, state, shot_frame, origin, direction,
                                           activation=activation, snapshot=snapshot):
             return
@@ -9138,6 +9155,19 @@ class Combat:
         if killed:
             self._retire_source_controls(target.entity)
             self._genji_eliminations(target, shooter, vitals.death_tick)
+        script = getattr(victim, "body_script", None)
+        if (not killed and script is not None and script.hero == sombra_camo.HERO
+                and isinstance(script.component, runtime.Component)):
+            impact = self.tick if world_tick is None else world_tick
+            if script.world_frame_anchor is not None:
+                anchor_tick, anchor_frame = script.world_frame_anchor
+                impact = anchor_frame + (impact-anchor_tick)*round(TICK*1000)//script.frame_ms
+            params = {0x003D: tuple(expr.Asset(tag) for tag in hit_tags)}
+            # Original012E dates Pharah impact messages for the other receivers too.
+            at = (impact * script.frame_ms if world_tick is not None
+                  and loadout in (0x0B9000000000000F, 0x0B9000000000000B) else None)
+            if not sombra_camo.queue_damage(script, params, attacker, impact=impact, default_time=at):
+                runtime.send_message(script.component, sombra_camo.RECEIVED_DAMAGE, params, attacker, at=at)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick, deadeye=deadeye, source=attacker)
