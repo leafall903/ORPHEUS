@@ -47,3 +47,24 @@ and excluded from this goal. This audit does not declare other nonhero source
 variants, game owners or full nonappearance integration complete.
 
 First-person evidence: root-original-first-person-tools-check.log (8run,2pass,2errors,4skips), root-first-person-mover-loader-probe.log (actual extraction/loader passed). These results do not establish whole original first-person acceptance.
+
+
+## Original006E explicit NPC mover extraction CLI
+
+An option-string audit across32 source trees found an additional real omitted
+consumer despite its existing main function name: original006E --base,
+--npc-catalog and --output. Restore that entire original main AST exactly while
+retaining original012F mover_of/first_person_of metadata parsing. These existing
+options keep the prepared base file immutable, load explicit version1 NPC body
+GUIDs, reject missing explicit movers and reject output onto the base.
+
+Actual temporary XML/catalog CLI extraction appends one NPC, retains the base
+record and base bytes, carries2.1/1.75 stance metadata, and loads the same34
+physical values through actual load_mover_bundle. Base overwrite and missing-NPC
+cases both reject without writing the forbidden output. No runtime pack or
+original source dump was changed. Probe/log:
+parallel-merge/root-mover-append-cli-probe.py/.log.
+
+The remaining absent original option by path is0079 extract_map_world.py
+--animation-set, which is appearance extraction and excluded. Option names alone
+do not establish that every tool or nonappearance runtime consumer is complete.

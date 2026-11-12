@@ -41,6 +41,20 @@ class Gravitons:
         self.pulled: set[int] = set()
         self.npc_movers: dict[int, Mover] = {}
 
+    def clock_ticks(self, previous, tick, flights):
+        ticks = {at for field in self.fields
+                 for at in range(max(previous, field.last_tick) + 1, min(tick, field.end_tick) + 1)}
+        if flights:
+            duration = self.duration_ticks()
+            for flight in flights:
+                ticks.update(range(flight[0] + 1, min(tick, flight[-1] + duration) + 1))
+        return ticks
+
+    @staticmethod
+    def duration_ticks():
+        duration = float(graph.graph(0x0260).node(4).field("m_value.m_value"))
+        return math.ceil(duration / 0.016)
+
     def landed(self, rocket, point, tick_seconds):
         definition = graph.graph(0x0260)
         if definition is None or getattr(rocket.shooter, 'gone', False) or self.fight.match.ended:
@@ -55,7 +69,8 @@ class Gravitons:
         from ow174.game.combat import capsule_visible, segment_distance
 
         owner = target.owner
-        if (owner is field.shooter or target.entity == field.source_body
+        if (self.fight.replacement_ticks.get(target.entity, 0) > self.fight.tick
+                or owner is field.shooter or target.entity == field.source_body
                 or getattr(owner, 'gone', False)
                 or self.fight.vitals_of(target).dead
                 or (not self.fight.match.game_map.free_for_all and target.team == field.team)
@@ -154,7 +169,11 @@ class Gravitons:
         if entity not in self.pulled:
             return
         self.pulled.remove(entity)
-        mover = (owner.control_mover or self.npc_movers.pop(entity, None)) if npc else owner.mover
+        if npc:
+            previous = self.npc_movers.pop(entity, None)
+            mover = owner.control_mover or owner.impulse_mover or previous
+        else:
+            mover = owner.mover
         if mover is not None:
             vertical = mover.velocity[1] if sigma_flux.has_effect(owner) else 0.0
             mover.velocity = (0.0, vertical, 0.0)
@@ -166,11 +185,12 @@ class Gravitons:
         owner = target.owner
         npc = isinstance(owner, bots.Bot)
         if npc:
-            mover = (owner.impulse_mover if sigma_flux.has_effect(owner) else None)
-            mover = mover or owner.control_mover or self.npc_movers.get(owner.entity)
+            mover = owner.control_mover or owner.impulse_mover or self.npc_movers.get(owner.entity)
             if mover is None:
-                mover = Mover(owner.position, int(owner.yaw), self.fight._collision(), mover_data(owner.body))
-                self.npc_movers[owner.entity] = mover
+                mover = Mover(owner.position, int(owner.yaw), self.fight._collision(),
+                              owner.movement_data or mover_data(owner.body))
+                owner.impulse_mover = mover
+            self.npc_movers[owner.entity] = mover  # one alias to the existing movement owner
             if owner.control_mover is None:
                 mover.position[:] = owner.position
         else:

@@ -38,6 +38,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   numbers. Full31 checks had only four stale motion-observer mappings, corrected
   against the selected ledger in a focused pass. No client acceptance run.
 
+### Restore shared original Sentry geometry queries
+
+- Restore original cover/target/barrier/splash prediction entry points over the
+  existing solid walls and current shield geometry, preserving actual actor and
+  service identities without advancing hosts or spending health.
+- Actual Mei/predicted-pose and raised Reinhardt stored-state checks pass;
+  remaining native shield input fixtures are explicitly pending, and do not
+  prevent submitting these existing-source consumers. No new runtime pool.
+
+
+### Restore explicit NPC mover export options
+
+- Restore original006E --base/--npc-catalog/--output on the existing mover export
+  tool, retaining stance metadata and the original34 physical fields.
+- Actual extraction/loader checks preserve base records and bytes, reject base
+  overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+
 ### Apply WholeHog world motion to the actual controlled mech
 
 - Reuse the owned0407 control mover for external displacement while pilot input
@@ -80,6 +97,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Record the joint26 failures and passing original2 IceSentry checks explicitly;
   workers continue actual owner/fixture reconciliation. Full integration remains
   in progress, with appearance migration excluded.
+### Restore ordinary NPC WholeHog motion on existing movers
+
+- Original selected world motion reuses each NPC's same registered mover and
+  explicit movement data, with one base/external step per tick and owned cleanup.
+- Five real bodies, explicit data, same-tick and actual coupled server storage
+  plus player/runtime17/17 pass. Keep standalone foreign-context export closed;
+  owned-mech epoch and cross-controller handoffs remain next. No client run.
+
 ### Restore original player WholeHog world damping
 
 - The sole Knockbacks host now applies original selected external motion through
@@ -132,6 +157,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Admit natural allied support in frozen sentry history
+
+- The existing bounded proof now admits natural/cancelled allied Ice Wall support
+  using the same NPC/combat driver. Unit acquisition and historical proof share
+  the same actual unit filter; a solid column is not another beam enemy.
+- Original22 shared methods pass. Original source NPC support checks progress
+  through explicit delivered mover data; old dedicated-rocket observer errors
+  and the pending final selected check are recorded without weakening assertions.
+- Impact/projected-retarget adapters remain an explicit following batch.
+
 ### Exercise Ice Wall causal storage through its real owner
 
 - Existing causal storage check now selects Mei and casts five original pillars
@@ -10947,3 +10982,87 @@ Next exact action: original0068 flight/field clock_ticks and charge policy mappe
 onto the existing Rocket/Combat/Gravitons services, keeping original193 assertions.
 Remaining0068 scope remains low-confidence5-10active hours, no whole-suite/client/
 network/publication step and no new acceptance matrix.
+
+## A82 — Graviton NPC single-mover ownership, explicit data and release
+
+Clean d9400d30 absorbed root8777b206. Existing Graviton NPC movement now chooses
+existing control_mover/impulse_mover before the current map reference. Creation
+uses original optional Bot.movement_data before the canonical table default;
+no new input/field/API. Newly necessary mover is registered immediately in the
+existing owner.impulse_mover slot; Graviton.npc_movers only aliases that same object.
+A real Flux overlap exposed why this is required: later same-world-tick Flux would
+otherwise create a second mover because its existing owner slot was stillNone.
+Root and B61 explicitly confirmed the same-slot protocol; B WholeHog withdraws
+its motion channel when this actual Graviton pulled set takes priority.
+
+Release pops the Graviton alias first, selects that same existing mover (including
+Flux impulse owner), clears horizontal velocity, and preserves real Flux vertical
+velocity/ownership. No new mover is made for release, no alternate metadata or
+force driver installed. Existing category/collision/body/VM identity remains.
+
+Actual prepared five NPC catalog roles each exercise create/reuse against a real
+cast field (10cases), retaining exact original prepared mover values supplied as
+a distinct explicit data object. Same object survives subsequent pulls and real
+team-change release clears motion/map; no fake Bot/observer/pool. Actual Sigma
+input applies1DBC to real Trooper, actual Zarya field pulls the same NPC, and
+release keeps its same impulse mover, positive Flux vertical velocity and live
+recipient; bothmethods11cases pass8.285s. Player Flux+Fortify shared joint5/5pass
+17.921s, worker-a-zarya-npc-flux-fortify-shared.log. First fixture attempts correctly
+exposed a cold mover table and hero-switch pose reset; explicit table loading and
+retaining real actor pose fixed the fixture. Initial actual double-mover identity
+failure is preserved in worker-a-zarya-npc-flux-release-first.log; its assertion
+was kept and the real ownership gap fixed. No original numeric/assert changes.
+
+Next exact action: source0068 flight admission/analytic gravity and original
+world flight/Graviton clock_ticks. Inspection now identifies both remaining
+projectile discrepancies: generic flight admits source grenade withlast_tickNone
+and integrates all sparse collisions at endpoint; current gravity path also uses
+semi-implicit velocity whereas original0068 grenade/Graviton uses the analytic
+half-gravity chord. Restore only original owned flight families on the existing
+Rocket service and keep193 impact assertions, then world charge/frozen offense/
+remaining mobility consumers. No network/client/service/publication/full matrix.
+
+## A83 — original flight/field world replay and first-body birth admission
+
+Restored original0068 world-flight admission to Match.tick for ParticleGrenade
+03DB and Graviton03E2 on the existing Rocket. Their live flight ticks and original
+Gravitons.clock_ticks/duration_ticks join the existing replay loop; reserved
+followups with no live flight/field are skipped. Actual field damage/pull/death
+now interleave before retained frames, not all at a late scheduler endpoint.
+Other projectile families retain their own trajectory and admission policies.
+Actual initial probe showed missing0241/025F m_projectileMotions consumption:
+flat flight had no velocity/gravity. Both use original resource gravity9.8 and
+analytic half-gravity chord in the existing flight service (not a second solver).
+
+Original late-player field methods exposed a separate shared omission:
+Match.switch_hero recorded replacement only for an old body. Original0068 records
+initial bodies too. That existing single call now runs after the optionalnew_body
+branch, once for the actual current body; current ID allocation/VM/hero lifecycle
+are unchanged. Original birth guard uses this same existing replacement_ticks
+record. Root approved and requested lifecycle checks. Initial late-player backdated
+damage12.8/20 vs6.48/.88/.08/0 is fixed; all original numbers remain.
+
+Original first-step vertical acceleration and full4s upward trajectory pass.
+Original late-body4cases and paced/sparse pull/death whole method pass6.188s.
+Combined these with original controller9, replacement/rewind and command handoff
+lifecycle, actualNPC mover/release2 and Flux overlap =21/21pass28.214s.
+Log worker-a-zarya-worldclock-birth-lifecycle-joint.log. No acceptance matrix,
+client/service/network/publication or input-package changes.
+
+Original projectile-recovery193 assertion remains failed at1244 vs1245. The real
+sparse consumer failure is fixed: sparse now also1244, rather than old1262. Exact
+bounded diagnostic from real emitted Rocket/target geometry: g9.8000001907,
+extent0.20000000298, targetradius.5; same analytic launch yields contact1244 with
+current authored extent and1245 with original0068 default sphere_radius0. The
+latter exactly equals damaged1052+193. Root explicitly requested preserving the
+current authored width and original failed assertion; no hidden radius override,
+new geometry mode or rewritten expected number. Evidence
+worker-a-zarya-projectile-point-extent-boundary-final.log. Initial incorrect pure
+probe of None velocity remains recorded, corrected after actual motion was mounted.
+
+Next exact action: original0068 world passive/cast/flight/field charge lock and
+field offense snapshot on existing charge/Rocket/Gravitons hosts; consume root's
+new shared cover_ray once available for original field LOS, and reconcile source
+mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
+193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
+vs native60 assertions remain visible and do not block real code integration.

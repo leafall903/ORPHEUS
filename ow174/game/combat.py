@@ -267,6 +267,10 @@ BEAM_STATES = {
     0x02E0000000000016: (0x157C, 100, 86),  # Symmetra
     0x02E0000000000068: (0x0241, 81, 10),  # Zarya
 }
+def _zarya_world_timed_flight(definition, spawn):
+    return definition == 0x04000000000003DB or spawn == graviton.FIELD_ENTITY
+
+
 SOLDIER_WEAPON_LOADOUT = 0x0B9000000000008E
 HELIX_BARRIER_PROJECTILES = frozenset((0x040000000000072C, 0x0400000000001C86))  # 0254 pos38
 
@@ -4511,15 +4515,15 @@ class Combat:
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
             return ()
         if (self.respawns or self.photon_barriers.actors or self.barriers.world.actors
-                or self.blizzard.areas or self.walls.pieces
+                or self.blizzard.areas
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Ice-support/projected-impact proofs remain in the delivered owner
-        # module; admit them only after their original service consumers map.
-        return self.sentries.frozen_history_candidates(tick)
+        # Natural/cancelled allied support uses this same real world loop.
+        # Impact/projected retarget proofs await their actual service adapters.
+        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -4656,8 +4660,24 @@ class Combat:
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
                          sombra_replay.application_replay_until(self, self.tick))
         early_end = min(first, replay_end + 1)
-        for at in sorted(set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
-                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick)):
+        normal_ticks = (set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
+                        | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
+        scheduled_flights = [
+            (rocket, range(max(self.tick, rocket.last_tick) + 1,
+                           min(tick, rocket.last_tick + math.ceil(rocket.left / TICK)) + 1))
+            for rocket in self.rockets if rocket.last_tick is not None
+            and _zarya_world_timed_flight(rocket.definition, rocket.spawn)
+        ]
+        flight_ticks = {at for _, flight in scheduled_flights for at in flight}
+        graviton_flights = [flight for rocket, flight in scheduled_flights
+                           if flight and rocket.spawn == graviton.FIELD_ENTITY]
+        field_ticks = self.zarya_gravitons.clock_ticks(self.tick, tick, graviton_flights)
+        for at in sorted(normal_ticks | flight_ticks | field_ticks):
+            if at not in normal_ticks and not (
+                any(rocket in self.rockets and at in flight for rocket, flight in scheduled_flights)
+                or any(field.last_tick < at <= field.end_tick for field in self.zarya_gravitons.fields)
+            ):
+                continue
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
@@ -6303,6 +6323,11 @@ class Combat:
                               for motion in node.field("m_projectileMotions") or ()
                               if motion.get("$") == "STU_E1A5B579"
                               and not expr.truthy(state.evaluate(motion.get("m_D0C4CF49"), watch=False)))
+            if (not npc and getattr(shooter.hero, "guid", None) == 0x02E0000000000068
+                    and state.instance.graph.index in (0x0241, 0x025F)):
+                gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                              for motion in node.field("m_projectileMotions") or ()
+                              if motion.get("$") == "STU_E1A5B579")
             if field_canister:
                 gravity = projectiles.unconditional_gravity(state)
             if flashbang_gravity is not None:
@@ -6504,6 +6529,9 @@ class Combat:
                       and state.instance.graph.index == 0x0164
                       and command is not None and command.frame == self.tick):
                     projectile_tick = self.tick
+                if not npc and _zarya_world_timed_flight(definition, spawn):
+                    # Original0068 anchors actual world admission, never bare command time.
+                    projectile_tick = self.match.tick
                 for pellet, launch in enumerate(directions):
                     pellet_shot = (self.projectiles.fired(
                         shooter, state, shot_frame, definition, lifetime, origin, launch,
@@ -7361,7 +7389,8 @@ class Combat:
             hanzo_arrow = (rocket.source_graph == 0x00B9
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
             if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
-                    or hanzo_arrow or rocket.terrain_bounce is not None or rocket.mine is not None):
+                    or hanzo_arrow or _zarya_world_timed_flight(rocket.definition, rocket.spawn)
+                    or rocket.terrain_bounce is not None or rocket.mine is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -8855,6 +8884,26 @@ class Combat:
     def _barrier_hit(self, shooter, origin, direction, length):
         trace = getattr(getattr(self.match, 'scene_host', None), 'trace_barrier', None)
         return trace(shooter, origin, direction, length) if trace is not None else None
+
+    def cover_ray(self, origin, direction, reach, *, exclude=None):
+        from ow174.game.prediction_geometry import cover_ray
+        return cover_ray(self, origin, direction, reach, exclude=exclude)
+
+    def visible_target(self, origin, target):
+        from ow174.game.prediction_geometry import visible_target
+        return visible_target(self, origin, target)
+
+    def trace_barrier(self, shooter, origin, direction, limit):
+        from ow174.game.prediction_geometry import trace_barrier
+        return trace_barrier(self, shooter, origin, direction, limit)
+
+    def _splash_targets(self, rocket, point, visible_from, *, targets=None):
+        from ow174.game.prediction_geometry import splash_targets
+        return splash_targets(self, rocket, point, visible_from, targets=targets)
+
+    def _splash_barriers(self, rocket, point, visible_from, impact):
+        from ow174.game.prediction_geometry import splash_barriers
+        return splash_barriers(self, rocket, point, visible_from, impact)
 
     def ray_obstruction(self, origin, direction, length):
         terrain = ray_world(self._collision(), origin, direction, length)
