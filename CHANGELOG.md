@@ -32,6 +32,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+### Mount delivered Fire Strike contacts on the existing Brigitte shield
+
+- Expose all contacts from the existing shield-face query and let its original
+  nearest-ray interface delegate to the same geometry. Preserve default team
+  behavior and permit captured projectile affiliation explicitly.
+- Fire Strike uses those actual owner shields, original replacement/phase
+  ledger, same pool damage and existing Supercharger scale. Bodies behind the
+  shield still receive their own single penetrating hit; no extra shield host.
+- Original shield/body/downstream and hammer/replacement3 checks pass. Actual
+  owner team-change probe preserves captured-team shield250->150/body105 and
+  downstream100. Full65 retains7subfail6old cache errors1skip: flank bash one
+  tick48vs47, existing Helix pool/spill and Rein whip contacts remain open.
+- Preserve all original numerical assertions; client acceptance remains open.
+
 ### Restore the existing Brigitte shield health binding
 
 - Evaluate the exact non-strict0195/0EE3 dynamicPet13214 current-health query

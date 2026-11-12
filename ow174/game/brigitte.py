@@ -289,16 +289,18 @@ class BrigitteCombat:
                     self._sync_barrier(barrier)
             barrier.last = max(barrier.last, now)
 
-    def barrier_ray(self, shooter, origin, direction, length, *, radius=0.0, ignore_body=None):
-        """First enemy front face in a reconstructed2x2.2m shield rectangle.
+    def barrier_ray(self, shooter, origin, direction, length, *, radius=0.0, ignore_body=None, team=None):
+        """First contact with the existing reconstructed held shield faces."""
+        hits = self.barrier_contacts(shooter, origin, direction, length, radius=radius,
+                                     ignore_body=ignore_body, team=team)
+        hit = min(hits, key=lambda hit: hit[0], default=None)
+        return None if hit is None else (hit[0], hit[2])
 
-        The pet position is resource-backed: owner+(0,1,0)+forward*0.5.
-        Exact native animated shape, historical pose and edge policy remain open.
-        """
+    def barrier_contacts(self, shooter, origin, direction, length, *, radius=0.0, ignore_body=None, team=None):
+        """Original face geometry, including explicit captured affiliation."""
         from ow174.game.combat import _along, _dot, _sub
 
-        best = None
-        for barrier, centre, normal, right, up in self._barrier_faces(shooter):
+        for barrier, centre, normal, right, up in self._barrier_faces(shooter, team=team):
             if barrier.instance.component.entity == ignore_body:
                 continue
             denominator = _dot(direction, normal)
@@ -311,19 +313,19 @@ class BrigitteCombat:
             if distance < -1e-6 or distance > length + 1e-9:
                 continue
             distance = min(length, max(0.0, distance))
-            if best is not None and distance >= best[0]:
-                continue
             offset = _sub(_along(origin, direction, distance), centre)
             if abs(_dot(offset, right)) <= 1 + radius and abs(_dot(offset, up)) <= 1.1 + radius:
-                best = distance, barrier
-        return best
+                owner = next(player for player in self.combat.match.players
+                             if player.body == barrier.instance.component.entity)
+                yield distance, owner, barrier
 
-    def _barrier_faces(self, shooter):
+    def _barrier_faces(self, shooter, *, team=None):
         from ow174.game.combat import _along, aim
 
+        team = shooter.team if team is None else team
         for player in self.combat.match.players:
             if (player is shooter or (not self.combat.match.game_map.free_for_all
-                                      and player.team == shooter.team)):
+                                      and player.team == team)):
                 continue
             barrier = self.barriers.get(player.body)
             if barrier is None or not self._barrier_active(player, barrier):
