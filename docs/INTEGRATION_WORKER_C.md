@@ -2888,3 +2888,48 @@ must preserve actual cover-end time. C66 will attach those consumers to the same
 source helpers/current world_bubbles, without a duplicate timer/ID pool. The full
 original source respawn fixture still remains to be imported/adapted as a separate
 verification tail;31 passing checks are not a claim of whole-source acceptance.
+
+
+## C66 — original omitted-flight and active-sphere respawn consumers
+
+Completed the two concrete C65 implementation remainders on the same retained
+loop and respawn list. An actual _fly death before first retained tick records the
+original early_projectile_respawns body set, adds that actual recipient to the
+local retained owners, and triggers the original prewindow replacement before
+retained attacks. The original set persists across later update calls and is
+cleared on same body retirement; integration also clears it when the actual Mercy
+resurrection cancels that body's pending respawn. Added exactly this original
+primitive set to strict Combat snapshot schema, not a second queue/ID allocator.
+
+Native Winston world_bubbles remains the only sphere host. A pending owner whose
+actual bubble is still within its observed timer selects retained updates. The
+replacement helper admits that owner only at the retained combat edge, not in the
+Sentry prewindow set. It retains the same actual FixedBubble identity and records
+min(actual timer expiry, replacement time+TICK). The existing cover observer skips
+an identity already explicitly ended by that source branch, preventing a later
+endpoint observation from extending its cover. No duplicate dome/timer/geometry.
+
+New production-path evidence: actual charged Symmetra orb kills an actual player
+inside omitted flight ticks; a single800-tick gap and a split100+700-tick gap both
+replace the actual body at death+mode respawn deadline before the retained window,
+retire the old VM and clear the original early-death set. Actual native Winston
+cast/700HP sphere, owner death, retained body replacement keeps source identity
+and ends cover exactly one tick after replacement. Raw whole-server export sees
+the set's nonempty state alter the causal digest and clearing restore it. Strict
+unknown-field/callback rejection still passes without widening schema checks.
+
+Initial focused6/6pass18.536s, ../worker-c-c66-projectile-sphere-check.log.
+Final6 (including both single/split actual orb subcases) + original DeathTests,
+DamageTests, SwitchTests and rawServer unknown-fields =35/35pass25.528s,
+../worker-c-c66-respawn-shared-check.log. No live handles remain. No original
+source expected value or assertion changed; new tests observe actual current
+hosts. The complete old source respawn fixture has not been claimed accepted.
+
+Current implementation handoff: root orb/NPC route92626c86 plus C65/C66 now map
+the concrete original0016 route/retained-respawn consumers identified by C63/C64.
+No further still-unmounted original producer has been established for C-owned
+0006/0008/0015/0016/00DD/012E. Existing preserved old absolute assertions, source
+private observation names and client verification tails remain documented and
+are not new host work. Continue only against a concrete demonstrated original
+producer/consumer, not repeated acceptance-matrix expansion. Original refs and
+prepared input bytes remain immutable; no client/network/publication action.

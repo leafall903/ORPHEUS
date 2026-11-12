@@ -33,6 +33,15 @@ A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
 
+## C66 — omitted projectile and active sphere retained respawns
+
+Restored original0016 early projectile-death tracking across update calls on the
+same respawn queue, with exact strict snapshot field and retirement/resurrection
+cleanup. Native Winston sphere owner replacement retains the actual bubble and
+source next-tick cover-end boundary. No second scheduler, pool or allocator.
+35 actual/shared tests pass25.528s, including single/split real orb deaths, native
+sphere owner respawn and whole-server causal/unknown-field checks. Old source
+assertions retained; no client/network action.
 
 ## C65 — retained Sentry owner respawn and historical body allocation
 
