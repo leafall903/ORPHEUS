@@ -1,5 +1,13 @@
 # Changelog
 
+## C71 — owned-mech quick melee keeps the original polymorphic hero guard
+
+Reused _melee existing actual hero identity for Mei size scaling, avoiding a real
+BotScript.hero AttributeError during owned-DVa melee. No BotScript alias or damage
+change. Original mech30/booster10 +MeiScale2+Damage8 =11/11pass8.715s on v19.
+Persisted six frozen original-line consumer receipts and the finite generic-force/
+controller-query SDK handoffs. No client/network/publication action.
+
 ## C70 — original mode-scoped Mei melee projectile absorption
 
 Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
