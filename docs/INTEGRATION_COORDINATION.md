@@ -456,3 +456,18 @@ Latest joint verification session52507 is now terminal: all97 original/shared
 checks passed in55.126s (parallel-merge/latest-joint-check.log). Canonical
 fast-forwarded tob3ca1ee2 after verification, including B25. No live root tests
 remain; all three workers continue their committed-boundary deliveries.
+
+
+C26 source152ea32d is received ase8adaf8a: real original PortalPair actors,
+confirm/factory/interact/cleanup and scoped original cancellation. Frozen root
+Shatter/Charge/passive/transit joint70 passed in83.076s, session44100 terminal
+(log ../parallel-merge/shatter-portal-joint-check.log). Original cross-owner
+portal observations/failures remain in C's record; no assertions weakened.
+A33 source9f959910 is received as15b5ac3b: original0065 projectile metadata,
+launch clock, gravity, cumulative range/fuse and terrain response on the shared
+Rocket host. Worker original physics/shared35 checks passed without skips.
+A estimates remaining0065 at4–8 active hours (low confidence), then continues
+its source boundary audit. Root has no live tests. A continues Mine/Trap/Tire,
+B original barrier/FireStrike and other seven-owner consumers, C original Mei.
+All three continue independently with committed durable records. Whole merge
+remains incomplete; overall remaining estimate2–5 continuous days unchanged.
