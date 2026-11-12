@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore Sigma source charging policy
+
+- Normal Sigma uses its original392s passive cycle. Its three authored hosted
+  damage loadouts credit effective base-pool damage on the existing charge path,
+  excluding temporary losses and duplicate generic credit.
+- Full original economy10 checks run8pass2 retained failures; shared21 pass.
+  Respawn charge retention and Field geometry remain next; no client run.
+
 ### Verify actual bounced Hypersphere storage
 
 - Raw HeroPick/input/wall contact proves same-body VM identity, separate epochs,
