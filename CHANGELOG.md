@@ -6,6 +6,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Uprising shows its defend and escort phases
+
+- An Uprising match now puts the phase's director graph on the game mode entity: `0D4A` once the
+  heroes are assembled, with the mode entity's `#1303` counting 240 s down once a second, then
+  `0D4B` under the next instance index when the clock reaches zero. The client draws "DEFEND THE
+  PAYLOAD" with the time remaining, then "ESCORT THE PAYLOAD" with its progress bar.
+- This is a presentation driven by hand, not the mission: the directors' server states do not
+  run. No waves spawn, there is no payload, the escort bar stays empty and the mission does not
+  end. `docs/research/uprising-mission.md` records what is decoded and what is not.
+- Other modes are unchanged: the director is sent only under Uprising's mode script `0D28`, and
+  only when the pack holds both directors.
+- Added runtime tests: the frames with and without a director, the escort director's new index,
+  other modes and a pack without the directors, the clock waiting for the hero select, and the
+  escort frame going once.
+- Evidence gap: no retail capture of these frames exists. The graphs and the layout come from
+  the client's data and from what the original client drew.
+- Original-client check, one player, Uprising (All Heroes) on Normal. The hero select opened,
+  then the HUD read "DEFEND THE PAYLOAD" with "3:51 REMAINING", later "5.0" and "0.9", then
+  "ESCORT THE PAYLOAD" with an empty bar. The check needed a start point added by hand to a
+  scratch copy of the map data: the stock data gives King's Row (Uprising) no spawn point, so the
+  server cannot host the map as extracted. Not checked: two players, a join during escort, and
+  the Story mode.
+
 #### A player's hitscan shotgun fires every pellet
 
 - D.Va's Fusion Cannons hit with one pellet a shot, and 12 s of held fire did not kill a Training
