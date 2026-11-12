@@ -1,5 +1,14 @@
 # Changelog
 
+## C75 — reconcile32 frozen source deliveries and preserved checkpoints
+
+Read-only canonical26994683 provenance audit:32 original repositories clean,
+22 owner signing IDs/SHA matches with no overlap,10 already-ancestor originals.
+Both source HEAD deviations exactly preserved:0068 docs-only descendant and012F
+explicitly reconciled sibling. Added full34 source commit records and machine-
+readable evidence for later source-history recording after real consumer closure.
+A107/B99 remain OPEN; no ancestry merge, runtime edit or completion claim.
+
 ## C74 — specials-only manual Sniper retains the original primary retreat
 
 Actual public specials-only spawn +manual start reproduced zero retreat despite

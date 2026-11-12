@@ -3345,3 +3345,25 @@ primary/automatic ownership guards. The original25 manual input tests pass.
 No source assertion/number changed; no old observer alias. This resolves the
 concrete C73 configuration boundary; no unverified-input caveat remains for it.
 No active checks remain. B99 force and A106 tools were untouched.
+
+
+## C75 — finite32-source/owner/checkpoint provenance receipt
+
+Parent requested read-only final submission-source reconciliation while A107 and
+B99 remain OPEN. New INTEGRATION_SOURCE_PROVENANCE.md/.json snapshot canonical
+26994683ea8e88c87e16439f22a83faabc19cd88. All32 original source repositories are
+clean; only0068/012F HEAD differ from frozen and both exactly match preserved
+source-checkpoints.22 owned IDs have no overlap and every A105/B96/C71 signed SHA
+matches its frozen ref; A/C16 use fullSHAs, B6 use unique8-character prefixes
+expanded exactly in JSON. Other10 IDs match the already-ancestor partition.
+
+0068 checkpoint104b8057 is a descendant with only changelog/roadmap documentation;
+012F checkpointb6d0581c is a sibling, not an updated descendant. Both source
+implementations are covered by B82–85/B96 consumer signing, preserving richer
+frozen behavior and stronger current services rather than overwriting by HEAD.
+The record includes32 full delivery SHAs plus2 full checkpoint SHAs,34 unique
+source-parent records for root AFTER concrete consumer closure;24 currently
+nonancestors. This batch does not alter refs/history/runtime or execute any
+ancestry merge, and does not count graph reachability as implementation proof.
+JSON count/uniqueness/clean/checkpoint/receipt invariants verified locally.
+No gameplay test matrix needed for this documentation-only audit; no live handles.
