@@ -106,17 +106,30 @@ def _descriptor(value):
 
 class _StaticReferences:
     def __init__(self, world):
-        _stored(world, collision.World, WORLD_FIELDS)
         engine = world.engine
-        _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
-        if type(engine.shapes) is not list:
-            raise PhysicsSnapshotError("unsupported static shape sequence")
+        if type(world) is collision.LayeredWorld:
+            fields = _stored(world, collision.LayeredWorld, ("base", "moving", "engine", "lowest"))
+            engines = _stored(engine, collision.LayeredEngine, ("base", "moving"))
+            for name in ("base", "moving"):
+                layer = _stored(fields[name], collision.World, WORLD_FIELDS)
+                if layer["engine"] is not engines[name]:
+                    raise PhysicsSnapshotError("inconsistent layered engine reference")
+                _stored(engines[name], contacts.StaticWorld, ("shapes", "huge", "grid"))
+                if type(engines[name].shapes) is not list:
+                    raise PhysicsSnapshotError("unsupported collision layer shape sequence")
+            shapes = engines["base"].shapes + engines["moving"].shapes
+        else:
+            _stored(world, collision.World, WORLD_FIELDS)
+            _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
+            shapes = engine.shapes
+            if type(shapes) is not list:
+                raise PhysicsSnapshotError("unsupported static shape sequence")
         self.world, self.engine = world, engine
         self.refs = {id(world): (world, {"static": "world"}),
                      id(engine): (engine, {"static": "engine"})}
         self.geometry = {}
         shape_count = 0
-        for shape in engine.shapes:
+        for shape in shapes:
             if id(shape) in self.refs:
                 if self.refs[id(shape)][0] is not shape:
                     raise PhysicsSnapshotError("ambiguous static identity")
