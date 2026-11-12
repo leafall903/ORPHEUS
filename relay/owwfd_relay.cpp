@@ -34,17 +34,49 @@ static const u16 RELAY_PORT=21119;            // always pipe the stripped plaint
 static u64 g_base=0,g_imgHi=0; static FILE* g_log=nullptr; static CRITICAL_SECTION g_cs, g_mapCs;
 static u64 g_bsVA=0, g_sockVtOrig=0; static u64* g_sockVtHeap=nullptr; static u64* g_bsVtHeap=nullptr;
 static volatile LONG g_swaps=0,g_send=0,g_recv=0,g_stateCalls=0,g_wsaInit=0,g_relayErr=0;
+static volatile ULONGLONG g_lastSwapTick=0;
 
 // client-sock -> relay TCP socket (routed to the byte-stream's OWN target port)
 struct Relay{ u64 cs; u16 port; SOCKET s; };
 static Relay g_relays[64]; static int g_nRelays=0;
 
 static void L(const char* f,...){char b[1600];va_list a;va_start(a,f);_vsnprintf(b,sizeof b-1,f,a);va_end(a);b[sizeof b-1]=0;EnterCriticalSection(&g_cs);if(g_log){fprintf(g_log,"[wfd] %s\n",b);fflush(g_log);}OutputDebugStringA("[wfd] ");OutputDebugStringA(b);OutputDebugStringA("\n");LeaveCriticalSection(&g_cs);}
-static u64 rd64(void* a,u64 dv=0){u64 r;__try{r=*(volatile u64*)a;}__except(EXCEPTION_EXECUTE_HANDLER){return dv;}return r;}
-static u32 rd32(void* a,u32 dv=0){u32 r;__try{r=*(volatile u32*)a;}__except(EXCEPTION_EXECUTE_HANDLER){return dv;}return r;}
+static inline bool safe_read(void* addr, void* out, size_t size) {
+    SIZE_T n = 0;
+    return ReadProcessMemory(GetCurrentProcess(), addr, out, size, &n) && (n == size);
+}
+static inline bool safe_write(void* addr, const void* in, size_t size) {
+    SIZE_T n = 0;
+    return WriteProcessMemory(GetCurrentProcess(), addr, in, size, &n) && (n == size);
+}
+static u64 rd64(void* a, u64 dv = 0) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    u64 r; __try { r = *(volatile u64*)a; } __except (EXCEPTION_EXECUTE_HANDLER) { return dv; } return r;
+#else
+    u64 r; if (!safe_read(a, &r, sizeof r)) return dv; return r;
+#endif
+}
+static u32 rd32(void* a, u32 dv = 0) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    u32 r; __try { r = *(volatile u32*)a; } __except (EXCEPTION_EXECUTE_HANDLER) { return dv; } return r;
+#else
+    u32 r; if (!safe_read(a, &r, sizeof r)) return dv; return r;
+#endif
+}
 static inline bool inImage(u64 p){return g_base<=p&&p<g_imgHi;}
-static inline bool inHeap(u64 p){return p>=0x0000010000000000ULL&&p<0x00007FF000000000ULL&&(p&7)==0;}
-static void hexlog(const char* tag,const u8* p,u64 n){ if(n>48)n=48; char h[200]; u64 m=0; for(u64 i=0;i<n;i++){int r=snprintf(h+m,sizeof h-m,"%02X ",p[i]); if(r<=0||m>sizeof h-4)break; m+=r;} L("  %s[%llu]: %s",tag,(unsigned long long)n,h); }
+static inline bool inHeap(u64 p){return p>=0x0000000000010000ULL&&p<0x00007FF000000000ULL&&(p&7)==0;}
+static void hexlog(const char* tag, const u8* p, u64 n) {
+    if (n > 48) n = 48;
+    u8 local_buf[48];
+    if (!safe_read((void*)p, local_buf, (size_t)n)) return;
+    char h[200]; u64 m = 0;
+    for (u64 i = 0; i < n; i++) {
+        int r = snprintf(h + m, sizeof h - m, "%02X ", local_buf[i]);
+        if (r <= 0 || m > sizeof h - 4) break;
+        m += r;
+    }
+    L("  %s[%llu]: %s", tag, (unsigned long long)n, h);
+}
 
 typedef int(*SockFn)(void* self, void* buf, u64 len, u64* out);
 
@@ -127,38 +159,86 @@ static void ensureVts(u64 svt){
 
 static void scan(){
     SYSTEM_INFO si;GetSystemInfo(&si);u64 a=(u64)si.lpMinimumApplicationAddress,mx=(u64)si.lpMaximumApplicationAddress;MEMORY_BASIC_INFORMATION m;
+    alignas(u64) static u8 page_buf[65536];
+    static bool g_fault_logged = false;
     while(a<mx&&VirtualQuery((void*)a,&m,sizeof m)){
         u64 rb=(u64)m.BaseAddress,rs=m.RegionSize;
         if(m.State==MEM_COMMIT&&m.Type==MEM_PRIVATE&&inHeap(rb)&&(m.Protect&(PAGE_READWRITE|PAGE_EXECUTE_READWRITE))&&!(m.Protect&PAGE_GUARD)&&rs<=0x8000000){
-            for(u64 p=rb;p+0xC0<=rb+rs;p+=8){
-                u64 vt;__try{vt=*(volatile u64*)p;}__except(EXCEPTION_EXECUTE_HANDLER){continue;}
-                if(vt!=g_bsVA) continue;                       // only unswapped byte-streams
-                u64 bs=p; u64 sock=rd64((void*)(bs+0x48),0);
-                if(!inHeap(sock)) continue;
-                u64 svt=rd64((void*)sock,0);
-                if(!inImage(svt)) continue;
-                if(g_sockVtHeap && svt==(u64)g_sockVtHeap) continue;   // sock already swapped
-                if(g_sockVtOrig && svt!=g_sockVtOrig){ continue; }     // different sock class - skip
-                LONG sn=InterlockedIncrement(&g_swaps);
-                u16 port=(u16)(rd32((void*)(bs+0xa8))&0xFFFF);
-                char host[80]={0}; u64 hp=rd64((void*)(bs+0x80),0),hl=rd64((void*)(bs+0x88),0);
-                const u8* hs=(inHeap(hp)?(const u8*)hp:(const u8*)(bs+0x80));
-                for(u64 i=0;i<hl&&i<sizeof(host)-1;i++){u8 c=hs[i];host[i]=(c>=32&&c<127)?c:'.';}
-                u32 st=rd32((void*)(bs+0x20));
-                if(sn<=20 || port!=1119){     // ALWAYS log a non-1119 (e.g. lobby 3724) byte-stream
-                    L("BYTE-STREAM bs=%016llX sock=%016llX sockVt(rva %llX) state=%u host='%s' port=%u swaps=%ld",
-                      (unsigned long long)bs,(unsigned long long)sock,(unsigned long long)(svt-g_base),st,host,port,sn);
+            for (u64 p = rb; p + 0xC0 <= rb + rs; ) {
+                SIZE_T to_read = sizeof(page_buf);
+                if (p + to_read > rb + rs) to_read = (SIZE_T)((rb + rs) - p);
+                SIZE_T nread = 0;
+                if (!ReadProcessMemory(GetCurrentProcess(), (void*)p, page_buf, to_read, &nread) || nread < 0xC0) {
+                    to_read = 4096;
+                    if (p + to_read > rb + rs) to_read = (SIZE_T)((rb + rs) - p);
+                    if (!ReadProcessMemory(GetCurrentProcess(), (void*)p, page_buf, to_read, &nread) || nread < 0xC0) {
+                        DWORD err = GetLastError();
+                        if (!g_fault_logged) {
+                            MEMORY_BASIC_INFORMATION mbi = {};
+                            VirtualQuery((void*)p, &mbi, sizeof(mbi));
+                            u64 fault_addr = (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE))
+                                ? ((u64)mbi.BaseAddress + mbi.RegionSize)
+                                : (u64)mbi.BaseAddress;
+                            L("[scan-fault] addr=%016llX err=%lu mbi.Base=%016llX mbi.Size=%llX state=%lx prot=%lx",
+                              (unsigned long long)fault_addr, err,
+                              (unsigned long long)mbi.BaseAddress, (unsigned long long)mbi.RegionSize,
+                              mbi.State, mbi.Protect);
+                            g_fault_logged = true;
+                        }
+                        p = ((p + 4096ULL) & ~4095ULL);
+                        continue;
+                    }
                 }
-                registerSock((u64)sock, port);
-                ensureVts(svt);
-                __try{ *(volatile u64*)sock=(u64)g_sockVtHeap; }__except(EXCEPTION_EXECUTE_HANDLER){}
-                __try{ *(volatile u64*)bs=(u64)g_bsVtHeap; }__except(EXCEPTION_EXECUTE_HANDLER){}
+                size_t off = 0;
+                for (; off + 0xC0 <= nread; off += 8) {
+                    u64 vt = 0;
+                    memcpy(&vt, page_buf + off, sizeof(vt));
+                    if (vt != g_bsVA) continue;                       // only unswapped byte-streams
+                    u64 bs = p + off; u64 sock = rd64((void*)(bs + 0x48), 0);
+                    if (!inHeap(sock)) continue;
+                    u64 svt = rd64((void*)sock, 0);
+                    if (!inImage(svt)) continue;
+                    if (g_sockVtHeap && svt == (u64)g_sockVtHeap) continue;   // sock already swapped
+                    if (g_sockVtOrig && svt != g_sockVtOrig) { continue; }     // different sock class - skip
+                    LONG sn = InterlockedIncrement(&g_swaps);
+                    g_lastSwapTick = GetTickCount64();
+                    u16 port = (u16)(rd32((void*)(bs + 0xa8)) & 0xFFFF);
+                    char host[80] = {0}; u64 hp = rd64((void*)(bs + 0x80), 0), hl = rd64((void*)(bs + 0x88), 0);
+                    if (hl >= sizeof(host)) hl = sizeof(host) - 1;
+                    void* src = (void*)(inHeap(hp) ? hp : (bs + 0x80));
+                    if (safe_read(src, host, hl)) {
+                        for (u64 i = 0; i < hl; i++) {
+                            if ((u8)host[i] < 32 || (u8)host[i] >= 127) host[i] = '.';
+                        }
+                    }
+                    u32 st = rd32((void*)(bs + 0x20));
+                    if (sn <= 20 || port != 1119) {     // ALWAYS log a non-1119 (e.g. lobby 3724) byte-stream
+                        L("BYTE-STREAM bs=%016llX sock=%016llX sockVt(rva %llX) state=%u host='%s' port=%u swaps=%ld",
+                          (unsigned long long)bs, (unsigned long long)sock, (unsigned long long)(svt - g_base), st, host, port, sn);
+                    }
+                    registerSock((u64)sock, port);
+                    ensureVts(svt);
+#if defined(_MSC_VER) && !defined(__clang__)
+                    __try { *(volatile u64*)sock = (u64)g_sockVtHeap; } __except (EXCEPTION_EXECUTE_HANDLER) {}
+                    __try { *(volatile u64*)bs = (u64)g_bsVtHeap; } __except (EXCEPTION_EXECUTE_HANDLER) {}
+#else
+                    u64 hs_val = (u64)g_sockVtHeap; safe_write((void*)sock, &hs_val, sizeof hs_val);
+                    u64 hbs_val = (u64)g_bsVtHeap;  safe_write((void*)bs, &hbs_val, sizeof hbs_val);
+#endif
+                }
+                if (nread == to_read) {
+                    p += (off > 0 ? off : 8);
+                } else {
+                    p += (to_read > 4096 ? 4096 : to_read);
+                }
             }
         }
-        a=rb+rs;
+        a = rb + rs;
     }
 }
-static DWORD WINAPI worker(LPVOID){
+extern "C" __declspec(dllexport) DWORD WINAPI worker(LPVOID){
+    static volatile LONG s_started = 0;
+    if (InterlockedCompareExchange(&s_started, 1, 0) != 0) return 0;
     InitializeCriticalSection(&g_cs);InitializeCriticalSection(&g_mapCs);
     wchar_t modulePath[32768] = {};
     DWORD pathLength = GetModuleFileNameW(g_module, modulePath, 32768);
@@ -186,7 +266,9 @@ static DWORD WINAPI worker(LPVOID){
         }
         scan();
         if((loop%80)==0)L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr);
-        Sleep(8);
+        ULONGLONG now = GetTickCount64();
+        bool recent = (g_swaps > 0) && (now - g_lastSwapTick < 4000);
+        Sleep((g_swaps > 0 && !recent) ? 50 : 8);
     }
     return 0;
 }
