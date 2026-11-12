@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect owned Matrix to finite-flight and canister interception
+
+- Reuse the delivered Matrix contact service in the existing tagged interception
+  route for selected0407 and real owned0407 bodies. Preserve contact-time close
+  projection through the existing sweep time span. Hitscan, finite/range/gravity
+  and field-canister callers keep their existing absorption/retirement driver.
+- Keep Sigma damage-amount conversion exclusive to1D02. Matrix consumes the
+  incoming projectile without running Sigma's accumulator or shield grant.
+- An actual Ana range/gravity grenade reaches the owned mech for55 damage with
+  Matrix released and is consumed with600 health while Matrix is held. All52
+  shared projectile/Bastion/Damage and original focused Deflect checks pass.
+  No old assertions changed; current actor/mover remains authoritative.
+- Hanzo's original five hero-specific modules and core runtime consumers are
+  integrated. Existing source70-versus140 geometry and old private shield/Zarya
+  observers remain recorded. Source0005 also contains cross-owner Sniper,
+  projectile geometry and other hero implementations: root owns their reconcile
+  and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
+
 ### Mount launch-frozen absorption and owned-mech Matrix contacts
 
 - Capture the delivered projectile Matrix/Grasp admission bit at emission and

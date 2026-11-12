@@ -5470,7 +5470,22 @@ class Combat:
         for target in self._enemies(shooter):
             owner = target.owner
             script = getattr(owner, 'body_script', None)
-            hero = getattr(getattr(owner, 'hero', None), 'guid', None)
+            identity = getattr(owner, "hero", None)
+            hero = getattr(identity, "guid", None)
+            if absorbable and getattr(identity, "guid", identity) == 0x02E000000000007A:
+                from ow174.game import matrix as matrix_service
+
+                shown = self.seen(target, view_tick) if view_tick is not None else target
+                distance = None if shown is None else matrix_service.trace(shown, origin, direction, reach)
+                at_tick = self.tick
+                if distance is not None and time_span is not None:
+                    at_tick = time_span[0] + (time_span[1] - time_span[0]) * (distance / reach if reach else 0)
+                if distance is not None:
+                    distance = matrix_service.trace(shown, origin, direction, reach, tick=at_tick)
+                if distance is not None and (closest is None or distance < closest[0]):
+                    guard = next(deflection._active_states(script, 0x02CC, 3), None)
+                    closest = distance, target, None, True, guard
+                continue
             if (hero not in (deflection.GENJI, absorption.SIGMA)
                     or script is None or script.retired or getattr(owner, 'mover', None) is None
                     or self.is_stunned(owner)):
@@ -5623,7 +5638,8 @@ class Combat:
             return
         if tagged_contact is not None and tagged_contact[3] and wall is None and limit == tagged_contact[0]:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
-            self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
+            if tagged_contact[4].instance.graph.index == absorption.GRASP:
+                self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
             distance, target = redirect
@@ -6693,7 +6709,8 @@ class Combat:
         self._amplify_flight(rocket, direction, crossing, start_tick, tick_per_distance)
         if returned is not None:
             if returned[3]:
-                self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
+                if returned[4].instance.graph.index == absorption.GRASP:
+                    self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
                 self.rockets.remove(rocket)
                 if rocket.shot is not None:
