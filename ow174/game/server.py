@@ -778,6 +778,9 @@ class Client:
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
         host = getattr(match, "scene_host", None)
         script = getattr(bot, "body_script", None)
+        if script is None and match.combat is not None:
+            mine = match.combat.ball_mines.devices.get(entity)
+            script = mine.body_script if mine is not None else None
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
         if bot is None and script is None:

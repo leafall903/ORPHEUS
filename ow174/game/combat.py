@@ -2104,6 +2104,7 @@ class Combat:
         self.venom = venom.Mines(self)
         from ow174.game import junkrat
 
+        self.ball_mines = ball_mines.Mines(self)
         self.junkrat = junkrat.Junkrat(self)
         from ow174.game import ashe
 
@@ -2323,6 +2324,10 @@ class Combat:
             and viewer.client.combat_identity_ready(vitals.killer)
         )
 
+    @property
+    def mines(self):
+        return self.ball_mines
+
     def retire_player_body(self, player, *, next_hero=None) -> None:
         """Discard body-local combat state when the player's current body retires."""
         from ow174.game import body_entities
@@ -2340,6 +2345,7 @@ class Combat:
                 self.sombra_charge.prepare_retirement(player, False)
             self.sombra_charge.retire_body(player.body)
         self.translocators.retire_body(player.body)
+        self.ball_mines.retire(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
         self.sentries.release_target(player.body)
@@ -4511,6 +4517,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.ball_mines.update(at)
             self.junkrat.update()
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
@@ -5838,6 +5845,8 @@ class Combat:
             return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
+        if not isinstance(shooter, bots.Bot) and self.ball_mines.volley(shooter, state, number, shot_frame):
+            return
         if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E000000000013B
                 and state.instance.graph.index == 0x0B9E and state.index == 1):
             from ow174.game import nano

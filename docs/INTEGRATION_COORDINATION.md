@@ -999,3 +999,23 @@ clamp and PinEffectServices strict stored callback/context state. Current body
 do not install duplicate body/controller effects or another manager. Ready A57/
 A58 real Matrix/BOB-lock, C41 reapplication and B43 Mine factory await intake.
 C40 25431c27 already received580ad408, preserving actual recipient-frame latch.
+
+
+A57 e62a0033 received1a229cf5 publishes original Matrix payload/source/plug on
+actual interception; all current _absorbed callers supply actual source. A58
+dba31c23 received6048b600 uses actual BOB component recipient frames with the
+same Controls; A59 f1acf65c received11372bf2 narrowly fixes BotScript interruption
+through Photon guard and preserves original sleep/fixed life/normal-gap hits.
+C41 8bbe6e4c received892b2584 replaces original body applications before Queue
+reentry, preserving actual fresh Wait/later expiry. No second lock/pool manager.
+
+B43 bdb1d327 actual Minefield factory/flight/MineScript/client stream is received
+with root arithmetic identity binding. Snapshot conflict preserves both newly
+mounted ControllerWorld and original MineWorld. scalar_math.profile() is added
+to existing runtime_configuration with no schema override: source/backend/
+control/probe identity is detached, profile changes alter typed configuration
+hash. No ideal-sqrt fallback or external binary is added. Actual root53309
+terminal43pass25.969s includes original Mine flight/factory, original controller
+filter/lifetime/namespace and replay manifest checks. Native arithmetic identity
+mutation was independently verified. B44 pending target/creator/lifetime/EMP
+consumers remain explicit, not counted complete. Root has no live tests now.

@@ -899,3 +899,40 @@ alone is not evidence that a line's consumers are actually mounted.
 Commit identities and SHA delivery are available from the branch log and parent
 coordination record at `verification/parallel-merge/coordination.json`. Every
 completed code batch is sent to the parent immediately, followed by more work.
+
+B42 delivered SHA: `553cf2e2b0dd4f07ee3739af817335efc5410266`.
+
+### B43 — mounted Minefield factory, native flight and actor transport
+
+- Restored original01CA `flight_step`, `flight_distance`, `clip_flight` and
+  Windows-x64 `scalar_math.py` verbatim. Actual Minefield Q reports now enter the
+  sole existing `ball_mines.Mines`, with original complete report deduplication,
+  world birth clock, strict float32 budgets and same pet-capacity replacement.
+- Attached the source `MineScript` observer/deadline wrapper to each real2578
+  Component; create/live/destroy transport now finds that same script alongside
+  bots and scene actors. Exact VM/server registration includes the actual actor,
+  manager and observer state. Existing typed Sombra device hooks remain on this
+  Component; no old `sombra_emp` host or duplicate mine pool was added.
+- Restored authored node52->node50->node8 search transition rather than the
+  prototype direct node8 request; canonical shield and Knockbacks services own
+  damage/impulse admission. Full original target/status semantics still need the
+  next owner batch; mine hit targets/health consumers and original effect expiry
+  are not yet fully merged.
+- v17 composed2578/151A/261E input: archived flight3, original factory/flight7,
+  runtime13, original cooldown13 and replacement-client1 all pass in their
+  focused runs. Original real-client test passes with15 tracked scripts, landed
+  active mines and full-server digest sensitive to actual mine health. ActualQ
+  active Mine strict Component export counter mutation/restoration passes.
+  Nine restored Mine methods retain all49 assertion ASTs exactly; NativeFlight
+  source assertions unchanged. Input setup checks real composed graphs and never
+  patches GRAPHS_PATH with the old whole pack.
+- An initial missing prototype projectile_gravity import interrupted ordinary
+  shots and caused7 cooldown failures; corrected using the original inline
+  volley gravity expression, then all13 cooldown passed. Temporary split-fixture
+  missing imports/helpers were corrected without changing original assertions.
+- Client gameplay acceptance not run; no formal full Ball completion claimed.
+
+Next exact action: restore original MineWorld creator/ruleset/filter context,
+actual mine target50HP destruction/noherocharge consumers, sole Sombra effect
+expiry, then the remaining original Minefield suite without a duplicate EMP
+controller. Preserve all existing source checks and physical boundary failures.

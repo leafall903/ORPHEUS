@@ -21,6 +21,7 @@ from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
+from ow174.game.ball_mines import MineWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
@@ -557,7 +558,7 @@ class _Export:
         if kind is graph.Node:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld,
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
@@ -588,6 +589,8 @@ class _Export:
                 fields.update(("match", "source", "owner"))
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
+            if kind is MineWorld:
+                fields.update(("manager", "mine"))
             if kind is PullQuery:
                 fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
@@ -607,7 +610,7 @@ class _Export:
                 fields.update(("fight", "body"))
                 optional = ("auto_scene", "auto_target", "sample")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
+                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier", "mine"})}
         if kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
             return {"class": "builtins.dict.get", "identity": self.identity(obj),
                     "owner": self.value(obj.__self__)}
