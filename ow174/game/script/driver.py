@@ -974,6 +974,20 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
+        if self.hero == 0x02E00000000001CA and instance is not None:
+            cls = cfg.get("$")
+            if cls in {"STU_8CBDD81C", "STU_71A87E92"}:
+                entity = instance.evaluate(cfg.get("m_entity"))
+                if isinstance(entity, Entity) and self.match is not None:
+                    return self.match.script_body_position(entity.id, self.body)
+                return None
+            if (cls == "STU_309B0570" and cfg.get("m_5B94EDB8") is None
+                    and self.match is not None
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                if player is not None:
+                    return Vec3(*player.mover.velocity)
+
         if self.match is not None and instance is not None:
             from ow174.game.script import entity_relation
 

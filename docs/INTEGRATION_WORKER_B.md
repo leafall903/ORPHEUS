@@ -638,6 +638,34 @@ alone is not evidence that a line's consumers are actually mounted.
   surface history, retaining original partial host geometry/terminal1. Do not
   mistake remaining Bash timing for only observer drift or claim line complete.
 
+## B35 — Ball physical module and actual feedback/movement entry
+
+- Original01CA ball.py retained complete. Actually mount feedback before body
+  script frames and motion through existing swept Mover, below current control/
+  world/native movement requests and external impulse priority. Snapshot knows
+  Combat.ball_grapples and original Grapple datatype, no second controller.
+- Restore original scoped body-position and default velocity native queries.
+  Before that, actual clearance origin evaluated0/childNone, forbidding start;
+  actual body transform now drives the authored3.5m ray and runtime variables.
+- worker-b-ball-motion-physics-probe.log proves original10s cooldown,40tick hover
+  and landing-scope7counter1. Important limitation: scope is ground-ray trigger,
+  not completed body contact; after90ticks Y4.966796875/airTrue. Retain remaining
+  descent semantics audit; do not force ground/cancel native scope to green.
+- Ground/low-clearance rejection and roll-toggle original cases pass. Full
+  worker-b-ball-motion-third.log35 including runtime17:7subfail5errors, true
+  missing landing damage/air locks/critical policy plus olddeflection.SIGMA and
+  missingfireball fixture imports. worker-b-ball-motion-snapshot.log1/1 existing
+  wave/charge stored-state test. No full Ball completion claim.
+- Complete original fixtures combat110/grapple99/pile76/roll17 assertions have
+  exact original AST (only module imports adapted). Grapple fixture retained,
+  unexecuted until its actual controller is mounted; no copied-only claim.
+- NEXT B36: original _piledriver damage/impulse/steering locks and exact decline
+  with control/defense; then mount original Grapple controller/lifecycle and
+  source form/critical/spread/passive consumers. Preserve all failed checks.
+- Brig shared query intentionally unchanged: original0007 Shatter enumerated
+  Rein/Win/Orisa/Sigma only. Do not infer new Brig/Photon Shatter behavior or
+  delete existing other-owner Photon implementation; parent owns that boundary.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue
