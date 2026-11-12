@@ -434,3 +434,33 @@ fixture APIs with actual current native managers; do not build fake state just
 to satisfy a private-dictionary assertion. Complete source0005 consumer audit,
 then Tracer0003/Widowmaker000A. Keep original failing checks in Git and submit
 actual batches without waiting for all client/native acceptance to close.
+
+
+A19 committed `e799f60c`, accepted root canonicalb6859d9b with A18. A20 stores
+source matrix_absorbable admission at emission and routes current Matrix/Grasp
+consumers through that frozen bit (None keeps explicit old Rocket behavior).
+Source matrix._owned_closed is retained exactly; matrix.trace ports owned0407
+identity through current pilot source_body/owner fields and real control_mover,
+using the existing box consumer. Combat._trace_absorption now sees the owned
+Bot Matrix instead of only player Hero.body. Incoming00B9 absorbed leases clear
+their projectile pointer after real transport retirement; no impact Beacon.
+Original two Sonic normal/final ricochet absorption methods now pass their
+actual eight on/off DVa/Sigma flow assertions until four final old
+Vitals.bonus_shields reads (preserved AttributeError), in
+worker-a-hanzo-launch-admission-owned.log. Other identities remain real, no
+legacy private dictionary fabricated. Source0005 ref is
+2b67b154a11b7e930ee431182d8e3a70cb90b8bb.
+Actual four launch-frozen tests (Ana hip projectile, Matrix/Sigma) reverse
+matrix_definitions immediately after _submit_attack: False->full still damages
+(530/330HP), True->empty still absorbs(600/400HP), all pass in
+worker-a-hanzo-launch-frozen-live.log. All50 current projectile/Bastion/Damage
+checks pass in worker-a-hanzo-launch-frozen-shared.log. Stored admission false
+vs true changes digest and repeated export is stable with Var.value and
+Instance.evaluate disabled, in worker-a-hanzo-launch-frozen-storage.log.
+Root independently ports volley_geometry/configure_volley_geometry and existing
+NPC consumer; do not touch the _shoot direction section. Next exact action:
+route source controlled-Matrix tracing through legacy finite/range canister
+flight paths as well (existing _deflector return/absorption dispatch must keep
+Sigma amount/grant exclusive to1D02), then source0005 owner reconcile. Keep
+private bonus_shields/Zarya observation differences in logs without delaying
+code-layer integration. Then audit0003 and000A rather than inflating acceptance.
