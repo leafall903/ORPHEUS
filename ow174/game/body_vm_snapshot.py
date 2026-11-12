@@ -132,6 +132,7 @@ _STATE_LAYOUTS = {
     ),
     nodes.GrappleCast: (("cast",), ()),
     nodes.MoveTo: (("movement",), ()),
+    nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
     nodes.PlacementPreview: ((), ()),
     nodes.SummonerPlacement: (("confirmed",), ()),
@@ -532,7 +533,7 @@ class _Export:
             fields = {"hero", "mode"}
             optional = ()
             if kind is BodyWorld:
-                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
+                optional = ("passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))

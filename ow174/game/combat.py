@@ -70,6 +70,7 @@ from ow174.game import (
     hero_torbjorn,
     molten_core,
     torbjorn_mark,
+    torbjorn_charge,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -739,7 +740,7 @@ class Vitals:
     def temporary_pool_used(self) -> bool:
         return self.temporary_shield is not None
 
-    def decay_temporary_shields(self, now: float) -> float:
+    def _decay_clocked_shields(self, now: float) -> float:
         """Advance the delivered tagged aggregate on the authoritative clock."""
         shield = self.temporary_shield
         if shield is None or now <= shield.decay_from:
@@ -819,6 +820,53 @@ class Vitals:
             self.next_pool += 1
         self.changed.add(ARMOUR_POOL)
         return True
+
+    @property
+    def tagged_shields(self):
+        """Delivered tagged-shield API view onto existing authoritative extra pools."""
+        return {pool.identifier: pool for pool in self.extra.values()
+                if pool.kind == SHIELDS_POOL and not pool.removed}
+
+    def grant_temporary_shields(self, tag: int, amount: float, limit: float) -> float:
+        if not math.isfinite(amount) or not math.isfinite(limit) or amount < 0 or limit < 0:
+            raise ValueError("temporary shields need finite nonnegative amount/cap")
+        if self.dead or amount == 0:
+            return 0.0
+        pool = self.tagged_shields.get(tag)
+        current = pool.now if pool is not None else 0.0
+        given = min(amount, max(0.0, limit - current))
+        if given > 0:
+            if pool is None:
+                key = ("adaptive", tag) if tag == moira.ADAPTIVE_SHIELD_TAG else ("tagged-shield", tag)
+                pool = self.add_temporary(key, tag, SHIELDS_POOL, given, -1)
+                if pool is None:
+                    raise ValueError("temporary shield slots exhausted")
+            else:
+                pool.now += given
+                pool.most = pool.now
+                self.changed.add(SHIELDS_POOL)
+        return given
+
+    def decay_temporary_shields(self, tag=None, amount=None, *, now=None) -> float:
+        """Retain clocked aggregate and explicit tagged-pool decay consumers."""
+        if amount is None:
+            if now is not None and tag is not None:
+                raise TypeError("select one shield decay clock")
+            return self._decay_clocked_shields(now if now is not None else tag)
+        if now is not None:
+            raise TypeError("tagged shield decay takes an amount, not a clock")
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("temporary shield decay needs finite nonnegative amount")
+        pool = self.tagged_shields.get(tag)
+        if pool is None:
+            return 0.0
+        taken = min(amount, pool.now)
+        if taken > 0:
+            pool.now -= taken
+            if pool.now <= EPSILON:
+                pool.now = pool.most = 0.0
+            self.changed.add(SHIELDS_POOL)
+        return taken
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -2499,6 +2547,7 @@ class Combat:
         component = script.component
         from ow174.game import assassin, hanzo_control
 
+        self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
         component.discard_button_presses()
@@ -2565,6 +2614,8 @@ class Combat:
     def charge_contact(self, player, command: Command, start, seconds: float) -> None:
         """Use the delivered contact consumer on the existing Charge/mover state."""
         reinhardt_charge.advance(self, player, command, start, seconds)
+
+    _counter_duration = staticmethod(reinhardt_charge.profile_duration)
 
     def charge_blocked(self, player, *, impact=True, frame=None):
         """Delivered obstruction/control exit using the existing Charge record."""
@@ -2878,6 +2929,7 @@ class Combat:
             if instance is not None:
                 reinhardt_charge.drain_end(instance)
         component.shots.clear()
+        self.punches.interrupt(target.owner)
 
         cast = self.meteors.casts.get(target.entity)
         if not isinstance(target.owner, bots.Bot):
@@ -4743,13 +4795,27 @@ class Combat:
 
 
     def body_health(self, entity):
-        vitals = self.vitals.get(entity)
-        if vitals is not None:
-            return vitals.total, vitals.maximum
+        """Read delivered component51 lifetimes without allocating a pool."""
+        owner = next((player for player in self.match.players
+                      if not player.gone and player.has_body and player.body == entity), None)
+        if owner is None:
+            owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
+        if owner is None:
+            owner = self.deployables.get(entity)
+        if owner is not None:
+            vitals = self.vitals.get(entity)
+            if vitals is not None:
+                return vitals.total, vitals.maximum
+            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+                       else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
+            return float(maximum), float(maximum)
+        if (entity == world.GAME_MODE_ENTITY
+                or any(not p.gone and p.entity == entity for p in self.match.players)):
+            return 0.0, 0.0
         for actor in self.sigma_barriers.values():
             if actor.entity == entity:
                 return actor.vitals.total, actor.vitals.maximum
-        return NotImplemented
+        return None
 
     def heal_target(self, healer, entity, amount, frame, *, allow_self=False, tags=None):
         if (amount <= 0 or (entity == healer.body and not allow_self)
@@ -8466,6 +8532,9 @@ class Combat:
             charge.boosted(caster, target.entity, dealt, extra, scale - 1.0,
                            valkyrie_frame=impact if historical else None)
         adaptive_loss = shield_before - (adaptive.now if adaptive is not None else 0.0)
+        charge_owner = self._credit_player(shooter)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
+            torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8533,7 +8602,7 @@ class Combat:
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
-                    and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == doomfist.HERO:

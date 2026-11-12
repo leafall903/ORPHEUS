@@ -875,7 +875,12 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn
+        from ow174.game import hero_torbjorn, torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO and instance is not None:
+            value = torbjorn_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         result = hero_torbjorn.turret_native(self, cfg, instance)
         if result is not NotImplemented:
@@ -2180,6 +2185,10 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
+        from ow174.game import torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO:
+            torbjorn_charge.prepare(self)
         ultimate.sync_practice_timer(self)
         from ow174.game import lucio
 
@@ -2475,6 +2484,16 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
+        from ow174.game import torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO and torbjorn_charge.enabled(self):
+            if self.ult_seconds != torbjorn_charge.SANDBOX_SECONDS and self.ult_seconds > 0 and not self.ultimate_running():
+                cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+                charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+                if cost > 0 and charge < cost:
+                    step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                    self.set_ult_charge(min(cost, f32(charge + step)))
+            return  # Original0B8B timer owns normal Torb charge; retain explicit sandbox override.
         if self.hero == 0x02E0000000000009:
             from ow174.game import winston
 

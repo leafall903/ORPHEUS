@@ -2662,6 +2662,10 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        if getattr(self.instance.component.world, "hero", None) == 0x02E0000000000006:
+            from ow174.game import torbjorn_charge
+
+            self.ms = torbjorn_charge.passive_wait_duration(self, self.ms)
         if self.ms > 0 and self.instance.component.world.external_wait(self):
             return
         if self.dynamic():
@@ -3323,6 +3327,23 @@ class MoveTo(State):
                 body_entities.begin_control(match, self.instance)
 
 
+@state_class("STU_2107AF60")
+class PositionSearch(State):
+    """Execute an explicitly hosted authored search."""
+
+    def on_enter(self):
+        result = self.instance.component.world.search_position(self)
+        if result is NotImplemented and self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+    def dependency_changed(self):
+        self.timer_at(0, REEVALUATE, transient=True)
+
+    def timer(self, param):
+        if param == REEVALUATE:
+            self.on_enter()
+
+
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
     """Animation state timing (104319 CC19A0 / CC1E70).
@@ -3572,6 +3593,15 @@ class Ability(State):
     def can_start(self) -> bool:
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
+        world = self.instance.component.world
+        match = getattr(world, "match", None)
+        if getattr(world, "hero", None) == 0x02E0000000000006 and match is not None and match.assembling():
+            from ow174.game import torbjorn_charge
+
+            player = torbjorn_charge.owner(world, self.instance.component)
+            if player is not None and self in player.body_script.ultimates:
+                self.presses.clear()
+                return False
         start, hold, _ = self.buttons()
         if self.instance.component.world.skill_locked(self):
             self.presses.clear()

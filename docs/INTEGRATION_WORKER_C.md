@@ -366,3 +366,62 @@ barrier/phase/NPC/reflect/expiry edges against current combined managers. Those
 broader original checks are retained, not declared green by ancestry/imports.
 Original0008 impact-time cover and Bastion NPC capture/movement differences
 remain visible. The other six assigned families must continue afterward.
+
+C18 SHA08c8d1bf delivered. Clean boundary synchronizes rootb6859d9b, including
+received C16/C17, explicit v4 composer, owned-mech/Storm/Charge/current scopes.
+Keep Molten update once, root Orisa pending cleanup, then root mark/turret
+updates once; do not duplicate those managers when resolving the same feature
+received by root under another merge SHA. This is coordination, not delivery.
+
+Before C19, clean synchronization root0b8d98cb preserves new explicit volley
+geometry/owner records and all existing consumers. Resolve storage fields by
+keeping reconstructed_volley_patterns plus Molten pool/burn fields. Functional
+C18 remains08c8d1bf, root receipt783de900; do not replay coordination merge.
+
+## C19 original Torb charge checkpoint
+
+C18 received783de900; root Molten9/turret1 + shared73 pass on v4. Before C19,
+clean synchronization55cabb59 includes root0b8d98cb explicit volley geometry.
+C19 mounts original torbjorn_charge normal0B8B owner/permission/query/timer/
+012 tag/loss consumers for Torb only. Genji/Orisa still use their received
+single host. Typed component43 and fold dispatch previously intercepted the
+source compatibility queries, so narrow Torb0B8B/BodyWorld nonstrict routing
+now lets the original normal gate and3EBB record reducer execute; strict and
+other-owner typed behavior remain. Samehero unspent meter/passive deadline,
+source assembly ultimate input and sandbox timer override are mounted.
+
+Tagged shield compatibility acts on the exact existing extra pool objects and
+wire IDs; actual grant and subsequent damage/decay mutate their authoritative
+now/most/dirty state, preserving existing TTL and owner cleanup. No extra health
+pool, second actor or fake damage observer was created. Original module's Ball
+synchronization helper is retained but not a second production1566 consumer;
+canonical _sync_adaptive_shield remains owner. Core actual cast/175 shield and
+three attack-mode denial cases passed through that existing owner.
+
+Runs: owner-gate six pass (worker-c-torbjorn-charge-owner-gate-check.log);
+replacement/respawn passive two pass in the earlier shield-replacement group;
+its six adaptive subcase failures were then fixed by the original3EBB reducer,
+final adaptive three cases pass6.187s. Owner lifecycle eight run7pass/1assembly
+failure8.364s; source Ability.can_start gate resolves it, three final assembly
+cases pass. No original assertion changed. Shared60:55pass4skip1existingGenji
+line206; root reproduced clean8dc396d6 in
+parallel-c19-genji-passive-baseline-check.log. Root's independent minimal
+Genji dispatch fix is not yet synchronized here; do not claim that baseline
+failure as a C19 regression or suppress Genji's actual5-point passive grants.
+Shared log worker-c-torbjorn-charge-shared-check.log; additional logs
+worker-c-torbjorn-charge-{first,owner-lifecycle,assembly-final}-check.log.
+Original charge fixture imports still-missing sigma_grasp and related old
+helpers via explicit test-only frozen0006 source package fallback. Production
+Torb charge/Molten/turret modules are all local; do not call that fallback an
+integration of the missing shared helper owners.
+
+Exact next: submit C19, sync root latest clean including independent Genji gate
+and sniper snapshot fields, then audit deeper original Torb/Pharah interlocks
+and continue remaining owners0016/0065/00DD/012E/0200. Shared difference:
+canonical orisa_charge.damage sends empty0x624 records, while frozen0006's
+shared Genji/Orisa charge host knew3EBB deductions. Preserve current hosts and
+coordinate their own event-record enhancement; do not double-send012 or mark
+this shared feature equal merely from module names. Original source charge
+and scope functions are retained, but unconnected shared consumers remain
+explicit. Existing0008 impact-cover and Bastion NPC differences also remain.
+No client run or whole-owner completion has been claimed.

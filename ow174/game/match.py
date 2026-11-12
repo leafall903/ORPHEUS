@@ -516,8 +516,15 @@ class Player:
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
+            start = tuple(self.mover.position)
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
-            fight.punches.movement_result(self, outcome)
+            destination, speed = punch
+            distance = math.dist(start, destination)
+            progress = distance - math.dist(self.mover.position, destination)
+            # Delivered collision host: a skin-creeping capsule is still blocked.
+            if outcome is None and progress < min(distance, speed * seconds) / 2:
+                outcome = False
+            movement_end = fight.punches.movement_result(self, outcome)
         elif climb is not None:
             start_y = self.mover.position[1]
             outcome = self._move_pose(command, seconds, tick, move_to=climb, flight_profile=flight_profile)
@@ -591,7 +598,7 @@ class Player:
         return outcome
 
     def _advance_body_frame(
-        self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, command: Command, *, posed: bool = True, movement_end: tuple[runtime.State, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
         defer_effects: bool = False,
     ) -> None:
@@ -1713,7 +1720,7 @@ class Match:
         player.body_script_failed = failed
 
     def body_command(
-        self, player: Player, command: Command, *, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, player: Player, command: Command, *, movement_end: tuple[runtime.State, bool] | None = None,
         posed: bool = True,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
@@ -1920,11 +1927,12 @@ class Match:
             pose = (tuple(mover.position), mover.yaw, mover.pitch,
                     mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
-        from ow174.game import hero_torbjorn, lucio
+        from ow174.game import hero_torbjorn, lucio, torbjorn_charge
 
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
         overload_cooldown = turret_cooldown = 0.0
+        retained_torb_charge = passive_torb_due = None
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
@@ -1936,6 +1944,10 @@ class Match:
                 ult_fraction = player.body_script.ult_fraction()
             if old_hero == hero.guid == lucio.HERO:
                 charge_ratio = lucio.replacement_charge_ratio(player.body_script, hero.guid, entity)
+            if old_hero == hero.guid == hero_torbjorn.HERO and player.body_script is not None:
+                if torbjorn_charge.enabled(player.body_script):
+                    retained_torb_charge = expr.to_float(player.body_script.component.entity_var(342).value())
+                    passive_torb_due = torbjorn_charge.passive_timer_due(player.body_script)
             if old_hero == hero_torbjorn.HERO:
                 overload_cooldown = hero_torbjorn.overload_cooldown_remaining(player)
                 turret_cooldown = hero_torbjorn.turret_cooldown_remaining(player)
@@ -1965,6 +1977,12 @@ class Match:
                 hero_torbjorn.set_overload_cooldown(player, overload_cooldown)
             if hero.guid == hero_torbjorn.HERO and turret_cooldown > 0:
                 hero_torbjorn.set_turret_cooldown(player, turret_cooldown)
+            if retained_torb_charge is not None and player.body_script is not None:
+                script = player.body_script
+                cost = expr.to_float(script.component.entity_var(338).value())
+                script.set_ult_charge(min(cost, max(0.0, retained_torb_charge)))
+                if passive_torb_due is not None:
+                    script.world.passive_charge_due = passive_torb_due
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,

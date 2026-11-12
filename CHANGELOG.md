@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
+
 ### Integrate delivered Widowmaker Venom Mine and poison consumers
 
 - Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
@@ -90,6 +95,75 @@ This log records tested changes and their acceptance status. Entries are grouped
   and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
 
 ### Mount delivered Molten Core projectiles, areas and status consumers
+### Restore delivered Rocket Punch collision completion
+
+- Apply source0007's actual-progress obstruction test to the existing Punch
+  collision host. A capsule still creeping along contact skin is reported as
+  blocked when progress is below half the requested step, without changing the
+  collision engine or its tolerances.
+- Feed arrival/obstruction into authored0D06 lifetime Wait5 as ordinary FINISH;
+  its existing branches retire movement/forced modifiers and retain recovery
+  and cooldown. The pose callback accepts an actual runtime State. Keep012F's
+  completed Dash history and expose active native drives in0007 fixtures.
+- All23 original Punch/wall/ordinary-hit checks pass, including four ordinary
+  hit scenarios, unchanged heading, inactive VM movement and an exactly stable
+  stopped pose ten ticks later. Original012F's21 history/cooldown checks remain.
+- Combined Cross17/Mutual10/shared98 run125: remaining8 subfailures and9 errors
+  all belong to existing Brigitte scenarios; no other failures occur. Preserve
+  all1399 original assertions and unchanged Constants; raw getter AST adapts to
+  actual current state. Logs remain external; client acceptance stays open.
+
+
+### Mount delivered Charge and Rocket Punch cross counters
+
+- Evaluate original body inline224E profiles and delivered Punch tracker fallback
+  at eye-minus0.18m when the native attachment query is unresolved. Preserve
+  source aim/cone/radius/cover/ranking and admit Punch-initiated counter outside
+  Charge's cone. Existing Bash prepare/host_control keeps its native224E path.
+- Retire interrupted Punch movement immediately in both existing public and
+  native-control interruption paths, preserving foreign control timers and
+  external impulses. No second actor, pool or movement controller is added.
+- Four original focused input/two-sided movement/outside-cone/held-release
+  counter checks pass. Original174-test combined run retains13 cross-suite
+  subfailures and11 errors (including the two old Shatter-key observations);
+  no new failures occur in the prior157-test joint scope. Logs are external.
+- Source counter fixtures now read actual native224E inclusive timer endpoints,
+  Punch input-control clocks, impact target records and temporary-shield state.
+  All numerical expectations remain original. Retain broader Brigitte gaps and
+  finished-Punch-history/active-VM completion observations for the next batch;
+  original-client acceptance remains open. No network/publication action.
+
+
+### Mount delivered Reinhardt mutual Charge windup counters
+### Mount delivered Torbjorn original charge and owner gates
+
+- Connect original0B8B permission, native owner/classification queries, periodic
+  wait and012 damage/tag/pool-loss records to Torbjorn only. Preserve current
+  Genji and Orisa single owner hosts, their charge formulas/history and all
+  generic typed evaluators outside this explicit compatibility route.
+- Route turret damage through its real owner, deduct actual3EBB shield loss,
+  reject deployable/repair/self/ultimate damage and retain authored clamps and
+  modifiers. Transfer the normal passive deadline and unspent charge across
+  same-hero replacements; retain explicit sandbox timer overrides.
+- Adapt original tagged-shield grant/decay/read API to real existing extra pools
+  and unique wire IDs. Existing TTL/capsule/owner lifetimes stay authoritative;
+  there is no second pool or independent observed health counter.
+- Preserve original Torbjorn assembly ultimate gate and held/released input
+  policy without altering existing skill locks. Source charge/NPC/ultimate
+  checks are retained unchanged. Six owner core checks pass; three actual
+  shield/grant/cast checks pass; passive replacement/respawn cases pass. Seven
+  additional lifecycle/turret checks pass, and all three assembly cases pass.
+- Shared60-check run:55 pass/four skip/one existing Genji spawn-lifecycle fail.
+  Root reproduced the identical line206 failure on clean8dc396d6 before C19,
+  and is fixing its existing Genji host dispatch separately. No source
+  assertion was changed or existing check weakened to submit this batch.
+- Original shared Genji/Orisa/Ball helper declarations are retained; new C19
+  consumers are scoped to Torb. Canonical Ball1566 and the other two charge
+  hosts remain separate owners. Cross-owner3EBB record equivalence still needs
+  audit (Orisa currently emits empty detail arrays); whole0006 completion and
+  original-client acceptance are not claimed.
+
+### Mount delivered Molten Core projectiles, areas and status consumers
 
 - Connect original16DA input/ten-globule resource lifetime, point ballistic
   chords, ground slope admission, ceiling/steep-surface rebounds, segment clock,
@@ -116,6 +190,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   original source checks. Source status_effects metadata has no direct reader;
   this host resolves deployables.status_graph explicitly. Client acceptance
   and whole-line completion remain unclaimed.
+
 
 ### Connect Torbjorn hammer to shared native barrier surfaces
 
@@ -215,6 +290,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   behavioral assertions remain. Log:worker-b-reinhardt-contact-fourth.log.
 - Full source counter-charge, deployable collision, windup interruption and
   Earthshatter integration continue; original-client acceptance remains open.
+### Connect owned Matrix to finite-flight and canister interception
+
+- Reuse the delivered Matrix contact service in the existing tagged interception
+  route for selected0407 and real owned0407 bodies. Preserve contact-time close
+  projection through the existing sweep time span. Hitscan, finite/range/gravity
+  and field-canister callers keep their existing absorption/retirement driver.
+- Keep Sigma damage-amount conversion exclusive to1D02. Matrix consumes the
+  incoming projectile without running Sigma's accumulator or shield grant.
+- An actual Ana range/gravity grenade reaches the owned mech for55 damage with
+  Matrix released and is consumed with600 health while Matrix is held. All52
+  shared projectile/Bastion/Damage and original focused Deflect checks pass.
+  No old assertions changed; current actor/mover remains authoritative.
+- Hanzo's original five hero-specific modules and core runtime consumers are
+  integrated. Existing source70-versus140 geometry and old private shield/Zarya
+  observers remain recorded. Source0005 also contains cross-owner Sniper,
+  projectile geometry and other hero implementations: root owns their reconcile
+  and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
+
 ### Mount launch-frozen absorption and owned-mech Matrix contacts
 
 - Capture the delivered projectile Matrix/Grasp admission bit at emission and
@@ -7917,3 +8010,84 @@ client operations performed. Whole nonappearance integration remains active.
   manual Sniper long-range gaps remain documented without blocking commits.
 - No original-client acceptance or publication performed; three workers continue
   remaining original-language integrations, excluding appearance migration.
+
+
+### Mount original Sniper authored destination search
+
+- Restore source0005 sniper_special native/search/lifecycle functions and
+  original PositionSearch state/world hook. Bind manual search to its engaged
+  body and drive the existing142C MoveTo through current NPC navigation.
+  The outer navigator retains its tick guard; pass retained sub-tick time to
+  the original drive instead of guarding the same tick twice.
+- Preserve source0015 nearby fallback eligibility and its4m retreat. The
+  original authored search handles requests outside that fallback; keep the
+  same NPC, VM, ownership and source cooldown. Stop, faction/body changes and
+  death retire the active search instead of silently rebinding it.
+- Register PositionSearch storage and causal Bot.reposition_body state. Actual
+  controlled server snapshots repeat, change with engagement and do not invoke
+  the combat getter. Original tests retain all expectations.
+- Original far search3, nearby/retry/cooldown/shared80, Sonic/cooldown/runtime19
+  and final eligibility6 all pass. Evidence outside Git: parallel-root-sniper-
+  authored-search-check.log, parallel-root-sniper-source-boundaries-check.log,
+  parallel-root-sniper-sonic-storage-check.log, parallel-root-sniper-final-
+  eligibility-check.log, parallel-root-sniper-causal-snapshot-check.log.
+- A21 finite/range owned Matrix and B16 source cross counters received as
+  d546d8c6/ffe56d54. Broader original B cross-hero and old private-observer
+  differences remain worker-owned and documented, not commit gates. No client
+  acceptance or network publication performed.
+
+
+### Restore original owner-query guards
+
+- Preserve the existing Genji0B8B normal-player gate before the generic typed
+  owner lookup, scoped to its nonstrict owned-body/self query. This restores
+  original spawned/dead/ended lifecycle without changing passive awards or
+  replacing its charge host. Previously failing original spawn lifecycle now
+  passes; Genji passive plus runtime26 pass unchanged.
+- Preserve original body_owner unavailable-instance short-circuit before the
+  alternate controller-query provider evaluates a selector. This repairs the
+  original missing-instance/destination-preservation check; strict provider
+  and all other query dispatch remain unchanged.
+- Original Genji/runtime/body-owner/controller-query/Ana/fold67 run retains
+  two pre-existing Ana health-on-leave subcase failures: partial combined
+  Combat.body_health falls back to unknown/null for absent entities. Original
+  source013B has fuller read-only health lifetime lookup; root will restore
+  that consumer separately. No original assertion changed. Evidence:
+  parallel-root-genji-owner-gate-check.log,
+  parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
+  Orisa input skips before availability fix), and
+  parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
+
+
+### Restore original read-only health-query lifetimes
+
+- Restore source013B Combat.body_health live player/NPC/controller/mode and
+  missing-entity behavior in place of the partial combined cache-only lookup.
+  Keep current Sigma and actual Deployable pools, preserve current maximum
+  aggregation, and do not allocate Vitals while reading missing cached state.
+  Departed/replaced bodies return native lookup failure instead of falling
+  through to compatibility null; active bodies without a client remain readable.
+- Original health/controller queries, Genji passive, owner query guards, fold
+  and runtime80 checks all pass. Both previously preserved Ana leave subcase
+  failures now pass unchanged. Evidence:
+  parallel-root-restored-health-query-check.log. No source assertion modified,
+  no second pool/manager or new game feature. Remaining batches continue.
+
+
+### Reconcile original temporary-shield APIs
+
+- C19 introduced two genuine same-name collisions: tagged decay replaced the
+  existing Doom clocked decay method, and a tagged dictionary property replaced
+  the existing numeric temporary_shields total. Preserve both implementations.
+  Dispatch one-clock and tag/amount decay to their original bodies; retain the
+  original numeric total and expose real existing extra pools as tagged_shields.
+  No additional pool, ID, TTL, fake numeric/dictionary view or combat manager.
+- Adapt source Torb consumers/fixtures only to the unambiguous tagged property;
+  every original literal expectation is AST-identical. Source Grasp fixture
+  constant maps directly to mounted absorption.SHIELD_TAG0x5847, removing the
+  missing obsolete-module import. Keep other source assertions unchanged.
+- Original Doom Punch/Mutual/epochs/handoff + Torb real attacks, adaptive loss,
+  passive timing/replacement/respawn55 checks all pass after repair. The initial
+  real damage/control TypeErrors and later six numeric-vs-dictionary subcase
+  failures were reproduced and resolved, not ignored. Evidence:
+  parallel-b17-c19-shield-consumers-check.log. No client/publication operations.

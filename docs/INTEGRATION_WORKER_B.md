@@ -15,6 +15,49 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B16 cross60cbfda6 submitted/root acceptedffe56d54. Local syncd546d8c6
+ bd7e03af retains finite Matrix/NPC inputs. B17 restores source0007's exact
+  progress<min(distance,speed*seconds)/2 Punch obstruction condition. Collision
+  skin previously advanced~.0049m each tick and never returned a false outcome.
+- Real pose completion requests source0D06 Wait5 FINISH for arrival/obstruction,
+  preserving the authored lifetime/recovery cleanup. Aborting Movement7 directly
+  leaves different branch/modifier state, so do not substitute that protocol.
+  Broaden posed completion annotation to runtime.State for the actual Wait.
+- Originalwall/ordinaryPunch4 scenarios+012F Punch21=23 checks all pass.
+  Source motion.active is false and unchanged exact position equality holds
+  after10 further ticks. Original012F completed Dash records are retained;
+  source0007 active_punches reads native state7 active and notdash.finished.
+  Logs:worker-b-doomfist-movement-completion-third.log.
+- Cross17/Mutual10/shared98=125 run8 subfailures/9 errors, all Brigitte source
+  scenarios (oldshield dictionary absent or native Bash motion/interruption).
+  All Doom cross-counter/ordinary/wall expectations now pass. Logs:
+  worker-b-doomfist-movement-completion-shared.log. Reaudit keeps1399 original
+  per-method assertions and0 changed assertion Constants. No checks removed.
+
+
+- B15 mutual57932359 submitted/root acceptede331ce2a. Local sync7b921893
+ d98ac33d retains Torbjorn actor factory/shared capsule contacts. B16 mounts
+  source Charge/Punch cross counters and profile_duration; existing Bash native
+  prepare/host_control/224E consumer stays authoritative. Source unresolved
+  Punch attachment fallback is original eye-feet-.18 (0007/combat.py1198).
+- B16 four focused original cross-counter cases pass: actual input with own
+ 2s profiles, Punch initiates outside Charge cone in either input order, both
+  bodies move before contact (two gaps), held Punch release catches live Charge.
+  Logworker-b-reinhardt-cross-counter-sixth.log. Full174 combined run retains
+ 13 cross-suite subfailures and11 errors; prior157 scope retains only its2
+  original Shatter-key errors. Logworker-b-reinhardt-cross-counter-shared.log.
+- Current native Brigitte counters create two real224E Chase20 controls while
+  fight.stuns is empty; original deadline observer now reads
+  last_countdown_world_tick(phase)+1 (exclusive), not a guessed125 constant.
+  Punch input-only control clock/impact targets/passive shield observations also
+  read actual existing state; no numeric expectations change.
+- Follow-up ordinary Punch observations distinguish actual active movement from
+  retained finished Dash history (012F original tests explicitly inspect finished
+  records; do not delete them to satisfy0007 active-map observations). At a wall,
+  canonical Punch movement still needs its actual MoveTo completion fed back to
+  the VM, rather than only setting Dash.blocked/finished. Preserve original checks.
+
+
 - B14 capture5d1b6b78 submitted/root accepteda4b14efc. Local sync9ec59b74
  763582a6 preserves canonical Hanzo-climb/Charge ordering plus both modes.
 - Original assertion audit atB14: frozen0007 test_game_reinhardt.py and delivered
@@ -249,7 +292,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B15 mutual batch, then synchronizee1c5e6fd or newer canonical at
+1. Submit B17 collision-completion batch, then synchronize latest canonical at
    a clean boundary and continue0007 source counter/deployable Charge and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve

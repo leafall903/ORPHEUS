@@ -617,3 +617,8 @@ Next exact action: inspect original Widow cross-owner control/defense/clock and
 replay consumers; audit remaining inline source000A body/weapon differences,
 keep original test modules/normal dependencies, and record owner reconcile.
 Do not mark whole ref admitted until root reconciles cross-owner content.
+
+Clean-boundary sync after A25: absorbed canonical d594849c (includes root
+Sniper/native shared fixes and accepted A23/A24), automatic source merge with no
+conflicts. Retain root current shield APIs and all worker Venom consumers.
+Next: normal source000A Infra clock/buffer/defense checks, no runtime asset edits.
