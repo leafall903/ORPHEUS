@@ -1174,6 +1174,10 @@ class Component86State(State):
     registry = None
     watch_priority = False
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.registry = None
+
     def registration(self, registry):
         return None
 
@@ -1194,7 +1198,7 @@ class Component86State(State):
         if not expr.valid_entity(entity):
             self.request(ABORT)
             return
-        if self.node.cls == "STU_473549CA":
+        if self.node.cls in ("STU_473549CA", "STU_CF8C7CC5", "STU_066B4605"):
             explicit = component.world.possession_request_registry(entity)
             if explicit is not NotImplemented:
                 priority, above = _declared_stack_priority(
@@ -1727,16 +1731,22 @@ class AIFacingRecord:
 
 
 @state_class("STU_FC16FF45", strict_only=True)
-class JunkensteinAIFacing(State):
+class JunkensteinAIFacing(Component86VectorState):
     """Own a direction record in component 86's separate BC2E40 list."""
 
     def __init__(self, *args):
         super().__init__(*args)
         self.record = self.remove_record = None
+        self.component86_mode = False
 
     def on_enter(self) -> None:
         instance, node = self.instance, self.node
         component = instance.component
+        self.component86_mode = False
+        if component.world.component86_backend_declared():
+            self.component86_mode = True
+            Component86State.on_enter(self)
+            return
         priority_asset = play._asset(play.evaluate_scalar(instance, node.field("m_priority")))
         if ((instance.graph.index, node.pos) not in ((0x0C95, 5), (0x185D, 57))
                 or node.field("m_baseEntity") is not None
@@ -1761,10 +1771,16 @@ class JunkensteinAIFacing(State):
                 self.instance, "AI facing direction", self.node.cls, self.node)
         return direction
 
+    def dependency_changed(self):
+        if self.component86_mode:
+            Component86VectorState.dependency_changed(self)
+
     def tick(self) -> None:
         self.record.direction = self._direction()
 
     def on_cleanup(self) -> None:
+        if self.registry is not None:
+            Component86State.on_cleanup(self)
         remove, self.remove_record = self.remove_record, None
         self.record = None
         if remove is not None:
@@ -1775,11 +1791,12 @@ class JunkensteinAIFacing(State):
 
 
 @state_class("STU_473549CA", "STU_CF8C7CC5", "STU_066B4605")
-class AIControlOverride(State):
+class AIControlOverride(Component86State):
     """Own a record in the target component 86's two separate override lists."""
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.component86_mode = False
         self.remove_record = None
         self.request_registration = None
 
@@ -1787,6 +1804,12 @@ class AIControlOverride(State):
         instance = self.instance
         component = instance.component
         if not component.strict:
+            return
+        self.component86_mode = False
+        if component.world.component86_backend_declared():
+            # The existing Scene setter explicitly selected this original API.
+            # Defer its selector/descriptor evaluation to the original OnEnter.
+            self.component86_mode = True
             return
         priority_cfg = _field(self, "m_priority")
         priority, prefer_later = 9999.0, False
@@ -1828,6 +1851,17 @@ class AIControlOverride(State):
             component.unsupported(instance, "AI control component", self.node.cls, self.node)
         self.remove_record = remove
 
+    def on_enter(self):
+        if self.component86_mode:
+            Component86State.on_enter(self)
+        else:
+            State.on_enter(self)
+
+    def registration(self, registry):
+        if self.node.cls == "STU_066B4605":
+            return Component86SelectionState.registration(self, registry)
+        return None
+
     def _explicit_request(self, target, registry, priority, above_equal):
         """Use the original explicitly supplied request backend for this state."""
         instance = self.instance
@@ -1866,6 +1900,9 @@ class AIControlOverride(State):
         self.request_registration = registry, request
 
     def on_cleanup(self):
+        if self.registry is not None:
+            self.registry.remove(self)
+            self.registry = None
         if self.request_registration is not None:
             registry, request = self.request_registration
             registry.remove(request)
@@ -1874,7 +1911,7 @@ class AIControlOverride(State):
         if remove is not None:
             remove()
 
-    on_failed = on_cleanup
+    on_failed = on_destroyed = on_cleanup
 
 
 @state_class("STU_97B1B3EC")
