@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered world-clock guard queries and Widow reveal filtering
+
+- Port source000A pure countdown/state/world-active/Matrix-deadline queries.
+  Selected-player0407 Matrix now reads its retained native budget on world time,
+  including the existing absorption trace route; preserve owned-mech clock logic.
+  Gate Genji fallback body/trace/melee queries through the existing authored Wait
+  window, so future or stalled expired native states do not keep intercepting.
+- Preserve Infra's original living-target observation search across phase/Recall,
+  retaining current owned-pet exclusions instead of changing shared damage filters.
+- Original Infra clock/buffer12 pass. Original MatrixClock6 pass; DeflectClock2
+  pass and2 retain cadence expectations (current26 versus old13 damage after the
+  guard ends). Broader original edge23 audit preserves residual ammo and authored
+  eye-offset differences. Existing Genji/Blade/TracerMatrix/Damage/runtime56 has
+  6fail/2error; AnaDeflect/Damage/runtime34 has2fail/3error, including old health
+  field/catalog APIs and old damage expectations. No assertions changed.
+- Preserve original replay fixture. Its first run was invalidated by source edits
+  during manifest verification; rerun only at a frozen committed boundary.
+
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
+
 ### Integrate delivered Widowmaker Venom Mine and poison consumers
 
 - Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,

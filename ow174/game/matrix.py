@@ -195,4 +195,12 @@ def trace(target, origin, direction, reach, *, tick=None):
     if isinstance(owner, bots.Bot) and tick is not None and owner.moved_tick is not None:
         if _owned_closed(state, owner.moved_tick, tick):
             return None
+    elif tick is not None:
+        # Delivered selected-player Matrix countdown: read the retained native
+        # chase record at world hit time without advancing the owner's VM.
+        from ow174.game.combat import TICK
+
+        if not deflection.world_active(state, tick * TICK,
+                                       deflection.matrix_deadline(state.instance)):
+            return None
     return box_contact(target, state, origin, direction, reach)

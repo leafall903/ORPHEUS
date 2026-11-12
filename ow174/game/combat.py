@@ -3506,7 +3506,7 @@ class Combat:
         for instance in script.component.instances.values():
             if instance.graph.index == 0x03A3:
                 state = instance.states.get(10)
-                if state is not None and state.active:
+                if state is not None and state.active and deflection.window(instance, self.tick) is not None:
                     return state
         return None
 
@@ -7720,7 +7720,7 @@ class Combat:
         return False
 
     @staticmethod
-    def _deflect_state(owner) -> runtime.State | None:
+    def _deflect_state(owner, *, at_tick=None) -> runtime.State | None:
         if getattr(getattr(owner, 'hero', None), 'guid', None) != 0x02E0000000000029:
             return None
         component = getattr(getattr(owner, 'body_script', None), 'component', None)
@@ -7731,6 +7731,8 @@ class Combat:
                 continue
             state = instance.states.get(10)
             if state is None or not state.active or state.ending:
+                continue
+            if at_tick is not None and deflection.window(instance, at_tick) is None:
                 continue
             return state
         return None
@@ -7743,7 +7745,7 @@ class Combat:
     def _deflects(self, target: Target, origin) -> bool:
         """Check facing on the supported melee contacts."""
         owner = target.owner
-        state = self._deflect_state(owner)
+        state = self._deflect_state(owner, at_tick=self.tick)
         if state is None:
             return False
         toward = _sub(origin, self._eye(owner))
@@ -7757,7 +7759,7 @@ class Combat:
         best = None
         for target in self._enemies(shooter):
             owner = target.owner
-            state = self._deflect_state(owner)
+            state = self._deflect_state(owner, at_tick=self.tick)
             if state is None:
                 continue
             facing = aim(owner.mover.yaw, owner.mover.pitch)
@@ -7786,7 +7788,8 @@ class Combat:
         nearest = None
         for target in self._enemies(shooter):
             hero = getattr(target.owner, "hero", None)
-            if matrix and isinstance(target.owner, bots.Bot):
+            if matrix and (isinstance(target.owner, bots.Bot)
+                           or getattr(hero, "body", None) == 0x0400000000000407):
                 from ow174.game import matrix as matrix_service
 
                 shown = target if view_tick is None else self.seen(target, view_tick)
