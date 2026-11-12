@@ -125,7 +125,7 @@ def lateral_impulse(source_position, target, state, forward, *, fight=None, fram
     payload = state.node.field("m_modifyHealth")
     horizontal = expr.to_float(state.evaluate(payload["m_E33EFEE1"], watch=False))
     vertical = expr.to_float(state.evaluate(payload["m_583C208B"], watch=False))
-    if fight is not None:
+    if fight is not None and state.instance.graph.index != 0x1408:
         offset = 5.0 if state.index == 15 else 2.0
     else:
         offset, = payload["m_C0139FA6"]["m_expression"]["m_D99EF254"]
