@@ -152,11 +152,19 @@ class Punches:
         dash.requested_frame = command.frame
         return dash.destination, dash.speed
 
-    def movement_result(self, player, outcome) -> None:
+    def movement_result(self, player, outcome):
         dash = self.dashes.get(player.body)
         if dash is not None and outcome is not None:
             dash.blocked = not outcome
             dash.arrived = outcome
+            component = player.body_script.component if player.body_script is not None else None
+            instance = component.instances.get(dash.activation[0]) if component is not None else None
+            state = instance.states.get(5) if instance is not None else None
+            if state is not None and state.active:
+                # Source finish() completes the drive lifetime Wait for either
+                # arrival or obstruction, preserving normal recovery cleanup.
+                return state, True
+        return None
 
     def _create(self, player, instance, state) -> Dash | None:
         duration = float(instance.vars[215].value())

@@ -15,6 +15,26 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B16 cross60cbfda6 submitted/root acceptedffe56d54. Local syncd546d8c6
+ bd7e03af retains finite Matrix/NPC inputs. B17 restores source0007's exact
+  progress<min(distance,speed*seconds)/2 Punch obstruction condition. Collision
+  skin previously advanced~.0049m each tick and never returned a false outcome.
+- Real pose completion requests source0D06 Wait5 FINISH for arrival/obstruction,
+  preserving the authored lifetime/recovery cleanup. Aborting Movement7 directly
+  leaves different branch/modifier state, so do not substitute that protocol.
+  Broaden posed completion annotation to runtime.State for the actual Wait.
+- Originalwall/ordinaryPunch4 scenarios+012F Punch21=23 checks all pass.
+  Source motion.active is false and unchanged exact position equality holds
+  after10 further ticks. Original012F completed Dash records are retained;
+  source0007 active_punches reads native state7 active and notdash.finished.
+  Logs:worker-b-doomfist-movement-completion-third.log.
+- Cross17/Mutual10/shared98=125 run8 subfailures/9 errors, all Brigitte source
+  scenarios (oldshield dictionary absent or native Bash motion/interruption).
+  All Doom cross-counter/ordinary/wall expectations now pass. Logs:
+  worker-b-doomfist-movement-completion-shared.log. Reaudit keeps1399 original
+  per-method assertions and0 changed assertion Constants. No checks removed.
+
+
 - B15 mutual57932359 submitted/root acceptede331ce2a. Local sync7b921893
  d98ac33d retains Torbjorn actor factory/shared capsule contacts. B16 mounts
   source Charge/Punch cross counters and profile_duration; existing Bash native
@@ -272,7 +292,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B16 cross-counter batch, then synchronizee875ed87 or newer canonical at
+1. Submit B17 collision-completion batch, then synchronize latest canonical at
    a clean boundary and continue0007 source counter/deployable Charge and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve
