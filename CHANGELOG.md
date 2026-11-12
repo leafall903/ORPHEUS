@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain delivered Pharah charge, flight and source sight consumers
+
+- Preserve the original charge, flight-boundary and rocket-edge suites unchanged.
+  All45 original charge/flight/edge/basic-combat checks pass after mounting the
+  delivered independent middle/nearest source-impulse sight samples. Source
+  impulse cover admission remains independent of body-damage LOS and uses the
+  existing combined world/shield/path services.
+- All17 Pharah impulse/Helix checks pass after the sight change. Preserve the
+  previous low/high/full-cover assertions rather than adjusting trace counts or
+  push expectations. This completes the reviewed core consumers, while remaining
+  NPC/defense/barrier/control equivalence and original-client scope stay open.
+- Synchronize root canonicalf3989db0 through the local coordination merge,
+  retaining NPC/sniper, worker A/B control and movement implementations.
+  C6's full server-snapshot process remains independently active; root focused
+  storage checks passed and incomplete whole-suite acceptance does not delay
+  submission of this existing implementation.
+
 ### Mount delivered Pharah blast and impulse consumers
 
 - Mount authored self-damage, independent force rings, source force scaling,

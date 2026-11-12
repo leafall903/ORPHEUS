@@ -100,6 +100,17 @@ Sentry to Recon (wall295 versus235) and Heavy melee lacks displacement despite
 correct damage. Do not remove original stance/movement bridges or assertions.
 C6 full snapshot process53540/session33339 still runs; do not restart it.
 
+Ninth batch SHA: `e9849f58`, received by root as2378f2d7; explicit motion tag
+removed the Echo parser exception, with two original payload/charge differences
+retained. C8 received asf3989db0. Clean local synchronization:45830030.
+Tenth batch: `feat: retain delivered Pharah source sight and boundary behavior`
+mounts the original independent middle/nearest source sight consumer. All45
+original charge9/flight11/edges18/basic-combat7 checks pass; all17 impulse/Helix
+checks pass. Source checks are unchanged; whole-line equivalence remains open.
+C6 full server-snapshot process53540/session33339 remains active after26 CPU
+minutes, with buffered PowerShell output still empty. Do not label it green or
+start another copy; other concrete batches continue independently.
+
 ## Exact next work
 
 1. At this clean boundary synchronize latest root canonical (retain all owners),

@@ -6557,7 +6557,7 @@ class Combat:
                 nearest = (x, max(y, min(y + target.height, origin[1])), z)
                 if not blast.rings or math.dist(origin, nearest) - target.radius >= blast.rings[-1][0]:
                     continue
-                visible = blast.source_impulse_ignores_los or self._pharah_impulse_path(origin, target, rocket.shooter)
+                visible = blast.source_impulse_ignores_los or self._pharah_source_impulse_path(origin, target, rocket.shooter)
             else:
                 visible = self._pharah_impulse_path(sight, target, rocket.shooter)
             if not visible:
@@ -6577,10 +6577,26 @@ class Combat:
             else:
                 target.owner.mover.add_impulse(impulse, self.tick)
 
+    def _pharah_source_impulse_path(self, origin, target, shooter):
+        """Delivered source prediction independently tests middle and nearest sight points."""
+        x, bottom, z = target.feet
+        nearest = (x, max(bottom, min(bottom + target.height, origin[1])), z)
+        a, b = target.segment()
+        for sample in ((x, bottom + target.height / 2, z), nearest):
+            delta = _sub(sample, origin)
+            reach = math.hypot(*delta)
+            if reach <= EPSILON:
+                return True
+            direction = tuple(axis / reach for axis in delta)
+            body = ray_capsule(origin, direction, a, b, target.radius)
+            if body is not None:
+                reach = min(reach, body)
+            if self._pharah_impulse_path_clear(origin, direction, reach, shooter):
+                return True
+        return False
+
     def _pharah_impulse_path(self, origin, target, shooter):
         a, b = target.segment()
-        if not capsule_visible(self._collision(), origin, a, b, target.radius):
-            return False
         centre = (a[0], max(a[1], min(b[1], origin[1])), a[2])
         delta = _sub(centre, origin)
         length = math.hypot(*delta)
@@ -6588,11 +6604,18 @@ class Combat:
             return True
         direction = tuple(axis / length for axis in delta)
         reach = max(0.0, length - target.radius)
-        return (self.walls.cast(origin, direction, reach) is None
-                and self._barrier_hit(shooter, origin, direction, reach) is None
-                and self._orisa_deployable_hit(shooter, origin, direction, reach) is None
-                and self.brigitte.barrier_ray(shooter, origin, direction, reach) is None
-                and sigma_barrier.barrier_intersection(self, shooter, origin, direction, reach) is None)
+        return self._pharah_impulse_path_clear(origin, direction, reach, shooter)
+
+    def _pharah_impulse_path_clear(self, origin, direction, reach, shooter):
+        if reach <= EPSILON:
+            return True
+        wall = ray_world(self._collision(), origin, direction, reach)
+        return ((wall is None or wall >= reach - EPSILON)
+                and self.walls.cast(origin, direction, reach - EPSILON) is None
+                and self._barrier_hit(shooter, origin, direction, reach - EPSILON) is None
+                and self._orisa_deployable_hit(shooter, origin, direction, reach - EPSILON) is None
+                and self.brigitte.barrier_ray(shooter, origin, direction, reach - EPSILON) is None
+                and sigma_barrier.barrier_intersection(self, shooter, origin, direction, reach - EPSILON) is None)
 
     def _accretion_hit(self, rocket: Rocket, target: Target, dealt: float) -> None:
         """Feed the tagged direct damage to the caster's authored control entry."""
