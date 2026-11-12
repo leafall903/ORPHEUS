@@ -12091,3 +12091,34 @@ that original lifecycle/selection acceptance can be retained without a second
 sameGUID registry; not yet declared equivalent/complete. Root notified. Next
 exact action: boundedassassin_filter actual13C2 caller audit; sourceAPI registry
 adapter decision follows explicitconsumer evidence, no host duplication.
+
+
+## B90 — retain original scoped Assassin filter service API
+
+Source0009 script.assassin_filter implements existing direct Services/supported/
+evaluate/track_targets APIs for two exact13C2 filters over live Winston player
+inputs. SourceBotWorld used these; current actualBotWorld/AssassinController
+TargetWorld/NpcContext already own13C2 candidate selection, nativecondition and
+manualbinding paths with broader actor/hero support. Do not install a second
+13C2 controller/target producer or replace those current actual consumers with
+this older Winston-only namespace. Preserve original directly callable scoped
+API, including strict unsupported extension/script callbacks, masks/conditions,
+explicit source relationship and bodyvar14695 exclusion boundaries.
+
+Restore source implementation with only actualdependency mapping:
+protections.intangible→defenses.intangible (imports/call). Its lookup already
+requires player.hero==Winston before this expression: originalCryo/Reaper
+branches and currentReaperbranch both reject any otherhero here, so this mapping
+does not broaden protection policy or require a second globalprotection module.
+All other source text exact. ActualRun/hero switch proved bothoriginal authored
+filters accepted, liveWinston identity/component97/bits and gonebody rejection;
+worker-b-assassin-filter-sdk.log. No original assertions edited, no clientrun.
+
+All7 named publicSDK modules now preserved (B86mask/tag, B87controller_query,
+B88npc_queries, B89distance/possession, B90assassin_filter). This is NOT a claim
+that originalScene distance/possession bindinginterfaces have been mapped;
+that explicit sourceAPI/state lifecycle boundary remains. Next exact action:
+resolve that lastoriginalScene binding behavior with sameauthoritative current
+state registration and no secondactive host; report exact pendingimplementation
+rather than test/clienttails. Frozen58/stagedb6 finalpositive diff audit remains
+before finalDoominventory. No wholeline completion based solely on filecopy.
