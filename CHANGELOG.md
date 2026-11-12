@@ -45,6 +45,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Not seen: the mech she left, a mech destroyed by damage, a dead pilot's return, another
   player's view. Seen and not right: 12 s of the mech's held fire at a Training Bot 6 m away did
   not kill it.
+- Why the cannons are that weak, measured on the server afterwards: a shot of the Fusion Cannons
+  hits with one pellet of 2 damage, about 14 a second, at 6 m and at 25 m alike. A player's
+  hitscan shotgun fires a single ray here, Reaper's too (6 a shot); only some NPC shots are
+  spread. That is older than this change and is not fixed by it.
+- No shared fixture: the forms are decided by her graphs, which come from the runtime pack, so
+  the cases cannot be given as data alone. The runtime tests hold them.
 
 #### D.Va enters play in her mech
 
@@ -84,6 +90,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   appear whole.
 - Not resolved: the first 0.3 s of the new bot fell between two captures, and at 17 m the torso
   and arms cannot be told apart.
+- No shared fixture: the rebuild is the bot's own graph `0BA8` answering a message, and the graph
+  comes from the runtime pack. The runtime tests hold it.
 
 #### Target filter behavior contract
 
