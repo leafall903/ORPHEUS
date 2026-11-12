@@ -168,6 +168,10 @@ class MineWorld(runtime.World):
         return self.manager.fight.sombra_controls.play(instance, node)
 
     def native(self, cfg, instance):
+        if (instance is not None and instance.graph.index == sombra_control.EFFECT
+                and cfg is instance.graph.node(19).field("m_condition")):
+            source = expr.to_entity(instance.evaluate(cfg["m_entity"]))
+            return any(p.body == source and p.has_body and not p.gone for p in self.match.players)
         if instance is not None and instance.graph.index == LIFECYCLE:
             cls = cfg.get("$")
             if cls == "STU_D32169F6":
