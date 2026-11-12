@@ -2562,3 +2562,37 @@ then Bastion Heavy Sentry capture stance and displacement. Original0016 projecte
 NPC native recipient is A-owned pending actual mount; no second manager. Keep
 remaining Pharah/Torb/Sombra source-consumer audits explicit. Remaining estimate
 4–11 C activehours, low confidence. No client/network/publication action.
+
+
+## C59 retained Heavy support damage keyword compatibility
+
+Root authorized narrow three damage_tags→hit_tags changes in retained
+heavy_charge.py impact/crush/finish_frame. Actual Combat._damage uses hit_tags;
+source tag expressions and mathematical amounts are unchanged. All three literal
+call contracts validate against its current signature, Damage8pass2.473s.
+
+Important boundary correction: this module is NOT the current NPC damage/drive
+host. Current BotWorld.modify_health delegates heavy_assault.modify_health and
+Combat.advance_heavy_capture drives the existing1407 victim. Sentry proof reads
+heavy_charge.active, but no current caller mounts this module's damage/advance
+functions. These keyword corrections retain compatible original implementation;
+they are not evidence of newly integrated Heavy gameplay or line completion.
+Do not add another Heavy pin/force manager to make old names resolve.
+
+Original source two-method Bastion/Heavy probe first ended14.442s with3old
+heavy_drives observer errors and4assertion failures. Mapping that observer to
+heavy_charge.active was too broad: it includes windup, so its velocity0 vs old
+expected-15 does not establish a drive regression. Second probe12.755s records
+3such premature velocity failures plus3Trooper melee0 damage failures and original
+Heavy Sentry no-displacement failure. These assertions remain unchanged. Actual
+regular _interrupt alone preserves configured Sentry mode2 and scalar.8 through
+the next pose, so do not globally alter that service to chase oldcapture235.
+Logs ../worker-c-c59-bastion-heavy-{baseline,tags}-check.log and reproducer
+../parallel-merge/worker-c-bastion-heavy-source-check.py. Source full-module
+imports still require old owner interfaces; no fake aliases installed.
+
+Next C60 audit existing heavy_assault/Combat capture and shared physical motion
+consumers, with actual drive admission rather than invented heavy_drives views.
+Any source support still unmounted remains explicit. C58 phase integration and
+C57 wall-source consumers already committed; no live check at this checkpoint.
+No client/network/publication action.
