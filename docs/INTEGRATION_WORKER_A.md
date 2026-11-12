@@ -40,6 +40,13 @@ match the frozen delivery exactly. Next clean-boundary action is to merge stable
 canonical `a51925d5` into this worker, then reconcile remaining cross-hero services
 and source body/lifetime paths before declaring code-level admission.
 
+The canonical boundary merge is now retained. Its67-check run passed the A/B
+groups; Bastion expiry retained two subcase errors for Rocket.charge_eligible
+absent before C2. Root was notified; tests remain unchanged. Four isolated
+original Reaper world-clock methods passed, including idle Shadow movement and
+skipped Blossom. Continue remaining cross-hero consumers; do not recopy game data
+or repeat the full original-client acceptance gate before submitting code.
+
 Next actions, in order:
 
 1. Audit Reaper source body/lifetime boundaries and remaining cross-hero consumers;

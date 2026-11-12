@@ -49,7 +49,7 @@ COMPONENT_SCOPE = "component-vm-storage"
 TRANSPORT_FIELDS = frozenset(("stream", "create_arrived", "first_owner_frame", "reports", "report_count"))
 _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
-    "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "fault", "_operation_depth",
+    "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "input_suppressed", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
     "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health",
 ))
@@ -69,6 +69,7 @@ _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "world_frame_anchor", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
     "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing", "reaper_charge_ms", "reaper_charge_tick",
+    "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
 _GRAPH = frozenset((
