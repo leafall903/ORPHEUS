@@ -52,11 +52,24 @@ mode0 persistent world-velocity SET and LogicalButton/WeaponVolley ultimate
 query. Five original owner checks and37 shared physics/Tracer/Echo checks pass.
 This does not mount the oscillating projectile consumer yet.
 
+Fifth batch SHA: `adf49f18`.
+Sixth batch: `feat: integrate delivered Pharah Barrage motion` mounts original
+sampler and actual launch/curved chord/range consumers. Three original motion
+checks pass with the real frozen sigma_grasp helper as fixture import fallback.
+Shared Helix/Tank/server-snapshot run is active in tool session33339; inspect
+`../worker-c-pharah-motion-shared-check.log` and retain the result next commit.
+The unchanged `tests/test_pharah_control.py` is copied but deliberately not in
+this batch: baseline8 checks records5 failures (channel abort, McCree double hit
+and Flashbang boundary differences); do not weaken or drop those assertions.
+Torbjorn pending resources check differs from source (including150 versus200 tick
+fire cadence sampling); preserve both originals under distinct names later.
+
 ## Exact next work
 
-1. Continue Pharah's original Barrage launch/motion (persistent velocity SET is now mounted),
-   then splash/self-splash/impulse and charge/control consumers. Source modules
-   include barrage_motion.py; do not replace the generic combined projectile host.
+1. Continue Pharah's original curve reflection eye/seed/lifetime restart and
+   scoped002B stack interruption, then splash/self-splash/impulse and remaining
+   charge/control consumers. Do not replace the combined projectile host.
+   Root owns NPC bots/navigation/snapshot edits while reconciling sniper helpers.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
 3. Continue the other six deliveries. Substantial missing owner families include

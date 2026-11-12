@@ -52,6 +52,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   follow-up reconciliation. Incomplete acceptance does not block this mounted
   implementation submission. Uppercut and other Doomfist shared consumers
   remain pending. Original-client acceptance remains open; no client or push.
+### Mount delivered Pharah Barrage launch and curved flight
+
+- Mount the original barrage_motion sampler, seed/quantization and two motion
+  rows at actual002B emission. Sweep each16ms curved chord against the combined
+  body/world/shield/interception consumers; retain authored5s lifetime and100m
+  chord range independently. Delayed motion samples follow the same tick slices.
+- Preserve ultimate-source charge admission for emitted Barrage and defender
+  damage ownership after reflection. Normal projectile direction remains fixed
+  while the swept chord follows the authored lateral/vertical displacement.
+- All three original motion checks pass: seed14883 endpoints, catch-up equality,
+  turn-only-new-shell behavior and a narrow wall crossing the curved chord.
+  The unchanged defenses fixture imports sigma_grasp from the frozen external
+  source fallback only; this run does not execute its unmerged Grasp owner.
+- Shared Helix/Tank/server-snapshot regression was started and remains running
+  at this commit. Preserve any failures and record the result in the next batch.
+  Curve reflection's original eye/seed/lifetime restart, channel interruption
+  and remaining Pharah splash/impulse consumers still need reconciliation.
+
 ### Mount delivered Pharah Barrage channel velocity
 
 - Retain authored09F9B1FE mode0 world-velocity SET vectors, their existing tracked

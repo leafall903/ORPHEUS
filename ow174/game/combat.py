@@ -53,6 +53,7 @@ from dataclasses import dataclass, field, replace
 
 from ow174.game import (
     absorption,
+    barrage_motion,
     actors,
     assassin_victim,
     baptiste,
@@ -1277,7 +1278,15 @@ class Rocket:
     rebound_scale: float = 0.0
     hit_entities: set[int] = field(default_factory=set)
     charge_eligible: bool = True  # Tank suppression is frozen at emission, even after mode expiry.
+    motion: tuple = ()
+    motion_phase_offset: float = 0.0
+    deflect_lifetime: float | None = None
+    barrage_source: tuple | None = None
 
+
+    @property
+    def distance_flown(self):
+        return self.travelled
 
     @property
     def distance(self):
@@ -4653,7 +4662,12 @@ class Combat:
                                healing=True, line_of_sight=True,
                                tags=direct.tags if direct else (), health_operation=0)
             range_left = reach if field_spec is not None or grenade is not None else None
-            if reach and range_left is None and not field_canister:
+            barrage = (not npc and shooter.hero.guid == 0x02E0000000000008
+                       and (state.instance.graph.index, state.index) == (barrage_motion.GRAPH, barrage_motion.STATE))
+            motion = ()
+            if barrage:
+                direction, motion = barrage_motion.launch(state, activation[0], number, direction)
+            if reach and range_left is None and not field_canister and not barrage:
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
                            and state.instance.graph.index == 0x00E2 and node.pos == 3
@@ -4780,8 +4794,10 @@ class Combat:
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
                         damage_charge=charge_context,
-                        charge_eligible=not (not npc and shooter.hero.guid == BASTION
-                                             and source_graph == 0x024F),
+                        charge_eligible=not (barrage or (not npc and shooter.hero.guid == BASTION
+                                             and source_graph == 0x024F)),
+                        motion=motion, deflect_lifetime=lifetime if barrage else None,
+                        barrage_source=(shooter, state, number) if barrage else None,
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
                         target_limit=target_limit,
@@ -4789,7 +4805,7 @@ class Combat:
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
-                        range_limit=reach if field_canister else None,
+                        range_limit=reach if field_canister or barrage else None,
                         rebound_limit=rebound_limit if field_canister else None,
                         rebound_scale=rebound_scale,
                     )
@@ -5315,6 +5331,14 @@ class Combat:
                 duration -= portion
                 sweep_tick += portion / TICK
             return
+        if rocket.motion:
+            registered = rocket in self.rockets
+            for at in range(self.tick - elapsed + 1, self.tick + 1):
+                if registered and rocket not in self.rockets:
+                    break
+                rocket.last_tick = at
+                self._fly_slice(rocket, min(TICK, rocket.left), at)
+            return
         if rocket.fuse_left is not None:
             if rocket.attached_entity is not None:
                 anchor = next((target for target in self._targets()
@@ -5518,6 +5542,22 @@ class Combat:
     def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float:
         """Sweep without another gravity update. Only reflection returns unused time."""
         step = rocket.speed * duration
+        heading = rocket.direction
+        range_ends = False
+        if rocket.motion:
+            lateral = barrage_motion.displacement(
+                rocket.motion, heading, rocket.flown + rocket.motion_phase_offset, duration,
+            )
+            chord = _along(lateral, heading, step)
+            step = math.hypot(*chord)
+            if step <= EPSILON:
+                return 0.0
+            heading = tuple(axis / step for axis in chord)
+            if rocket.range_limit is not None:
+                remaining = max(0.0, rocket.range_limit - rocket.travelled)
+                if remaining <= step:
+                    duration *= remaining / step
+                    step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
@@ -5534,27 +5574,27 @@ class Combat:
             if immunity.wraith_active(target.owner, target.entity):
                 continue
             a, b = target.segment()
-            t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + (0.0 if light_gun else padding))
+            t = ray_capsule(rocket.position, heading, a, b, target.radius + (0.0 if light_gun else padding))
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
             if light_gun and padding > 0:
-                t = ray_capsule(rocket.position, rocket.direction, a, b, target.radius + padding)
+                t = ray_capsule(rocket.position, heading, a, b, target.radius + padding)
                 if t is not None and t <= step and (assisted is None or t < assisted[0]):
                     assisted = (t, target)
-        scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, rocket.direction, best[0] if best else step)
+        scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, heading, best[0] if best else step)
         if scene_barrier is not None:
             best = (scene_barrier[0], None)
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
-        wall = ray_world(collision, rocket.position, rocket.direction, max(step, assisted_rank))
+        wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
         if padding > 0 and not light_gun and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
-            swept = collision.sweep_sphere(rocket.position, rocket.direction, step, padding)
+            swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
         if wall is not None and wall <= step and (best is None or wall < best[0]):
             best = (wall, None)
             scene_barrier = None
-        ice = self.walls.cast(rocket.position, rocket.direction, best[0] if best else step)
+        ice = self.walls.cast(rocket.position, heading, best[0] if best else step)
         if ice is not None and (best is None or ice[0] < best[0]):
             best = (ice[0], None)
         else:
@@ -5566,19 +5606,19 @@ class Combat:
         redirect = None
         pulse_facing = None
         if getattr(rocket, "pulse_bomb", False) and best is not None:
-            pulse_facing = self.pulse_bombs.deflect_aim(best[1], rocket.direction)
+            pulse_facing = self.pulse_bombs.deflect_aim(best[1], heading)
             if pulse_facing is not None:
                 redirect = best
         if (biotic or (blast is not None and blast.effect == FLASHBANG_EFFECT)
                 or (rocket.direct is not None and rocket.direct.loadout == HELIX_LOADOUT)):
             limit = best[0] if best else step
-            candidate = self._trace_deflection(rocket.shooter, rocket.position, rocket.direction, limit)
+            candidate = self._trace_deflection(rocket.shooter, rocket.position, heading, limit)
             if candidate is not None and (best is None or candidate[0] < best[0]):
                 redirect = candidate
                 best = candidate
         limit = best[0] if best else step
         absorption = self._trace_absorption(
-            rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit,
+            rocket.shooter, rocket.definition, rocket.position, heading, limit,
             grasp=rocket.direct is not None and rocket.direct.loadout == HELIX_LOADOUT,
         )
         if absorption is not None and (best is None or absorption[0] < limit):
@@ -5587,7 +5627,7 @@ class Combat:
         else:
             absorption = None
         shield = self.brigitte.barrier_ray(
-            rocket.shooter, rocket.position, rocket.direction, min(step, best[0] if best else step),
+            rocket.shooter, rocket.position, heading, min(step, best[0] if best else step),
         )
         if shield is not None:
             best = shield[0], None
@@ -5595,7 +5635,7 @@ class Combat:
             absorption = None
         limit = best[0] if best else step
         deployed = sigma_barrier.barrier_intersection(
-            self, rocket.shooter, rocket.position, rocket.direction, limit,
+            self, rocket.shooter, rocket.position, heading, limit,
         )
         if deployed is not None and (best is None or deployed[0] < limit):
             best = deployed[0], None
@@ -5603,7 +5643,7 @@ class Combat:
         else:
             deployed = None
         limit = best[0] if best else step
-        echo_shield = self.barriers.intercept(rocket.shooter, rocket.position, rocket.direction, limit,
+        echo_shield = self.barriers.intercept(rocket.shooter, rocket.position, heading, limit,
                                               radius=padding, include_authored_mesh=False)
         if echo_shield is not None and (best is None or echo_shield[0] < limit):
             best = echo_shield
@@ -5626,7 +5666,7 @@ class Combat:
         scripted_shield = None
         scripted_absorption = None
         limit = best[0] if best else step
-        candidate = barriers.ray_hit(self, rocket.shooter, rocket.position, rocket.direction, limit, padding=padding)
+        candidate = barriers.ray_hit(self, rocket.shooter, rocket.position, heading, limit, padding=padding)
         if candidate is not None and (best is None or candidate[0] < limit):
             scripted_shield = candidate
             best = candidate[0], None
@@ -5634,7 +5674,7 @@ class Combat:
 
         limit = best[0] if best else step
         candidate = interception.absorption(
-            self, rocket.shooter, rocket.direct, rocket.position, rocket.direction, limit, padding=padding,
+            self, rocket.shooter, rocket.direct, rocket.position, heading, limit, padding=padding,
         )
         if candidate is not None and (best is None or candidate[0] < limit):
             scripted_absorption = absorption = candidate
@@ -5646,7 +5686,7 @@ class Combat:
                 continue
             limit = best[0] if best else step
             distance = self._genji_deflect_contact(
-                target, rocket.direct, rocket.position, rocket.direction, limit, padding=padding,
+                target, rocket.direct, rocket.position, heading, limit, padding=padding,
             )
             if distance is not None and (best is None or distance <= limit):
                 best = redirect = distance, target
@@ -5654,15 +5694,15 @@ class Combat:
 
         limit = best[0] if best else step
         ability = self._orisa_deployable_hit(
-            rocket.shooter, rocket.position, rocket.direction, limit, radius=padding,
+            rocket.shooter, rocket.position, heading, limit, radius=padding,
         )
         if ability is not None and (best is None or ability[0] < limit):
             distance, actor, manager = ability
             rocket.ended = "barrier" if manager is self.orisa_barriers else "deployable"
             rocket.travelled += distance
-            contact_time = distance / rocket.speed if rocket.speed else 0.0
+            contact_time = duration * distance / step if step > EPSILON else 0.0
             rocket.flown += contact_time
-            point = _along(rocket.position, rocket.direction, distance)
+            point = _along(rocket.position, heading, distance)
             if rocket.sticky_delay is not None:
                 if rocket.direct is not None:
                     manager.damage(actor, rocket.direct, rocket.flown * rocket.speed)
@@ -5673,18 +5713,18 @@ class Combat:
             return 0.0
 
         flight = step if best is None else best[0]
-        self._amplify_flight(rocket, rocket.direction, flight, self.tick - duration / TICK,
+        self._amplify_flight(rocket, heading, flight, self.tick - duration / TICK,
                              duration / (TICK * step) if step > EPSILON else 0.0)
         if best is None:
-            rocket.position = _along(rocket.position, rocket.direction, step)
+            rocket.position = _along(rocket.position, heading, step)
             rocket.travelled += step
             rocket.flown += duration
             rocket.left -= duration
-            if rocket.left <= 0.0:
+            if range_ends or rocket.left <= 0.0:
                 self._expire(rocket)
             return 0.0
         t, struck = best
-        contact_time = t / rocket.speed if rocket.speed else 0.0
+        contact_time = duration * t / step if step > EPSILON else 0.0
         rocket.flown += contact_time
         rocket.travelled += t
         if absorption is not None:
@@ -5703,10 +5743,12 @@ class Combat:
             if rocket.shot is not None:
                 self.projectiles.flown(rocket.shot, rocket.flown)
                 rocket.shot = None
-            point = _along(rocket.position, rocket.direction, t)
+            point = _along(rocket.position, heading, t)
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
+            if rocket.motion:
+                rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
             if getattr(rocket, "pulse_bomb", False):
                 rocket.source_entity = struck.entity
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
@@ -5736,7 +5778,7 @@ class Combat:
                 self._landed(rocket)
                 return 0.0
             return duration - spent
-        point = _along(rocket.position, rocket.direction, t)
+        point = _along(rocket.position, heading, t)
         rocket.ended = "body" if struck is not None else "world"
         if scripted_shield is not None:
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
@@ -5762,7 +5804,7 @@ class Combat:
             self._landed(rocket)
             return 0.0
         if struck is None:
-            point = _along(rocket.position, rocket.direction, max(0.0, t - 1e-4))
+            point = _along(rocket.position, heading, max(0.0, t - 1e-4))
         broken_particle_barriers: set[int] = set()
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             direct = rocket.direct
@@ -5821,7 +5863,7 @@ class Combat:
             self._stick(rocket, point, duration - contact_time)
             return 0.0
         self._landed(rocket)
-        damage_point = (_along(point, rocket.direction, 1e-4)
+        damage_point = (_along(point, heading, 1e-4)
                         if struck is None and rocket.direct is not None
                         and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
                              or (rocket.source_graph == 0x024F and not rocket.charge_eligible)) else point)

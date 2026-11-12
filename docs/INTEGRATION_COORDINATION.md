@@ -127,3 +127,10 @@ Root's74-check combined run passed72. Preserve two original PassiveShield
 differences: absent `Vitals.add_temporary_shields` and temporary-pool transport
 tag0xffffffff versus expected2. Worker B owns the remaining consumer audit;
 neither failure prevents committing this mounted Uppercut batch.
+
+C6 `1ecc533b` is received by the merge named `merge: receive worker C Barrage
+motion integration`. All14 original curve/Helix/projectile-storage/export checks
+passed after reconciling shared combat code. The original Pharah fixture still
+loads the real frozen Sigma helper via package fallback solely for its top-level
+import; these checks do not claim Sigma integration. Worker C continues the
+delivered reflected-curve restart/eye/seed consumers separately.
