@@ -414,7 +414,9 @@ class InstanceContext(Context):
                 and self.instance.graph.index == 0x0B8B):
             # Preserve the delivered Torb normal/practice gate before the newer
             # generic typed component43 query. Other owners keep their hosts.
-            result = component.world.native(cfg, self.instance)
+            from ow174.game import torbjorn_charge
+
+            result = torbjorn_charge.native(component.world, cfg, self.instance)
             if result is not NotImplemented:
                 return result
             if cls == body_owner.CLASS:

@@ -1277,6 +1277,9 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if (state.instance.component.world.hero == 0x02E000000000000A
+            and graph_index == 0x001B and node_index in (6, 9)):
+        critical_default = value("m_66D29548", 1.0) * max(1.0, value("m_BC54C84B", 0.0))
     if graph_index == 0x0D0A and node_index == 2 and cfg.get("$") == "STU_00D9C7E1":
         critical_default = -1.0
     if isinstance(loadout, expr.Asset) and loadout.guid == ECHO_TRI_SHOT_LOADOUT:
@@ -4065,6 +4068,9 @@ class Combat:
                         except (runtime.ScriptBudgetError, runtime.UnsupportedScriptError):
                             log.exception("[game] %s: %s's world timers failed", self.match.label(), player.name)
                             self.match.stop_body_script(player, failed=True)
+            from ow174.game import widowmaker
+
+            widowmaker.update(self)
             self._advance_timed_hits()
             self.zenyatta.update()
             if self.lucio_auras.leases or self.lucio_auras.healing:
@@ -4776,13 +4782,27 @@ class Combat:
 
 
     def body_health(self, entity):
-        vitals = self.vitals.get(entity)
-        if vitals is not None:
-            return vitals.total, vitals.maximum
+        """Read delivered component51 lifetimes without allocating a pool."""
+        owner = next((player for player in self.match.players
+                      if not player.gone and player.has_body and player.body == entity), None)
+        if owner is None:
+            owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
+        if owner is None:
+            owner = self.deployables.get(entity)
+        if owner is not None:
+            vitals = self.vitals.get(entity)
+            if vitals is not None:
+                return vitals.total, vitals.maximum
+            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+                       else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
+            return float(maximum), float(maximum)
+        if (entity == world.GAME_MODE_ENTITY
+                or any(not p.gone and p.entity == entity for p in self.match.players)):
+            return 0.0, 0.0
         for actor in self.sigma_barriers.values():
             if actor.entity == entity:
                 return actor.vitals.total, actor.vitals.maximum
-        return NotImplemented
+        return None
 
     def heal_target(self, healer, entity, amount, frame, *, allow_self=False, tags=None):
         if (amount <= 0 or (entity == healer.body and not allow_self)
@@ -5128,8 +5148,11 @@ class Combat:
 
     def revealed_to(self, viewer, target) -> bool:
         """Read current team-scoped reconstructed reveal state."""
-        return any(sonic.visible(beacon, viewer, _source_entity(target), self.match.game_map.free_for_all)
-                   for beacon in self.sonars)
+        from ow174.game import widowmaker
+
+        entity = target if isinstance(target, int) else _source_entity(target)
+        return (any(sonic.visible(beacon, viewer, entity, self.match.game_map.free_for_all)
+                    for beacon in self.sonars) or widowmaker.revealed_to(self, viewer, entity))
 
     def _commit_attack(self, shooter, frame, payload, boost):
         scale = boost[1] if boost is not None else 1.0

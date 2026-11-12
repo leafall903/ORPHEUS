@@ -432,3 +432,9 @@ instance guard, Torb0B8B/source record routing, Sniper BotWorld/PositionSearch/
 storage fields, new projectile geometry records and Punch collision consumers.
 Only changelog conflicted; keep both. Molten/mark/turret update each occurs once.
 Do not replay this coordination merge as a hero delivery.
+
+Before first0016 batch, sync root8937f36a (received C19ea3d56dc). Preserve root
+Torb native direct torbjorn_charge.native dispatch with typed NotImplemented
+fallthrough, Genji and missing-instance gates, original Combat.body_health
+lookup semantics and all latest owner fields. Only changelog conflicted; keep
+both entries. This coordination merge is not a new owner implementation.

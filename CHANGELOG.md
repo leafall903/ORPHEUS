@@ -5,32 +5,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 ### Mount delivered Torbjorn original charge and owner gates
+### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
-- Connect original0B8B permission, native owner/classification queries, periodic
-  wait and012 damage/tag/pool-loss records to Torbjorn only. Preserve current
-  Genji and Orisa single owner hosts, their charge formulas/history and all
-  generic typed evaluators outside this explicit compatibility route.
-- Route turret damage through its real owner, deduct actual3EBB shield loss,
-  reject deployable/repair/self/ultimate damage and retain authored clamps and
-  modifiers. Transfer the normal passive deadline and unspent charge across
-  same-hero replacements; retain explicit sandbox timer overrides.
-- Adapt original tagged-shield grant/decay/read API to real existing extra pools
-  and unique wire IDs. Existing TTL/capsule/owner lifetimes stay authoritative;
-  there is no second pool or independent observed health counter.
-- Preserve original Torbjorn assembly ultimate gate and held/released input
-  policy without altering existing skill locks. Source charge/NPC/ultimate
-  checks are retained unchanged. Six owner core checks pass; three actual
-  shield/grant/cast checks pass; passive replacement/respawn cases pass. Seven
-  additional lifecycle/turret checks pass, and all three assembly cases pass.
-- Shared60-check run:55 pass/four skip/one existing Genji spawn-lifecycle fail.
-  Root reproduced the identical line206 failure on clean8dc396d6 before C19,
-  and is fixing its existing Genji host dispatch separately. No source
-  assertion was changed or existing check weakened to submit this batch.
-- Original shared Genji/Orisa/Ball helper declarations are retained; new C19
-  consumers are scoped to Torb. Canonical Ball1566 and the other two charge
-  hosts remain separate owners. Cross-owner3EBB record equivalence still needs
-  audit (Orisa currently emits empty detail arrays); whole0006 completion and
-  original-client acceptance are not claimed.
+
+- Preserve source000A primary/scoped authored critical defaults (2/2.5), effective
+  damage charge and stale ultimate-press expiration on the combined body host.
+  Derive committed0067 cast/effect windows from its retained Wait; expose live
+  reveal to the existing combat query and TrackTargets payload, refreshed by
+  server world time even without owner commands. Keep one script/combat manager.
+- Preserve the complete original test_widowmaker_combat.py, including pending
+  Grapple/Venom methods. Original rifle/Infra23 methods:22 pass, one retained
+  failure at0B8B/node83 Var16102 (native fold accumulator0.0 versus old expected
+  empty tuple). Keep the newer original fold.py implementation and old assertion.
+  Shared Damage/runtime/profile27 checks:25 pass,2 optional input skips.
+- Frozen source:hero-deliveries/000A at0bbf016a88d6272db5358c5e4f6a611d4db5b327.
+  Grapple and Venom consumers remain actual pending work, not whole-line complete.
 
 ### Restore Pulse Bomb current-source retirement boundary
 
@@ -109,6 +98,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Mount delivered Reinhardt mutual Charge windup counters
+### Mount delivered Torbjorn original charge and owner gates
+
+- Connect original0B8B permission, native owner/classification queries, periodic
+  wait and012 damage/tag/pool-loss records to Torbjorn only. Preserve current
+  Genji and Orisa single owner hosts, their charge formulas/history and all
+  generic typed evaluators outside this explicit compatibility route.
+- Route turret damage through its real owner, deduct actual3EBB shield loss,
+  reject deployable/repair/self/ultimate damage and retain authored clamps and
+  modifiers. Transfer the normal passive deadline and unspent charge across
+  same-hero replacements; retain explicit sandbox timer overrides.
+- Adapt original tagged-shield grant/decay/read API to real existing extra pools
+  and unique wire IDs. Existing TTL/capsule/owner lifetimes stay authoritative;
+  there is no second pool or independent observed health counter.
+- Preserve original Torbjorn assembly ultimate gate and held/released input
+  policy without altering existing skill locks. Source charge/NPC/ultimate
+  checks are retained unchanged. Six owner core checks pass; three actual
+  shield/grant/cast checks pass; passive replacement/respawn cases pass. Seven
+  additional lifecycle/turret checks pass, and all three assembly cases pass.
+- Shared60-check run:55 pass/four skip/one existing Genji spawn-lifecycle fail.
+  Root reproduced the identical line206 failure on clean8dc396d6 before C19,
+  and is fixing its existing Genji host dispatch separately. No source
+  assertion was changed or existing check weakened to submit this batch.
+- Original shared Genji/Orisa/Ball helper declarations are retained; new C19
+  consumers are scoped to Torb. Canonical Ball1566 and the other two charge
+  hosts remain separate owners. Cross-owner3EBB record equivalence still needs
+  audit (Orisa currently emits empty detail arrays); whole0006 completion and
+  original-client acceptance are not claimed.
+
 
 ### Mount delivered Molten Core projectiles, areas and status consumers
 
@@ -8004,3 +8021,18 @@ client operations performed. Whole nonappearance integration remains active.
   parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
   Orisa input skips before availability fix), and
   parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
+
+
+### Restore original read-only health-query lifetimes
+
+- Restore source013B Combat.body_health live player/NPC/controller/mode and
+  missing-entity behavior in place of the partial combined cache-only lookup.
+  Keep current Sigma and actual Deployable pools, preserve current maximum
+  aggregation, and do not allocate Vitals while reading missing cached state.
+  Departed/replaced bodies return native lookup failure instead of falling
+  through to compatibility null; active bodies without a client remain readable.
+- Original health/controller queries, Genji passive, owner query guards, fold
+  and runtime80 checks all pass. Both previously preserved Ana leave subcase
+  failures now pass unchanged. Evidence:
+  parallel-root-restored-health-query-check.log. No source assertion modified,
+  no second pool/manager or new game feature. Remaining batches continue.
