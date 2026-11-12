@@ -105,6 +105,26 @@ class Controls:
         windows.append((start,end))
         self.lock_history[component.entity] = component, windows
 
+    def observe_lock(self, application):
+        """Retain the end of the real authored recipient wait, not a new timer."""
+        wait = application.states.get(58) if application.graph.index == EFFECT else None
+        row = self.lock_history.get(application.component.entity)
+        if (not isinstance(wait, nodes.Wait) or row is None
+                or row[0] is not application.component):
+            return
+        for index, (start, end) in enumerate(row[1]):
+            if start <= application.start <= end:
+                row[1][index] = start, max(end, wait.start + wait.ms)
+                break
+
+    def locked_at(self, script, frame):
+        component = getattr(script, "component", None)
+        row = self.lock_history.get(getattr(component, "entity", None))
+        if row is None or row[0] is not component:
+            return False
+        now = frame * component.frame_ms
+        return any(start <= now < end for start, end in row[1])
+
     def first_lock_after(self, script, frame, tick):
         """Original first-lock query; both bounds are recipient body frames.
 
@@ -125,7 +145,7 @@ class Controls:
         """Latch held skills until a received command releases them."""
         entity = player.body
         masked = self.held.get(entity, 0) & command.buttons
-        if entity in self.locks:
+        if entity in self.locks or self.locked_at(player.body_script, command.frame):
             masked |= command.buttons & SKILL_INPUT
         if masked:
             self.held[entity] = masked
@@ -194,6 +214,7 @@ class Controls:
                 continue
             keep = []
             for lock in locks:
+                self.observe_lock(lock.application)
                 if self.fight.now < lock.until:
                     keep.append(lock)
                 else:

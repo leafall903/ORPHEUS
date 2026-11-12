@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain original recipient-frame skill admission through the expiry edge
+
+- Observe the real Hack Wait in existing lock history and apply its recipient
+  frame window through the existing input/held-bit path. World timers, ordinary
+  weapon input and body/world epoch separation stay intact.
+- Original Ashe Hack/EMP expiry methods and Soldier Helix reuse pass completely;
+  joint36 including all15Sombra charge, replay adapter and VM runtime all pass.
+  Incoming reapply/clock and actual device-consumer boundaries remain recorded.
+
 ### Preserve original body silence state across Hack lifetimes
 
 - Existing Sombra Controls now saves/restores the original body888 base for
