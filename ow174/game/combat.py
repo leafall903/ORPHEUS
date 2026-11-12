@@ -121,7 +121,7 @@ NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6,
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
 from ow174.game import ball, ball_mines, hook, whole_hog, spread
-from ow174.game.collision import MOVER, RayWorld, World
+from ow174.game.collision import LayeredWorld, MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
 from ow174.game.content import JUNKENSTEIN_SHOCKING_SURPRISE, heroes
@@ -8338,7 +8338,7 @@ class Combat:
             best = (wall.distance, None)
         field = rocket.deployment if isinstance(rocket.deployment, baptiste.FieldSpec) else None
         auxiliary = None
-        if field is not None and isinstance(collision, World):
+        if field is not None and isinstance(collision, (World, LayeredWorld)):
             radius = field.sweep_radius
             if radius > 0.0 and step > 0.0:
                 auxiliary = collision.cast_sphere(rocket.position, direction, step, radius)

@@ -139,6 +139,34 @@ is root-owned intake, not reimplemented here. No remaining newly identified
 owned production consumer is currently open; A105 final signed mapping follows,
 without requiring all source/client acceptance to pass.
 
+## C72 — layered lift world serves current precise ray and sphere consumers
+
+Preserved original LayeredWorld four-field storage and reused its combined engine
+for current sphere casts. A temporary ray view retains exact base ray geometry
+and unions moving platform contacts; actual Baptiste placement accepts the layer.
+Original00DD platform review found all25 functions/methods mapped,22 exact AST,
+with one Lift VM, native wall actors/parents and strict causal storage retained.
+Precise ray/material +sphere +actual live lift FireStrike and snapshot/fingerprint
+checks34/34pass4.009s. Original79 assertions and old110tick difference preserved;
+no client/network/publication action and no second geometry host.
+
+## C71 — owned-mech quick melee keeps the original polymorphic hero guard
+
+Reused _melee existing actual hero identity for Mei size scaling, avoiding a real
+BotScript.hero AttributeError during owned-DVa melee. No BotScript alias or damage
+change. Original mech30/booster10 +MeiScale2+Damage8 =11/11pass8.715s on v19.
+Persisted six frozen original-line consumer receipts and the finite generic-force/
+controller-query SDK handoffs. No client/network/publication action.
+
+## C70 — original mode-scoped Mei melee projectile absorption
+
+Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
+actual22F0 defense on the same BodyScript/interception host. Original no-amount
+source41 contact, cone, boxes, tags, cooldown and fresh body lifecycle are preserved;
+ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
+source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
+three original Mei absolute differences and one old sigma_grasp fixture import
+error, without blocking code. No new defense pool, input bundle or client action.
 ## A103 — original typed-row policy on the sole mover modifier ledger
 
 Confirmed original007A typed_override_scalar_order_expiration_and_base_restoration
