@@ -791,3 +791,20 @@ Final focused new3 + original Torb rivet1 =4 pass after reducer factoring
 (pool-loss-final-boundary.log). All logs verification/worker-a-*.
 Next exact action: root receive independent A29, then continue concrete cross-owner
 pool event/credit audit; do not introduce another012 or any new feature/matrix.
+
+### A30 actual source-body credit boundary (this commit)
+
+A29 committede72e0a15. Follow-on actual provenance probe: Genji body retired by
+switch toOrisa, grant real50Adaptive to victim, damage70 with old source_body;
+victim correctly loses50shield+20base but current Orisa incorrectly gained20.
+Source013E predates retained foreign-flight/source_body support, while current
+Genji generic route already excludes retired source bodies. Root's handoff
+explicitly requires source credit belong to its owner. Move only Orisa existing
+012 call under the already-present source_body/currentbody guard shared by Lucio.
+No new host, source pointer rewrite, damage/stat suppression or flight teardown.
+Extend real-pool regression with both hero-switch directions and award_ult=False:
+actual damage/pool loss remains70, new body gains0, no012. Existing current-body
+loss cases remain passing. All26 new4 + originalOrisa critical1 + GenjiPassive13
++ Damage8 methods pass, no skips (worker-a-charge-source-boundary.log).
+Next exact action: root receive A29/A30 and their clean sync; continue concrete
+cross-owner pool event/credit audit, keeping original source checks and semantics.
