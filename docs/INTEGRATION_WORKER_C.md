@@ -37,16 +37,26 @@ satisfy the unchanged NPC fixture import; its normal import remains unresolved.
 Shared Helix/Tracer projectile run records7 passes,1 external Matrix skip and
 1 missing sigma_accretion import. No client or NPC acceptance is claimed.
 
+Third batch SHA: `9d667dfd`, root received as canonical00fabf7a.
+Local canonical synchronization: `a4e85027` (coordination merge, do not replay
+as a functional batch). All49 original Bastion combat/charge checks now pass.
+
+Fourth batch: `feat: integrate delivered Pharah hover and Jump Jet` mounts
+0025 hover force,0027 reset/vector action and body-yaw query. All40 checks
+(Pharah movement12, McCree roll15, script runtime13) pass. Root receives the
+single functional SHA after the coordination merge; it already has its parents.
+
 ## Exact next work
 
-1. At this clean commit boundary merge the latest root canonical locally,
-   retaining input_suppressed and all received shared implementations. Then
-   audit the remaining Bastion cross-hero helpers and original combat checks;
-   compare owner features, not just ancestry or file names.
-2. Continue the other seven deliveries. Substantial missing owner families include
+1. Continue Pharah's original Barrage launch/motion and persistent velocity SET,
+   then splash/self-splash/impulse and charge/control consumers. Source modules
+   include barrage_motion.py; do not replace the generic combined projectile host.
+2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
+   just ancestry or file names. Core combat/charge49 checks already pass.
+3. Continue the other six deliveries. Substantial missing owner families include
    Torbjorn turret/Molten Core, Symmetra portals/turrets, Junkrat mine/tire,
    Mei Blizzard/frost, Sombra cloak/translocator and Ashe/BOB.
-3. For Torbjorn also compare the root-discovered preserved file
+4. For Torbjorn also compare the root-discovered preserved file
    `verification/combined-server-pending-tests/test_game_torbjorn_resources.py`
    against incoming/current checks; retain differing expectations without overwrite.
 

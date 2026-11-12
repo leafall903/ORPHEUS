@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Pharah hover and Jump Jet movement
+
+- Retain the0025 active hover force, authored speed cap and existing graph-owned
+  fuel/start/stop clocks. Apply force before the normal gravity/collision pose,
+  preserve faster Jump Jet velocity, and bridge existing control/sleep/Hack gates.
+- Mount0027's delivered reset-plus-vector Jump Jet action and its body-yaw native
+  query. Keep the source's yaw/pitch-independent horizontal launch and vertical
+  reset, float32 addition and fall/air flags without changing other heroes' actions.
+- Preserve the original Pharah combat fixture and12 movement checks unchanged.
+  All40 checks in Pharah movement, McCree roll and script runtime pass.
+  After the canonical synchronization, all49 original Bastion combat/charge
+  checks also pass; cross-hero helpers and client acceptance remain open.
+- Pharah Barrage launch/motion, persistent channel velocity, splash/impulse and
+  remaining charge/control consumers still need reconciliation. This submits the
+  existing movement implementation without waiting for whole-line acceptance.
+
 ### Mount delivered Bastion Tank projectile consumers
 
 - Retain024F/23's point projectile contact and launch-frozen charge suppression,
