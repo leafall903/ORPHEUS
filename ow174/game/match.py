@@ -516,8 +516,15 @@ class Player:
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
+            start = tuple(self.mover.position)
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
-            fight.punches.movement_result(self, outcome)
+            destination, speed = punch
+            distance = math.dist(start, destination)
+            progress = distance - math.dist(self.mover.position, destination)
+            # Delivered collision host: a skin-creeping capsule is still blocked.
+            if outcome is None and progress < min(distance, speed * seconds) / 2:
+                outcome = False
+            movement_end = fight.punches.movement_result(self, outcome)
         elif climb is not None:
             start_y = self.mover.position[1]
             outcome = self._move_pose(command, seconds, tick, move_to=climb, flight_profile=flight_profile)
@@ -591,7 +598,7 @@ class Player:
         return outcome
 
     def _advance_body_frame(
-        self, command: Command, *, posed: bool = True, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, command: Command, *, posed: bool = True, movement_end: tuple[runtime.State, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
         defer_effects: bool = False,
     ) -> None:
@@ -1713,7 +1720,7 @@ class Match:
         player.body_script_failed = failed
 
     def body_command(
-        self, player: Player, command: Command, *, movement_end: tuple[nodes.MoveTo, bool] | None = None,
+        self, player: Player, command: Command, *, movement_end: tuple[runtime.State, bool] | None = None,
         posed: bool = True,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)

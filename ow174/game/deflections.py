@@ -57,7 +57,9 @@ def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb'), d
                 if mode not in modes:
                     continue  # Other native DeflectProjectiles modes require their own consumers.
                 definitions = getattr(fight, "matrix_definitions", None)
-                if mode == 'absorb' and definitions is not None and rocket.definition not in definitions:
+                admitted = getattr(rocket, "matrix_absorbable", None)
+                if mode == 'absorb' and not (admitted if admitted is not None else
+                                            rocket.definition in definitions if definitions is not None else True):
                     continue
                 angle = state.evaluate(state.node.field('m_025D0C39'), watch=False)
                 if not isinstance(angle, (int, float)):

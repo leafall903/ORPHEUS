@@ -434,3 +434,125 @@ fixture APIs with actual current native managers; do not build fake state just
 to satisfy a private-dictionary assertion. Complete source0005 consumer audit,
 then Tracer0003/Widowmaker000A. Keep original failing checks in Git and submit
 actual batches without waiting for all client/native acceptance to close.
+
+
+A19 committed `e799f60c`, accepted root canonicalb6859d9b with A18. A20 stores
+source matrix_absorbable admission at emission and routes current Matrix/Grasp
+consumers through that frozen bit (None keeps explicit old Rocket behavior).
+Source matrix._owned_closed is retained exactly; matrix.trace ports owned0407
+identity through current pilot source_body/owner fields and real control_mover,
+using the existing box consumer. Combat._trace_absorption now sees the owned
+Bot Matrix instead of only player Hero.body. Incoming00B9 absorbed leases clear
+their projectile pointer after real transport retirement; no impact Beacon.
+Original two Sonic normal/final ricochet absorption methods now pass their
+actual eight on/off DVa/Sigma flow assertions until four final old
+Vitals.bonus_shields reads (preserved AttributeError), in
+worker-a-hanzo-launch-admission-owned.log. Other identities remain real, no
+legacy private dictionary fabricated. Source0005 ref is
+2b67b154a11b7e930ee431182d8e3a70cb90b8bb.
+Actual four launch-frozen tests (Ana hip projectile, Matrix/Sigma) reverse
+matrix_definitions immediately after _submit_attack: False->full still damages
+(530/330HP), True->empty still absorbs(600/400HP), all pass in
+worker-a-hanzo-launch-frozen-live.log. All50 current projectile/Bastion/Damage
+checks pass in worker-a-hanzo-launch-frozen-shared.log. Stored admission false
+vs true changes digest and repeated export is stable with Var.value and
+Instance.evaluate disabled, in worker-a-hanzo-launch-frozen-storage.log.
+Root independently ports volley_geometry/configure_volley_geometry and existing
+NPC consumer; do not touch the _shoot direction section. Next exact action:
+route source controlled-Matrix tracing through legacy finite/range canister
+flight paths as well (existing _deflector return/absorption dispatch must keep
+Sigma amount/grant exclusive to1D02), then source0005 owner reconcile. Keep
+private bonus_shields/Zarya observation differences in logs without delaying
+code-layer integration. Then audit0003 and000A rather than inflating acceptance.
+
+
+A20 committed `40623ea1`, accepted root6891462b. A21 connects actual source
+owned0407 Matrix through existing _deflector, so tagged hitscan, finite/range/
+gravity and field-canister drivers share current matrix.trace/owned close
+projection. Existing time_span maps the actual contact into native close time.
+Sigma's amount/grant dispatch now explicitly requires1D02; Matrix never runs
+that consumer. Actual Ana grenade with a real controlled mech: released Matrix
+545HP, held Matrix600HP in worker-a-owned-matrix-legacy-grenade.log.52 current
+projectile/Bastion/Damage/focused Genji checks pass in
+worker-a-owned-matrix-legacy-shared.log. No private observer fabricated and no
+original assertion edited.
+
+Source0005 owner reconcile boundary (ref2b67b154a11b7e930ee431182d8e3a70cb90b8bb):
+- hanzo_charge.py, hanzo_control.py, sonic.py, dragon.py are byte-exact source.
+- hanzo_movement.py differs only in the missing Sigma Flux import adapter:
+  original1DBC/node12 active-state predicate retained locally. Lunge/climb/ledge
+  native/velocity/pose/cleanup and all five Climb fields are live consumers.
+- Source0101 fixed phases map to the current ConditionalTimer native consumer;
+  original1s/1.2s phase timer and both storage checks pass, no old timer swapped.
+- Original bow/Storm/Sonic launch, crit/gravity/path/lifetime/one-bounce, initial
+  Dragon penetration/subframe/continuation, independent source and historical
+  moving target/Fortify dose consumers are mounted. Explicit CLI/lobby/server/
+  journal inputs are live.32 normal Sonic/Dragon methods and source profile9
+  passed, original movement/chronology/range checks passed as recorded above.
+- Source Matrix owned-body close/volume policy maps to real current owner,
+  source_body, control_mover and current authored box consumer. No second driver.
+- Source arrow_deflection geometry is preserved as a tests-only frozen utility;
+  production uses newer deflection/interception services. Original seven
+  post-bounce/Genji/terminal/path behaviors pass through those actual consumers.
+- Source's old Vitals.bonus_shields/Combat.zarya_barriers observations and one
+  before-wall Sonic70-vs140 geometry expectation are retained. Do not equate
+  those open observations with absent hero feature code or hide them.
+- Whole0005 source also contains Sniper, volley_geometry, Sigma/other hero/shared
+  work. Root is integrating original geometry flag/defaultFalse/snapshot and
+  actual NPC pellets (0b8d98cb,109 passed), plus original16m Sniper search2.5.
+  Root owns cross-owner maps and formal delivery ancestry; no whole-ref claim
+  from this worker. Appearance work stays excluded.
+Next clean-boundary action: absorb canonicale875ed87 or newer, then audit0003
+Tracer recall/Pulse/weapon source consumers and000A Widowmaker core. Do not keep
+expanding acceptance instead of progressing these owners. Preserve all source
+checks and commit actual code batches even when old/client acceptance is open.
+
+
+A21 committed `48bdb2db`. Clean boundary sync now absorbs canonicale875ed87,
+including root original volley_geometry and real NPC per-pellet paths plus new
+native field layouts. Only CHANGELOG union conflict; combat auto-merged without
+code conflict. Tracer frozen ref8a3ece2db99405a6c14e3e36c0492fc71d4bb48c;
+Widowmaker0bbf016a88d6272db5358c5e4f6a611d4db5b327. Next: compare Tracer
+tracer.py/tracer_pistol.py and Pulse Bomb delivery with current Recalls/PulseBombs
+managers; inventory Widowmaker modules/driver/combat hooks without appearance.
+Sync verification:30 profile/journal/Damage/runtime normal checks passed in worker-a-canonicale875-sync.log.
+
+
+Worker sync5eadb775 absorbs e875ed87;30 checks passed. A22 restores source0003
+Pulse family current-source retirement. Generic foreign reflected rounds still
+survive, excluding only pulse_bomb; its original owner body can retire while
+new holder remains, then the holder's body replacement cancels without blast.
+Normal77 original Tracer core/Pulse/Deflect methods:76 pass, one unchanged
+fuse_left None-vs0 sentinel read fails in
+worker-a-tracer-owner-final.log. Its source assertion remains; do not alter
+shared Rocket sticky/fuse semantics only to manufacture that view.24 actual
+Ana hip/dart foreign-flight, Genji0304 reflected Shuriken teardown, Damage and
+runtime checks pass in worker-a-tracer-retirement-shared.log.
+
+Source0003 owner reconcile, frozen8a3ece2db99405a6c14e3e36c0492fc71d4bb48c:
+- tracer_pistol.py is code-identical (git no-index diff empty after line endings).
+  Bloom retention/rays and actual _shoot consumers are mounted.
+- tracer.py Blink source action is preserved with only current Walls.move_mover
+  adapter; _player is AST-identical. Mobility rejection during Recall/Graviton
+  and same-frame correction remain live.
+- Old body-world RecallSample/RecallSession/remember/begin/end map to existing
+  tracer_recall Recalls Sample/Phase/history/start/update/finish plus actual
+  001A phase nodes. Position/health restoration, cleanse, blocked rewind point,
+  input freeze, cancellation cooldown and retirement all have consumers and
+  snapshot layouts. Original restore-three-second-health-ammo correction passes:
+  do not add a duplicate manual refill when current authored graph already does.
+- Old independent PulseBombs manager maps to current Bomb(Rocket) plus existing
+  PulseBombs command anchors/sampled gap poses, _fly/_sweep/_stick/_explode and
+  transport retirement. Preserve current recovered D71ACD velocity update rather
+  than replace it with the earlier source's explicitly reconstructed trajectory.
+  Original Pulse main tests pass. Source-body retirement now matches the old
+  manager. Frozen absorption, reflected source, attachment/Recall detachment,
+  fuse, lifetime, blast/cover and kill credit retain one authoritative driver.
+- The one old unarmed fuse sentinel view remains open, not missing explosion or
+  ownership functionality. Full frozen ref also contains many cross-owner hero
+  changes, which root owns for formal reconcile/ancestry. No appearance work.
+Next exact action: mount000A Widowmaker rifle/headshot/charge plus Infra-Sight
+and Grapple native state/runtime/driver/combat consumers, followed by original
+venom.py and its throw/tick/contact/damage/cleanup consumers. Current combined
+server has no Widow-specific module and no005A grapple callback, so this is
+real missing code; proceed without waiting for the sentinel observation.

@@ -256,6 +256,22 @@ class AssassinControllerWorld(runtime.World):
 class BotWorld(runtime.World):
     """Resolve the supported authored predicates and input bindings for an NPC body."""
 
+    @property
+    def combat(self):
+        return self.match.combat if self.match is not None else None
+
+    def search_position(self, state):
+        from ow174.game import sniper_special
+
+        return sniper_special.search(self, state)
+
+    def position(self, entity):
+        if self.hero == 0x02E00000000001B8 and self.match is not None:
+            value = self.match.script_body_position(entity, entity)
+            if value is not None:
+                return value
+        return super().position(entity)
+
     _lookup_body_owner = BodyWorld._lookup_body_owner
     _lookup_entity_query = BodyWorld._lookup_entity_query
     _poll_entity_query = BodyWorld._poll_entity_query
@@ -553,6 +569,13 @@ class BotWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context, npc_shields, orisa_halt
+
+        if self.hero == 0x02E00000000001B8:
+            from ow174.game import sniper_special
+
+            result = sniper_special.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
 
         if self.hero == 0x02E000000000007A and self.match is not None:
             from ow174.game import body_entities

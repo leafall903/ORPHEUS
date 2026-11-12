@@ -1573,6 +1573,7 @@ class Rocket:
     motion_phase_offset: float = 0.0
     segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
+    matrix_absorbable: bool | None = None
     storm_ricochets: int = 0
     continuation: dragon.Profile | None = None
     started_tick: float | None = None
@@ -2269,7 +2270,7 @@ class Combat:
         self.rockets[:] = [
             rocket for rocket in self.rockets
             if rocket.shooter is not player
-            or (rocket.reflected and rocket.shot is None)
+            or (rocket.reflected and rocket.shot is None and not getattr(rocket, "pulse_bomb", False))
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
@@ -2532,6 +2533,7 @@ class Combat:
         component = script.component
         from ow174.game import assassin, hanzo_control
 
+        self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
         component.discard_button_presses()
@@ -2598,6 +2600,8 @@ class Combat:
     def charge_contact(self, player, command: Command, start, seconds: float) -> None:
         """Use the delivered contact consumer on the existing Charge/mover state."""
         reinhardt_charge.advance(self, player, command, start, seconds)
+
+    _counter_duration = staticmethod(reinhardt_charge.profile_duration)
 
     def charge_blocked(self, player, *, impact=True, frame=None):
         """Delivered obstruction/control exit using the existing Charge record."""
@@ -2911,6 +2915,7 @@ class Combat:
             if instance is not None:
                 reinhardt_charge.drain_end(instance)
         component.shots.clear()
+        self.punches.interrupt(target.owner)
 
         cast = self.meteors.casts.get(target.entity)
         if not isinstance(target.owner, bots.Bot):
@@ -5491,6 +5496,9 @@ class Combat:
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
+                        matrix_absorbable=(definition in self.matrix_definitions
+                                           if self.matrix_definitions is not None
+                                           else projectile_tags.absorbable(definition)),
                         storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
@@ -5585,16 +5593,32 @@ class Combat:
         return weapon_spread.jittered_ring_directions(forward, rings, spread, jitter, seed, shot)
 
     def _deflector(self, shooter, definition, origin, direction, reach, *, view_tick=None, time_span=None,
-                   radius=0.0):
+                   radius=0.0, absorption_admitted=None):
         admitted = self.projectile_tags.admitted(definition)
-        absorbable = definition in self.matrix_definitions if self.matrix_definitions is not None else admitted
+        absorbable = (absorption_admitted if absorption_admitted is not None else
+                      definition in self.matrix_definitions if self.matrix_definitions is not None else admitted)
         if not admitted and not absorbable:
             return None
         closest = None
         for target in self._enemies(shooter):
             owner = target.owner
             script = getattr(owner, 'body_script', None)
-            hero = getattr(getattr(owner, 'hero', None), 'guid', None)
+            identity = getattr(owner, "hero", None)
+            hero = getattr(identity, "guid", None)
+            if absorbable and getattr(identity, "guid", identity) == 0x02E000000000007A:
+                from ow174.game import matrix as matrix_service
+
+                shown = self.seen(target, view_tick) if view_tick is not None else target
+                distance = None if shown is None else matrix_service.trace(shown, origin, direction, reach)
+                at_tick = self.tick
+                if distance is not None and time_span is not None:
+                    at_tick = time_span[0] + (time_span[1] - time_span[0]) * (distance / reach if reach else 0)
+                if distance is not None:
+                    distance = matrix_service.trace(shown, origin, direction, reach, tick=at_tick)
+                if distance is not None and (closest is None or distance < closest[0]):
+                    guard = next(deflection._active_states(script, 0x02CC, 3), None)
+                    closest = distance, target, None, True, guard
+                continue
             if (hero not in (deflection.GENJI, absorption.SIGMA)
                     or script is None or script.retired or getattr(owner, 'mover', None) is None
                     or self.is_stunned(owner)):
@@ -5747,7 +5771,8 @@ class Combat:
             return
         if tagged_contact is not None and tagged_contact[3] and wall is None and limit == tagged_contact[0]:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
-            self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
+            if tagged_contact[4].instance.graph.index == absorption.GRASP:
+                self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
             distance, target = redirect
@@ -6137,7 +6162,8 @@ class Combat:
                 best = surface.distance, None
             limit = step if best is None else best[0]
             barrier = self._barrier_contact(rocket.shooter, rocket.position, rocket.direction, limit)
-            absorbed = self._deflector(rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit)
+            absorbed = self._deflector(rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit,
+                                       absorption_admitted=rocket.matrix_absorbable)
             if (barrier is not None and (best is None or barrier[0] < best[0])
                     and (absorbed is None or not absorbed[3] or barrier[0] < absorbed[0])):
                 rocket.travel(barrier[0])
@@ -6409,6 +6435,7 @@ class Combat:
         absorption = self._trace_absorption(
             rocket.shooter, rocket.definition, rocket.position, heading, limit,
             grasp=rocket.direct is not None and rocket.direct.loadout == HELIX_LOADOUT,
+            admitted=rocket.matrix_absorbable,
         )
         if absorption is not None and (best is None or absorption[0] < limit):
             best = absorption[0], None
@@ -6467,7 +6494,7 @@ class Combat:
         limit = best[0] if best else step
         candidate = interception.absorption(
             self, rocket.shooter, rocket.direct, rocket.position, heading, limit, padding=padding,
-            definition=rocket.definition,
+            definition=rocket.definition, admitted=rocket.matrix_absorbable,
         )
         if candidate is not None and (best is None or candidate[0] < limit):
             scripted_absorption = absorption = candidate
@@ -6530,6 +6557,8 @@ class Combat:
             self.rockets.remove(rocket)
             if rocket.shot is not None:
                 self.projectiles.absorbed(rocket.shot)
+                if rocket.source_graph == 0x00B9:
+                    rocket.shot = None
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
             if scripted_absorption is not None:
                 interception.absorbed(scripted_absorption[1], amount)
@@ -6824,6 +6853,7 @@ class Combat:
         returned = self._deflector(
             rocket.shooter, rocket.definition, rocket.position, direction, limit,
             radius=rocket.penetration_radius,
+            absorption_admitted=rocket.matrix_absorbable,
             time_span=(start_tick, start_tick + duration / TICK
                        * (limit / step if step > EPSILON else 0)),
         )
@@ -6839,7 +6869,8 @@ class Combat:
         self._amplify_flight(rocket, direction, crossing, start_tick, tick_per_distance)
         if returned is not None:
             if returned[3]:
-                self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
+                if returned[4].instance.graph.index == absorption.GRASP:
+                    self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
                 self.rockets.remove(rocket)
                 if rocket.shot is not None:
@@ -7664,19 +7695,30 @@ class Combat:
         return best
 
     def _trace_absorption(
-        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None,
+        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None,
     ):
         from ow174.game.interception import box_contact
 
-        matrix = (definition in self.matrix_definitions if self.matrix_definitions is not None
+        matrix = (admitted if admitted is not None else
+                  definition in self.matrix_definitions if self.matrix_definitions is not None
                   else projectile_tags.absorbable(definition))
-        if self.matrix_definitions is not None:
+        if admitted is not None or self.matrix_definitions is not None:
             grasp = matrix
         if not matrix and not grasp:
             return None
         nearest = None
         for target in self._enemies(shooter):
             hero = getattr(target.owner, "hero", None)
+            if matrix and isinstance(target.owner, bots.Bot):
+                from ow174.game import matrix as matrix_service
+
+                shown = target if view_tick is None else self.seen(target, view_tick)
+                distance = (None if shown is None else
+                            matrix_service.trace(shown, origin, direction, reach, tick=self.tick))
+                if distance is not None and (nearest is None or distance < nearest[0]):
+                    state = next(deflection._active_states(target.owner.body_script, 0x02CC, 3), None)
+                    nearest = distance, state
+                continue
             if matrix and getattr(hero, "body", None) == 0x0400000000000407:
                 graph_index, state_index = 0x02CC, 3
             elif grasp and getattr(hero, "guid", None) == 0x02E000000000023B:

@@ -425,3 +425,10 @@ this shared feature equal merely from module names. Original source charge
 and scope functions are retained, but unconnected shared consumers remain
 explicit. Existing0008 impact-cover and Bastion NPC differences also remain.
 No client run or whole-owner completion has been claimed.
+
+C19 SHA16153edb delivered. Clean boundary synchronizes rootde3c2335 before new
+0016/0065 owner work: retain root Genji0B8B owner routing and typed missing-
+instance guard, Torb0B8B/source record routing, Sniper BotWorld/PositionSearch/
+storage fields, new projectile geometry records and Punch collision consumers.
+Only changelog conflicted; keep both. Molten/mark/turret update each occurs once.
+Do not replay this coordination merge as a hero delivery.

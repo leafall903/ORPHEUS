@@ -31,7 +31,7 @@ BARRIER_DATA = (Path("D:/overwatch 1.7.4/verification/hero-lanes/0007/runtime-in
 
 def controlled(fight, entity, *, tick=None):
     target = next((t for t in fight._targets() if t.entity == entity), None)
-    return target is not None and fight.is_stunned(target.owner, tick=tick)
+    return target is not None and (fight.is_stunned(target.owner, tick=tick) or fight.punches.controlled(entity))
 
 
 def pinned(fight, entity):
@@ -41,8 +41,46 @@ def pinned(fight, entity):
 
 
 def control_deadline(fight, entity):
-    # Selected counter tests read the current canonical native stun clock.
-    return fight.stuns.get(entity, 0)
+    # Read the active canonical counter clocks; graph endpoints are inclusive.
+    from ow174.game.defense_filters import last_countdown_world_tick
+    deadlines = [fight.stuns.get(entity, 0)]
+    if entity in fight.punches.controls:
+        deadlines.append(math.ceil(fight.punches.controls[entity] / combat.TICK))
+    for stun in fight.brigitte.stuns:
+        phase = stun.instance.states.get(20)
+        if stun.instance.component.entity == entity and phase is not None and phase.active:
+            deadlines.append(last_countdown_world_tick(phase) + 1)
+    return max(deadlines)
+
+
+def any_controls(fight):
+    return any(controlled(fight, t.entity) for t in fight._targets())
+
+
+def punch_instance(player):
+    return next(i for i in player.body_script.component.instances.values() if i.graph.index == 0xD06)
+
+
+def impact_entities(fight):
+    return {impact.target for impact in fight.punches.impacts}
+
+
+def active_punches(fight):
+    #012F keeps completed history records;0007 observed active drives only.
+    active = {}
+    for body, dash in fight.punches.dashes.items():
+        owner = next((p for p in fight.match.players if p.body == body), None)
+        script = owner.body_script if owner is not None else None
+        instance = script.component.instances.get(dash.activation[0]) if script is not None else None
+        state = instance.states.get(7) if instance is not None else None
+        if not dash.finished and state is not None and state.active:
+            active[body] = dash
+    return active
+
+
+def passive_decay(vitals):
+    return ((vitals.temporary_decay_at, vitals.temporary_decay_rate)
+            if vitals.temporary_shields > 0 else None)
 
 
 _BRIGITTE_VIEWS = {}
@@ -2107,7 +2145,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         self.run.step({self.rein: (0, 0, 8), self.enemy: (-32768, 0, 2)})
         for _ in range(5):
             self.run.step({self.enemy: (-32768, 0, 2)})
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(any_controls(self.match.combat))
         self.run.step({self.enemy: (-32768, 0, 0)})
         self.advance(1)
         self.assert_counter(hero)
@@ -2118,7 +2156,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         self.run.step({self.rein: (0, 0, 8), self.enemy: (-32768, 0, 2)})
         for _ in range(5):
             self.run.step({self.enemy: (-32768, 0, 2)})
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(any_controls(self.match.combat))
         self.run.step({self.enemy: (-32768, 0, 3)})
         self.assert_counter(hero)
 
@@ -2255,7 +2293,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                         charge_wall(self, z=1.5)
                     rein_yaw = 12000
                     fight = self.match.combat
-                    with patch.object(fight, "control", wraps=fight.control) as applied:
+                    with patch.object(fight, "stun", wraps=fight.stun) as applied:
                         self.run.step({self.rein: (rein_yaw, 0, 8), self.enemy: (-32768, 0, 3)})
                         for _ in range(2):
                             if controlled(fight, self.rein.body):
@@ -2366,8 +2404,8 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertLess(self.health(self.rein), 500)
                 vitals = fight.vitals[self.enemy.body]
                 self.assertEqual(self.health(self.enemy), 280)
-                self.assertEqual(vitals.grasp_shields, 30)
-                self.assertEqual(vitals.grasp_decay, (fight.now + 1, 3))
+                self.assertEqual(vitals.temporary_shields, 30)
+                self.assertEqual(passive_decay(vitals), (fight.now + 1, 3))
                 decay_start = fight.now + 1
                 if fire_strike:
                     self.advance(32)
@@ -2377,16 +2415,16 @@ class CounterChargeInteractionTests(unittest.TestCase):
                         if self.health(self.enemy) < 250:
                             break
                         self.run.step({})
-                    self.assertEqual(vitals.grasp_shields, 0)
+                    self.assertEqual(vitals.temporary_shields, 0)
                     self.assertAlmostEqual(self.health(self.enemy), 180, delta=1)
                     self.assertEqual(len(self.rein.client.messages(combat.HIT)), 1)
                     self.advance(2)
-                    self.assertIsNone(vitals.grasp_decay)
+                    self.assertIsNone(passive_decay(vitals))
                 else:
                     self.advance(62)
-                    self.assertEqual(vitals.grasp_shields, 30)
+                    self.assertEqual(vitals.temporary_shields, 30)
                     self.advance(63)
-                    self.assertAlmostEqual(vitals.grasp_shields, 30 - 3 * (fight.now - decay_start))
+                    self.assertAlmostEqual(vitals.temporary_shields, 30 - 3 * (fight.now - decay_start))
                     self.assertEqual(vitals.now[combat.HEALTH_POOL], 250)
 
     def test_ordinary_rocket_punch_damages_controls_and_pushes_reinhardt(self):
@@ -2408,11 +2446,11 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertAlmostEqual(self.health(self.rein), 409.960726, places=5)
                 self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 32)
                 self.assertFalse(controlled(fight, self.enemy.body))
-                self.assertNotIn(self.enemy.body, fight.punches.dashes)
-                self.assertIn(self.rein.body, fight.punches.impacts)
+                self.assertNotIn(self.enemy.body, active_punches(fight))
+                self.assertIn(self.rein.body, impact_entities(fight))
                 if scenario == "source_switch":
                     self.assertTrue(self.match.switch_hero(self.enemy, heroes()[combat.REINHARDT]))
-                    self.assertNotIn(self.rein.body, fight.punches.impacts)
+                    self.assertNotIn(self.rein.body, impact_entities(fight))
                 self.advance(35)
                 self.assertLess(self.rein.mover.position[2], 0)
                 if scenario == "wall":
@@ -2422,7 +2460,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.assertAlmostEqual(self.health(self.rein), 409.960726, places=5)
                     self.assertEqual(len(self.enemy.client.messages(combat.HIT)), 1)
                 self.assertFalse(controlled(fight, self.rein.body))
-                self.assertNotIn(self.rein.body, fight.punches.impacts)
+                self.assertNotIn(self.rein.body, impact_entities(fight))
 
     def test_rocket_punch_starts_counter_outside_reinhardts_charge_cone(self):
         hero = 0x02E000000000012F
@@ -2435,7 +2473,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.players.reverse()
                 fight = self.match.combat
                 rein_yaw = 12000
-                with patch.object(fight, "control", wraps=fight.control) as applied:
+                with patch.object(fight, "stun", wraps=fight.stun) as applied:
                     self.run.step({self.rein: (rein_yaw, 0, 8), self.enemy: (-32768, 0, 0)})
                     for _ in range(3):
                         if controlled(fight, self.rein.body):
@@ -2446,7 +2484,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertEqual(applied.call_count, 2)
                 self.assertIs(applied.call_args_list[0].args[0].owner, self.enemy)
                 self.assertIs(applied.call_args_list[1].args[0].owner, self.rein)
-                self.assertNotIn(self.enemy.body, fight.punches.dashes)
+                self.assertNotIn(self.enemy.body, active_punches(fight))
 
     def test_charge_and_rocket_punch_both_move_before_counter_contact(self):
         hero = 0x02E000000000012F
@@ -2467,11 +2505,11 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertFalse(controlled(fight, self.rein.body))
                 start = self.rein.mover.position[2]
                 self.run.step({self.enemy: (-32768, 0, 0)})
-                motion = fight.punches.instance(self.enemy).states[7]
+                motion = punch_instance(self.enemy).states[7]
                 self.assertTrue(motion.active)
                 self.assertEqual(self.enemy.mover.position[2], enemy_z)
                 self.run.step({self.enemy: (-32768, 0, 0)})
-                self.assertIn(self.enemy.body, fight.punches.dashes)
+                self.assertIn(self.enemy.body, active_punches(fight))
                 self.assertLess(self.enemy.mover.position[2], enemy_z)
                 self.assertFalse(controlled(fight, self.rein.body))
                 for _ in range(16):
@@ -2480,7 +2518,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assert_counter(hero)
                 self.assertGreater(self.rein.mover.position[2], start)
-                self.assertNotIn(self.enemy.body, fight.punches.dashes)
+                self.assertNotIn(self.enemy.body, active_punches(fight))
                 self.assertFalse(motion.active)
                 players = self.rein, self.enemy
                 end = tuple(tuple(player.mover.position) for player in players)
@@ -2499,7 +2537,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         charge_wall(self, z=16)
         fight = self.match.combat
         self.run.step({self.enemy: (-32768, 0, 0)})
-        motion = fight.punches.instance(self.enemy).states[7]
+        motion = punch_instance(self.enemy).states[7]
         self.assertTrue(motion.active)
         self.run.step({self.enemy: (16384, 0, 0)})
         self.assertAlmostEqual(self.enemy.mover.position[0], 0, places=3)
@@ -2509,13 +2547,13 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 break
             self.run.step({self.enemy: (16384, 0, 0)})
         self.assertFalse(motion.active)
-        self.assertNotIn(self.enemy.body, fight.punches.dashes)
+        self.assertNotIn(self.enemy.body, active_punches(fight))
         stopped = tuple(self.enemy.mover.position)
         self.assertGreater(stopped[2], 16)
         self.assertLess(stopped[2], 17)
         self.advance(10)
         self.assertEqual(tuple(self.enemy.mover.position), stopped)
-        self.assertFalse(fight.controls)
+        self.assertFalse(any_controls(fight))
         self.assertEqual(self.health(self.rein), 500)
 
     def test_held_rocket_punch_auto_release_counters_live_charge(self):
@@ -2530,7 +2568,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
             drove |= self.rein.body in fight.charges
             flag = self.enemy.body_script.component.entity_var(596, create=False)
             released |= flag is not None and flag.value() is True
-            moved |= self.enemy.body in fight.punches.dashes and self.enemy.mover.position[2] < 12
+            moved |= self.enemy.body in active_punches(fight) and self.enemy.mover.position[2] < 12
             if controlled(fight, self.rein.body):
                 break
         self.assertTrue(drove)
@@ -2558,7 +2596,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.step({self.rein: (0, 0, 8), self.enemy: (yaw, 0, attack)})
                     self.run.step({self.enemy: (yaw, 0, 0)})
                     fight = self.match.combat
-                    self.assertFalse(fight.controls)
+                    self.assertFalse(any_controls(fight))
                     self.assertEqual(self.health(self.rein), 500)
                     self.assertEqual(self.health(self.enemy), 250 if hero == 0x02E000000000012F else 200)
                     for player in (self.rein, self.enemy):

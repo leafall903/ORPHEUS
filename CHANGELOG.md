@@ -32,6 +32,84 @@ This log records tested changes and their acceptance status. Entries are grouped
   audit (Orisa currently emits empty detail arrays); whole0006 completion and
   original-client acceptance are not claimed.
 
+### Restore Pulse Bomb current-source retirement boundary
+
+- Keep the source0003 family rule: an already reflected Pulse Bomb survives its
+  original thrower's replacement but retires when its current source body is
+  replaced. Exclude only Pulse from the generic detached foreign-flight survival
+  rule; ordinary incoming reflected rounds and Genji0304 own teardown retain
+  their current behavior.
+- Original77 Tracer pistol/Blink/Recall/Pulse/Deflect methods run normally:
+ 76 pass, one unchanged observation expects unarmed fuse_left0 while the shared
+  Rocket stores None. Retain that source assertion and log; no extra fuse state
+  or altered physics is added for the observation. Actual Recall ammo/health/
+  same-frame correction already passes through current graph consumers.
+- All24 focused Ana hip/dart foreign survival, Genji reflected Shuriken retirement,
+  Damage and runtime checks pass. Source Tracer pistol code matches apart from
+  line endings; current Recalls/Pulse wrappers reconcile the remaining original
+  hero behavior through one combat/mover lifecycle. Begin Widowmaker consumers
+  next; its Venom/Grapple/Infra-Sight are not yet installed.
+
+### Connect owned Matrix to finite-flight and canister interception
+
+- Reuse the delivered Matrix contact service in the existing tagged interception
+  route for selected0407 and real owned0407 bodies. Preserve contact-time close
+  projection through the existing sweep time span. Hitscan, finite/range/gravity
+  and field-canister callers keep their existing absorption/retirement driver.
+- Keep Sigma damage-amount conversion exclusive to1D02. Matrix consumes the
+  incoming projectile without running Sigma's accumulator or shield grant.
+- An actual Ana range/gravity grenade reaches the owned mech for55 damage with
+  Matrix released and is consumed with600 health while Matrix is held. All52
+  shared projectile/Bastion/Damage and original focused Deflect checks pass.
+  No old assertions changed; current actor/mover remains authoritative.
+- Hanzo's original five hero-specific modules and core runtime consumers are
+  integrated. Existing source70-versus140 geometry and old private shield/Zarya
+  observers remain recorded. Source0005 also contains cross-owner Sniper,
+  projectile geometry and other hero implementations: root owns their reconcile
+  and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
+
+### Mount delivered Molten Core projectiles, areas and status consumers
+### Restore delivered Rocket Punch collision completion
+
+- Apply source0007's actual-progress obstruction test to the existing Punch
+  collision host. A capsule still creeping along contact skin is reported as
+  blocked when progress is below half the requested step, without changing the
+  collision engine or its tolerances.
+- Feed arrival/obstruction into authored0D06 lifetime Wait5 as ordinary FINISH;
+  its existing branches retire movement/forced modifiers and retain recovery
+  and cooldown. The pose callback accepts an actual runtime State. Keep012F's
+  completed Dash history and expose active native drives in0007 fixtures.
+- All23 original Punch/wall/ordinary-hit checks pass, including four ordinary
+  hit scenarios, unchanged heading, inactive VM movement and an exactly stable
+  stopped pose ten ticks later. Original012F's21 history/cooldown checks remain.
+- Combined Cross17/Mutual10/shared98 run125: remaining8 subfailures and9 errors
+  all belong to existing Brigitte scenarios; no other failures occur. Preserve
+  all1399 original assertions and unchanged Constants; raw getter AST adapts to
+  actual current state. Logs remain external; client acceptance stays open.
+
+
+### Mount delivered Charge and Rocket Punch cross counters
+
+- Evaluate original body inline224E profiles and delivered Punch tracker fallback
+  at eye-minus0.18m when the native attachment query is unresolved. Preserve
+  source aim/cone/radius/cover/ranking and admit Punch-initiated counter outside
+  Charge's cone. Existing Bash prepare/host_control keeps its native224E path.
+- Retire interrupted Punch movement immediately in both existing public and
+  native-control interruption paths, preserving foreign control timers and
+  external impulses. No second actor, pool or movement controller is added.
+- Four original focused input/two-sided movement/outside-cone/held-release
+  counter checks pass. Original174-test combined run retains13 cross-suite
+  subfailures and11 errors (including the two old Shatter-key observations);
+  no new failures occur in the prior157-test joint scope. Logs are external.
+- Source counter fixtures now read actual native224E inclusive timer endpoints,
+  Punch input-control clocks, impact target records and temporary-shield state.
+  All numerical expectations remain original. Retain broader Brigitte gaps and
+  finished-Punch-history/active-VM completion observations for the next batch;
+  original-client acceptance remains open. No network/publication action.
+
+
+### Mount delivered Reinhardt mutual Charge windup counters
+
 ### Mount delivered Molten Core projectiles, areas and status consumers
 
 - Connect original16DA input/ten-globule resource lifetime, point ballistic
@@ -59,6 +137,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   original source checks. Source status_effects metadata has no direct reader;
   this host resolves deployables.status_graph explicitly. Client acceptance
   and whole-line completion remain unclaimed.
+
 
 ### Connect Torbjorn hammer to shared native barrier surfaces
 
@@ -158,6 +237,45 @@ This log records tested changes and their acceptance status. Entries are grouped
   behavioral assertions remain. Log:worker-b-reinhardt-contact-fourth.log.
 - Full source counter-charge, deployable collision, windup interruption and
   Earthshatter integration continue; original-client acceptance remains open.
+### Connect owned Matrix to finite-flight and canister interception
+
+- Reuse the delivered Matrix contact service in the existing tagged interception
+  route for selected0407 and real owned0407 bodies. Preserve contact-time close
+  projection through the existing sweep time span. Hitscan, finite/range/gravity
+  and field-canister callers keep their existing absorption/retirement driver.
+- Keep Sigma damage-amount conversion exclusive to1D02. Matrix consumes the
+  incoming projectile without running Sigma's accumulator or shield grant.
+- An actual Ana range/gravity grenade reaches the owned mech for55 damage with
+  Matrix released and is consumed with600 health while Matrix is held. All52
+  shared projectile/Bastion/Damage and original focused Deflect checks pass.
+  No old assertions changed; current actor/mover remains authoritative.
+- Hanzo's original five hero-specific modules and core runtime consumers are
+  integrated. Existing source70-versus140 geometry and old private shield/Zarya
+  observers remain recorded. Source0005 also contains cross-owner Sniper,
+  projectile geometry and other hero implementations: root owns their reconcile
+  and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
+
+### Mount launch-frozen absorption and owned-mech Matrix contacts
+
+- Capture the delivered projectile Matrix/Grasp admission bit at emission and
+  consume it through current absorption paths, preserving None for old explicit
+  Rocket construction. A later profile selection cannot rewrite an in-flight
+  projectile's eligibility. Capture the bit in existing server storage.
+- Mount the source owned0407 Matrix contact/close projection: verify its real
+  pilot/body ownership, use the actual controlled mover and existing authored
+  box consumer. Previously _trace_absorption only recognized player Hero.body,
+  so a controlled mech's Matrix volume was skipped. Preserve current actor and
+  controller state; no second Matrix driver or artificial observer state.
+- Original normal/final Sonic ricochet absorption now completes all eight real
+  D.Va/Sigma on/off subcases through no-beacon, lease retirement and damage
+  checks. Four final old Vitals.bonus_shields observations still error unchanged.
+  Their real granted shield pools remain owned by current1D03/native health.
+- Four actual Ana Matrix/Grasp cases pass after reversing profile admission
+  immediately after emission: eligible launches still absorb and excluded
+  launches still damage. All50 existing projectile/Bastion/Damage checks pass.
+  The admission bit changes live stored digest and exports repeatably with
+  variable/expression getters disabled. Continue legacy controlled-Matrix flight
+  routes and old private-observer reconciliation in the next batch.
 
 ### Mount delivered Storm Arrow one-bounce flight
 
@@ -7825,3 +7943,64 @@ client operations performed. Whole nonappearance integration remains active.
   not yet mounted alongside the delivered0015 nearby fallback. Preserve both
   implementations and expectations; this is remaining integration, not a
   reason to discard or hold current code. No client/publication operations.
+
+
+### Frozen combined Molten/absorption validation
+
+- Original Molten9, turret snapshot1 and projectile/Bastion/runtime/Damage
+  checks73 all pass on783de900 with canonical base+v4 supplement. This includes
+  ceiling/double/ramp rebounds,10 globules, hero-switch cleanup, armour boundary,
+  overlap dedup and passive pool/status storage. No source fixture fallback for
+  Molten/turret imports. Evidence: parallel-a20-c18-shared-check.log.
+- Root explicit source geometry/actual Enforcer/controls/navigation/projectile
+  checks109 pass separately. All root tests terminal; original fake fixture and
+  manual Sniper long-range gaps remain documented without blocking commits.
+- No original-client acceptance or publication performed; three workers continue
+  remaining original-language integrations, excluding appearance migration.
+
+
+### Mount original Sniper authored destination search
+
+- Restore source0005 sniper_special native/search/lifecycle functions and
+  original PositionSearch state/world hook. Bind manual search to its engaged
+  body and drive the existing142C MoveTo through current NPC navigation.
+  The outer navigator retains its tick guard; pass retained sub-tick time to
+  the original drive instead of guarding the same tick twice.
+- Preserve source0015 nearby fallback eligibility and its4m retreat. The
+  original authored search handles requests outside that fallback; keep the
+  same NPC, VM, ownership and source cooldown. Stop, faction/body changes and
+  death retire the active search instead of silently rebinding it.
+- Register PositionSearch storage and causal Bot.reposition_body state. Actual
+  controlled server snapshots repeat, change with engagement and do not invoke
+  the combat getter. Original tests retain all expectations.
+- Original far search3, nearby/retry/cooldown/shared80, Sonic/cooldown/runtime19
+  and final eligibility6 all pass. Evidence outside Git: parallel-root-sniper-
+  authored-search-check.log, parallel-root-sniper-source-boundaries-check.log,
+  parallel-root-sniper-sonic-storage-check.log, parallel-root-sniper-final-
+  eligibility-check.log, parallel-root-sniper-causal-snapshot-check.log.
+- A21 finite/range owned Matrix and B16 source cross counters received as
+  d546d8c6/ffe56d54. Broader original B cross-hero and old private-observer
+  differences remain worker-owned and documented, not commit gates. No client
+  acceptance or network publication performed.
+
+
+### Restore original owner-query guards
+
+- Preserve the existing Genji0B8B normal-player gate before the generic typed
+  owner lookup, scoped to its nonstrict owned-body/self query. This restores
+  original spawned/dead/ended lifecycle without changing passive awards or
+  replacing its charge host. Previously failing original spawn lifecycle now
+  passes; Genji passive plus runtime26 pass unchanged.
+- Preserve original body_owner unavailable-instance short-circuit before the
+  alternate controller-query provider evaluates a selector. This repairs the
+  original missing-instance/destination-preservation check; strict provider
+  and all other query dispatch remain unchanged.
+- Original Genji/runtime/body-owner/controller-query/Ana/fold67 run retains
+  two pre-existing Ana health-on-leave subcase failures: partial combined
+  Combat.body_health falls back to unknown/null for absent entities. Original
+  source013B has fuller read-only health lifetime lookup; root will restore
+  that consumer separately. No original assertion changed. Evidence:
+  parallel-root-genji-owner-gate-check.log,
+  parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
+  Orisa input skips before availability fix), and
+  parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
