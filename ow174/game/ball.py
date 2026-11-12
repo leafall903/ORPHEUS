@@ -84,6 +84,30 @@ def cannon_direction(shooter, state, forward, number: int, time: int, activation
     return weapon_spread.direction(forward, cone, base, number)
 
 
+def generation_factor(script, key):
+    value = script.world.ruleset(key)
+    if value is None:
+        return 1.0
+    factor = expr.to_float(value)
+    return factor if 0 <= factor < float("inf") else 0.0
+
+
+def add_ult_charge(script, points):
+    """Delivered Ball combat award, including exact general/category settings."""
+    from ow174.game.script.driver import ULT_CHARGE, ULT_COST
+    if (script.retired or script.component.owner_dead
+            or any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
+        return 0.0
+    points *= generation_factor(script, 0x253C) * generation_factor(script, 0x32DE)
+    cost = expr.to_float(script.component.entity_var(ULT_COST).value())
+    charge = expr.to_float(script.component.entity_var(ULT_CHARGE).value())
+    if not 0 < points < float("inf") or cost <= charge:
+        return 0.0
+    target = min(cost, expr.f32(charge + points))
+    script.set_ult_charge(target)
+    return target - charge
+
+
 def feedback(player):
     """Feed actual collision/mover state into the bounded Piledriver graph contract."""
     graph = instance(player)

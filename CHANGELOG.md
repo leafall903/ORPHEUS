@@ -27,6 +27,32 @@ This log records tested changes and their acceptance status. Entries are grouped
   Python CLI--help passes; native CMD entry correctly refuses an occupied local
   port without starting services. Original unconfigured CLI test import lacked
   external descriptors, fixed by selecting existing inputs rather than copying.
+### Connect delivered Quad Cannon spread and Ball combat charge
+
+- Mount original deterministic1514 cone/ramp through the existing shot path;
+  retain actual volley/muzzle options and duplicate-command rejection.
+- Restore source Ball effective-permanent-damage charge, exclude Minefield1ED,
+  and use original general/combat ruleset factors plus cap/death/ultimate guards.
+  Other heroes retain their existing charge API behavior.
+- All six original spread/charge/cap cases pass; actual native175 tagged shield
+  hit for200 loses20 armor and grants only20 charge. Damage/runtime25 pass.
+  Source Spread23 assertion AST unchanged. No extra pool/acceptance matrix.
+- Natural passive generation and full Ball/client acceptance remain open.
+
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
 
 
 ### Preserve Mercy scope execution during Sombra charge integration
