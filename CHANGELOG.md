@@ -97,6 +97,16 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Consume original Sombra ability and logical-button silence policies
+
+- Restore original weapon/passive/drawn-blade classification and logical input
+  gates in existing BodyWorld/BotWorld, Ability and LogicalButton consumers.
+  Existing hard control, strict execution and budgets remain intact.
+- Original66:64casepass plus two retained Pharah methods with4subcase differences.
+  Actual Hack blocks Tracer RMB while preserving fire and drawn Blade state.
+  Nonempty Portal component/whole-server stored export and existingVar causal
+  mutation probes pass; source-retirement/incoming-clock work remains recorded.
+
 ### Route original Sombra device effects into existing summoned actors
 
 - Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,

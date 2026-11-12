@@ -1685,3 +1685,70 @@ grenade/NPC helpers with actual dependencies. Shareddevice retirement/ownerdeath
 and expiry may expose crossowner originalsource protocols; persist, do not gate
 functional commits. Symmretainedsentry/wall placement, Mei geometry and remaining
 Pharah/Bastion boundaries remain as previously recorded.
+
+
+## C43: original ability classification and logical-button consumers
+
+Mounted frozen012E body_ability_allowed/body_button_allowed policy on the sole
+Controls: weapon-ancestor classification, passive/quickmelee/manualNPCmelee
+exceptions, drawn0317 Dragonblade retention, weapon-hosted SombraHack53 andRein
+shield136 exclusion, Soldier secondary29 distinction, original Tracer(29,35),
+Pharah(37,11,29),Sigma29 and01BB36 logical bindings. Actual recipient component
+history fromC40 retains endpoint admission; no world timer extension or inferred
+epoch. NPC melee exception delegates existing npc_melee.ability selection rather
+than adding a parallel manager/fixture. Unknown target is not a fake weapon.
+
+Original World.body_button_allowed(defaultTrue) protocol is forwarded by existing
+BodyWorld/BotWorld to Controls with strict bypass. LogicalButton.blocked,
+Ability.held/button and original7DEB522D condition consume it. Existing skill_locked
+and Punch hard-control checks, strict paths, counters and work budgets preserved.
+No driver._run change or0xE/controller/Pin edits. A65 edits only separate
+LinkedTarget class in nodes.py; parent receives both narrow segments.
+
+v16 exact python -B -m unittest test_genji_blade test_pharah_control
+ test_script_button_transitions test_game_npc test_game_script_runtime
+ test_game_sombra_charge.SombraChargeTests test_ashe_hack -v:
+66run89.437s,64casepass/2failedmethods(4subcase records), no errors/skips.
+worker-c-sombra-original-input-gates-check.log. All originalGenjiBlade, strict/
+buttontransition/VM/NPC,15SombraCharge andwholeAsheHack pass. OriginalPharah
+failures retained: enemy_primary_after_roll partial/empty health60vs130;
+flashbang_brackets_concussion frame4 firststun9vs10 andframe5 originalNone.
+These are recorded original timing/geometry differences, not removed assertions.
+
+ActualHack producer probe (no injected lock): ordinarySombra2/65 frames applies
+to realTracer; RMBbutton2 (not the existing0x38 physical skill mask) leaves pose
+unchanged, while ordinaryFIRE still removes12HP (target188). DrawnGenji0317
+flagsRUNNING1 persists through actualHack. The same exploratory melee pose
+expected90HP incorrectly: diagnostic at identicaltimeline with actualHackFalse
+andTrue both gives target200, bladeflag1,disabled{},faultNone. Thus this setup is
+not evidence of a Hack swing regression nor claimed passing sword-hit evidence;
+originalproperGenjiBlade fixture remains allpass. Logs
+worker-c-sombra-original-weapon-logical-probe.log,
+worker-c-sombra-genji-blade-weapon-detail.log,
+worker-c-sombra-genji-swing-baseline-probe.log.
+
+RequestedC42 nonempty receiver storage probe used actualServerSnapshotTests.scene
+(two=True), actualPeer.message21616 selectingSymm/Sombra, actualnetwork owner
+commands4E/1confirm andSombra50neutral/paidEMP+30release. Realserver world1012/body
+1004, actualpair withbothendpointLocks. Both export_component_vm succeed as
+ow174.component-vm-storage.v1. WholeServer capture under run_now-fails guard
+is stabletwice; mutate EXISTINGowner1624.base changesdigest, restore returnssame.
+No alternateVar or secondnamespace created. Whole digest atthisstabletree
+f91aebe6fd59b27cef53a8220b9ae536826ea19395719b6f90153fc53d26d222.
+worker-c-sombra-portal-server-storage-corrected-probe.log. Initial probe imported
+nonexistent unusedcomponent_vm_digest; corrected onlyprobe import, notruntime.
+
+Further realserver endpoint_slot identity probe: bothendpoint getters1624/1625
+are `is owner.body_script.component.entity_var(var,create=False)`; actualwatcher
+counts1and2 respectively, sameobjectsseenbyboth. These are realnonempty watcher
+maps, not synthetic Vars. worker-c-sombra-portal-slot-identity-probe.log. This is
+strictstored export/causalprobe, not fulljournal replay/client acceptance. Source
+VM fields/protocols remain strict; no source edits during groups/probes.
+Parse/duplicate-method anddiff audits clean.
+
+Next C44: originalincoming application world/body clock/source-retirement replay
+and normal fullSombraEMP/control/grenade/NPC helpers with actualdependencies;
+legacyTracer fixture imports refer to different old sombra_hack constants/old
+Vitals.hack_until and must adapt queries to existinghosts with asserts retained,
+not add a fakeHERO/HACK/health namespace. Device lifetime/ownerretire boundary,
+Symmretainedsentry/placement, Mei geometry and Pharah/Bastion priorboundaries open.

@@ -893,6 +893,9 @@ class World:
         return NotImplemented
 
 
+    def body_button_allowed(self, component, button) -> bool:
+        return True
+
     def skill_locked(self, state: "State") -> bool:
         return False
 

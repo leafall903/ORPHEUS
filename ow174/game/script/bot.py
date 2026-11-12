@@ -271,6 +271,7 @@ class BotWorld(runtime.World):
         # NPC/DVa existing scoped native adapters do not declare component43 here.
         return NotImplemented
 
+    body_button_allowed = BodyWorld.body_button_allowed
     movement_flags = BodyWorld.movement_flags
 
     def movement_flag_projection(self, instance, node):
