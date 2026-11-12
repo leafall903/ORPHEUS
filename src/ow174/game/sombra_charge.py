@@ -154,4 +154,3 @@ class Charge:
             0x3D: tuple(expr.Asset(tag) for tag in tags), 0x624: (),
         }, shooter.body)
         script.component.run_now()
-

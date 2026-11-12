@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import test_server_journal as journal_tests
 from test_game_combat import aim
-from test_server_journal import MAP, FixedSource, Peer, acknowledge_ownership, pick
 
 from ow174.game import assassin_victim, combat, messages
 from ow174.game import earthshatter, reinhardt_charge

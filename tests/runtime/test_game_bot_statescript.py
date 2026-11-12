@@ -5,11 +5,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from test_game_combat import Run
-from test_game_graph_analysis import make_graph, node, output
-from test_game_packet_budget import connection, decoded
-from test_game_projectiles import ABILITY_2
-from test_game_repeated_lifecycles import wire_frame
 
 from ow174.game import bodytrace, bots, combat, heavy_assault, movelog, observers, projectiles, statescript, world
 from ow174.game.body_vm_snapshot import export_component_vm
@@ -78,7 +73,7 @@ class AIFireWeaponTests(unittest.TestCase):
         self.assertEqual(fields["+0x7C"], {"+0x0": viewer.body})
         self.assertEqual((fields["+0x88"], fields["+0x90"]), (0x0EE00000000009F0, 0x076000000000AE7B))
 
-    def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior(self):
+    def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior_local_reference(self):
         weapon = make_graph(GRAPH, [
             node(0, "STUStatescriptEntry", fields={"m_outPlug": output([1, "m_beginPlug"])}),
             node(1, "STUStatescriptStateLogicalButton", state=0, fields={

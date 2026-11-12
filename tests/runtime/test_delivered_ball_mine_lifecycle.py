@@ -8,7 +8,7 @@ from test_game_combat import Run, KANEZAKA_DM, aim
 from ow174.game import ball, combat, sombra_control, world, stats
 from ow174.game.collision import World
 from ow174.game.content import heroes, SOLDIER
-from ow174.game.script import expr, graph
+from ow174.game.script import expr
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
 class EmpCast(unittest.TestCase):

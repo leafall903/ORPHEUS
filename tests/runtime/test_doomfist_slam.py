@@ -397,4 +397,3 @@ class SlamPlayerDeathTests(DoomfistFixture, unittest.TestCase):
                 self.assertEqual(tuple(self.b.mover.position), origin)
                 hit, = self.a.client.messages(combat.HIT)
                 self.assertEqual(hit["+0x78"]["+0x4"], 20)
-
