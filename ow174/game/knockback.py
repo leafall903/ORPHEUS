@@ -61,6 +61,7 @@ class Knockbacks:
         self.serial = 0
         self.active: dict[int, Mover] = {}
         self.whole_hog_seen = {}
+        self.whole_hog_motion = {}
 
     def apply(self, target, impulse, *, impact_frame: int | None = None):
         from ow174.game import bots
@@ -89,6 +90,7 @@ class Knockbacks:
             frame = max(script.component.frame + 1, match.tick, impact_frame or 0)
         if not 0 <= frame <= 0xFFFFFFFF or self.serial >= 0xFFFFFFFF:
             return False
+        self.retire_whole_hog(target.entity, forget=False)
         key = HOST_PREFIX | (self.serial + 1)
         if isinstance(owner, bots.Bot):
             if frame - 1 > match.tick:
@@ -105,7 +107,7 @@ class Knockbacks:
         return True
 
     def whole_hog_hit(self, target, direction, distance, spec, packet):
-        """Original per-volley force, sharing the sole velocity/mover queue."""
+        """Original per-volley force on the sole target movement host."""
         from ow174.game import bots, reinhardt_charge
 
         fight = self.combat
@@ -124,6 +126,9 @@ class Knockbacks:
             return False
         horizontal, vertical, cap = spec.scale(distance)
         owner = target.owner
+        if not isinstance(owner, bots.Bot) and (owner not in fight.match.players
+                or not owner.has_body or owner.body != entity):
+            return False  # Damageable devices have no player impulse capsule.
         if isinstance(owner, bots.Bot):
             # This source scope is the ordinary NPC impulse channel. Owned
             # mechs retain their distinct body-clock movement path.
@@ -132,10 +137,19 @@ class Knockbacks:
             mover = owner.impulse_mover
             frame = max(fight.match.tick, fight.tick) + 1
         else:
+            from ow174.game import whole_hog
+
+            if entity in self.active:
+                return False  # Preserve the existing native queue's physical priority.
             mover = owner.mover
+            motion = self.whole_hog_motion.get(entity)
+            if motion is None:
+                motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick)
+            current = motion.velocity
             frame = max(owner.body_script.component.frame + 1, fight.match.tick, fight.tick)
-        current = (0.0, 0.0, 0.0) if mover is None else tuple(mover.velocity)
-        if mover is not None:
+        if isinstance(owner, bots.Bot):
+            current = (0.0, 0.0, 0.0) if mover is None else tuple(mover.velocity)
+        if isinstance(owner, bots.Bot) and mover is not None:
             current = velocity.consume(current, mover.values.jump_speed,
                                        mover.velocity_changes, frame)
         x, y, z = current
@@ -148,10 +162,59 @@ class Knockbacks:
         y = min(spec.lift_cap * cap, y + spec.lift * vertical)
         delta = expr.Vec3(*(expr.f32(after - before)
                            for before, after in zip(current, (x, y, z))))
-        if not self.apply(target, delta, impact_frame=fight.tick):
-            return False
+        if isinstance(owner, bots.Bot):
+            if not self.apply(target, delta, impact_frame=fight.tick):
+                return False
+        else:
+            motion.velocity = tuple(expr.f32(value) for value in (x, y, z))
+            self.whole_hog_motion[entity] = motion
         self.whole_hog_seen[key] = fight.tick
         return True
+
+    def whole_hog_velocity(self, entity):
+        motion = self.whole_hog_motion.get(entity)
+        return motion.velocity if motion is not None else (0.0, 0.0, 0.0)
+
+    def retire_whole_hog(self, entity, *, forget=True):
+        self.whole_hog_motion.pop(entity, None)
+        if forget:
+            self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
+                                   if key[-1] != entity}
+
+    def _advance_whole_hog(self):
+        """Original selected world damping, displacing the same player capsule."""
+        from ow174.game import reinhardt_charge
+
+        fight = self.combat
+        tick = fight.tick
+        targets = {target.entity: target for target in fight._targets()}
+        for entity, motion in tuple(self.whole_hog_motion.items()):
+            target = targets.get(entity)
+            if (target is None or target.owner is not motion.owner or fight.vitals_of(target).dead
+                    or fight._control_immune(target) or fight.hooks.controlled(entity)
+                    or fight.junkrat.rooted(entity, tick) or entity in fight.pins.values()
+                    or reinhardt_charge.pinned(fight, entity) or entity in self.active
+                    or entity in fight.zarya_gravitons.pulled):
+                self.retire_whole_hog(entity)
+                continue
+            if fight.orisa.controls(entity):
+                self.retire_whole_hog(entity)
+                continue  # Do not replay paused external slices after Halt releases.
+            mover = motion.owner.mover
+            for at in range(motion.tick + 1, min(tick, motion.tick + 128) + 1):
+                dt = .016
+                motion.tick = at
+                constrain = fight.walls.constrain if fight.walls.pieces else None
+                value = mover.displace(motion.velocity, dt, constrain=constrain)
+                data = mover.values
+                flat = math.hypot(value[0], value[2])
+                remaining = max(0.0, flat - data.decel_ground_base * data.run_forward * dt)
+                factor = remaining / flat if flat > 1e-9 else 0.0
+                lift = max(0.0, value[1] - 10 * data.gravity_scale * dt)
+                motion.velocity = (value[0] * factor, lift, value[2] * factor)
+                if max(map(abs, motion.velocity)) < 1e-4:
+                    self.retire_whole_hog(entity, forget=False)
+                    break
 
     def schedule_victim(self, target, source, instigator):
         """Retain the original uppercut script delivery on this same movement host."""
@@ -262,9 +325,10 @@ class Knockbacks:
         return entity in getattr(self, "pending_npc", {})
 
     def affecting(self, entity):
-        return entity in self.active
+        return entity in self.active or entity in self.whole_hog_motion
 
     def retire(self, entity, *, forget=True):
+        self.retire_whole_hog(entity, forget=forget)
         if forget:
             self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
                                    if key[-1] != entity}
@@ -280,6 +344,7 @@ class Knockbacks:
                                          if row.key is None or row.key & HOST_PREFIX != HOST_PREFIX]
 
     def update(self):
+        self._advance_whole_hog()
         self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
                                if self.combat.tick - tick <= 128}
         match = self.combat.match

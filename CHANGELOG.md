@@ -30,6 +30,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Record the joint26 failures and passing original2 IceSentry checks explicitly;
   workers continue actual owner/fixture reconciliation. Full integration remains
   in progress, with appearance migration excluded.
+### Restore original player WholeHog world damping
+
+- The sole Knockbacks host now applies original selected external motion through
+  the same player capsule and observer velocity, without a second native delta.
+  Preserve generic queue/control priority and Hook takeover of this channel only.
+- Original damage/runtime14 and motion/storage6 checks pass, plus lifecycle,
+  Fortify/range/cap and same-tick command/world boundaries. Keep full original
+  fixtures and numbers; NPC/owned-mech coupling remains next. No client run.
 
 ### Preserve chronological Roadhog healing in strict server storage
 
