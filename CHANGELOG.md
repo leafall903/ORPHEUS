@@ -9087,3 +9087,27 @@ pre-existing missing-name errors, without new fallback/schema/graph exceptions.
 Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
 classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
 No client run/publication. Continue original0065 Mayhem/death-volley.
+
+
+## A41 - original player Total Mayhem death volleys
+
+Restored WeaponVolley's authored m_58631C73 allow-shots-while-dead query and
+report guard, then consumed only Junkrat022A terminal reports immediately from
+the existing authoritative death callback. Ordinary dead primary/melee remain
+rejected. Mounted original launch_ring.py only for Total Mayhem's six authored
+scatter states; other existing native spread/Volley/NPC consumers are retained.
+Original collision/gravity/rebound/fuses run through A33's actual shared Rocket.
+
+Baseline two original Mayhem checks failed0 volleys. Original reports-six,
+six-direction scatter, floor/wall rebound, bounded six fuses and skipped-update
+blast order5 pass. Original launch-ring math, shared Damage/ProjectileTiming,
+dead-primary rejection, team/wall and Wraith/Cryo29 pass. Current original
+runtime17 pass. Actual still-owned dead-source Mayhem earns200 for its200HP victim, as required
+by the original charge fixture; it must not be suppressed as a retired source.
+The initial extra probe incorrectly assumed zero and that expectation was rejected;
+original assertions were not changed. Logs worker-a-junkrat-mayhem-{baseline,
+fourth,shared,runtime,charge-final}.log.
+Original tests/assertions retained, no synthetic projectile/observer or matrix.
+No client run/publication. Next exact action: original NPC2535 death-volley
+modifier on existing BotWorld/BotScript, then normal original NPC/charge fixture
+contract and any genuine remaining consumers; keep acceptance-only residuals.

@@ -3073,11 +3073,14 @@ class WeaponVolley(State):
             before = self.last_values.get(var.key, var.value())
             self.last_values[var.key] = self.instance.changed(var, before)
 
+    def allows_dead(self) -> bool:
+        """Original0065 authored allow-shots-while-dead volley flag."""
+        return truthy(self._config("m_58631C73", False))
+
     def report(self, until: int) -> None:
         """Put the shots fired up to `until` (ms) that are not on the component's list yet on it: shot k
         leaves at start + offset + shot_time(k), at most the planned shots (combat.py hits with them)."""
-        if self.instance.component.owner_dead:
-            # unverified (PS4 build): a dead owner's volley shoots no more (allowShotsWhileDead: not read)
+        if self.instance.component.owner_dead and not self.allows_dead():
             return
         start = self.start + self.offset
         activation = (self.counter, self.start)
