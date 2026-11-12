@@ -1093,6 +1093,27 @@ class ModeFrameTests(unittest.TestCase):
         on = [state for state, (active, _) in decoded.instances[1].states.items() if active]
         self.assertEqual(on, [6])  # STU_38EE1100, the 5th remote-synced state
 
+    def test_every_listed_mode_turns_on_the_state_that_posts_the_board_message(self):
+        for mode, (index, _slot, host) in combat.MODE_GRAPHS.items():
+            with self.subTest(mode=f"{mode:016X}"):
+                script = graph.graph(index)
+                frame = combat.mode_frame({1303: 5.0}, mode)
+                decoded = read_chunk(_chunk(frame), _chunk_bits(frame), {})
+                on = [state for state, (active, _) in decoded.instances[1].states.items() if active]
+                self.assertEqual([script.state(state).cls for state in on], ["STU_38EE1100"])
+                self.assertEqual(decoded.entity_vars[1303][0], 5.0)
+                listed = {key: (item.graph, item.parent) for key, item in decoded.instances.items()}
+                self.assertEqual(listed, {1: (index, None), 2: (combat.MODE_UI, (1, host))})
+                named = set()
+                graph._collect_graphs(script.state(host).fields, named)
+                self.assertIn(combat.MODE_UI, named)  # the host state is the one that starts the mode UI
+
+    def test_a_pack_without_the_mode_graph_keeps_the_plain_frame(self):
+        with patch.object(combat, "MODE_GRAPHS", {PRACTICE_RANGE.mode_guid: (0xFFFF, 0, 1)}):
+            frame = combat.mode_frame({}, PRACTICE_RANGE.mode_guid)
+        decoded = read_chunk(_chunk(frame), _chunk_bits(frame), {})
+        self.assertEqual(decoded.instances[1].graph, combat.MODE_UI)  # the plain frame's root
+
     def test_mode_ui_shared_variables_start_in_both_initial_and_countdown_frames(self):
         ui = graph.graph(combat.MODE_UI)
         component = runtime.Component(0xA0000100)

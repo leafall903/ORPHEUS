@@ -22,6 +22,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Tab board in Deathmatch and Team Deathmatch
+
+- `combat.MODE_GRAPHS` lists the mode graph and board state of Deathmatch and Team Deathmatch
+  beside the Practice Range's. Each frame turns on the one `STU_38EE1100` state that posts
+  `06DF.025`, and lists the mode UI graph `0CB6` as the child of the state that starts it. A pack
+  without a mode's graph keeps the plain frame.
+- Added runtime tests: every row decodes with one state on, of that class, and with the mode UI
+  under the state that names it. Ruff, the public tests and the focused runtime tests passed.
+- Original-client check, Soldier: 76, one player: the board opens in Team Deathmatch (Black Forest)
+  and Deathmatch (Petra), with each mode's tile layout and every stat named. The HUD is unchanged.
+- Evidence gap in place of a shared contract: the frames are built from the modes' own graphs,
+  which are game data and cannot be published, so the runtime tests check them against a local
+  pack. To repeat the client check, start either mode from the Arcade with one player and hold the
+  scoreboard key.
+- Not included: Control, whose board opened on Busan with its capture header locked, because an
+  elimination under its frame was not checked; Elimination, Capture the Flag and Skirmish, unseen
+  against ORPHEUS; Assault, Escort and Hybrid, where a board state without its phase state drew an
+  "UNSPECIFIED 0.0" objective header. The [research note](docs/research/tab-board.md) has their
+  graphs and states.
+- Still open: no elimination happened in these matches, so the kill feed under the new frames is
+  unchecked. The board's time reads 0:00. Deathmatch lists the general player stats, not Final
+  Blows and Solo Kills.
+
 #### Career profile from played matches
 
 - A match from a queue card now counts for the player's career: time played, eliminations, deaths
