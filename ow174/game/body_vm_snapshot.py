@@ -131,6 +131,7 @@ _STATE_LAYOUTS = {
         ("max_shots", "min_shots", "shot_spread"),
     ),
     nodes.MoveTo: (("movement",), ()),
+    nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
     nodes.PlacementPreview: ((), ()),
     nodes.SummonerPlacement: (("confirmed",), ()),

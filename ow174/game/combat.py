@@ -2229,7 +2229,7 @@ class Combat:
         self.rockets[:] = [
             rocket for rocket in self.rockets
             if rocket.shooter is not player
-            or (rocket.reflected and rocket.shot is None)
+            or (rocket.reflected and rocket.shot is None and not getattr(rocket, "pulse_bomb", False))
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))

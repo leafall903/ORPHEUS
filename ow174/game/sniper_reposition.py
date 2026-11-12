@@ -108,8 +108,20 @@ def start_reposition(state, world, bot, target, tick):
 
 
 def begin(fight, bot, player):
+    from ow174.game import npc_navigation
+
     state = reposition_state(bot)
     target = next((t for t in fight._enemies(bot) if t.owner is player), None)
+    if (state is not None and target is not None
+            and (bot.reposition_body is not None
+                 or not npc_navigation.reposition_range(bot.position, target.feet))):
+        from ow174.game import sniper_special
+
+        bot.reposition_body = target.entity
+        bot.attack_target = player.entity
+        bot.firing = True
+        sniper_special.engagement_changed(bot)
+        return
     if (state is None or target is None
             or not start_reposition(state, fight._collision(), bot, target, fight.tick)):
         raise ValueError("NPC reposition needs a nearby target, clear destination and ready state")
@@ -117,6 +129,12 @@ def begin(fight, bot, player):
 
 
 def stop(bot, tick):
+    if bot.reposition_body is not None:
+        from ow174.game import sniper_special
+
+        sniper_special.interrupt(bot)
+        bot.reposition_body = None
+        bot._pause(tick)
     state = reposition_state(bot)
     if state is None:
         return
@@ -129,8 +147,13 @@ def stop(bot, tick):
     state.instance.drop_begins([wait, state])
 
 
-def advance(fight, bot):
+def advance(fight, bot, *, tick=None, seconds=combat.TICK):
     if bot.attack_mode != "reposition":
+        return
+    if bot.reposition_body is not None:
+        from ow174.game import sniper_special
+
+        sniper_special.drive(bot, fight.tick if tick is None else tick, seconds, fight._collision(), 0)
         return
     state = reposition_state(bot)
     movement = state.move_request() if state is not None else None

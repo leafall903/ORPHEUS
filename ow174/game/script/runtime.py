@@ -515,6 +515,9 @@ class World:
         """Explicit TrackRay query provider; unsupported differs from a completed miss."""
         return NotImplemented
 
+    def search_position(self, state: "State"):
+        return NotImplemented
+
     def __init__(self, hero: int = 0, mode: int = 0) -> None:
         self.hero = hero
         self.mode = mode

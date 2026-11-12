@@ -478,7 +478,7 @@ def _step(match, bot, tick, seconds, search_budget):
                 or bot.entity in match.combat.sombra_controls.locks):
             sniper_reposition.stop(bot, tick)
         else:
-            sniper_reposition.advance(match.combat, bot)
+            sniper_reposition.advance(match.combat, bot, tick=tick, seconds=seconds)
         return
     target = next((t for t in match.combat._targets() if getattr(t.owner, 'entity', None) == bot.attack_target
                    and getattr(t.owner, 'client', None) is not None and not match.combat.vitals_of(t).dead
