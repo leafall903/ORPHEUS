@@ -1,5 +1,44 @@
 # Changelog
 
+## A97 — original healing status VMs on the sole received-healing host
+
+Restored0004 script/healing_status StatusWorld, Applied and original status
+implementation. HealingEffects inherits those methods/storage; Combat still
+constructs exactly one HealingEffects, never a second Statuses manager. Original
+impact API drives actual0C71→PlayScript0B99/0C72, active CombatModFilter values,
+authored timers, filter_history and Mercy passive_healing_scales. Existing ordinary
+anti/amp intervals, Spec, tags/immunity and A75/A77 shield ledger remain. factor
+merges effective status policies without multiplying positive statuses. Sparse
+integration includes actual filter transition boundaries; before pruning source
+history, settle the same Zarya shield ledger. No source expected values changed.
+Two necessary real-host adaptations: damage_immune receives target.owner; scoped
+StatusWorld.play_script_selected routes actual0C71 through current resolved
+PlayScript/Queue (the old plays_scripts property alone no longer has a consumer).
+Exact StatusWorld/Applied/HealingEffects storage is registered; strict exporter
+and unknown-field rejection remain unchanged.
+
+Input evidence: original0004/research/game_graphs_support_status_174.json.gz has
+0267→0C71 binding absent from v18. Its0C71/0B99/0C72 complete graph objects equal
+current composed objects. External worker-a-healing-status-graphs.json.gz derives
+v18 plus that one binding; no source/runtime input changed. Root owns unifiedv19.
+New5 actual methods pass32.926s: child/filter/4s expiry, same-host retirement,
+component timer causal hash+unknown rejection, paced/sparse same Zarya ledger,
+and actual ServerSession full storage hash mutation/restoration/unknown rejection.
+Log worker-a-native-healing-status-storage-check.log. Earlier35-method native+
+Baptiste+Zarya run retained6subfails/2errors: Enforcer/Assassin originalNPC burst
+netloss4 values, old zarya_recovery.bodies2 errors, original projectile193-impact
+boundary2 values. These source assertions are unchanged; not all were rerun as
+pre-A97 baselines and no claim of newly green acceptance is made.
+
+Next A98 actual remaining consumers: route the existing grenade victim loop
+through that sole native application without duplicate damage/healing, retain
+Matrix strength/source ownership and same-event shield exclusion; integrate
+native filters into cleanse/pooled-heal and Cryo historical boundary consumers.
+The present manual original impact API is active and verified, while ordinary
+projectile grenades deliberately still use existing single health/status path.
+Preserve original healing-status fixtures/assertions when adapting existing
+composed graph/current phase interfaces; do not add observer aliases/secondhost.
+
 ## A96 — retain original0065 component72 explicit query provider
 
 Source pet_relation is not merely the current entity_link filename: original
