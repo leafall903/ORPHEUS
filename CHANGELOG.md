@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Fire Strike wide collision and native shield contacts
+
+- Mount original0007's static MOVER sphere sweep on the existing penetrating
+  flight path. A wide projectile now stops before the wall even at a ray endpoint.
+- Include actual RaisedBarrier pools in existing Fire Strike contact collection,
+  deduplicate owner/body generation and activation, resolve travel order with
+  shield-before-body ties, and skip a carried shield after an earlier lethal
+  body hit. Retain legacy contacts when no actual native actor owns that body.
+- All37 original focused wall/extent/multiple shields/later raise/reused body,
+  Hammer+Strike and runtime checks pass. Full original Barrier/Strike46 retains
+  11subfail6errors (previous17/9), including actual shield lifecycle/pool input,
+  explosion/Brigitte and frozen-team interface work; preserve all expectations.
+- Main1399 assertions retain original counts/order/Constants. Client acceptance
+  remains open. Long B21 snapshot69 finished with3fail8errors3skip, recorded.
+
 ### Restore independent Earthshatter control lifetimes
 
 - Mount source0007's actual(victim, source, kind) hard-control clocks on existing

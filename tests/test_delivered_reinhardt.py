@@ -772,11 +772,11 @@ class FireStrikeTests(unittest.TestCase):
         self.advance(3, buttons=0)
         [shot] = self.match.combat.rockets
         self.assertEqual(shot.speed, 25)
-        self.assertAlmostEqual(shot.radius, 0.85)
+        self.assertAlmostEqual(shot.penetration_radius, 0.85)
         self.advance(55, buttons=0)
         self.assertEqual(self.health(self.enemy), 100)
         self.assertEqual(self.health(self.other), 100)
-        self.assertEqual(len(shot.hit_targets), 2)
+        self.assertEqual(len(shot.penetrated), 2)
         self.assertFalse(self.ability().flags & 1)
         self.assertGreater(self.ability().remaining(), 5.5)
 
@@ -932,7 +932,7 @@ class FireStrikeTests(unittest.TestCase):
                 self.advance(1, buttons=16)
                 self.advance(31, buttons=0)
                 [shot] = self.match.combat.rockets
-                self.assertFalse(shot.hit_targets)
+                self.assertFalse(shot.penetrated)
                 self.assertEqual(self.health(self.enemy), 200)
 
                 self.enemy.team = int(not front_starts_hostile)
@@ -4184,7 +4184,7 @@ class TalonInteractionTests(unittest.TestCase):
             self.advance(32, buttons=0)
             [shot] = self.match.combat.rockets
             self.advance(260 if case == "range" else 16, buttons=0)
-            self.assertFalse(shot.hit_targets)
+            self.assertFalse(shot.penetrated)
             if case != "ally":
                 self.assertNotIn(shot, self.match.combat.rockets)
             if case == "range":
@@ -4675,10 +4675,10 @@ class BarrierTests(unittest.TestCase):
                 break
         [shot] = fight.rockets
         body_distance = combat.ray_capsule(
-            shot.position, shot.direction, *target.segment(), target.radius + shot.radius,
+            shot.position, shot.direction, *target.segment(), target.radius + shot.penetration_radius,
         )
         shield_distance, owner, _ = fight._barrier_contact(
-            self.rein, shot.position, shot.direction, 20, shot.radius, team=shot.team,
+            self.rein, shot.position, shot.direction, 20, shot.penetration_radius, team=shot.team,
         )
         step = shot.speed * combat.TICK
         self.assertIs(owner, self.enemy)
@@ -4691,7 +4691,7 @@ class BarrierTests(unittest.TestCase):
         self.assertFalse(shield.active)
         self.assertEqual(shield.current, 1600)
         self.assertEqual(self.health(self.other), 100)
-        self.assertEqual({body for body, _ in shot.hit_targets}, {self.enemy.body, self.other.body})
+        self.assertEqual({body for body, _ in shot.penetrated}, {self.enemy.body, self.other.body})
 
     def fire_strike_first_barrier_hit(self):
         hero = heroes()[combat.REINHARDT]
