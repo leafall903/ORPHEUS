@@ -71,6 +71,7 @@ from ow174.game import (
     molten_core,
     torbjorn_mark,
     torbjorn_charge,
+    symmetra_charge,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -3951,6 +3952,9 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        for player in self.match.players:
+            if player.hero.guid == symmetra_charge.HERO:
+                symmetra_charge.advance_idle(player, first - 1, round(TICK * 1000), before_combat=True)
         bubble_releases = {}
         for player in self.match.players:
             release = winston.HostedBarriers(self).pending_release(player, round(TICK * 1000))
@@ -4041,6 +4045,9 @@ class Combat:
             barriers.advance(self, at)
             reinhardt_charge.sync(self)
             self.photon_barriers.update(at)
+            for player in self.match.players:
+                if player.hero.guid == symmetra_charge.HERO:
+                    symmetra_charge.advance_idle(player, at, round(TICK * 1000))
             for player in self.match.players:
                 self._update_sleep_view(player)
                 self._sync_adaptive_shield(player)
@@ -8587,6 +8594,8 @@ class Combat:
         charge_owner = self._credit_player(shooter)
         if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
             torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == symmetra_charge.HERO):
+            symmetra_charge.damage(charge_owner, target, dealt)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8654,7 +8663,7 @@ class Combat:
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
-                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == doomfist.HERO:
@@ -9244,7 +9253,7 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid in (regeneration.MERCY, 0x02E000000000013B):
+        if old_script is not None and player.hero.guid in (symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
@@ -9256,6 +9265,8 @@ class Combat:
 
             script = player.body_script
             script.set_ult_charge(points)
+            if player.hero.guid == symmetra_charge.HERO:
+                script.charge_clock = self.tick, script.component.now
             if player.hero.guid == regeneration.MERCY:
                 charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                               if credit[0] > script.component.now))

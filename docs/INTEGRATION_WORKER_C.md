@@ -507,3 +507,36 @@ Next: commit recovery and mount original Symm charge, then actual sentry and
 portal/placement managers. Sentry source has substantial retained-history
 replay/defense adapters; copying alone cannot count it integrated. Source25s
 orb and retained flight remain unfinished. Other C20 owner boundaries persist.
+
+
+C21 SHA ce7f0a78 delivered; root notes C20 receiver already repaired its server
+beam field and C19 passive_charge_due, so retain their receiver registrations.
+
+## C22 original Symmetra charge checkpoint
+
+Source symmetra_charge.py actual0B8B queries, mode gate, command synchronization,
+world idle deadlines and012 pool loss are connected for Symm only. Original
+module's shared Genji constants/helpers remain present; canonical Genji's own
+single host remains authoritative and is not routed through this new host.
+Photon wall suppression reads existing photon_barriers.actors, no second pool.
+Generic combat award excludes Symm so actual damage is not counted twice.
+Same-hero respawn restores meter and resets the real charge_clock; selection
+still resets normally. VM/server optional registries include this actual tuple.
+
+First7 core run: sixpass/onecase with2 offset failures; clock initialized before
+_spawn was wrong (time0 vs initialized16015). Match source placement after
+successful_spawn; all7 then pass4.259s. Full original unchanged
+ test_symmetra_charge + test_symmetra_combat =30pass28.268s, including the
+25second orb lifetime and real pre/post-respawn hits (no claim that all source
+retained scheduler branches are integrated). Log worker-c-symmetra-charge-full-check.log.
+OriginalGenji passive+Damage21pass10.319s, worker-c-symmetra-charge-shared-check.log.
+Actual ServerSnapshotTests scene, session.apply switch_hero Symm, capture and
+export_body_vm: changing charge_clock tick+1/time+16 changes both digests.
+First ad-hoc probe tried direct switch outside controlled journal root and
+correctly rejected; repeat uses existing session.apply, no guard weakened.
+
+Remaining: original source Photon-expiry/omitted-history clocks need comparison
+against canonical actor scheduler; unmounted sentry/portal/placement services
+and their retained-history interactions remain. Core9 charge passing does not
+prove those cross-owner branches. Continue actual sentry deployment/beam/slow
+and preserved original source checks next; no full-journal gate or client use.

@@ -411,6 +411,14 @@ class InstanceContext(Context):
         component = self.instance.component
         if (not component.strict and component.world.hero == 0x02E0000000000016
                 and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            from ow174.game import symmetra_charge
+
+            result = symmetra_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
+        if (not component.strict and component.world.hero == 0x02E0000000000016
+                and getattr(component.world, "body_definition", None) is not None
                 and self.instance.graph.index == 0x0033):
             from ow174.game import symmetra
 
