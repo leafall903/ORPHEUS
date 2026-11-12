@@ -1865,3 +1865,42 @@ Next exact action: original0068 flight/field clock_ticks and charge policy mappe
 onto the existing Rocket/Combat/Gravitons services, keeping original193 assertions.
 Remaining0068 scope remains low-confidence5-10active hours, no whole-suite/client/
 network/publication step and no new acceptance matrix.
+
+## A82 — Graviton NPC single-mover ownership, explicit data and release
+
+Clean d9400d30 absorbed root8777b206. Existing Graviton NPC movement now chooses
+existing control_mover/impulse_mover before the current map reference. Creation
+uses original optional Bot.movement_data before the canonical table default;
+no new input/field/API. Newly necessary mover is registered immediately in the
+existing owner.impulse_mover slot; Graviton.npc_movers only aliases that same object.
+A real Flux overlap exposed why this is required: later same-world-tick Flux would
+otherwise create a second mover because its existing owner slot was stillNone.
+Root and B61 explicitly confirmed the same-slot protocol; B WholeHog withdraws
+its motion channel when this actual Graviton pulled set takes priority.
+
+Release pops the Graviton alias first, selects that same existing mover (including
+Flux impulse owner), clears horizontal velocity, and preserves real Flux vertical
+velocity/ownership. No new mover is made for release, no alternate metadata or
+force driver installed. Existing category/collision/body/VM identity remains.
+
+Actual prepared five NPC catalog roles each exercise create/reuse against a real
+cast field (10cases), retaining exact original prepared mover values supplied as
+a distinct explicit data object. Same object survives subsequent pulls and real
+team-change release clears motion/map; no fake Bot/observer/pool. Actual Sigma
+input applies1DBC to real Trooper, actual Zarya field pulls the same NPC, and
+release keeps its same impulse mover, positive Flux vertical velocity and live
+recipient; bothmethods11cases pass8.285s. Player Flux+Fortify shared joint5/5pass
+17.921s, worker-a-zarya-npc-flux-fortify-shared.log. First fixture attempts correctly
+exposed a cold mover table and hero-switch pose reset; explicit table loading and
+retaining real actor pose fixed the fixture. Initial actual double-mover identity
+failure is preserved in worker-a-zarya-npc-flux-release-first.log; its assertion
+was kept and the real ownership gap fixed. No original numeric/assert changes.
+
+Next exact action: source0068 flight admission/analytic gravity and original
+world flight/Graviton clock_ticks. Inspection now identifies both remaining
+projectile discrepancies: generic flight admits source grenade withlast_tickNone
+and integrates all sparse collisions at endpoint; current gravity path also uses
+semi-implicit velocity whereas original0068 grenade/Graviton uses the analytic
+half-gravity chord. Restore only original owned flight families on the existing
+Rocket service and keep193 impact assertions, then world charge/frozen offense/
+remaining mobility consumers. No network/client/service/publication/full matrix.
