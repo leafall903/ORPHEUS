@@ -185,6 +185,10 @@ def _active_state(owner, hero, graph, index):
 
 
 def active(actor):
+    from ow174.game import mei
+
+    if mei.cryo_world_expired(actor):
+        return False
     # The protection stack outlives the healing phase during the authored
     # quarter-second exit wait.
     state = _active_state(actor, HERO, GRAPH, 14)

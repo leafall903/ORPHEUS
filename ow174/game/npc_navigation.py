@@ -474,6 +474,11 @@ def _step(match, bot, tick, seconds, search_budget):
         return
     if bot.attack_mode == "melee":
         return
+    if bot.spawner.get("acquire_targets") and bot.spawner.get("acquire_specials"):
+        from ow174.game import sniper_retreat
+
+        if sniper_retreat.controls_motion(bot):
+            return  # Original automatic host owns this motion, rather than manual pursuit.
     if bot.attack_mode == "reposition":
         from ow174.game import sniper_reposition
 

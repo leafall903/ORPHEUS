@@ -44,6 +44,81 @@ def emp_replay_frames(fight):
     return 0
 
 
+def _shown_sources(match):
+    return {player.body for player in match.players
+            if match._shown(player) and player.body_script is not None}
+
+
+def application_replay_until(fight, previous):
+    import math
+
+    sources = _shown_sources(fight.match)
+    return max((math.ceil(lock.until / .016) for locks in fight.sombra_controls.locks.values()
+                for lock in locks if lock.application.source_entity() not in sources), default=previous)
+
+
+def _finish_interval(controls, lock, at):
+    application = lock.application
+    component = application.component
+    if any(other.application is not application and not other.application.stopped
+           for other in controls.locks.get(component.entity, ())):
+        return
+    row = controls.lock_history.get(component.entity)
+    if row is not None and row[0] is component:
+        for index, (start, end) in enumerate(row[1]):
+            if start <= application.start <= end:
+                row[1][index] = start, max(start, min(end, at))
+
+
+def advance_applications(match, tick):
+    """Original incoming replay, translated by observed delivery clocks only."""
+    controls = match.combat.sombra_controls
+    sources = _shown_sources(match)
+    rows = tuple(lock for locks in tuple(controls.locks.values()) for lock in tuple(locks))
+    clocks = {}
+    for lock in rows:
+        if lock.clock is not None:
+            component = lock.application.component
+            previous = clocks.get(component)
+            if previous is None or lock.clock > previous:
+                clocks[component] = lock.clock
+    seen = set()
+    for lock in rows:
+        orphaned = lock.application.source_entity() not in sources
+        # A Portal's near-endpoint pulse can apply to the other endpoint.
+        # Use a clock actually observed on each instance's own component.
+        pulse_clock = clocks.get(lock.pulse.component) if lock.pulse is not None else None
+        applications = ((lock.pulse, pulse_clock),
+                        (lock.application if orphaned else None, lock.clock))
+        for application, clock in applications:
+            if application is None or application in seen or clock is None:
+                continue
+            seen.add(application)
+            world, body_ms = clock
+            end = body_ms + (tick - world) * 16
+            component = application.component
+            if component.owner_dead:
+                continue
+            if application.stopped:
+                if application is lock.application and orphaned:
+                    _finish_interval(controls, lock, component.now)
+                continue
+            if end <= component.now or application.start > end:
+                continue
+            saved_frame, saved_now = component.frame, component.now
+            with component.operation():
+                try:
+                    component.frame = end // component.frame_ms
+                    component.now = end
+                    application.update()
+                    if application.queue and application.queue[0].time <= component.now:
+                        application.update()
+                    if application is lock.application and orphaned and application.stopped:
+                        _finish_interval(controls, lock, component.now)
+                finally:
+                    component.frame, component.now = saved_frame, saved_now
+
+
 def _next_frame(script, fight, player):
     if (player.body in fight.translocators.recall_poses or translocators.replay_pending(script)
             or _emp_pending(script)):

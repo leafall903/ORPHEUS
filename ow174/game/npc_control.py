@@ -66,6 +66,9 @@ def start(match, player, *, melee=False, charge=False, reposition=False):
         raise ValueError('select one NPC attack')
     mode = "charge" if charge else "melee" if melee else "reposition" if reposition else "primary"
     value = button(bot, mode=mode)  # validate before changing policy
+    if (bot.hero == assassin.HERO and getattr(bot.body_script, 'control_context', None) is not None
+            and player.controller_vm is not None):
+        player.controller_vm.configure_manual_pin(player.controller_filter_bits)
     if reposition:
         sniper_reposition.begin(match.combat, bot, player)
     elif bot.attack_mode == "reposition":
@@ -128,6 +131,10 @@ def stop(match):
             reposition.instance.drop_begins([reposition])
             reposition.end(False)
         if bot.body_script is not None:
+            context = getattr(bot.body_script, 'control_context', None)
+            if context is not None:
+                context.set_target()
+                match.combat.release_pin(bot.entity)
             component = bot.body_script.component
             component.discard_button_presses()
             assassin.bind(component.world, component, None)
@@ -260,21 +267,30 @@ def update_input(fight, bot):
     value = button(bot)
     component = bot.body_script.component
     if bot.hero == assassin.HERO and enabled:
-        victim = next((entry for entry in fight._targets() if entry.owner is target), None)
-        enabled = victim is not None and not fight._control_immune(victim)
+        enabled = not fight._control_immune(target)
     if previous_target is not None and previous_target != bot.attack_target:
         _retire_target_input(bot, value)
     if bot.attack_mode == "primary" and heavy_assault.update(bot, component, enabled):
         enabled = False
-    desired = target.entity if enabled else None
-    if (bot.hero == assassin.HERO and component.world.manual_target != desired):
-        if component.world.manual_target is not None:
-            # Let the old pin's exits run before binding a replacement. Those
-            # exits can start the release animation after bind returns.
-            desired = None
-            enabled = False
-        assassin.bind(component.world, component, desired)
-        bot.attack_input = False
+    context = getattr(bot.body_script, 'control_context', None)
+    if context is not None and bot.hero == assassin.HERO:
+        player = target.owner if enabled else None
+        host = player.controller_vm if player is not None else None
+        if host is not None and (host.retired or host.component.fault is not None):
+            host = None
+        if context.target_host is not host:
+            fight.release_pin(bot.entity)
+        context.set_target(player.entity if player is not None else None, host=host)
+    else:
+        desired = target.entity if enabled else None
+        if (bot.hero == assassin.HERO and component.world.manual_target != desired):
+            if component.world.manual_target is not None:
+                # Let the old pin's exits run before binding a replacement. Those
+                # exits can start the release animation after bind returns.
+                desired = None
+                enabled = False
+            assassin.bind(component.world, component, desired)
+            bot.attack_input = False
     if bot.attack_input != enabled or (value in component.held) != enabled:
         if not enabled:
             heavy_assault.stop_miniguns(component)
@@ -282,6 +298,16 @@ def update_input(fight, bot):
         component.edges([(value, bool(enabled))])
         if not enabled:
             stop_enforcer_windup(component)
+    if context is not None and bot.hero == assassin.HERO:
+        pin = assassin.pin_button(bot)
+        player = target.owner if enabled else None
+        pin_enabled = bool(enabled and player is not None
+                           and (assassin.selected_controller(context) == player.entity
+                                or assassin.holds_pin(bot, player)))
+        if pin is not None and (pin in component.held) != pin_enabled:
+            component.edges([(pin, pin_enabled)])
+        if not pin_enabled:
+            assassin.retire_pin_effect(context.target_host, bot.entity)
     bot.attack_input = bool(enabled)
     return bool(enabled)
 

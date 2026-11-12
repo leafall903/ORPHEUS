@@ -289,6 +289,10 @@ class Player:
         return TEAM_BIT << self.team
 
     @property
+    def controller_filter_bits(self) -> int:
+        return PLAYER_FILTER | self.team_bit
+
+    @property
     def player_id(self) -> tuple[int, int]:
         """The 16-byte id of the player's entity (component 29) as (low, high): his card's key. The
         lobby's account id, which a client also holds for itself (20500): its own entity is then the
@@ -595,6 +599,9 @@ class Player:
             if script is not None and not stunned and not self.mover.external_impulse:
                 movement_limit = self.match.combat.brigitte.bash_movement_limit(self)
             fall_limit = echo_movement.glide_limit(self, command)
+            from ow174.game import sigma_flux
+
+            flux_flight = sigma_flux.flux_flight_data(self) if not stunned else None
             speed_scale = max(0.3, 1.0 - frost)
             if self.hero.guid == 0x02E0000000000079:
                 controller = wall_ride.controller(script)
@@ -608,6 +615,8 @@ class Player:
                                      movement_limit=movement_limit, wall_ride=wall_control)
             elif self.hero.guid == 0x02E0000000000007 and stunned:
                 self.mover.step_pose(command, seconds, tick, suppress_throttle=True)
+            elif flux_flight is not None and movement_limit is None:
+                self._move_pose(command, seconds, tick, flight=flux_flight)
             elif fall_limit is not None:
                 self.mover.step_pose(
                     command, seconds, tick, movement_limit=movement_limit,
@@ -631,16 +640,17 @@ class Player:
         if not self.mover.airborne and not self.mover.landed:
             fight.translocators.recall_poses.discard(self.body)
 
-    def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):
+    def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None, flight=None):
         fight = self.match.combat
         command = fight.clamp_sleep_command(self, command)
         walls = fight.walls
         if not walls.pieces:
-            return self.mover.step_pose(command, seconds, tick, move_to=move_to, flight_profile=flight_profile)
+            return self.mover.step_pose(command, seconds, tick, move_to=move_to, flight_profile=flight_profile,
+                                        flight=flight)
         before = tuple(self.mover.position)
         outcome = self.mover.step_pose(
             command, seconds, tick, move_to=move_to, ground_override=walls.ground(self.mover),
-            flight_profile=flight_profile,
+            flight_profile=flight_profile, flight=flight,
         )
         blocked = walls.move_mover(self.mover, before)
         if move_to is not None and blocked:
@@ -688,6 +698,9 @@ class Player:
             if pressed & ABILITY and portals.pairs:
                 portals.dismiss(self)
             previous_frame = script.frame
+            from ow174.game import sigma_flux
+
+            sigma_flux.sync_flux_airborne(script.component, self.mover)
             previous_fortify = combat._active_fortify(self) if posed else None
             previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
@@ -701,6 +714,7 @@ class Player:
                             script.orisa_fortify_pending = True
                         script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
+                sigma_flux.release_phased_flux_target(self)
                 self.match.combat.command(self, command if posed and not replay_accepted else None,
                                           defer_effects=defer_effects,
                                           replay_aim=command if replay_accepted else None)
@@ -1038,7 +1052,13 @@ class Match:
             manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
                                    and bot.spawner.get("manual_spawn") is True)
             controller_entity = None
-            if record.get("controller") is not None:
+            association = None
+            if (record.get("controller") is None and bot.spawner.get("manual_spawn") is True
+                    and not bot.spawner.get("autonomous_targeting")
+                    and not bot.spawner.get("acquire_targets") and getattr(bot, "pursuit", None) is None):
+                association = graph.npc_controller(bot.body)
+            manual_definition = graph.guid(association.get("definition")) if association is not None else None
+            if record.get("controller") is not None or manual_definition is not None:
                 controller_entity = self.combat.next_bot
                 if (not bots.BOT_ENTITY <= controller_entity < 0xD0000000
                         or controller_entity == bot.entity
@@ -1054,6 +1074,7 @@ class Match:
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
                 controller_entity=controller_entity, match=self,
+                manual_controller_definition=manual_definition, body_position=bot.position,
                 difficulty_index=bot.spawner.get("difficulty_index"),
             )
             component = getattr(bot.body_script, "component", None)
@@ -1157,7 +1178,7 @@ class Match:
         (_show_players)."""
         frame = player.card.get("+0x28") or None
         components = {
-            26: [PLAYER_FILTER | player.team_bit],
+            26: [player.controller_filter_bits],
             29: self._player_info(player),
             74: [frame, None, player.slot, None, None, player.role or None, 1, 1, None],
         }

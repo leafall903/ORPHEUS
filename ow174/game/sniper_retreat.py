@@ -34,6 +34,11 @@ def _target(fight, bot, root):
     return next((target for target in fight._enemies(bot) if target.entity == entity), None)
 
 
+def controls_motion(bot):
+    root = _root(bot)
+    return root is not None and root.context().var(expr.INSTANCE, 59) == 1
+
+
 def acquire(bot, selected):
     """Feed the visible close threat to the actual 142C graph gate."""
     root = _root(bot)
@@ -53,8 +58,7 @@ def acquire(bot, selected):
 
 
 def native(world, cfg, instance):
-    if (world.hero != HERO or world.match is None or instance is None
-            or instance.graph.index != GRAPH or instance.component.strict):
+    if not scoped(world, instance):
         return NotImplemented
     kind = cfg.get("$")
     if kind in ("STU_F7262B36", "STU_A37A910D"):
@@ -68,6 +72,15 @@ def native(world, cfg, instance):
     if kind == "STU_71A87E92" and expr.to_entity(instance.evaluate(cfg.get("m_entity"))) == owner:
         return world.match.script_body_position(owner, owner)
     return NotImplemented
+
+
+def scoped(world, instance):
+    if (world.hero != HERO or world.match is None or instance is None
+            or instance.graph.index != GRAPH or instance.component.strict):
+        return False
+    bot = next((actor for actor in world.match.bots
+                if actor.entity == instance.component.entity), None)
+    return bot is not None and _root(bot) is instance
 
 
 def _destination(state, bot, target, collision, walls):
@@ -99,11 +112,19 @@ def _destination(state, bot, target, collision, walls):
                 continue
             mover = Mover(bot.position, round(bot.yaw), collision, mover_data(bot.body))
             seconds = math.dist(bot.position, point) / speed + state.instance.component.frame_ms / 1000
-            outcome = mover.step_pose(Command(0, yaw=mover.yaw), seconds, 0,
-                                      move_to=(point, speed), walls=walls)
+            outcome = _step_pose(mover, Command(0, yaw=mover.yaw), seconds, 0, (point, speed), walls)
             if outcome is True:
                 return expr.Vec3(*point)
     return None
+
+
+def _step_pose(mover, command, seconds, tick, move_to, walls):
+    before = tuple(mover.position)
+    outcome = mover.step_pose(command, seconds, tick, move_to=move_to,
+                              ground_override=walls.ground(mover) if walls is not None else None)
+    if walls is not None and walls.move_mover(mover, before):
+        return False
+    return outcome
 
 
 def interrupt(bot):
@@ -139,13 +160,15 @@ def advance(fight, bot):
         return
     target = _target(fight, bot, root)
     collision = fight.match.collision_world
+    hooks = getattr(fight, "hooks", None)
     if (target is None or collision is None or fight.is_asleep(bot) or fight.is_stunned(bot)
             or bot.entity in fight.sombra_controls.locks
-            or fight.steel_traps.rooted(bot.entity) or fight.hooks.controlled(bot.entity)):
+            or fight.junkrat.rooted(bot.entity, fight.tick)
+            or (hooks is not None and hooks.controlled(bot.entity))):
         interrupt(bot)
         return
     component = root.component
-    walls = fight.ice_wall if fight.ice_wall.pieces else None
+    walls = fight.walls if fight.walls.pieces else None
     with component.operation():
         if search is not None:
             destination = _destination(search, bot, target, collision, walls)
@@ -166,8 +189,8 @@ def advance(fight, bot):
         destination, speed = movement
         start = bot.position
         mover = Mover(start, round(bot.yaw), collision, mover_data(bot.body))
-        outcome = mover.step_pose(Command(fight.tick, yaw=mover.yaw), TICK, fight.tick,
-                                  move_to=(tuple(destination), speed), walls=walls)
+        outcome = _step_pose(mover, Command(fight.tick, yaw=mover.yaw), TICK, fight.tick,
+                             (tuple(destination), speed), walls)
         bot.position = tuple(mover.position)
         bot.velocity = tuple((axis - old) / TICK for axis, old in zip(bot.position, start, strict=True))
         bot.moved_tick = fight.tick

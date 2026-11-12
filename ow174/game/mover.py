@@ -999,6 +999,7 @@ class Mover:
         world_driven: bool = False,
         wall_ride: tuple[int, bool] | None = None,
         flight_profile: tuple[float, MoverData | None] | None = None,
+        flight: MoverData | None = None,
     ) -> bool | None:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
@@ -1015,7 +1016,7 @@ class Mover:
         flight_scale, profile = self.flight_scale, self.script_data
         if flight_profile is not None:
             flight_scale, profile = flight_profile
-        self.values = data = modded(profile or self.data, active)
+        self.values = data = modded(flight or profile or self.data, active)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:
@@ -1030,6 +1031,14 @@ class Mover:
         forward, forward_byte = throttle_byte(command.forward)
         jump = move_to is None and horizontal_drive is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
+        if flight is not None:
+            # Original Flux flight uses upright jump/crouch vertical input.
+            vx, _, vz = self.velocity
+            vertical = int(bool(command.buttons & JUMP)) - int(crouch)
+            self.velocity = (vx, vertical * data.run_forward, vz)
+            if vertical > 0:
+                self.flags_word |= FELL
+            jump = crouch = False
         flying = flight_scale is not None and move_to is None
         rise = jump
         sink = intent(active, CROUCH_INTENT, 1.0 if crouch else 0.0) > 0.5

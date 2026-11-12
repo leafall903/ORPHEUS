@@ -2496,13 +2496,27 @@ class ActiveInputRelay(State):
 class AIBehavior(State):
     """A behavior candidate. The world decides when its selected subgraph runs."""
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.selected = False
+
     def on_enter(self) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        self.refresh_selection()
+
+    def refresh_selection(self):
+        selected = bool(self.instance.component.world.selects_ai_behavior(self.instance))
+        if not self.active or selected == self.selected:
+            return
+        self.selected = selected
+        if selected:
             self.instance.follow(self.node, "m_6F92F4BD", self)
+        else:
+            self.instance.exit_subgraph(self.node, "m_6F92F4BD")
 
     def on_end(self, finished: bool) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        if self.selected:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
+        self.selected = False
 
 
 @state_class("STU_D3CDCF04")
@@ -4448,13 +4462,18 @@ class ModifyHealth(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.last_applied = 0
+        self.target_body = 0
 
     def on_enter(self):
+        self.target_body = 0
         self.last_applied = self.now
         world = self.instance.component.world
         value = world.modify_health(self, 0)
         if value is not NotImplemented:
-            self.ticks()
+            context = getattr(world, 'control_context', None)
+            if not (value is False and self.instance.graph.index == 0x1157
+                    and context is not None and context.target_host is not None):
+                self.ticks()
         elif self.instance.component.strict:
             self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
         else:
