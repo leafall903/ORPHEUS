@@ -29,7 +29,8 @@ def box_contact(target, state, origin, direction, reach, *, shown=None):
     from ow174.game.combat import _dot, _sub, aim
 
     shown = target if shown is None else shown
-    yaw, pitch = target.owner.mover.yaw, target.owner.mover.pitch
+    mover = getattr(target.owner, "control_mover", None) or target.owner.mover
+    yaw, pitch = mover.yaw, mover.pitch
     forward = aim(yaw, pitch)
     angle = yaw * 2 * math.pi / 65536
     right = (math.cos(angle), 0.0, -math.sin(angle))
@@ -189,12 +190,13 @@ def update_pools(fight, tick):
             script.component.destroy(instance)  # completed/declined self-grant stop-action reconstruction
 
 
-def absorption(fight, shooter, hit, origin, direction, length, *, padding=0.0, definition=None):
+def absorption(fight, shooter, hit, origin, direction, length, *, padding=0.0, definition=None, admitted=None):
     """Nearest eligible enemy Grasp volume before a body or wall is considered."""
     if hit is None:
         return None
     definitions = getattr(fight, "matrix_definitions", None)
-    if not (definition in definitions if definitions is not None else hit.deflectable):
+    if not (admitted if admitted is not None else
+            definition in definitions if definitions is not None else hit.deflectable):
         return None
     best = None
     for target in fight._enemies(shooter):

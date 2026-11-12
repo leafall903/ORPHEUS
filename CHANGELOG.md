@@ -25,23 +25,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Mount delivered Reinhardt mutual Charge windup counters
+### Mount delivered Molten Core projectiles, areas and status consumers
 
-- Mount the source counter query on posed commands as well as running contact,
-  admitting nearby opposing windups in either input order. Preserve authored
-  two-second profiles, tolerant opposite-facing comparison, query cone/radius,
-  IceWall/static cover, no damage and independent cooldowns.
-- Drain running subgraphs queued during Ability.stop so mutual knockdown cannot
-  resume either old drive. Use the existing native stun clock and Charge state.
-- All10 original mutual scenarios pass, including125-tick exact expiration,
-  heading/cone/team/cover rejection, body retirement and fresh cooldown casts.
-  Combined original mutual/Movement/Contact/Punch/mover/physics/runtime/input/
-  epoch157 run155 pass; retain the two original Shatter source-key inspection
-  errors. No assertion is dropped or numerical expectation relaxed.
-- Persist the B14 original assertion audit:1399 asserts in original per-method
-  order; zero changed assertion Constants. Raw AST has observer mappings to
-  current state. Source bump/release offsets5/2 are explicit in original0007.
-- Full cross-hero/NPC counters, charge object contacts and Earthshatter remain
-  in progress; client acceptance remains open. No publication or network action.
+- Connect original16DA input/ten-globule resource lifetime, point ballistic
+  chords, ground slope admission, ceiling/steep-surface rebounds, segment clock,
+  reflected instantaneous speed and remaining-slice continuation to the shared
+  projectile host. Keep other projectile samplers and received ownership fixes.
+- Mount original16DD ground areas, create-ack/FX delivery,16DE status instances
+  and explicit auxiliary scope registration, same-owner interval union,
+  different caster ownership, lifetime and hero-change cleanup. Preserve caster
+  death behavior and read original deployables metadata from prepared v4 inputs.
+- Preserve armour-only bonus and continuous periodic armour-reduction opt-out;
+  adapt boundary settlement to actual combined temporary/conditional/wave pools
+  and existing incoming/offense scaling. Register the exact source Registry
+  states field in passive VM/server storage without broadening unknown layouts.
+- Five original flight/rebound/ramp/ten-shot/switch checks pass. Five initial
+  area cases pass; the original pool/status passive snapshot passes after exact
+  Registry registration. Seven core/lifecycle plus15 NPC/damage checks pass;
+  the separately executed three original Barrage curve checks also pass using
+  the previously documented test-only Sigma fixture import fallback.
+- The initial area run exposed an adapter constant typo and missing exact
+  Registry serialization, both corrected. An early flight run did not apply
+  because its edit guard rejected a stale source pattern; final applied checks
+  pass. No source assertion or production guard was removed to pass these runs.
+- Full cross-owner barrier/status/phase/NPC and charge equivalence still need
+  original source checks. Source status_effects metadata has no direct reader;
+  this host resolves deployables.status_graph explicitly. Client acceptance
+  and whole-line completion remain unclaimed.
 
 
 ### Connect Torbjorn hammer to shared native barrier surfaces
@@ -104,6 +114,26 @@ This log records tested changes and their acceptance status. Entries are grouped
   the old healing_boost_until field. Current healing status is hosted by
   HealingEffects. Keep those original observations/expectations and logs; they
   neither block this code submission nor constitute full Ana acceptance.
+### Mount delivered Reinhardt mutual Charge windup counters
+
+- Mount the source counter query on posed commands as well as running contact,
+  admitting nearby opposing windups in either input order. Preserve authored
+  two-second profiles, tolerant opposite-facing comparison, query cone/radius,
+  IceWall/static cover, no damage and independent cooldowns.
+- Drain running subgraphs queued during Ability.stop so mutual knockdown cannot
+  resume either old drive. Use the existing native stun clock and Charge state.
+- All10 original mutual scenarios pass, including125-tick exact expiration,
+  heading/cone/team/cover rejection, body retirement and fresh cooldown casts.
+  Combined original mutual/Movement/Contact/Punch/mover/physics/runtime/input/
+  epoch157 run155 pass; retain the two original Shatter source-key inspection
+  errors. No assertion is dropped or numerical expectation relaxed.
+- Persist the B14 original assertion audit:1399 asserts in original per-method
+  order; zero changed assertion Constants. Raw AST has observer mappings to
+  current state. Source bump/release offsets5/2 are explicit in original0007.
+- Full cross-hero/NPC counters, charge object contacts and Earthshatter remain
+  in progress; client acceptance remains open. No publication or network action.
+
+
 ### Mount delivered Reinhardt Charge capture and bump lifecycle
 
 - Route actual Charge contacts to the same Charge record that owns bounded
@@ -122,7 +152,84 @@ This log records tested changes and their acceptance status. Entries are grouped
   behavioral assertions remain. Log:worker-b-reinhardt-contact-fourth.log.
 - Full source counter-charge, deployable collision, windup interruption and
   Earthshatter integration continue; original-client acceptance remains open.
+### Connect owned Matrix to finite-flight and canister interception
 
+- Reuse the delivered Matrix contact service in the existing tagged interception
+  route for selected0407 and real owned0407 bodies. Preserve contact-time close
+  projection through the existing sweep time span. Hitscan, finite/range/gravity
+  and field-canister callers keep their existing absorption/retirement driver.
+- Keep Sigma damage-amount conversion exclusive to1D02. Matrix consumes the
+  incoming projectile without running Sigma's accumulator or shield grant.
+- An actual Ana range/gravity grenade reaches the owned mech for55 damage with
+  Matrix released and is consumed with600 health while Matrix is held. All52
+  shared projectile/Bastion/Damage and original focused Deflect checks pass.
+  No old assertions changed; current actor/mover remains authoritative.
+- Hanzo's original five hero-specific modules and core runtime consumers are
+  integrated. Existing source70-versus140 geometry and old private shield/Zarya
+  observers remain recorded. Source0005 also contains cross-owner Sniper,
+  projectile geometry and other hero implementations: root owns their reconcile
+  and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
+
+### Mount launch-frozen absorption and owned-mech Matrix contacts
+
+- Capture the delivered projectile Matrix/Grasp admission bit at emission and
+  consume it through current absorption paths, preserving None for old explicit
+  Rocket construction. A later profile selection cannot rewrite an in-flight
+  projectile's eligibility. Capture the bit in existing server storage.
+- Mount the source owned0407 Matrix contact/close projection: verify its real
+  pilot/body ownership, use the actual controlled mover and existing authored
+  box consumer. Previously _trace_absorption only recognized player Hero.body,
+  so a controlled mech's Matrix volume was skipped. Preserve current actor and
+  controller state; no second Matrix driver or artificial observer state.
+- Original normal/final Sonic ricochet absorption now completes all eight real
+  D.Va/Sigma on/off subcases through no-beacon, lease retirement and damage
+  checks. Four final old Vitals.bonus_shields observations still error unchanged.
+  Their real granted shield pools remain owned by current1D03/native health.
+- Four actual Ana Matrix/Grasp cases pass after reversing profile admission
+  immediately after emission: eligible launches still absorb and excluded
+  launches still damage. All50 existing projectile/Bastion/Damage checks pass.
+  The admission bit changes live stored digest and exports repeatably with
+  variable/expression getters disabled. Continue legacy controlled-Matrix flight
+  routes and old private-observer reconciliation in the next batch.
+
+### Mount delivered Storm Arrow one-bounce flight
+
+- Capture00B9 Storm/Sonic-in-Storm's single bounce budget, honor the original
+  conditional gravity row, and reflect actual impact velocity on the selected
+  static surface. Continue unspent time through the current analytic sweep and
+  retain deflector exclusion history, original source/lease and travelled path.
+- Restore the original00B9 center-ray static contact policy and store its actual
+  terminal point. The combined projectile previously stopped at its last free
+  pose and used sphere padding against static walls. Preserve all other heroes'
+  collision policies. Map the original distance_flown write to stored travelled.
+- Retain complete original ricochet/owned-mech/Self-Destruct fixture files, with
+  import/constant adapters only. Allseven original core ricochet methods pass:
+  angled head/body, second-wall/ally/no-Storm controls, Sonic terminal field,
+  skipped path, Genji normal/final-Sonic return and shared range budget. Original
+  three Storm range/lifetime/stored-ledger methods plus42 projectile/Bastion
+  lifecycle checks pass45/45. The added Barrage module remains unimportable due
+  to its pre-existing missing sigma_grasp fixture dependency; record that error.
+- Full13 original ricochet audit preserves missing launch-frozen
+  matrix_absorbable/old Zarya private observations and the existing before-wall
+  Sonic70-versus140 contact result. The terminal-position failures are fixed by
+  the actual contact bridge; no assertion changed. Continue launch admission and
+  cross-owner reconciliation without blocking this implementation commit.
+
+### Restore normal-module entry for delivered Hanzo checks
+
+- Retain complete original NPC, Matrix, Winston and Experimental Barrier test
+  fixtures. Adapt legacy imports to the already mounted Sniper/Reinhardt hosts;
+  expose142C as the existing Sniper host's GRAPH constant. Retain the frozen
+  pure arrow contact helper as a tests-only fixture, and map old Grasp identity
+  names to the current host. No duplicate production drivers are installed.
+- Fill the current mock-lobby cosmetic callbacks in the original profile startup
+  fixture. All1781 original assertions across five adapted test files are AST-
+  identical. Existing movement/control/barrier modules now import normally.
+- Normal unittest entry (no AST loading): all32 Sonic/Dragon Player checks
+  passed together;11 focused Lunge/climb/contact/budget/strict/storage checks
+  passed; allnine profile/startup/journal checks passed. Keep the complete NPC
+  and cross-owner checks even where original private APIs or prepared inputs
+  still differ; successful module import does not claim whole-line completion.
 
 ### Preserve delivered projectile-family retirement boundaries
 
@@ -7710,3 +7817,58 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Evidence: parallel-c16-composed-turret-check.log and
   parallel-b14-integrated-check.log. All root test processes are terminal.
   No original-client acceptance or network publication performed.
+
+
+### Shared contact and ricochet intake checkpoint
+
+C17 source0790f14f is integrated as7b921893, B15 source57932359 as e331ce2a,
+and A19 sourcee799f60c as31f18682. Original Mutual10, Torb/native shell4 and
+Storm ricochet7 checks all21 pass on the frozen canonical batch. The actual
+Torb command probe independently confirms two55 hammer contacts reduce the
+single Winston bubble700->590 while body500 and HERO_DAMAGE0 remain unchanged.
+Evidence: parallel-a19-b15-c17-check.log and parallel-c17-actual-torb-shell-check.log.
+No original expectations changed. Two old Shatter controls-key observation
+errors remain documented; A20 launch-frozen admission, B cross-hero/object
+counters, C Molten/charge remain pending. All three workers continue separately.
+All root tests are terminal. Keep original languages, source packs and every
+implementation; incomplete acceptance is not a merge gate. No publication or
+client operations performed. Whole nonappearance integration remains active.
+
+
+### Restore delivered explicit volley geometry
+
+- Restore byte-identical0005 volley_geometry.py and its original test file.
+  Mount original explicit bool configuration, causal snapshot field and
+  reconstructed ring/paired directions through existing shot consumers.
+  Default current hero/NPC geometry remains unchanged, including DVa's
+  current owned-body path. Retain original explicit multi-player projectile
+  lease refusal; do not replace working default leases.
+- Restore original per-pellet NPC observer/flight records when explicit
+  reconstruction is selected; all records use existing Projectiles service.
+  Actual Enforcer two volleys now admit50 launches, damage, and stop cleanup.
+- Original RingGeometry + two actual Enforcer + control/navigation/projectile
+  checks109 pass. Evidence: parallel-root-explicit-volley-actual-check.log.
+  The original module/test bytes remain unchanged. No assertion rewritten.
+- The older NPC668-graph pack is an exact shared-graph subset of canonical702;
+  original fixtures now have external hardlink aliases to canonical base and
+  original catalog with v4 supplement, avoiding dangling Mercy effect refs.
+  Input hashes/provenance are retained outside Git. No runtime pack copied.
+- Broader original source test audit retains fake-state missing.index errors
+  and Sniper manual long-distance reposition: source0005 authored search is
+  not yet mounted alongside the delivered0015 nearby fallback. Preserve both
+  implementations and expectations; this is remaining integration, not a
+  reason to discard or hold current code. No client/publication operations.
+
+
+### Frozen combined Molten/absorption validation
+
+- Original Molten9, turret snapshot1 and projectile/Bastion/runtime/Damage
+  checks73 all pass on783de900 with canonical base+v4 supplement. This includes
+  ceiling/double/ramp rebounds,10 globules, hero-switch cleanup, armour boundary,
+  overlap dedup and passive pool/status storage. No source fixture fallback for
+  Molten/turret imports. Evidence: parallel-a20-c18-shared-check.log.
+- Root explicit source geometry/actual Enforcer/controls/navigation/projectile
+  checks109 pass separately. All root tests terminal; original fake fixture and
+  manual Sniper long-range gaps remain documented without blocking commits.
+- No original-client acceptance or publication performed; three workers continue
+  remaining original-language integrations, excluding appearance migration.

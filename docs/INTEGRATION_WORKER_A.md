@@ -399,3 +399,110 @@ ORPHEUS_MATRIX_TAGS=$ORPHEUS_PROJECTILE_TAGS. Other whole NPC/cross-owner privat
 API checks are preserved, not declared all passed. Next clean-boundary action
 is absorb canonical62dd2bf0, then original Storm one-bounce implementation and
 normal fixture dependencies for its original tests, keeping all assertions.
+
+
+A18 committed `81c6ce34`. Clean boundary sync of root canonical62dd2bf0 keeps
+all A18 fixtures and root code; only CHANGELOG conflict resolved by union. No
+runtime/code conflict. Root curve_motion, reflected source identity/retirement,
+Damage alias ordering/armor adapter and new B/C native fields all retained.
+Next exact action remains original Storm one-bounce metadata and contact response.
+Sync verification:30 normal profile/journal/Damage/runtime checks passed in worker-a-canonical62-sync.log.
+
+
+Worker sync69b19882 absorbs canonical62dd2bf0;30 checks passed. A19 mounts
+original single Storm ricochet budget/conditional gravity, static specular
+impact and remaining analytic time with existing deflector exclusion history.
+Original00B9 static center-ray and actual terminal position restored; other hero
+collision paths stay intact. distance_flown setter bridges stored travelled.
+Complete ricochet, owned-mech and Self-Destruct fixtures retained; only import
+identities adapted to current hosts (including McCree). Every original assert
+and unittest assertion call remains AST-identical. Seven normal core ricochet
+methods pass in worker-a-hanzo-storm-ricochet-core-final.log; three original
+Storm range/lifetime/storage checks plus42 projectile/Bastion pass45/45 in
+worker-a-hanzo-storm-range-shared.log. Its extra Barrage module import still
+fails because test_pharah_defenses imports absent sigma_grasp; this known
+cross-owner fixture error is preserved, not changed here.
+Full13 source audit before terminal fix is in
+worker-a-hanzo-storm-ricochet-second.log: matrix_absorbable old launch flag and
+old Combat.zarya_barriers observations remain missing; before-wall Sonic hit
+140 instead of70 remains. Actual terminal-point/ray bridge fixed the second
+wall and both returned-arrow endpoint checks (all seven core methods now pass).
+Next exact action: mount launch-frozen absorption eligibility metadata into the
+existing Matrix/Grasp consumers, preserving None/default catalog behavior for
+old explicit Rocket construction. Then reconcile Zarya/owned-mech observer
+fixture APIs with actual current native managers; do not build fake state just
+to satisfy a private-dictionary assertion. Complete source0005 consumer audit,
+then Tracer0003/Widowmaker000A. Keep original failing checks in Git and submit
+actual batches without waiting for all client/native acceptance to close.
+
+
+A19 committed `e799f60c`, accepted root canonicalb6859d9b with A18. A20 stores
+source matrix_absorbable admission at emission and routes current Matrix/Grasp
+consumers through that frozen bit (None keeps explicit old Rocket behavior).
+Source matrix._owned_closed is retained exactly; matrix.trace ports owned0407
+identity through current pilot source_body/owner fields and real control_mover,
+using the existing box consumer. Combat._trace_absorption now sees the owned
+Bot Matrix instead of only player Hero.body. Incoming00B9 absorbed leases clear
+their projectile pointer after real transport retirement; no impact Beacon.
+Original two Sonic normal/final ricochet absorption methods now pass their
+actual eight on/off DVa/Sigma flow assertions until four final old
+Vitals.bonus_shields reads (preserved AttributeError), in
+worker-a-hanzo-launch-admission-owned.log. Other identities remain real, no
+legacy private dictionary fabricated. Source0005 ref is
+2b67b154a11b7e930ee431182d8e3a70cb90b8bb.
+Actual four launch-frozen tests (Ana hip projectile, Matrix/Sigma) reverse
+matrix_definitions immediately after _submit_attack: False->full still damages
+(530/330HP), True->empty still absorbs(600/400HP), all pass in
+worker-a-hanzo-launch-frozen-live.log. All50 current projectile/Bastion/Damage
+checks pass in worker-a-hanzo-launch-frozen-shared.log. Stored admission false
+vs true changes digest and repeated export is stable with Var.value and
+Instance.evaluate disabled, in worker-a-hanzo-launch-frozen-storage.log.
+Root independently ports volley_geometry/configure_volley_geometry and existing
+NPC consumer; do not touch the _shoot direction section. Next exact action:
+route source controlled-Matrix tracing through legacy finite/range canister
+flight paths as well (existing _deflector return/absorption dispatch must keep
+Sigma amount/grant exclusive to1D02), then source0005 owner reconcile. Keep
+private bonus_shields/Zarya observation differences in logs without delaying
+code-layer integration. Then audit0003 and000A rather than inflating acceptance.
+
+
+A20 committed `40623ea1`, accepted root6891462b. A21 connects actual source
+owned0407 Matrix through existing _deflector, so tagged hitscan, finite/range/
+gravity and field-canister drivers share current matrix.trace/owned close
+projection. Existing time_span maps the actual contact into native close time.
+Sigma's amount/grant dispatch now explicitly requires1D02; Matrix never runs
+that consumer. Actual Ana grenade with a real controlled mech: released Matrix
+545HP, held Matrix600HP in worker-a-owned-matrix-legacy-grenade.log.52 current
+projectile/Bastion/Damage/focused Genji checks pass in
+worker-a-owned-matrix-legacy-shared.log. No private observer fabricated and no
+original assertion edited.
+
+Source0005 owner reconcile boundary (ref2b67b154a11b7e930ee431182d8e3a70cb90b8bb):
+- hanzo_charge.py, hanzo_control.py, sonic.py, dragon.py are byte-exact source.
+- hanzo_movement.py differs only in the missing Sigma Flux import adapter:
+  original1DBC/node12 active-state predicate retained locally. Lunge/climb/ledge
+  native/velocity/pose/cleanup and all five Climb fields are live consumers.
+- Source0101 fixed phases map to the current ConditionalTimer native consumer;
+  original1s/1.2s phase timer and both storage checks pass, no old timer swapped.
+- Original bow/Storm/Sonic launch, crit/gravity/path/lifetime/one-bounce, initial
+  Dragon penetration/subframe/continuation, independent source and historical
+  moving target/Fortify dose consumers are mounted. Explicit CLI/lobby/server/
+  journal inputs are live.32 normal Sonic/Dragon methods and source profile9
+  passed, original movement/chronology/range checks passed as recorded above.
+- Source Matrix owned-body close/volume policy maps to real current owner,
+  source_body, control_mover and current authored box consumer. No second driver.
+- Source arrow_deflection geometry is preserved as a tests-only frozen utility;
+  production uses newer deflection/interception services. Original seven
+  post-bounce/Genji/terminal/path behaviors pass through those actual consumers.
+- Source's old Vitals.bonus_shields/Combat.zarya_barriers observations and one
+  before-wall Sonic70-vs140 geometry expectation are retained. Do not equate
+  those open observations with absent hero feature code or hide them.
+- Whole0005 source also contains Sniper, volley_geometry, Sigma/other hero/shared
+  work. Root is integrating original geometry flag/defaultFalse/snapshot and
+  actual NPC pellets (0b8d98cb,109 passed), plus original16m Sniper search2.5.
+  Root owns cross-owner maps and formal delivery ancestry; no whole-ref claim
+  from this worker. Appearance work stays excluded.
+Next clean-boundary action: absorb canonicale875ed87 or newer, then audit0003
+Tracer recall/Pulse/weapon source consumers and000A Widowmaker core. Do not keep
+expanding acceptance instead of progressing these owners. Preserve all source
+checks and commit actual code batches even when old/client acceptance is open.

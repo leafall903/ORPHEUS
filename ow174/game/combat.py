@@ -68,6 +68,7 @@ from ow174.game import (
     health_packs,
     healing,
     hero_torbjorn,
+    molten_core,
     torbjorn_mark,
     ice_wall,
     reinhardt_charge,
@@ -1288,7 +1289,7 @@ def hit_def(state, cfg) -> HitDef | None:
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
         knockback=_accretion_knockback(state, modify),
-        projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5) or (
+        projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5, 0x16DA) or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
         ) else value("m_57DAE1B5", 0.0)),
         healing=modify.get("m_93CDFD2F") == 0,
@@ -1529,7 +1530,10 @@ class Rocket:
     charge_eligible: bool = True  # Tank suppression is frozen at emission, even after mode expiry.
     motion: tuple = ()
     motion_phase_offset: float = 0.0
+    segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
+    matrix_absorbable: bool | None = None
+    storm_ricochets: int = 0
     continuation: dragon.Profile | None = None
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
@@ -1544,6 +1548,10 @@ class Rocket:
     @property
     def distance_flown(self):
         return self.travelled
+
+    @distance_flown.setter
+    def distance_flown(self, value):
+        self.travelled = value
 
     @property
     def distance(self):
@@ -1926,6 +1934,7 @@ class Combat:
     def __init__(self, match) -> None:
         self.match = match
         self.defender_damage_scale = 1.0
+        self.reconstructed_volley_patterns = False
         self.model_pose_for: Callable[[int], ModelPose | None] = self._wheel_model_pose
         self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = self._wheel_base_actor_admits
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
@@ -1973,6 +1982,8 @@ class Combat:
         self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
+        self.molten_pools = {}
+        self.molten_burns = {}
         self.torbjorn_marks = {}
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
@@ -2171,6 +2182,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
+            molten_core.retire_owner(self, player)
             hero_torbjorn.destroy_turret(self, player)
             for key, mark in tuple(self.torbjorn_marks.items()):
                 if mark.owner is player:
@@ -4026,6 +4038,7 @@ class Combat:
             if at < tick:
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
+        molten_core.update(self)
         for player in self.match.players:
             if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
                 player.body_script.orisa_fortify_pending = False
@@ -5054,6 +5067,12 @@ class Combat:
                 log.exception("[game] %s: %s's pending attack failed", self.match.label(), attack.shooter.name)
 
 
+    def configure_volley_geometry(self, *, reconstructed_patterns: bool) -> None:
+        """Explicit API opt-in; native spread units, phase and muzzle are unproven."""
+        if type(reconstructed_patterns) is not bool:
+            raise ValueError("reconstructed pattern geometry needs an explicit bool")
+        self.reconstructed_volley_patterns = reconstructed_patterns
+
     def configure_dragonstrike(self, profile: dragon.Profile) -> None:
         """Mount the delivered explicit external reconstructed Dragon profile."""
         if not isinstance(profile, dragon.Profile) or self.rockets or self.dragons:
@@ -5197,6 +5216,10 @@ class Combat:
         if (hanzo_bow and direct is not None
                 and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
             direct = replace(direct, critical=2.0, projectile_headshot=True)
+        storm_arrow = hanzo_bow and (definition == 0x040000000000270F or (
+            node.pos == 114 and (enabled := state.instance.find_var(expr.INSTANCE, 18944)) is not None
+            and enabled.value() is True
+        ))
         dragon_initial = (not npc and shooter.hero.guid == dragon.HANZO
                           and definition == dragon.INITIAL)
         continuation = self.dragon_profile if dragon_initial else None
@@ -5222,13 +5245,30 @@ class Combat:
 
         pulse = not npc and pulse_bomb.is_pulse(shooter, state)
         speed = field("m_projectileSpeed")
+        explicit_directions = None
+        actor_hero = getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None))
+        if self.reconstructed_volley_patterns and actor_hero != dva.HERO:
+            from ow174.game import volley_geometry
+
+            try:
+                explicit_directions = volley_geometry.directions(state, direction, reconstructed_patterns=True)
+                if speed and len(explicit_directions) > 1 and not npc:
+                    raise volley_geometry.UnsupportedGeometry("multiple player projectile leases are not implemented")
+            except volley_geometry.UnsupportedGeometry as error:
+                expr.warn_once(f"volley-geometry:{state.instance.graph.index}:{node.pos}:{error}",
+                               "volley geometry refuses graph%04X/node%d: %s",
+                               state.instance.graph.index, node.pos, error)
+                return
+            if not explicit_directions:
+                return
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
             if hanzo_bow:
                 gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                               for motion in node.field("m_projectileMotions") or ()
-                              if motion.get("$") == "STU_E1A5B579")
+                              if motion.get("$") == "STU_E1A5B579"
+                              and not expr.truthy(state.evaluate(motion.get("m_D0C4CF49"), watch=False)))
             if field_canister:
                 gravity = projectiles.unconditional_gravity(state)
             if flashbang_gravity is not None:
@@ -5315,7 +5355,9 @@ class Combat:
                 elif definition == SLEEP_DART_ENTITY:
                     direct.deflect_override = True
             shot = None
-            if definition is not None:
+            individual_npc_shots = (npc and explicit_directions is not None
+                                    and len(explicit_directions) > 1 and definition is not None)
+            if definition is not None and not individual_npc_shots:
                 shot = self.projectiles.fired(
                     shooter, state, shot_frame, definition, lifetime, origin, direction,
                     activation=activation, snapshot=snapshot,
@@ -5343,6 +5385,11 @@ class Combat:
                     for motion in node.field("m_projectileMotions") or ()
                     if motion.get("$") == "STU_E1A5B579"
                 )
+            if source_graph == 0x16DA and molten_core.POOL in projectiles._defs(node.field("m_49CBA3BC")):
+                spawn = molten_core.POOL
+                gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                              for motion in node.field("m_projectileMotions") or ()
+                              if motion.get("$") == "STU_E1A5B579")
             if (source_graph == 0x025F
                     and graviton.FIELD_ENTITY in projectiles._defs(node.field("m_49CBA3BC"))):
                 spawn = graviton.FIELD_ENTITY
@@ -5366,6 +5413,8 @@ class Combat:
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)
                     if len(directions) == 1:
                         directions = ring_directions(state, direction) or directions
+                if explicit_directions is not None:
+                    directions = explicit_directions
                 dose_scalar = None
                 if direct is not None and direct.duration > 0.0:
                     from ow174.game import nano
@@ -5381,10 +5430,14 @@ class Combat:
                       and command is not None and command.frame == self.tick):
                     projectile_tick = self.tick
                 for pellet, launch in enumerate(directions):
+                    pellet_shot = (self.projectiles.fired(
+                        shooter, state, shot_frame, definition, lifetime, origin, launch,
+                        activation=activation, snapshot=snapshot,
+                    ) if individual_npc_shots else shot if pellet == 0 else None)
                     model = pulse_bomb.Bomb if pulse else Rocket
                     rocket = model(
                         shooter, shooter.team, origin, launch, speed, lifetime, direct, blast,
-                        shot if pellet == 0 else None,
+                        pellet_shot,
                         last_tick=projectile_tick,
                         gravity=gravity or 0.0,
                         velocity=(velocity if velocity is not None else
@@ -5402,6 +5455,10 @@ class Combat:
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
+                        matrix_absorbable=(definition in self.matrix_definitions
+                                           if self.matrix_definitions is not None
+                                           else projectile_tags.absorbable(definition)),
+                        storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
                                       / state.instance.component.frame_ms if hanzo_bow or continuation is not None else None),
@@ -5457,6 +5514,8 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
+        if explicit_directions is not None:
+            directions = explicit_directions
         reaper_shell = None
         if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
             from ow174.game import nano
@@ -5493,16 +5552,32 @@ class Combat:
         return weapon_spread.jittered_ring_directions(forward, rings, spread, jitter, seed, shot)
 
     def _deflector(self, shooter, definition, origin, direction, reach, *, view_tick=None, time_span=None,
-                   radius=0.0):
+                   radius=0.0, absorption_admitted=None):
         admitted = self.projectile_tags.admitted(definition)
-        absorbable = definition in self.matrix_definitions if self.matrix_definitions is not None else admitted
+        absorbable = (absorption_admitted if absorption_admitted is not None else
+                      definition in self.matrix_definitions if self.matrix_definitions is not None else admitted)
         if not admitted and not absorbable:
             return None
         closest = None
         for target in self._enemies(shooter):
             owner = target.owner
             script = getattr(owner, 'body_script', None)
-            hero = getattr(getattr(owner, 'hero', None), 'guid', None)
+            identity = getattr(owner, "hero", None)
+            hero = getattr(identity, "guid", None)
+            if absorbable and getattr(identity, "guid", identity) == 0x02E000000000007A:
+                from ow174.game import matrix as matrix_service
+
+                shown = self.seen(target, view_tick) if view_tick is not None else target
+                distance = None if shown is None else matrix_service.trace(shown, origin, direction, reach)
+                at_tick = self.tick
+                if distance is not None and time_span is not None:
+                    at_tick = time_span[0] + (time_span[1] - time_span[0]) * (distance / reach if reach else 0)
+                if distance is not None:
+                    distance = matrix_service.trace(shown, origin, direction, reach, tick=at_tick)
+                if distance is not None and (closest is None or distance < closest[0]):
+                    guard = next(deflection._active_states(script, 0x02CC, 3), None)
+                    closest = distance, target, None, True, guard
+                continue
             if (hero not in (deflection.GENJI, absorption.SIGMA)
                     or script is None or script.retired or getattr(owner, 'mover', None) is None
                     or self.is_stunned(owner)):
@@ -5655,7 +5730,8 @@ class Combat:
             return
         if tagged_contact is not None and tagged_contact[3] and wall is None and limit == tagged_contact[0]:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
-            self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
+            if tagged_contact[4].instance.graph.index == absorption.GRASP:
+                self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
             distance, target = redirect
@@ -6045,7 +6121,8 @@ class Combat:
                 best = surface.distance, None
             limit = step if best is None else best[0]
             barrier = self._barrier_contact(rocket.shooter, rocket.position, rocket.direction, limit)
-            absorbed = self._deflector(rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit)
+            absorbed = self._deflector(rocket.shooter, rocket.definition, rocket.position, rocket.direction, limit,
+                                       absorption_admitted=rocket.matrix_absorbable)
             if (barrier is not None and (best is None or barrier[0] < best[0])
                     and (absorbed is None or not absorbed[3] or barrier[0] < absorbed[0])):
                 rocket.travel(barrier[0])
@@ -6113,7 +6190,7 @@ class Combat:
                 for direction in split.directions
             )
 
-    def _fly_step(self, rocket: Rocket, duration: float) -> None:
+    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None) -> None:
         """One linear sweep after any authored acceleration update."""
         if duration <= 0.0:
             self._expire(rocket)
@@ -6121,7 +6198,7 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.velocity is not None:
+        if rocket.velocity is not None and not molten_core.is_globule(rocket):
             from ow174.game import mccree
 
             # Apply the recovered velocity update before this frame's sweep.
@@ -6138,9 +6215,9 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected)
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -6161,7 +6238,7 @@ class Combat:
             return
         # Re-sweep the unspent slice after redirects. Bound overlapping
         # deflectors that could repeatedly collide at distance zero.
-        reflected = set()
+        reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
             continuation = self._sweep_rocket(rocket, duration, reflected)
             if isinstance(continuation, Rocket):
@@ -6182,11 +6259,48 @@ class Combat:
                 nearest = hit[0], hit[1], manager
         return nearest
 
+    def _bounce_storm(self, rocket, direction, normal, distance, step, duration,
+                      integrated_duration, reflected):
+        """Mount the delivery's one specular wall bounce and unspent flight slice."""
+        rocket.storm_ricochets -= 1
+        consumed = duration * distance / step if step > EPSILON else 0.0
+        if rocket.velocity is not None:
+            vx, vy, vz = rocket.velocity
+            incoming = (vx, vy + rocket.gravity * (integrated_duration - consumed), vz)
+        else:
+            incoming = tuple(axis * rocket.speed for axis in direction)
+        normal_speed = _dot(incoming, normal)
+        velocity = tuple(expr.f32(axis - 2 * normal_speed * n)
+                         for axis, n in zip(incoming, normal, strict=True))
+        rocket.position = _along(_along(rocket.position, direction, distance), normal, 0.001)
+        rocket.velocity = velocity
+        rocket.speed = math.hypot(*velocity)
+        if rocket.speed > EPSILON:
+            rocket.direction = tuple(axis / rocket.speed for axis in velocity)
+        rocket.flown += consumed
+        rocket.left -= consumed
+        rocket.travelled += distance
+        if rocket.range_limit is not None:
+            rocket.range_left = max(0.0, rocket.range_limit - rocket.travelled)
+        if rocket.left <= EPSILON or rocket.range_left == 0.0:
+            self._expire(rocket)
+        elif duration - consumed > EPSILON:
+            self._fly_step(rocket, duration - consumed, reflected=reflected)
+
     def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
+        integrated_duration = duration
         step = rocket.speed * duration
         heading = rocket.direction
         range_ends = False
+        if molten_core.is_globule(rocket):
+            age = rocket.flown - rocket.segment_start
+            displacement = (rocket.speed * heading[0] * duration,
+                            rocket.speed * heading[1] * duration - rocket.gravity * (age * duration + .5 * duration * duration),
+                            rocket.speed * heading[2] * duration)
+            step = math.hypot(*displacement)
+            if step > EPSILON:
+                heading = tuple(axis / step for axis in displacement)
         if rocket.is_barrage:
             lateral = barrage_motion.displacement(
                 rocket.motion, heading, rocket.flown + rocket.motion_phase_offset, duration,
@@ -6236,7 +6350,18 @@ class Combat:
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
         wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
-        if padding > 0 and not assisted_contact and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
+        storm_normal = None
+        if rocket.storm_ricochets:
+            hit = collision.cast_ray(rocket.position, heading, step)
+            wall = hit.distance if hit is not None else None
+            if hit is not None:
+                storm_normal = hit.normal
+                if _dot(heading, storm_normal) > 0:
+                    storm_normal = tuple(-axis for axis in storm_normal)
+                if _dot(heading, storm_normal) >= -EPSILON:
+                    storm_normal = None
+        if (padding > 0 and not assisted_contact and rocket.source_graph != 0x00B9
+                and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT)):
             swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
@@ -6269,6 +6394,7 @@ class Combat:
         absorption = self._trace_absorption(
             rocket.shooter, rocket.definition, rocket.position, heading, limit,
             grasp=rocket.direct is not None and rocket.direct.loadout == HELIX_LOADOUT,
+            admitted=rocket.matrix_absorbable,
         )
         if absorption is not None and (best is None or absorption[0] < limit):
             best = absorption[0], None
@@ -6327,7 +6453,7 @@ class Combat:
         limit = best[0] if best else step
         candidate = interception.absorption(
             self, rocket.shooter, rocket.direct, rocket.position, heading, limit, padding=padding,
-            definition=rocket.definition,
+            definition=rocket.definition, admitted=rocket.matrix_absorbable,
         )
         if candidate is not None and (best is None or candidate[0] < limit):
             scripted_absorption = absorption = candidate
@@ -6365,6 +6491,12 @@ class Combat:
             self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
             return 0.0
 
+        if (storm_normal is not None and best == (wall, None)
+                and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
+                                                  redirect, absorption, scripted_shield))):
+            self._bounce_storm(rocket, heading, storm_normal, wall, step, duration,
+                               integrated_duration, reflected)
+            return 0.0
         flight = step if best is None else best[0]
         self._amplify_flight(rocket, heading, flight, self.tick - duration / TICK,
                              duration / (TICK * step) if step > EPSILON else 0.0)
@@ -6384,6 +6516,8 @@ class Combat:
             self.rockets.remove(rocket)
             if rocket.shot is not None:
                 self.projectiles.absorbed(rocket.shot)
+                if rocket.source_graph == 0x00B9:
+                    rocket.shot = None
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
             if scripted_absorption is not None:
                 interception.absorbed(scripted_absorption[1], amount)
@@ -6399,6 +6533,11 @@ class Combat:
                 self.projectiles.flown(rocket.shot, rocket.flown)
                 rocket.shot = None
             point = _along(rocket.position, heading, t)
+            if molten_core.is_globule(rocket):
+                velocity = [axis * rocket.speed for axis in rocket.direction]
+                velocity[1] -= rocket.gravity * (rocket.flown - rocket.segment_start)
+                rocket.speed = math.hypot(*velocity)
+                rocket.segment_start = rocket.flown
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
@@ -6528,7 +6667,20 @@ class Combat:
                 rocket.attached_offset = _sub(point, struck.feet)
             self._stick(rocket, point, duration - contact_time)
             return 0.0
+        molten_surface = None
+        if (molten_core.is_globule(rocket) and struck is None and wall is not None
+                and abs(t - wall) <= EPSILON and ice is None and shield is None
+                and deployed is None and impact_barrier is None):
+            molten_surface = collision.cast_ray(rocket.position, heading, t + EPSILON)
+            if molten_surface is not None and molten_surface.normal[1] < molten_core.GROUND_NORMAL:
+                rocket.left -= contact_time
+                if rocket.left <= EPSILON:
+                    self._landed(rocket, continuation_point=point)
+                    return 0.0
+                molten_core.rebound(rocket, point, molten_surface.normal)
+                return min(max(0.0, duration - contact_time), rocket.left)
         self._landed(rocket, continuation_point=point)
+        molten_core.projectile_impact(self, rocket, molten_surface, struck)
         damage_point = (_along(point, heading, 1e-4)
                         if struck is None and rocket.direct is not None
                         and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
@@ -6660,6 +6812,7 @@ class Combat:
         returned = self._deflector(
             rocket.shooter, rocket.definition, rocket.position, direction, limit,
             radius=rocket.penetration_radius,
+            absorption_admitted=rocket.matrix_absorbable,
             time_span=(start_tick, start_tick + duration / TICK
                        * (limit / step if step > EPSILON else 0)),
         )
@@ -6675,7 +6828,8 @@ class Combat:
         self._amplify_flight(rocket, direction, crossing, start_tick, tick_per_distance)
         if returned is not None:
             if returned[3]:
-                self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
+                if returned[4].instance.graph.index == absorption.GRASP:
+                    self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
                 self.rockets.remove(rocket)
                 if rocket.shot is not None:
@@ -7312,6 +7466,8 @@ class Combat:
         """Finish authority and release or retire the predicted copy."""
         if rocket in self.rockets:
             self.rockets.remove(rocket)
+            if rocket.source_graph == 0x00B9 and continuation_point is not None:
+                rocket.position = continuation_point
             if release and rocket.continuation is not None:
                 if continuation_point is not None:
                     rocket.position = continuation_point
@@ -7498,19 +7654,30 @@ class Combat:
         return best
 
     def _trace_absorption(
-        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None,
+        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None,
     ):
         from ow174.game.interception import box_contact
 
-        matrix = (definition in self.matrix_definitions if self.matrix_definitions is not None
+        matrix = (admitted if admitted is not None else
+                  definition in self.matrix_definitions if self.matrix_definitions is not None
                   else projectile_tags.absorbable(definition))
-        if self.matrix_definitions is not None:
+        if admitted is not None or self.matrix_definitions is not None:
             grasp = matrix
         if not matrix and not grasp:
             return None
         nearest = None
         for target in self._enemies(shooter):
             hero = getattr(target.owner, "hero", None)
+            if matrix and isinstance(target.owner, bots.Bot):
+                from ow174.game import matrix as matrix_service
+
+                shown = target if view_tick is None else self.seen(target, view_tick)
+                distance = (None if shown is None else
+                            matrix_service.trace(shown, origin, direction, reach, tick=self.tick))
+                if distance is not None and (nearest is None or distance < nearest[0]):
+                    state = next(deflection._active_states(target.owner.body_script, 0x02CC, 3), None)
+                    nearest = distance, state
+                continue
             if matrix and getattr(hero, "body", None) == 0x0400000000000407:
                 graph_index, state_index = 0x02CC, 3
             elif grasp and getattr(hero, "guid", None) == 0x02E000000000023B:
