@@ -17,6 +17,7 @@ from ow174 import cli
 from ow174.game import bodytrace, matrix, movelog
 from ow174.game.collision import StaticCollisionProvider, flat_world
 from ow174.game.content import SOLDIER, heroes
+from ow174.game.match import no_emote_aliases, no_wheel_cosmetics
 from ow174.game.server import GameServer
 from ow174.game.server_snapshot import export_server_state, snapshot_digest
 from ow174.launcher import LaunchError
@@ -76,7 +77,9 @@ class ProfileArgumentTests(unittest.TestCase):
             cli.run(args)
             settings = mocks["LobbyServer"].call_args.args[0]
         lobby = SimpleNamespace(settings=settings, game_left=None, skin_of=lambda *_: (0, False),
-                                game_joined=None, game_clock_ready=None)
+                                game_joined=None, game_clock_ready=None,
+                                emote_aliases_of=no_emote_aliases, emote_blend_trees_of=None,
+                                wheel_cosmetics_of=no_wheel_cosmetics)
         with patch.object(GameServer, "start"):
             LobbyServer.start_game_server(lobby)
         for _ in range(2):
@@ -115,7 +118,9 @@ class ProfileStartupTests(unittest.TestCase):
             cli.run(args)
             settings = mocks["LobbyServer"].call_args.args[0]
         lobby = SimpleNamespace(settings=settings, game_left=None, skin_of=lambda *_: (0, False),
-                                game_joined=None, game_clock_ready=None)
+                                game_joined=None, game_clock_ready=None,
+                                emote_aliases_of=no_emote_aliases, emote_blend_trees_of=None,
+                                wheel_cosmetics_of=no_wheel_cosmetics)
         with patch.object(GameServer, "start") as start:
             LobbyServer.start_game_server(lobby)
         start.assert_called_once()

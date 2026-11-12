@@ -23,7 +23,7 @@ def read_graphs(path):
     return data
 
 
-def build(runtime, mercy_effects, supplements, movers, projectile_tags, output):
+def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, delivered_graphs=()):
     repository = Path(__file__).resolve().parents[1]
     if output.exists() or output.is_relative_to(repository) or output.is_relative_to(runtime):
         raise ValueError('output must be a new directory outside the repository and source runtime')
@@ -49,6 +49,25 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output):
     })
     for path in supplements:
         merged = graph.add_supplement(merged, read_graphs(path))
+    for path in delivered_graphs:
+        delivered = read_graphs(path)
+        collections = ('graphs', 'entities', 'effect_scripts', 'deployables')
+        for key in delivered.keys() | base.keys():
+            if key not in collections and delivered.get(key) != base.get(key):
+                raise ValueError(f'delivered input conflicts with base metadata: {key}: {path}')
+        known = {row['index']: row for row in merged['graphs']}
+        additions = []
+        for row in delivered['graphs']:
+            if row['index'] in known:
+                if row != known[row['index']]:
+                    raise ValueError(f'delivered input conflicts with graph {row["index"]:04X}: {path}')
+            else:
+                additions.append(row)
+        extra_input = {'version': 1, 'graphs': additions}
+        for key in collections[1:]:
+            if key in delivered:
+                extra_input[key] = delivered[key]
+        merged = graph.add_supplement(merged, extra_input)
     extra = {
         'version': 1,
         'graphs': [row for row in merged['graphs'] if row['index'] not in base_graphs],
@@ -57,11 +76,14 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output):
         'effect_scripts': {key: row for key, row in merged.get('effect_scripts', {}).items()
                            if key not in (base.get('effect_scripts') or {})},
     }
+    if 'deployables' in merged:
+        extra['deployables'] = {key: value for key, value in merged['deployables'].items()
+                                if key not in (base.get('deployables') or {})}
     graph.add_supplement(base, extra)
     catalog = read_catalog(projectile_tags.read_bytes())
     if movers is not None and not isinstance(json.loads(movers.read_bytes()), dict):
         raise ValueError('mover supplement must be a mapping')
-    sources = [base_path, mercy_effects, *supplements, projectile_tags]
+    sources = [base_path, mercy_effects, *supplements, *delivered_graphs, projectile_tags]
     if movers is not None:
         sources.append(movers)
     hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}
@@ -78,6 +100,8 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output):
         'additional_graphs': len(extra['graphs']), 'additional_entities': len(extra['entities']),
         'additional_effect_bindings': len(extra['effect_scripts']), 'projectile_definitions': len(catalog),
     }
+    if 'deployables' in extra:
+        manifest['additional_deployable_keys'] = sorted(extra['deployables'])
     payload = gzip.compress(json.dumps(extra, separators=(',', ':')).encode(), mtime=0)
     output.mkdir(parents=True)
     supplement_path.write_bytes(payload)
@@ -93,12 +117,15 @@ def main():
         parser.add_argument(f'--{name}', required=True, type=Path)
     parser.add_argument('--graph-supplement', action='append', default=[], type=Path)
     parser.add_argument('--movers-supplement', type=Path)
+    parser.add_argument('--delivered-graphs', action='append', default=[], type=Path,
+                        help='original delivered graph pack; retain shared records and extract only additions')
     args = parser.parse_args()
     try:
         manifest = build(args.runtime.resolve(), args.mercy_effects.resolve(),
                          [path.resolve() for path in args.graph_supplement],
                          args.movers_supplement.resolve() if args.movers_supplement else None,
-                         args.projectile_tags.resolve(), args.output.resolve())
+                         args.projectile_tags.resolve(), args.output.resolve(),
+                         [path.resolve() for path in args.delivered_graphs])
     except (OSError, ValueError, KeyError) as error:
         parser.error(str(error))
     print(json.dumps({key: value for key, value in manifest.items() if key != 'source_sha256'}))

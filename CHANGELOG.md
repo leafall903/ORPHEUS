@@ -24,6 +24,19 @@ This log records tested changes and their acceptance status. Entries are grouped
   Earthshatter integration continue; original-client acceptance remains open.
 
 
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
 ### Mount delivered Reinhardt Charge horizontal drive
 
 - Restore source007D's30-degree-per-second steering and authored16.5m/s drive
@@ -301,6 +314,45 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Restore normal-module entry for delivered Hanzo checks
+
+- Retain complete original NPC, Matrix, Winston and Experimental Barrier test
+  fixtures. Adapt legacy imports to the already mounted Sniper/Reinhardt hosts;
+  expose142C as the existing Sniper host's GRAPH constant. Retain the frozen
+  pure arrow contact helper as a tests-only fixture, and map old Grasp identity
+  names to the current host. No duplicate production drivers are installed.
+- Fill the current mock-lobby cosmetic callbacks in the original profile startup
+  fixture. All1781 original assertions across five adapted test files are AST-
+  identical. Existing movement/control/barrier modules now import normally.
+- Normal unittest entry (no AST loading): all32 Sonic/Dragon Player checks
+  passed together;11 focused Lunge/climb/contact/budget/strict/storage checks
+  passed; allnine profile/startup/journal checks passed. Keep the complete NPC
+  and cross-owner checks even where original private APIs or prepared inputs
+  still differ; successful module import does not claim whole-line completion.
+
+### Reconcile delivered Fortify clocks with historical Hanzo contacts
+
+- Mount original Fortify rebase/idle clock algorithms in a scoped adapter instead
+  of replacing the current Orisa barrier manager. Retain posed activation/anchor
+  evidence and capture pending/anchor fields in both storage serializers. Advance
+  established phase clocks before each historical Dragon dose, including bounded
+  pre-retention continuation, and clear fresh pending state at the endpoint.
+- Historical incoming8243 removes only a fresh endpoint Fortify factor while
+  preserving other multipliers; historical critical queries use the same gate.
+  Preserve the rebased future0CF4/node6 chase clock until its relocated start:
+  current per-tick replay previously overwrote its future last timestamp and
+  expired a new4s cast inside an older300-tick interval. All other chase variants
+  keep their current behavior. Retire stale Dragon command anchors with bodies.
+- Allfour original Dragon Fortify methods now pass, and all17 original Dragon
+  behavior methods pass together; the two original storage methods already
+  passed in A15. All27 bow/Fortify/cooldown/melee/Damage/runtime focused checks
+  passed after the future-chase bridge. Live Fortify anchor/pending changes affect
+  both body/server digests, repeated exports remain stable with variable and
+  expression getters disabled. Preserve previous native/client open boundaries.
+- Remove the retained journal check's extra EOF blank line. Remaining Hanzo work
+  includes delivered Storm ricochet and arrow-deflection reconciliation, followed
+  by source-owner audit; do not claim whole0005 completion yet.
+
 ### Mount explicit delivered combat profiles through server startup and replay
 
 - Mount original combat_profiles.Profiles and CLI --reconstructed-hanzo-sonic-
@@ -7459,3 +7511,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Route only the Biotic Field entity through healing. Torbjörn and Zarya still get projectile confirmation for their deployables without creating a healing field.
 - On original Practice Range collision, immediate, delayed and withheld acknowledgements all open the field at tick 1142 and produce identical health at each sampled tick. A second replay verifies that two injured friendly bots receive equal healing and a terminal update across a five-tick gap.
 - Passed 193 focused tests with each runtime data pack, a 268-root replay with matching registered state, Ruff and Git diff checks. Original canister flight, deployment timing and client presentation remain pending.
+
+
+### Delivered input composition and nonappearance source audit
+
+- Extend the existing original-Python input composer to extract only additive
+  records from explicit original delivered graph packs, rejecting conflicting
+  shared graphs and unrelated metadata. Preserve source packs and the current
+  default full projectile catalog. Deployables composition awaits the worker
+  loader; no turret/Molten completion claim yet.
+- Verified original10-graph/1-entity/4-effect output remains byte-identical
+  (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1),
+  duplicate delivery remains idempotent, and both conflicting graph and metadata
+  probes fail before creating output. Original pack hash remains unchanged.
+- Rechecked original-language repository submissions: main e1128509 has only
+  generated relay-roster-stub.bin untracked; OWLib3de17bc9, liz-runtime0d624a7
+  and lobby-upstreamd0cee4c are clean. Existing main is already incorporated.
+  External relay42119/52119 variants differ only by local port; PVE21129 is
+  an older relay without the already-present gallery installer. No missing
+  implementation was found in those relay copies. Preserve research snapshots.
+- No original-client acceptance or network publication performed. Remaining
+  hero consumer integration stays open and is not blocked by acceptance.

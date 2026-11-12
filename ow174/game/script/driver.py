@@ -1953,6 +1953,9 @@ class BodyScript(ReplicatedBody):
         if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
             raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")
         self.hero = hero
+        if hero == 0x02E000000000013E:
+            self.orisa_pose_anchor = None
+            self.orisa_fortify_pending = False
         self.entity = entity
         self.record = record
         self.frame_ms = max(1, quanta // 1000)
