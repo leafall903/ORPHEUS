@@ -7462,3 +7462,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Route only the Biotic Field entity through healing. Torbjörn and Zarya still get projectile confirmation for their deployables without creating a healing field.
 - On original Practice Range collision, immediate, delayed and withheld acknowledgements all open the field at tick 1142 and produce identical health at each sampled tick. A second replay verifies that two injured friendly bots receive equal healing and a terminal update across a five-tick gap.
 - Passed 193 focused tests with each runtime data pack, a 268-root replay with matching registered state, Ruff and Git diff checks. Original canister flight, deployment timing and client presentation remain pending.
+
+
+### Delivered input composition and nonappearance source audit
+
+- Extend the existing original-Python input composer to extract only additive
+  records from explicit original delivered graph packs, rejecting conflicting
+  shared graphs and unrelated metadata. Preserve source packs and the current
+  default full projectile catalog. Deployables composition awaits the worker
+  loader; no turret/Molten completion claim yet.
+- Verified original10-graph/1-entity/4-effect output remains byte-identical
+  (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1),
+  duplicate delivery remains idempotent, and both conflicting graph and metadata
+  probes fail before creating output. Original pack hash remains unchanged.
+- Rechecked original-language repository submissions: main e1128509 has only
+  generated relay-roster-stub.bin untracked; OWLib3de17bc9, liz-runtime0d624a7
+  and lobby-upstreamd0cee4c are clean. Existing main is already incorporated.
+  External relay42119/52119 variants differ only by local port; PVE21129 is
+  an older relay without the already-present gallery installer. No missing
+  implementation was found in those relay copies. Preserve research snapshots.
+- No original-client acceptance or network publication performed. Remaining
+  hero consumer integration stays open and is not blocked by acceptance.
