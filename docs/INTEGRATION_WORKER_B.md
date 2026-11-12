@@ -1648,3 +1648,37 @@ world-only selected displacement, preserving the same sole mover and original
 queue semantics. Then remaining Hog control/vector/victim-credit checks and
 non-Flux Sigma. Do not duplicate root Flux or A Zarya, and do not let retained
 numeric/deadline checks prevent implemented batches from being submitted.
+
+
+## B62 — owned DVa selected world displacement without a second body epoch
+
+WholeHog now accepts the actual owned mech's existing control_mover as its sole
+Motion.npc_mover alias. Its world tick applies ONLY external capsule displacement
+and original damping: do not step/track modifiers with a fabricated world-domain
+Command on that body-domain mover. Actual pilot input remains the existing
+body_entities driver. Its observer velocity includes the same external ledger;
+release_control retires only this selected motion before dropping ownership and
+restores the native velocity. No impulse_mover clone or new persistent field.
+
+Actual factory/mount probe preserves frozen VM frame, identical last command and
+clock while five inputless world ticks move the same mech; strict Component VM
+passes. Raw two-client HeroPick creates/possesses the real0407 and casts actual
+WholeHog. Unequal world/body frames and nonzero clock_offset remain unchanged
+during five inputless world ticks, with real displacement. A real typed pending
+body-frame velocity request stays queued during those world ticks, survives the
+first pilot frame, and is consumed ONLY by its original second body frame.
+Strict VM and full-server motion-velocity mutation/restoration pass. Same mover
+identity and unchanged impulse slot persist through that sequence; releasing the
+actual control binding clears selected state and restores native velocity.
+
+Raw epoch/queue/storage + existing owned-mech Hook + original initial-mech fire
+and runtime13 =16/16 pass34.484s. Logs worker-b-hog-owned-motion-{mount,raw}.log.
+This retires the explicit B53/B61 owned-mech skip, without claiming every generic
+force/control overlap is reconciled. No client acceptance run.
+
+Next exact action: original Hog mitigation deadline offset0 inside the existing
+Breather channel, preserving integer inclusive source semantics and all original
+assertions; then remaining source control/vector/victim-credit caller audit and
+non-Flux Sigma. Do not change global clocks/leases or rebuild movement objects.
+Root Flux and A Zarya remain separate. Source NPC/full cross-owner fixture
+couplings remain recorded rather than being counted complete from this batch.

@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Apply WholeHog world motion to the actual controlled mech
+
+- Reuse the owned0407 control mover for external displacement while pilot input
+  keeps its original body-frame driver and pending velocity queue. Release only
+  the selected external channel when control ends; no second mover or epoch.
+- Raw unequal-epoch/queue/storage, owned Hook, initial fire and runtime16/16 pass.
+  Original deadline and cross-controller caller audits continue; no client run.
+
 ### Restore ordinary NPC WholeHog motion on existing movers
 
 - Original selected world motion reuses each NPC's same registered mover and

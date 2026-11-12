@@ -135,9 +135,7 @@ class Knockbacks:
 
         motion = self.whole_hog_motion.get(entity)
         if isinstance(owner, bots.Bot):
-            if owner.control_mover is not None:
-                return False  # Owned-body command epoch is a separate following batch.
-            mover = owner.impulse_mover
+            mover = owner.control_mover or owner.impulse_mover
             if mover is None:
                 from ow174.game import npc_navigation
 
@@ -176,7 +174,8 @@ class Knockbacks:
         motion = self.whole_hog_motion.pop(entity, None)
         if motion is not None and motion.npc_mover is not None:
             owner = motion.owner
-            if owner.control_mover is None and owner.impulse_mover is motion.npc_mover:
+            if (owner.control_mover is motion.npc_mover
+                    or owner.control_mover is None and owner.impulse_mover is motion.npc_mover):
                 owner.velocity = motion.npc_mover.velocity
         if forget:
             self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
@@ -203,8 +202,9 @@ class Knockbacks:
                 self.retire_whole_hog(entity)
                 continue  # Do not replay paused external slices after Halt releases.
             npc = isinstance(motion.owner, bots.Bot)
-            if npc and (motion.owner.control_mover is not None
-                        or motion.owner.impulse_mover is not motion.npc_mover):
+            controlled = npc and motion.owner.control_mover is motion.npc_mover
+            if npc and ((motion.owner.control_mover is not None and not controlled)
+                        or motion.owner.control_mover is None and motion.owner.impulse_mover is not motion.npc_mover):
                 self.retire_whole_hog(entity)
                 continue
             mover = motion.npc_mover if npc else motion.owner.mover
@@ -214,7 +214,7 @@ class Knockbacks:
             for at in range(motion.tick + 1, min(tick, motion.tick + 128) + 1):
                 dt = .016
                 motion.tick = at
-                if npc:
+                if npc and not controlled:
                     component = getattr(getattr(motion.owner, "body_script", None), "component", None)
                     mods = statescript_mods(component) if component is not None else {}
                     mover.track_mods(fight.movement_mods(motion.owner, mods, tick=at), at - 1)
