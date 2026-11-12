@@ -2120,3 +2120,37 @@ Next exact action: sourcefilter_context/pipeline explicit SDK and cache API
 versus actual entity_filter_host/controller scope; preserve known-unknown
 backend boundaries and current NPC FilterContext. Then original barrier/owner
 and Sentry CLI actualfactory fixtures. No new acceptance matrix.
+
+
+## B77 — preserve original explicitly bound filter/cache SDK APIs
+
+Restore filter_context and filter_pipeline byte-for-byte, with all three
+original context/pipeline/hostility fixtures byte-for-byte. These source APIs
+explicitly require supplied lookup/cache/environment/services; source itself
+does NOT install a productionWorld or bind bareFilter implicit subject. Keep
+that exact scope, not another automatically attached host/cache. Existing
+entity_team.FilterBits, entity_hostility and condition kernels are reused.
+
+Restore World.entity_filter_context optionalcomponent keyword from source,
+defaultNotImplemented. Existing BotWorld controller scope is a different real
+contract: no-keyword calls still return the same control_context; explicit
+SDKcomponent calls returnNotImplemented because that SDK namespace/cache is
+not installed. Do not reinterpret its controller object as a cache/backend or
+synthesize passing defaults. Actual filter_game uses the original no-keyword
+controller route unchanged. No serializer state/new native manager added.
+
+SourceSDK42/42 pass1.311s, including callbacks, retirement, lock acquire/release,
+cache identity/null-first lookup, eager ordering and unknown-service rejection.
+Separate existing controllerfilter/NpcContext/runtime26/26 pass2.281s. Logs
+worker-b-sigma-filter-sdk{,-shared}.log. Existing original Junkrat charge resource
+fixture already imports this publicSDK and supplies explicit binding, so its
+previous import blocker is removed; actual dispatcher integration remains its
+owner audit, not claimed from helper/API presence. C/root notified.
+
+No original-client acceptance or wholeSigma completion claim. Next exact action:
+root's retained FluxTargets mixedowner observations→real absorption/Accretion/
+Fortify/nativeZarya service bindings with every original assertion retained.
+Root confirms current target_volume and its11kernel tests exactly sourceAST,
+actualflux_targets uses that sameVolume; do not duplicate it. Keep original
+horizontalcap3 vs current9.988 residual until originalbaseline/soleMover proof.
+Then complete source barrier/owner and actual Sentry CLI consumer adapters.
