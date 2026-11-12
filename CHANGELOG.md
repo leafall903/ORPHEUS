@@ -40,6 +40,23 @@ consumer. A102 frozen affiliation is implemented. A final read-only comparison
 of original private FLIGHT_ROLE record versus current per-pose statescript_flight
 must distinguish effective mounted behavior from missing old observer symbols;
 no unproved host/clock duplication or acceptance-green gate will be introduced.
+## C71 — owned-mech quick melee keeps the original polymorphic hero guard
+
+Reused _melee existing actual hero identity for Mei size scaling, avoiding a real
+BotScript.hero AttributeError during owned-DVa melee. No BotScript alias or damage
+change. Original mech30/booster10 +MeiScale2+Damage8 =11/11pass8.715s on v19.
+Persisted six frozen original-line consumer receipts and the finite generic-force/
+controller-query SDK handoffs. No client/network/publication action.
+
+## C70 — original mode-scoped Mei melee projectile absorption
+
+Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
+actual22F0 defense on the same BodyScript/interception host. Original no-amount
+source41 contact, cone, boxes, tags, cooldown and fresh body lifecycle are preserved;
+ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
+source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
+three original Mei absolute differences and one old sigma_grasp fixture import
+error, without blocking code. No new defense pool, input bundle or client action.
 
 ## A102 — preserve existing grenade launch affiliation in native status routing
 

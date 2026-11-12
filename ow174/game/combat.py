@@ -4359,7 +4359,7 @@ class Combat:
             from ow174.game.script import charge
 
             charge_context = charge.damage_context(script, state, modify) if isinstance(script, BodyScript) else None
-            if script.hero == mei.HERO:
+            if hero == mei.HERO:
                 scale = player.mover.body_scale
                 reach, radius = reach * scale, radius * scale
             origin, direction = self._eye(player), aim(*command.aim())
