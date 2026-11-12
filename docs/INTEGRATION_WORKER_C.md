@@ -3257,3 +3257,55 @@ absolute timing/numeric and client verification tails remain recorded separately
 Estimated remaining active C implementation work is0–2hours for any specifically
 confirmed cross-owner integration omission; there is no additional known owner
 module awaiting a second host. Broader verification is not included in that range.
+
+
+## C73 — bounded original023B primary Sniper review
+
+Read-only review of root d67ef8c8/merge75f3bbfe against frozen023B/source/
+ow174/game/sniper.py and actual shared Combat/BotWorld/navigation callers.
+All14 original helper functions are mapped in sniper_reposition, with native,
+search,start_reposition,stop,update named primary_native,primary_search,
+_start_primary,stop_primary,update_primary. After only these function renames,
+seven helpers have identical AST: visible,edge,request_reposition,close_target,
+reachable,_start_primary,retreat_phase. The original edge floor NOT_GROUND/slope,
+headroom and six lateral-height rays and original reachable temporary capsule
+simulation remain unchanged. Landing cone sampling/order/distance/speed and
+output slots remain source arithmetic; current explicit bot.movement_data takes
+precedence over body-table data. No new persistent Mover or state graph is created.
+
+The remaining adaptations are narrowly accounted for: primary_scoped selects
+manual non-strict primary bots without acquire_targets; search_owner additionally
+requires that scope and exact component. BotWorld routes automatic native first,
+then primary_native and the pre-existing explicit helper. Native56 condition/query
+identity, active17 phase, actual owner position and original40/46 aiming conversion
+remain source semantics. Search39 retains source abort/no-destination retry and
+both output lvalues. Update uses the same14xx state and original phase1/2 fire
+suppression; input is refreshed before live VM advance, and npc_navigation yields
+while this primary state/phase owns motion. Original effect_mover maps to the
+actual impulse_mover, whose settling path clears it before ordinary engagement
+navigation resumes; stop cancels gate/move/phase without a second scheduler.
+
+Explicit0015 begin/stop/advance are retained separately under attack_mode
+reposition, including its existing wait and special resolved-destination path.
+Automatic acquire_targets+acquire_specials stays in npc.update_acquisition and
+sniper_retreat.advance on the same BotScript; it is excluded by primary_scoped.
+This review did not find a second driver for the ordinary supported primary,
+explicit reposition, or acquire+specials paths. Source strict guards survive in
+primary_scoped/native/search, even though shared reposition_state intentionally
+serves the separately retained explicit consumer as well.
+
+Evidence scope: root reports original open/windup_stop full criteria pass and
+explicit4m/resumed100damage plus automatic2.5m pass, existing manualinput25pass.
+Those are root receipts, not rerun or counted as new C tests. No production/test
+assertion changed in this review and no old state_of/special_mover aliases added.
+Review is finite source/caller analysis, not exhaustive timing acceptance.
+
+One unverified API combination was reported directly to root: npc.spawn permits
+specials=True with acquire=False/pursue=False. Primary scope accepts this, while
+sniper_retreat._root checks acquire_specials alone and its native dispatcher runs
+first. A caller selecting this unusual combination could enter the automatic
+native policy without its acquisition updater. There is not yet an actual failed
+consumer probe for it; this is an explicit configuration-policy boundary, not a
+claim that tested ordinary or acquired branches fail, and no guessed policy was
+introduced. Parent may assign a bounded probe if that combination is intended.
+B99 force endpoints and A106 Sigma/Zarya tools remain their exclusive work.

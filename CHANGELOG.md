@@ -1,5 +1,15 @@
 # Changelog
 
+## C73 — original primary Sniper finite consumer review
+
+Reviewed root d67ef8c8/75f3bbfe against original023B: all14 helpers map to the
+existing142C instance, seven exact AST after explicit rename. Source edge/search/
+phase/stop arithmetic and current unique input/navigation ownership are retained;
+explicit0015 and automatic acquisition paths remain distinct. Recorded one
+unverified specials-without-acquire configuration boundary for parent review.
+Documentation only; no original assertion or production policy changed, no tests
+rerun, and no second host or legacy observer alias introduced.
+
 ## C72 — layered lift world serves current precise ray and sphere consumers
 
 Preserved original LayeredWorld four-field storage and reused its combined engine
