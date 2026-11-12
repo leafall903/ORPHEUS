@@ -5,7 +5,9 @@ Assigned by the user-authorized three-worker merge on 2026-11-12.
 - Worktree: `verification/merge-worker-c`; branch: `integration/merge-worker-c`.
 - Starting canonical commit: `bf7fad86`.
 - Assigned deliveries: 0006 Torbjorn, 0008 Pharah, 0015 Bastion,
-  0016 Symmetra, 0065 Junkrat, 00DD Mei, 012E Sombra, 0200 Ashe.
+  0016 Symmetra, 00DD Mei, 012E Sombra.
+- Root formally reassigned 0065 Junkrat and later0200 Ashe to worker A; C has
+  no Ashe/Junkrat WIP and must not independently start their owner modules.
 - Preserve and mount existing original-language implementations; no new gameplay,
   acceptance matrix, Rust runtime cutover, network, publication or client session.
   Commit partial functional batches despite incomplete whole-line acceptance.
@@ -989,3 +991,74 @@ barriers.cryo_heal into one actual health consumer, then original normal Cryo
 checks and status timing. Sombra/Ashe remain actual unmounted owner modules;
 root flagged old DeviceWorld/driver symmetra_portals name lookups to adapt to
 actual fight.portals and symmetra_portals.py, with endpoint attribution/EMP/lock.
+
+C31 SHA9d13d1d9 delivered; root receiving. Ownership update:0200 Ashe formally
+transferred whole to A (no C WIP), following prior0065 transfer. C retains0006,
+0008,0015,0016,00DD,012E plus stated shared-owner reconciliation.
+
+C32: original sampled Cryo health consumer
+-----------------------------------------
+Original mei.healing_sample and CryoHealing now drive actual cumulative healing
+from Combat.command, including deferred body reports. The previous native27
+barriers.cryo_heal claims the VM report but does not independently heal. One
+Combat._heal_target writer retains actual pool, health sync, stats and effective
+Mei ultimate income; optional healing_scaled defaultsFalse, only the already
+sampled Cryo amount skips reapplying received scalars. Existing generic healing
+behavior and other owners' reports remain unchanged.
+
+One cryo_samples ledger per actual body/activation; retire removes it. Original
+three-field status rows remain supported, an optional fourth actual received
+scalar records canonical HealingEffects in that same chronological history.
+Actual source interval starts/ends are sampled before prune/refresh/cleanse and
+status replacement; legacy Vitals interval rules remain, no duplicate pool or
+manager. Existing HealingEffects install/retire/immunity/prune hooks call the
+same player-specific consumer, never NPC heal or input behavior. Source original
+sample/cumulative integration still owns its timing; no fake observer alias.
+Stored cryo_samples and original CryoHealing dataclass registered; original real
+passive storage check passes. Node27 report no longer doubles sampled health.
+
+Exact v9 checks:
+python -B -m unittest test_mei_cryo test_baptiste_healing_status -v:
+28run157.559s,25casepass,7failedsubcases across3cases, noerrors,
+worker-c-cryo-sampled-first-check.log. Cryo14:12pass, original inflight
+rocket.hit_entities missing defender and held-secondary health200vs125(two
+subcases) remain identical named C27 boundaries. All full200/self-only, cancel,
+cooldown, retirement, deadowner, input/protection and passive storage cases pass.
+Baptiste14:13casepass, oneNPCcase4subfail Enforcer/Assassin hostile/friendly.
+Root supplied independent v6 original79-group baseline and actual split-pool
+probe parallel-merge/root-bap-shield-status-probe.log: hostile expected18.12/
+actualHEALTH18.12+SHIELD81.6, charge18.119987; friendly expected103.44/
+actualHEALTH80+SHIELD100,charge101.879959 with full-health overheal. These bodies
+have original100shield and original total assertion omitted concurrent shield
+recovery. Do not remove shield implementation or alter expected values.
+
+python -B -m unittest test_mei_ultimate.UltimateTests.
+ test_actual_cryo_credits_only_effective_healing_and_not_overheal
+ test_mei_ultimate.UltimateTests.
+ test_combat_generation_zero_disables_damage_and_effective_cryo_income
+ test_game_combat.DamageTests test_game_script_runtime -v:
+27allpass5.283s,worker-c-cryo-sampled-shared-check.log. First two original
+full-heal/cancel checks also independently pass6.493s before broad check.
+An initial manually guessed nonexistent test name was corrected to the actual
+original method; it supplied no verification and is not counted.
+
+Actual prepared Mei/Cryo + actual selected HealingEffects.Spec/_install amp
+probe:20ticks heals24.000000000000014 HP (base16), same cryo_samples object and
+Vitals, no double scaling. Anti probe revealed existing cross-owner difference:
+HealingEffects.immune(target) isTrue while Cryo is active; typed anti is cleansed
+by existing prepare and legacy healing_block cleared by _cleanse_biotic_block.
+Therefore原00DD Ana/Cryo anti-persistence expectations are NOT proven equivalent.
+Keep existing actual immunity/cleanup and original source assertions until that
+specific policy is reconciled; this batch does not weaken current modifiers.
+
+Next C33: Sombra owner/hack/stealth/translocator with actual existing Controls,
+health packs and device endpoints. Root specifically flagged DeviceWorld and
+BodyWorld old symmetra_portal lookups; adapt actual fight.portals ownership,
+EMP/lock consumers rather than old-name alias manager. Mei own modules now
+consumed, but source00DD Walls same-name footprint/lift/lift_clear/lift_positions/
+move_bot/move_player/show/splash/splash_contacts/step_lifted_bot/volume_clear are
+not present under those names in current host; many current geometry/physics
+helpers differ. This is pending consumer-equivalence audit, not proof either
+that those features are absent or that the entire delivery is complete.
+Also retain0008 impact-time force cover,0015 NPC interlock,0016 retained sentry/
+sparse charge expiry/generic strict placement and existing public observer gaps.

@@ -2113,6 +2113,7 @@ class Combat:
         self.brigitte = BrigitteCombat(self)
         self.frost_hits: dict[int, Frost] = {}
         self.frost_sources: dict[int, dict[tuple[int, int], tuple]] = {}
+        self.cryo_samples: dict[int, mei.CryoHealing] = {}
         self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
@@ -2263,6 +2264,7 @@ class Combat:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
         self.blizzard.retire(player.body)
+        self.cryo_samples.pop(player.body, None)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -3135,6 +3137,7 @@ class Combat:
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
+        self._cryo_healing(player)
         if mei.protected(player):
             self._clear_frost(player)
         if (repairs and not self.is_stunned(player)
@@ -5087,17 +5090,59 @@ class Combat:
         if script is not None:
             script.gain_ult_charge(amount)
 
+    def _cryo_healing(self, player) -> None:
+        sample = mei.healing_sample(player)
+        if sample is None:
+            return
+        key, cumulative, rate = sample
+        target = next((t for t in self._targets() if t.owner is player), None)
+        if target is None:
+            return
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            return
+        history = self.cryo_samples.get(player.body)
+        def note(at):
+            blocked = vitals.healing_block[1] if vitals.healing_block[0] <= at else 0.
+            boosted = vitals.healing_boost[1] if vitals.healing_boost[0] <= at else 0.
+            received = self.healing.factor(target, end_tick=at / TICK)
+            history.note(at, blocked, boosted, received)
+
+        if history is None or history.activation != key:
+            start = self.now - cumulative / rate
+            history = self.cryo_samples[player.body] = mei.CryoHealing(key, start)
+            note(start)
+        # Retained status intervals supply their exact boundaries even when body
+        # samples arrive after expiry. Settle before a real status is replaced.
+        points = {*vitals.healing_block, *vitals.healing_boost}
+        for effect in (self.healing.anti.get(target.entity), self.healing.amp.get(target.entity)):
+            if effect is not None:
+                points.update((effect.start * TICK, effect.end * TICK))
+        for at in sorted(point for point in points if history.at < point <= self.now):
+            note(at)
+        note(self.now)
+        due = history.sample(cumulative, rate, player.body_script.component.frame_ms / 1000,
+                             BIOTIC_HEAL_BOOST)
+        if due > 0.:
+            self._heal_target(player, target, due, healing_scaled=True)
+
+    def record_cryo_status(self, entity) -> None:
+        player = next((p for p in self.match.players if p.body == entity), None)
+        if player is not None:
+            self._cryo_healing(player)
+
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
-                     end_tick=None):
+                     end_tick=None, healing_scaled=False):
         vitals = self.vitals_of(target)
         if vitals.dead:
             return 0.0
-        amount *= self.healing.factor(target, tags=tags, seconds=seconds, end_tick=end_tick)
-        if seconds > 0.0:
-            end = (self.tick if end_tick is None else end_tick) * TICK
-            amount *= vitals.healing_time(end - seconds, end) / seconds
-        else:
-            amount *= vitals.healing_factor(self.now)
+        if not healing_scaled:
+            amount *= self.healing.factor(target, tags=tags, seconds=seconds, end_tick=end_tick)
+            if seconds > 0.0:
+                end = (self.tick if end_tick is None else end_tick) * TICK
+                amount *= vitals.healing_time(end - seconds, end) / seconds
+            else:
+                amount *= vitals.healing_factor(self.now)
         eligible = vitals.ult_healing_deficit
         given = vitals.heal(amount)
         if given > 0.0:
