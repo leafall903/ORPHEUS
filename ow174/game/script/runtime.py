@@ -462,7 +462,7 @@ class InstanceContext(Context):
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries,
+            body_owner, controller_heroes, controller_queries, controller_query, entity_filter, entity_link, entity_queries, entity_team, health_queries,
         )
 
         component = self.instance.component
@@ -545,6 +545,10 @@ class InstanceContext(Context):
         if result is not NotImplemented:
             return result
         result = health_queries.evaluate(self, cfg)
+        if result is NotImplemented:
+            # Preserve the original explicitly bound watched backend; an unknown
+            # binding leaves the existing record-based service in charge.
+            result = controller_query.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
         if cls == body_owner.CLASS and self.instance.graph.index == 0x0B8B and not component.strict:
@@ -972,6 +976,10 @@ class World:
 
     def target_record_scalar(self, owner: int, target: int):
         """A D379F515 component46 record scalar, known absence, or unknown service."""
+        return NotImplemented
+
+    def entity_controller_context(self, entity: int):
+        """CC9BF0 namespace, component43 observation and DA6910 controller resolution."""
         return NotImplemented
 
     def controller_record(self, entity: int):

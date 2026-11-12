@@ -11738,3 +11738,38 @@ record query only when explicitly supplied, strictunknown otherwise. Then NPC
 callback query and distance/possession original public SDK mapping; do not
 replace currentstronger AI state registry registrations. Assassin13C2 service
 needs dependency/caller equivalence audit, not blind copy of its gameplayhost.
+
+
+## B87 — preserve original watched controller-query SDK and explicit dispatch
+
+Original controller_query.Context/Target/Controller implements independent
+CC9BF0 lookup, component43 observation, fresh DA6910 controller resolution and
+callback lifetime/strictunknown guards. Current controller_queries.Record uses
+explicit component43/44 membership records and has no watchedcallback API;
+that is a different, stronger defaultbackend, not this existingpublic interface.
+
+Retain originalmodule and originalfixture byte-for-byte. Add originalWorld
+entity_controller_context unknown default and query in current evaluation chain
+before controller_queries, after healthqueries, only consuming knownresult.
+Unconfigured sourceSDK returnsNotImplemented without selector evaluation itself;
+existing strongerRecord/world fallbacks continue. No autoContext/World/backend,
+second controller or newpersistent state created. Known sourceSDK callback cases
+pass unchanged alongside currententityqueries/runtime:49run47pass2 sourcefixture
+expectation differences2.058s (worker-b-controller-query-sdk.log).
+
+Both differences are real documented combined-backend contracts: originalSDK
+fixture inherits currentSceneWorld, whose boundentity now yields knownrecord
+facts; sourceContext unknown therefore legitimately falls back to currentRecord
+(False) rather than unknown/directworld fallback. A diagnostic newfixture
+explicitly markingrecordbackend unknown left1 orderingdifference, since existing
+strongerRecord must evaluate its selector before lookup even if that backend
+returnsunknown. That experimentalfixture override was REVERTED; finaloriginal
+fixture bytes/assertions remain unchanged. Do not alter strongerRecord behavior
+or add fake absence to force originalfixture green. Originalsource evaluate API
+and its explicitContext behavior preserved. No client acceptance.
+
+Next exact action: originalnpc_queries callback SDK vs actualentity_queries
+A37A/D379 indexed lookup/scalar interfaces; then original distance/possession
+publicregistries vs currentAIBehavior/AIControlOverride exactclassID mapping.
+Retain oldSDK APIs without replacing authoritative currenthost or pretending
+legacyfixture backend conflicts are missing gameplay features.
