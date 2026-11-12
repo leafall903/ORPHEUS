@@ -43,6 +43,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original projectile contact and splash on bound Mei walls
+
+- Resolve same-entity native pillars through their solid geometry instead of a
+  duplicate early body capsule. Apply original closest-face blast exposure once
+  through each existing pillar pool, preserving impact exclusion.
+- Original frozen-support Helix scene passes all five NPC stepped/gap subcases;
+ 16 projectile/damage/wall checks pass. On/after-thaw source coverage is pending,
+  and original-client acceptance remains open without blocking the code merge.
+
 ### Connect original frozen Sentry support-impact proofs
 
 - Adapt the retained-impact proof to the actual shared geometry queries,
