@@ -11845,3 +11845,27 @@ vs native60 assertions remain visible and do not block real code integration.
   budget and actual time-dependent NPC pace. No new mover, VM or stored field.
 - All20 actual stepped/gap causal pairs match; retain two original Assassin
   absolute-position failures instead of altering their expected numbers.
+
+## B82 — restore frozen Doomfist visibility and target ranking
+
+Correct prior convergence claim: source-checkpoints/012F b6d0581c and frozen
+58d8e57e are siblings, not successive delivery versions. The working source
+simplified away existing frozen production consumers. Audit both; retain the
+richer frozen behavior without replacing stronger current VectorRecord/nodes.
+
+Restore frozen _two_height_visible verbatim: 30%-height LOS then60%, same
+ray_cover including existing Cryo blockers. Actual Punch command now uses the
+original prior-pose view anchor eye-.5 and mode2 resolved-feet distance ranking,
+while preserving capsule admission, current completion/control and finished
+Dash history. Actual Slam wave restores original+1.8m origin and same two-height
+LOS. No new state, pool, controller or numerical expectation. Original Punch,
+Slam and runtime56/56 pass42.000s, worker-b-doom-sibling-contact.log.
+
+Still UNMOUNTED confirmed frozen58 production: Slam initial close_contact;
+next-world-tick queued additive impulse, native modifier26 scale and320ms ground
+braking, plus lifecycle/snapshot integration. Next exact action: restore these
+through sole existing mover (NPC control_mover/impulse_mover, explicit movement
+inputs retained), no second movement driver. Scene.unbind already clears both
+records and vector_records; no missing cleanup there. General strict tagged
+catalog and retained SDK7 interfaces still need bounded equivalence audit.
+No original-client acceptance. Original checks remain unchanged.

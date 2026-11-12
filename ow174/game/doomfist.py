@@ -17,6 +17,23 @@ PUNCH = 0x0B90000000000107
 SLAM = 0x0B9000000000011F
 
 
+def _two_height_visible(target, origin, collision, cryo_cover):
+    from ow174.game.combat import _sub, ray_cover
+
+    # The default LOS path tests 30% of target height, then retries at 60%.
+    x, y, z = target.feet
+    for height_fraction in (.3, .6):
+        toward = _sub((x, y + target.height * height_fraction, z), origin)
+        length = math.hypot(*toward)
+        if length <= 1e-9:
+            return True
+        sight = tuple(v / length for v in toward)
+        cover = ray_cover(collision, origin, sight, length, cryo_cover)
+        if cover is None or cover >= length:
+            return True
+    return False
+
+
 @dataclass
 class Dash:
     activation: tuple
@@ -197,7 +214,7 @@ class Punches:
         )
 
     def command(self, player, command) -> None:
-        from ow174.game.combat import _along, _dot, _sub, ray_capsule, ray_world
+        from ow174.game.combat import _along, _dot, _sub, ray_capsule
 
         if player.hero.guid != HERO or player.body_script is None or command is None:
             return
@@ -219,21 +236,20 @@ class Punches:
         distance = math.sqrt(_dot(delta, delta))
         heading = tuple(v / distance for v in delta) if distance > 1e-9 else dash.direction
         origin = _along(dash.last, (0, 1, 0), self.combat._eye(player)[1] - current[1] - 0.18)
+        los_origin = _along(dash.last, (0, 1, 0), self.combat._eye(player)[1] - current[1] - .5)
+        collision = self.combat._collision()
+        cryo_cover = defenses.cryo_blockers(self.combat.match.players, exclude=player)
         found = []
         for target in self.combat._enemies(player):
             a, b = target.segment()
             hit = ray_capsule(origin, heading, a, b, target.radius + dash.radius)
             if hit is None or hit > distance + 1e-9:
                 continue
-            midpoint = tuple((x + y) * 0.5 for x, y in zip(a, b, strict=True))
-            toward = _sub(midpoint, origin)
-            length = math.sqrt(_dot(toward, toward))
-            sight = tuple(v / length for v in toward) if length > 1e-9 else heading
-            wall = ray_world(self.combat._collision(), origin, sight, length)
-            if wall is None or wall >= length:
-                found.append((hit, target))
+            if _two_height_visible(target, los_origin, collision, cryo_cover):
+                found.append(target)
         if found:
-            _, target = min(found, key=lambda item: item[0])
+            # Source TrackTargets mode 2 ranks admitted targets by resolved feet.
+            target = min(found, key=lambda candidate: math.dist(current, candidate.feet))
             dealt = self.combat._damage(player, target, dash.damage, False, PUNCH, command.frame)
             if dealt > 0:
                 self.combat._doomfist_shields(player, PUNCH)
@@ -387,7 +403,7 @@ class Slams:
         return None
 
     def command(self, player, command) -> None:
-        from ow174.game.combat import _dot, _sub, aim, ray_capsule, ray_world
+        from ow174.game.combat import _dot, _sub, aim
 
         instance = self.instance(player)
         if instance is None or command is None:
@@ -428,7 +444,9 @@ class Slams:
         reach = float(instance.vars[422].value())
         half_angle = math.radians(float(instance.evaluate(wave.field('m_A30B383E'))) / 2)
         radius = min(reach, speed * (instance.component.now - cast.wave_at) / 1000)
-        origin = (cast.origin[0], cast.origin[1] + 1, cast.origin[2])
+        origin = (cast.origin[0], cast.origin[1] + 1.8, cast.origin[2])
+        collision = self.combat._collision()
+        cryo_cover = defenses.cryo_blockers(self.combat.match.players, exclude=player)
         hit_entities = set(cast.hit)
         for target in self.combat._enemies(player):
             if target.entity in hit_entities:
@@ -440,14 +458,7 @@ class Slams:
             direction = (offset[0] / distance, 0, offset[2] / distance) if distance > 1e-9 else cast.direction
             if _dot(direction, cast.direction) < math.cos(half_angle):
                 continue
-            a, b = target.segment()
-            toward = _sub(tuple((x + y) / 2 for x, y in zip(a, b, strict=True)), origin)
-            length = math.sqrt(_dot(toward, toward))
-            sight = tuple(v / length for v in toward) if length > 1e-9 else cast.direction
-            wall = ray_world(self.combat._collision(), origin, sight, length)
-            if wall is not None and wall < length:
-                continue
-            if ray_capsule(origin, sight, a, b, target.radius) is None:
+            if not _two_height_visible(target, origin, collision, cryo_cover):
                 continue
             hit_entities.add(target.entity)
             dealt = self.combat._damage(player, target, cast.damage, False, SLAM, command.frame)
