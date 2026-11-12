@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate delivered Shadow Step and native button transition edges
+
+- Mount the original00F2 Shadow Step selection/confirmation/cancellation,
+  locked cast destination and standing capsule/live-actor landing policy.
+  Preserve authored cast/recovery/cooldown and validate the destination again
+  before the movement handoff. Retain original Mei pillar support/occupancy
+  helpers and capture the selector/cast record as causal server state.
+- Restore7DEB522D's four native down/up/held/released flags and compiled
+  transition-owner rechecks, preserving the triggering button during CHECK.
+  Keep existing Tracer/Halloween dependency-driven transition rechecks. Use
+  Reaper's authored Shadow/Wraith intangible intervals for hostile admission,
+  direct damage and resource-backed control without widening the cast window.
+- All31 original Shadow Step/button-transition/runtime checks passed. Three
+  existing Blink/Recall checks passed separately; a live server snapshot probe
+  remained getter-free/repeatable and changed with stored selector buttons.
+- Root intake retained both coordination/scenario records and passed all64
+  combined Shadow/button/runtime/scene-host checks after the shared-code merge.
+- Persist worker A's scope and next actions in INTEGRATION_WORKER_A.md. Reaper
+  reflected-shell and other cross-hero code reconciliation continues; no whole-
+  line or original-client acceptance is claimed, and no matrix gate is added.
+
 ### Reconcile the original Python scenario delivery history
 
 - Verify that all13 code/check file patches from95cd0b5d match the admitted
