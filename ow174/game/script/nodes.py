@@ -2662,6 +2662,8 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        if self.ms > 0 and self.instance.component.world.external_wait(self):
+            return
         if self.dynamic():
             self.ticks()
             self.tick()
@@ -2857,6 +2859,10 @@ class ChaseVar(State):
         self.var: Var | None = None
         self.interrupted = False
 
+    def clock(self):
+        value = self.instance.component.world.chase_clock(self)
+        return self.now if value is NotImplemented else value
+
     def on_enter(self) -> None:
         target = lvalue(_field(self, "m_out_Var"))
         initial = _field(self, "m_EB0FC261")
@@ -2869,7 +2875,7 @@ class ChaseVar(State):
         self.interrupted = False
         duration = _field(self, "m_5BEFF040")
         self.remaining = int(to_float(self.evaluate(duration, watch=False)) * 1000) if duration else None
-        self.last = self.now
+        self.last = self.clock()
         if target is not None:
             var = self.instance.find_var(*target)
             before = var.value()
@@ -2940,8 +2946,9 @@ class ChaseVar(State):
             # while the combined scheduler replays older damage frames. Do not
             # overwrite that relocated clock with a pre-activation tick.
             return
-        dt = self.now - self.last
-        self.last = self.now
+        now = self.clock()
+        dt = now - self.last
+        self.last = now
         if dt <= 0:
             return
         if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):
@@ -5541,6 +5548,10 @@ def apply_script_pose(instance: Instance, node, caller) -> bool:
 @handler("STU_4E2BCAAB")
 def state_elapsed(instance: Instance, node, caller) -> bool:
     """104319 1B75730 compares state age and queues a timer when it is too early."""
+    if not instance.component.strict:
+        owned = instance.component.world.compatibility_elapsed_condition(instance, node)
+        if type(owned) is bool:
+            return branch(instance, node, caller, owned)
     seconds = instance.evaluate(node.field('m_AA6E611E'), caller, initial=-1.0)
     if not _finite_number(seconds) or not 0 <= seconds < 2_147_483:
         return branch(instance, node, caller, False)

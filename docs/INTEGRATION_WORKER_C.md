@@ -100,13 +100,55 @@ Sentry to Recon (wall295 versus235) and Heavy melee lacks displacement despite
 correct damage. Do not remove original stance/movement bridges or assertions.
 C6 full snapshot process53540/session33339 still runs; do not restart it.
 
+Ninth batch SHA: `e9849f58`, received by root as2378f2d7; explicit motion tag
+removed the Echo parser exception, with two original payload/charge differences
+retained. C8 received asf3989db0. Clean local synchronization:45830030.
+Tenth batch: `feat: retain delivered Pharah source sight and boundary behavior`
+mounts the original independent middle/nearest source sight consumer. All45
+original charge9/flight11/edges18/basic-combat7 checks pass; all17 impulse/Helix
+checks pass. Source checks are unchanged; whole-line equivalence remains open.
+C6 full server-snapshot process53540/session33339 remains active after26 CPU
+minutes, with buffered PowerShell output still empty. Do not label it green or
+start another copy; other concrete batches continue independently.
+
+Tenth batch SHA: `c9b4f9e7`, root received as9b93d738; integrated profile62 pass.
+Eleventh batch: `feat: integrate delivered prepared NPC impulse bodies` mounts
+root-delegated narrow Bot/manual physics and owned Mei/Pharah target adapters,
+plus the existing hook module's future shared-body handoff. Root attack_mode and
+reposition cleanup are preserved; npc_control/npc_navigation are unchanged.
+Original12 NPC cases:11 pass,1 Combat.hooks missing-consumer error remains.
+All96 Bot/control/navigation checks pass, three original wall/team scenarios pass,
+and explicit navigation resumes after settling in a direct handoff probe.
+NPC inputs: ../retribution/npc-runtime/data; ../hero-lanes/0008/asset-research/
+five-npc-ai-candidate.json.gz; ../hero-lanes/007A/mech-npc-movers.json.
+Logs: worker-c-pharah-npc-impulse-integrated-check.log,
+worker-c-npc-physics-shared-final-check.log, worker-c-pharah-npc-wall-focused-check.log,
+worker-c-npc-impulse-navigation-probe.log. No source assertion was changed.
+
+C6 full snapshot run is FINISHED:70/2615s,2 failures,10 errors,3 skips.
+Three journal errors are INVALID as implementation evidence because ongoing
+worker edits changed the captured model manifest; guards correctly rejected it.
+Other legacy observation errors and Zarya/Moira assertions remain in the log.
+Root explicitly requires any future long journal run on a frozen committed SHA
+in a detached worktree, never the actively edited worker tree, and never a gate.
+No running long test remains from session33339/process53540.
+
+Eleventh batch SHA: `3e3aab4a` (ready for root receipt).
+Twelfth batch: `fix: resolve Moira deployed target definitions` retains physical
+Deployable targets while selecting their body metadata instead of Player.hero.
+Actual Moira/Mei pillar probe:400->384, no VM fault. Two original Grasp checks
+pass; one combined barrier/pillar test lacks its external descriptor and skips.
+Logs: worker-c-moira-deployable-{contact-check,pillar-probe}.log.
+No long test remains active. Future journal checks use frozen committed trees.
+
 ## Exact next work
 
-1. At this clean boundary synchronize latest root canonical (retain all owners),
-   then review original Pharah charge, flight boundaries, NPC and barrier/phase
-   interlocks. Splash/self-splash/impulse, curve reflection and002B interruption
-   are mounted. Do not replace the combined host. Root owns NPC bots/navigation/
-   snapshot entry edits; reconcile their adapters without replacing that work.
+1. Submit/reconcile C11/C12, synchronize latest canonical prepared-input entry
+   and preserve root Echo curve_motion/source_entity fixes. Review remaining
+   Pharah defense/barrier/control equivalence and continue the other six owner
+   families. Moira Deployable correction is mounted; do not remove those targets. Core charge/flight/edges45 pass; NPC physical11/12 pass.
+   Root/worker B still owns complete Roadhog hooks and root owns NPC input/nav;
+   preserve the C11 narrow physical-body adapter when bringing those implementations in.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
 3. Continue the other six deliveries. Substantial missing owner families include
@@ -123,3 +165,98 @@ Focused Self-Repair/resource/death/gap/Tank checks passed7/7 after this batch.
 Further charge and storage results belong to CHANGELOG.md and external logs.
 No complete Bastion or original-client acceptance is claimed. The other seven
 assigned deliveries are not yet reconciled by this worker.
+
+Canonical synchronization after C9: f3989db0; preserve all original worker A/B/root
+consumers. Only CHANGELOG required conflict resolution, retaining both entries.
+C10 must verify received NPC/sniper, Doomfist and retained movement bridges.
+
+Clean C11/C12 synchronization: root17b8eec7 (Echo curve_motion and reflected
+source_entity ownership, integrated prepared-input profile, A/B current owners).
+Only CHANGELOG conflicted; keep both entries. Resolve single functional SHAs
+for reception; do not replay this coordination merge as an owner delivery.
+
+Before Torbjorn/Overload work, synchronize roota65aee9d, including received
+C11/C12 and A11 variable transition rechecks; preserve both changelog entries.
+
+## C13 checkpoint: Torbjorn Overload and Pharah consumer boundary
+
+C13 mounts original hero_torbjorn Overload/cooldown/control consumers, distinct
+Vitals armour state/wire pool and snapshot fields, command/death/body-switch
+entry points, and the original periodic armour-reduction opt-out. All17 original
+Overload checks pass (92.738s); all30 DamageTests/Rally/Doomfist resources pass
+(42.031s). Logs: worker-c-torbjorn-overload-final-check.log and
+worker-c-torbjorn-armour-shared-check.log. Original assertions are unchanged.
+Torbjorn turret/hammer/Molten Core/charge/resources are not complete. Next:
+reconcile the original resource checks and owner fire consumers, preserving the
+root-discovered pending variant separately, then actor-backed turret/hammer and
+Molten consumers. No long test is active; no client acceptance was performed.
+
+0008 code-level checkpoint (not a whole-line completion declaration):
+- barrage_motion.py is mounted by Combat._shoot for the002B1 source, an explicit
+  Rocket.is_barrage tag,16ms/chord flight/interception/range/lifetime consumers,
+  and reflected source-eye/seed/budget/remainder handling. Keep root Echo's
+  curve_motion/source_entity fixes when receiving later work.
+- Actual player movement consumes pharah_thrust hover force and the delivered
+  JumpJet reset/vector/yaw helpers. Mover script vector SET is distinct from
+  scalar modifiers, follows gravity and precedes additive impulses.
+- BodyScript.ultimate_running and the entity33 interruption stack connect
+  Combat/Sombra aborts to authored channel lifetime. Launch-time source charge
+  eligibility and no Barrage recharge after channel expiry are mounted.
+- Actual HitDef/rocket blast consumers cover Concussion without a prediction
+  lease, self damage, independent force rings/minimum/geometry, true impact and
+  incident direction, two separate own-force sight samples and modifier26.
+  Prepared NPC physical admission/manual mover/step/category paths and actual
+  Mei pillar lifts are mounted through the explicitly delegated narrow adapter.
+- Own Pharah work still needs impact-time cover freezing and attached/Particle
+  barrier force-protection reconciliation: _pharah_impulses currently queries
+  cover after damage and does not receive broken_particle_barriers. Do not
+  hide this gap behind green core checks or claim that all remaining work is
+  external. Original defense/phase/barrier interlocks require code comparison
+  against the combined managers; source module imports alone are insufficient.
+- Full Roadhog Combat.hooks is worker B0040's consumer; C11 only prepared the
+  existing hook module's shared-body handoff and did not mount its actor host.
+  That original NPC hook check remains an error. Root owns NPC input/navigation;
+  preserve those owners and the delegated C11 physical adapter. DVa/Genji/
+  Sigma/phase defenses use combined managers and still require owner-equivalence
+  review, not silent copying or a source-fixture import fallback completion claim.
+- The recorded older McCree/Flashbang subcase differences and incomplete client
+  acceptance remain visible. They do not block committing existing consumers.
+
+C13 SHA:5d56f941, ready for root receipt. C14 retains frozen0006 resources and
+root's different pending resources as two unchanged files. Their initial28-check
+run had six failing subcases: three missing hammer contacts, secondary ten-pellet
+expansion, and two cross-expiry damage expectations caused by that expansion
+(the timing assertions already passed). Mount the original projectile_patterns
+unpredicted1683 radial consumer rather than changing fire-delay or tests.
+Next functional batch mounts original hammer contact windows/late targets/control
+cancellation/snapshot state and reconciles the owner turret repair dependency.
+
+C14 radial run:36 checks/116.015s, six failing subcases (three missing hammer,
+three standalone critical/falloff). Scoped standalone rivet follow-up: all10
+original projectile+last-ammo+cross-expiry cases pass/16.327s. Logs:
+worker-c-torbjorn-{rivet-resource,pellet-final}-check.log. No source assertions
+were changed. Resource fire timing already passed; do not rewrite it for damage.
+
+C14 SHA7a0ab40b ready for root receipt. C15 mounts source hammer body/window/
+cancel/Genji107/snapshot consumers and optional contacted barrier APIs. Original
+hammer13 plus background reload interaction:14 checks,12 pass, two repeat
+interval differences retained (ordinary53vs47frames, boosted second contact
+later than source33). Log worker-c-torbjorn-hammer-check.log. A conditional-marker
+experiment did not change either difference and was reverted; no shared native
+animation/stack semantics were weakened. Four direct actual barrier-method
+probes validate one contacted hit and unchanged ordinary calls. Old shared
+fixtures retain two descriptor skips and absent body_barriers error, log
+worker-c-torbjorn-hammer-barrier-shared-check.log; unrelated old Tracer imports
+also expect absent deflection.TAGS_PATH and were not counted as executed.
+
+Next: reconcile worker B's reinhardt_hammer.surfaces(fight,player,volumes,amount,
+seen) helper for native shell faces and reuse its actual capsule geometry.
+Its seen namespace is ('surface', actor entity), whereas these optional legacy
+area/melee contacted APIs use actor int entity. Torb sphere volumes are
+(centre,centre,1). Preserve distinct per-swing source contacts. Zarya native
+body damage remains existing combined policy; no extra double shell hit.
+Then mount original actor-backed turret factory on existing NPC entities and
+pool, with actual owner credit/geometry/snapshot/lifetime bridges. Its collection
+is fight.turrets(owner.entity->source Turret); legacy prototype torbjorn_turret
+manager has not been a production consumer. Hammer repair and Steel Trap
+contact remain explicit pending owner consumers, not completed by empty maps.

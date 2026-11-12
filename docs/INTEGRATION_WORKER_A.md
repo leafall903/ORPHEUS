@@ -399,3 +399,11 @@ ORPHEUS_MATRIX_TAGS=$ORPHEUS_PROJECTILE_TAGS. Other whole NPC/cross-owner privat
 API checks are preserved, not declared all passed. Next clean-boundary action
 is absorb canonical62dd2bf0, then original Storm one-bounce implementation and
 normal fixture dependencies for its original tests, keeping all assertions.
+
+
+A18 committed `81c6ce34`. Clean boundary sync of root canonical62dd2bf0 keeps
+all A18 fixtures and root code; only CHANGELOG conflict resolved by union. No
+runtime/code conflict. Root curve_motion, reflected source identity/retirement,
+Damage alias ordering/armor adapter and new B/C native fields all retained.
+Next exact action remains original Storm one-bounce metadata and contact response.
+Sync verification:30 normal profile/journal/Damage/runtime checks passed in worker-a-canonical62-sync.log.

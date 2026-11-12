@@ -174,7 +174,7 @@ tags from hero-lanes/006E/prepared/projectile_tags_174.json explicitly selected.
 
 C9 `e9849f58` is received by the merge named `merge: receive worker C Pharah
 impulses and tagged curves`. The explicit is_barrage marker separates the
-seven-field sampler from Echo's existing one-field motion payload. All30
+seven-field sampler from unrelated sticky motion configuration. All30
 Pharah impulse/curve/reflection/physics checks and six Echo checks passed;
 preserve two original Echo damage/copied-charge differences. The parser
 exceptions are resolved, without deleting either motion implementation.
@@ -214,11 +214,117 @@ check passed without skips. These are server checks, not game-client acceptance.
 Reproduce from this worktree:
 
 ```powershell
-& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-v2
-$profile = Get-Content ../parallel-merge/runtime-inputs-v1/environment.json -Raw | ConvertFrom-Json
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-reproduced
+$profile = Get-Content ../parallel-merge/runtime-inputs-reproduced/environment.json -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
 ```
 
 Use the loaded process environment for the existing Python server entry point
 and checks. A new output directory is required when recomposing; original packs
 and prior generated profiles stay intact. The profile has no appearance input.
+
+Root's final composer code was rerun to runtime-inputs-v2; its supplement SHA256
+is identical to v1 (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1).
+C10 `c9b4f9e7` is received as `9b93d738`; all62 original Pharah/Helix checks
+passed using the integrated input profile. A9 `6be926ba` is received by the
+merge named `merge: receive worker A Mercy regeneration chronology`; all66
+combined original timing/passive/Valkyrie/runtime/boost/effect checks passed
+with that same profile, without skips. Retained anti/amp history joins snapshots.
+
+B8 `e67d0d8a` is received as `bbd9d3da`;49 of52 combined original Winston
+charge/Tesla/runtime checks passed. Preserve the pending Jump launch, old bubble
+observer and protected controlled-D.Va pilot differences; worker B continues the
+actual Jump/Primal punch consumers. Only one Tesla route remains active.
+A10 `b63da622` is received by the merge named `merge: receive worker A Zenyatta
+dependency interfaces`; all30 combined original cooldown/runtime/Mercy boost/
+effects checks passed with the integrated profile. Original constants/public
+tag queries use existing managers and the immutable projectile catalog.
+
+Worker C now owns the narrow original Bot impulse/mover helpers and necessary
+hook mover reuse, retaining root's attack_mode/reposition cleanup. Root keeps
+NPC input/navigation ownership. Do not mount a second Roadhog controller; B
+owns0040. This ownership change is explicitly coordinated to preserve existing
+shared behavior while the remaining NPC impulse checks are reconciled.
+
+## Root Echo reconciliation
+
+Actual damage tracing found six direct5 hits and six incorrectly halved12.5
+blasts. The normal reflection handoff updated source_body but only updated
+source_entity for Pulse Bomb. Root now transfers both for all normal reflectors,
+restoring the frozen Echo full hostile blast behavior. Separating curve_motion
+from the existing sticky gravity loop also removes the accidental config payload
+introduced when the new Barrage local reused the loop variable name. Echo's
+gravity implementation remains the original existing path; this was not an
+additional Echo curve sampler to retain. All29 original cross-hero reflection/
+Helix/curve checks pass after the repair; original assertions are unchanged.
+
+The remaining copied-Genji718 versus663 assertion has precise read-only evidence
+in `parallel-root-echo-copied-charge-audit.log`: damage awards331.5 twice and
+eleven neutral5-point grants. The original Genji profile uses ult_seconds0 as
+its authored-passive default and explicitly enables2426; it is not the older
+Echo fixture's generic debug-fill toggle. Keep both original implementations
+and the original assertion. This profile difference is not resolved by disabling
+the delivered Genji passive or weakening the Echo numeric expectation.
+
+Long StoredJournal/model-fingerprint checks must run against a frozen committed
+tree. Worker C's70-check full snapshot run retained2 failures/10 errors/3 skips,
+including three ManifestMismatch errors caused by continued code changes during
+the run; those three are not evidence of an implementation defect. Retain the
+rest for consumer audits, without treating this moving-tree run as full acceptance
+or blocking implementation commits. Root's focused immutable captures remain
+separate evidence; avoid rerunning the43-minute group on an actively edited tree.
+
+C11 `3e3aab4a` is received as `4ab2d0a0`;107 of108 original NPC impulse and
+shared bot/control/navigation checks passed. The sole error is the still-unmounted
+Combat.hooks consumer owned by0040. Keep the original hook reuse check and narrow
+future handoff adapter. A11 `a56f80cb` is received as `5f763939`; all48 original
+variable-transition/Shadow/button/runtime/held-fire/resource/Storm checks passed.
+The CHANGED path retains ending guards and CHECK button identity.
+
+C12 `d54f82bb` is received as `a65aee9d`; two original Grasp checks pass. The
+real Moira/Mei command probe includes Deployable targets and reduces the actual
+pillar400 to384 without a VM fault. Preserve the separate original barrier/ice
+suite's absent ORPHEUS_REINHARDT_COLLISION descriptor skip; do not fake a mesh.
+B9 `57e7dfe9` is received by the merge named `merge: receive worker B Winston
+Jump Pack and Primal strikes`; all78 original Winston/runtime checks and all19
+shared command/epoch/handoff checks passed after the generic transition merge.
+The source Jump/Primal controllers reuse existing collision, knockback and
+WorldBubble services; only Winston selects the source command horizon.
+
+Root's additional original Ana reflection audit found a second real cross-owner
+retirement conflict: generic cleanup deleted detached reflected rounds, and
+Genji/D.Va cleanup erased every current-shooter projectile. Preserve independent
+incoming reflected flights while retaining Genji0304's delivered own-family
+teardown and ordinary D.Va cleanup. Six unchanged Ana/Genji/D.Va/Echo lifecycle
+checks pass, including retired deflector killer identity. The broader original
+Ana13 run now retains two50-versus-prepared60 grenade failures and three old
+healing_boost_until observation errors; leave every assertion intact. Evidence:
+parallel-root-projectile-family-retirement-check.log and
+parallel-root-ana-retirement-final-audit.log. Prepared Spec.load reports60 damage,
+100 healing; do not overwrite original prepared graphs to force old50 values.
+
+
+## Persisted intake checkpoint: 2026-11-12
+
+Canonical code71d04534 includes A12-A17, B10-B13 and C13-C15 through real
+consumer merges. Preserve each worker source commit; no ancestry-only credit.
+The frozen59c15a5a batch passed92 original projectile/lease/runtime/command/
+epoch/handoff/Overload checks. The subsequent71d04534 batch passed36 original
+ChargeMovement/runtime/epoch/handoff checks. Logs are outside the worktree:
+parallel-batch-a12-c15-check.log and parallel-a17-b13-merge-check.log.
+Original Hanzo profile module import currently fails on missing
+ test_game_hanzo_npc fixture; A owns preserving and committing source dependency
+fixtures, without rewriting original assertions or blocking implementation.
+
+Explicit prepared input manifest is ../parallel-merge/runtime-inputs-v3/environment.json.
+It reuses the immutable minimal v1 graph supplement and full3528 projectile
+catalog, adds source Hanzo profile hashes and explicit server CLI arguments.
+Hanzo environment names alone configure source tests, not automatic server
+startup. No alternate Matrix/Grasp subset is selected by default.
+C16 owns original actor-backed turret and narrow deployables metadata loader;
+root will compose only its missing source records after review (five graphs,
+two entities and original deployables mapping). B continues source Charge
+capture/bump; A continues source ricochet and missing fixture imports.
+All three workers remain assigned persistently; external coordination.json is
+the resume ledger. Keep all original code, report differences, and commit even
+when complete acceptance has not passed. Exclude appearance and Rust cutover.

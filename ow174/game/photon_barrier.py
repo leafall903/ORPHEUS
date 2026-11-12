@@ -254,13 +254,17 @@ class Barriers:
         if actor.health <= 0:
             self.end(actor)
 
-    def melee(self, shooter, origin, centre, radius, amount):
+    def melee(self, shooter, origin, centre, radius, amount, *, contacted=None):
         from ow174.game.combat import capsule_visible
 
         for actor in self.opponents(shooter):
+            if contacted is not None and actor.body in contacted:
+                continue
             point = self.closest(actor, centre)
             if (math.dist(point, centre) <= radius and capsule_visible(
                     self.fight._collision(), origin, point, point, 0., walls=self.fight.walls)):
+                if contacted is not None:
+                    contacted.add(actor.body)
                 self.fight._damage_contact_barrier((0.0, actor.owner, actor), amount, shooter=shooter)
 
 

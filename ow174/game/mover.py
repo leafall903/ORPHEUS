@@ -678,6 +678,7 @@ class Mover:
         self.external_impulse = False
         self.velocity_changes = []
         self.wall_contact = None
+        self.horizontal_driven = False
         self.driven = False  # the previous pose used a statescript world-target velocity
         self.yaw = int(yaw)
         self.pitch = 0  # the aim pitch (state +66), held to +-89 degrees
@@ -924,6 +925,7 @@ class Mover:
     def step_pose(
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
+        horizontal_drive: tuple[float, float] | None = None,
         movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
         fall_limit: float | None = None,
         speed_scale: float = 1.0,
@@ -935,9 +937,10 @@ class Mover:
         """Run one posed frame. A world-target move reports arrival (True) or blocking (False)."""
         if move_to is not None and move_to[1] * seconds < STEP:
             move_to = None  # no fractional world-target progress is kept between poses
-        if self.driven and move_to is None and not world_driven:
-            self.velocity = (0.0, 0.0, 0.0)
-        self.driven = world_driven or move_to is not None
+        if self.driven and move_to is None and horizontal_drive is None and not world_driven:
+            self.velocity = (0.0, self.velocity[1] if self.horizontal_driven else 0.0, 0.0)
+        self.driven = world_driven or move_to is not None or horizontal_drive is not None
+        self.horizontal_driven = horizontal_drive is not None
         dt = seconds
         frame = command.frame
         active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
@@ -959,7 +962,7 @@ class Mover:
             return None
         right, right_byte = throttle_byte(command.right)
         forward, forward_byte = throttle_byte(command.forward)
-        jump = move_to is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
+        jump = move_to is None and horizontal_drive is None and intent(active, JUMP_INTENT, 1.0 if command.buttons & JUMP else 0.0) > 0.5
         crouch = bool(command.buttons & CROUCH)
         flying = flight_scale is not None and move_to is None
         rise = jump
@@ -1014,9 +1017,12 @@ class Mover:
             angle = self.yaw * TURN
             axes = (math.sin(angle), math.cos(angle))  # forward (x, z); right is (-cos, sin)
             if not wall_velocity:
-                self._friction(dt, horizontal, vy, grounded)
-                self._accelerate(dt, right, forward, axes, grounded)
-                self._cap(horizontal, axes)
+                if horizontal_drive is None:
+                    self._friction(dt, horizontal, vy, grounded)
+                    self._accelerate(dt, right, forward, axes, grounded)
+                    self._cap(horizontal, axes)
+                else:
+                    self.velocity = (horizontal_drive[0], vy, horizontal_drive[1])
                 if not grounded:
                     vx, vy, vz = self.velocity
                     self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)

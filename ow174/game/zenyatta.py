@@ -112,7 +112,7 @@ class Zenyatta:
 
     def ultimate_state(self, player):
         script = getattr(player, "body_script", None)
-        if script is None or getattr(player.hero, "guid", None) != HERO:
+        if script is None or getattr(getattr(player, "hero", None), "guid", None) != HERO:
             return None
         return next((state for instance in script.component.instances.values()
                      if instance.graph.index == 0x017B and (state := instance.states.get(3)) is not None

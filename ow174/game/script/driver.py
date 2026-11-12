@@ -378,6 +378,31 @@ class BodyWorld(runtime.World):
             return body_owner.Target(entity, None)
         return None
 
+    def chase_clock(self, state):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0109 and state.node.pos == 25
+                and state.instance.component.entity == self.body):
+            return self.match.combat.tick * 16
+        return NotImplemented
+
+    def external_wait(self, state):
+        return (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0B8B and state.node.pos == 3
+                and state.instance.component.entity == self.body)
+
+    def compatibility_elapsed_condition(self, instance, node):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not instance.component.strict and instance.graph.index == 0x010A
+                and node.pos in (13, 64)):
+            flight = self.match.combat.winston_jump.flights.get(self.body)
+            if flight is not None and flight[0] is instance:
+                # The delivered collision host owns this flight's end. Do not
+                # also retire its movement modifiers on the narrower timer.
+                return False
+        return NotImplemented
+
     def linked_tracked_targets(self, state):
         if (self.match is not None and self.hero == 0x02E000000000012F
                 and not state.instance.component.strict
@@ -862,6 +887,25 @@ class BodyWorld(runtime.World):
                 player = next((p for p in self.match.players if p.has_body and p.spawned and not p.gone
                                and p.body == self.body and p.hero.guid == self.hero), None)
                 return Entity(player.entity) if player is not None else None
+
+        if (self.hero == 0x02E0000000000007 and self.match is not None and instance is not None
+                and instance.graph.index == 0x48
+                and cfg.get("$") in ("STU_71A87E92", "STU_021D01CD", "STU_C8C4C20D", "STU_66F3B89E", "STU_2200A66D")
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                cls = cfg.get("$")
+                yaw = player.mover.yaw * math.tau / 65536
+                if cls == "STU_71A87E92":
+                    return Vec3(*player.mover.position)
+                if cls == "STU_021D01CD":
+                    return Vec3(math.sin(yaw), 0., math.cos(yaw))
+                if cls == "STU_C8C4C20D":
+                    return player.mover.yaw * 360. / 65536
+                if cls == "STU_66F3B89E":
+                    return Vec3(math.cos(yaw), 0., -math.sin(yaw))
+                from ow174.game.combat import aim
+                return Vec3(*aim(player.mover.yaw, player.mover.pitch))
 
         if (cfg.get("$") == "STU_021D01CD" and self.hero == 0x02E000000000012F
                 and self.match is not None and instance is not None):
@@ -1936,7 +1980,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.world_frame_anchor: tuple[int, int] | None = None
-        if hero == 0x02E0000000000002 and match is not None:
+        if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
                                                0x02E0000000000005):
@@ -1945,6 +1989,9 @@ class BodyScript(ReplicatedBody):
         self.passive_charge_ms = 0
         self.reaper_charge_ms = 0
         self.reaper_charge_tick = match.tick if hero == 0x02E0000000000002 and match is not None else None
+        self.winston_charge_ms = 0
+        self.winston_charge_tick = match.tick if hero == 0x02E0000000000009 and match is not None else None
+        self.winston_primal_clock = None
         self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
@@ -2090,7 +2137,12 @@ class BodyScript(ReplicatedBody):
             self.component.set(2070, bool(forward or right))
         from ow174.game import tracer
 
-        self._run(frame, tracer.filter_edges(self.world, button_edges(self.buttons, buttons, action)))
+        previous, current = self.buttons, buttons
+        if self.hero == 0x02E0000000000007 and self.world.match is not None:
+            # Delivered alias policy: merge physical controls before finding edges.
+            previous |= bool(previous & 0x800)
+            current |= bool(current & 0x800)
+        self._run(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
@@ -2371,6 +2423,11 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E0000000000009:
+            from ow174.game import winston
+
+            winston.charge_passive(self, self.component.frame_ms if self.world.match is None else 0)
+            return
         if self.hero == 0x02E0000000000005:
             from ow174.game import hanzo_charge, hanzo_control
 

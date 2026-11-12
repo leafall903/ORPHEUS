@@ -68,7 +68,7 @@ from ow174.game import (
     zarya_barriers,
 )
 from ow174.game.script import fold, scopes, support_effects
-from ow174.game import doomfist, meteor, knockback, lucio, sombra_control, sound_barrier
+from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -125,7 +125,7 @@ FIELDS = {
                   "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
-    Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
+    Player: _names("overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script controlled_mech body_script_failed genji_mobility seen shown script mode_script "
                    "next_countdown select_open controller_hero "
@@ -133,15 +133,17 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
-        "punch_impacts punches slams meteors projected_barriers projected_casts sigma_barriers charge_contacts "
+        "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     doomfist.Punches: _names("combat dashes impacts controls"),
     doomfist.Slams: _names("combat casts"),
+    winston.JumpPack: _names("combat seen flights"),
+    winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
@@ -162,7 +164,7 @@ FIELDS = {
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
-        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
+        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
@@ -215,7 +217,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick ult_gain_bonus ultimates reports report_count self_healing support_healing "
+        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick winston_charge_ms winston_charge_tick winston_primal_clock ult_gain_bonus ultimates reports report_count self_healing support_healing "
         "self_repairs control_windows sleep_windows frost_windows"
     ),
     driver.BodyWorld: _names("hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
@@ -286,7 +288,7 @@ DATACLASSES = (
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
     npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
-    combat.TemporaryArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,
     brigitte.BashStun,

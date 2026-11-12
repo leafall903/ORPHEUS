@@ -15,6 +15,52 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B12 surfaces986eb818 submitted. B13 restores source Charge horizontal drive
+  and30deg/s steering within the existing charges records and sameMover. New
+  dataclass fields append heading/activation; no positional contract changes.
+  Mover.horizontal_driven is registered in stored physics so vertical release
+  behavior is captured. Original live-target helper is restored for source
+  owner contact lookup. Source input observers read actual existingrecords.
+- Original ChargeMovement7 plus mover/physics-snapshot/runtime/input/epoch98:
+  all105 pass. Logworker-b-reinhardt-charge-drive-second.log. The source armor
+  bypass test setup maps to armour_scalar1.0, preserving identical target health
+  and all assertions. Existing capture/contact remains; still integrate source
+  generation-aware captures/bumps/counter-charge and world-object contacts.
+
+
+- B11 Hammer batch4e383151 submitted. B12 mounts source stateless full capsule
+  surface queries through current actor managers, source shell overlap and
+  Ice Wall/Supercharger contact consumers. No surface/pool driver is added.
+  Shared API reinhardt_hammer.surfaces(fight,player,volumes,amount,seen) accepts
+  (a,b,radius) volumes and records ("surface",actual_actor_entity); Brigitte's
+  old owner-only face adds replacement generation. C15 shared sphere contacted
+  keys remain actual actor ints in an independent caller set.
+- Original shield-only/body-bypass/reused-ID/IceWall/nativeWinston shell five
+  checks all pass. Full Segment/Hammer25+shared33 ran58, retaining2 flank-Bash
+  damage subfailures and13 legacy observer/uninitialized shield errors.
+  The actual Brigitte held-secondary scene leaves oldbrigitte.barriers empty;
+  never fake that shield or mark the source feature covered by a name adapter.
+- Zen ultimate_state now admits absent hero metadata safely for Deployable
+  targets. This fixes an actual Hammer area exception before pillar damage.
+  Logs:worker-b-reinhardt-surfaces-fifth.log,worker-b-reinhardt-winston-shell.log,
+  worker-b-reinhardt-surface-shared.log. Source original checks remain intact.
+- Torbjorn's future production actor is bots.Bot owned byC, with combat_geometry;
+  the ordinary Hammer body loop already includes it. Do not mount the old
+  torbjorn_turret.Turrets prototype or add another damage/health route.
+
+
+- B10 idle bubble batch00f8133a submitted; synchronized canonical25e8154a
+  with local mergecc899e53. Never send that local synchronization merge for
+  cherry-pick; send each independent implementation commit.
+-0007 Hammer batch mounts the delivered active0048 queries and body-generation
+  hit records, original alternating ring basis/impulse and physical-key alias.
+  Source Segment/Hammer25 retained: core scenarios pass; two flank-Bash damage
+  assertions500 versus497.5 and13 legacy observation subcase errors remain.
+  Active real-server hammer stored snapshot passes repeatability, getter-free
+  capture and hit-contact causality. Shared runtime/commands/epoch33 all pass. Surface/object/turret interactions,
+  Charge and Earthshatter still need source integration; do not call0007 done.
+
+
 - `feat: integrate delivered Doomfist Rocket Punch host`: mounts the original
   owner Punches controller, charge/release contact, swept movement, control,
   wall bonus, authoritative impulse and passive-shield award consumer. The
@@ -95,6 +141,65 @@ alone is not evidence that a line's consumers are actually mounted.
   after this reflection change. The baseline uses HEAD's exact _sweep_rocket
   function in process, preserving the WIP tree. Evidence is retained outside
   Git at worker-b-reflection-shared.log and its -baseline counterpart.
+- Defense batch `6f7ef665` submitted. Synchronized canonical NPC-control modes
+  `9cad40e8` in local merge `b8f98009`; use its mounted melee/charge paths rather
+  than implementing a second NPC driver. Earlier missing-mode observation was
+  from the older728e6abe tree, not the current canonical implementation.
+- Winston delivery0009: retain the complete original winston.py and mount
+  Primal's health transform, explicit world-clock lifetime, source passive
+  cadence, target/tag damage charge and body retirement. Preserve the existing
+  Tesla prototype code but stop routing it alongside the deduplicated original
+  Tesla path; the two had charged/damaged the same command twice.
+- Original source fixture is test_delivered_winston.py; existing canonical
+  test_game_winston.py is preserved unchanged. Source charge27 plus canonical
+  Tesla12/runtime13 run52 checks:49 pass. Remaining cases are unmounted Jump
+  Pack's1 launch damage, old barriers.actors observation and the DVa pilot
+  profile/controlled-mech interlock. Explicit DVa graph/mover supplements allow
+  both source definitions to spawn; lazy vitals observation is adapted, but the
+  pilot profile still expects .96 loss where current controlled-mech admission
+  leaves that player pool unchanged. Do not bypass the actual DVa lifecycle.
+- Focused DVa/cadence snapshot/modifier/Lucio28 checks:27 pass, only that DVa
+  profile check fails. Active Primal enclosing-server getter-free capture and
+  cadence causality pass (fixture charge setup, not natural-charge evidence).
+  Register the active VoiceSetOverride class; retain all owner cadence fields
+  in both body-VM and enclosing-server snapshots.
+- Winston clocks batch `e67d0d8a` submitted (canonical `bbd9d3da`). JumpPack and
+  PrimalPunches now mount launch/landing, hit, impulse, windup, control/death and
+  retirement consumers. Source bubble queries/damage read through existing
+  WorldBubbles actors; no second actor/pool controller is installed.
+- Retain authored flight movement modifiers under the delivered collision
+  host's lifetime rather than a competing compatibility elapsed timer. Native
+  strict/default routes stay unchanged. Source idle reload and accepted-frame
+  horizon are mounted; horizon is optional in CommandQueue and selected only
+  for Winston bodies. Future inputs cannot poison that queue's accepted state.
+- Source Tesla now blocks/damages current bubble shells and ice walls, and uses
+  its authored .8 beam armor factor with correct overflow. Other beam callers
+  keep their previous default factor. Quick melee uses the existing additive
+  impulse service, as do Primal strikes and Jump impacts.
+- Original delivered Tesla/Jump/health35+Primal18, canonical Tesla12/runtime13:
+  all78 pass. Original command/epoch16 also pass. Source charge27 now has26
+  successes and only the retained controlled-DVa-pilot interlock failure.
+  Active JumpPack enclosing-server getter-free repeatability/controller
+  causality passes. Moira beam10 retains two subcase errors reading the older
+  absent cryo_actors API; its other behavior assertions pass.
+- Jump/Primal batch `57e7dfe9` submitted. Source pending_release now schedules
+  idle bubble creation/hosting at its original release frame inside retained
+  combat replay. WorldBubbles lifetimes advance in that same chronological
+  loop, and Winston's Chase clock uses the current combat replay tick.
+- Mount the existing WorldBubbles.melee surface-damage consumer alongside its
+  existing body-bypass policy, retaining source simultaneous body/shell contact.
+  Source barrier28 plus Primal18:44 of46 pass. Retain the two original failures:
+  native f32 point1.10000002384 versus Python1.1 exact tuple, and health699.039978
+  versus699.04 at seven places. Do not downgrade native precision or relax them.
+- Real-path idle release probe verifies accepted+3 birth,700 health, stable
+  identity/no replay and nine-second expiry. Combined Bubble+Primal/700 silent
+  ticks additionally verifies both expire and exactly5 post-Primal points with
+ 200ms phase. Three original Primal/sparse-clock checks pass. Ana's old bubble
+  suite reports its absent winston_bubbles observation API; Tracer's import
+  still needs root's later TAGS_PATH public-alias batch in this worktree.
+- For0007 preserve separate input contracts: barrier.py consumes verified raw
+  model via ORPHEUS_REINHARDT_BARRIER_MODEL; reinhardt_barrier.py consumes its
+  JSON schema via ORPHEUS_REINHARDT_COLLISION. Never interchange descriptors.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -106,11 +211,17 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Audit remaining Doomfist barrier/NPC source services against mounted
-   canonical equivalents. Preserve original checks and source docs; report
-   actual missing consumers separately from renamed helper APIs.
-2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
-   Uppercut or Meteor as a complete Doomfist line.
+1. Submit B13 drive batch, then continue0007 source full Charge contacts and
+   Earthshatter. Source charge_drive/blocked/contact step live in original
+   combat.py around812-1388 and match._step_body_pose around365-411. Preserve
+   a single driver while migrating these consumers. Continue source
+   full Charge and Earthshatter. Reconcile original observations with the actual
+   native services; do not install competing shield or movement controllers.
+   Continue
+   Winston cross-hero status/NPC equivalence audit, then advance remaining tank
+   owners; no duplicate bubble/impulse controller and no naming-only completion.
+2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
+   controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
    actual original source checks. Do not replace shared files wholesale.
 4. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
