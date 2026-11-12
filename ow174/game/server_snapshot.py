@@ -124,9 +124,10 @@ def _names(text):
 
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
-from ow174.game.script import distance_constraints
+from ow174.game.script import distance_constraints, possession_requests
 
 FIELDS = {
+    possession_requests.Registry: _names("inputs accepted_selections _requests _selections"),
     distance_constraints.Registry: _names("_entries _sequence"),
     NpcContext: _names("body controller definition body_component controller_component position retired target_entity target_host"),
     PinEffectServices: _names("registry messages"),
@@ -331,6 +332,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    possession_requests.Inputs, possession_requests.Selection, possession_requests.Request,
     distance_constraints.Entry,
     message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
     hook.Flight, whole_hog.Spec, whole_hog.Motion,

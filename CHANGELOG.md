@@ -12268,3 +12268,42 @@ Next exact action: possession originalScene binding+Inputs(owner,clock) and
 selectionacceptance on sameAIControlOverride, separatebatch, sourceclasshandler
 not replaced. Preserve currentcomponent86/AIControl default. Then final sibling
 positiveconsumer inventory, do not gate code on legacyexpectation differences.
+
+
+## B92 — mount original explicit possession request Scene backend
+
+Restore originalScene set_possession_requests/getter uniqueness guard and unbind
+clear, Worldunknown default and SCENE_WORLD_FIELDS possession_requests. Current
+sameAIControlOverride chooses this only for an actually supplied targetregistry;
+otherwise existingAI control/weapon producer remains. Originalowner/clock comes
+only from registry.inputs(state), validatedInputs and exactbindinglifetime;
+no body/world time guessed. Originalkind2/plain, kind1/f32pair, separateaccepted
+selection list, authoredpriority, rejectionABORT and cleanup/failure preserved.
+
+Actualstrict473549CA resolves Component86NumericPairState via STRICT_STATE_CLASSES,
+not generalAIControlOverride. Add same explicitbackend choice there while keeping
+its defaultcomponent86 consumer. No factory replacement/secondcontroller or
+simultaneous default+originalregistration for a state. Existinggeneralstate gains
+request_registration; strictNumericPair initializesregistry/request_registration.
+ExactInputs/Selection/Request/Registry and strictstate storage registered in both
+applicableexporters. Reviewedknown dict.get backend permits actualcausal storage;
+unknown arbitrarycallbacks remain strict (no broadcallable allowlist).
+
+OriginaltwoScene methods (floatpair/order, ownerclock/lifecycle/otherrequests)
+plusruntime15/15 pass1.634s, worker-b-possession-backend-corrected.log. ActualNPC-
+backedPhase2World threeoriginalGUIDs proved ownerclock1234/1235/1236, pair1.25/2.5,
+acceptedselection, no defaultAIrecords, strictVM causal requestorder mutation/
+restore and destroycleanup; worker-b-possession-storage-raw.log. Initial storage
+probe used expr.Entity/Asset objects inside syntheticgraphdefinition; strictcodec
+correctly rejectednonraw definition. Correctedprobe rawEntityReference fields,
+no serializer relaxation. Originalassertions unchanged, no clientrun.
+
+Extra originalcomponent86 suite preserves4errors in first joint (onewas4735missing
+branch fixedhere). RemainingCF8C/066B defaultfactory selectsAIControlOverride and
+dynamicpriority/weaponbinding expectations conflict with older explicit
+Scene.set_component86 tests. This is an actual oldexplicitbackend consumer gap,
+not merely a fieldname observation: retain sourceassertions and map exactdeclared
+component86 backend without replacing strongerdefault nextbatch. Root notified.
+This batch does not claim all oldcomponent86 APIs are fullyreached. Next exact
+action: map sameGUID declaredcomponent86 path/strictcurrentVectorState lifecycle,
+then final012F58/b6positiveinventory. Do not wait allmatrix/clientacceptance.
