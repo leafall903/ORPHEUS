@@ -2473,6 +2473,8 @@ class Combat:
             or (rocket.reflected and rocket.shot is None and not getattr(rocket, "pulse_bomb", False))
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
+                and not (getattr(player.hero, "guid", None) == 0x02E0000000000040
+                         and rocket.source_graph == 0x01C6)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
         ]
         self.frost_hits.pop(player.body, None)

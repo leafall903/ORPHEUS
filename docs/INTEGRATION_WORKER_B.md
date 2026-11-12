@@ -1448,3 +1448,31 @@ reentry consumer audit. Intermediate output now confirms fresh post-Q
 full/partial/empty magazine behavior passes; released projectile lifecycle
 expectations still fail and must be traced. WholeHog source external damping and
 world-only motion remain open; root owns Flux and A owns Zarya. No client run.
+
+
+## B56 — released Scrap Gun retirement and dead-source charge
+
+Retiring an actual Hog body now removes its source01C6 unleased logical pellets
+and expiry fragments alongside its leased parent; preserve the existing foreign
+reflected-round and other-owner retirement policies. Death alone still allows
+already released rounds to land and credit the original killing body. Add Hog to
+the existing dead-source charge guard, retaining source damage without awarding
+ultimate to a dead caster. No global charge/death policy changed.
+
+Original released primary/slug/fragments across death/switch/reentry + original
+lethal-shot/reentry and runtime13:16run with only three death-subcase failures at
+the FINAL fresh-respawn charge assertion (0.5973333120346069vs0). Earlier owner
+retirement, projectile death/landing, original killer and old dead-script charge0
+assertions now pass; switch/reentry cleanup also passes. This final difference
+is actual remaining prototype passive fill: fresh Hog defaults60seconds and gains
+one16ms2240/60 tick before the fixture observes the respawn. Original Hog uses
+natural0B8B cadence with defaultNone. Do not weaken the original zero assertion.
+Log worker-b-hog-retirement-restored.log29.108s; no client acceptance run.
+
+Next exact action: sync canonical6946e560 at this clean boundary, then original
+Hog charge/passive consumer. Preserve root's new actual Bot movement_data and
+same NPC mover/capsule/nav host; do not construct a parallel NPC mover. Charge
+source still includes authored combat expressions, natural cadence, victim-side
+01C7/node111 multiplier and source eligibility; these require real caller audit,
+not only getters. Source fullresource19-run prior baseline completed86.049s with
+seven lifecycle subfailures and two old force observer errors, now narrowed.

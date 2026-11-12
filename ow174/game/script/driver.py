@@ -2821,7 +2821,7 @@ class BodyScript(ReplicatedBody):
                 return 0.0
             points = ultimate.combat_points(self, points, kind, target_definition)
         if (self.retired or self.component.fault is not None
-                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
+                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A, 0x02E0000000000040) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
                 or self.ultimate_running()):
             return 0.0
