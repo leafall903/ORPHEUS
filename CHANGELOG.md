@@ -40,8 +40,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   by the extractor's own row code and added to the local map data. The player stood on the
   tracks of an Underground tunnel beside a train marked "KING'S ROW", and the defend box followed.
 - Open: which player gets which marker natively, what receives `0687.025` in Uprising's own
-  controller, whether the native picker also wants the spawn component, and the facing: the view
-  at the start faced the tunnel's side wall. Not checked: a second player, Junkenstein and
+  controller, whether the native picker also wants the spawn component, and the facing. The
+  server gives each body its marker's yaw and keeps it through the hero pick, yet the view at the
+  start faced the tunnel's side wall with the rails a quarter turn away, so the client's camera
+  may not take the spawn's yaw in this flow. Not checked: a second player, Junkenstein and
   Retribution with their rows, and the Story mode.
 
 #### A player's hitscan shotgun fires every pellet
