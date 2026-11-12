@@ -579,6 +579,27 @@ alone is not evidence that a line's consumers are actually mounted.
   Charge/Device pool respecting wall/team order. Remaining owner estimate16–36
   effective hours, uncertain Ball/Sigma/shared NPC/Brigitte. No acceptance wait.
 
+## B32 — Original Charge deployment collision and damage
+
+- Restore original Superchargers.charge_contact and Geometry.overlaps exactly
+  from frozen0007 implementation on the existing actual mesh and Device pool.
+  Tracker56 native localoffset/radius fallback0.5 and flag961 identify impact;
+  existing wall/static visibility retains cover and opponent filtering.
+- Write actual entity to original tracker output, drain authored phase, clear
+  output, stop existing Charge.007D node125 MODIFY_HEALTH consumes its original
+  amount175 against same Device pool and existing buff scale. No duplicate
+  movement driver, hardcoded damage substitute or Brigitte1408 takeover.
+- worker-b-charge-device-third.log:3/3 full original cases, enemy200->25 once,
+  states58.counter1/driveended/targets empty, untouched downstream body, allied
+  skip and static cover. worker-b-charge-device-regression.log:55/55 existing
+  Movement7+Contact21+Mutual10+runtime17. Original assertions unchanged.
+- Earlier first log31 had only known missing device175 before implementation;
+  second log missing sourceGeometry.overlaps exposed actual helper dependency,
+  restored exact original helper before successful third log.
+- NEXT clean sync accepted canonical, then actual Brigitte shield host and
+  remaining source surface histories; audit fuller owner consumers before
+  formal line completion. Keep Fusion numerical/source metadata gaps explicit.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue

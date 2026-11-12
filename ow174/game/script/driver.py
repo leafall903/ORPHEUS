@@ -824,6 +824,10 @@ class BodyWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
+        if self.match is not None and (state.instance.graph.index, state.node.pos) == (0x007D, 125):
+            from ow174.game import reinhardt_charge
+            return reinhardt_charge.deployable_impact(self.match.combat, state, elapsed_ms)
+
         if (self.match is not None and self.hero == 0x02E000000000012F
                 and not state.instance.component.strict
                 and (state.instance.graph.index, state.index) == (0x0DD8, 10)):
