@@ -60,6 +60,7 @@ class Wave:
     shields: set = field(default_factory=set)
     travelled: float = 0.0
     blocked: set = field(default_factory=set)
+    shield_poses: list = field(default_factory=list)
 
 
 def start(fight, player):
@@ -100,12 +101,11 @@ def start(fight, player):
 
 
 def hurt(fight, wave, target, definition):
-    vitals = fight.vitals_of(target)
-    before = vitals.total
-    fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
-                  world_tick=fight.tick, source_body=wave.state.instance.component.entity)
-    if not isinstance(target.owner, actors.Deployable) and not vitals.dead and vitals.total < before:
-        fight.stun(target, wave.stun_seconds)
+    accepted = fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
+                             world_tick=fight.tick, source_body=wave.state.instance.component.entity,
+                             hit_tags=definition.tags)
+    if accepted and not isinstance(target.owner, actors.Deployable):
+        fight.control(target, wave.state.instance.component.entity, "earthshatter", wave.stun_seconds)
 
 
 def _legacy_close_hit(fight, wave):
@@ -203,16 +203,20 @@ def _before_wall(point, clip):
     return sum((p - q) * n for p, q, n in zip(point, end, normal, strict=True)) < 0
 
 
+def _captured_trace(pose, origin, direction, length):
+    geometry, feet, yaw, pitch, radius, height, _ = pose
+    return reinhardt_barrier.intersect(geometry, feet, yaw, pitch, origin, direction, length,
+                                      owner_radius=radius, owner_height=height)
+
+
 def _shield_contact(fight, wave, origin, direction, length):
     contact = fight._barrier_contact(wave.shooter, origin, direction, length)
-    # Native held Reinhardt actors use the existing source collision descriptor,
-    # independently from the legacy raw00C barrier-model entry point.
-    for actor in fight.barriers.enemies(wave.shooter):
-        if not isinstance(actor, reinhardt_barrier.RaisedBarrier):
-            continue
-        distance = actor.trace(origin, direction, length)
+    # A shield broken by this wave retains its original blocking plane even
+    # for the not-yet-visited rays in the current step. No live actor clone.
+    for pose in wave.shield_poses:
+        distance = _captured_trace(pose, origin, direction, length)
         if distance is not None and (contact is None or distance < contact[0]):
-            contact = distance, actor.owner, actor
+            contact = distance, None, pose
     return contact
 
 
@@ -282,13 +286,20 @@ def advance(fight, wave):
         actor = None
         if shield is not None and (wall_clip is None or shield[0] < limit):
             at, owner, actor = shield
-            entity = actor if type(actor) is int else actor.entity if hasattr(actor, 'entity') else actor.body
-            source = getattr(actor, 'body', getattr(actor, 'owner_body', entity))
-            phase = actor.instance.states.get(17) if isinstance(actor, reinhardt_barrier.RaisedBarrier) else None
-            key = (entity, fight.replacement_ticks.get(source), phase.counter if phase is not None else None)
-            if key not in wave.shields:
-                fight._damage_contact_barrier(shield, wave.normal.amount, shooter=wave.shooter)
-                wave.shields.add(key)
+            if owner is not None:
+                entity = actor if type(actor) is int else actor.entity if hasattr(actor, 'entity') else actor.body
+                source = getattr(actor, 'body', getattr(actor, 'owner_body', entity))
+                phase = actor.instance.states.get(17) if isinstance(actor, reinhardt_barrier.RaisedBarrier) else None
+                key = (source, fight.replacement_ticks.get(source), phase.counter if phase is not None else None)
+                if key not in wave.shields:
+                    pose = None
+                    if isinstance(actor, reinhardt_barrier.RaisedBarrier):
+                        feet, yaw, pitch, owner_radius, height = actor.pose()
+                        pose = actor.geometry, tuple(feet), yaw, pitch, owner_radius, height, actor.entity
+                    fight._damage_contact_barrier(shield, wave.normal.amount, shooter=wave.shooter)
+                    wave.shields.add(key)
+                    if pose is not None and actor.health <= 0 and pose not in wave.shield_poses:
+                        wave.shield_poses.append(pose)
             current = tuple(start[k] + direction[k] * at - (.1 if k == 1 else 0) for k in range(3))
             wave.blocked.add(index)
         segments.append((previous, current, wall_clip, actor))
@@ -310,6 +321,8 @@ def advance(fight, wave):
                 direction = tuple(v / length for v in delta) if length else (0., 0., 0.)
                 if (isinstance(actor, reinhardt_barrier.RaisedBarrier)
                         and actor.trace(origin, direction, length) is not None):
+                    continue
+                if type(actor) is tuple and _captured_trace(actor, origin, direction, length) is not None:
                     continue
                 if _shield_contact(fight, wave, origin, direction, length) is not None:
                     continue

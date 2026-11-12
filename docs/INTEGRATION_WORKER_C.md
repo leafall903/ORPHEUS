@@ -603,3 +603,171 @@ No client execution, no pair/placement/admission implementation claimed.
 Next: original stateless placement_geometry/clock helpers and sourcePortalPair
 actor factory/confirm/interaction against existing NPC/actor pool; preserve
 canonical Photon barrier and DVa CallMech placement. No generic service overwrite.
+
+
+C24 SHA184e4d32 delivered. Root explicit profile now runtime-inputs-v5,
+.environment plus .test_environment (EXTRA only originalskip flag).
+
+## C25 original static placement checkpoint
+
+Source script/placement_geometry.py and symmetra_placement.py stateless math
+preserved. Append source Clock/Record/StaticResult/publication/history/Confirmation
+primitives to existing script/placement.py without replacing CallMech.Result/place.
+Original World provider protocols and source Placement base now exist; current
+PlacementPreview delegates only for actual Symm1571/69 and156B/57 when canonical
+Photon.geometry is absent. Configured Photon retains current whole placement
+path; no second wall manager. Original server forward-clock/disabled prediction
+history policy is explicit. Confirmation remains unknown until real owner accepts.
+Actual placement body/view axes and static null-parent transform route narrowly
+before typed native services. Initial15:14pass/axis-stack failure exposed missing
+poll_native on early answer; fix that dependency registration, final15pass2.691s.
+VM registry stores actual PlacementPreview.last_frame/latest_frame; actual active
+1571 preview export changes digest when latest_frame changes.
+
+Explicit root v5 environment +test_environment, no _data patch:
+python -B -m unittest test_symmetra_turrets test_symmetra_static_placement test_symmetra_placement_axes test_game_dva_placement test_symmetra_teleport_action -v
+46run45pass1skip36.499s; worker-c-symmetra-placement-v5-check.log. C23 original14
+now exercised on final additive v5 records rather than in-memory test composition.
+Original pure test_script_placement_geometry+history44pass0.004s.
+Original test_script_placement_results retained unchanged:6cases, sevenerrors
+across fivecases from existing strict map SummonerPlacement refusing FA02 state
+at construction; permissive provider-shape case/subcases execute. First combined
+67run10errors1skip before actual source base class renamed Placement; after
+proper source classname, strict boundary isolated to sevenerrors, no fakealias.
+Do not weaken strict map guard or original assertions for this check. Original
+strict generic Placement role still needs reconciliation with map placement;
+current server owner path is permissive and actually works. No new matrix.
+
+Next: original PortalPair/confirm/factory/interaction via existing NPC pool,
+with original actor inputs already supplied by v5. Preserve current strict map
+Summoner and configured Photon paths while completing these missing consumers.
+Source sentry retained phase/ice/projected-history boundaries remain above.
+
+
+C25 SHA433cd727 delivered; root will receive without strict-result gate.
+0065 Junkrat now assigned A; no workerC WIP existed there. A owns trap/tire/charge;
+Torb hammer trap consumer will coordinate actual manager API with A, no duplicate.
+
+## C26 original PortalPair checkpoint
+
+Original symmetra_portals.Portals factory/confirm/ready/interaction/dismiss/
+retirement/lifecycle mounted as Combat.portals.272D/26F2 endpoints are real NPCs
+with existing Vitals/health scripts/replication,50HP+250SHIELD, actual1.5m/.5m
+geometry. No prototype Portals manager created under alternate health views.
+Source MovementOverlay and pillar triangles are local temporary exit probes over
+immutable map engine; _body_at preserves current mover stance/lift/category and
+canonical peer_mask. Never replace shared mover, collision world or NPC/nav.
+Player._advance_body_frame narrow sourcepressed bridge dismisses before body
+command, interacts after it before combat consumes reports: actual same-frame
+held beam/orb and hit discontinuity tests pass. Existing drivers remain intact.
+Original samehero death retention/switch/leave cleanup, own/ally/range/static
+LOS, blocked exits, current crouch, lockout, actualdamage/cooldown all connected.
+
+First attempts exposed npc->navigation->Combat.Target import cycle (defer npc
+imports inside actual factory/retire) and original fixture missing Winston
+HERO/DEFINITION constants. Restore those actual0009/01C3 metadata only; B approved,
+no Winston manager/behavior change. Full29 first run41.751s:
+- Cancel-preview reentry failed because original source Anim.portal_cancel1571/30
+  finish branch missing. Mount only nonstrict match-owned branch, original generic
+  and strict flag paths retained; originalcancel now passes1.306s.
+- Eight errors across sixcases still read old ice_wall/zarya_barriers/
+  winston_barriers observation names; do not invent runtime manager aliases.
+- Cryo termination onefail and projected bubble target three failing subcases
+  remain original cross-owner differences; no changed literal/assertion.
+Final21 owner cases (exclude exactly those8 cross-owner cases) allpass33.697s,
+worker-c-symmetra-pair-owner-final-check.log. Corecancel fix not full29 rerun.
+Original test_symmetra_portals.py remains byte-identical. Shared exact command:
+python -B -m unittest test_script_animation_timing test_game_npc test_game_combat.DamageTests test_symmetra_teleport_action -v
+27run26pass1generic Anim.client_playback flag failure4.057s. The preexisting
+Anim suppress expression combines154DBA91/2DEAE6A9; C26 only ORs source1571/30
+match role which that generic fixture does not enter. Do not claim that check
+passed or alter its assertion; broader native flag reconciliation remains.
+
+Actual controlled storage probe with v5 (not _data patch):
+ServerSnapshotTests.scene(two=True), peers[1].message(21616,pick(owner.entity,
+symmetra.HERO),now=100.8); for buttons16,0,1,0 use
+peers[1].commands(owner.body_script.frame+1,4,button). Actualpair count1;
+ready_at+=.016 changes serverdigest; actualendpoint Vitals.now[2]-=5 independently
+changes it again. Export is passive; no original client or full journal gate.
+
+Remaining worker low-confidence16–32 active hours: Symm retained/strict role/
+cross-owner3–7h, Mei2–5h, Sombra1–3h, Ashe6–12h, Pharah impact-cover/Bastion
+interlock/conflict closure4–5h. These overlap ranges and are not a calendar promise;
+0065 now A. Next actual batch: current-owner fixture references can be adapted
+without changing literal assertions, then original Mei modules/Blizzard and
+Sombra/Ashe missing consumers. Do not linger on every private observer before
+mounting actual missing code. Preserve all boundaries above and no new matrix.
+
+C26 SHA152ea32d delivered. Clean sync rootb3ca1ee2 keeps all A/B/root consumers, source filter/wave/control lifetimes and C21–25 receiver variants. Only CHANGELOG conflict; preserve both. C27 now Mei source pool/status/Blizzard, not Junkrat (A owns0065).
+
+
+C26 SHA152ea32d received root e8adaf8a. Clean sync7001fe89 from rootb3ca1ee2
+retains A/B lifetime/source changes; root current v6 adds original Lucio status
+bundle plus real5NPC test data, external asset hashes unchanged.
+
+## C27 Mei original resource/charge checkpoint
+
+Source mei.py is now present and actual mei.command_edges/permissive_state_enter
+consumers run in the owning body VM. Automatic reload uses original ammo/timers;
+low-ammo icicle waits for actual reload; existingwindup/cryo/freeze guards stay.
+Its source sombra_hack.mei_command_edges consumer is adapted to the sole current
+sombra_controls.locks (release/block original35/36/37/110/114/116 buttons, cancel
+preview/ultimates). No duplicate Hack/EMP manager. Source05FE state41 callback
+finishes only in permissive mode; original generic/strict conditional timers
+remain intact. Existing barriers.cryo_heal is sole pool mutator: actual original
+full-duration200/self-only case passes; do not add another healing driver.
+
+Source mei_ultimate.py87lines mounted: default322seconds=5points/s, original
+253C/32DE/3276 generation composition,32E0 spawn-ready,253A stop/block Q, actual
+damage/self-healing grants (D5 excluded), no generic double award. Samehero
+combat respawn preserves actual charge unless spawn-ready takes precedence;
+hero selection still resets. No new fields or second ultimate timer.
+
+Source Walls.place_player uses existing place_mover then replaces current mover
+history pose. Actualplayer pillar deployment now calls it; NPC branch unchanged.
+Actual real pillar probe (deliveredMeiCombat.duel, flat_world0, both actual movers
+at0, step_pose current Command; walls.create one actualpillar) raises enemy and
+keeps its same-frame history.position equal physical/mover position; body Y is
+feetY+lift. This is an actual mutation helper, not an observer alias.
+
+Validation chronology/boundaries:
+- Original delivered combat29 and Cryo14 retained. First43run96.407s:5fail19error,
+  chiefly missing source place_player/frost/cryo_samples protocols. No asserts
+  edited. Original canonical tests/test_mei_combat.py retained separately; new
+  test_delivered_mei_combat.py is frozen00DD source byte-identical. Cryo14 differs
+  only its fixture import name to use that original delivered file.
+- After place_player, selected12Cryo (exclude sampled-history and held-secondary
+  cases) plus three original reload cases =15run67.076s:13pass, onecase4 suberrors
+  still expecting fight.frost, oneactual in-flight icicle hit_entities difference.
+  Log worker-c-mei-resource-final-check.log. Do not call the whole group passing.
+- Source ultimate check file copied byte-identically. Its unused Blizzard/
+  shield/deflect fixture imports still need later modules, so execute untouched
+  UltimateTests class AST with real globals fixtures=test_delivered_mei_combat,
+  cryo=test_mei_cryo, combat/mei_ultimate/rulesets/Content, unittest, patch, replace.
+  No fake fixture/module/return, no assertion AST changes.13 exact source methods
+  allpass11.140s, worker-c-mei-charge-core-check.log:
+  default_passive_rate_fills_points_and_caps_at_authored_cost;
+  actual_weapons_credit_effective_enemy_damage;
+  overkill_and_dead_target_cannot_duplicate_damage_credit;
+  allied_hits_and_misses_give_no_credit;
+  actual_cryo_credits_only_effective_healing_and_not_overheal;
+  death_stops_passive_respawn_retains_charge_and_hero_change_resets;
+  combat_generation_zero_disables_damage_and_effective_cryo_income;
+  fractional_combat_composition_and_entity_override_of_mode_default;
+  passive_zero_preserves_combat_income;
+  overall_and_passive_scalars_compose_and_can_change_live;
+  resource_minimum_and_maximum_combat_scalars_respect_cost_cap;
+  spawn_ready_wins_over_retained_charge_on_combat_respawn;
+  enabling_spawn_ready_on_living_body_does_not_refill. Prefix each with test_.
+  This is not a claim the whole raw ultimate module imported or all31 ran.
+- Existing test_mei_combat +DamageTests20pass; two Ana wall lift/occupied cases
+  stop at old fight.ice_wall observer name (22run20pass2error8.889s). Keep source
+  assertions; actual lift/pose mutation separately proved above.
+
+Mei module remaining: CryoHealing sampled historical status consumer, original
+frost_view/hit and multi-source/stacking settings, full Blizzard, held secondary
+exit, projectile range/synthetic falloff and wall-windup differences. Source
+mei_frost not yet mounted. Do not count helper class presence as its consumer.
+Next C28: original multi-source frost in the current Frost host, preserving
+current player/NPC/control consumers and one aggregate; then Blizzard original
+flights/area. Sombra/Ashe and0008/Bastion remaining boundaries still persist.

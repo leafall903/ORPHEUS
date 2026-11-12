@@ -23,6 +23,87 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
   checks; missing grenade physics/clock fields reproduced before integration.
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
+
+### Restore delivered Fire Strike wide collision and native shield contacts
+
+- Mount original0007's static MOVER sphere sweep on the existing penetrating
+  flight path. A wide projectile now stops before the wall even at a ray endpoint.
+- Include actual RaisedBarrier pools in existing Fire Strike contact collection,
+  deduplicate owner/body generation and activation, resolve travel order with
+  shield-before-body ties, and skip a carried shield after an earlier lethal
+  body hit. Retain legacy contacts when no actual native actor owns that body.
+- All37 original focused wall/extent/multiple shields/later raise/reused body,
+  Hammer+Strike and runtime checks pass. Full original Barrier/Strike46 retains
+  11subfail6errors (previous17/9), including actual shield lifecycle/pool input,
+  explosion/Brigitte and frozen-team interface work; preserve all expectations.
+- Main1399 assertions retain original counts/order/Constants. Client acceptance
+  remains open. Long B21 snapshot69 finished with3fail8errors3skip, recorded.
+
+### Restore independent Earthshatter control lifetimes
+
+- Mount source0007's actual(victim, source, kind) hard-control clocks on existing
+  input, movement pause and interruption consumers. Earthshatter writes this
+  authoritative ledger instead of a second stuns deadline; independent sources
+  expire independently, caster departure preserves existing knockdown, and
+  victim death/replacement/retirement clears only that victim's records.
+- Pass existing HitDef damage tags. Restore original Charge admission: ordinary
+  knockdown does not forbid capture; existing captures and immunity do. Preserve
+  Punch, Brigitte, NPC and other native control owners.
+- All62 original Shatter31, ChargeContact21, Passive9 and causal snapshot checks
+  pass, including owner departure/team changes and pin outlasting knockdown.
+  Actual nonempty control probe verifies input/movement gating, no duplicate
+  stuns write, repeatable passive capture and causal deadline sensitivity.
+- Main original1399 assertions and expectations remain; client acceptance open.
+### Connect original Mei input resources and ultimate settings
+
+- Mount original Mei05FE entry completion, automatic real reload/low-ammo
+  icicle admission and Hack/EMP edge interlocks using existing control locks.
+  Keep existing authoritative Cryo health handling as the sole healer.
+- Connect source ultimate default5 points/s, generation settings, spawn-ready
+  precedence,253A input gate, effective damage/self-healing credit and same-hero
+  respawn retention. Exclude generic duplicate damage awards and Blizzard credit.
+- Source player placement synchronizes physical/stored pose and now runs for
+  actual ice-pillar player lifts; retain the existing NPC lift driver.
+- Original13 selected charge methods pass11.140s with their unchanged class AST
+  and real mounted fixtures. Selected Cryo/reload15:13 pass, four frost observer
+  errors in one case and one in-flight hit-set difference. Existing Mei/Damage
+  20 pass; two old ice_wall observer cases error. Actual pillar lift/pose probe
+  passes. Full original checks and known failures retained; Frost aggregation,
+  Blizzard and sampled Cryo history remain unfinished. Client acceptance unrun.
+
+### Connect original Symmetra portal pair lifecycle
+
+- Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with
+  existing health/replication/retirement; input edges dismiss/interact through
+  original eligibility, ready time, transit cooldown and1647 relocation.
+- Probe the exit using current capsule stance/peer mask and original temporary
+  pillar movement overlay over the immutable base world. Preserve current body
+  drivers, exact cleanup and configured Photon placement; no duplicate pool.
+- Restore source1571/30 cancel-animation finish only for its permissive match
+  owner. Preserve generic animation flags and strict behavior. Keep the original
+  Winston hero/body metadata constants, coordinated with the Winston owner.
+- Final21 original portal owner cases pass33.697s. First full29 run retains
+  eight old-owner observation errors and Cryo/projected-barrier differences;
+  assertions stay unchanged. Shared27:26 pass/one retained generic Anim flag
+  failure outside this batch's graph scope. Controlled real server input creates
+  the pair; endpoint shields and ready time independently change stored digest.
+  Full cross-owner behavior and client acceptance remain unfinished.
 
 ### Restore both CombatModFilter consumers through one state registration
 
@@ -84,6 +165,40 @@ This log records tested changes and their acceptance status. Entries are grouped
   Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
 
 ### Record worker A seven-owner reconciliation boundaries
+### Restore independent Earthshatter control lifetimes
+
+- Mount source0007's actual(victim, source, kind) hard-control clocks on existing
+  input, movement pause and interruption consumers. Earthshatter writes this
+  authoritative ledger instead of a second stuns deadline; independent sources
+  expire independently, caster departure preserves existing knockdown, and
+  victim death/replacement/retirement clears only that victim's records.
+- Pass existing HitDef damage tags. Restore original Charge admission: ordinary
+  knockdown does not forbid capture; existing captures and immunity do. Preserve
+  Punch, Brigitte, NPC and other native control owners.
+- All62 original Shatter31, ChargeContact21, Passive9 and causal snapshot checks
+  pass, including owner departure/team changes and pin outlasting knockdown.
+  Actual nonempty control probe verifies input/movement gating, no duplicate
+  stuns write, repeatable passive capture and causal deadline sensitivity.
+- Main original1399 assertions and expectations remain; client acceptance open.
+
+### Unify actual raised-shield contacts and retain shattered planes
+
+- Add real RaisedBarrier.trace to existing shared contacts, preserving bubbles
+  policy/team filtering and preferring its actual native pool over the same
+  body's legacy prototype. Earthshatter delegates to this shared query and
+  retains only frozen geometry/pose for shields it breaks, protecting subsequent
+  rays without cloning actors/VMs. Use source owner/generation/activation keys.
+- Source fixture break input now targets actual authored Vitals; its old graph
+  getter reads the existing0095 instance. All original numerical expectations
+  remain unchanged (1399 main assertions, same order/count/Constants).
+- Three original Shatter shield cases plus causal snapshot pass; broader33
+  run has29 input skips. Explicit descriptor Echo8 retains two damage failures
+  reproduced with the previous shared contact implementation. Its actual raised
+  mesh snapshot now passes after registering only the two owned context callback
+  methods; original Possessor/retirement plus that capture pass9/9.
+- One original Shatter controls-key observation remains open. Original-client
+  acceptance remains open; no check or damage expectation was weakened.
+
 ### Restore delivered Earthshatter clipped ground and native shield contacts
 
 - Route the existing Wave through source0007's101-ray wall/terrain clipping,
@@ -223,6 +338,41 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
+### Connect original Symmetra portal pair lifecycle
+
+- Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with
+  existing health/replication/retirement; input edges dismiss/interact through
+  original eligibility, ready time, transit cooldown and1647 relocation.
+- Probe the exit using current capsule stance/peer mask and original temporary
+  pillar movement overlay over the immutable base world. Preserve current body
+  drivers, exact cleanup and configured Photon placement; no duplicate pool.
+- Restore source1571/30 cancel-animation finish only for its permissive match
+  owner. Preserve generic animation flags and strict behavior. Keep the original
+  Winston hero/body metadata constants, coordinated with the Winston owner.
+- Final21 original portal owner cases pass33.697s. First full29 run retains
+  eight old-owner observation errors and Cryo/projected-barrier differences;
+  assertions stay unchanged. Shared27:26 pass/one retained generic Anim flag
+  failure outside this batch's graph scope. Controlled real server input creates
+  the pair; endpoint shields and ready time independently change stored digest.
+  Full cross-owner behavior and client acceptance remain unfinished.
+
+### Mount original Symmetra static placement preview
+
+- Connect delivered projection/sampling/surface math, typed result publication,
+  forward clock/history policy and upright body/view-axis queries to actual
+  Symmetra preview states. Native dependencies poll so held preview follows yaw.
+- Retain canonical Photon placement when its geometry owner is configured and
+  existing DVa CallMech placement. Source preview alone does not synthesize a
+  confirmation owner or portal pair. Store the actual placement timing fields.
+- Original static/axis15 pass2.691s; original pure geometry/history44 pass.
+  Explicit prepared v5 sentry/preview/DVa/transit46 checks:45 pass/one skip in
+  36.499s. Active preview timing changes its real VM stored digest.
+- Original generic placement result checks retain seven strict fixture errors
+  in five cases because the existing map SummonerPlacement strict guard still
+  rejects their FA02 state at construction; permissive invalid-provider case
+  passes. Preserve guard/assertions and defer strict role reconciliation.
+  Portal confirmation/pairs and client acceptance remain unfinished.
+
 ### Mount delivered Symmetra transit action consumers
 
 - Connect original15F5 own-body PlayScript and1647 relocation to existing
@@ -8609,3 +8759,5 @@ mount original Trap cast/arm/status09BC/root consumers using the same actor/Vita
 and existing movement host, then Tire039C/control/climb/recovery and charge0B8B.
 Root owns input union and frozen-ref reconciliation. Remaining0065 integration
 estimate remains low confidence4-8 active worker hours, excluding root conflicts.
+
+A34 clean-boundary sync: absorbed submitted intake7e9de0af; resolved stored Combat fields by retaining both Junkrat and current controls. No code consumer removed. Continue original0065 Trap activation.

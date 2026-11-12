@@ -743,6 +743,10 @@ class BodyWorld(runtime.World):
             result = fight.barriers.world.create(self, instance, node)
             if result is not NotImplemented:
                 return result
+            if instance.graph.index == 0x1571:
+                result = fight.portals.factory(instance, node)
+                if result is not NotImplemented:
+                    return result
             portals = getattr(fight, "symmetra_portals", None)
             if portals is not None:
                 return portals.create(instance, node)
@@ -891,8 +895,7 @@ class BodyWorld(runtime.World):
             return NotImplemented  # NPC component43/controller ownership is not installed here.
         return None
 
-    @staticmethod
-    def _watch_possessor(watcher, target):
+    def _watch_possessor(self, watcher, target):
         # InstanceContext already records this config in native_dependency.
         # Match relation changes are polled at command boundaries; native
         # component43 callback allocation/phase order is not reconstructed.
@@ -953,6 +956,11 @@ class BodyWorld(runtime.World):
                 return value
 
         if instance is not None:
+            from ow174.game import symmetra_placement
+            for query in (symmetra.placement_direction_query, symmetra_placement.static_transform):
+                value = query(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
             value = symmetra.transit_position_query(self, cfg, instance)
             if value is not NotImplemented:
                 return value
@@ -1833,6 +1841,46 @@ class BodyWorld(runtime.World):
     def placement_probe(self, state):
         return self.match is not None and ice_wall.probe(self.match.combat, state)
 
+    def uses_delivered_placement(self, state):
+        if (self.hero != 0x02E0000000000016 or self.match is None
+                or (state.instance.graph.index, state.node.pos) not in ((0x156B, 57), (0x1571, 69))):
+            return False
+        return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
+
+    def confirm_placement(self, state):
+        if self.match is not None and state.instance.graph.index == 0x1571:
+            portals = getattr(self.match.combat, "portals", None)
+            if portals is not None:
+                return portals.confirm(self, state)
+        return NotImplemented
+
+    def placement_clock(self, state):
+        from ow174.game import symmetra
+        from ow174.game.script import placement
+
+        if (self.hero == symmetra.HERO and self.match is not None
+                and (state.instance.graph.index, state.node.pos) in ((0x156B, 57), (0x1571, 69))):
+            frame = state.instance.component.frame
+            # Explicit authoritative forward-server policy: one VM frame per
+            # update. Native render/prediction clock reconciliation is separate.
+            return placement.Clock(frame & 0xFFFFFFFF, frame, 1)
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        if self.placement_clock(state) is not NotImplemented:
+            return False  # This server has no admitted client placement history.
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        if self.placement_clock(state) is not NotImplemented:
+            return True  # Explicit forward-server policy: no admitted prediction storage.
+        return NotImplemented
+
+    def placement_geometry(self, state):
+        from ow174.game import symmetra_placement
+
+        return symmetra_placement.preview(self, state)
+
     def refresh_compatible_placement(self, state, *, confirm):
         from ow174.game import photon_barrier
 
@@ -2115,6 +2163,10 @@ class BodyScript(ReplicatedBody):
         self.world_frame_anchor: tuple[int, int] | None = None
         if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
+        if ult_seconds is None and hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            ult_seconds = mei_ultimate.DEFAULT_SECONDS
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
                                                0x02E0000000000005):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
@@ -2149,6 +2201,10 @@ class BodyScript(ReplicatedBody):
             raise
         if hero == 0x02E0000000000016 and match is not None:
             self.charge_clock = match.tick, self.component.now
+        if hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            mei_ultimate.initialize(self)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2285,8 +2341,10 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import symmetra_charge, torbjorn_charge
+        from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
 
+        if self.hero == mei.HERO:
+            edges = mei_ultimate.command_edges(self, mei.command_edges(self, edges))
         authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
         if authored_symmetra:
             symmetra_charge.sync(self)
@@ -2598,8 +2656,18 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
-        from ow174.game import torbjorn_charge
+        from ow174.game import mei, mei_ultimate, torbjorn_charge
 
+        if self.hero == mei.HERO:
+            if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):
+                return
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+            charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            if cost > 0 and charge < cost:
+                step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                step = f32(step * mei_ultimate.generation(self, passive=True))
+                self.set_ult_charge(min(cost, f32(charge + step)))
+            return
         if self.hero == torbjorn_charge.HERO and torbjorn_charge.enabled(self):
             if self.ult_seconds != torbjorn_charge.SANDBOX_SECONDS and self.ult_seconds > 0 and not self.ultimate_running():
                 cost = expr.to_float(self.component.entity_var(ULT_COST).value())

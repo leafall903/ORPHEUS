@@ -43,7 +43,7 @@ def pinned(fight, entity):
 def control_deadline(fight, entity):
     # Read the active canonical counter clocks; graph endpoints are inclusive.
     from ow174.game.defense_filters import last_countdown_world_tick
-    deadlines = [fight.stuns.get(entity, 0)]
+    deadlines = [fight.stuns.get(entity, 0), fight.source_control_deadline(entity)]
     if entity in fight.punches.controls:
         deadlines.append(math.ceil(fight.punches.controls[entity] / combat.TICK))
     for stun in fight.brigitte.stuns:
@@ -51,6 +51,20 @@ def control_deadline(fight, entity):
         if stun.instance.component.entity == entity and phase is not None and phase.active:
             deadlines.append(last_countdown_world_tick(phase) + 1)
     return max(deadlines)
+
+
+def reinhardt_barrier_instance(player):
+    return next(i for i in player.body_script.component.instances.values() if i.graph.index == 0x95)
+
+
+def set_reinhardt_shield_health(fight, body, amount):
+    actor = fight.barriers.authored_for(body)
+    if actor is None:
+        fight.reinhardt_barriers[body].current = amount
+    else:
+        # Fixture input targets the actual native shield pool, not its sync cache.
+        from ow174.game import barriers
+        barriers.damage(fight, actor, max(0., actor.vitals.total - amount))
 
 
 def any_controls(fight):
@@ -758,11 +772,11 @@ class FireStrikeTests(unittest.TestCase):
         self.advance(3, buttons=0)
         [shot] = self.match.combat.rockets
         self.assertEqual(shot.speed, 25)
-        self.assertAlmostEqual(shot.radius, 0.85)
+        self.assertAlmostEqual(shot.penetration_radius, 0.85)
         self.advance(55, buttons=0)
         self.assertEqual(self.health(self.enemy), 100)
         self.assertEqual(self.health(self.other), 100)
-        self.assertEqual(len(shot.hit_targets), 2)
+        self.assertEqual(len(shot.penetrated), 2)
         self.assertFalse(self.ability().flags & 1)
         self.assertGreater(self.ability().remaining(), 5.5)
 
@@ -918,7 +932,7 @@ class FireStrikeTests(unittest.TestCase):
                 self.advance(1, buttons=16)
                 self.advance(31, buttons=0)
                 [shot] = self.match.combat.rockets
-                self.assertFalse(shot.hit_targets)
+                self.assertFalse(shot.penetrated)
                 self.assertEqual(self.health(self.enemy), 200)
 
                 self.enemy.team = int(not front_starts_hostile)
@@ -3251,7 +3265,7 @@ class EarthshatterTests(unittest.TestCase):
         for _ in range(30):
             self.run.step(hold)
         shield = fight.reinhardt_barriers[self.enemy.body]
-        state = fight._barrier_instance(self.enemy).states[17]
+        state = reinhardt_barrier_instance(self.enemy).states[17]
         first_raise = state.counter
         self.fill()
         self.run.step({**hold, self.rein: (0, 0, 32)})
@@ -3550,7 +3564,7 @@ class EarthshatterTests(unittest.TestCase):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                 shield = self.match.combat.reinhardt_barriers[self.enemy.body]
                 if outcome == "break":
-                    shield.current = 30
+                    set_reinhardt_shield_health(self.match.combat, self.enemy.body, 30)
                 self.fill()
                 self.run.step({self.rein: (0, 0, 32), self.enemy: (-32768, 0, 2)})
                 for _ in range(60):
@@ -4170,7 +4184,7 @@ class TalonInteractionTests(unittest.TestCase):
             self.advance(32, buttons=0)
             [shot] = self.match.combat.rockets
             self.advance(260 if case == "range" else 16, buttons=0)
-            self.assertFalse(shot.hit_targets)
+            self.assertFalse(shot.penetrated)
             if case != "ally":
                 self.assertNotIn(shot, self.match.combat.rockets)
             if case == "range":
@@ -4364,7 +4378,7 @@ class BarrierTests(unittest.TestCase):
         self.fire()
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.shield().current, 1580)
-        instance = self.match.combat._barrier_instance(self.rein)
+        instance = reinhardt_barrier_instance(self.rein)
         self.assertEqual(instance.find_var(0, 586).value(), 1580)
         self.assertEqual(self.enemy.client.messages(combat.HIT), [])
 
@@ -4476,7 +4490,7 @@ class BarrierTests(unittest.TestCase):
         self.assertEqual(self.health(self.rein), 500)
 
     def test_terminal_shield_hit_breaks_and_cannot_be_recast_during_cooldown(self):
-        self.shield().current = 20  # pre-damaged resource fixture; terminal hit is an actual rifle input
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 20)  # pre-damaged resource fixture; terminal hit is an actual rifle input
         self.fire()
         shield = self.shield()
         self.assertEqual(shield.current, 0)
@@ -4507,7 +4521,7 @@ class BarrierTests(unittest.TestCase):
         self.advance(20, buttons=2)
         shield = self.shield()
         self.assertTrue(shield.active)
-        shield.current = 40
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 40)
 
         self.run.step({self.rein: (0, 0, 2), self.other: (-32768, 0, 16)})
         for _ in range(75):
@@ -4539,7 +4553,7 @@ class BarrierTests(unittest.TestCase):
     def test_retirement_removes_the_old_barrier_resource(self):
         old = self.rein.body
         self.match.switch_hero(self.rein, self.rein.hero)
-        self.assertNotIn(old, self.match.combat.barriers)
+        self.assertNotIn(old, self.match.combat.barriers.reinhardt.actors)
 
     def test_helix_direct_and_splash_damage_shield_once_without_harming_owner(self):
         self.fire(buttons=2)
@@ -4549,7 +4563,7 @@ class BarrierTests(unittest.TestCase):
         self.assertFalse(self.match.combat.rockets)
 
     def test_projectile_break_does_not_spill_same_explosion_through_the_shield(self):
-        self.shield().current = 1
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 1)
         self.fire(buttons=2)
         self.advance(25, buttons=2)
         self.assertEqual(self.health(self.rein), 500)
@@ -4578,7 +4592,7 @@ class BarrierTests(unittest.TestCase):
         self.fire((2.0, 2.0, -2.0))
         self.assertFalse(self.shield().active)
         self.assertEqual(self.health(self.other), 180)
-        self.assertFalse(self.match.combat._barrier_instance(self.rein).states[17].active)
+        self.assertFalse(reinhardt_barrier_instance(self.rein).states[17].active)
 
     def test_owner_leave_removes_live_barrier_before_next_rifle_hit(self):
         self.place(self.other, (0, 1, -2))
@@ -4591,12 +4605,12 @@ class BarrierTests(unittest.TestCase):
         self.match.leave(self.rein)
         self.run.players.remove(self.rein)
         self.assertEqual(fight.tick, tick)
-        self.assertNotIn(old, fight.barriers)
+        self.assertNotIn(old, fight.barriers.reinhardt.actors)
         for _ in range(15):
             self.run.step({})
         self.fire((0, 2, -2))
         self.assertEqual(self.health(self.other), 180)
-        self.assertNotIn(old, fight.barriers)
+        self.assertNotIn(old, fight.barriers.reinhardt.actors)
 
     def test_owner_death_retires_the_live_shield_even_while_input_is_held(self):
         fight = self.match.combat
@@ -4614,7 +4628,7 @@ class BarrierTests(unittest.TestCase):
         self.fire((2.0, 2.0, -2.0))
         self.assertFalse(self.shield().active)
         self.assertEqual(self.health(self.other), 180)
-        self.assertFalse(self.match.combat._barrier_instance(self.rein).states[17].active)
+        self.assertFalse(reinhardt_barrier_instance(self.rein).states[17].active)
 
     def test_quick_melee_damages_shield_and_owner_instead_of_being_blocked(self):
         self.place(self.enemy, (0.0, 1.0, 2.0))
@@ -4661,10 +4675,10 @@ class BarrierTests(unittest.TestCase):
                 break
         [shot] = fight.rockets
         body_distance = combat.ray_capsule(
-            shot.position, shot.direction, *target.segment(), target.radius + shot.radius,
+            shot.position, shot.direction, *target.segment(), target.radius + shot.penetration_radius,
         )
         shield_distance, owner, _ = fight._barrier_contact(
-            self.rein, shot.position, shot.direction, 20, shot.radius, team=shot.team,
+            self.rein, shot.position, shot.direction, 20, shot.penetration_radius, team=shot.team,
         )
         step = shot.speed * combat.TICK
         self.assertIs(owner, self.enemy)
@@ -4677,7 +4691,7 @@ class BarrierTests(unittest.TestCase):
         self.assertFalse(shield.active)
         self.assertEqual(shield.current, 1600)
         self.assertEqual(self.health(self.other), 100)
-        self.assertEqual({body for body, _ in shot.hit_targets}, {self.enemy.body, self.other.body})
+        self.assertEqual({body for body, _ in shot.penetrated}, {self.enemy.body, self.other.body})
 
     def fire_strike_first_barrier_hit(self):
         hero = heroes()[combat.REINHARDT]
@@ -4704,7 +4718,7 @@ class BarrierTests(unittest.TestCase):
         fight = self.match.combat
         hero = self.enemy.hero
         old_body = self.enemy.body
-        old_activation = fight._barrier_instance(self.enemy).states[17].counter
+        old_activation = reinhardt_barrier_instance(self.enemy).states[17].counter
 
         self.assertTrue(self.match.switch_hero(self.enemy, heroes()[SOLDIER]))
         self.assertNotEqual(self.enemy.body, old_body)
@@ -4717,7 +4731,7 @@ class BarrierTests(unittest.TestCase):
         new_barrier = self.shield(self.enemy)
         self.assertIsNot(new_barrier, old_barrier)
         self.assertTrue(new_barrier.active)
-        self.assertEqual(fight._barrier_instance(self.enemy).states[17].counter, old_activation)
+        self.assertEqual(reinhardt_barrier_instance(self.enemy).states[17].counter, old_activation)
         self.assertEqual(new_barrier.current, 1600)
         self.assertIn(shot, fight.rockets)
         for _ in range(65):
@@ -4729,7 +4743,7 @@ class BarrierTests(unittest.TestCase):
     def test_fire_strike_hits_a_later_raise_without_hitting_the_same_body_again(self):
         hold, shot, shield = self.fire_strike_first_barrier_hit()
         fight = self.match.combat
-        pet = fight._barrier_instance(self.enemy).states[17]
+        pet = reinhardt_barrier_instance(self.enemy).states[17]
         old_activation = pet.counter
         self.run.step({self.enemy: (-32768, 0, 0)})
         self.assertFalse(pet.active)

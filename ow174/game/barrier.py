@@ -91,15 +91,15 @@ class BarrierField:
         self.health.pop(body, None)
         self.children.pop(body, None)
 
-    def intersect(self, shooter, origin, direction, limit, *, include_endpoint=False):
-        return min(self.intersections(shooter, origin, direction, limit, include_endpoint=include_endpoint),
+    def intersect(self, shooter, origin, direction, limit, *, include_endpoint=False, team=None):
+        return min(self.intersections(shooter, origin, direction, limit, include_endpoint=include_endpoint, team=team),
                    key=lambda hit: hit[0], default=None)
 
-    def intersections(self, shooter, origin, direction, limit, *, include_endpoint=False):
+    def intersections(self, shooter, origin, direction, limit, *, include_endpoint=False, team=None):
         scene = mesh()
         if scene is None:
             return
-        for target in self.combat._enemies(shooter):
+        for target in self.combat._enemies(shooter, team=team):
             owner = target.owner
             if getattr(getattr(owner, "hero", None), "guid", None) != REINHARDT:
                 continue

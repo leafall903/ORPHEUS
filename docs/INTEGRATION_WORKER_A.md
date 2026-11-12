@@ -940,3 +940,5 @@ mount original Trap cast/arm/status09BC/root consumers using the same actor/Vita
 and existing movement host, then Tire039C/control/climb/recovery and charge0B8B.
 Root owns input union and frozen-ref reconciliation. Remaining0065 integration
 estimate remains low confidence4-8 active worker hours, excluding root conflicts.
+
+A34 clean-boundary sync: absorbed submitted intake7e9de0af; resolved stored Combat fields by retaining both Junkrat and current controls. No code consumer removed. Continue original0065 Trap activation.

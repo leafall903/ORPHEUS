@@ -73,6 +73,7 @@ from ow174.game import (
     torbjorn_charge,
     symmetra_charge,
     symmetra_turrets,
+    symmetra_portals,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -2075,12 +2076,14 @@ class Combat:
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
         self.sentries = symmetra_turrets.Turrets(self)
+        self.portals = symmetra_portals.Portals(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
         self.genji_blades: dict[int, dict] = {}  # body -> (instance, tracker) -> (activation, victims)
         self.genji_assists: dict[int, dict] = {}  # victim -> source body -> (Genji player, last damage tick)
         self.stuns: dict[int, int] = {}  # body identity -> exclusive world-tick deadline
+        self.controls: dict[tuple[int, int, str], float] = {}  # original independent source clocks
         self.npc_hit_reactions: dict[int, tuple[int, runtime.Instance]] = {}
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
         self.punch_impacts: dict[int, PunchImpact] = {}
@@ -2174,6 +2177,7 @@ class Combat:
         ice_wall.retired(actor)
         self.vitals.pop(entity, None)
         self.stuns.pop(entity, None)
+        self._retire_source_controls(entity)
         self.history.pop(entity, None)
         self.replacement_ticks.pop(entity, None)
         for viewer in self.match.players:
@@ -2248,6 +2252,7 @@ class Combat:
         body_entities.retire_source(self.match, player.entity, player.body)
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
+            self.portals.retire_owner(player)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -2287,6 +2292,7 @@ class Combat:
         self.hammer_hits.pop(player.body, None)
         self.tesla_frames.pop(player.body, None)
         self.stuns.pop(player.body, None)
+        self._retire_source_controls(player.body)
         for entity, impact in tuple(self.punch_impacts.items()):
             if player.body in (entity, impact.source_body):
                 del self.punch_impacts[entity]
@@ -2355,6 +2361,7 @@ class Combat:
         self.replacement_ticks[body] = self.match.tick
         self.input_locks.pop(body, None)
         self.stuns.pop(body, None)
+        self._retire_source_controls(body)
         self.frost_hits.pop(body, None)
         self.clear_pins(body)
 
@@ -2362,12 +2369,29 @@ class Combat:
         self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not bot]
         self.projectiles.cancel_npc(bot, self.match.tick)
 
+    def source_control_deadline(self, entity):
+        return max((self.tick + math.ceil((end - self.now) / TICK - 1e-9)
+                    for (victim, _, _), end in self.controls.items() if victim == entity), default=0)
+
+    def _retire_source_controls(self, entity):
+        for key in tuple(self.controls):
+            if key[0] == entity:
+                del self.controls[key]
+
+    def control(self, target, source, kind, seconds):
+        """Original independently expiring hard-control sources on existing consumers."""
+        if self.vitals_of(target).dead or seconds <= 0 or self._control_immune(target):
+            return
+        self.controls[target.entity, source, kind] = self.now + seconds
+        self.interrupt(target)
+
     def is_stunned(self, actor, *, tick: int | None = None) -> bool:
         body = _source_entity(actor)
         return ((isinstance(actor, bots.Bot) and self.punches.controlled(body))
                 or body in self.pins.values() or reinhardt_charge.pinned(self, body)
                 or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
+                or self.source_control_deadline(body) > (self.tick if tick is None else tick)
                 or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
                 or self.is_asleep(actor, tick=tick)
                 or self.frost_progress(actor, tick=self.tick if tick is None else tick) >= 1.0)
@@ -2396,7 +2420,7 @@ class Combat:
         vitals = self.vitals.get(entity)
         sleep = vitals.sleep_until if vitals is not None else 0
         pull = self.match.tick + 1 if entity in self.zarya_gravitons.pulled else 0
-        return max(sleep, pull, self.stuns.get(entity, 0))
+        return max(sleep, pull, self.stuns.get(entity, 0), self.source_control_deadline(entity))
 
     def damage_immune(self, owner):
         vitals = self.vitals.get(_source_entity(owner))
@@ -4162,6 +4186,7 @@ class Combat:
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
         self.sentries.update({}, {}, ())
+        self.portals.update()
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -4228,6 +4253,9 @@ class Combat:
                 del self.personal_barriers[body]
         for entity in [key for key, deadline in self.stuns.items() if deadline <= tick]:
             del self.stuns[entity]
+        for key, end in tuple(self.controls.items()):
+            if end <= self.now or key[0] not in current:
+                del self.controls[key]
         for player in self.match.players:
             if player.body not in self.charge_contacts:
                 continue
@@ -4251,21 +4279,29 @@ class Combat:
 
     # --- targets -----------------------------------------------------------------------------------
 
-    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False):
+    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False, team=None):
+        """Use an explicit launch affiliation without replacing the source owner."""
         candidates = []
-        raised = self.barrier.intersect(shooter, origin, direction, length)
-        if raised is not None:
+        native_raised = [actor for actor in self.barriers.enemies(shooter, team=team)
+                         if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in native_raised}
+        for actor in native_raised:
+            distance = actor.trace(origin, direction, length, radius)
+            if distance is not None:
+                candidates.append((distance, actor.owner, actor))
+        raised = self.barrier.intersect(shooter, origin, direction, length, team=team)
+        if raised is not None and raised[1] not in native_bodies:
             candidates.append((raised[0], raised[2], raised[1]))
         for hit in (
-            self.barriers.world.trace(shooter, origin, direction, length, radius),
-            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius),
-            sigma_barrier.trace(self, shooter, origin, direction, length, radius),
-            self.photon_barriers.trace(shooter, origin, direction, length, radius),
+            self.barriers.world.trace(shooter, origin, direction, length, radius, team=team),
+            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius, team=team),
+            sigma_barrier.trace(self, shooter, origin, direction, length, radius, team=team),
+            self.photon_barriers.trace(shooter, origin, direction, length, radius, team=team),
         ):
             if hit is not None:
                 candidates.append((hit[0], hit[1].owner, hit[1]))
         if bubbles:
-            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius)
+            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius, team=team)
             if hit is not None:
                 candidates.append((hit[0], None, hit[1]))
         return min(candidates, key=lambda hit: hit[0], default=None)
@@ -4604,8 +4640,9 @@ class Combat:
                 best, best_score = target.entity, score
         return best
 
-    def _enemies(self, shooter, *, damageable: bool = False) -> list[Target]:
+    def _enemies(self, shooter, *, damageable: bool = False, team=None) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
+        team = shooter.team if team is None else team
         source = _source_entity(shooter)
         owner = getattr(shooter, "combat_owner", None) if isinstance(shooter, bots.Bot) else shooter
         found = []
@@ -4620,7 +4657,7 @@ class Combat:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
                 continue
-            if not free_for_all and target.team == shooter.team:
+            if not free_for_all and target.team == team:
                 continue
             if (self.vitals_of(target).dead or reaper.intangible(target.owner) or self._has_protection(target, PHASE_STATES)
                     or self.pulse_bombs.recalling(target)):
@@ -4971,6 +5008,10 @@ class Combat:
                         script = shooter.body_script
                         if script is not None:
                             script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
+                if shooter.hero.guid == 0x02E00000000000DD and target.owner is shooter:
+                    from ow174.game import mei_ultimate
+
+                    mei_ultimate.grant(shooter, given, healing=True)
                 self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
@@ -7057,6 +7098,12 @@ class Combat:
                 best = (t, target)
         collision = self._collision()
         wall = collision.cast_ray(rocket.position, direction, step)
+        if rocket.penetrated is not None:
+            # Source0007 uses the real static MOVER sphere sweep for wide Fire
+            # Strike, including contacts before an exact centre-ray endpoint.
+            swept = collision.cast_sphere(rocket.position, direction, step, rocket.penetration_radius, MOVER)
+            if swept is not None and (wall is None or swept.distance < wall.distance):
+                wall = swept
         if wall is not None and (best is None or wall.distance < best[0]):
             best = (wall.distance, None)
         field = rocket.deployment if isinstance(rocket.deployment, baptiste.FieldSpec) else None
@@ -7277,14 +7324,25 @@ class Combat:
                 rocket.blast = replace(rocket.blast, amount=rocket.blast.amount * factor)
 
     def _fire_strike_contacts(self, rocket, direction, limit, start_tick, tick_per_distance, *, stops):
-        """Reconstructed capsule contacts and mesh crossings in travel order."""
+        """Delivered native shield/body contacts in physical travel order."""
         contacts = []
-        meshes = self.barrier.intersections(rocket.shooter, rocket.position, direction, limit)
-        for distance, entity, health in meshes:
+        raised = [actor for actor in self.barriers.enemies(rocket.shooter, team=rocket.team)
+                  if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in raised}
+        for actor in raised:
+            distance = actor.trace(rocket.position, direction, limit, rocket.penetration_radius)
+            phase = actor.instance.states.get(17)
+            key = (-actor.body, (self.replacement_ticks.get(actor.body), phase.counter if phase is not None else None))
+            if (distance is not None and key not in rocket.penetrated
+                    and (distance < limit or not stops)):
+                contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
+            if entity in native_bodies:
+                continue
             key = (entity, self.barrier.children[entity])
-            if key not in rocket.penetrated:
-                contacts.append((distance, key, None, health))
-        for target in self._enemies(rocket.shooter):
+            if key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, entity, key, (distance, health, entity)))
+        for target in self._enemies(rocket.shooter, team=rocket.team):
             key = (target.entity, self.replacement_ticks.get(target.entity))
             if key in rocket.penetrated:
                 continue
@@ -7292,13 +7350,17 @@ class Combat:
             radius = target.radius + rocket.penetration_radius
             distance = ray_capsule(rocket.position, direction, a, b, radius)
             if distance is not None and (distance < limit or (distance == limit and not stops)):
-                contacts.append((distance, key, target, None))
-        for distance, key, target, health in sorted(contacts, key=lambda row: row[0]):
+                contacts.append((distance, 1, target.entity, key, target))
+        for distance, kind, _, key, target in sorted(contacts, key=lambda row: row[:3]):
             self._amplify_flight(rocket, direction, distance, start_tick, tick_per_distance)
-            rocket.penetrated.add(key)
-            if target is None:
-                self.barrier.damage(key[0], health, rocket.direct.amount)
+            if kind == 0:
+                _, owner, actor = target
+                if isinstance(actor, reinhardt_barrier.RaisedBarrier) and self.is_dead(owner):
+                    continue  # a nearer body hit can retire its carried shield
+                rocket.penetrated.add(key)
+                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
             else:
+                rocket.penetrated.add(key)
                 self._apply_hit(
                     rocket.shooter, target, rocket.direct, rocket.direct.amount, False, self.tick,
                     world_tick=self.tick, source_entity=rocket.source_entity,
@@ -8788,11 +8850,15 @@ class Combat:
 
                 ultimate_charge.damage(shooter, target, dealt, hit_tags)
 
+            if award_ult and enemy and current_source and hero == 0x02E00000000000DD:
+                from ow174.game import mei_ultimate
+
+                mei_ultimate.grant(shooter, dealt, loadout=loadout)
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
-                    and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
@@ -8828,6 +8894,7 @@ class Combat:
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = attacker
         if killed:
+            self._retire_source_controls(target.entity)
             self._genji_eliminations(target, shooter, vitals.death_tick)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
@@ -9295,6 +9362,9 @@ class Combat:
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities
 
+        if victim.hero.guid == barrier.REINHARDT:
+            reinhardt_barrier.sync(self, victim)
+            self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
@@ -9382,7 +9452,7 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid in (symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
+        if old_script is not None and player.hero.guid in (0x02E00000000000DD, symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
@@ -9393,7 +9463,10 @@ class Combat:
             from ow174.game.script import charge
 
             script = player.body_script
-            script.set_ult_charge(points)
+            from ow174.game import mei_ultimate
+
+            if player.hero.guid != 0x02E00000000000DD or not mei_ultimate.spawn_ready(script):
+                script.set_ult_charge(points)
             if player.hero.guid == symmetra_charge.HERO:
                 script.charge_clock = self.tick, script.component.now
             if player.hero.guid == regeneration.MERCY:

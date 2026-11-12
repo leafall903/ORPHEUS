@@ -16,7 +16,7 @@ import weakref
 from collections import deque
 from pathlib import Path
 
-from ow174.game import symmetra_turrets
+from ow174.game import symmetra_portals, symmetra_turrets
 from ow174.game import (
     combat_profiles,
     junkrat,
@@ -113,6 +113,8 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    symmetra_portals.Portals: _names("combat pairs transits"),
+    symmetra_portals.PortalPair: _names("owner endpoints instance_id owner_body ready_at"),
     symmetra_turrets.Turrets: _names("combat sentries"),
     symmetra_turrets.Sentry: _names("owner bot direction speed last_tick attached_at target slow support_pillar"),
     scopes.Registry: _names("states"),
@@ -141,9 +143,9 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
-        "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"

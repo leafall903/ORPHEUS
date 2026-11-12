@@ -182,15 +182,16 @@ class Barriers:
         return next((b for b in self.live.values()
                      if b.owner is actor and b.body == entity and self.live_source(b)), None)
 
-    def enemies(self, shooter):
+    def enemies(self, shooter, *, team=None):
+        team = shooter.team if team is None else team
         found = []
         for caster in self.fight.match.players:
             self.sync(caster)
         for bubble in self.live.values():
             if (self.live_source(bubble) and bubble.owner is not shooter
-                    and (self.fight.match.game_map.free_for_all or bubble.owner.team != shooter.team)):
+                    and (self.fight.match.game_map.free_for_all or bubble.owner.team != team)):
                 found.append(bubble)
-        return found + self.world.enemies(shooter) + self.reinhardt.enemies(shooter)
+        return found + self.world.enemies(shooter, team=team) + self.reinhardt.enemies(shooter, team=team)
 
     def authored_for(self, body, phase=None):
         return next((actor for actor in self.scripted.values()
@@ -199,9 +200,9 @@ class Barriers:
                      and (phase is None or (actor.instance, actor.state, actor.activation)
                           == (phase.instance.id, phase.index, phase.counter))), None)
 
-    def intercept(self, shooter, origin, direction, length, *, radius=0.0, include_authored_mesh=True):
+    def intercept(self, shooter, origin, direction, length, *, radius=0.0, include_authored_mesh=True, team=None):
         best = None
-        for bubble in self.enemies(shooter):
+        for bubble in self.enemies(shooter, team=team):
             if isinstance(bubble, reinhardt_barrier.RaisedBarrier):
                 actor = self.authored_for(bubble.body)
                 if actor is not None and actor.mesh and not include_authored_mesh:

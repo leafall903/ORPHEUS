@@ -394,18 +394,105 @@ alone is not evidence that a line's consumers are actually mounted.
   pool fixture input and source control ownership consumers, then completion
   audit before advancing tank owners. Full B21 snapshot session82747 still live.
 
+## B24 shared raised-shield contacts and frozen broken plane
+
+- Root confirmed ownership of _barrier_contact for this batch. Add existing
+  RaisedBarrier.trace, suppress duplicate legacy body pool, preserve bubbles,
+  owner-team and deadline behavior. Source Wave.shield_poses stores frozen
+  geometry/pose only, not another actor. Correct original source shield ledger
+  keys to owner body/generation/activation. Retain broken plane for other rays.
+- Source fixture current=30 now changes actual authored Vitals via existing
+  damage consumer; barrier-instance getter reads actual0095. No assertions or
+  Constants changed. Main audit remains1399 same method counts/order.
+- `worker-b-shatter-native-shared.log`:33 total,4 pass29 input skips. These include
+  actual original break/drop/teamchange, later shield activation, far-side body
+  and causal wave snapshot. Full31 prior ledger-key correction left1fail1error;
+  corrected ledger test now passes. Remaining controls-key observer stays open.
+- `worker-b-shatter-native-echo.log`: explicit proper collision input enables8,
+  initially2fail1error. Baseline shared-contact monkeypatch reproduces same
+  damage488/380 and same context snapshot error. Fix this batch's own B22
+  callback omission with exact world-owned method whitelist, not broad callable
+  acceptance. `worker-b-shatter-native-context-snapshot.log`:9/9 original actual
+  raised-pool capture +Possessor7 +native retirement pass. Damage failures remain.
+- Next: true source control ownership/knockdown observation and damage tags;
+  complete remaining shield surfaces/history for other managers. B21 snapshot
+  full-suite session82747 still running; do not claim it passed.
+
+## B25 actual independent Earthshatter controls
+
+- Evidence corrected earlier observation-only attribution: source.controls is
+  real independent(victim, source, kind)->seconds lifetime, not a name alias for
+  canonical victim->max-tick stuns. Mount it on actual is_stunned/movement_pause
+  and interrupt consumers, snapshot schema, update expiry and victim cleanup.
+  Earthshatter no longer writes stuns as well. Preserve source-on-departure
+  knockdown; retire only victim entries on death/body retirement.
+- Existing HitDef.tags now reaches _damage. Source Charge can capture a body
+  under ordinary control; reject existing captures across current owners and
+  actual immunity, not every stun. No migration of Punch/Brigitte/NPC hosts.
+- `worker-b-shatter-source-controls-second.log`:62/62 original Shatter31,
+  ChargeContact21, Passive9 and causal wave snapshot pass. First61 had one
+  capture guard failure, corrected to original source rule before this run.
+  `worker-b-shatter-owned-control-snapshot.log`:actual nonempty owned control
+  gates input/movement, leaves stuns empty and changes repeatable passive digest
+  when its deadline changes. Keep all original source expectations intact.
+- Remaining7-owner rough effort16-36 effective hours, low confidence: Rein other
+  surfaces/NPC completion, Hog/Zarya/Ball/Sigma source/native reconciliation and
+  Doom/Win cross-owner closure. Main risks Ball movement/impulse, Sigma pending
+  extra pools, sharedNPC/Brigitte interactions. No full-acceptance blocking.
+- Next: clean sync latest canonical, then source shield-history/surface and NPC
+  completion audit; advance remaining owners. Full B21 snapshot session82747
+  remains live with partial errors logged, never counted passing.
+
+## B26 Fire Strike real wide collision/native raised shields
+
+- Existing_sweep uses actual cast_sphere/MOVER on the real collision engine,
+  source0007's recovered sphere policy. Existing_fire_strike_contacts includes
+  real native RaisedBarrier actual pool and original negative owner-body key,
+  generation and activation. Resolve ordered shield/body contacts and recheck
+  owner death after earlier body contact. No extra projectile walker.
+- Source fixture radius/hit_targets reads actual penetration_radius/penetrated;
+  no assertion or Constant changes. Main audit1399/1399 same method order/count.
+- `worker-b-rein-strike-focused.log`:37/37 pass. Full46 original Shield/Strike
+  `worker-b-rein-fire-strike-native.log` retains11subfail6errors vs baseline17/9:
+  Brigitte missing actual shield host, lifecycle/pool cache inputs, explosions,
+  unported frozen-team query keyword and old Barriers membership observations.
+- B21 full long snapshot69 completed2325.838s:3fail8errors3skip. One original
+  possessor error fixed byB22/B24. Others oldbeam/Brig/Orisa/Winston/Rein/Moira
+  interfaces plus Genji stored fan. Real stored differences: Zarya176vs188,
+  Bap/Sigma absorption0vs24 and Moira IceWall250 unchanged. All retained in
+  worker-b-rein-retained-first.log; no full-green or completion claim.
+
+## B27 original native shield lifecycle
+
+- Source0095 lower helper stops Ability59, aborts Pet17 and drains its original
+  branches. Use on actual control/death/disconnect/unspawned transitions, keep
+  cache inactive immediately, and connect existing _died. No extra VM or actor.
+  Never drive a strict script through this compatibility manager path.
+- Source pre-damage fixtures address actual authored Vitals; manager retirement
+  observation maps existing owner-body registry. Original assertions1399 same
+  order/count and Constant lists; no numeric expectation edits.
+- `worker-b-rein-native-lifecycle-focused.log`:41/41 pass with v6 environment and
+  test_environment plus the separate validRein collision descriptor. Full source
+  Barrier34 retains2fail3errors (Flashbang1575vs1600, exposed ally200, explicit
+  team query API and Brigitte host). Existing terminal/break/recovery, owner
+  death/leave/disconnect, incident-side break and source controls now pass.
+- Correct B21 long Genji stored-fan attribution: ManifestMismatch caused by
+  changing this worker's source while the2325s suite remained running. Keep its
+  strict rejection; no Genji implementation conclusion from that error. Other
+  numeric failures require frozen/full-input confirmation. Parent runs frozen
+  canonical replay while workers keep merging; do not repeat nonfrozen journals.
+- Next: clean sync canonical and restore original explosion surface/recipient
+  queries, explicit source team contact context, and remaining native surfaces.
+
 ## Exact next work
 
-1. Submit B18 immovable batch, then synchronize latest canonical at
-   a clean boundary and continue0007 source counter/deployable Charge and
-   Earthshatter. Source charge_drive/blocked/contact step live in original
-   combat.py around812-1388 and match._step_body_pose around365-411. Preserve
-   a single driver while migrating these consumers. Continue source
-   full Charge and Earthshatter. Reconcile original observations with the actual
-   native services; do not install competing shield or movement controllers.
-   Continue
-   Winston cross-hero status/NPC equivalence audit, then advance remaining tank
-   owners; no duplicate bubble/impulse controller and no naming-only completion.
+1. Commit B27, then clean-sync canonical after parent acceptance. Continue
+   source0007 actual shield retirement/death/control/break/recast consumers,
+   real native pool fixture inputs, source frozen-team queries and remaining
+   surface histories. Preserve original grenade incident-side occlusion and
+   projectile world-position/lifetime metadata; do not add another controller.
+   Audit Fire Strike phase/contact inputs and retained original tests before
+   formally calling0007 complete. Then advance remaining tank owners.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
