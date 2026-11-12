@@ -902,8 +902,12 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn, symmetra, torbjorn_charge
+        from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
+        if self.hero == symmetra_charge.HERO:
+            value = symmetra_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if self.hero == symmetra.HERO:
             value = symmetra.pool_query(self, cfg, instance)
             if value is not NotImplemented:
@@ -2089,6 +2093,8 @@ class BodyScript(ReplicatedBody):
             self.component.disconnect_foreign_watchers()
             self.world.match = None
             raise
+        if hero == 0x02E0000000000016 and match is not None:
+            self.charge_clock = match.tick, self.component.now
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2225,7 +2231,11 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import torbjorn_charge
+        from ow174.game import symmetra_charge, torbjorn_charge
+
+        authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
+        if authored_symmetra:
+            symmetra_charge.sync(self)
 
         if self.hero == barrier.REINHARDT and self.world.match is not None:
             enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
@@ -2264,7 +2274,10 @@ class BodyScript(ReplicatedBody):
         self.support_healing.extend(support.healing_reports(self, frame))
         immunity.advance_startup(self.component)
         self._report_shots()
-        self._charge_ult()
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+        else:
+            self._charge_ult()
 
     def apply_control(self, start: int, end: int, *, sleep: bool = False) -> None:
         """Keep control intervals until delayed simulation has passed them.

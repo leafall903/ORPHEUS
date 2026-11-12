@@ -162,6 +162,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Absorb canonical d594849c at a clean committed boundary, preserving root
   Sniper and shared native fixes together with the new Venom consumers.
+### Mount delivered Symmetra ultimate charge owner
+
+- Connect original0B8B ownership/tag/relation native queries, actual012 resolved
+  pool-loss messages, authored idle deadlines and real same-hero respawn charge.
+  Preserve the existing Genji host and remove Symmetra's duplicate generic award.
+- Synchronize commands on both sides of authored execution and store the real
+  charge_clock in VM/server passive state. Photon suppression reads existing
+  canonical actors; no second wall manager or timer is introduced.
+- Original charge9 plus combat21 all pass28.268s, including actual25s orb expiry
+  and pre/post-respawn hits. Genji passive/Damage21 pass10.319s. A controlled
+  real server scene confirms the charge clock changes VM and server digests.
+  Source cross-wall omitted-history/actor interaction paths still need comparison
+  with canonical scheduling. Client acceptance remains unexecuted.
 
 ### Restore delivered Symmetra shield recovery
 
