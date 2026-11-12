@@ -390,6 +390,26 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Winston idle bubble release
+
+- Schedule the source pending deployment on its original release frame and
+  host existing WorldBubbles actors during chronological combat replay. Advance
+  their lifetime on the same replay clock; Winston Primal follows the current
+  combat tick rather than jumping early to a later world endpoint.
+- Connect the existing world-bubble melee surface-damage consumer while
+  retaining body bypass. Retain all28 source bubble scenarios against actual
+  native actor identity, caster, location and lifetime observations.
+- Source bubble28 plus Primal18:44 of46 pass. Preserve the two original exact
+  float assertions: native f32 point1.10000002384 versus1.1 and health699.039978
+  versus699.04. No precision downgrade or assertion tolerance change.
+- Idle-release probe passes original accepted+3 birth,700 health, identity,
+  nonreplay and9s expiry. Bubble+Primal with700 silent ticks passes expiry and
+  exactly5 post-Primal charge/200ms phase; three original sparse/Primal-clock
+  checks also pass. Old Ana/Tracer bubble suites still need their renamed
+  manager/public-constant observations reconciled; retain those errors.
+- Whole-line/client acceptance remains open. No second bubble/impulse driver,
+  new acceptance matrix, client session, network operation or push.
+
 ### Mount delivered Winston Jump Pack and Primal strikes
 
 - Mount original JumpPack and PrimalPunches launch/landing, takeoff/impact,
