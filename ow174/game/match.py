@@ -444,6 +444,7 @@ class Player:
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
         fight = self.match.combat
+        fight.knockbacks.prepare_victim(self, command.frame)
         command = fight.punches.command_input(self, command)
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
@@ -641,6 +642,8 @@ class Player:
             # A late movement pose cannot resample an ability on an already evaluated body frame.
             return
         if self.body_script is not None:
+            from ow174.game import bob_victim
+            bob_victim.sample(self, self.body_script.component)
             command = self.match.combat.meteors.prepare_command(self, command)
             if posed:
                 self.match.combat.slams.observe(self)

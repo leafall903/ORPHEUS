@@ -9358,3 +9358,8 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 
 - Mount actual ultimate factory, one shared NPC/Vitals/mover, authored gun reports, phase/lifetime/owner credit and active charge lock. Restore original companion ally healing and guard shared Sombra hit routing against nonplayer BotScript.
 - Original BOB factory/lifetime/gun14/14 and shared28/28 passed; actual controlled-input strict BOB snapshot passed. Original uppercut/victim handoff remains next, with its baseline error preserved; no whole-line completion claim.
+
+### Worker A49 - original BOB uppercut victim and queued reset
+
+- Mount17F6 on current single movement host, with actual pose delivery, scalar reset/additive launch, resistance, flags/landing/phase exit, retirement and strict causal state. Restore Ashe next-pose timing without changing generic Knockbacks defaults.
+- Source/shared25 checks passed; actual normal/Reinhardt reset/launch/land, five NPC120HP loss with Heavy zero-motion, post-BOB-removal skipped parity and controlled pending-victim strict storage passed. Original private queue/spy failures remain recorded for later API reconciliation.
