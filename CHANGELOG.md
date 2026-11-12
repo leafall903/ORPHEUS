@@ -22,6 +22,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Tests for Sombra's Stealth and Mercy's Angelic Descent
+
+- Added runtime tests for two movement states the heroes' own graphs already run on the server.
+  Sombra walks at 5.5 m/s, keeps that through Stealth's 0.75 s fade, then moves at 1.65 times it
+  until Shift ends it. Mercy's held jump falls at 2 m/s and stays in the air longer than a tapped
+  one.
+- The numbers agree with measurements of the original client against a separate offline service
+  (9.1 m/s in Stealth, a 1.95 m/s fall). Neither was seen in the client against ORPHEUS.
+- No server code changed. Ruff and the two tests passed.
+
 #### Career profile from played matches
 
 - A match from a queue card now counts for the player's career: time played, eliminations, deaths
