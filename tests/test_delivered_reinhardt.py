@@ -43,7 +43,7 @@ def pinned(fight, entity):
 def control_deadline(fight, entity):
     # Read the active canonical counter clocks; graph endpoints are inclusive.
     from ow174.game.defense_filters import last_countdown_world_tick
-    deadlines = [fight.stuns.get(entity, 0)]
+    deadlines = [fight.stuns.get(entity, 0), fight.source_control_deadline(entity)]
     if entity in fight.punches.controls:
         deadlines.append(math.ceil(fight.punches.controls[entity] / combat.TICK))
     for stun in fight.brigitte.stuns:

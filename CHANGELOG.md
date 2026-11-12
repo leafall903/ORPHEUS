@@ -64,6 +64,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
 
 ### Record worker A seven-owner reconciliation boundaries
+### Restore independent Earthshatter control lifetimes
+
+- Mount source0007's actual(victim, source, kind) hard-control clocks on existing
+  input, movement pause and interruption consumers. Earthshatter writes this
+  authoritative ledger instead of a second stuns deadline; independent sources
+  expire independently, caster departure preserves existing knockdown, and
+  victim death/replacement/retirement clears only that victim's records.
+- Pass existing HitDef damage tags. Restore original Charge admission: ordinary
+  knockdown does not forbid capture; existing captures and immunity do. Preserve
+  Punch, Brigitte, NPC and other native control owners.
+- All62 original Shatter31, ChargeContact21, Passive9 and causal snapshot checks
+  pass, including owner departure/team changes and pin outlasting knockdown.
+  Actual nonempty control probe verifies input/movement gating, no duplicate
+  stuns write, repeatable passive capture and causal deadline sensitivity.
+- Main original1399 assertions and expectations remain; client acceptance open.
+
 ### Unify actual raised-shield contacts and retain shattered planes
 
 - Add real RaisedBarrier.trace to existing shared contacts, preserving bubbles

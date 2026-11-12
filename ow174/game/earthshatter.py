@@ -101,12 +101,11 @@ def start(fight, player):
 
 
 def hurt(fight, wave, target, definition):
-    vitals = fight.vitals_of(target)
-    before = vitals.total
-    fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
-                  world_tick=fight.tick, source_body=wave.state.instance.component.entity)
-    if not isinstance(target.owner, actors.Deployable) and not vitals.dead and vitals.total < before:
-        fight.stun(target, wave.stun_seconds)
+    accepted = fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
+                             world_tick=fight.tick, source_body=wave.state.instance.component.entity,
+                             hit_tags=definition.tags)
+    if accepted and not isinstance(target.owner, actors.Deployable):
+        fight.control(target, wave.state.instance.component.entity, "earthshatter", wave.stun_seconds)
 
 
 def _legacy_close_hit(fight, wave):
