@@ -2343,7 +2343,7 @@ class Combat:
         return entity
 
     def create_deployable(self, source, definition, kind, position, *, health, radius, height, seconds,
-                          rotation=(0.0, 0.0, 0.0, 1.0), capsule=None):
+                          rotation=(0.0, 0.0, 0.0, 1.0), capsule=None, publish=True):
         """Create a transient damage target without borrowing the NPC respawn policy."""
         entity = self.allocate_combat_entity()
         actor = actors.Deployable(
@@ -2359,9 +2359,10 @@ class Combat:
         self.replacement_ticks[entity] = self.tick
         if health > 0:
             self.vitals[entity] = Vitals(entity, health)
-        for viewer in self.match.players:
-            if viewer.spawned and viewer.client is not None:
-                viewer.client.queue_entities([self.deployable_create(actor)])
+        if publish:
+            for viewer in self.match.players:
+                if viewer.spawned and viewer.client is not None:
+                    viewer.client.queue_entities([self.deployable_create(actor)])
         return actor
 
     def deployable_create(self, actor):
@@ -2369,11 +2370,21 @@ class Combat:
         components = vitals.component(vitals.ids) if vitals is not None else {}
         components[26] = [actor.filter_bits]
         position = actor.position
+        from ow174.game import volskaya
+
+        host = self.match.scene_host
+        movement = parent = None
+        if (isinstance(host, volskaya.LiftHost) and actor.definition == ice_wall.PILLAR
+                and actor.entity in host.lift.attached_walls):
+            piece = self.walls.pieces.get(actor.entity) or host.lift.actor_piece(actor)
+            angle = math.atan2(-piece.axis[2], piece.axis[0])
+            movement, parent = host.lift.wall_movement(piece, angle), volskaya.ENTITY
+        rotation = actor.rotation
         return world.EntityUpdate(
             actor.entity, world.OP_CREATE,
             lambda origin: world.create(origin, actor.definition, components,
                                         flags=world.WITH_TRANSFORM | world.WITH_SCALE, position=position,
-                                        rotation=actor.rotation),
+                                        rotation=rotation, movement=movement, movement_parent=parent),
         )
 
     def destroy_deployable(self, entity):
@@ -2387,6 +2398,10 @@ class Combat:
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
+        from ow174.game import volskaya
+
+        if isinstance(self.match.scene_host, volskaya.LiftHost):
+            self.match.scene_host.lift.attached_walls.discard(entity)
         self.sombra_controls.retire(entity)
         self.baptiste.deployable_removed(entity)
         piece = self.walls.pieces.get(entity)

@@ -851,6 +851,9 @@ class Match:
             self.environment.randbits(63, callsite="match.id.low"),
             self.environment.randbits(63, callsite="match.id.high"),
         )
+        from ow174.game import volskaya
+
+        game_map, scene_host_factory = volskaya.select(game_map, scene_host_factory)
         self.game_map = game_map
         self.card = card  # the queue card it was made for; 0 = none (the Practice Range)
         # (account, hero GUID) -> (skin theme, golden weapon) the player has equipped, from the lobby.
@@ -1052,6 +1055,15 @@ class Match:
             EntityUpdate(entity, OP_CREATE, lambda origin, index=index: world.create_placeable(origin, index))
             for entity, index in zip(self.placeable_ids(), self.game_map.placeables, strict=True)
         ]
+        from ow174.game import volskaya
+
+        if isinstance(self.scene_host, volskaya.LiftHost):
+            movement = self.scene_host.lift.movement()
+            for record in updates:
+                if record.entity == volskaya.ENTITY:
+                    record.build = lambda origin: world.create_placeable(origin, volskaya.FLAT, movement=movement)
+                    viewer.seen[record.entity] = False
+                    break
         if viewer.has_body:
             updates += self.own_body_updates(viewer)
         updates.append(
@@ -1318,6 +1330,10 @@ class Match:
             if not viewer.seen[other.body]:
                 continue
             updates.append(EntityUpdate(other.body, movement=other.movement()))
+        from ow174.game import volskaya
+
+        if isinstance(self.scene_host, volskaya.LiftHost) and viewer.seen.get(volskaya.ENTITY):
+            updates.append(EntityUpdate(volskaya.ENTITY, movement=self.scene_host.lift.movement(self.tick)))
         shown = self.bots_shown.get(viewer.slot)
         client = viewer.client
         if client is not None and self.scene_host is not None:

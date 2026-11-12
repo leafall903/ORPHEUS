@@ -236,6 +236,11 @@ class Walls:
             marker = actor.body_script.component.entity_var(961, create=False)
             piece = Pillar(actor.entity, player.body, player.team, point, axis, 0., 0,
                            impact_marked=marker is not None and expr.truthy(marker.value()), actor=actor)
+            from ow174.game import volskaya
+
+            host = self.combat.match.scene_host
+            if isinstance(host, volskaya.LiftHost) and host.lift.supports_wall(piece):
+                host.lift.attached_walls.add(actor.entity)
             self.pieces[actor.entity] = piece
             created = True
             for owner, mover, position in lifts:
@@ -301,13 +306,13 @@ class Walls:
             mover.body.teleport((position[0], position[1] + mover._lift(), position[2]))
 
 
-    def ground(self, mover):
+    def ground(self, mover, pieces=None):
         radius, _ = mover._capsule()
         x, y, z = mover.position
         top = y + mover._pogo() + mover.spring + radius
         bottom = y - (0. if mover.airborne else mover.values.step_down)
         best = None
-        for piece in self.pieces.values():
+        for piece in self.pieces.values() if pieces is None else pieces:
             dx, _, dz = local(piece, (x - piece.feet[0], y - piece.feet[1], z - piece.feet[2]))
             height = piece.feet[1] + piece.height
             if (abs(dx) <= piece.width / 2 and abs(dz) <= piece.depth and bottom <= height <= top
@@ -378,6 +383,11 @@ class Walls:
 
     def remove(self, piece):
         if self.pieces.pop(piece.entity, None) is not None:
+            from ow174.game import volskaya
+
+            host = self.combat.match.scene_host
+            if isinstance(host, volskaya.LiftHost):
+                host.lift.attached_walls.discard(piece.entity)
             if piece.actor is not None:
                 self.combat.destroy_deployable(piece.entity)
             for body, (entity, ability) in tuple(self.anchors.items()):
@@ -532,6 +542,30 @@ class Walls:
             if ceiling is None and self.placement_clear(candidate):
                 points.append(foot)
         return (points, axis) if points else None
+
+    @staticmethod
+    def footprint(piece):
+        half = piece.width / 2
+        for x in (-half + EPS, 0., half - EPS):
+            for z in (-piece.depth + EPS, 0., piece.depth - EPS):
+                offset = global_vector(piece, (x, 0., z))
+                yield piece.feet[0] + offset[0], piece.feet[2] + offset[2]
+
+    @staticmethod
+    def volume_clear(piece, scene):
+        half = piece.width / 2
+        rx = abs(piece.axis[0]) * half + abs(piece.axis[2]) * piece.depth
+        rz = abs(piece.axis[2]) * half + abs(piece.axis[0]) * piece.depth
+        x, y, z = piece.feet
+        for triangle in scene.nearby(x - rx, x + rx, y + EPS, y + piece.height, z - rz, z + rz):
+            vertices = [local(piece, tuple(v - f for v, f in zip(triangle[k:k + 3], piece.feet,
+                                                               strict=True)))
+                        for k in (collision.AX, collision.BX, collision.CX)]
+            base = .5 if triangle[collision.NY] >= .7 else EPS
+            if contacts.triangle_box(*vertices, (-half, base, -piece.depth),
+                                     (half, piece.height, piece.depth)):
+                return False
+        return True
 
     def placement_clear(self, piece):
         """Reconstructed support/volume policy, using existing static triangle SAT.
