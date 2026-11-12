@@ -3,7 +3,7 @@
 import unittest
 from dataclasses import replace
 
-import test_game_tracer_sigma_accretion as accretion_tests
+import test_game_tracer as tracer_tests
 from test_game_combat import aim
 
 from ow174.game import combat, sigma_flux, tracer
@@ -16,7 +16,16 @@ from ow174.game.script.nodes import Ability
 
 class TracerSigmaFluxTests(unittest.TestCase):
     def setUp(self):
-        accretion_tests.TracerSigmaAccretionTests.setUp(self)
+        self.run, self.tracer, self.sigma, _ = tracer_tests.TracerPistolTests().fight()
+        self.fight = self.run.match.combat
+        self.assertTrue(self.run.match.switch_hero(self.sigma, heroes()[sigma_flux.HERO]))
+        x, y, z = self.tracer.mover.position
+        self.sigma.mover.position = [x, y, z + 10]
+        self.sigma.mover.body = None
+        for _ in range(30):
+            self.run.step({})
+        self.target = next(t for t in self.fight._targets() if t.owner is self.tracer)
+        self.vitals = self.fight.vitals_of(self.target)
         self.script = self.sigma.body_script
         self.instance = next(i for i in self.script.component.instances.values()
                              if i.graph.index == sigma_flux.FLUX)

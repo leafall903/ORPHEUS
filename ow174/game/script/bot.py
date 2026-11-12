@@ -603,6 +603,10 @@ class BotWorld(runtime.World):
         return vitals is not None and vitals.dead
 
     def velocity_action(self, instance, node):
+        from ow174.game import sigma_flux
+
+        if sigma_flux.flux_velocity(instance, node):
+            return True
         if not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4:
             return True
         return super().velocity_action(instance, node)
@@ -641,6 +645,13 @@ class BotWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context, npc_shields, orisa_halt
+
+        if instance is not None and self.match is not None:
+            from ow174.game import sigma_flux
+
+            result = sigma_flux.flux_effect_native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
 
         if self.hero == 0x02E00000000001B8:
             from ow174.game import sniper_retreat, sniper_special
@@ -834,6 +845,11 @@ class BotWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault, npc_shields
+
+        from ow174.game import sigma_flux
+        flux = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if flux is not NotImplemented:
+            return flux
 
         value = npc_shields.modify_health(self, state, elapsed_ms)
         if value is not NotImplemented:
