@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Send actual controller effects through the existing Match wire
+
+- Existing controller frames include original live effects and bound flags;
+  changed-content refresh sends removals without repeated identical full frames.
+  Actual LinkedTarget limits use the shared body-command angle clamp.
+- Real1177 entry/flag/removal/angle-release and original controller/state-script
+  checks25/25 pass. Manual NPC pairing and Pin causal storage remain subsequent
+  work; no second body effect or transport and no client acceptance run.
+
 ### Restore controller LinkedTarget alongside existing cinematic resources
 
 - Existing LinkedTarget now hosts original1177 activation order, angle cache,
