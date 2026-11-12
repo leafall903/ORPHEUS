@@ -215,7 +215,7 @@ FIELDS = {
     sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
-    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion launches body_epochs replayed_frames"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion launches launch_sources body_epochs replayed_frames"),
     support_effects.Effects: _names("match attachments boost_frames"),
     support_effects.EffectWorld: _names("hero mode match source owner"),
     sombra_control.DeviceWorld: _names("hero mode fight body tags"),
