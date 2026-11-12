@@ -3,6 +3,7 @@ import os
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_zenyatta_absorb as absorb_tests
@@ -18,7 +19,7 @@ from ow174.game.script import graph
 from ow174.game.zenyatta import HERO
 
 RUNTIME_GRAPHS = graph.GRAPHS_PATH
-EFFECTS = Path(r"D:\overwatch 1.7.4\verification\hero-lanes\0004\research\game_graphs_effects_174.json.gz")
+EFFECTS = Path(os.environ.get("ORPHEUS_TEST_MERCY_EFFECT_BUNDLE", str(DATA_DIR / "game_graphs_effects_174.json.gz")))
 
 
 def clear_graphs():

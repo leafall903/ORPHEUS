@@ -23,7 +23,7 @@ call remains for existing stop-button behavior. Activation generation, window
 comparison, button latch and cooldown/resource expressions are unchanged.
 
 Two uncommitted parent methods were reviewed read-only: Ability.take_press and
-Ability.can_start in D:/overwatch 1.7.4/ORPHEUS/ow174/game/script/nodes.py.
+Ability.can_start in src/ow174/game/script/nodes.py.
 The final method ASTs match exactly; parent/source snippet hashes and the narrow
 review scope are recorded in ability-buffer-parent-review.json. No parent files
 were changed, and no other parent Roll/velocity implementation was imported.

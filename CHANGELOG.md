@@ -1174,6 +1174,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Reconcile the full local Python hero server with public main
 
+- Make retained prepared-runtime test prerequisites configurable through environment variables and runtime data paths instead of private workstation paths.
+
 - Adopt the public package, launcher and test paths while retaining the existing 32 hero deliveries and shared implementation.
 - Integrate upstream Uppercut movement/damage, Piledriver velocity, reticle notifications, runtime preparation and shared behavior contracts. Resolve the internal vector-delta/typed-profile discriminator collision and preserve both health-pool state consumers.
 - CLI/contracts: 36 passes; dashboard: six passes. Public discovery executes 953 methods with six failing subcases and three errors retained. The 28-method movement/force joint retains two Slam selector subcase failures. Server-only startup passes on disposable ports with external data. No new original-client acceptance is claimed.

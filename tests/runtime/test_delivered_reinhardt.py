@@ -8,6 +8,7 @@ import os
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_mccree_flashbang as flashbang_tests
@@ -22,11 +23,9 @@ from ow174.game.mover import Mover
 from ow174.game.script import expr, graph, health_queries, runtime
 from ow174.game.script.driver import BodyWorld
 
-NPC_DATA = Path("D:/overwatch 1.7.4/verification/retribution/npc-runtime/data")
-NPC_MOVERS = (Path("D:/overwatch 1.7.4/verification/retribution/npc-navigation-runtime/data")
-              / "game_movers_174.json")
-BARRIER_DATA = (Path("D:/overwatch 1.7.4/verification/hero-lanes/0007/runtime-inputs")
-                / "reinhardt_collision_174.json")
+NPC_DATA = Path(os.environ.get("ORPHEUS_PVE_NPC_DATA", str(DATA_DIR)))
+NPC_MOVERS = Path(os.environ.get("ORPHEUS_NPC_MOVERS", str(DATA_DIR / "game_movers_174.json")))
+BARRIER_DATA = Path(os.environ.get("ORPHEUS_REINHARDT_COLLISION", str(DATA_DIR / "reinhardt_collision_174.json")))
 
 
 def controlled(fight, entity, *, tick=None):

@@ -1,7 +1,9 @@
 """Actual health consumers of original Ana effect graphs, with declared host adapters."""
 
+import os
 import unittest
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_game_mercy_chains as chains
@@ -14,9 +16,7 @@ from ow174.game.content import heroes
 from ow174.game.script import healing_status
 from ow174.game.script.driver import ULT_CHARGE
 
-STATUS_BUNDLE = Path("D:/overwatch 1.7.4/verification/hero-lanes/0004/research") / (
-    "game_graphs_support_status_174.json.gz"
-)
+STATUS_BUNDLE = Path(os.environ.get("ORPHEUS_TEST_MERCY_STATUS_BUNDLE", str(DATA_DIR / "game_graphs_support_status_174.json.gz")))
 ANA = 0x02E000000000013B
 
 

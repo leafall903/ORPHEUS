@@ -7,6 +7,7 @@ NPC AI, specials, difficulty scaling or original-client acceptance.
 import unittest
 import os
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import Mock, patch
 
 from test_game_combat import Run, aim
@@ -20,7 +21,7 @@ from ow174.game.content import heroes
 from ow174.game.script import graph
 from ow174.game.script.regeneration import MERCY
 
-NPC_DATA = Path(os.environ.get("ORPHEUS_PVE_NPC_DATA", "D:/overwatch 1.7.4/verification/retribution/npc-runtime/data"))
+NPC_DATA = Path(os.environ.get("ORPHEUS_PVE_NPC_DATA", str(DATA_DIR)))
 
 
 def clear_graphs():

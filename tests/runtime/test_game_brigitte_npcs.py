@@ -3,8 +3,10 @@
 import gzip
 import json
 import math
+import os
 import unittest
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_game_brigitte as brigitte_tests
@@ -14,7 +16,7 @@ from ow174.game import npc, npc_control, world
 from ow174.game.content import find_hero, heroes
 from ow174.game.script import graph, runtime
 
-EXTERNAL = Path(r"D:\overwatch 1.7.4\verification\retribution\npc-runtime\data")
+EXTERNAL = Path(os.environ.get("ORPHEUS_PVE_NPC_DATA", str(DATA_DIR)))
 
 
 class NpcClient(combat_tests.FakeClient):

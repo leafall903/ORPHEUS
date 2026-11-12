@@ -4,9 +4,11 @@ Neutral healing inputs, independent effect VMs and sphere/static-LOS selection
 are explicit reconstruction policies; full native filters/status/transport stay open.
 """
 
+import os
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from ow174.paths import DATA_DIR
 from unittest.mock import patch
 
 import test_game_mercy_npc as npc_tests
@@ -623,9 +625,7 @@ class MercyChainTests(unittest.TestCase):
                          clocks)
 
 
-NPC_EFFECT_BUNDLE = Path("D:/overwatch 1.7.4/verification/hero-lanes/0004/research") / (
-    "game_graphs_support_npcs_174.json.gz"
-)
+NPC_EFFECT_BUNDLE = Path(os.environ.get("ORPHEUS_TEST_MERCY_NPC_BUNDLE", str(DATA_DIR / "game_graphs_support_npcs_174.json.gz")))
 
 
 @unittest.skipUnless(NPC_EFFECT_BUNDLE.is_file(), "explicit NPC+support graph extension required")
