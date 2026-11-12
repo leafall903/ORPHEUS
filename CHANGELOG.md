@@ -1,5 +1,14 @@
 # Changelog
 
+## C77 — retire original accepted force at Shadow/Halt relocation
+
+Restored original012E retirement in current Shadow successful commit and actual
+Halt player/NPC MoveTo entry. Existing Translocator already uses same cleanup.
+Preserved body epoch/completed-pose receipts; actual recall rejects late FIRE.
+Original37 Shadow/Halt/worldgap methods pass; corrected focused5 cases pass5.030s.
+Initial joint one new fixture failure is recorded, no original assertion changed.
+Source-parent ancestry remains provenance only; no overall completion claim.
+
 ## C76 — actual consumer receipt for ten root-baseline deliveries
 
 Audited ten frozen owners against canonicalc25a8a9c actual entry chains rather

@@ -10798,7 +10798,10 @@ class Combat:
         point = record["target"]
         if point is None or not self._shadow_landing(player, point):
             return
+        self.knockbacks.retire(player.body)
+        self.orisa._drop(player.body)
         mover = player.mover
+        mover.retire_impulses()
         mover.position[:] = [quantise(axis) for axis in point]
         mover.velocity = (0.0, 0.0, 0.0)
         mover.spring = mover.spring2 = mover.spring_speed = mover.fall = 0.0
