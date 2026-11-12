@@ -146,6 +146,7 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 # 104319 FirstPerson standing and crouched fields. Unlisted bodies use the fallback.
 EYE_STANDING = {
+    0x040000000000251C: 1.445,
     0x0400000000000032: 1.35,
     0x0400000000000407: 1.74, 0x040000000000040A: 1.32,
     0x0400000000000001: 1.25,
@@ -157,6 +158,7 @@ EYE_STANDING = {
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
 }
 EYE_CROUCHED = {
+    0x040000000000251C: 1.0115,
     0x0400000000000032: .945,
     0x0400000000000407: 1.74, 0x040000000000040A: .8,
     0x0400000000000001: 0.875,
