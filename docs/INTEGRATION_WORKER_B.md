@@ -2179,3 +2179,45 @@ on actualdeath next. Log worker-b-sigma-flux-mixed-owner.log.
 Root owns original field33 horizontalkernel and has restored that sameMover
 consumer independently; do not change mover.py. Root has no deathcleanup WIP
 and authorizes B79 narrow existingowner cleanup. No original-client run.
+
+
+## B79 — actual death immediately retires existing Grasp ownership
+
+Original023B Combat._died pops both grant/decay ownership at death. Current
+absorption.retire already clears both authoritative maps but only ran on later
+body replacement. Call that SAME method from current Combat._died for the actual
+victim.body. No other ledger/controller/Flux behavior changes, fields or hosts.
+Root explicitly confirmed no deathcleanup WIP and authorized this narrow path.
+
+Original lethalSlam now reaches all source cleanup/respawn/zero-pool assertions.
+Lethalentry and both original graspdeath cases plusDamage8/runtime13 =25/25
+pass17.418s (worker-b-sigma-grasp-death-cleanup.log). No numeric fixture edit,
+original-client run or production mover change.
+
+### Convergence correction: code gaps vs validation tails
+
+Unrestored fullHogNPC fixtures, old observing names, source contract conflicts,
+old geometry/client checks are NOT proof of absent runtime code or merge gates.
+All established Hog core and player/5NPC/ownedMech motion consumers are mounted.
+The two primitive Grasp replay conflicts remain original expectations rather
+than a reason to omit actual023B implementation. Originalfilter/cache SDK
+requires explicit backend binding by design; retaining that unknown production
+boundary preserves source semantics, not a newly missing automatic host.
+
+Source0040/012F Mover.launch name needs no facade:012F Combat._launch maps to
+current Combat._launch→existingMover.impulse and NPCapply_impulse. Source0040
+Doom-specific0DD8/1,0B27/75 helper maps to currentdriver exactgraph/node
+motion_reports→sameCombat._launch; own012F complete movement/control remains.
+Do not replace it with the narrower inherited source0040 selflaunch or another
+force pipe. Source012F authored_mover_data is currentdefined_mover_data.
+
+No additional runtime absence is established merely from those names/tests.
+Next production audit candidates need actualcaller evidence: source0040 victim
+credit multiplier for its supported Doom/Ball/QuadCannon gain dispatch (current
+Hog branch has it, other authoredtarget-tag branches may already do it);
+barrier/typedquery/sourcecontext functional equivalence. Prove a reached
+missing consumer before adding code. SourceCtx/SDK scope and retained unused
+accretion.control incompatibility remain explicit, not fake productionaliases.
+Estimated validation-tail hours must not be reported as required code merge
+time. Next exact action: clean sync rootfield33 commit545f3a6f, then that bounded
+actualconsumer inventory/probe; report confirmed missing code separately.

@@ -291,6 +291,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
 ### Bind original Flux checks to actual ability owners
 
 - Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
