@@ -7818,3 +7818,17 @@ client operations performed. Whole nonappearance integration remains active.
   not yet mounted alongside the delivered0015 nearby fallback. Preserve both
   implementations and expectations; this is remaining integration, not a
   reason to discard or hold current code. No client/publication operations.
+
+
+### Frozen combined Molten/absorption validation
+
+- Original Molten9, turret snapshot1 and projectile/Bastion/runtime/Damage
+  checks73 all pass on783de900 with canonical base+v4 supplement. This includes
+  ceiling/double/ramp rebounds,10 globules, hero-switch cleanup, armour boundary,
+  overlap dedup and passive pool/status storage. No source fixture fallback for
+  Molten/turret imports. Evidence: parallel-a20-c18-shared-check.log.
+- Root explicit source geometry/actual Enforcer/controls/navigation/projectile
+  checks109 pass separately. All root tests terminal; original fake fixture and
+  manual Sniper long-range gaps remain documented without blocking commits.
+- No original-client acceptance or publication performed; three workers continue
+  remaining original-language integrations, excluding appearance migration.
