@@ -9,7 +9,48 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
-## Current owner reconciliation after A27
+## Current nine-owner handoff after A63
+
+A owns the original seven hero cores plus reassigned0065 Junkrat and0200 Ashe.
+All nine currently have actual original-language consumers; no known remaining
+owner-specific core omission is identified. This means owner code reconciliation
+is ready for root intake, not whole cross-owner frozen-ref ancestry or completed
+client acceptance. Keep every existing failed/original check visible. Root owns
+formal source admission and global final reconciliation; no appearance/Rust work.
+
+- Seven original refs and their mounted boundaries remain listed below; subsequent
+  A28-A32 preserve shared charge/filter consumers, including actual adaptive-loss
+  deduction and one native registry contract. Later checkpoints supersede old next-actions.
+- 0065 source c31d926214d74bbb6d5f308cabce92c65d8a48fc: original cannon/bounce,
+  Mine/SteelTrap true actor and Vitals/contact/root/health/deadlines, RipTire sole
+  possessed mover/actor/lifecycle/explosion, charge/source inputs, Mayhem and NPC
+  death-volley are mounted (A33-A42). Root took the shared34924 Thunderstorm branch
+  and source tools. No duplicate deployable actor/Vitals/clock or old manager.
+- 0200 source 8b991768223a98ff97f2618a53f0947dc6477c4b: original Viper/Coach/reload,
+  Dynamite/burn and BOB real gun/charge/uppercut/Heavy carry/lateral/lifecycle are
+  mounted (A43-A61). Original source-only impulse pools map to current sole
+  Knockbacks and Bot.impulse_mover. Current-bound mover extension has explicit
+  base/source hash provenance; original inputs remain unchanged. Root's shared
+  PlayerController/filter/wire/lifecycle/snapshot consumer is now absorbed.
+- A57 exact Matrix amount/source output restored on existing interception;
+  A58 BOB uses actual recipient-frame silence history; A59 real NPC hard-control
+  interruption no longer crashes in Photon guard. All original expectations and
+  old observer/private API differences retained. A62 classified two older Ana
+  warmup-vulnerability checks as conflicting with original0003/000A both-phase
+  Recall protection; retain owner policy and both original failed checks.
+- Clean synchronization7b410a4c incorporates intake d7139d1a. New composed boundary
+  check on v17 ran original PlayerController9, EMP refresh1, both BOB EMP expiry2,
+  real sleep/freeze/Blizzard3 and actual Matrix1 =16/16 passed21.646s, log
+  worker-a-ashe-composed-owner-boundary.log. This is limited verification, not a
+  new matrix or claim that all original source fixtures pass.
+
+Latest own implementation changes are A57 e62a0033, A58 dba31c23 and A59 f1acf65c;
+A60 6e894f87/A61 4bdf09ee preserve real-host source assertions, A62 241d6c8d source
+policy evidence. Root has all SHAs. Next concrete work is any newly identified
+actual source-consumer gap from root's final cross-owner reconciliation, rather
+than fabricate compatibility state or weaken source checks to make a broad group green.
+
+## Original seven-owner reconciliation after A27
 
 All seven assigned hero cores have actual consumers; no additional missing own
 hero-core consumer is currently identified. This is an owner boundary, not a
@@ -1380,3 +1421,18 @@ Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/
 - This is a conflicting delivered contract, not missing Sleep/melee/Recall consumer: frozen0003 tracer.begin_recall creates session in warmup and recalling checks session.state.active for either phase. Its original test_game_tracer.TracerRecallTests.test_invulnerable_and_untargetable_during_both_phases_then_damage_resumes explicitly applies200damage at warmup+1frame, expects150HP and target exclusion. Frozen000A tracer_recall.Recalls.protected likewise checks cast.activation.start <= now < cast.end_ms, including warmup. Those are incompatible with original013B Ana two warmup-vulnerability expectations. Existing25dee1a intentionally preserved the complete0003 policy; do not revert active() to phase.starts lower bound solely for older cross-owner checks.
 - Current normal original0003 both-phase immunity and originalAna dart during playback/after expiry checks both pass5.558s (worker-a-recall-owner-protection-contract.log). All numerical/source assertions remain unchanged. Parent notified the exact source contracts; no new configuration, host or functionality added.0003 retained implementation is ready under its already recorded owner reconcile boundary; whole-ref cross-owner ancestry remains parent's decision.
 - Next continue remaining actual owner source-consumer audit, leaving these original conflicting expectations visible rather than treating them as unmerged gameplay.
+
+## Clean synchronization after A62
+
+Absorb intake d7139d1a: original shared PlayerController/filter lifecycle and its source fixture, C41/C42 lock/device consumers, Ball Mine factory/damage, strict storage/replay arithmetic identity. Only changelog union conflict; retain both entries. Actual owner source policies preserved; no external runtime/base writes. Next verify only newly composed owner status/controller boundaries, avoiding duplicate broad acceptance passes.
+
+## A64 shared-controller assignment and clean synchronization
+
+Root reassigned original0200 remaining000E dynamic owner/effect wire/manual Assassin/LinkedTarget/Pin causal storage after the nine-core boundary. Absorb stable canonical/intake6d51297b, only changelog union conflict; keep both ControllerWorld and MineWorld exact storage branches, every current codec and scalar replay profile. Root owns intake reception only for this shared task. C43 owns LogicalButton/body_button/ability gates; do not duplicate it. First independent batch: optional original dynamic/bound-var owner-full encoder, default16 combination bit equivalence captured before changes externally.
+
+## A64 - original dynamic effects in the sole owner full-frame encoder
+
+- Stable6d51297b synchronization137a3c2d retains all ControllerWorld/MineWorld storage, scalar profiles and codecs. Restore exact original0200 owner_full_frame optional dynamic/bound_vars/frame_ms and _dynamic_owner_full into current statescript.py. Static and dynamic descriptors share one sorted uint16 namespace; overlapping bound variables/IDs reject before encoding. Full owner effect states use original class/owner-slot validation and existing event/variable writers.
+- Restore original write_payload optional full mode for LinkedTarget codec, leaving existing codecs/Map/PairArray/fragmentation/spray and default delta paths intact. No alternate wire encoder or manager. Default no-effect PRACTICE/PVP open/skins/hide16 combos are byte/bit identical against pre-edit captured values in worker-a-controller-owner-full-baseline.json.
+- Existing test_game_statescript + test_statescript_codecs25/25 passed2.450s. New normal test_controller_effect_owner_full2/2 passed. Actual original1177 graph/LinkedTarget full payload and bound14695 flag decode together with the real static Practice controller tree; ID/entity-var collisions reject. worker-a-owner-full-codec-shared.log and worker-a-controller-effect-full.log.
+- This batch is only the real encoder dependency boundary; Match effect refresh, manual NPC recipient coupling, LinkedTarget runtime registration and Pin causal storage remain next. Do not claim original manual Assassin whole group live yet; C43 owns body-button/LogicalButton/Ability gates independently.
