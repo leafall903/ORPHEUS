@@ -1531,3 +1531,41 @@ Next C40: exact original input latch/expiry-frame admission, reapply request
 entry and incoming application world/body clock association/source-retirement;
 keep true accepted pose anchors and preserve root C377-field history adapter.
 Other retained nonappearance owner boundaries unchanged; no client/network test.
+
+
+## C40: consume actual recipient lock history at the expiry input boundary
+
+Read-only originalAsheHack endpoint probe observed world1504/time24.064,
+Lock.until24.056 alreadyremoved, but authored Wait58 ends within recipient
+frame1504. IncomingQ32 was unmasked andspent2240; no assertion/expiry value changed.
+worker-c-sombra-expiry-input-probe.log retains failing baseline and exactinputs.
+
+Existing Controls.lock_history now observes actual0B1F Wait58 start+ms and
+retains its real end in the existing application interval. Original impact start
+and first_lock_after component-domain API remain unchanged. input() admits
+SKILL_INPUT using that same actual recipient component/frame window as well as
+live world Locks, then uses the existing held bits/release path. It does not
+extend Lock.until, add a timer/manager, assume equal epochs, mask ordinary fire/
+reload/melee or use generic hard-control histories. Latest original window still
+survives effect expiry as before; owner/component retirement cleanup is unchanged.
+
+v16 environment/test_environment; python -B -m unittest
+ test_ashe_hack.AsheHackTests.test_hack_locks_ashe_abilities_but_preserves_ads_reload_and_movement
+ test_ashe_emp.AsheEmpTests.test_emp_blocks_abilities_without_suppressing_viper_and_releases_at_expiry
+ test_game_sombra_combat.SombraCombatTests.test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry
+ test_game_sombra_charge.SombraChargeTests test_sombra_replay_pose_adapter
+ test_game_script_runtime -v:36allpass53.598s,
+worker-c-sombra-expiry-admission-check.log. Both originalAshe methods now pass
+complete—including heldlock/fire/ADS/reload/movement, exactexpiryQrejection,
+release andfreshQresource spend—and originalSoldierHelix release remains correct.
+All15Sombracharge plusroot7-field/differing-epoch replay adapter/runtime pass.
+No fixture/assert changes, no Python edits during group, diff check clean.
+
+Next C41: incoming application reapply/start clocks/source-retirement and actual
+Portal/Sentry/Torb device routing. Audit found legacy DeviceWorld assumes
+fight.symmetra_portals andoldmodule endpoint APIs, while actualhost is
+fight.portals + actor-backed PortalPair; actualSentries are fight.sentries
+(symmetra_turrets.Turrets), actualTorb fight.turrets. These must consume their
+real actors/components and unique Vitals, not mount legacy duplicate managers.
+A owns BOB timeout/gun continuation; its exactexpiry/refresh stack sent separately.
+C39/body888 remains merged unchanged. No client/network acceptance performed.
