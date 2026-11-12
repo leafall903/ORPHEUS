@@ -740,3 +740,15 @@ still uses the reconciled39graph union. Actual Bob14 runs now, not claimed passe
 V14/15 also select original Translocator and Sombra ultimate data and strictly
 verified current-bound BOB mover extension: all43 original/current records equal,
 original input hashes checked, no original bytes or fingerprint guard changed.
+
+
+Root final observed checkpoint: original Bob14 actually passes16.628s with
+v15; no remaining selector skip for this run. B39 cdeb223c received5796db50:
+original Fireball/runtime23run22pass1preserved strict impulse boundary failure
+11.0 not<11 in31.196s. It does not block the implementation commit/merge.
+All root sessions terminal; no root code WIP. Preparedv15 source hashes all
+rechecked unchanged. Three persistent workers continue; A49 uppercut/status
+and C36 Sombra charge WIP are worker-owned and not yet counted as merged.
+Current canonical/intake5796db50 before this checkpoint documentation commit.
+Remaining estimate30-60 continuous elapsed hours /3-5 calendar days remains
+low-confidence, with B's broad remaining owner audit the critical path.
