@@ -921,7 +921,8 @@ class BotWorld(runtime.World):
                                         and recipient.component.entity_var(1216).value() == 2):
                                     heavy_assault._push(attacker, target, state, settings, defer=True)
                                 else:
-                                    fight._radial_impulse(target, tuple(origin), horizontal, upward)
+                                    fight._radial_impulse(target, tuple(origin), horizontal, upward,
+                                                          replay_source=attacker.entity if upward > 0 else None)
                 return True
         value = heavy_assault.modify_health(self, state, elapsed_ms)
         if value is NotImplemented and self.match is not None and elapsed_ms == 0:

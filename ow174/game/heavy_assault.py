@@ -299,8 +299,10 @@ def _push(source, target, state, settings, *, defer=False):
         # The original configured-Sentry force must join the next physical
         # action phase after its persistent movement constraints.
         fight = state.instance.component.world.match.combat
-        fight.knockbacks.apply(target, expr.Vec3(horizontal * dx, upward, horizontal * dz),
-                               impact_frame=fight.tick)
+        accepted = fight.knockbacks.apply(target, expr.Vec3(horizontal * dx, upward, horizontal * dz),
+                                          impact_frame=fight.tick)
+        if accepted and upward > 0 and state.instance.graph.index in (GRAPH, 0x1422):
+            fight.knockbacks.record_launch(target, source_entity=source.entity)
     else:
         vx, vy, vz = mover.velocity
         mover.velocity = (expr.f32(vx + horizontal * dx), expr.f32(vy + upward),
@@ -308,6 +310,9 @@ def _push(source, target, state, settings, *, defer=False):
         if upward > 0 and not mover.flags_word & IN_AIR:
             mover.flags_word |= FELL
             mover.air_ticks = 0
+        if upward > 0 and state.instance.graph.index in (GRAPH, 0x1422):
+            state.instance.component.world.match.combat.knockbacks.record_launch(
+                target, source_entity=source.entity)
     if source.hero == HERO and (horizontal > 0 or upward > 0):
         correction.force_impulse(target.owner)
 

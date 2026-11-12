@@ -13161,3 +13161,59 @@ code time for presently confirmed gaps is zero after this batch; receiving revie
 and old numerical/resource/client verification are separate, unbounded tails.
 Next exact action: send B100 SHA and bounded source-consumer handoff to root,
 then respond only to concrete integration findings with focused commits.
+
+
+## B101 — retain accepted NPC launches in existing world replay
+
+The final original012E Impulses.launch caller review found a real omission after
+B100's bounded inventory: heavy_assault.secondary_damage at graph1408/node35
+used launch in the source; the current actual dispatcher maps it to
+BotWorld.apply_modify_health -> Combat.npc_selected_damage ->
+_npc_melee_damage -> reinhardt_charge.lateral_impulse. Its existing player
+Mover velocity was updated but no accepted-launch marker reached world replay.
+This corrects the earlier bounded statement rather than relabelling the missing
+consumer as a test observation.
+
+A real manual Heavy melee baseline also demonstrated 75 damage and velocity
+(0,7.7197265625,-19.5537109375), yet the player's position stayed exactly fixed
+through the next 25 world ticks with no input. Trooper's actual attack delivered
+25 damage with zero launch velocity; its no-marker/no-movement default remains.
+Baseline evidence is worker-b-npc-launch-baseline.log.
+
+The original1408/35 positive vertical player impulse now records the attacker on
+same Knockbacks after the existing accepted same-Mover path. No other 1408
+lateral node or Rein default is admitted by this condition. The existing
+_npc_melee positive-up helper similarly records its real component source;
+its actual loaded140E graph/tracker/health-state consumer is tested directly,
+without claiming the generic native dispatcher necessarily reaches it by default.
+
+Actual manual140E/1422 BotWorld health dispatch uses _radial_impulse; it now opts
+in with replay_source only for its original positive-up launch. The radial host
+records only after its current Fortify/response/finite/nonzero checks and actual
+player Mover ADD, leaving all other families' default calls unchanged. The host
+itself does not impose an upward requirement: A's separately owned original DVa
+push caller may explicitly select it for a legitimate horizontal force. A and B
+agreed on this one replay_source keyword; no competing API or physics host.
+
+Configured Sentry still uses Heavy._push -> existing Knockbacks.apply queue;
+only a successful positive-up melee enqueue records its source. Direct _push
+retains its original math/flags and is restricted to the melee graphs. No force
+scalar, modifier26, queue impact frame, default radial response, collision,
+existing mover/data, or original assertions were changed. All launches use the
+same B96 clock pair, B99 source metadata, normal_ticks loop and late-input receipt.
+No new persistent field or second movement driver was added.
+
+Four targeted methods passed 7.569s: real manual Heavy recon and configured
+Sentry paced/gap exact position plus velocity; late FIRE receipt no duplicate;
+real Trooper no-up default; actual140E generic consumer; original1408/node35
+BEGIN/run_now through actual VM with damage/up/source and exact paced/gap pose.
+The joint original Heavy impulse, original force-gap, new NPC and runtime checks
+passed 25/25 in 57.831s. Final shared-host opt-in policy was then rechecked with
+the four targeted methods; see worker-b-npc-launch-final-check.log. Logs retain
+both the baseline omission and the accepted implementation evidence. No client
+acceptance or full source matrix is claimed. A retains Booster work independently.
+
+Next exact action: deliver this commit to root and A for the common radial-host
+signature, then follow any concrete original-caller integration findings. The
+prior six-owner mapping remains as recorded, but the latest confirmed extra
+012E caller gap is closed by this implementation rather than by ancestry alone.
