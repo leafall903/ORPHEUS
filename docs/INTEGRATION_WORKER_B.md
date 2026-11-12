@@ -2033,3 +2033,260 @@ subframe,source-joint}.log. Raw unequal-epoch strict-server proof is the next
 independent batch; do not claim that unrun probe from same-domain success.
 No original-client acceptance run. B75 prepared untracked raw test will verify
 actual1000+body/50world, inputless3s cutoff, frozen VM and causal clock hash.
+
+
+## B75 — actual unequal-epoch Grasp receipt and strict causal storage
+
+Real two-peer ServerSession HeroPickSigma + actual1D02/FIRE creates positive
+1D03 health. Observe the real play_shield_script producer independently and
+compare stored(bodyframe,bodyms,worldtick) with that callback. Body/world epochs
+are unequal. Derive expected cutoff from the actual entered Wait71 start+ms,
+NOT the stored delay. World-only progression preserves the exact pre-cutoff
+pool, then consumes declared rate for only the post-cutoff interval. Both
+BodyScript.frame and component.now remain frozen: no hidden VM/input advance.
+
+StrictBodyVM and whole-server capture pass. Read-only capture forbids variable
+evaluation and run_now. Mutating only recorded producerbodyms changes stored
+hash; restoring it restores hash. Initial raw proof1/1 pass46.673s; independent
+producer/entered-Wait strengthened proof1/1 pass43.010s. Logs worker-b-sigma-
+grasp-decay-raw{,-independent}.log. No runtime changes/client acceptance.
+
+### Remaining actual owner consumer audit and active-time estimate
+
+Low-confidence remaining10–22 active B hours, not wall-time or a promise of
+original-client acceptance. Parallel Zarya/Flux work belongs to A/root.
+
+- Hog: full original NPC fixture/adapters still absent; cross-control/vector/
+  device/victim-credit and NPC navigation/wall handoff exact original callers
+  remain. Player/5factoryNPC/ownedDVa worldmotion and charge/heal/weapon core are
+  mounted and causally stored, but do not count the whole lane from those probes.
+- Sigma nonFlux: source barrier/owner/control/Deflect/Moira/Sentry callers, exact
+  typedfilter/query service equivalence and remaining original fixture/CLI
+  imports are the largest unreviewed area. Two primitive same-action repeated
+  grant expectations conflict with original023B dedup; Fieldgeometry5.210vs5
+  remains, rather than new shadow pools or adjusted numeric expectations.
+- Rein/Winston/Doom/Ball: final original consumer inventory and remaining actual
+  cross-hero/NPC/lifecycle/clock scopes; keep existing finished Dash history and
+  source strict boundaries, sourcefirstperson vs soleview_offsets API audit,
+  geometry and client-transport limitations. No whole-lane completion inferred
+  from narrow prototypes, passing subsets or delivered-ref ancestry.
+- Source023B filter_context/filter_pipeline/filter_tags and target_* path audit:
+  current entity_filter/entity_queries/entity_relation/entity_tags and actual
+  target_volume/visibility exist. SourceSDK states it needs explicit backend
+  bindings; do not blind-copy an unused second runtime or claim path absence
+  means absent gameplay. Actual sourceMoira filter_tags/Volume and FluxVolume
+  callers require explicit shared-host equivalence; root owns Flux and CMoira.
+- CLI correction: actual verify_sigma_filter_inputs imports
+  test_sigma_symmetra_sentry, not the previously described nonexistent
+  test_sigma_symmetra_beam filename. Verify actual immutable paths before
+  restoring adapters; no fake module alias or optional-network dependency install.
+
+Next exact action: clean sync root3be70f27, then concrete barrier/typedquery
+consumer audit and coordinate Moira/Sentry source contexts with C. Commit each
+real reusable batch without waiting for all original geometry/client checks.
+
+
+## B76 — original tag kernels with a real existing Moira consumer
+
+Clean sync accepted3be70f27 at worker merge81d151d0; only changelog conflict
+kept both sides and removed one empty duplicate heading. C confirmed no Moira
+WIP. Actual moira._grasp_contact already owns source023Bmoira_beams equivalent
+Volume and static tag lookup; do NOT copy a second beam host.
+
+Restore original filter_tags Tags/any/all/matches/collect_values/evaluate public
+kernels; whole AST equals source exceptcollect delegates to the current owned
+entity_filter.collect_tags, retaining its owner-retirement/depth/work guards.
+Existing entity_filter.TagSet and entity_tags APIs remain intact. Actual sole
+Moira reads the same precollected config tuples/static catalog via original
+Tags/matches, with unknown catalog and visibility/ranking policies unchanged.
+No tag store, component, manager or persistence field added; originalVolume
+stays the same current target_volume class shared with rootFlux.
+
+Restore test_script_filter_tags.py byte-for-byte. Fullsource tags, current tag/
+collection safety checks and actual5NPC Moira tag rejection28/28 pass3.844s
+(worker-b-sigma-filter-tags-mount.log), including real1E41 exclusions and strict
+unknown/dependency/removal/high-key checks. No original-client acceptance run.
+
+Retained prototype gap explicitly confirmed: accretion.control calls
+fight.stun(...extend_only=True), unsupported by current primitive stun. It is
+unmounted (no actualdriver/combat/bot caller); actual1BBB control uses the sole
+Brigitte224E host through current driver. Do not add a facade/second stun clock
+to make an unused prototype appear integrated. Its old rocket identity API
+also differs; preserved pending original caller/context audit, not whole-lane
+completion. OriginalAna/Tracer missing sigma_accretion imports need actual
+consumer adaptation, not fake module aliases.
+
+Next exact action: sourcefilter_context/pipeline explicit SDK and cache API
+versus actual entity_filter_host/controller scope; preserve known-unknown
+backend boundaries and current NPC FilterContext. Then original barrier/owner
+and Sentry CLI actualfactory fixtures. No new acceptance matrix.
+
+
+## B77 — preserve original explicitly bound filter/cache SDK APIs
+
+Restore filter_context and filter_pipeline byte-for-byte, with all three
+original context/pipeline/hostility fixtures byte-for-byte. These source APIs
+explicitly require supplied lookup/cache/environment/services; source itself
+does NOT install a productionWorld or bind bareFilter implicit subject. Keep
+that exact scope, not another automatically attached host/cache. Existing
+entity_team.FilterBits, entity_hostility and condition kernels are reused.
+
+Restore World.entity_filter_context optionalcomponent keyword from source,
+defaultNotImplemented. Existing BotWorld controller scope is a different real
+contract: no-keyword calls still return the same control_context; explicit
+SDKcomponent calls returnNotImplemented because that SDK namespace/cache is
+not installed. Do not reinterpret its controller object as a cache/backend or
+synthesize passing defaults. Actual filter_game uses the original no-keyword
+controller route unchanged. No serializer state/new native manager added.
+
+SourceSDK42/42 pass1.311s, including callbacks, retirement, lock acquire/release,
+cache identity/null-first lookup, eager ordering and unknown-service rejection.
+Separate existing controllerfilter/NpcContext/runtime26/26 pass2.281s. Logs
+worker-b-sigma-filter-sdk{,-shared}.log. Existing original Junkrat charge resource
+fixture already imports this publicSDK and supplies explicit binding, so its
+previous import blocker is removed; actual dispatcher integration remains its
+owner audit, not claimed from helper/API presence. C/root notified.
+
+No original-client acceptance or wholeSigma completion claim. Next exact action:
+root's retained FluxTargets mixedowner observations→real absorption/Accretion/
+Fortify/nativeZarya service bindings with every original assertion retained.
+Root confirms current target_volume and its11kernel tests exactly sourceAST,
+actualflux_targets uses that sameVolume; do not duplicate it. Keep original
+horizontalcap3 vs current9.988 residual until originalbaseline/soleMover proof.
+Then complete source barrier/owner and actual Sentry CLI consumer adapters.
+
+
+## B78 — original FluxTargets mixed-owner observations on actual services
+
+Keep Flux calls on actualsigma_flux, but bind Grasp/Accretion/Fortify metadata
+and queries to actualabsorption/combat/fortify, never production alias names.
+Observe actual nativeZarya scriptedPet recipient/body and the same Vitals;
+source40HP seeding calls its Vitals.damage(total-40), not a detached shadow
+particle_barriers map or a damage event that incorrectly credits160energy.
+Read nativeactive pool amounts directly. Existing Grasp activation, living
+pool-group/zero tombstone observers are reused from sourcefixture adapters.
+All original assertion-call ASTs equal under exact real observation mappings;
+all numeric expectations remain. No source effect driver changed this batch.
+
+Original8 formerly blocked mixed-owner methods run35.291s:7pass,1realcleanup
+fail. Grasp preservation, lethal entry, all three airborne Accretion scenarios,
+all nativeZarya entry/slam subcases and bothFortify scenarios pass. Only lethal
+slam retains converted[deadbody]=(5,1) until later replacement: original expects
+immediate removal. This is a missing owner-death consumer, not another getter
+mismatch; preserve the failed assertion and restore existingabsorption.retire
+on actualdeath next. Log worker-b-sigma-flux-mixed-owner.log.
+
+Root owns original field33 horizontalkernel and has restored that sameMover
+consumer independently; do not change mover.py. Root has no deathcleanup WIP
+and authorizes B79 narrow existingowner cleanup. No original-client run.
+
+
+## B79 — actual death immediately retires existing Grasp ownership
+
+Original023B Combat._died pops both grant/decay ownership at death. Current
+absorption.retire already clears both authoritative maps but only ran on later
+body replacement. Call that SAME method from current Combat._died for the actual
+victim.body. No other ledger/controller/Flux behavior changes, fields or hosts.
+Root explicitly confirmed no deathcleanup WIP and authorized this narrow path.
+
+Original lethalSlam now reaches all source cleanup/respawn/zero-pool assertions.
+Lethalentry and both original graspdeath cases plusDamage8/runtime13 =25/25
+pass17.418s (worker-b-sigma-grasp-death-cleanup.log). No numeric fixture edit,
+original-client run or production mover change.
+
+### Convergence correction: code gaps vs validation tails
+
+Unrestored fullHogNPC fixtures, old observing names, source contract conflicts,
+old geometry/client checks are NOT proof of absent runtime code or merge gates.
+All established Hog core and player/5NPC/ownedMech motion consumers are mounted.
+The two primitive Grasp replay conflicts remain original expectations rather
+than a reason to omit actual023B implementation. Originalfilter/cache SDK
+requires explicit backend binding by design; retaining that unknown production
+boundary preserves source semantics, not a newly missing automatic host.
+
+Source0040/012F Mover.launch name needs no facade:012F Combat._launch maps to
+current Combat._launch→existingMover.impulse and NPCapply_impulse. Source0040
+Doom-specific0DD8/1,0B27/75 helper maps to currentdriver exactgraph/node
+motion_reports→sameCombat._launch; own012F complete movement/control remains.
+Do not replace it with the narrower inherited source0040 selflaunch or another
+force pipe. Source012F authored_mover_data is currentdefined_mover_data.
+
+No additional runtime absence is established merely from those names/tests.
+Next production audit candidates need actualcaller evidence: source0040 victim
+credit multiplier for its supported Doom/Ball/QuadCannon gain dispatch (current
+Hog branch has it, other authoredtarget-tag branches may already do it);
+barrier/typedquery/sourcecontext functional equivalence. Prove a reached
+missing consumer before adding code. SourceCtx/SDK scope and retained unused
+accretion.control incompatibility remain explicit, not fake productionaliases.
+Estimated validation-tail hours must not be reported as required code merge
+time. Next exact action: clean sync rootfield33 commit545f3a6f, then that bounded
+actualconsumer inventory/probe; report confirmed missing code separately.
+
+
+## B80 — reached original0040 victim credit consumers (actual missing code)
+
+Clean sync root545f3a6f at worker mergeeb34efce, changelog conflict kept both
+sides. Rootfield33 soleMover consumer retained; do not re-add Mover.launch.
+
+Bounded production audit found original0040 Combat._damage explicitly applies
+base_dealt*01C7/111 victimfactor before its supportedgain dispatch: Hog, Doom
+HandCannon, Ballfireball/melee and QuadBall/Genji. Current Hoggeneric applied
+factor but used all dealt (including temporary loss); its supported other
+consumers missed that victimfactor. Actual unchanged weapons confirmed:
+Doom66HP→66charge instead49.5; BallQuad5→5 instead3.75, melee30→30 instead22.5,
+realGrapplefireball50→50 instead37.5; finalGenjiQuad impact50→50 instead37.5.
+ActualHogslug below36Grasp temporaryHP credited50 rather than14 permanentHP.
+Soldier real20HP hit already credits15 through authoredtag logic, so DO NOT
+apply a global multiplier or overwrite other owners' charge systems.
+
+Restore these EXACT original supported loadout/owner branches only, using same
+Vitalsbase_before/base_after and existingroadhog_charge.damage_received_multiplier,
+then existinggain. Preserve original health damage, pool/credit budgets, target
+eligibility, caps, projectile identity and ownedfloat arithmetic. No new ledger,
+manager, runtime mode or state field. Source newregression includes real
+HandCannon/Quad/melee/Grapplefireball/Hogslug plus postreflectionGenji impact
+consumer and actualSoldier non-double guard. Baseline6methods had6 failing
+subcases; health assertions already passed. Initial local mount missed the
+actualdeflection.GENJI provider; corrected that constant without changing any
+expectation, retaining the errorlog. New6 +originalHogvictim/Ballnormal/fireball
+3 +Damage8/runtime13 =30/30 pass11.604s. Logs worker-b-hog-victim-credit-
+{audit,baseline,mounted,corrected}.log (initialDoom diagnostic in tool output).
+
+This was confirmed unmounted PRODUCTION behavior, unlike fullNPCtest recovery
+or client/geometry validation tails. After this batch there is no additional
+confirmed runtime absence in the current owner inventory; remaining code audit
+must identify an original reachedconsumer before declaring missing feature.
+Next exact action: final bounded source production caller inventory (owner
+modules/sharedadapters); report zero/explicit remaining implementations to root
+separately from tests/conflicts/client follow-up, and do not gate delivery on
+full source matrices. No original-client acceptance run.
+
+
+## B81 — preserve original directly callable target SDK implementations
+
+Final sourcecall scan: the10original target_* modules below import one another
+but have NO external sourceow174/tools production importer. This establishes
+that their missing path is not a missing gameplay host. It does NOT justify
+discarding existing publicSDK implementation. Compare actual APIs: current
+spatial_queries(Context/evaluate) is a World-config front end, component45 is
+boundcomponent history/update, andscopes is message-host lifetime. These do not
+replace originalRootMap/Index/Buffer/SpatialTree/TemporalQuery/etc direct APIs.
+Root explicitly confirms retain originalSDK where no equivalent interface.
+
+Restore byte-for-byte target_aggregate/context/geometry/history/index/membership/
+relation/scan/spatial/store and all11original correspondingfixtures, including
+temporaltests. Existing target_volume remains UNCHANGED (root proved wholeAST
+and11kernels identical and actualFlux/Moira use it). Original explicit backend,
+unknown/strict requirements, float32 arithmetic, root/member/cache lifetime,
+identity and mutation order remain. No automatic sceneIndex/cache/World/manager
+is created or attached, and no existing runtime path is replaced. These are
+original existing direct-call API implementations, not invented newfeatures.
+
+All58 original SDK checks pass1.073s, worker-b-sigma-target-sdk.log. No current
+runtime mutation or client acceptance. After confirmedB80 runtimecredit fix
+and these SDK restorations, no additional unmounted production implementation
+is currently established for the six retainedowner chains. Next exact action:
+final source-to-current path/caller inventory and give root a precise closure
+record, separating known original numeric/source conflicts/client tails from
+any newly PROVEN absent implementation. Do not use incomplete fullmatrices or
+missing legacyfixture imports as code merge blockers.

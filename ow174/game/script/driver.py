@@ -1468,6 +1468,10 @@ class BodyWorld(runtime.World):
                     and instance.evaluate(target) == Entity(self.body)):
                 override = component.entity_var(BODY_SCALE_OVERRIDE, create=False)
                 scale = override.value() if override is not None else None
+                if not component.strict and self.match is not None:
+                    owner = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                    if owner is not None:
+                        return owner.mover.body_scale
                 if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false

@@ -101,3 +101,43 @@ probe observes actual downward velocity instead. The original None, retired-var
 and net-loss assertions stay unchanged. This is additional functional evidence,
 not a claim that the old whole source method or complete NPC owner passes.
 Probe/log: ../parallel-merge/root-flux-npc-functional-settlement-probe.py / .log.
+
+## Original Volume kernel and caller audit
+
+Current script/target_volume.py and its full original11-test kernel file are
+AST-identical to delivery023B. The actual sigma_flux.flux_targets consumer
+imports this same Volume and applies it to the existing Match target capsules;
+no alternate target store, controller alias or backend is supplied. All11 kernel
+checks pass on canonical c3db794c. Source receipt is external
+parallel-merge/root-flux-volume-source-audit.json.
+
+The accompanying retained FluxTargets suite run41 tests in123.900s with4failure
+records,13errors and3optional-NPC skips. The13errors reference old mixed-owner
+attributes ACCRETION/GRASP/fortify/particle_barrier through sigma_flux; current
+actual owners are separate modules. These need actual caller adapters, not
+production facades. Existing original assertions remain. The four failures are
+descent sampling, horizontal impulse9.9880859 versus original3, and two Mei
+protection cases whose actual health recovers250 versus expected200. This audit
+does not classify the horizontal difference as fixed or proven baseline parity,
+nor remove real cryo healing to satisfy the old health observation. Complete
+log: parallel-merge/root-flux-volume-source-current-check.log. OwnerB is informed
+about the shared Sigma caller adapters. No production changes accompany this
+receipt and these source discrepancies do not block committing or merging code.
+
+## Restore original horizontal speed field consumer
+
+The9.9880859-versus3 difference above exposed a missing original implementation:
+Mover.HORIZONTAL_SPEED_MOD33 and _modify_horizontal_speed were absent. Restore
+the original method AST-identically and call it in the existing normal pose
+path before collision, after current one-frame action velocity deltas. It
+consumes the existing active MovementMod list and preserves Y, gravity, force
+ownership and collision. No new stored field, mover, ledger or VM is added.
+No flight-profile/MoveTo policy is widened beyond the original normal path.
+
+The complete original horizontal impulse test now passes with its expected3
+and original vertical-ascent assertion unchanged. Vertical minimum/descent,
+actual Heavy/Trooper and damage/runtime checks20/20 pass8.735s; shared modifier,
+state and flat-floor checks16/16 pass0.051s. Other failures/errors in the41-test
+receipt remain recorded above and are not relabelled green. Source AST receipt:
+parallel-merge/root-field33-source-receipt.json; logs root-field33-original-
+consumer-check.log and root-field33-shared-mover-check.log.

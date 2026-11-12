@@ -135,7 +135,34 @@ A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
 
+## C66 — omitted projectile and active sphere retained respawns
 
+Restored original0016 early projectile-death tracking across update calls on the
+same respawn queue, with exact strict snapshot field and retirement/resurrection
+cleanup. Native Winston sphere owner replacement retains the actual bubble and
+source next-tick cover-end boundary. No second scheduler, pool or allocator.
+35 actual/shared tests pass25.528s, including single/split real orb deaths, native
+sphere owner respawn and whole-server causal/unknown-field checks. Old source
+assertions retained; no client/network action.
+
+## C65 — retained Sentry owner respawn and historical body allocation
+
+Connected original0016 prewindow retries/retained Sentry-owner replacement to the
+existing respawn list, body switch and single ID ring. Restored optional historical
+allocation time through Client availability while preserving reliable-tail guards,
+all current hero charge branches and same pool health sends.31 actual/shared tests
+pass; final Sentry-only narrowing reran3/3pass. Original active-Winston-sphere and
+early-projectile respawn consumers remain explicitly for C66. No client/network
+action; all original numeric assertions retained.
+
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
 ## A93 — retain independent native casts without extra legacy gates
 
 Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup
@@ -226,6 +253,14 @@ old private API, source geometry/contract differences, externalclient OPEN) are 
 production-merge blockers. Final source/shared mover replacement mapping follows
 A93; do not add legacy mover facades merely because names differ.
 
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
 
 ## A91 — original earlier break rebase after an ahead body end
 
@@ -518,6 +553,98 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original body-size and Mei combat consumers
+
+- Merge original size modifier12 and the same mover-derived scale into actual
+  eye/target dimensions, Mei melee reach and the existing self-size query.
+  Preserve original physical capsule and current other-owner fields.
+- Original scaled Mei/Genji methods and mover/damage checks pass16/16. Old
+  fixture/contract differences remain recorded separately; no new runtime host
+  or client acceptance is implied.
+### Preserve original directly callable target SDK
+
+- Restore original root/index/history/geometry/membership/temporal APIs where
+  current World wrappers do not replace their public interfaces; explicit
+  backend requirements stay unchanged, with no second attached runtime host.
+- Ten original modules and eleven fixtures are byte-identical; all58 checks
+  pass. Existing Volume/gameplay paths remain; no client acceptance run.
+
+### Restore original victim-side credit for supported weapons
+
+- Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent
+  pool loss and the existing victim modifier, preserving other authored target
+  adjustments without duplicate scaling or another charge ledger.
+- Reached weapon/impact and shared30 checks pass. Original damage/physics and
+  numeric expectations remain; no original-client acceptance run.
+
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
+
+### Admit proven projected-NPC Sentry history through the existing driver
+
+- Replace the blanket projected-barrier rejection with the original strict
+  single-projection/support proof, preserving personal and other unproven guards.
+- Ten actual NPC/Pet scenarios have identical contiguous and gap outcomes;
+  25 shared checks pass. Full older observer/absolute-outcome differences and
+  client acceptance remain open without blocking the consumer integration.
+
+### Preserve the authored Trooper melee position gate
+
+- Add actual producer coverage for valid close contact and rejected farther
+  contact over the current real position host; two NPC/Bastion checks pass.
+- Keep the original older 2m expectations as recorded differences, without
+  widening graph conditions or creating another damage path. No runtime behavior
+  was changed by this audit; client acceptance remains open.
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
+
+### Preserve original explicit filter and cache APIs
+
+- Restore the original caller-bound SDK and checks, reusing existing kernels.
+  Production controller contexts retain their current path and unknown binding
+  remains strict; no second attached filter/cache host is created.
+- Original42 and shared26 checks pass separately. Mixed-owner fixture and
+  actual dispatcher audits continue; no client acceptance run.
+
+### Restore original tag kernels on the existing Moira host
+
+- Preserve original tag API and use it on the same Moira candidate path, reusing
+  current guarded collection and existing catalog/volume/ranking services.
+- Original/current tag safety and real NPC consumer28 checks pass. No second
+  beam host, tag store, serializer change or client acceptance run.
+
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
+
+
 ### Restore original Heavy melee force on configured Bastion
 
 - Reconnect the explicit original Heavy/Sentry interaction to the existing
@@ -591,6 +718,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
+
 ### Restore Grasp world decay from actual grant receipt
 
 - Existing pool groups consume the original declared delay/rate even without
@@ -11727,3 +11861,26 @@ vs native60 assertions remain visible and do not block real code integration.
   snapshot rejection remains unchanged.
 - Actual projected NPC causal storage, unknown-field rejection and shared
   damage/runtime20 checks pass; original gameplay assertions are retained.
+
+### Verify remaining actual prediction geometry families
+
+- Actual Orisa, Sigma and Photon shields pass surface/object/service identity,
+  splash inclusion/impact exclusion and readonly whole-server digest checks.
+  Correct raw world-flight and ground-aim input completes the existing fixture.
+- Combined with prior actual Mei/Reinhardt/Winston receipts, all six existing
+  geometry families now have scoped query evidence. No gameplay/runtime change.
+
+### Restore original horizontal speed modifier consumer
+
+- Restore delivery023B's field33 kernel unchanged on the existing normal mover
+  pose path. Original Flux impulse3 and preserved vertical speed now pass.
+- Actual/shared20 checks and modifier/state/floor16 checks pass. No new mover,
+  persistent field or altered original gameplay assertion.
+
+### Restore existing orb and NPC omitted-route history
+
+- Reuse current flight ticks and the sole Match route/impulse driver for
+  original0016 admitted orb history, retaining its authored remaining-flight
+  budget and actual time-dependent NPC pace. No new mover, VM or stored field.
+- All20 actual stepped/gap causal pairs match; retain two original Assassin
+  absolute-position failures instead of altering their expected numbers.

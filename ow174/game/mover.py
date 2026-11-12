@@ -198,11 +198,13 @@ IN_AIR = 0x80000C
 ADD, MULTIPLY, SET, MINIMUM, MAXIMUM, CLAMP = range(6)
 SPEED, ACCEL_GROUND, ACCEL_AIR, ACCEL_TOUCHING, DECEL_GROUND, DECEL_GROUND_BASE, DECEL_GROUND_SPEED = range(7)
 DECEL_AIR, DECEL_AIR_BASE, DECEL_AIR_SPEED, JUMP_SPEED_MOD, GRAVITY_MOD = range(7, 12)
+BODY_SIZE_MOD = 12
 TERMINAL, TERMINAL_UP, GROUND_ACCEL, GROUND_DECEL = 13, 14, 15, 16
 # Native104319 C33960: positive forward/back magnitude/absolute lateral.
 # Keep raw replicated throttle bytes; these modifiers affect only the movement wish.
 THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
+HORIZONTAL_SPEED_MOD = 33
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
 # The statescript's MovementMod state (STU_316CFEF2) and its mod classes (STU_6810506D: m_A9561CA0 index,
 # m_9B7A63EA value): class -> (op, value of an empty config var) (0x7FF789C4C1E0, by their type objects).
@@ -546,7 +548,7 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
     if not mods:
         return data
     slots = dict.fromkeys(range(10), 1.0)
-    slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, TERMINAL: data.terminal_velocity,
+    slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, BODY_SIZE_MOD: 1.0, TERMINAL: data.terminal_velocity,
                   TERMINAL_UP: data.terminal_velocity_up, GROUND_ACCEL: data.ground_gravity_accel,
                   GROUND_DECEL: data.ground_gravity_decel, COLLISION_MOD: float(data.character_collision),
                   STEP_DOWN_MOD: 1.0})  # fmt: skip
@@ -555,6 +557,20 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
             slots[mod.index] = apply_op(mod.op, slots[mod.index], mod.value)
     clamp = {index: max(0.0, slots[index]) for index in (0, 1, 2, 3, 4, 5, 7, 8)}
     speed = clamp[SPEED]
+    size = slots[BODY_SIZE_MOD]
+    if not math.isfinite(size) or size <= 0:
+        size = 1.0
+    if size != 1.0:
+        data = replace(
+            data,
+            stand_height=f32(data.stand_height * size),
+            stand_radius=f32(data.stand_radius * size),
+            stand_pogo=f32(data.stand_pogo * size),
+            crouch_height=f32(data.crouch_height * size),
+            crouch_radius=f32(data.crouch_radius * size),
+            crouch_pogo=f32(data.crouch_pogo * size),
+            ground_circle_radius=f32(data.ground_circle_radius * max(CIRCLE_SCALE, size)),
+        )
     return replace(
         data,
         run_forward=f32(data.run_forward * speed),
@@ -840,6 +856,10 @@ class Mover:
         if self.velocity[1] > 0.0:
             self.flags_word |= FELL
 
+    @property
+    def body_scale(self) -> float:
+        return f32(self.values.stand_height / self.data.stand_height)
+
     def use(self, data: MoverData | None = None, world: World | None = None) -> None:
         """Take another hero's values (a hero switch), or the map's collision once it is loaded."""
         if data is not None and data is not self.data:
@@ -1121,6 +1141,7 @@ class Mover:
                     if not self.flags_word & IN_AIR:
                         self.air_ticks = 0
                     self.flags_word = self.flags_word & ~JUMPED | FELL
+            self._modify_horizontal_speed(active)
             if fall_limit is not None:
                 vx, vy, vz = self.velocity
                 self.velocity = (vx, max(vy, -max(0.0, fall_limit)), vz)
@@ -1567,6 +1588,17 @@ class Mover:
         allowed = min(speed, max(cap, before))
         if abs(speed - allowed) > LAND_LIMIT and squared >= EPSILON:
             self.velocity = (vx / speed * allowed, vy, vz / speed * allowed)
+
+    def _modify_horizontal_speed(self, active: list[Mod]) -> None:
+        """Resolve field 33 on the XZ magnitude before collision, preserving Y (C31A72)."""
+        if not any(mod.index == HORIZONTAL_SPEED_MOD for mod in active):
+            return
+        vx, vy, vz = self.velocity
+        length = f32(math.hypot(vx, vz))
+        if length <= CAP_TINY:
+            return
+        scale = f32(intent(active, HORIZONTAL_SPEED_MOD, length) / length)
+        self.velocity = (f32(vx * scale), vy, f32(vz * scale))
 
     # ---- 8. the move
 

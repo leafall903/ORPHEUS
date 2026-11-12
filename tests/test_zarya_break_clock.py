@@ -173,4 +173,3 @@ class ZaryaBreakClockTests(unittest.TestCase):
                 run.step(cast)
                 self.assertEqual(pet.counter, generation + 1)
                 self.assertTrue(self.protected(service, caster, recipient))
-

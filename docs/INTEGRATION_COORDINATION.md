@@ -10,8 +10,8 @@ Workers start from `bf7fad86` in separate worktrees and indexes:
 
 | Worker | Branch | Delivery IDs | Resume record |
 | --- | --- | --- | --- |
-| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A, 0065, 0200 | `docs/INTEGRATION_WORKER_A.md` |
-| `/root/merge_b` | `integration/merge-worker-b` | 0007, 0009, 0040, 0068, 012F, 01CA, 023B | `docs/INTEGRATION_WORKER_B.md` |
+| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A, 0065, 0200, 0068 | `docs/INTEGRATION_WORKER_A.md` |
+| `/root/merge_b` | `integration/merge-worker-b` | 0007, 0009, 0040, 012F, 01CA, 023B | `docs/INTEGRATION_WORKER_B.md` |
 | `/root/merge_c` | `integration/merge-worker-c` | 0006, 0008, 0015, 0016, 00DD, 012E | `docs/INTEGRATION_WORKER_C.md` |
 
 Each worktree is `verification/merge-worker-<letter>` beside this worktree.
@@ -1189,3 +1189,36 @@ runtime budget. No whole-owner or original-client completion claim follows.
 All root handles are terminal. A82 actual NPC same-mover/data/release then
 flight/field clocks, B61 NPC/owned-mech actual Motion consumers and nonFluxSigma,
 and C remaining original support/phase paths continue on existing worker branches.
+
+## Current original-language integration checkpoint
+
+Canonical/intake3663ea10 contains B76 original tag kernels on the existing Moira
+consumer, B77 explicit filter/cache SDK interfaces, C62 actual projected-NPC
+Sentry history admission, and root original field33 horizontal speed consumer.
+The root method is AST-identical to source023B on the sole Mover; the old Flux
+horizontal3 assertion now passes. Original numeric assertions are retained.
+Shared SDK/projected-history/field33 checks60/60 pass4.374s. Source filter SDK
+interfaces remain explicit and do not manufacture a production backend or cache.
+
+Root's actual NPC projection private storage boundary is merged: owned button
+lookups and copied Entity parameter values, with the strict snapshot exporter
+unchanged. Actual Orisa/Sigma/Photon plus prior Mei/Reinhardt/Winston checks
+verify six existing geometry query families without VM execution or mutations.
+Receipts are in INTEGRATION_ROOT_STORAGE/QUERIES/FLUX and parallel-merge logs.
+These scoped receipts do not claim full original-client or full-suite acceptance.
+
+B78 restores mixed-owner actual Flux test bindings, clearing the13 missing-name
+errors without adding production aliases. One actual death-ledger cleanup gap
+remains assigned to B79. A continues its exact constructor/world clock and
+silent-break/multi-Pet consumers; C continues source projected support/retarget
+consumers. Workers must distinguish missing production integration from
+validation-only/source-contract differences. Incomplete matrix/client checks
+do not prevent submitting, receiving or delivering implemented code.
+
+A bounded32-source mover symbol audit is a location aid, not a completion ratio.
+The old012F authored_mover_data semantics are current defined_mover_data; the
+old013B wall constraint is implemented by the current ice_wall movement scene
+and mei_wall.move_mover/constrain. Remaining old-name differences are assigned
+to their owner audits before any code change; no facade or second movement host
+is introduced merely to restore a name. External location receipt:
+parallel-merge/root-shared-mover-original-symbol-audit.json.

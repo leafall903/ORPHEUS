@@ -37,12 +37,23 @@ was ahead of the body/world admission window, and Session.tick advances only one
 world tick unless missed ticks are explicitly supplied. Driving that actual
 clock correctly produces the real actor; Winston surface/object/service/splash/
 exclusion and whole-server readonly digest checks now pass too. No production
-clock was changed. Orisa's separate raw cast fixture still has no live barrier;
-Orisa/Sigma/Photon stages are pending, not counted as passing query checks. All five query
-implementations are committed without waiting for whole-family acceptance, as
-authorized; root continues these actual input/geometry checks while C resumes
-source retained-impact proof consumers. No assertions/numbers are rewritten.
-Probe/log: parallel-merge/root-prediction-geometry-actual-probe.py/.log.
+clock was changed. The initial separate Orisa raw cast fixture had no live
+barrier. Subsequent actual paced world ticks let its current deployable land and
+complete its existing deployment; no rocket or actor was injected. Orisa and
+Sigma surface/object/service identity, splash inclusion, impact exclusion and
+whole-server readonly digest checks now pass.
+
+The initial Photon horizontal input produced no valid actor. Actual ground-aim
+preview/confirm input, followed by the existing windup, produces its real actor;
+all corresponding geometry/identity/splash/exclusion/readonly digest checks pass.
+Together with the earlier Mei/Reinhardt/Winston receipts, all six existing
+geometry families now have scoped actual-server query evidence. This does not
+claim every original combat/placement contract is closed. No production clock,
+serializer or gameplay assertion is changed for these fixture corrections.
+Initial and current probes/logs remain external:
+parallel-merge/root-prediction-geometry-actual-probe.py/.log,
+root-prediction-remaining-geometry-probe.py and its-paced.log,
+and root-prediction-photon-geometry-probe.py/.log.
 
 
 Body-splash deduplication is limited to a target that is exactly the backing

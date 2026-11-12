@@ -1149,8 +1149,8 @@ class World:
             return entity_filter.admit(host, entity, cfg, instance=instance, watcher=watcher)
         return NotImplemented
 
-    def entity_filter_context(self, entity: int):
-        """Explicit original NPC/controller filter scope; no general lookup grant."""
+    def entity_filter_context(self, entity: int, *, component=None):
+        """Explicit controller scope or bound filter SDK; no general lookup grant."""
         return NotImplemented
 
     def entity_filter_host(self, instance):
