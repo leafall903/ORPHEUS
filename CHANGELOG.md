@@ -29,6 +29,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   dies after 85 frames of held fire. A player Reaper's shot at 3 m hits with 20 pellets of 6.
 - Seen in the client: held fire at a Training Bot 6 m away kills it about 1.3 s after the fire
   begins: "ELIMINATED TRAINING BOT", the kill feed line, and the bot falls apart.
+- No shared fixture: a volley's pellet count, rings and spread come from the weapon's graph in
+  the runtime pack, and where a pellet sits on its ring is not verified against the client, so
+  there is no expected direction to give as data. The runtime test holds the count and the
+  damage.
 - Ruff and the 928 public tests passed. The D.Va tests (11, one new) passed; the new one fails
   without the change. The runtime suite ran 1718 tests with the same 27 failures as before.
 
