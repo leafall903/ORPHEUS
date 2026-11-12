@@ -101,6 +101,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Meteor and the remaining Doomfist shared-service consumers still need
   integration. Original-client geometry/presentation acceptance remains open;
   no game client, network access, publication or push was performed.
+### Reconcile delivered D.Va entry immunity and retired projectile ownership
+
+- Mount007A's026A entry-scope/CombatModFilter intersection for the pilot only,
+  through existing damage/control immunity and the retained protection query.
+  End it with entry/body retirement; do not transfer it to the controlled mech.
+- Retire the old pilot's Light Gun rounds on hero replacement alongside the
+  existing owned-body retirement, retaining other heroes' projectile policies.
+  Derive owned-mech lethal hit flags from the resolved health pool before the
+  later death record is published, preserving Echo replacement behavior.
+- All31 focused entry/retirement/control/buffer/runtime checks passed with full
+  external0407/projectile inputs; the separate actual lethal-damage check passed
+  in both forms. Original entry immunity, stale pilot projectile and lethal hit
+  failures from the96-check audit are resolved without changing expectations.
+- Remaining original failures concern grounded placement fallback, legacy spread
+  call/storage interfaces, extreme-angle quantization and duplicate landing
+  damage. Keep these checks and code while reconciliation continues.
+
 ### Mount delivered Mercy fold evaluator and preserve distinct checks
 
 - Mount0004's original A6B80C63 module and native parameter provider through

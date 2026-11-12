@@ -1927,7 +1927,7 @@ class Combat:
             sources.pop(player.body, None)
             if not sources:
                 del self.genji_assists[victim]
-        if player.hero.guid == 0x02E0000000000029:
+        if player.hero.guid in (0x02E0000000000029, 0x02E000000000007A):
             self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not player]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
 
@@ -6516,6 +6516,10 @@ class Combat:
 
     @staticmethod
     def _invulnerable(owner, *, phases: frozenset[int] | None = None) -> bool:
+        from ow174.game import defenses
+
+        if (phases is None or 0x026A in phases) and defenses.call_mech_immune(owner):
+            return True
         component = getattr(getattr(owner, 'body_script', None), 'component', None)
         if not isinstance(component, runtime.Component) or component.owner_dead:
             return False
@@ -7312,7 +7316,9 @@ class Combat:
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
         if isinstance(shooter, bots.Bot) and (credit := self._credit_player(shooter)) is not None:
             if target.owner is not shooter:
-                flags = (CRITICAL if critical else 0) | (KILLING if vitals.dead else 0)
+                terminal = (vitals.pool_current(HEALTH_POOL) <= EPSILON
+                            and (isinstance(target.owner, bots.Bot) or not self.echo_duplicates.active(target.owner)))
+                flags = (CRITICAL if critical else 0) | (KILLING if terminal else 0)
                 self._tell_hit(credit, target, dealt, flags, frame)
                 credit.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:

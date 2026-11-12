@@ -97,3 +97,19 @@ its explicit NPC input/navigation mode, cleanup and snapshot field. All three
 unchanged original NPC reposition checks now pass using canonical modules and
 the existing external graph/catalog/mover inputs, without the former package
 fallback. Shared NPC/navigation checks are being retained and checked separately.
+
+Root's shared manual-NPC/navigation run passed62 checks. The additional
+Zenyatta/Sniper module cannot yet import `npc_shields`; retain this cross-owner
+consumer for worker A's0020 reconciliation. This does not undo the three actual
+manual Sniper behavior checks. The helper itself is byte-for-byte source.
+
+A4 `7fbe5677` is received as `6d9aee41`; all49 original fold/expression/runtime
+checks passed. Preserve both distinct pending Mercy check files under retained
+names alongside the source Descent checks. C5 `adf49f18` is received as
+`c254331d`; all42 Barrage/physics-snapshot/Tracer/Echo movement checks passed.
+
+Worker B completed its28-check full Meteor run: four assertion failures and
+seven errors remain in `verification/worker-b-doomfist-meteor-full.log`, including
+Hand Cannon expectations, old cross-owner API imports and lazy respawn vitals.
+Keep the original expectations and continue their actual consumers. Mounted
+Meteor code remains submitted; focused green checks do not imply a full pass.
