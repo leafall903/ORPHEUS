@@ -94,7 +94,7 @@ from ow174.game import (
     world_bubbles,
 )
 from ow174.game.script import support, support_effects
-from ow174.game import doomfist, meteor, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
+from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -1897,6 +1897,7 @@ class Combat:
         self.punches = doomfist.Punches(self)
         self.slams = doomfist.Slams(self)
         self.meteors = meteor.Meteors(self)
+        self.primal_bonus: dict[int, float] = {}
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -2059,6 +2060,7 @@ class Combat:
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
         self.meteors.casts.pop(player.body, None)
+        self.primal_bonus.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2750,6 +2752,7 @@ class Combat:
         self.barriers.sync(player)
         reaper.advance_entry(player)
         self._shadow(player, command)
+        self._winston_health(player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
@@ -2846,7 +2849,6 @@ class Combat:
         self.baptiste.command(player, command)
         try:
             self._weapon_beam(player, command, script)
-            self._winston_tesla(player, command, script)
             self._melee(player, command, script)
             self._soundwave(player, command, script)
             self.brigitte.command(player, command, script)
@@ -2867,6 +2869,32 @@ class Combat:
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
         self._flush_pending_attacks()
+
+    def _winston_health(self, player, script) -> None:
+        """Delivered0109 health transform, preserving its authored lifetime."""
+        if player.hero.guid != winston.HERO:
+            return
+        state = winston.primal_health(script.component)
+        extra = _number(state.evaluate(state.node.field("m_amount")), 0.0) if state else 0.0
+        old = self.primal_bonus.get(player.body, 0.0)
+        target = next((target for target in self._targets() if target.owner is player), None)
+        if target is None:
+            return
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            extra = 0.0
+        if old == extra:
+            return
+        vitals.most[HEALTH_POOL] += extra - old
+        vitals.now[HEALTH_POOL] = min(vitals.now[HEALTH_POOL], vitals.most[HEALTH_POOL])
+        vitals.changed.add(HEALTH_POOL)
+        if extra > old and not vitals.dead:
+            vitals.heal(sum(vitals.most.values()))
+        if extra:
+            self.primal_bonus[player.body] = extra
+        else:
+            self.primal_bonus.pop(player.body, None)
+        self._sync_body_health(player, vitals)
 
     def _soundwave(self, player, command, script) -> None:
         """0079's 0776 st11 health operation, once per authored activation.
@@ -3648,6 +3676,7 @@ class Combat:
             self.now, self.tick = now - (tick - at) * TICK, at
             for player in self.match.players:
                 self._advance_idle_protection(player)
+                winston.charge_world(player, self)
             self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()
@@ -7834,7 +7863,7 @@ class Combat:
 
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source
+            if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
                     and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
@@ -7847,6 +7876,11 @@ class Combat:
                     script.gain_ult_charge(points, target_definition=definition, recipient=target.entity)
                 else:
                     script.gain_ult_charge(points)
+            if award_ult and enemy and current_source and hero == winston.HERO:
+                definition = (victim.body if isinstance(victim, bots.Bot)
+                              else getattr(getattr(victim, "hero", None), "body", None))
+                winston.charge_damage(script, max(0.0, base_before - vitals.base_total),
+                                      target.entity, definition, getattr(victim, "body_script", None))
             if enemy and current_source and hero == 0x02E0000000000029:
                 tick = self.match.tick if world_tick is None else world_tick
                 self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)

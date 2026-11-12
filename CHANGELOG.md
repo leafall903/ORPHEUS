@@ -157,6 +157,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Winston health and charge clocks
+
+- Retain complete0009 winston.py and mount the original Primal health/refill,
+  lifetime/expiry, passive5-point cadence, damage-target/tag arithmetic and
+  retirement consumers. Scope the new Wait/Chase clock hooks to compatible
+  Winston body states; other heroes and strict worlds retain their clocks.
+- Stop routing the duplicate narrow Tesla damage callback alongside the
+  deduplicated path, preserving both implementations. Keep source fixtures
+  separately as test_delivered_winston; canonical Tesla tests remain unchanged.
+- Source charge27 plus existing Tesla12/runtime13:49 of52 pass. Remaining
+  checks concern unmounted Jump Pack launch damage, source bubble observation
+  and DVa pilot/controlled-mech admission. Focused cadence/snapshot/modifier/
+  Lucio/DVa28:27 pass, with the same DVa profile interlock retained as a failure.
+- Register stored cadence/Primal health and VoiceSetOverride snapshot state.
+  Active Primal enclosing-server getter-free repeatability/cadence causality
+  passes with fixture charge setup. JumpPack, Primal punches and the source
+  bubble adapters remain pending; no whole-line or original-client acceptance
+  claimed, and no client, network access or push performed.
+
 ### Preserve Doomfist defense consumers and flight budget
 
 - Retain original10 Wraith,15 Deflect and20 Grasp scenarios using actual
@@ -189,6 +208,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   positional snapshot fixture plus13 passive checks pass (14 total).
 - Remaining source defense/barrier/NPC equivalents and full-line audit stay
   open; original-client acceptance is unchanged. No client, network or push.
+
+### Restore delivered manual NPC melee and charge entry points
+
+- Restore the original mutually exclusive melee/charge/reposition selection
+  through current NPC input and Heavy Assault services. Preserve ordinary
+  primary/autonomous policy, explicit mode stop/reset, authored charge windup
+  and movement, and suppress ordinary pursuit for explicit stationary attacks.
+- Reuse the canonical one-shot melee consumer for the explicit melee mode.
+  An unsupported BotWorld spatial context now returns NotImplemented instead
+  of dereferencing the D.Va-only body field and retiring the Heavy script.
+- Existing62 NPC control/navigation checks pass. Actual close Trooper/Heavy
+  inputs produce25/75 armour-adjusted damage, stop cleanly and emit no primary
+  projectile. Actual Recon wall charge preserves49-tick windup and295 damage.
+- Preserve the unchanged original fixture failures: Trooper at2m is rejected
+  by the now-hosted authored1.5m feet-distance guard; Sentry Heavy melee has a
+  displacement difference. The legacy charge observation uses absent
+  heavy_drives; a direct three-form probe also finds Sentry returning to Recon
+  during capture, yielding295 versus expected235. Keep these owner interlocks
+  open rather than weakening assertions or claiming complete NPC acceptance.
 
 ### Mount delivered manual Sniper repositioning
 

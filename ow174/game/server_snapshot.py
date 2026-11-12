@@ -132,7 +132,7 @@ FIELDS = {
         "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
-        "punch_impacts punches slams meteors projected_barriers projected_casts sigma_barriers charge_contacts "
+        "punch_impacts punches slams meteors primal_bonus projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
@@ -211,7 +211,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick ult_gain_bonus ultimates reports report_count self_healing support_healing "
+        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick winston_charge_ms winston_charge_tick winston_primal_clock ult_gain_bonus ultimates reports report_count self_healing support_healing "
         "self_repairs control_windows sleep_windows frost_windows"
     ),
     driver.BodyWorld: _names("hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
