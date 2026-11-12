@@ -24,6 +24,7 @@ class Grapple:
     arrives: int
     anchor: tuple | None
     reach: float
+    normal: tuple = (0.0, 0.0, 0.0)
     attached: bool = False
     rope: float = 0.0
 
@@ -56,6 +57,14 @@ def rolling(player):
     graph = instance(player, 0x1203)
     state = graph.states.get(18) if graph is not None else None
     return state is not None and state.active
+
+
+def grapple_gap_buttons(script, buttons):
+    """Replay only a right button held on both sides of a missing command range."""
+    if (script is None or script.hero != HERO or script.component.strict
+            or buttons & 1 or not script.buttons & buttons & 2):
+        return 0
+    return 2
 
 
 def cannon_direction(shooter, state, forward, number: int, time: int, activation):
@@ -247,7 +256,8 @@ def update_grapple(fight, player, command, direction):
         distance = hit.distance if hit is not None else reach
         travel = max(1, math.ceil(distance / (speed * player.quanta / 1e6)))
         owned = Grapple(activation, command.frame, command.frame + travel,
-                        tuple(hit.point) if hit is not None else None, reach)
+                        tuple(hit.point) if hit is not None else None, reach,
+                        tuple(hit.normal) if hit is not None else (0.0, 0.0, 0.0))
         graph.write((expr.INSTANCE, 435), False)
         fight.ball_grapples[player.body] = owned
     if owned is None or owned.attached or command.frame < owned.arrives:
@@ -261,6 +271,13 @@ def update_grapple(fight, player, command, direction):
         return
     owned.attached = True
     graph.write((expr.INSTANCE, 431), expr.Vec3(*owned.anchor))
+    # The native cast exposes both the physics attachment (431) and its world
+    # contact (1220). Leaving the latter at zero draws the hook at the map origin.
+    graph.write((expr.INSTANCE, 1220), expr.Vec3(*owned.anchor))
+    graph.write((expr.INSTANCE, 434), expr.Vec3(*owned.normal))
+    graph.write((expr.INSTANCE, 38), expr.Entity(0))  # static map, no actor/bone
+    graph.write((expr.INSTANCE, 8695), 0)
+    graph.write((expr.INSTANCE, 1221), True)
     graph.write((expr.INSTANCE, 432), owned.rope)
     graph.write((expr.INSTANCE, 435), True)
     state.request(runtime.FINISH)

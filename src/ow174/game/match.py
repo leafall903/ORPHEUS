@@ -35,6 +35,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 
 from ow174.game import (
+    ball,
     bodytrace,
     bots,
     combat,
@@ -392,7 +393,8 @@ class Player:
                 dead = self.match.combat.is_dead(self)
                 first_pose = command.frame if dead else self.mover.first_step_frame(command.frame)
                 script = self.body_script
-                retained = (sigma_barrier.barrier_gap_buttons(script, command.buttons)
+                retained = ((sigma_barrier.barrier_gap_buttons(script, command.buttons)
+                             | ball.grapple_gap_buttons(script, command.buttons))
                             if not dead and script is not None and command.frame > script.frame + 1 else 0)
                 self._advance_body_gap(first_pose, retained_buttons=retained, incoming_frame=command.frame)
                 if not dead and self.controller_vm is not None:

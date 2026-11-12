@@ -1,5 +1,27 @@
 # Changelog
 
+## Ball tank live omissions: shield feedback and grapple form
+
+Adaptive Shield reuses the HealthPool-created tagged record instead of creating
+another record, keeps slot 2 (aggregate shield slot 1 remains reserved), and sends
+the authored 0x3EBB native pool identity. The one-nearby-enemy command fixture
+adds 175 real damage-absorbing shield without restoring consumed points per tick.
+The static grapple now writes both physical anchor and native world-contact,
+surface normal and static entity/bone outputs; the visual endpoint no longer
+retains an untouched map-origin contact. Continuous right-button samples retain
+secondary across missing input frames. Release and primary fire still end the
+tether; the authored primary-to-cannon transformation remains intact.
+
+Minimal external-runtime verification: six server tests pass (three new command
+regressions plus existing roll toggle, primary exit/damage and wall-hook travel).
+Synthetic wall/input contract: tests/runtime/test_wrecking_ball_live_fixes.py.
+Original-client shield bar/effect, visible rope endpoint and sustained Roll need
+client checks. An accidental broad imported-class run exposed two existing
+compatibility failures: absent legacy Vitals.set_temporary_shields and a
+late-expired-input adaptive_activation assertion. Neither was suppressed or
+rewritten for delivery. No game assets, running-client or server changes.
+
+
 ## A108 — DVa accepted Booster force on the sole world replay host
 
 Integrated B101 shared accepted-force opt-in (source b93b1d3f, local b3fd2c63)

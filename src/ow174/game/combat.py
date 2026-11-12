@@ -4266,7 +4266,17 @@ class Combat:
         )
         amount = _number(expr.evaluate(state.node.field("m_amount"),
                                       _AdaptiveShieldContext(instance, count)), 0.0)
-        if vitals.add_temporary(("adaptive", tag), tag, SHIELDS_POOL, amount, self.tick):
+        # HealthPool.on_begin may already own this activation's tagged pool.
+        # Reuse it: allocating again moves the record to a different wire slot.
+        key = ("adaptive", tag)
+        pool = vitals.extra.get(key)
+        if pool is None or pool.removed:
+            vitals.add_temporary(key, tag, SHIELDS_POOL, amount, self.tick)
+            pool = vitals.extra.get(key)
+        if pool is not None and not pool.removed:
+            pool.pool_id = tag  # native 1566 HealthPool identity for owner feedback
+            pool.most = pool.now = amount
+            vitals.changed.add(SHIELDS_POOL)
             self._sync_body_health(player, vitals)
 
     def _expire_adaptive_shield(self, owner, vitals, tick):
