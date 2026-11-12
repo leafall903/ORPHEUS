@@ -141,6 +141,17 @@ class MineWorld(runtime.World):
         script = self.mine.owner.body_script
         return script if script is not None and script.component.entity == self.mine.source else None
 
+    def script_component_present(self, entity):
+        if entity == self.mine.source:
+            return self.source_script() is not None
+        return super().script_component_present(entity)
+
+    def entity_ruleset(self, entity, key):
+        if entity == self.mine.source:
+            script = self.source_script()
+            return script.component.world.ruleset(key) if script is not None else None
+        return super().entity_ruleset(entity, key)
+
     def track_targets(self, state):
         if state.instance.graph.index != LIFECYCLE or state.node.pos != 50:
             return super().track_targets(state)
