@@ -181,7 +181,7 @@ FIELDS = {
     ball_mines.MineWorld: _names("hero mode manager mine"),
     ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),
     doomfist.Punches: _names("combat dashes impacts controls"),
-    doomfist.Slams: _names("combat casts"),
+    doomfist.Slams: _names("combat casts impulses"),
     winston.JumpPack: _names("combat seen flights"),
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),

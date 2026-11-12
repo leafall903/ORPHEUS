@@ -2315,3 +2315,42 @@ inputs retained), no second movement driver. Scene.unbind already clears both
 records and vector_records; no missing cleanup there. General strict tagged
 catalog and retained SDK7 interfaces still need bounded equivalence audit.
 No original-client acceptance. Original checks remain unchanged.
+
+
+## B83 — mount frozen Slam close contact and scheduled impulse lifecycle
+
+Restore frozen58 original near-contact graph0B27/152+154 query, authored offset/
+radius/vector, two-height cover, admitted-set wave exclusion (including blocked
+damage), and next-world-tick impulse queue. Source literal category26 resolver
+reads actual active NumericPropertyModifiers in native insertion order; scales
+once before queue. Exact scheduled tick only, no late replay; target death/body
+retirement/NPC removal clear pending records, source-owner retirement does not
+silently erase another target's already emitted effect.
+
+Existing Combat._launch gains original optional add_vertical (default behavior
+preserved). Players use their same mover; NPC uses existing raw body adapter and
+same control_mover/impulse_mover/explicit movement_data, including route bodies.
+No second mod26 application or input-clock queue. Original finite ground brake
+is DECEL_GROUND*.01 for20 worldticks (320ms), in already registered Mover.mods.
+Reserved key prefix-2 avoids current-1 impulse records. track_mods retains it;
+step_pose admits/expires it on worldtick, preserving currentfield33 and all
+body-frame state mods. Slams.impulses exactfield added to strictserver export.
+
+Original Punch/Slam/runtime56/56 pass45.985s. New causal checks verify nexttick
+only, additive existingY, no repeated delivery, retirement/past rejection,
+world200..219 vscommand10001+ braking and end220, all5 actualNPC existingmover
+reuse/explicitdata, realServer pending queue+applied mod mutation/restore and
+strictBodyVM export. Full latter joint with originalSlam/Mod/runtime46/46 pass
+71.835s (worker-b-doom-impulse-joint.log). Initial newprobes wrongly counted all
+preexisting mods and ignored actualHeavy1254 SET26=0; corrected those newfixture
+assumptions, retained logs. A first mount targeted identicalactive-list text in
+add_impulse instead ofstep_pose; causal epoch probe caught it and code corrected
+before commit. Original assertions untouched. No client acceptance.
+
+Next exact action: restore original explicit general tag-candidate strictVM
+consumer alongside current stronger0D76/required/filter paths, and boundedSDK7
+equivalence/publicAPI inventory. Audit HandCannon Cryo cover actual sweep path;
+do not add second projectile/controller. B82 dependency432a38f2. Sixowner closure
+claim remains withdrawn until frozen and staged sibling positive consumers are
+both mapped. Remaining active code audit/merge estimate6–14h, excludes source
+numeric conflicts/legacy observers/fullNPCfixture recovery/client validation.

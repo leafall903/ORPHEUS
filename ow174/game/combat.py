@@ -2505,6 +2505,7 @@ class Combat:
         self.reaper_shadows.pop(player.body, None)
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
+        self.slams.retire_target(player.body)
         self.meteors.casts.pop(player.body, None)
         self.primal_bonus.pop(player.body, None)
         self.winston_jump.retire(player.body)
@@ -3429,16 +3430,38 @@ class Combat:
         start, deadline = self.pile_air_locks.get(player.body, (0, 0))
         return start <= tick < deadline and player.mover.airborne
 
-    def _launch(self, entity: int, velocity: tuple) -> None:
+    def _launch(self, entity: int, velocity: tuple, *, add_vertical: bool = False):
         """Route delivered impulse vectors to the existing authoritative mover."""
         target = next((t for t in self._targets() if t.entity == entity), None)
         if target is None or self.vitals_of(target).dead:
             return
         if isinstance(target.owner, bots.Bot):
-            target.owner.apply_impulse(velocity, self.tick, self._collision())
+            owner = target.owner
+            if not add_vertical:
+                owner.apply_impulse(velocity, self.tick, self._collision())
+                return owner.control_mover or owner.impulse_mover
+            if owner._trap_rooted(self.match.tick):
+                return None
+            # Slam already consumed native modifier26 at contact. The raw body
+            # adapter reuses the sole existing control/impulse mover, including
+            # route bodies, without applying that modifier a second time.
+            from ow174.game.collision import MOVER
+            if self._collision() is None:
+                return None
+            owner._apply_legacy_impulse(velocity, self.match.tick, self._collision(), category=MOVER)
+            mover = owner.control_mover or owner.impulse_mover
+            if mover is not None:
+                mover.velocity = tuple(expr.f32(axis) for axis in mover.velocity)
+                mover.external_impulse = True
+                owner.velocity = mover.velocity
+            return mover
+        mover = target.owner.mover
+        if add_vertical:
+            mover.add_external_impulse(velocity)
         else:
-            target.owner.mover.impulse(velocity)
-            target.owner.mover.external_impulse = True
+            mover.impulse(velocity)
+            mover.external_impulse = True
+        return mover
 
     def stun(self, target, duration):
         deadline = self.tick + math.ceil(duration / TICK)
@@ -10820,6 +10843,7 @@ class Combat:
         self.support_effects.retire(bot.entity)
         self.lucio_auras.retire(bot.entity)
         self.knockbacks.retire(bot.entity)
+        self.slams.retire_target(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
         self.junkrat.release_trap_victim(bot.entity)
@@ -10935,6 +10959,7 @@ class Combat:
                 charge.pinned = None
         self.charges.pop(victim.body, None)
         self.punches.dashes.pop(victim.body, None)
+        self.slams.retire_target(victim.body)
         for casts in (self.slams.casts, self.meteors.casts):
             cast = casts.get(victim.body)
             if cast is not None:

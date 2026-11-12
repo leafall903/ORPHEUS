@@ -9,8 +9,8 @@ import math
 from dataclasses import dataclass, replace
 
 from ow174.game import bots, contacts, defenses
-from ow174.game.mover import STEP
-from ow174.game.script import expr, graph, nodes, runtime
+from ow174.game.mover import DECEL_GROUND, MULTIPLY, STEP
+from ow174.game.script import expr, graph, modifiers, nodes, runtime
 
 HERO = 0x02E000000000012F
 PUNCH = 0x0B90000000000107
@@ -303,6 +303,27 @@ class Slams:
         self.combat = combat
         self.casts: dict[int, Slam] = {}
 
+        self.impulses: list[tuple[int, int, tuple[float, float, float]]] = []
+
+    def retire_target(self, entity: int) -> None:
+        self.impulses[:] = [record for record in self.impulses if record[1] != entity]
+
+    def advance_impulses(self, tick: int) -> None:
+        """Consume each velocity record only in its scheduled server tick."""
+        if not self.impulses:
+            return
+        pending, self.impulses = self.impulses, []
+        if self.combat.match.ended:
+            return
+        for scheduled, entity, velocity in pending:
+            if scheduled == tick:
+                mover = self.combat._launch(entity, velocity, add_vertical=True)
+                if mover is not None:
+                    # The native mode-1 writer schedules 320 ms of ground braking at 1%.
+                    mover.add_timed_mod(DECEL_GROUND, MULTIPLY, .01, tick, tick + 20)
+            elif scheduled > tick:
+                self.impulses.append((scheduled, entity, velocity))
+
     @staticmethod
     def instance(player):
         if player.hero.guid != HERO or player.body_script is None:
@@ -402,6 +423,77 @@ class Slams:
             return move, (expr.Vec3(*cast.destination), cast.speed)
         return None
 
+    @staticmethod
+    def _target_impulse_scale(target):
+        """Resolve authored literal category-26 rows from the current target body."""
+        script = getattr(target.owner, 'body_script', None)
+        if script is None or script.component.entity != target.entity:
+            return 1.0
+        component = script.component
+        # Body prediction keeps numeric modifiers passive. Read its causal VM
+        # states at contact instead of keeping a second copy of their lifetime.
+        operations = {'STU_D8CC6B10': 1, 'STU_56DEE1BB': 2}
+        records = []
+        for instance in component.instances.values():
+            for state in instance.states.values():
+                if not state.active or not isinstance(state, nodes.NumericPropertyModifiers):
+                    continue
+                for index, row in enumerate(state.node.field('m_BC5E91CF') or ()):
+                    if not isinstance(row, dict) or row.get('m_A9561CA0') != 26 or row.get('$') not in operations:
+                        continue
+                    value = row.get('m_9B7A63EA')
+                    priority = row.get('m_priority')
+                    if (not value or value.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')
+                            or priority is not None and priority.get('$') not in ('STUConfigVarInt', 'STUConfigVarFloat')):
+                        continue
+                    key = modifiers.state_key(instance.id, state.index, state.counter, index)
+                    start = (state.start // component.frame_ms) & 0xffffffff
+                    record = modifiers.Record(1, key, start, 26,
+                                              operations[row['$']], value['m_value'],
+                                              0.0 if priority is None else priority['m_value'])
+                    records.insert(modifiers.insertion_index(records, record), record)
+        scale = 1.0
+        for record in records:
+            scale = modifiers.apply(record.operation, scale, record.value)
+        return max(0.0, scale)
+
+    def _queue_impulse(self, target, impulse):
+        if self.combat.vitals_of(target).dead:
+            return
+        scale = self._target_impulse_scale(target)
+        if scale > 0.0:
+            scaled = tuple(expr.f32(axis * scale) for axis in impulse)
+            self.impulses.append((self.combat.match.tick + 1, target.entity, scaled))
+
+    def _close_contact(self, player, instance, cast, targets, collision, cryo_cover, frame):
+        from ow174.game.combat import _dot, aim, segment_distance
+
+        query = instance.graph.node(152)
+        offset = instance.evaluate(query.field('m_05BE62DD'))
+        radius = float(instance.evaluate(query.field('m_radius')))
+        fx, _, fz = aim(player.mover.yaw, 0)
+        x, y, z = cast.origin
+        origin = (x + fz * offset.x + fx * offset.z, y + offset.y,
+                  z - fx * offset.x + fz * offset.z)
+        health = instance.graph.node(154)
+        impulse = tuple(instance.evaluate(health.field('m_modifyHealth.m_1376B4DF')))
+        # D73830 ignores vectors whose squared length is below 100 * FLT_MIN.
+        has_impulse = _dot(impulse, impulse) >= 1.1754943508222875e-36
+        admitted = set()
+        for target in targets:
+            a, b = target.segment()
+            if segment_distance(origin, a, b) > radius + target.radius:
+                continue
+            if not _two_height_visible(target, origin, collision, cryo_cover):
+                continue
+            # 0B27/154 consumes this set, and the authored wave excludes it.
+            admitted.add(target.entity)
+            if self.combat._damage(player, target, cast.damage, False, SLAM, frame) > 0:
+                self.combat._doomfist_shields(player, SLAM)
+                if has_impulse:
+                    self._queue_impulse(target, impulse)
+        return admitted
+
     def command(self, player, command) -> None:
         from ow174.game.combat import _dot, _sub, aim
 
@@ -431,7 +523,8 @@ class Slams:
                 cast.finished = True
             return
         recovery = instance.states.get(37)
-        if cast.wave_at is None:
+        start_wave = cast.wave_at is None
+        if start_wave:
             if recovery is None or not recovery.active:
                 return
             # Unknown native54FEB21C completion is approximated by ending this
@@ -448,7 +541,11 @@ class Slams:
         collision = self.combat._collision()
         cryo_cover = defenses.cryo_blockers(self.combat.match.players, exclude=player)
         hit_entities = set(cast.hit)
-        for target in self.combat._enemies(player):
+        targets = self.combat._enemies(player)
+        if start_wave:
+            hit_entities.update(self._close_contact(
+                player, instance, cast, targets, collision, cryo_cover, command.frame))
+        for target in targets:
             if target.entity in hit_entities:
                 continue
             offset = _sub(target.feet, cast.origin)
@@ -464,10 +561,8 @@ class Slams:
             dealt = self.combat._damage(player, target, cast.damage, False, SLAM, command.frame)
             if dealt > 0:
                 self.combat._doomfist_shields(player, SLAM)
-                if not self.combat.vitals_of(target).dead:
-                    # Authored wave effect: horizontal-3 and vertical6. Native
-                    # initial close-contact impulse and wave filters stay open.
-                    self.combat._launch(target.entity, (-3 * direction[0], 6, -3 * direction[2]))
+                # Queue the original world-timed additive velocity once.
+                self._queue_impulse(target, (-3 * direction[0], 6, -3 * direction[2]))
         cast.hit = tuple(sorted(hit_entities))
         if radius >= reach:
             cast.finished = True
