@@ -1202,9 +1202,10 @@ class World:
     def native(self, cfg: dict, instance: "Instance | None"):
         from ow174.game.script import controller_query
 
-        if cfg.get("$") == controller_query.CLASS and instance is not None:
+        if (cfg.get("$") == controller_query.CLASS and instance is not None
+                and callable(resolver := self.controller_components)):
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
-            components = self.controller_components(instance, entity)
+            components = resolver(instance, entity)
             instance.component.ensure_valid()
             if components is not NotImplemented:
                 if (instance.stopped or instance.teardown
