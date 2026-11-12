@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain admitted NPC associations when recomposing runtime inputs
+
+- The existing hero-input composer preserves validated original association
+  rows in its minimal output, rather than dropping them during recomposition.
+- Actual selected v17 and candidate v18 supplements both recompose byte for
+  byte; v18 retains all five source rows. Controller/Mine joint54 and actual
+  Cryo/incoming EMP joint5 checks passed on their frozen combined revisions.
+  v18 remains candidate pending actual NPC admission; no client acceptance run.
+
 ### Record cross-owner integration and remaining original consumers
 
 - Persist receipts through the controller/manual-target, Mine/Cryo and incoming

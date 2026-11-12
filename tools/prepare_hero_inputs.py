@@ -53,7 +53,7 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, 
     unselected_metadata = {}
     for path in delivered_graphs:
         delivered = read_graphs(path)
-        collections = ('graphs', 'entities', 'effect_scripts', 'deployables')
+        collections = ('graphs', 'entities', 'effect_scripts', 'deployables', 'npc_controllers')
         for key in delivered.keys() & base.keys():
             if key not in collections and delivered.get(key) != base.get(key):
                 raise ValueError(f'delivered input conflicts with base metadata: {key}: {path}')
@@ -79,9 +79,10 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, 
         'effect_scripts': {key: row for key, row in merged.get('effect_scripts', {}).items()
                            if key not in (base.get('effect_scripts') or {})},
     }
-    if 'deployables' in merged:
-        extra['deployables'] = {key: value for key, value in merged['deployables'].items()
-                                if key not in (base.get('deployables') or {})}
+    for collection in ('deployables', 'npc_controllers'):
+        if collection in merged:
+            extra[collection] = {key: value for key, value in merged[collection].items()
+                                 if key not in (base.get(collection) or {})}
     graph.add_supplement(base, extra)
     catalog = read_catalog(projectile_tags.read_bytes())
     if movers is not None and not isinstance(json.loads(movers.read_bytes()), dict):
@@ -105,6 +106,8 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, 
     }
     if 'deployables' in extra:
         manifest['additional_deployable_keys'] = sorted(extra['deployables'])
+    if 'npc_controllers' in extra:
+        manifest['additional_npc_associations'] = len(extra['npc_controllers'])
     if delivered_graphs:
         manifest['unselected_delivered_metadata'] = unselected_metadata
     payload = gzip.compress(json.dumps(extra, separators=(',', ':')).encode(), mtime=0)
