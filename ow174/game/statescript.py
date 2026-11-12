@@ -145,27 +145,50 @@ def _variables(out: BitWriter, variables: dict[int, Value]) -> None:
     out.w_var(0)
 
 
-def owner_full_frame(cmfd: int, instances: list[Instance], entity_vars: dict[int, Value]) -> BitWriter:
+def owner_full_frame(
+    cmfd: int, instances: list[Instance], entity_vars: dict[int, Value], *,
+    dynamic: tuple["InstanceWire", ...] = (), bound_vars: dict | None = None, frame_ms: int = 16,
+) -> BitWriter:
     """An owner (H=1) full frame. `cmfd` must be larger than any CmFD sent to this entity before."""
     if cmfd < 1:
         raise ValueError("CmFD 0 is always stale")
+    by_id = {item.index: item for item in instances}
+    by_id.update((item.id, item) for item in dynamic)
+    if len(by_id) != len(instances) + len(dynamic) or any(not 0 < index < 1 << 16 for index in by_id):
+        raise ValueError("owner full frame requires distinct nonzero uint16 instance IDs")
+    ordered = sorted(by_id.items())
+    if bound_vars and entity_vars.keys() & bound_vars.keys():
+        raise ValueError("owner full frame entity variable namespaces overlap")
+    graphs = {item.id: item.graph for item in dynamic}
     out = BitWriter()
     out.bit(0)  # lead
     out.bit(1)  # H
     out.bit(0)  # C
     out.w_var(cmfd)
     last = 0
-    for instance in sorted(instances, key=lambda item: item.index):
-        out.w_u16(instance.index - last)
-        last = instance.index
-        _descriptor(out, instance)
+    for index, instance in ordered:
+        out.w_u16(index - last)
+        last = index
+        if isinstance(instance, InstanceWire):
+            _descriptor_of(out, instance)
+        else:
+            _descriptor(out, instance)
     out.w_u16(0)
-    if entity_vars:
+    if entity_vars or bound_vars:
         out.bit(1)
-        _variables(out, entity_vars)
+        for number, value in entity_vars.items():
+            out.w_var(number)
+            write_variable(out, value)
+        for number, (value, bindings) in sorted((bound_vars or {}).items()):
+            out.w_var(number)
+            write_var(out, value, bindings, 0, graphs)
+        out.w_var(0)
     else:
         out.bit(0)
-    for instance in sorted(instances, key=lambda item: item.index):
+    for _, instance in ordered:
+        if isinstance(instance, InstanceWire):
+            _dynamic_owner_full(out, instance, cmfd * frame_ms, frame_ms, graphs)
+            continue
         for bit in range(instance.graph.sync_vars):
             value = instance.presence.get(bit)
             out.bit(value is not None)
@@ -582,7 +605,7 @@ def _write_state_link(out: BitWriter, link, graphs, *, owner: bool) -> None:
 
 
 def write_payload(
-    out: BitWriter, cls: str, payload: dict, frame_time: int, frame_ms: int, *, graphs=None,
+    out: BitWriter, cls: str, payload: dict, frame_time: int, frame_ms: int, *, graphs=None, full=False,
 ) -> None:
     """A state's payload in an owner frame (H = 1, a delta). `frame_time` is 16 * CmFD: the client takes
     the volley's start and the chase's and ability's last tick relative to it."""
@@ -630,8 +653,11 @@ def write_payload(
             out.bit(sender & 0xA0000000 == 0xA0000000)
             out.var_b(sender & 0x1FFFFFFF)
         out.bit(payload.get("stacked", False))
-    elif kind in ("link", "linked_target"):
+    elif kind == "link":
         _write_state_link(out, payload.get("link"), graphs, owner=True)
+    elif kind == "linked_target":
+        codecs.write(out, codecs.codec(cls).layout, payload, owner=True, full=full,
+                     link=lambda writer, value: _write_state_link(writer, value, graphs, owner=True))
     elif kind == "send":
         reply = payload.get("reply", 0) & 0xFFFF
         out.bit(bool(reply))
@@ -833,6 +859,25 @@ def _instance_states(out: BitWriter, item: InstanceWire, frame_time: int, frame_
             out.bit(state.active)
             if state.active:
                 write_payload(out, state.cls, state.payload, frame_time, frame_ms, graphs=graphs)
+
+
+def _dynamic_owner_full(out, item, frame_time, frame_ms, graphs):
+    _instance_vars(out, item, graphs, presence_only=True)
+    nodes = item.graph.owner_states()
+    if item.states.keys() - {node.state for node in nodes}:
+        raise ValueError("owner full frame includes a state outside its graph's owner list")
+    for node in nodes:
+        state = item.states.get(node.state)
+        if state is not None and state.cls != node.cls:
+            raise ValueError("owner full frame state class does not match its graph slot")
+        stec = node.cls in codecs.stec_classes()
+        present = state is not None and (state.active or stec)
+        out.bit(present)
+        if present:
+            if stec:
+                out.bit(state.active)
+            write_payload(out, node.cls, state.payload, frame_time, frame_ms, graphs=graphs, full=True)
+    write_events(out, item.events or [], frame_time, item.graph.states_bits)
 
 
 def write_events(out: BitWriter, events: list[EventWire], frame_time: int, states_bits: int) -> None:
