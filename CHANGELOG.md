@@ -28,6 +28,27 @@ This log records tested changes and their acceptance status. Entries are grouped
   impulse mover, conflicting with old dedicated-mover None assertions. Those
   assertions and the dependent final count remain unchanged. No client run.
 
+
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the
@@ -234,6 +255,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
 
 ### Preserve controller Pin services in causal server storage
 

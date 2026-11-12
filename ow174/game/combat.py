@@ -8594,6 +8594,13 @@ class Combat:
             self._heal_target(healer, target, amount, source_entity=source_body,
                               seconds=seconds, end_tick=None if ticks is None else ticks[1])
 
+    def heal_self(self, entity, amount):
+        """Apply an owned self heal through the existing live target/pool path."""
+        for target in self._targets():
+            if target.entity == entity:
+                self._heal(target.owner, target, amount)
+                return
+
     def _heal(self, healer, target: Target, amount: float, *, source_body=None) -> float:
         return self._heal_target(healer, target, amount, source_entity=source_body)
 
@@ -8997,23 +9004,31 @@ class Combat:
             self._barrier_energy(caster, loss, attacker)
         return barrier.health
 
-    @staticmethod
-    def _incoming_damage(target: Target, amount: float, *, tick=None) -> float:
+    def incoming_damage_scale(self, owner) -> float:
+        """Original live8243 query, sharing the actual incoming-damage consumer."""
+        component = getattr(getattr(owner, 'body_script', None), 'component', None)
+        entity = _source_entity(owner)
+        fallback = immunity.damage_scale(owner, entity)
+        if fallback == 0.0:
+            return 0.0
+        slot = component.entity_var(8243, create=False) if isinstance(component, runtime.Component) else None
+        scalar = _number(slot.value() if isinstance(slot, runtime.Var) else None, fallback)
+        if not math.isfinite(scalar):
+            scalar = fallback
+        channel = self.breathers.channels.get(entity)
+        if (scalar == 0.5 and channel is not None and self.now > channel.until
+                and getattr(getattr(owner, 'hero', None), 'guid', None) == breather.HERO):
+            return 1.0
+        return max(0.0, scalar)
+
+    def _incoming_damage(self, target: Target, amount: float, *, tick=None) -> float:
         """Host live incoming-damage8243, including actual0CF4 Fortify's0.6 stack.
 
         Applying it before the shared armor consumer is server reconstruction;
         native combat-mod/armor ordering has not been recovered. Read without
         creating an absent entity variable or changing its authored lifetime.
         """
-        script = getattr(target.owner, 'body_script', None)
-        component = getattr(script, 'component', None)
-        slot = component.entity_var(8243, create=False) if isinstance(component, runtime.Component) else None
-        fallback = immunity.damage_scale(target.owner, target.entity)
-        if fallback == 0.0:
-            return 0.0
-        scalar = _number(slot.value() if isinstance(slot, runtime.Var) else None, fallback)
-        if not math.isfinite(scalar):
-            scalar = fallback
+        scalar = self.incoming_damage_scale(target.owner)
         if orisa_fortify.historical_pending(target.owner, tick):
             # Remove only this endpoint's new Fortify multiplier. Keep other
             # authored incoming8243 factors in the combined consumer.

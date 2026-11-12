@@ -168,7 +168,7 @@ _STATE_LAYOUTS = {
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (("targets", "managed", "target_var", "last_refresh"), ()),
     nodes.CompatiblePet: (("pet_entity", "pet_var", "linked_pet"), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
-    nodes.ModifyHealth: (("last_applied", "target_body"), ()),
+    nodes.ModifyHealth: (("last_applied", "target_body", "heal_last", "heal_elapsed", "heal_duration", "heal_amount"), ()),
     nodes.SprayPlacement: (("placement",), ()),
     nodes.CompatibleTrackRay: (("ray_hit",), ()),
     nodes.CreateEntity: ((), ()),
