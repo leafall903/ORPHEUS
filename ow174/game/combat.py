@@ -5833,6 +5833,7 @@ class Combat:
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
             direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
+            direction = ball.cannon_direction(shooter, state, direction, number, time, activation)
             if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
                     and state.instance.component is shooter.body_script.component):
                 direction = ashe.viper_direction(direction, number, viper_launch)
@@ -9282,6 +9283,7 @@ class Combat:
         amount *= self.zenyatta.boost(target)
         self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
+        temporary_before = vitals.temporary_shields
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
         if self.now < vitals.nano_until:
@@ -9429,10 +9431,13 @@ class Combat:
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
+                    and not (hero == ball.HERO and loadout == 0x0B900000000001ED)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
+                if hero == ball.HERO:
+                    points = dealt - (temporary_before - vitals.temporary_shields)
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))

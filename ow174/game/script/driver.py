@@ -2616,7 +2616,10 @@ class BodyScript(ReplicatedBody):
         """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def add_ult_charge(self, points: float) -> None:
+    def add_ult_charge(self, points: float) -> float | None:
+        if self.hero == 0x02E00000000001CA:
+            from ow174.game import ball
+            return ball.add_ult_charge(self, points)
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -2715,6 +2718,9 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E00000000001CA:
+            from ow174.game import ball
+            return ball.add_ult_charge(self, points)
         if (self.hero == 0x02E0000000000200 and self.world.match is not None
                 and self.world.match.combat.companions.active_for(self.entity)):
             return 0.0

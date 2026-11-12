@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect delivered Quad Cannon spread and Ball combat charge
+
+- Mount original deterministic1514 cone/ramp through the existing shot path;
+  retain actual volley/muzzle options and duplicate-command rejection.
+- Restore source Ball effective-permanent-damage charge, exclude Minefield1ED,
+  and use original general/combat ruleset factors plus cap/death/ultimate guards.
+  Other heroes retain their existing charge API behavior.
+- All six original spread/charge/cap cases pass; actual native175 tagged shield
+  hit for200 loses20 armor and grants only20 charge. Damage/runtime25 pass.
+  Source Spread23 assertion AST unchanged. No extra pool/acceptance matrix.
+- Natural passive generation and full Ball/client acceptance remain open.
+
 ### Restore Ball world-only shield expiry with the actual body clock origin
 
 - Record Ball's real constructor(world tick,body frame) pair and explicitly map
