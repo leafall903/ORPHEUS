@@ -20,10 +20,17 @@ class ZaryaStateClockTests(unittest.TestCase):
                 self.assertEqual(case.energy(), 20)
                 self.assertEqual(wait.ms, 1000)
                 start, frame = case.run.frame, script.frame
+                expiry = case.fight.barriers.expiries[case.a.body, False]
+                body_component = script.component
                 end = start + 400
                 for tick in ((end,) if sparse else range(start + 1, end + 1)):
                     case.run.match.update(tick * combat.TICK, tick, frames=False)
-                self.assertEqual(script.frame, frame)
+                # A80 legitimately supplies the one neutral timer gap that ends
+                # the actual Pet. It must not replace/recreate the body host.
+                self.assertIs(case.a.body_script, script)
+                self.assertIs(script.component, body_component)
+                self.assertEqual(script.frame, expiry.frame)
+                self.assertFalse(expiry.duration.active)
                 expected = 20 - ((end - wait.world_deadline) * 16 + 8) / 1000 * 1.8
                 # Original Chase adds native EPSILON on every step; preserve its
                 # bounded paced/sparse rounding instead of rewriting arithmetic.
