@@ -9191,7 +9191,11 @@ class Combat:
                 self._damage(attacker, target, amount, False, loadout, frame, world_tick=frame)
             if lateral_force and not self.vitals_of(target).dead:
                 forward = deflection.basis(attacker.yaw, 0)[2]
-                reinhardt_charge.lateral_impulse(attacker.position, target, state, forward)
+                if self.companions.actor_for(target.entity) is not None:
+                    reinhardt_charge.lateral_impulse(attacker.position, target, state, forward,
+                                                     fight=self, frame=frame)
+                else:
+                    reinhardt_charge.lateral_impulse(attacker.position, target, state, forward)
 
     def heavy_melee(self, state) -> None:
         attacker = self._npc_melee_attacker(state)

@@ -9661,3 +9661,7 @@ Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain
 ### Worker A55 - preserve original Ashe status consumers and queries
 
 - Preserve14 remaining original fixtures and original native Sombra constants/read-only actual-VM queries; keep sole SombraControls host. Original status baseline exposed missing real receiver entry/Wait delivery, assigned to C; no fake compatibility state or weakened assertion. Shared player-controller delivery is owned by root.
+
+### Worker A56 - preserve Heavy lateral force on BOB
+
+- Route original Heavy graze force through the current shared impulse host onto the same BOB mover; retain native offset5 and all existing Reinhardt/Player paths. Actual health/30+10 force/same-mover probe and shared40 checks passed.
