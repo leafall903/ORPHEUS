@@ -5688,6 +5688,10 @@ class Combat:
                         script = shooter.body_script
                         if script is not None:
                             script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
+                if shooter.hero.guid == 0x02E0000000000040 and target.owner is shooter:
+                    script = shooter.body_script
+                    if script is not None and (source_entity is None or source_entity == shooter.body):
+                        script.gain_ult_charge(min(given, eligible), kind="healing")
                 if shooter.hero.guid == 0x02E00000000000DD and target.owner is shooter:
                     from ow174.game import mei_ultimate
 
@@ -9848,6 +9852,10 @@ class Combat:
                     and not (hero == ball.HERO and loadout == 0x0B900000000001ED)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
+                if hero == 0x02E0000000000040:
+                    from ow174.game import roadhog_charge
+
+                    points *= roadhog_charge.damage_received_multiplier(getattr(victim, "body_script", None))
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == ball.HERO:
