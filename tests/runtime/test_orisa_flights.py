@@ -25,7 +25,7 @@ class OrisaFlightTests(unittest.TestCase):
         fight = run.match.combat
         self.assertEqual(rocket.source_graph, 0xCCB)
         self.assertIsNone(fight.projectiles.lease_id(player, rocket.definition, run.frame))
-        self.assertIsNone(rocket.shot)
+        self.assertTrue(rocket.shot.authoritative)
         origin = rocket.position
         for _ in range(20):
             run.step({})

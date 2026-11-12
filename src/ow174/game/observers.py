@@ -306,6 +306,8 @@ class Observers:
 
     def projectile_stream(self, viewer, body: int, *, npc: bool) -> BodyStream | None:
         """Accept a registered NPC lifetime while its initial frame is still in flight."""
+        if viewer.body == body and viewer.body_script is not None:
+            return viewer.body_script.stream
         if npc:
             return viewer.client.bot_stream(body) if viewer.client is not None else None
         return self.acknowledged_stream(viewer, body)

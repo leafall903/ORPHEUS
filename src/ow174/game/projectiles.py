@@ -305,6 +305,7 @@ class Shot:
     release_at: int | None = None  # the tick of the release and destroy
     field_ids: dict[tuple[int, int | None], int] = field(default_factory=dict)  # (viewer slot, parent) -> id
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
+    authoritative: bool = False  # server-authored Orisa flights without prediction leases
     field_due: int | None = None
     field_tick: int | None = None
     field_airborne: bool = False
@@ -407,7 +408,9 @@ class Projectiles:
     ) -> Shot | None:
         """Register a volley projectile on the owner and observer paths that apply to its source."""
         npc = isinstance(player, bots.Bot)
-        if _sync(state) != PREDICTED or (not npc and self.lease_id(player, definition, frame) is None):
+        authoritative = (not npc and player.hero.guid == 0x02E000000000013E
+                         and state.instance.graph.index in (0x0BD4, 0x0CCB, 0x0BD7))
+        if not authoritative and (_sync(state) != PREDICTED or (not npc and self.lease_id(player, definition, frame) is None)):
             return None
         spawned = _defs(state.node.field("m_49CBA3BC"))
         if npc and spawned:
@@ -424,10 +427,11 @@ class Projectiles:
             where=tuple(player.position if npc else player.mover.position),
             bound=math.ceil(bound_seconds * 1000 / FRAME_MS),
             seen_reports=0 if npc else player.body_script.report_count,
+            authoritative=authoritative,
         )
-        if not npc:
+        if not npc and not authoritative:
             self.shots.append(shot)
-        if shot.spawn is None and origin is not None and direction is not None:
+        if (shot.spawn is None or authoritative) and origin is not None and direction is not None:
             self._show_others(shot, state, origin, direction, snapshot)
         return shot
 
@@ -437,7 +441,7 @@ class Projectiles:
         observers = self.combat.observers
         npc = isinstance(shot.player, bots.Bot)
         for viewer in self.match.players:
-            if viewer is shot.player or viewer.client is None:
+            if (viewer is shot.player and not shot.authoritative) or viewer.client is None:
                 continue
             stream = observers.projectile_stream(viewer, shot.body, npc=npc)
             if stream is None:
@@ -483,6 +487,10 @@ class Projectiles:
 
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
+        if shot.authoritative:
+            for delivery in shot.observers:
+                delivery.finish(self.match.tick, True, drain=True)
+            return
         if isinstance(shot.player, bots.Bot):
             # The remote launch can arrive after this short round has already hit.
             # Give the client's own flight and attached effects time to reach the impact.

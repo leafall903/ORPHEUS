@@ -36,6 +36,20 @@ Existing authored hammer damage/hit notices, penetrating Fire Strike damage and
 charge movement probes also pass. Shared input-clock repair is integrated
 separately; original-client shield/projectile visuals still require a live check.
 
+## Orisa client presentation restoration
+
+Publish the existing 0BD8 Protective Barrier VM as its original 14A1 entity,
+including its authored cosmetic/effect states and destruction tail. No second
+barrier simulation is created. Route Orisa Fusion Driver, Halt and shield-canister
+flights through the existing projectile create/shot/impact delivery path, including
+the owner stream when no prediction lease exists. Original projectile definitions,
+collision, damage and hit notices remain authoritative.
+
+Minimal confirmation: five focused presentation, flight, damage and hit-notice
+checks passed using the immutable v19 runtime. Original-client rendering, flight
+trajectories and impact effects still require the integration operator to view
+the game.
+
 ## A108 — DVa accepted Booster force on the sole world replay host
 
 Integrated B101 shared accepted-force opt-in (source b93b1d3f, local b3fd2c63)

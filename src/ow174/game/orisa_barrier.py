@@ -153,6 +153,7 @@ class Barriers:
         self.geometry = Geometry(path) if path.is_file() else None
         if self.geometry is not None and graph.graph(0xBD8) is None:
             raise ValueError("barrier geometry requires original0BD8 graph")
+        self.wire_entities = set()
         self.active: dict[int, Barrier] = {}
         self.retiring: dict[int, Barrier] = {}
         self.pending = []
@@ -220,6 +221,9 @@ class Barriers:
                                           health, component, script)
             if tick > due:
                 component.run_frame(tick)
+
+        from ow174.game import orisa_presentation
+        orisa_presentation.sync(self)
 
     @staticmethod
     def _tail_active(barrier):
