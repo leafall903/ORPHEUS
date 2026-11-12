@@ -6,6 +6,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Explicit World query availability
+
+- Made World position and foreign-variable methods required `Option` queries. Propagated unavailable results through expression member access, vector arithmetic, length and distance with typed diagnostics instead of invented origin or unset values.
+- Preserved known origin, known unset variables, null entity member reads, scalar coercions and own-variable watchers. Restricted the body adapter to its own position and available mode-variable tables; an absent table is distinct from an absent key.
+- Added five internal regressions and eleven shared synthetic cases consumed through production Python and Rust expression paths. Pinned the Python consumer from PR #29 in differential CI. The shared lane runs on Windows for the server VM; the independent crate lane remains on Linux.
+- Passed formatting, both Clippy lanes, 360 default / 363 inspector public tests, exact Rust 1.85.0 checking, all 66 prepared baseline checks, native headless preflight/startup and 35 local documentation links. Hosted checks for this change are pending. Python component failure and Rust expression diagnostics remain distinct; original-client acceptance is pending.
+
 #### Shared Python and Rust behavior contract
 
 - Replaced the inline JAM framing vector with a versioned synthetic JSON contract shared with Python PR #27. Rust and the pinned Python consumer use their production sender and receiver against the same fixed bytes and fragmented stream.

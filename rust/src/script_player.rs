@@ -353,23 +353,17 @@ impl World for BodyWorld {
         }
     }
 
-    fn entity_variable(&mut self, entity: u32, id: u32) -> Value {
+    fn entity_variable(&mut self, entity: u32, id: u32) -> Option<Value> {
         if entity != GAME_MODE_ENTITY {
-            return Value::Null;
+            return None;
         }
         self.graphs
             .mode_variables(self.mode)
-            .and_then(|variables| variables.get(&id))
-            .copied()
-            .map_or(Value::Null, Value::from)
+            .map(|variables| variables.get(&id).copied().map_or(Value::Null, Value::from))
     }
 
-    fn position(&mut self, entity: u32) -> [f64; 3] {
-        if entity == self.entity {
-            self.position
-        } else {
-            [0.0; 3]
-        }
+    fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
+        (entity == self.entity).then_some(self.position)
     }
 
     fn movement_sample(&self, site: Site) -> Option<u16> {
@@ -1135,7 +1129,10 @@ mod tests {
         assert_eq!(snapshot.instances[&3].variables[&28], Value::Integer(1));
         assert_eq!(snapshot.variables[&1732], Value::Float(200.0));
         assert_eq!(first.movement_modifiers().map(BTreeMap::len), Some(0));
-        assert_eq!(first.world.position(spawn.entity), spawn.pose.position);
+        assert_eq!(
+            first.world.position(spawn.entity),
+            Some(spawn.pose.position)
+        );
         assert_eq!(first.world.movement, spawn.pose);
         assert_eq!(second.snapshot().unwrap().entity, spawn.entity + 1);
 
@@ -1169,7 +1166,10 @@ mod tests {
                 |mover, command| first.advance(command, mover, BodyStep::Posed).unwrap(),
             )
             .unwrap();
-        assert_eq!(first.world.position(spawn.entity), mover.pose().position);
+        assert_eq!(
+            first.world.position(spawn.entity),
+            Some(mover.pose().position)
+        );
         let posed = mover.pose();
         let sample = sample_movement_flags(&posed).expect("a regular posed movement record");
         assert_eq!(first.world.movement, posed);
@@ -1224,6 +1224,46 @@ mod tests {
             .unwrap();
         assert_eq!(first.world.throttles, [0, 0]);
         assert_eq!(first.component.now_ms(), 202 * FRAME_MS - 1);
+    }
+
+    #[test]
+    fn body_world_queries_only_expose_its_body_and_available_mode_variable_table() {
+        use serde_json::json;
+
+        let (factory, spawn) = fixture_body_factory();
+        let mut world = factory.start(spawn).unwrap().world;
+        assert_eq!(world.position(spawn.entity), Some(spawn.pose.position));
+        world.position = [0.0; 3];
+        assert_eq!(world.position(spawn.entity), Some([0.0; 3]));
+        for foreign in [0, spawn.controller, spawn.entity + 1, GAME_MODE_ENTITY] {
+            assert_eq!(world.position(foreign), None);
+        }
+        // The initial fixture has no mode table; it cannot claim an unset
+        // value for a mode it knows nothing about.
+        assert_eq!(world.entity_variable(GAME_MODE_ENTITY, 1), None);
+        world.graphs = Arc::new(
+            GraphStore::from_json(
+                &serde_json::to_vec(&json!({
+                    "version":1,"graphs":[],"bodies":{},"missing":[],
+                    "mode_variables":{format!("0x{:016X}", world.mode):{"1":42}}
+                }))
+                .unwrap(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            world.entity_variable(GAME_MODE_ENTITY, 1),
+            Some(Value::Integer(42))
+        );
+        assert_eq!(
+            world.entity_variable(GAME_MODE_ENTITY, 2),
+            Some(Value::Null)
+        );
+        for foreign in [0, spawn.controller, spawn.entity, spawn.entity + 1] {
+            assert_eq!(world.entity_variable(foreign, 1), None);
+        }
+        world.mode += 1;
+        assert_eq!(world.entity_variable(GAME_MODE_ENTITY, 1), None);
     }
 
     #[test]

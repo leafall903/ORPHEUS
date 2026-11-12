@@ -2289,6 +2289,14 @@ mod tests {
     fn movement_sample_uses_the_owner_flags_codec() {
         struct Sample;
         impl crate::script_init::World for Sample {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn movement_sample(&self, _: Site) -> Option<u16> {
                 Some(0x842)
             }

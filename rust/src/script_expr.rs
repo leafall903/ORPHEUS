@@ -110,12 +110,14 @@ pub trait Context {
         Value::Null
     }
 
-    fn entity_member(&mut self, _entity: u32, _id: u32) -> Value {
-        Value::Null
+    /// Some(Null) is a known unset variable. None means the query is unavailable.
+    fn entity_member(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+        None
     }
 
-    fn position(&mut self, _entity: u32) -> [f64; 3] {
-        [0.0; 3]
+    /// None means unavailable; a known entity at the origin returns Some([0.0; 3]).
+    fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+        None
     }
 
     fn random_u64(&mut self) -> Option<u64> {
@@ -195,6 +197,8 @@ pub enum EvalError {
     MalformedConfig(&'static str),
     MalformedBytecode { offset: usize, reason: &'static str },
     BudgetExceeded { offset: usize, limit: usize },
+    UnavailableEntityVariable { entity: u32, id: u32 },
+    UnavailableEntityPosition(u32),
     NestingExceeded,
 }
 
@@ -220,6 +224,12 @@ impl fmt::Display for EvalError {
                     f,
                     "statescript instruction budget {limit} exhausted at byte {offset}"
                 )
+            }
+            Self::UnavailableEntityVariable { entity, id } => {
+                write!(f, "unavailable entity variable {entity:08X}:{id}")
+            }
+            Self::UnavailableEntityPosition(entity) => {
+                write!(f, "unavailable entity position {entity:08X}")
             }
             Self::NestingExceeded => f.write_str("statescript config nesting limit exceeded"),
         }
@@ -1125,7 +1135,7 @@ impl Evaluator {
                 }
                 15 | 16 => {
                     let (object, key) = pair(&mut stack, pc)?;
-                    entity_member(&object, &key, context)
+                    entity_member(&object, &key, context)?
                 }
                 17 => {
                     let (object, key) = pair(&mut stack, pc)?;
@@ -1154,7 +1164,7 @@ impl Evaluator {
                 }
                 23..=28 => {
                     let (a, b) = pair(&mut stack, pc)?;
-                    arithmetic(opcode, &a, &b, context)
+                    arithmetic(opcode, &a, &b, context)?
                 }
                 29 => match pop(&mut stack, pc)? {
                     Value::Vector(parts) => Value::Vector(parts.map(|part| -part)),
@@ -1196,7 +1206,7 @@ impl Evaluator {
                 50 | 51 => {
                     let value = pop(&mut stack, pc)?;
                     Value::Float(
-                        vector_position(&value, context)
+                        vector_position(&value, context)?
                             .map_or_else(|| rounded(to_float(&value).abs()), magnitude),
                     )
                 }
@@ -1206,8 +1216,8 @@ impl Evaluator {
                 }
                 53 | 54 => {
                     let (a, b) = pair(&mut stack, pc)?;
-                    let a = vector_position(&a, context).unwrap_or([0.0; 3]);
-                    let b = vector_position(&b, context).unwrap_or([0.0; 3]);
+                    let a = vector_position(&a, context)?.unwrap_or([0.0; 3]);
+                    let b = vector_position(&b, context)?.unwrap_or([0.0; 3]);
                     let delta = vector_op(a, b, |a, b| a - b);
                     Value::Float(if opcode == 53 {
                         magnitude(delta)
@@ -1398,24 +1408,32 @@ fn lookup(key: &Value, scope: Scope) -> Option<Variable> {
     })
 }
 
-fn entity_member(object: &Value, key: &Value, context: &mut impl Context) -> Value {
+fn entity_member(
+    object: &Value,
+    key: &Value,
+    context: &mut impl Context,
+) -> Result<Value, EvalError> {
     let id = match object {
         Value::Entity(id) => *id,
         Value::Array(items) => match items.first() {
             Some(Value::Entity(id)) => *id,
-            _ => return Value::Null,
+            _ => return Ok(Value::Null),
         },
-        _ => return Value::Null,
+        _ => return Ok(Value::Null),
     };
     let key = match key {
         Value::Asset(guid) => Some((guid & 0xffff) as u32),
         key => u32::try_from(to_int(key, 0)).ok(),
     };
-    if valid_entity(id) {
-        key.map_or(Value::Null, |key| context.entity_member(id, key))
-    } else {
-        Value::Null
-    }
+    let Some(key) = key.filter(|_| valid_entity(id)) else {
+        return Ok(Value::Null);
+    };
+    context
+        .entity_member(id, key)
+        .ok_or(EvalError::UnavailableEntityVariable {
+            entity: id,
+            id: key,
+        })
 }
 
 fn into_array(value: Value) -> Vec<Value> {
@@ -1433,11 +1451,17 @@ fn vector(value: &Value) -> [f64; 3] {
     }
 }
 
-fn vector_position(value: &Value, context: &mut impl Context) -> Option<[f64; 3]> {
+fn vector_position(
+    value: &Value,
+    context: &mut impl Context,
+) -> Result<Option<[f64; 3]>, EvalError> {
     match value {
-        Value::Vector(parts) => Some(*parts),
-        Value::Entity(id) => Some(context.position(*id)),
-        _ => None,
+        Value::Vector(parts) => Ok(Some(*parts)),
+        Value::Entity(id) => context
+            .position(*id)
+            .map(Some)
+            .ok_or(EvalError::UnavailableEntityPosition(*id)),
+        _ => Ok(None),
     }
 }
 
@@ -1457,43 +1481,46 @@ fn maximum(a: f64, b: f64) -> f64 {
     if b > a { b } else { a }
 }
 
-fn arithmetic(opcode: u8, a: &Value, b: &Value, context: &mut impl Context) -> Value {
+fn arithmetic(
+    opcode: u8,
+    a: &Value,
+    b: &Value,
+    context: &mut impl Context,
+) -> Result<Value, EvalError> {
     if matches!(opcode, 23 | 24)
         && matches!(a, Value::Vector(_) | Value::Entity(_))
         && matches!(b, Value::Vector(_) | Value::Entity(_))
     {
-        let a = vector_position(a, context).expect("vector or entity");
-        let b = vector_position(b, context).expect("vector or entity");
-        return Value::Vector(vector_op(
-            a,
-            b,
-            |a, b| if opcode == 23 { a + b } else { a - b },
-        ));
+        let a = vector_position(a, context)?.expect("vector or entity");
+        let b = vector_position(b, context)?.expect("vector or entity");
+        return Ok(Value::Vector(vector_op(a, b, |a, b| {
+            if opcode == 23 { a + b } else { a - b }
+        })));
     }
     if opcode == 25 {
         match (a, b) {
             (Value::Vector(a), Value::Vector(b)) => {
-                return Value::Vector(vector_op(*a, *b, |a, b| a * b));
+                return Ok(Value::Vector(vector_op(*a, *b, |a, b| a * b)));
             }
             (Value::Vector(parts), scalar) | (scalar, Value::Vector(parts)) => {
                 let scalar = to_float(scalar);
-                return Value::Vector(parts.map(|part| rounded(part * scalar)));
+                return Ok(Value::Vector(parts.map(|part| rounded(part * scalar))));
             }
             _ => (),
         }
     }
     if let (26, Value::Vector(parts)) = (opcode, a) {
         if let Value::Vector(divisor) = b {
-            return Value::Vector(vector_op(*parts, *divisor, |a, b| {
+            return Ok(Value::Vector(vector_op(*parts, *divisor, |a, b| {
                 if b == 0.0 { 0.0 } else { a / b }
-            }));
+            })));
         }
         let scalar = to_float(b);
         if scalar.abs() < 1.18e-36 {
-            return Value::Vector([0.0; 3]);
+            return Ok(Value::Vector([0.0; 3]));
         }
         let inverse = rounded(1.0 / scalar);
-        return Value::Vector(parts.map(|part| rounded(part * inverse)));
+        return Ok(Value::Vector(parts.map(|part| rounded(part * inverse))));
     }
     let (x, y) = (to_float(a), to_float(b));
     let value = match opcode {
@@ -1505,7 +1532,7 @@ fn arithmetic(opcode: u8, a: &Value, b: &Value, context: &mut impl Context) -> V
         28 if x > 0.0 => x.powf(y),
         _ => 0.0,
     };
-    Value::Float(rounded(value))
+    Ok(Value::Float(rounded(value)))
 }
 
 #[cfg(test)]
@@ -1541,11 +1568,11 @@ mod tests {
             }
         }
 
-        fn entity_member(&mut self, entity: u32, id: u32) -> Value {
-            match (entity, id) {
-                (0xa000_0100, 7423) => Value::Integer(23),
+        fn entity_member(&mut self, entity: u32, id: u32) -> Option<Value> {
+            (entity == 0xa000_0100).then_some(match id {
+                7423 => Value::Integer(23),
                 _ => Value::Null,
-            }
+            })
         }
 
         fn ruleset(&mut self, id: u32) -> Value {
@@ -1581,6 +1608,118 @@ mod tests {
                 "m_D99EF254": floats,
             },
         })
+    }
+
+    #[test]
+    fn entity_member_bytecode_distinguishes_unset_unknown_and_invalid_entities() {
+        let mut context = Vars::default();
+        for opcode in [15, 16] {
+            for (target, key, expected) in [
+                (Value::Entity(0xa000_0100), 7423, Ok(Value::Integer(23))),
+                (Value::Entity(0xa000_0100), 7424, Ok(Value::Null)),
+                (
+                    Value::Entity(0xa000_0101),
+                    7423,
+                    Err(EvalError::UnavailableEntityVariable {
+                        entity: 0xa000_0101,
+                        id: 7423,
+                    }),
+                ),
+                (Value::Entity(0), 7423, Ok(Value::Null)),
+                (Value::Integer(1), 7423, Ok(Value::Null)),
+            ] {
+                context.instance.insert(1, target);
+                let config = expression(
+                    json!([8, 0, 7, 1, opcode, 0]),
+                    &[variable(1, Scope::Instance), variable(key, Scope::Entity)],
+                    &[],
+                    &[],
+                );
+                assert_eq!(evaluate(&config, &mut context), expected);
+            }
+        }
+    }
+
+    #[test]
+    fn position_bytecode_rejects_unknown_entities_without_changing_nonentity_coercion() {
+        struct Positions([Value; 2]);
+        impl Context for Positions {
+            fn variable(&mut self, variable: Variable) -> Value {
+                self.0[variable.id as usize].clone()
+            }
+
+            fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
+                match entity {
+                    0xa000_0100 => Some([0.0; 3]),
+                    0xa000_0101 => Some([3.0, 4.0, 0.0]),
+                    _ => None,
+                }
+            }
+        }
+        let dynamics = [variable(0, Scope::Instance), variable(1, Scope::Instance)];
+        for opcode in [50, 51] {
+            let config = expression(json!([8, 0, opcode, 0]), &dynamics, &[], &[]);
+            for (value, expected) in [
+                (Value::Entity(0xa000_0100), Ok(Value::Float(0.0))),
+                (Value::Entity(0xa000_0101), Ok(Value::Float(5.0))),
+                (Value::Float(-7.0), Ok(Value::Float(7.0))),
+                (
+                    Value::Entity(0),
+                    Err(EvalError::UnavailableEntityPosition(0)),
+                ),
+                (
+                    Value::Entity(0xa000_0102),
+                    Err(EvalError::UnavailableEntityPosition(0xa000_0102)),
+                ),
+            ] {
+                assert_eq!(
+                    evaluate(&config, &mut Positions([value, Value::Null])),
+                    expected,
+                );
+            }
+        }
+        for opcode in [23, 24, 53, 54] {
+            let config = expression(json!([8, 0, 8, 1, opcode, 0]), &dynamics, &[], &[]);
+            for unknown in [0, 0xa000_0102] {
+                for values in [
+                    [Value::Entity(unknown), Value::Entity(0xa000_0100)],
+                    [Value::Vector([0.0; 3]), Value::Entity(unknown)],
+                ] {
+                    assert_eq!(
+                        evaluate(&config, &mut Positions(values)),
+                        Err(EvalError::UnavailableEntityPosition(unknown)),
+                    );
+                }
+            }
+            let expected = match opcode {
+                23 => Value::Vector([3.0, 4.0, 0.0]),
+                24 => Value::Vector([-3.0, -4.0, 0.0]),
+                53 => Value::Float(5.0),
+                54 => Value::Float(3.0),
+                _ => unreachable!(),
+            };
+            assert_eq!(
+                evaluate(
+                    &config,
+                    &mut Positions([Value::Entity(0xa000_0100), Value::Entity(0xa000_0101)])
+                ),
+                Ok(expected),
+            );
+            // Existing scalar arithmetic and nonentity distance coercions are
+            // distinct from a requested entity position being unavailable.
+            let expected = match opcode {
+                23 => 5.0,
+                24 => -1.0,
+                _ => 0.0,
+            };
+            assert_eq!(
+                evaluate(
+                    &config,
+                    &mut Positions([Value::Integer(2), Value::Integer(3)])
+                ),
+                Ok(Value::Float(expected)),
+            );
+        }
     }
 
     #[derive(Default)]
