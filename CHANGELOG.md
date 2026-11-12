@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered manual NPC difficulty and conditional health pools
+
+- Preserve0020's four-tier143A selector, conditional health/shield pool records,
+  creation-before-publication and retirement. Mount the native pool state through
+  the existing health-pool class while retaining ordinary compatibility/strict
+  base pools and Junkenstein wave health. Keep authored base capacities separate.
+- Include conditional pools in damage, capped preview, normal health, healing,
+  eligibility deficits and component51 slot1; preserve temporary/wave records.
+  Shield recovery now restores the original conditional pools too. Register
+  difficulty identity/pool/state storage in body and server snapshots.
+- All27 focused checks passed unchanged: actual five-NPC/four-tier Zen hits and
+  wire records, conditional shield recovery, every tier's Harmony/Transcendence,
+  Sniper/Assassin recovery, skipped updates, basic pool damage and runtime.
+  The existing difficulty file only imports the retained compatible fixture;
+  no assertion was weakened. Real server capture was getter-free, repeatable
+  and sensitive to both conditional health and the NPC difficulty identity.
+- The53-check broader storage/pool run retained four old storage expectations:
+  new input/report fields, Assassin allocation/classes and Zenyatta body storage.
+  Preserve them; the27 focused pool/recovery checks are green. Other original
+  difficulty attack/melee interactions remain available and are not a new gate.
+
 ### Synchronize worker A with received launch and NPC hosts
 
 - Merge stable37577fbd into worker A, preserving both log histories, A6/A7

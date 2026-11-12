@@ -158,3 +158,17 @@ At the clean A7 boundary worker A absorbed canonical37577fbd. The75-check mixed
 boundary run passed74; Pharah motion retained a top-level old sigma_grasp import
 failure in its defense fixture. No A6/A7 or new Slam/fold/runtime regression was
 observed. Next exact action remains0020 difficulty/143A conditional NPC pools.
+
+The143A consumer is now mounted: source ConditionalPool, manual difficulty0..3,
+pool activation/deactivation, damage/healing/wire records, creation ordering and
+retirement. Base capacities stay separate; wave and temporary services remain.
+All27 focused tests passed (original five bodies/four tiers, actual hits/wire,
+healing, shield waits/recovery, basic DamageTests and runtime). Live server
+snapshots are getter-free/repeatable and sensitive to pool amount/profile.
+`worker-a-npc-pools-final.log` and `worker-a-npc-pools-snapshot.log` hold evidence.
+The broader53-check run retains four unrelated source storage expectations for
+new reports/input fields, Assassin classes/allocation and the Zen world field.
+Next exact action: audit the remaining0020 own weapon/support/charge consumers
+against its ref, then complete0003 Recall/Pulse reconciliation and0004 healing
+status/regeneration chronology, followed by0005/000A. Root's manual NPC attack
+entry9cad40e8 is a separate pending synchronization at the next clean boundary.

@@ -325,7 +325,7 @@ class JunkensteinPlayerStatTime(State):
         component.unsupported(instance, 'player stat state outside the verified NPC scope', node.cls, node)
 
 
-@state_class("STUStatescriptStateHealthPool", strict_only=True)
+@state_class("STUStatescriptStateHealthPool")
 class AuthoredBodyHealthPool(State):
     """Validate authored base pools and own a Junkenstein wave's supplemental health."""
 
@@ -336,6 +336,9 @@ class AuthoredBodyHealthPool(State):
     def on_begin(self):
         instance = self.instance
         component = instance.component
+        if (instance.graph.index == 0x143A
+                and component.world.set_health_pool(self, True) is not NotImplemented):
+            return
         if not component.strict:
             return
         placement = (instance.graph.index, self.node.pos)
@@ -380,6 +383,8 @@ class AuthoredBodyHealthPool(State):
             component.unsupported(instance, "authored body health pool capacity", self.node.cls, self.node)
 
     def on_cleanup(self):
+        if self.instance.graph.index == 0x143A:
+            self.instance.component.world.set_health_pool(self, False)
         remove, self.remove_wave_health = self.remove_wave_health, None
         if remove is not None:
             remove()

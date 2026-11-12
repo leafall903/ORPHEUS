@@ -709,6 +709,9 @@ class World:
     def end_health(self, state: "State") -> None:
         pass
 
+    def set_health_pool(self, state: "State", active: bool):
+        return NotImplemented
+
     def spatial_binding_owner(self, entity: int):
         """An explicit 96333BBE auxiliary owner, or None for known absence."""
         return NotImplemented
