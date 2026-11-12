@@ -770,3 +770,18 @@ Four Sigma CLI startup failures are original missing test_sigma_*fixtures,
 assigned B for actual API integration, no fake module aliases. Initial startup
 results remain in parallel-merge/original-tool-startup-results.json; two helper
 failures there are superseded by the successful restored-helper checks.
+
+
+A49 c9943bde is received6c99c09c. Shared snapshot conflict preserves both
+existing Ball grapple_interrupt_frame and original pending_victims metadata.
+Frozen joint2170 terminal29run27pass2old-private-observer errors41.397s:
+source uppercut spy expects damage_tags, canonical real keyword is hit_tags;
+source Rein observes old impulses.pending instead of the sole mover queue.
+Actual original source/Fade uppercut plus all Grapple/runtime cases pass.
+A retains numerical expectations and owns remaining actual fixture adaptation.
+
+Root registers existing script.assassin_movement.Sample(flags,axis) exact
+stored value in both exporters. Actual Phase2 supports this override already;
+no new runtime behavior or arbitrary dataclass admission. Actual40tick Assassin
+sample test26721 terminal1pass19.514s: flags causal in VM/server, restore exact,
+getter guarded, unknown field rejected. Root has no live tests after that run.

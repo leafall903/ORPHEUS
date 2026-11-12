@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original Assassin movement samples in strict stored snapshots
+
+- Register original immutable movement Sample flags/axis in the two existing
+  exporters, retaining the actual Phase2 override instead of rejecting that
+  supported stored value. Runtime movement and callback semantics stay intact.
+- Actual authored Assassin40tick scene produces the sample. Changing its stored
+  flags changes both exports; restoration reproduces both, export executes no
+  movement getter, and unknown sample fields are rejected. One check passes
+  in19.514s with original prepared inputs.
+
 ### Restore original source preparation and native comparison tools
 
 - Preserve32 existing Python/PowerShell tools from the delivered lanes,

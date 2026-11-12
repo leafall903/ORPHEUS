@@ -15,7 +15,7 @@ import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
 from ow174.game import npc_controller_storage
-from ow174.game.script import scene
+from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
@@ -174,6 +174,7 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    assassin_movement.Sample: ("flags", "axis"),
     scene.SceneEntity: npc_controller_storage.SCENE_ENTITY_FIELDS,
     scene.Placement: npc_controller_storage.PLACEMENT_FIELDS,
     entity_queries.Target: ("entity", "possession", "possessor", "body_field"),

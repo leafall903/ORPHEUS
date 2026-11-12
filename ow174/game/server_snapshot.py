@@ -18,7 +18,7 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, npc_controller_storage
-from ow174.game.script import scene
+from ow174.game.script import assassin_movement, scene
 from ow174.game import (
     assassin_controller,
     enforcer_controller,
@@ -303,6 +303,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
     entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
