@@ -11500,3 +11500,11 @@ vs native60 assertions remain visible and do not block real code integration.
   snapshot rejection remains unchanged.
 - Actual projected NPC causal storage, unknown-field rejection and shared
   damage/runtime20 checks pass; original gameplay assertions are retained.
+
+### Verify remaining actual prediction geometry families
+
+- Actual Orisa, Sigma and Photon shields pass surface/object/service identity,
+  splash inclusion/impact exclusion and readonly whole-server digest checks.
+  Correct raw world-flight and ground-aim input completes the existing fixture.
+- Combined with prior actual Mei/Reinhardt/Winston receipts, all six existing
+  geometry families now have scoped query evidence. No gameplay/runtime change.
