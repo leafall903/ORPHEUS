@@ -309,8 +309,10 @@ class Controls:
         return None
 
     def enemies(self, player):
+        from ow174.game import ball_mines
+
         return (target for target in self.fight._enemies(player)
-                if not isinstance(target.owner, actors.Deployable)
+                if not isinstance(target.owner, (actors.Deployable, ball_mines.Mine))
                 and getattr(target.owner, "body_script", None) is not None
                 and self.device_binding(target.entity) is None
                 and not self.fight.damage_immune(target.owner))
@@ -362,6 +364,8 @@ class Controls:
                     matches[0] if matches and request.policy == 2 else None)
 
     def apply_devices(self, instance, definition, resource, request, caster):
+        from ow174.game import ball_mines
+
         if caster is None:
             return
         for target, tags in self.device_targets(caster, emp=instance.graph.index in (EMP, PULSE)):
@@ -395,7 +399,12 @@ class Controls:
                     locks = self.locks.setdefault(target.entity, [])
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
-                    locks.append(Lock(application, self.fight.now + duration, pulse, (self.fight.tick, application.start)))
+                    until = self.fight.now + duration
+                    if isinstance(target.owner, ball_mines.Mine):
+                        # Mine Components are born on this same world clock;
+                        # their actual entry cursor can be at frame end (+15ms).
+                        until = (application.start + round(duration * 1000)) / 1000
+                    locks.append(Lock(application, until, pulse, (self.fight.tick, application.start)))
                     self.remember_lock(application, duration)
                     for sentry in self.fight.sentries.sentries:
                         if sentry.bot is target.owner:
@@ -550,6 +559,8 @@ class Controls:
         return runtime.RaycastResult(clear, expr.Entity(target.entity if clear else 0), expr.Vec3(*point), None)
 
     def play(self, instance, node):
+        from ow174.game import ball_mines
+
         if instance.component.strict or instance.graph.index not in (HACK, EMP, PULSE):
             return NotImplemented
         resource = play.resolve_resource(instance, node)
@@ -582,7 +593,7 @@ class Controls:
                 else:
                     health_packs.submit(pack.component, definition, resource, request)
         for target in fight._targets():
-            if isinstance(target.owner, actors.Deployable) or self.device_binding(target.entity) is not None:
+            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)) or self.device_binding(target.entity) is not None:
                 continue
             if target.entity not in request.targets or fight.vitals_of(target).dead or fight.damage_immune(target.owner):
                 continue

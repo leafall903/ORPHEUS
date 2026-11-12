@@ -843,15 +843,47 @@ alone is not evidence that a line's consumers are actually mounted.
   owner feature audit. Old Vitals setter/Grasp fields require real existing-pool
   fixture adaptation or actual owner consumer proof, not a fake second pool.
 
+## B42 — Natural Ball0B8B passive gate/owner query/settings/cadence
+
+- Default live Ball ult_secondsNone selects original0B8B, with original fallback
+  when the graph is absent. Explicit numeric diagnostic fill (including0) keeps
+  original separate general/passive settings and is not added over native timer.
+- Original pre-frame2426 gate/9532 general/12918 passive inputs feed the same VM.
+  Exact non-strict real Ball/0B8B/self F726 query delegates actual player lookup;
+  gone/retired old instance returnsNone. Other F726 graphs/heroes remain on their
+  existing formal services, no global context overwrite or fake player record.
+- worker-b-ball-passive-third.log4/4 actual original generation/combat settings,
+  owner live/gone/retired/replacement, cadence/cap/Qlockout and gap/duplicate.
+  Initial first log used wrong class name(loader errors); second4skip was real
+  original resource gate, not counted. Correct class plus actual selected input
+  ran the actual cases. Full worker-b-ball-passive-full.log33:30pass,3errors only
+  still-unmounted Combat.mines manager. Natural death/replacement also passes.
+- All original Cooldown72 assertion AST unchanged. No tests/skips weakened.
+- worker-b-ball-natural-passive-storage.log: actual controlled raw input, live
+  ult_secondsNone/native2426 and first5 points with numeric timer disabled.
+  Active strict BodyVM/server capture succeeds; actual12918 base-factor mutation
+  changes both digests and restoration restores both. No new whitelist/state stub.
+- Actual input audit: original01CA/ball-mine-runtime pack hash
+  ee12b2d6dfa31a099311427c847d1f8f307c203f6b71d9f1051e1b46b9ff9549;
+ 2578 actor roots151A/261E, closure2,1graph+entity absent,0 conflicts. Only exact
+  rows were combined through strict add_supplement. Ignored work/ball-mine-addon
+  json.gz6778B hash78107cb5ed059f25953693279d80ef4d532b7be0f094cc9df0ba62bb2c3e8874
+  with provenance per-row/entity hashes sent to root v17 composer; inputs unmodified.
+- Cooldown BallUltimateBufferTests env is presence-only, no provider patch. Tests
+  used actual composed closure plus original full-pack path as selector. Original
+  future MineTests would patch graph.GRAPHS_PATH; B43 must adapt that fixture to
+  actual combined provider, never replace it with old whole pack/fake marker.
+- NEXT B43 actual Minefield manager/launch/land/contact/expiry/retire consumers,
+  source original fixture imports/providers and explicit body/world clock scope.
+  Preserve all errors/remaining boundaries until feature-level owner audit.
+
 ## Exact next work
 
-1. Commit B41 independent spread/combat-charge delivery. Next B42 source Ball
-   natural0B8B passive owner query/gate/ruleset/cadence on same VM, no duplicate
-   passive timer. Then actual Minefield manager and original control fixtures;
-   preserve Ball stale first-command activationNone, Piledriver origin/pull/
-   steering and Fireball half-push boundaries. Root owns EYE maps/tools restore.
-   Full seven-owner remaining estimate22–48 active hours remains low confidence;
-   Hog/Zarya full-source consumer audits are largest not-yet-audited range.
+1. Commit B42 natural passive saved boundary, clean-sync latest canonical/v17
+   composed mine metadata. Next B43 mount original actual Minefield manager and
+   exact original Mine fixtures without old whole-pack graph override. Then
+   source Ball controls/Hack/EMP, shield/Grasp interface inputs and physical
+   boundaries. Root owns EYE/tool metadata. No completed Ball/other-line claim.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
@@ -867,3 +899,214 @@ alone is not evidence that a line's consumers are actually mounted.
 Commit identities and SHA delivery are available from the branch log and parent
 coordination record at `verification/parallel-merge/coordination.json`. Every
 completed code batch is sent to the parent immediately, followed by more work.
+
+B42 delivered SHA: `553cf2e2b0dd4f07ee3739af817335efc5410266`.
+
+### B43 — mounted Minefield factory, native flight and actor transport
+
+- Restored original01CA `flight_step`, `flight_distance`, `clip_flight` and
+  Windows-x64 `scalar_math.py` verbatim. Actual Minefield Q reports now enter the
+  sole existing `ball_mines.Mines`, with original complete report deduplication,
+  world birth clock, strict float32 budgets and same pet-capacity replacement.
+- Attached the source `MineScript` observer/deadline wrapper to each real2578
+  Component; create/live/destroy transport now finds that same script alongside
+  bots and scene actors. Exact VM/server registration includes the actual actor,
+  manager and observer state. Existing typed Sombra device hooks remain on this
+  Component; no old `sombra_emp` host or duplicate mine pool was added.
+- Restored authored node52->node50->node8 search transition rather than the
+  prototype direct node8 request; canonical shield and Knockbacks services own
+  damage/impulse admission. Full original target/status semantics still need the
+  next owner batch; mine hit targets/health consumers and original effect expiry
+  are not yet fully merged.
+- v17 composed2578/151A/261E input: archived flight3, original factory/flight7,
+  runtime13, original cooldown13 and replacement-client1 all pass in their
+  focused runs. Original real-client test passes with15 tracked scripts, landed
+  active mines and full-server digest sensitive to actual mine health. ActualQ
+  active Mine strict Component export counter mutation/restoration passes.
+  Nine restored Mine methods retain all49 assertion ASTs exactly; NativeFlight
+  source assertions unchanged. Input setup checks real composed graphs and never
+  patches GRAPHS_PATH with the old whole pack.
+- An initial missing prototype projectile_gravity import interrupted ordinary
+  shots and caused7 cooldown failures; corrected using the original inline
+  volley gravity expression, then all13 cooldown passed. Temporary split-fixture
+  missing imports/helpers were corrected without changing original assertions.
+- Client gameplay acceptance not run; no formal full Ball completion claimed.
+
+Next exact action: restore original MineWorld creator/ruleset/filter context,
+actual mine target50HP destruction/noherocharge consumers, sole Sombra effect
+expiry, then the remaining original Minefield suite without a duplicate EMP
+controller. Preserve all existing source checks and physical boundary failures.
+
+B43 delivered SHA: `bdb1d327`.
+
+### B44 — actual Minefield destructible and body consumers
+
+- Added original all-lifecycle Mine targets to the existing combat target stream,
+  including flight, preserving birth/replacement history before landing. Enemy
+  bullets now damage the same50HP actor/Component pool, never award hero damage,
+  elimination or ultimate charge, and never critical-hit mines. Actual mine
+  destruction cleans the same registry/transport; typed health lookup resolves
+  the same actor. Owner-source/allied exclusion and source damage scaling remain.
+- Kept mines out of healing targets and Adaptive Shield character counting. Sole
+  Sombra device traversal retains mine EMP routing, while ordinary body traversal
+  excludes Mine to avoid playing the same effect twice. C42's additional actual
+  NPC-device exclusion is independent and must be retained at root merge.
+- Corrected B43 impulse adaptation to the existing Knockbacks `expr.Vec3` input,
+  and scoped original Mei05FE/state35 protection without an absent CRYO_STATES
+  import. Original130-hit transition now damages once and applies real impulse.
+  The original creator query also rejects a missing/replaced source body script.
+- Original rifle destruction, cannon no-critical/no-charge, healing/no-shield-
+  count, wall/radius and arming130-hit/impulse checks pass. Original rewind shot
+  now rejects a mine that did not exist at viewed time: the source flight actor
+  must be present so cleanup does not erase its birth boundary before landing.
+  Original raw client15-script/full-server causal health test still passes.
+  All16 restored Mine methods retain89 original assertion ASTs exactly.
+- Shared runtime13 plus original rewind/rawclient2 pass. A mistyped
+  test_game_damage loader was recorded and corrected to the existing
+  test_game_combat.DamageTests. Damage8 plus Sombra charge14 pass; the remaining
+  SombraChargeNpcTests setup imports absent old phase_defenses via its original
+  NPC fixture (1error), reported to C without adding a fake module. No assertion
+  changed to hide that boundary. Client gameplay acceptance not run.
+
+Next exact action: synchronize the next clean canonical boundary, restore and
+run the remaining original Mine lifetime/source-property and status/EMP checks
+against the sole Controls service. Audit source component-key/filter context,
+gap expiry and overlapping real EMP applications; then finish Ball cross-hero
+control/physical boundaries. No complete Ball/7-line merge claim.
+
+B44 delivered SHA: `d06c74a3`.
+
+### B45 — original Minefield lifetime and EMP source context
+
+- Restored the exact source MineWorld0B1F/node19 alive-source condition on the
+  actual Mine Component. Without this callback the foreign source condition
+  cleared8912 before its authored duration; no second EMP manager was introduced.
+- Existing sole Controls now computes only actual Mine locks from their actual
+  application.start plus original duration milliseconds. Mine Components are
+  born in world tick domain; their VM entry cursor may be frame-end+15ms.
+  Other body/NPC/device lock clocks are unchanged. Preserve C42 Bot/Sentry
+  adaptations when merging the same apply_devices region.
+- Restored9 original Mine lifecycle/status methods and the original real EMP
+  cast helper against composed graphs/sole Controls. Only module/constant API
+  names changed (sombra_control.HERO/PULSE/EFFECT/EMP); no fake sombra_emp module,
+  substituted provider or numerical expectation was added. Original assertions
+  remain identical after that explicit name mapping.
+- v17:9run8pass1fail. Passed actual flight EMP through landing; allied/wall/range
+  exclusions; disabled-mine rifle destruction; creator0/.5/2 lifetime values;
+  infinite lifetime; live0/.5/1 knockback values; original tick-gap native fade;
+  overlapping actual EMPs keep the mine disabled until the final deadline.
+- Original single-EMP deadline-1 still fails: after corrections the Lock remains
+  active until30.223 and effect.teardown remainsFalse, but run_frame(1888) reaches
+  frame-end30223 and the authored graph clears8912, allowing trigger at world
+  tick1888 (30.208), before the fixture's ceil deadline1889. This is an unresolved
+  VM/frame-boundary consumer discrepancy, not classified as merely observation.
+  Kept the original assertion; did not alter global run_frame or source values.
+- Shared runtime13 and actual paidEMP no-command expiry1 pass. An additional
+  source-replacement Sombra fixture retains missing test_game_sombra_grenade
+  import error; reported with the earlier C-owned NPC fixture boundary. Initial
+  split-fixture missing World/world/SOLDIER imports fixed without assert edits.
+- No original-client acceptance or complete Ball delivery claim. Logs remain in
+  external worker-b-ball-mine-lifecycle-2/emp-destroy-2/expiry-shared files.
+
+Next exact action: continue original Mine component-key/filter/source queries,
+phase/Cryo/Transcendence/bubble admissions and endpoint causal ordering. Keep the
+single-EMP strict frame boundary visible; reconcile it only from original code,
+not by changing expectations. Then remaining Ball control/physical/source tests,
+followed by the large unaudited Hog/Zarya/Sigma owner consumers.
+
+B45 delivered SHA: `bc88c727`.
+
+### B46 — original Mine second-search Cryo member and contact checks
+
+- Restored original MineWorld foreign member9588 lookup only for its actual
+  live Mei05FE/state35 candidate VM. Creator reads still require the original
+  source body; no copied status flags or second health/controller pool exists.
+  The original second-search filter now excludes the active Cryo candidate
+  before its relation query, and admits the same candidate after actual cancel.
+- Restored9 full original Mine contact/filter tests with exact assertions and
+  original real helper inputs: second search controls actual damage; one blast
+  hits each eligible enemy once; overlapping enemy mines remain independent;
+  component76 short-circuit and source8117 candidate routing; Roll/Fireball
+  contact; preparation deadline; Wraith; live Cryo/cancel admission.
+- v17 original9 plus shared runtime13 all22 pass. All original assertion ASTs
+  preserved, no provider substitution. Initial missing hold fixture import was
+  fixed; initial Cryo relation_calls [52,50] vs original[52] exposed and drove
+  the real foreign-member correction rather than an expectation change.
+- B45 single-EMP frame-end8912 boundary remains open with its original test.
+  No original-client acceptance or complete Ball line claim.
+
+Next exact action: original world-only phase/Cryo/Transcendence and shield-surface
+Mine consumers; reconcile actual foreign script/ruleset semantics using current
+host APIs rather than adding old fake modules. Preserve the existing no-double-
+EMP path and C42 native NPC device changes at parent merge.
+
+B46 delivered SHA: `a53bc026`.
+
+### B47 — original Mine creator namespace on current typed host APIs
+
+- Restored original creator script presence and foreign ruleset default semantics
+  through the existing runtime.World.script_component_present/entity_ruleset
+  interfaces. Only the selected original creator body is declared known;
+  missing/replaced creator script yields explicit absence and no body alias.
+  Unknown other entity services retain strict behavior. No old helper-only API
+  or fake module was added to satisfy fixture names.
+- Restored the full original missing/replaced creator query test, mapping only
+  old getter names ruleset_for_entity/has_script_entity to the actual two host
+  interfaces above. Original query values and every expectation remain.
+- v17 original creator-absence/query, lifetime0/.5/2, livecreator knockback0/.5/1
+  and real-client tracked Mine/full-server causal health snapshot all4 pass
+  (24.607s). No original-client acceptance or full Ball completion claimed.
+
+Next exact action: clean merge parent6d51297b (including C42) or its newer
+explicit canonical SHA after this saved boundary; retain both Mine and actual
+NPC-device exclusion predicates and Mine-only expiry clock. Continue actual
+world-only phase/Cryo/Transcendence and barrier Mine consumers, keeping original
+single-EMP frame-end mismatch visible.
+
+B47 delivered SHA: `803bc5e4`; canonical sync6d51297b committed `f7654b15`.
+
+### B48 — original Mine particle-barrier admission before body impulse
+
+- Restored original Minefield particle-barrier priority using the same existing
+  barriers.protect_body actor consumer before body damage/impulse. A non-None
+  consumed impact exits even if it breaks the shield; the same barrier is not
+  charged twice and protected bodies receive no launch from that impact.
+- Restored original personal/projected Zarya and Winston inside/outside shell
+  Mine checks. Zarya fixtures select actual barriers.scripted actors, preserving
+  the original vitals/recipient assertions; the static for_target proxy's cached
+  health is not the actual authored pool observer. No extra shield host/pool.
+  Winston getter adaptation selects existing world.actors and uses its actual
+  owner/health/centre()/radius fields; original numeric values remain unchanged.
+- v17 original3 barrier cases plus original130-hit and eligible-multiple-body2
+  plus shared runtime13 all18 pass (14.026s). Zarya actual200->70 once, energy26,
+  body unchanged and no impulse. Winston700 unchanged while the opposite-shell
+  body takes130 and receives the original impulse in both directions.
+- Initial fixture read static proxy.health200 while actual scripted pool already
+  had70; corrected the getter to the real actor. The original no-impulse checks
+  then exposed actual(0,5,5) movement, driving the restored source priority branch.
+  No expectation was reduced, no matrix added; original-client acceptance open.
+
+Next exact action: continue source Mine world-only phase/Cryo/Transcendence and
+projected/personal expiry contexts without assuming body/world clocks are equal.
+Keep B45's single-EMP frame-end discrepancy and all original checks. Then audit
+remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
+
+B48 delivered SHA: `3a4da096`.
+
+### B49 — preserve original Minefield Q/reload/death/replacement checks
+
+- Restored5 original Minefield input/lifecycle checks and the original partial-Q
+  real-rifle death helper against the already mounted actor/VM. No runtime
+  feature or alternate input controller was added in this batch.
+- v17 all5 pass (94.782s): manual/automatic reload before/after ammo fill;
+  partial Q real-rifle death retains only released reports; deployed mines arm
+  and hit after their owner is actually killed; natural replacement can deploy
+  a fresh Minefield after cleaning the old one; respawn destroys old mines for
+  both viewers. Original expectations, values, timing inputs and assertions
+  remain unchanged; this is retained source evidence, not a new acceptance matrix.
+- Existing actual Mine source/protection/status boundaries remain in preceding
+  records. No original-client acceptance or formal full Ball completion claim.
+
+Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
+then original world-only phase/Cryo/Transcendence and Minefield control interruption
+consumers. Retain source input history and all existing native device/owner paths.

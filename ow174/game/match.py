@@ -78,14 +78,15 @@ from ow174.game.content import (
 from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.genji import GENJI, Mobility
-from ow174.game.mover import MoverData, statescript_flight, statescript_mover_data
+from ow174.game.mover import MoverData, clamp_linked_target_command, statescript_flight, statescript_mover_data
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
+from ow174.game.script.player_controller import ControllerVM
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import MAX_GAP, WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
 from ow174.game.script.runtime import ScriptBudgetError
-from ow174.game.statescript import Stream, owner_ack
+from ow174.game.statescript import Stream, owner_ack, owner_full_frame
 from ow174.game.world import (
     GAME_MODE_ENTITY,
     NO_INPUT,
@@ -270,6 +271,8 @@ class Player:
         self.mode_script = Stream(GAME_MODE_ENTITY)  # the game mode entity's variables: the countdown
         self.next_countdown = 0.0
         self.select_open = True
+        self.controller_vm: ControllerVM | None = None
+        self.controller_effect_key = None
         self.controller_hero: int | None = None  # the hero (v940) the last controller frame named
         # The numbers his Tab board shows (stats.py); the combat code adds to them. His client gets them
         # in component 64 when they change.
@@ -384,6 +387,10 @@ class Player:
                 retained = (sigma_barrier.barrier_gap_buttons(script, command.buttons)
                             if not dead and script is not None and command.frame > script.frame + 1 else 0)
                 self._advance_body_gap(first_pose, retained_buttons=retained)
+                if not dead and self.controller_vm is not None:
+                    angles = self.controller_vm.linked_target_angles()
+                    if angles is not None:
+                        command = clamp_linked_target_command(command, angles)
                 aim_lock = getattr(self.match.scene_host, 'player_aim_lock', None)
                 if not dead and aim_lock is not None and (locked := aim_lock(self)) is not None:
                     yaw, pitch = locked
@@ -867,6 +874,9 @@ class Match:
         hero = heroes().get(fixed or hero_guid) or heroes()[SOLDIER]
         quanta = TOURNAMENT_QUANTA if tournament else RETAIL_QUANTA
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
+        if graph.entity_body(PLAYER_DEFINITION) is not None:
+            player.controller_vm = ControllerVM(
+                player.entity, player.hero.guid, self.game_map.mode_guid, self.tick)
         self.players.append(player)
         return player
 
@@ -1427,6 +1437,14 @@ class Match:
         if frames is None:
             frames = sends(tick)
         self.tick = tick
+        for player in self.players:
+            host = player.controller_vm
+            if host is not None and not player.gone and not host.retired:
+                try:
+                    host.advance(tick, player.hero.guid)
+                except Exception:
+                    log.exception("[game] %s: %s's controller VM failed", self.label(), player.name)
+                    host.retire()
         ready = self._refresh_collision()
         if self.collision_state.status == "unavailable":
             self._collision_failure(now)
@@ -1452,6 +1470,10 @@ class Match:
                 continue
             if player.loaded_at is not None:
                 self._spawn_steps(player, client, now)
+            if frames and player.steps_done >= 4 and client.controller_ready:
+                dynamic, bound_vars, key = self._controller_effect_data(player)
+                if key != player.controller_effect_key:
+                    self.send_controller(player, effect_data=(dynamic, bound_vars, key))
             if player.script.data_last and now >= player.script.next_ack:
                 self._owner_ack(player, player.script, now)
             if player.body_script is not None and player.spawned and frames:
@@ -1545,7 +1567,16 @@ class Match:
         frame = player.commands.last_frame
         return self.tick if frame is None else frame
 
-    def send_controller(self, player: Player) -> None:
+    @staticmethod
+    def _controller_effect_data(player):
+        host = player.controller_vm
+        dynamic, bound_vars = host.owner_effect_wires() if host is not None else ((), {})
+        if not dynamic:
+            return dynamic, bound_vars, None
+        content = owner_full_frame(1, [], {}, dynamic=dynamic, bound_vars=bound_vars)
+        return dynamic, bound_vars, (content.value, content.count)
+
+    def send_controller(self, player: Player, *, effect_data=None) -> None:
         """A full frame of the controller's statescript, with hero select open or closed. The skin
         selector shows in the PvP modes while heroes are assembled, in the Practice Range whenever
         the screen is open."""
@@ -1556,14 +1587,19 @@ class Match:
         skins = player.select_open and (practice or self.assembling())
         switch = self.notices.presence(player)  # the last hero switch for the chat line (notices.py)
         hero = player.controller_hero = player.hero.guid if player.has_body else None
-        frame = heroselect.controller_frame(
-            self.controller, cmfd, player.select_open, skins, practice, presence=switch, hero=hero,
+        instances, variables = heroselect.controller_instances(
+            self.controller, player.select_open, skins, practice, presence=switch, hero=hero,
             body=player.body if player.has_body else None,
         )
+        if effect_data is None:
+            effect_data = self._controller_effect_data(player)
+        dynamic, bound_vars, key = effect_data
+        frame = owner_full_frame(cmfd, instances, variables, dynamic=dynamic, bound_vars=bound_vars)
         update = player.script.full_frame(frame)
         # A switch notice is a separate event, even when the menu is already closed.
         update.controller_close = player.has_body and not player.select_open and not switch
         player.client.queue_entities([update])
+        player.controller_effect_key = key
         state = "open" if player.select_open else "closed"
         log.info("[game] %s: %s's controller sent (hero select %s)", self.label(), player.name, state)
 
@@ -2113,6 +2149,8 @@ class Match:
         player.client = None
         player.spawned = False
         self.stop_body_script(player)
+        if player.controller_vm is not None:
+            player.controller_vm.retire()
         if player.has_body:
             self.combat.retire_player_body(player)
             self.destroy_for_others(player, player.body)

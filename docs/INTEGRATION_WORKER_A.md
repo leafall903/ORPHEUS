@@ -9,7 +9,48 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
-## Current owner reconciliation after A27
+## Current nine-owner handoff after A63
+
+A owns the original seven hero cores plus reassigned0065 Junkrat and0200 Ashe.
+All nine currently have actual original-language consumers; no known remaining
+owner-specific core omission is identified. This means owner code reconciliation
+is ready for root intake, not whole cross-owner frozen-ref ancestry or completed
+client acceptance. Keep every existing failed/original check visible. Root owns
+formal source admission and global final reconciliation; no appearance/Rust work.
+
+- Seven original refs and their mounted boundaries remain listed below; subsequent
+  A28-A32 preserve shared charge/filter consumers, including actual adaptive-loss
+  deduction and one native registry contract. Later checkpoints supersede old next-actions.
+- 0065 source c31d926214d74bbb6d5f308cabce92c65d8a48fc: original cannon/bounce,
+  Mine/SteelTrap true actor and Vitals/contact/root/health/deadlines, RipTire sole
+  possessed mover/actor/lifecycle/explosion, charge/source inputs, Mayhem and NPC
+  death-volley are mounted (A33-A42). Root took the shared34924 Thunderstorm branch
+  and source tools. No duplicate deployable actor/Vitals/clock or old manager.
+- 0200 source 8b991768223a98ff97f2618a53f0947dc6477c4b: original Viper/Coach/reload,
+  Dynamite/burn and BOB real gun/charge/uppercut/Heavy carry/lateral/lifecycle are
+  mounted (A43-A61). Original source-only impulse pools map to current sole
+  Knockbacks and Bot.impulse_mover. Current-bound mover extension has explicit
+  base/source hash provenance; original inputs remain unchanged. Root's shared
+  PlayerController/filter/wire/lifecycle/snapshot consumer is now absorbed.
+- A57 exact Matrix amount/source output restored on existing interception;
+  A58 BOB uses actual recipient-frame silence history; A59 real NPC hard-control
+  interruption no longer crashes in Photon guard. All original expectations and
+  old observer/private API differences retained. A62 classified two older Ana
+  warmup-vulnerability checks as conflicting with original0003/000A both-phase
+  Recall protection; retain owner policy and both original failed checks.
+- Clean synchronization7b410a4c incorporates intake d7139d1a. New composed boundary
+  check on v17 ran original PlayerController9, EMP refresh1, both BOB EMP expiry2,
+  real sleep/freeze/Blizzard3 and actual Matrix1 =16/16 passed21.646s, log
+  worker-a-ashe-composed-owner-boundary.log. This is limited verification, not a
+  new matrix or claim that all original source fixtures pass.
+
+Latest own implementation changes are A57 e62a0033, A58 dba31c23 and A59 f1acf65c;
+A60 6e894f87/A61 4bdf09ee preserve real-host source assertions, A62 241d6c8d source
+policy evidence. Root has all SHAs. Next concrete work is any newly identified
+actual source-consumer gap from root's final cross-owner reconciliation, rather
+than fabricate compatibility state or weaken source checks to make a broad group green.
+
+## Original seven-owner reconciliation after A27
 
 All seven assigned hero cores have actual consumers; no additional missing own
 hero-core consumer is currently identified. This is an owner boundary, not a
@@ -1332,3 +1373,88 @@ Absorbed committed intake440e6c0f at the clean A52 boundary, retaining all paral
 - The current shared lateral helper returned early for Bot owners lacking Player.mover, discarding delivered Heavy graze force on BOB. Only live managed BOB recipients now pass current fight/frame into that same helper/Knockbacks host; all Player and other recipient paths remain unchanged. For actual1408, read original payload origin offset5 instead of the helper's existing Reinhardt fight-mode5/2 selection. Other Reinhardt modes unchanged. No second mover/controller or pool.
 - Actual original Heavy35 health payload delivered real BOB HP loss and authored horizontal30/up10 queued impulse; Knockbacks.active, Bob.mover and Bot.impulse_mover were the same object, and ordinary subsequent poses moved it. worker-a-ashe-bob-heavy-lateral.log. Source/shared NPC control+original Bob14+original actual Heavy/Bob carry/wall/gun-resume:40/40 passed (worker-a-ashe-bob-lateral-shared.log).
 - Next perform root-requested DVa/Tracer body/head contract audit without changing original expected values, then finish remaining actual status/queue fixture bindings once C delivers genuine receiver entry fix.
+
+## A57 - actual Matrix absorption output
+
+- Restore exact original007A deflection.reflected_projectile output function. Existing Matrix interception passes actual nominal payload/current source into real02CC fields and m_160B5DBE plug. Include existing hitscan/flight, tagged flights, Dynamite and Widow nominal-zero mine source binding. No defense manager, admission/window/geometry or pool replaced. Sigma consumers retained; tagged hitscan graph comparison no longer reads a shadowing local absorption tuple as a module.
+- Actual owned0407 mech (not parked pilot) blocked four live BOB shots: HP600 unchanged, native6584=14 and41=actual BOB entity; release restored damage to582. Persisted test_ashe_matrix_body uses actual BOB gun/body VM and same mech mover. Focused14/14 passed: test_ashe_matrix_body, test_game_combat.DamageTests, test_game_projectiles.HelixTests, test_ashe_controls.BobControlTests.test_grasp_absorbs_bob_gun_until_state_ends and .test_real_deflect_returns_bob_gun_damage_until_cancel. Logs worker-a-matrix-native-output.log and worker-a-matrix-output-focused.log.
+- Broad39 methods:28pass/11error; all11 WidowGrasp errors at unchanged fixture sigma.HERO lookup before combat. Keep original values/assertions; no dead alias/second host. worker-a-matrix-output-shared.log. Original Ashe Matrix proxy fixtures not claimed green.
+- v16 audit: real DVa target/control/crouch VM belongs to owned mech while source proxy tests parked pilot. Original0003/current Tracer head Y1.5670119524/radius.1599999964 misses uniform eye proxy ray1.09, yielding20 rather than proxy40. Constants match frozen source; no frozen baseline rerun claimed. Geometry/assertions unchanged. Logs worker-a-v16-dva-body-contract.log and worker-a-v16-tracer-head-contract.log; parent confirmed these do not block production integration.
+- Next clean sync intake with C38/C39/C40, bind BOB lock reads to actual recipient-frame Controls.locked_at without extending world locks. Broader fixture observer/API and Junkrat/Tracer differences retained; no whole0200 completion claim.
+
+## Clean synchronization after A57
+
+Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/recipient-frame windows, root v17 input selection and all Ball/shared changes. Only changelog union conflict resolved by retaining both entries; production code merged automatically. Next actual BOB recipient-frame lock admission.
+
+## A58 - BOB reads the real recipient-frame silence window
+
+- After clean synchronization97463cfb/intake580ad408, both original EMP/BOB boundary cases reproduced unchanged: gun resumed one shot early (7vs6), charge case missed first expiry shot (0vs1). worker-a-bob-lock-boundary-baseline.log.
+- Actual clock probe: boundary frame1519..1522, real component1518..1521, authored Wait end1522.4375, but BotScript.frame remained1209 because this companion host directly calls component.run_frame(frame). Never feed that stale wrapper clock or guessed generic world epoch into Controls.locked_at. Existing Companions' explicit component driver frame is the actual recipient frame; the helper now passes that same frame and actual bot body_script into the sole Controls.locked_at. C confirmed this contract; no lock history/timer/manager modification, lifetime/phase deadlines unchanged.
+- Normal original EMP active gun pause/resume, charging pause/timeout/delayed gun and owner-only out-of-range BOB case all pass unchanged. Combined with original Bob14 and actual owned-mech Matrix regression:18/18 passed26.808s, worker-a-bob-lock-recipient.log. worker-a-bob-lock-clock.log preserves the causal component/wrapper evidence.
+- Next absorb C41 actual same-recipient refresh on a future clean boundary, continue remaining original Ashe defense/status and private fixture API admission without inventing compatibility managers/pools. No complete0200 acceptance claim; source observer differences remain in earlier checkpoints.
+
+## A59 - real NPC interruption and BOB Sleep cadence
+
+- Six original hard-control entry methods retained1runnerfail/8suberrors at old fight.freezes/fight.sleeps observer tables (worker-a-bob-hard-control-admission.log), not evidence of actual control failure. Probe actual Vitals/is_asleep without fake tables exposed a production crash: actual Sleep Dart on BOB -> interrupt_controlled -> photon_barrier.interrupt read absent BotScript.hero. C confirmed no Photon WIP; change only the non-Symmetra guard to getattr(...,None), preserving all actual Symmetra strict/windup behavior.
+- True dart now deals5HP (BOB1195), sets actual Vitals.sleep_until1523, pauses actual gun, then resumes three shots without changing fixed lifetime. New test_ashe_bob_native_status observes real Vitals and preserves original20/18 tick setup, damage42 and exact original normal/skipped hit schedule [(0,14),(7,14),(15,14)]. Both contiguous and skipped paths pass, no extra manager/observer pool.
+- Focused test_ashe_bob_native_status + test_script_runtime + original test_ashe_bob:28/28 passed27.792s (worker-a-bob-sleep-focused.log). Original AnaPhoton attempts remain8suberrors at old symmetra_barriers observer; mistaken test_game_runtime module selection also recorded unchanged in worker-a-bob-sleep-photon-shared.log; correct shared VM test_script_runtime passed. Initial real crash and repair evidence worker-a-bob-real-sleep{,-after}.log.
+- Next audit real BOB freeze/Blizzard using actual sole Frost host, source fixture table differences retained. Do not expand acceptance matrices or change original numerical checks; no whole0200 completion claim.
+
+## A60 - original BOB freeze and Blizzard behavior on the real Frost host
+
+- Original table-based fixtures remain unchanged. Add direct real-host counterparts to test_ashe_bob_native_status, using current frozen()/frost_hits.frozen_until instead of nonexistent freezes table. Preserve source numerical damage, thaw boundary, shot count and fixed lifetime expectations. No production code/host/state changes needed.
+- Actual spray froze BOB at frame1276: HP1117.5 equals1200-30*2.75; owner also took penetrating spray damage. Gun paused to actual deadline1358 and resumed one shot exactly then,14HP, same lifetime. Actual Blizzard froze BOB, resumed one shot at thaw and ended at1115HP (original AlmostEqual retained for floating sum). Sleep original exact contiguous/skipped schedule remains passing. Three real-host methods/4cases passed11.800s (worker-a-bob-native-status.log).
+- worker-a-bob-real-freeze.log and worker-a-bob-real-blizzard.log retain probes. The latter probe used an overstrict exact float1115 comparison and observed1115.0000000000168; persisted regression uses the unchanged original assertAlmostEqual semantics, not a modified gameplay value.
+- Owner0200 core currently mounted: Viper primary/spread/reload and interruption; Coach geometry/recoil/shove through shared Knockbacks; Dynamite throw/bounce/reflection/absorption/fuse/blast/self-scale/burn; BOB single NPC/Vitals/mover, original body gun/phase/charge/uppercut/Heavy carry/lateral, actual sleep/freeze/Blizzard/Hack/EMP query consumers and retirement; strict state storage. Root owns shared player-controller/filter/PinEffectServices admission. Broad source old observer/name differences and cross-owner remaining boundaries stay open, not claimed whole-line acceptance.
+- Next inspect real source-owner/charge/state lifecycle gaps, then root final reconcile of0200 cross-owner shared files; do not block preserved code integration on old observer errors.
+
+## A61 - original BOB no-force postconditions use the real force host
+
+- Selected original death/owner-death/gun teardown/4second-charge+10second-life/ruleset/missing-gun isolation/head-on contiguous-skipped/cooldown admission10 methods ran41.168s:8passed; two methods reached3old impulses.pending AttributeErrors after their original gameplay assertions. Log worker-a-bob-lifecycle-charge-audit.log.
+- Bind only the two methods' assertNotIn(entity, old impulses.pending) to the actual sole knockbacks.active host. Absence of any active force mover proves the intended no queued-or-active uppercut after corpse/head-on collision, without adding a second manager or fake pending facade. Other values, assertions, source fixture methods and expected target/cast orders unchanged. Targeted2methods/3cases passed4.037s (worker-a-bob-no-force-host-check.log). Source other private pending observations remain explicitly unresolved.
+- No new production gap in this lifecycle batch: original credit/owner death persistence, actual enemy-gun retirement, source duration ruleset, missing-gun isolation, head-on contact/skipped equality and cooldown behavior reached their original checks. Root shared player-controller admission remains its own scope. Continue source charge/owner lifecycle reconciliation; code-level integration need not wait for old observer/private queue checks.
+
+## A62 - reconcile the two original Ana/Recall policy conflicts
+
+- Re-ran complete normal test_game_ana_tracer_recall:9methods/7pass/2fail41.592s, exactly original press_after_dart=False and lethal replace_body=False. worker-a-ana-recall-reconcile-baseline.log preserves original assertions. No runtime edits to manufacture a green group.
+- Causal trace shows actual dart crosses Tracer during Recall warmup but current immunity deliberately suppresses damage/control; 1HP Tracer similarly survives warmup melee, then Recall restores health, so its history correctly remains. worker-a-ana-recall-causal.log. Earlier verbose timeline log contains full Phase history; use bounded reads only.
+- This is a conflicting delivered contract, not missing Sleep/melee/Recall consumer: frozen0003 tracer.begin_recall creates session in warmup and recalling checks session.state.active for either phase. Its original test_game_tracer.TracerRecallTests.test_invulnerable_and_untargetable_during_both_phases_then_damage_resumes explicitly applies200damage at warmup+1frame, expects150HP and target exclusion. Frozen000A tracer_recall.Recalls.protected likewise checks cast.activation.start <= now < cast.end_ms, including warmup. Those are incompatible with original013B Ana two warmup-vulnerability expectations. Existing25dee1a intentionally preserved the complete0003 policy; do not revert active() to phase.starts lower bound solely for older cross-owner checks.
+- Current normal original0003 both-phase immunity and originalAna dart during playback/after expiry checks both pass5.558s (worker-a-recall-owner-protection-contract.log). All numerical/source assertions remain unchanged. Parent notified the exact source contracts; no new configuration, host or functionality added.0003 retained implementation is ready under its already recorded owner reconcile boundary; whole-ref cross-owner ancestry remains parent's decision.
+- Next continue remaining actual owner source-consumer audit, leaving these original conflicting expectations visible rather than treating them as unmerged gameplay.
+
+## Clean synchronization after A62
+
+Absorb intake d7139d1a: original shared PlayerController/filter lifecycle and its source fixture, C41/C42 lock/device consumers, Ball Mine factory/damage, strict storage/replay arithmetic identity. Only changelog union conflict; retain both entries. Actual owner source policies preserved; no external runtime/base writes. Next verify only newly composed owner status/controller boundaries, avoiding duplicate broad acceptance passes.
+
+## A64 shared-controller assignment and clean synchronization
+
+Root reassigned original0200 remaining000E dynamic owner/effect wire/manual Assassin/LinkedTarget/Pin causal storage after the nine-core boundary. Absorb stable canonical/intake6d51297b, only changelog union conflict; keep both ControllerWorld and MineWorld exact storage branches, every current codec and scalar replay profile. Root owns intake reception only for this shared task. C43 owns LogicalButton/body_button/ability gates; do not duplicate it. First independent batch: optional original dynamic/bound-var owner-full encoder, default16 combination bit equivalence captured before changes externally.
+
+## A64 - original dynamic effects in the sole owner full-frame encoder
+
+- Stable6d51297b synchronization137a3c2d retains all ControllerWorld/MineWorld storage, scalar profiles and codecs. Restore exact original0200 owner_full_frame optional dynamic/bound_vars/frame_ms and _dynamic_owner_full into current statescript.py. Static and dynamic descriptors share one sorted uint16 namespace; overlapping bound variables/IDs reject before encoding. Full owner effect states use original class/owner-slot validation and existing event/variable writers.
+- Restore original write_payload optional full mode for LinkedTarget codec, leaving existing codecs/Map/PairArray/fragmentation/spray and default delta paths intact. No alternate wire encoder or manager. Default no-effect PRACTICE/PVP open/skins/hide16 combos are byte/bit identical against pre-edit captured values in worker-a-controller-owner-full-baseline.json.
+- Existing test_game_statescript + test_statescript_codecs25/25 passed2.450s. New normal test_controller_effect_owner_full2/2 passed. Actual original1177 graph/LinkedTarget full payload and bound14695 flag decode together with the real static Practice controller tree; ID/entity-var collisions reject. worker-a-owner-full-codec-shared.log and worker-a-controller-effect-full.log.
+- This batch is only the real encoder dependency boundary; Match effect refresh, manual NPC recipient coupling, LinkedTarget runtime registration and Pin causal storage remain next. Do not claim original manual Assassin whole group live yet; C43 owns body-button/LogicalButton/Ability gates independently.
+
+## A65 - original controller LinkedTarget on the existing native registry
+
+- Restore source0200 1177/node9 linked_cache, activation-order state registry, original source angles/float32 compose, network payload and cleanup inside the existing single LinkedTarget class. Keep current224E/node34 sleep-view local-angle/sample implementation unchanged; never replace it with the older source224E adapter. Exact linked_cache added to existing strict state storage layout.
+- Actual1177 VM exposed a second real registration collision: global strict CinematicAimLock overrode LinkedTarget for all resources. Root approved use of existing SCOPED_STATE_CLASSES. state_class now accepts multiple exact state_scopes alongside its unchanged single state_scope; LinkedTarget declares only(1177,9)/(224E,34). Existing four cinematic resources continue using their original class and strict guards; unknown placements remain rejected. C43 owns separate LogicalButton/Ability sections; A does not edit them.
+- Real independent ControllerVM creates original1177 effects; reverse activation of two live nodes preserves original registration order and source yaw/limits, payload link follows next registered instance, finish removes only that state, final cleanup removes registry. Absent component31 is accepted with no mover sample; declared component31 with unavailable sample still raises UnsupportedScriptError. Existing owner_effect_wires now consumes actual LinkedTarget.payload(linked_instances=...) successfully.
+- test_controller_linked_target + test_controller_effect_owner_full + test_script_registered_state + test_script_runtime29/29 passed1.844s. worker-a-controller-linked-shared.log and worker-a-linked-controller-probe.log. No complete manual NPC pin claim yet: Match actual effect refresh, old source NpcContext coupling and PinEffectServices exact causal storage remain next; do not add another1177 body effect/manager.
+
+## A66 - live controller effect wire refresh and body angle consumer
+
+- Restore exact original0200 Match._controller_effect_data and send_controller effect_data path using existing heroselect.controller_instances and the sole owner_full_frame encoder. Current static controller IDs/VM allocator reservation stay intact. Existing update loop sends a reliable full frame only when actual effect content key changes, including removal; controller_effect_key already has strict root storage. No second wire transport or body1177 effect.
+- Actual controller LinkedTarget limits now clamp body commands through existing clamp_linked_target_command before the current scene aim-lock/body pose path. Current Sleep/Sombra/Trap/Recall filters and controlled-mech/Tire routes remain untouched. Default no-effect command path unchanged.
+- Real original1177 full entry (not a synthetic payload) runs inside the unique ControllerVM with declared services: native14695 True binding and all actual states transmit alongside static controller. Stable effects do not resend over four frames; destroying effect causes exactly one newer reliable full frame removing instance/flag and clearing key. Real controller angle update clamps actual body/mover.last_command to original(2608,16202); destroying effect restores input(10000,-8000).
+- test_controller_effect_match + test_controller_linked_target + original test_ashe_player_controller + test_game_statescript25/25 passed4.413s, worker-a-controller-match-shared.log. Actual graph effect probe worker-a-controller-effect-match-probe.log. Next original manual Assassin/NpcContext coupling to existing NPC body/controller pair, plus precise PinEffectServices causal snapshot; no complete manual NPC group claim yet.
+
+## A67 - precise controller Pin services in whole-server causal storage
+
+- Use the current existing bodyVM.external_reference bridge rather than transplant the older source domain_boundaries exporter. Controller-only exact ownership validation exposes actual PinEffectServices/registry/message Context and its current numeric backend as enclosing-domain objects; no local state is dropped or replaced. Existing ControllerWorld/MineWorld export branches and private mutable VM checks remain intact.
+- Register original Pin fields, exact persistent message Host/Context/Manager fields and Key/Sender/channel dataclasses in server_snapshot. Preserve current NumericModifiers vector_records as well as scalar records, with exact Record/VectorRecord types. Native Context/State membership sets are serialized in deterministic declared identity order; unknown types/fields still reject.
+- Actual whole-server session starts full original1177 entry/14695 True. Changing real message sequence or clearing real scope registry state changes digest and restoring it restores the exact digest. Unknown Pin fields and a foreign message component owner reject. Actual strict LinkedTarget cache and backend source-frame mutations also change/restore digest, preserving true source relationships.
+- test_controller_pin_snapshot backend method + effect Match2 + original PlayerController9 passed in the initial13-method run; one new registry test initially demanded a changed digest for an isomorphic unshared list copy, which was an invalid probe expectation, not a production failure. Corrected it to mutate real registered contents (retaining actual list identity and checking actual state.scope_registry alias). Final corrected causal method passed39.195s. Logs worker-a-controller-pin-storage.log and worker-a-controller-pin-storage-final.log; standalone whole-server sequence probe also passed worker-a-pin-causal-probe.log.
+- Next original manual Assassin recipient/NpcContext binds existing sole body/controller pair to this controller effect host. Preserve current automatic AssassinControllerWorld and existing body1177 path where no explicit controller recipient is selected; never create duplicate1177 hosts for one pin. No complete original manual NPC group claim yet.

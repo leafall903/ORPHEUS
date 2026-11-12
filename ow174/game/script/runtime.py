@@ -108,9 +108,11 @@ def state_class(*names: str, strict_only: bool = False):
         registry = STRICT_STATE_CLASSES if strict_only else STATE_CLASSES
         for name in names:
             scope = getattr(cls, "state_scope", None)
-            if strict_only and scope is not None:
-                for position in scope[1]:
-                    SCOPED_STATE_CLASSES[name, scope[0], position] = cls
+            scopes = getattr(cls, "state_scopes", ()) or ((scope,) if scope is not None else ())
+            if strict_only and scopes:
+                for graph_index, positions in scopes:
+                    for position in positions:
+                        SCOPED_STATE_CLASSES[name, graph_index, position] = cls
             else:
                 registry[name] = cls
         return cls
@@ -391,6 +393,16 @@ class InstanceContext(Context):
         from ow174.game.script import spatial_queries
 
         component = self.instance.component
+        if (not component.strict and self.instance.graph.index == 0x0B8B
+                and getattr(component.world, "hero", None) == 0x02E00000000001CA
+                and getattr(component.world, "body_definition", None) is not None
+                and getattr(component.world, "match", None) is not None
+                and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"):
+            result = component.world.native(cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
         if (not component.strict and self.instance.graph.index == 0x0B8B
                 and getattr(component.world, 'hero', None) == 0x02E000000000012E
                 and getattr(component.world, 'match', None) is not None):

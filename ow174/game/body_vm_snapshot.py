@@ -15,10 +15,13 @@ import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
 from ow174.game import npc_controller_storage
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld
+from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
+from ow174.game.ball_mines import MineWorld
 from ow174.game.sigma_barrier import BarrierWorld as ExperimentalBarrierWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
@@ -112,7 +115,7 @@ _STATE_LAYOUTS = {
                            "voice_submitted", "voice_failed"), ()),
     nodes.VoiceSetOverride: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
-    nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits"), ()),
+    nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits", "linked_cache"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
@@ -174,6 +177,8 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    ControllerVM: ("definition", "retired", "component", "reserved_wire_ids"),
+    ControllerFilterInputs: ("owner", "component_masks", "current_bits", "replicated_bits", "primary_status", "health_status", "flags28", "provenance", "revision", "retired", "bound_host"),
     assassin_movement.Sample: ("flags", "axis"),
     scene.SceneEntity: npc_controller_storage.SCENE_ENTITY_FIELDS,
     scene.Placement: npc_controller_storage.PLACEMENT_FIELDS,
@@ -552,14 +557,16 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld,
+        if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             optional = ()
+            if kind is ControllerWorld:
+                fields.update(("readers", "filter_inputs", "pin_services", "linked_target_inputs", "numeric_modifiers"))
             if kind is BodyWorld:
                 optional = ("beam_barrier", "passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
@@ -582,6 +589,8 @@ class _Export:
                 fields.update(("match", "source", "owner"))
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
+            if kind is MineWorld:
+                fields.update(("manager", "mine"))
             if kind is PullQuery:
                 fields.update(("explosion_sink", "origin", "caster", "context", "instance", "track", "radius"))
             # The match and its pending deliveries belong to the enclosing server snapshot.
@@ -601,7 +610,7 @@ class _Export:
                 fields.update(("fight", "body"))
                 optional = ("auto_scene", "auto_target", "sample")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
-                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
+                    "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier", "mine"})}
         if kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
             return {"class": "builtins.dict.get", "identity": self.identity(obj),
                     "owner": self.value(obj.__self__)}

@@ -2104,6 +2104,7 @@ class Combat:
         self.venom = venom.Mines(self)
         from ow174.game import junkrat
 
+        self.ball_mines = ball_mines.Mines(self)
         self.junkrat = junkrat.Junkrat(self)
         from ow174.game import ashe
 
@@ -2323,6 +2324,10 @@ class Combat:
             and viewer.client.combat_identity_ready(vitals.killer)
         )
 
+    @property
+    def mines(self):
+        return self.ball_mines
+
     def retire_player_body(self, player, *, next_hero=None) -> None:
         """Discard body-local combat state when the player's current body retires."""
         from ow174.game import body_entities
@@ -2340,6 +2345,7 @@ class Combat:
                 self.sombra_charge.prepare_retirement(player, False)
             self.sombra_charge.retire_body(player.body)
         self.translocators.retire_body(player.body)
+        self.ball_mines.retire(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
         self.sentries.release_target(player.body)
@@ -3984,7 +3990,7 @@ class Combat:
         count = sum(
             segment_distance(origin, *target.segment()) - target.radius <= radius
             for target in self._targets()
-            if target.owner is not player
+            if target.owner is not player and not isinstance(target.owner, ball_mines.Mine)
             and (self.match.game_map.free_for_all or target.team != player.team)
             and not self.vitals_of(target).dead
         )
@@ -4514,6 +4520,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.ball_mines.update(at)
             self.junkrat.update()
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
@@ -4904,6 +4911,10 @@ class Combat:
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
         found.extend(self.junkrat.targets())
+        for mine in self.ball_mines.devices.values():
+            if not mine.removing:
+                found.append(Target(mine.body, mine.team, mine.position, 0.46, 0.23, 0.23,
+                                    mine, critical_allowed=False))
         return [self.pulse_bombs.sampled(target) for target in found]
 
     def _target_entity(self, entity):
@@ -4950,7 +4961,10 @@ class Combat:
     def body_vitals(self, entity: int, owner) -> Vitals:
         found = self.vitals.get(entity)
         if found is None:
-            if isinstance(owner, (bots.Bot, actors.Deployable)):
+            if isinstance(owner, ball_mines.Mine):
+                found = Vitals(entity, 50)
+                found.now[HEALTH_POOL] = owner.health
+            elif isinstance(owner, (bots.Bot, actors.Deployable)):
                 found = Vitals(entity, owner.health)
             else:
                 found = Vitals(entity, *pools.active_pools(owner.hero.guid, owner.hero.body))
@@ -5079,6 +5093,8 @@ class Combat:
             if isinstance(shooter, bots.Bot) and shooter.owner and target.entity == shooter.source_body:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
+                continue
+            if isinstance(target.owner, ball_mines.Mine) and target.owner.source == source:
                 continue
             if not free_for_all and target.team == team:
                 continue
@@ -5237,7 +5253,7 @@ class Combat:
         return [
             target for target in self._targets()
             if target.entity != source and target.owner is not shooter
-            and not isinstance(target.owner, actors.Deployable)
+            and not isinstance(target.owner, (actors.Deployable, ball_mines.Mine))
             and target.team == shooter.team and not self.vitals_of(target).dead
         ]
 
@@ -5372,11 +5388,13 @@ class Combat:
             owner = self.deployables.get(entity)
         if owner is None:
             owner = self.junkrat.lookup(entity)
+        if owner is None:
+            owner = self.ball_mines.devices.get(entity)
         if owner is not None:
             vitals = self.vitals.get(entity)
             if vitals is not None:
                 return vitals.total, vitals.maximum
-            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+            maximum = (50.0 if isinstance(owner, ball_mines.Mine) else owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
                        else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
             return float(maximum), float(maximum)
         if (entity == world.GAME_MODE_ENTITY
@@ -5841,6 +5859,8 @@ class Combat:
             return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
+        if not isinstance(shooter, bots.Bot) and self.ball_mines.volley(shooter, state, number, shot_frame):
+            return
         if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E000000000013B
                 and state.instance.graph.index == 0x0B9E and state.index == 1):
             from ow174.game import nano
@@ -6517,12 +6537,14 @@ class Combat:
                 if scripted_absorption is not None:
                     interception.absorbed(absorption[1], amount)
                 else:
-                    self._absorbed(absorption[1], amount)
+                    self._absorbed(absorption[1], amount, _source_entity(shooter))
             return
         if tagged_contact is not None and tagged_contact[3] and wall is None and limit == tagged_contact[0]:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
-            if tagged_contact[4].instance.graph.index == absorption.GRASP:
+            if tagged_contact[4].instance.graph.index == 0x1D02:
                 self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
+            elif tagged_contact[4].instance.graph.index == 0x02CC:
+                self._absorbed(tagged_contact[4], scaled.amount, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
             distance, target = redirect
@@ -7375,7 +7397,7 @@ class Combat:
             elif defense is not None:
                 deflections.absorb(absorption[1], amount)
             else:
-                self._absorbed(absorption[1], amount)
+                self._absorbed(absorption[1], amount, rocket.source_entity)
             return 0.0
         if redirect is not None:
             if rocket.is_barrage:
@@ -7708,6 +7730,9 @@ class Combat:
             if returned[3]:
                 if returned[4].instance.graph.index == absorption.GRASP:
                     self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
+                elif returned[4].instance.graph.index == 0x02CC:
+                    amount = sum(hit.amount for hit in (rocket.direct, rocket.blast) if hit is not None)
+                    self._absorbed(returned[4], amount, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
                 self.rockets.remove(rocket)
                 if rocket.shot is not None:
@@ -8437,7 +8462,7 @@ class Combat:
         """Heal the healer and his teammates (everyone's own team in a free-for-all is his alone) whose body
         is within `radius` of `centre` (unverified: to the body's capsule)."""
         for target in self._targets():
-            if isinstance(target.owner, actors.Deployable):
+            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
                 continue
             ally = self._ally(healer, target)
             if target.owner is not healer and not ally:
@@ -8463,7 +8488,7 @@ class Combat:
         if component is not None:
             self._write_scene_health(component, vitals)
             return
-        if isinstance(owner, actors.Deployable):
+        if isinstance(owner, (actors.Deployable, ball_mines.Mine)):
             owner.health = vitals.total
         script = getattr(owner, "body_script", None)
         if script is not None:
@@ -8650,9 +8675,11 @@ class Combat:
         return nearest
 
     @staticmethod
-    def _absorbed(state: runtime.State, amount: float) -> None:
+    def _absorbed(state: runtime.State, amount: float, source: int) -> None:
         instance = state.instance
-        if instance.graph.index == 0x1D02:
+        if instance.graph.index == 0x02CC:
+            deflection.reflected_projectile(state, source, amount)
+        elif instance.graph.index == 0x1D02:
             instance.write((expr.INSTANCE, 6584), amount)
             instance.follow(state.node, "m_160B5DBE", state)
             instance.component.run_now()
@@ -9331,6 +9358,24 @@ class Combat:
             if source_body is not None and source_body != source_entity:
                 raise ValueError("conflicting damage source_body and source_entity")
             source_body = source_entity
+        if isinstance(target.owner, ball_mines.Mine):
+            mine = target.owner
+            if self.ball_mines.devices.get(mine.body) is not mine or mine.removing or amount <= 0:
+                return False
+            vitals = self.vitals_of(target)
+            if vitals.dead:
+                return False
+            if not source_scaled:
+                from ow174.game import nano
+                amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
+                amount *= nano.offense(self, _source_entity(shooter) if source_body is None else source_body)
+            if maximum_damage is not None:
+                amount = min(amount, maximum_damage)
+            dealt = vitals.damage(amount)
+            self._sync_body_health(mine, vitals)
+            if dealt and not isinstance(shooter, (bots.Bot, SceneHazard)):
+                self._tell_hit(shooter, target, dealt, KILLING if vitals.dead else 0, frame)
+            return dealt > 0
         if not armour_reduction:
             armour_scalar = 1.0  # delivered periodic damage bypasses per-tick armour reduction.
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
@@ -9919,7 +9964,7 @@ class Combat:
         client = getattr(viewer, "client", None)
         if client is None:
             return
-        if not isinstance(actor, (bots.Bot, SceneHazard)) and actor.body == entity:
+        if not isinstance(actor, (bots.Bot, SceneHazard, ball_mines.Mine)) and actor.body == entity:
             self.match.ensure_remote_body(viewer, actor)
         client.queue_combat_notice(entity, msg_id, value)
 

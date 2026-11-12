@@ -818,7 +818,7 @@ that a server/client was started during integration.
 
 ```powershell
 Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
-$profile = Get-Content '../parallel-merge/runtime-inputs-v15/environment.json' -Raw | ConvertFrom-Json
+$profile = Get-Content '../parallel-merge/runtime-inputs-v17/environment.json' -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) {
     [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
 }
@@ -945,3 +945,77 @@ proxy ray1.09 misses the unchanged original head sphere localY1.56701195,
 radius.16, so actual20 follows the source0003 geometry. This is static same-source
 plus actual combined evidence, not an alleged full frozen-source baseline run.
 Do not alter original body/head geometry or numeric assertions to force green.
+
+
+A55 8d225ff0 received4bc9cb7d preserves original read-only Hack queries and14
+existing original status fixtures, without another lock host. A56 1d6df8fc
+received9f2da275 routes actual Heavy graze force through existing BOB mover.
+C38 6adbbabf received62a9a253 restores real Queue start entries and precise
+receiver predicates; C39 50161bd8 receivedf0dbf99d restores original888 base
+lifetime in the same Controls, preserving exact stored state. Root C38 check
+1678 terminal42run40pass2preserved expiry-Q failures9.691s. During lock the
+ordinary fire/movement/reload and interruption/lethal checks pass; at receiver
+expiry the same-frame Q spends0vsoriginal2240. C40 has actual endpoint evidence
+and owns input history/latch consumption, with no extended world timer.
+
+B42 553cf2e2 receivede425fc34 mounts original Ball0B8B gate/factors/own-body
+query and natural cadence, numeric fill separate. Root small-input union uses
+original6778B addon rows, original full pack SHAee12b2d6dfa31a099311427c847d1f8f307c203f6b71d9f1051e1b46b9ff9549.
+Both rows/entity exactly match source;151A already exists, so only261E/2578 add.
+Minimal composed supplement now40graphs17entities,0conflicts. Source inputs
+unchanged. Original passive fixture selector is presence-only and points the
+real selected source pack; it never patches provider. Future actual MineTests
+must use composed provider, not overwrite GRAPHS_PATH with the old full pack.
+Root52988 terminal24pass33.215s with actual passive factors/owner/gap/death,
+spread/Mercy/entry/runtime. Three missing Mine manager checks remain B43 scope.
+All root sessions terminal. Workspace selection promotesv17 without waiting for
+full Mine acceptance; root must still integrate shared000E ControllerVM next.
+
+
+Root000E core now mounts actual original player_controller/controller_filter/
+filter_bits plus their filter_game/callback/condition dependencies. Match admits
+an independent strict ControllerVM before publishing the player (invalid metadata
+rejects partial admission), advances it on actual world ticks, preserves it over
+body death/switch and retires on leave/fault. Actual original empty000E metadata
+is already in base. No second controller wire encoder/body aliases are started.
+Original heroselect inner construction is extracted into controller_instances;
+16old/new PVP/Practice menu/skin/assemble combinations have identical bits/value.
+
+Both exporters register exact ControllerVM/ControllerWorld/filter input storage,
+including bound_host. Original independent namespace/filter/lifetime suites28pass
+4.941s. First run22pass with one missing filter_game import; original dependency
+primitives restored, no fake import. Actual controlled-server storage probe61944
+is terminal: controller allocator changes both component and whole-server digest,
+restoration identical. Root-player-controller-core-{first,second}.log and
+root-player-controller-server-storage.log retain evidence. No getters execute
+for export. Native unknown query poisons only this controller, body/client remains.
+
+This is the actual empty VM/lifetime/reserved namespace boundary, not full source
+controller integration. Next required root scope: source effect wire emission
+through existing statescript.owner_full_frame (original optional dynamic fields),
+controller delta-key refresh, manual Assassin recipient/coupling/linked-target
+clamp and PinEffectServices strict stored callback/context state. Current body
+1177 path remains until its original target ownership bridge is reconciled;
+do not install duplicate body/controller effects or another manager. Ready A57/
+A58 real Matrix/BOB-lock, C41 reapplication and B43 Mine factory await intake.
+C40 25431c27 already received580ad408, preserving actual recipient-frame latch.
+
+
+A57 e62a0033 received1a229cf5 publishes original Matrix payload/source/plug on
+actual interception; all current _absorbed callers supply actual source. A58
+dba31c23 received6048b600 uses actual BOB component recipient frames with the
+same Controls; A59 f1acf65c received11372bf2 narrowly fixes BotScript interruption
+through Photon guard and preserves original sleep/fixed life/normal-gap hits.
+C41 8bbe6e4c received892b2584 replaces original body applications before Queue
+reentry, preserving actual fresh Wait/later expiry. No second lock/pool manager.
+
+B43 bdb1d327 actual Minefield factory/flight/MineScript/client stream is received
+with root arithmetic identity binding. Snapshot conflict preserves both newly
+mounted ControllerWorld and original MineWorld. scalar_math.profile() is added
+to existing runtime_configuration with no schema override: source/backend/
+control/probe identity is detached, profile changes alter typed configuration
+hash. No ideal-sqrt fallback or external binary is added. Actual root53309
+terminal43pass25.969s includes original Mine flight/factory, original controller
+filter/lifetime/namespace and replay manifest checks. Native arithmetic identity
+mutation was independently verified. B44 pending target/creator/lifetime/EMP
+consumers remain explicit, not counted complete. Root has no live tests now.
