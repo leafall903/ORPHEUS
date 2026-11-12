@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original explicit NPC controller associations on the existing pair
+
+- Original association accessor/NpcContext now bind real body/root namespaces on
+  the existing optional BotScript controller path. Plain manual pairs retain
+  distinct IDs/clocks and exact causal storage; existing automatic hosts stay sole.
+- Five actual pairs, retirement, authored automatic Assassin isolation and shared
+  manual input pass. Original strict unknown-controller storage rejection passes;
+  actual whole-server paired context changes alter/restore digest. Controller1177
+  recipient submission and authored sleep delay remain subsequent work.
+
 ### Admit actual manual Assassin targets in the existing input path
 
 - Fix the leftover Player-versus-Target identity comparison that rejected every

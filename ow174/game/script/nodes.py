@@ -2496,13 +2496,27 @@ class ActiveInputRelay(State):
 class AIBehavior(State):
     """A behavior candidate. The world decides when its selected subgraph runs."""
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.selected = False
+
     def on_enter(self) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        self.refresh_selection()
+
+    def refresh_selection(self):
+        selected = bool(self.instance.component.world.selects_ai_behavior(self.instance))
+        if not self.active or selected == self.selected:
+            return
+        self.selected = selected
+        if selected:
             self.instance.follow(self.node, "m_6F92F4BD", self)
+        else:
+            self.instance.exit_subgraph(self.node, "m_6F92F4BD")
 
     def on_end(self, finished: bool) -> None:
-        if self.instance.component.world.selects_ai_behavior(self.instance):
+        if self.selected:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
+        self.selected = False
 
 
 @state_class("STU_D3CDCF04")

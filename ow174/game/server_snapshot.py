@@ -20,6 +20,7 @@ from pathlib import Path
 from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, sombra_charge, npc_controller_storage
 from ow174.game.script.player_controller import ControllerVM, ControllerWorld, PinEffectServices
 from ow174.game.script.controller_filter import ControllerFilterInputs
+from ow174.game.script.npc_context import NpcContext
 from ow174.game.script import assassin_movement, scene, message_state, message_manager, modifiers
 from ow174.game import (
     assassin_controller,
@@ -122,6 +123,7 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    NpcContext: _names("body controller definition body_component controller_component position retired target_entity target_host"),
     PinEffectServices: _names("registry messages"),
     message_state.Host: _names("contexts current manager"),
     message_state.Context: _names("component host policy frame priority timer_notify receiver_policy "
@@ -268,11 +270,11 @@ FIELDS = {
                              "_body_owner_context _entity_query_context _possessor_query"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
-        "flashbang_weapon_stack"
+        "flashbang_weapon_stack control_context"
     ),
     BotWorld: _names(
         "hero mode weapon_buttons owner_position controller component controller_inputs "
-        "heavy_counter_stuns match controller_components manual_target manual_nameplate"
+        "heavy_counter_stuns match controller_components manual_target manual_nameplate control_context"
     ),
     AssassinControllerWorld: _names(
         "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
@@ -586,9 +588,33 @@ class _Graph:
     def _controller_storage_refs(self, component):
         """Keep declared controller services in this enclosing causal graph."""
         world = component.world
-        if type(world) is not ControllerWorld:
+        if type(world) not in (ControllerWorld, BotWorld):
             return {}
         objects = []
+        contexts = ([world.control_context] if type(world) is BotWorld and world.control_context is not None
+                    else list(world.readers) if type(world) is ControllerWorld else [])
+        if len({id(item) for item in contexts}) != len(contexts):
+            _fail("duplicate NPC controller coupling")
+        for context in contexts:
+            if type(context) is not NpcContext:
+                _fail("invalid NPC controller coupling")
+            pair = (context.body_component, context.controller_component)
+            for peer, entity in zip(pair, (context.body, context.controller), strict=True):
+                if (type(peer) is not runtime.Component or peer.entity != entity
+                        or type(peer.world) is not BotWorld or peer.world.control_context is not context):
+                    _fail("invalid coupled NPC identity or world")
+            host = context.target_host
+            target = host.component if host is not None else None
+            if host is not None and (type(host) is not ControllerVM or host.retired
+                                     or type(target.world) is not ControllerWorld
+                                     or target.entity != context.target_entity
+                                     or target.world.readers.count(context) != 1):
+                _fail("invalid coupled target controller")
+            if component not in pair and component is not target:
+                _fail("NPC coupling does not own this component")
+            objects.append(context)
+        if type(world) is not ControllerWorld:
+            return {id(item): (item, self.value(item)) for item in objects}
         services = world.pin_services
         if services is not None:
             if (type(services) is not PinEffectServices or type(services.registry) is not scopes.Registry
