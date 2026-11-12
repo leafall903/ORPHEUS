@@ -99,7 +99,7 @@ _STATE_LAYOUTS = {
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()), nodes.TrackTargets: (
         ("count_var", "targets", "managed", "period", "searched"), ()),
-    nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
+    nodes.TargetEffects: (("children", "applied_at"), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied", "hit_entities"), ()),
     nodes.SprayPlacement: (("placement",), ()),
     nodes.HealthPool: ((), ()),

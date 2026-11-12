@@ -798,9 +798,33 @@ class BodyWorld(runtime.World):
         return True
 
     def target_effects(self, state):
+        if self.match is not None and (state.instance.graph.index, state.node.pos) == (0x006B, 62):
+            return self.staff_heal(state)
+
         from ow174.game import mccree
 
         return mccree.effects(self, state)
+
+    def staff_heal(self, state):
+        """The Caduceus Staff's heal: its status state hands 0019.04A, which mounts graph 0079 on the
+        beam's target, one value, the health a second (002A.0A4, the staff's #6578)."""
+        node = state.node
+        resource, params = node.field("m_A76A8CF6") or {}, node.field("m_params") or ()
+        if (expr.guid_of(resource.get("m_A76A8CF6")) != 0x04A0000000000019 or len(params) != 1
+                or expr.guid_of(params[0].get("m_B5051BCE")) != 0x0A4000000000002A):
+            return NotImplemented
+        before, state.applied_at = state.applied_at, state.now
+        rate = expr.to_float(state.evaluate(params[0].get("m_value"), watch=False))
+        entity = expr.to_entity(state.evaluate(node.field("m_targets"), watch=False))
+        fight, healer = self.match.combat, self.match._message_player(self.body)
+        target = next((found for found in fight._targets() if found.entity == entity), None)
+        if (before is not None and healer is not None and target is not None and entity != self.body
+                and fight._ally(healer, target) and math.isfinite(rate) and rate > 0.0):
+            # shortcut: the heal is given here at the rate the state hands on, not by graph 0079's own
+            # ModifyHealth on the target (the pack holds no 0079); mount it as SceneWorld's
+            # _witch_staff_effect does once it is packed.
+            fight._heal(healer, target, f32(rate * (state.now - before) / 1000))
+        return True
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
