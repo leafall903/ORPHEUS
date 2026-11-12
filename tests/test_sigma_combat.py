@@ -523,7 +523,7 @@ class SigmaCombatTests(unittest.TestCase):
                 self.assertEqual(200 - health[behind].total, expected)
                 self.assertEqual(fight.is_stunned(behind), protection == "phase")
                 self.assertEqual(script.component.entity_var(342).value(), expected)
-                ability = self.ability(shooter, sigma.ACCRETION)
+                ability = self.ability(shooter, combat.ACCRETION)
                 for _ in range(65):
                     if ability.remaining() > 0:
                         break
@@ -2146,7 +2146,7 @@ class SigmaCombatTests(unittest.TestCase):
         self.wall(run, sideways=False, offset=1.25)
         fight = run.match.combat
         health = fight.vitals_of(next(t for t in fight._targets() if t.owner is shooter))
-        ability = self.ability(shooter, sigma.ACCRETION)
+        ability = self.ability(shooter, combat.ACCRETION)
         ability.instance.write((graph.INSTANCE, 11863), 0.0)
         with patch.object(
             shooter.mover, "add_external_impulse", wraps=shooter.mover.add_external_impulse,
@@ -2158,7 +2158,7 @@ class SigmaCombatTests(unittest.TestCase):
                     break
             rock, = fight.rockets
             self.assertEqual(rock.blast.amount, 0)
-            self.assertEqual(rock.blast.self_impulse_scale, 1)
+            self.assertEqual(rock.blast.source_impulse_scale, 1)
             for _ in range(20):
                 run.step({})
         impact.assert_called_once()
@@ -2364,7 +2364,7 @@ class SigmaCombatTests(unittest.TestCase):
         x, y, z = shooter.mover.position
         reply = aim(fight._eye(enemy), (x, y + 0.8, z))
         run.step({shooter: (*forward, 0x10)})
-        self.assertTrue(self.ability(shooter, sigma.ACCRETION).flags & nodes.Ability.RUNNING)
+        self.assertTrue(self.ability(shooter, combat.ACCRETION).flags & nodes.Ability.RUNNING)
         self.assertFalse(fight.rockets)
         old_body = shooter.body
         if launched:

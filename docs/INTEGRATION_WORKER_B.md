@@ -1717,3 +1717,45 @@ and receiver/native callbacks. Hog weapon/self-heal/charge/player-NPC-owned-mech
 motion core is mounted; remaining cross-control/vector/device/victim-credit and
 complete original NPC fixtures are STILL OPEN, not relabelled complete. Root
 owns Sigma Flux and A owns Zarya; do not duplicate those hosts.
+
+
+## B64 — actual Accretion caster blast and existing impulse consumer
+
+Audit finds current Accretion launch/tagged hit already mounted in Combat and
+1BBB/18 already creates the actual224E on sole Brigitte host. Keep that host;
+do not replay the unused legacy accretion.control or add a parallel stun pool.
+Original priority and launch cases pass. Full27 original Accretion methods
+baseline16.563s:6fail17errors, including genuinely missing caster self damage,
+self impulse and Fortify impulse guard, plus unresolved legacy helper/getters.
+
+Recover actual caster in existing explosion candidate/cover/damage transaction,
+only for actual accretion_source and same source entity. Original zero-amount
+blast still applies its declared self impulse; it does not emit a damage event.
+Reuse HitDef.source_impulse_scale, restoring original default1 only for the two
+original Sigma blast loadouts with enabled self impulse. No new persistent field,
+manager, pool, controller or VM step. Existing impulse helper now observes actual
+protection/control immunity and scales the original same-mover impulse.
+
+Six original real-input methods (zero-damage impulse, close self/enemy damage,
+lethal self hit, static cover, real target priority, authored launch) plus eight
+Damage and13runtime =27/27 pass5.832s. Whole fixture AST is unchanged under only
+actual sigma.ACCRETION→combat.ACCRETION and rock.blast.self_impulse_scale→
+source_impulse_scale mappings. Logs worker-b-sigma-{accretion-full-baseline,
+owner-blast,owner-blast-corrected,owner-final,owner-joint}.log retain all outcomes.
+The first two attempted joint commands had misspelled test module names; final
+27-run selects actual test_game_combat.DamageTests and test_script_runtime.
+
+Remaining exact original2.65m wall case now has self impulse but loss20 rather
+than expected below20; do NOT tune geometry or original assertion. Fortify
+case passes its original protected-mover checks before later legacy stuns-dict
+KeyError. Two other control cases also observe old dict while actual224E uses
+existing Brigitte host; prove the real recipient lifecycle before adapting those
+observers. No client acceptance run, no claim whole Sigma is complete.
+
+Next exact action: recover original non-Flux Sigma shield recovery/charge and
+Hypersphere shared impulse callers after auditing sole0033/pools/charge services;
+then map real existing Grasp/barrier contexts in original fixtures and restore
+missing test_sigma_symmetra_beam for original CLI consumers. Root owns Flux,
+A owns Zarya. Hog cross-control/device/vector/victim-credit and full NPC fixture
+audits remain open. Current remainder estimate12–25 active B hours, low
+confidence; largest unaudited source scope is Sigma non-Flux integration.
