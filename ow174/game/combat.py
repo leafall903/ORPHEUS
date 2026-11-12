@@ -4992,6 +4992,10 @@ class Combat:
                         script = shooter.body_script
                         if script is not None:
                             script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
+                if shooter.hero.guid == 0x02E00000000000DD and target.owner is shooter:
+                    from ow174.game import mei_ultimate
+
+                    mei_ultimate.grant(shooter, given, healing=True)
                 self._charge_echo_health_event(shooter, given, source_body=source_entity)
                 moira.gain_combat_charge(shooter, given, body=source_entity, healing_target=target, healing_tags=tags)
             self.baptiste.healing_charge(shooter, target, min(given, eligible), source_body=source_entity)
@@ -8802,11 +8806,15 @@ class Combat:
 
                 ultimate_charge.damage(shooter, target, dealt, hit_tags)
 
+            if award_ult and enemy and current_source and hero == 0x02E00000000000DD:
+                from ow174.game import mei_ultimate
+
+                mei_ultimate.grant(shooter, dealt, loadout=loadout)
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
-                    and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
@@ -9400,7 +9408,7 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid in (symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
+        if old_script is not None and player.hero.guid in (0x02E00000000000DD, symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
@@ -9411,7 +9419,10 @@ class Combat:
             from ow174.game.script import charge
 
             script = player.body_script
-            script.set_ult_charge(points)
+            from ow174.game import mei_ultimate
+
+            if player.hero.guid != 0x02E00000000000DD or not mei_ultimate.spawn_ready(script):
+                script.set_ult_charge(points)
             if player.hero.guid == symmetra_charge.HERO:
                 script.charge_clock = self.tick, script.component.now
             if player.hero.guid == regeneration.MERCY:

@@ -2153,6 +2153,10 @@ class BodyScript(ReplicatedBody):
         self.world_frame_anchor: tuple[int, int] | None = None
         if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
+        if ult_seconds is None and hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            ult_seconds = mei_ultimate.DEFAULT_SECONDS
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
                                                0x02E0000000000005):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
@@ -2187,6 +2191,10 @@ class BodyScript(ReplicatedBody):
             raise
         if hero == 0x02E0000000000016 and match is not None:
             self.charge_clock = match.tick, self.component.now
+        if hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            mei_ultimate.initialize(self)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2323,8 +2331,10 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import symmetra_charge, torbjorn_charge
+        from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
 
+        if self.hero == mei.HERO:
+            edges = mei_ultimate.command_edges(self, mei.command_edges(self, edges))
         authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
         if authored_symmetra:
             symmetra_charge.sync(self)
@@ -2636,8 +2646,18 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
-        from ow174.game import torbjorn_charge
+        from ow174.game import mei, mei_ultimate, torbjorn_charge
 
+        if self.hero == mei.HERO:
+            if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):
+                return
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+            charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            if cost > 0 and charge < cost:
+                step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                step = f32(step * mei_ultimate.generation(self, passive=True))
+                self.set_ult_charge(min(cost, f32(charge + step)))
+            return
         if self.hero == torbjorn_charge.HERO and torbjorn_charge.enabled(self):
             if self.ult_seconds != torbjorn_charge.SANDBOX_SECONDS and self.ult_seconds > 0 and not self.ultimate_running():
                 cost = expr.to_float(self.component.entity_var(ULT_COST).value())

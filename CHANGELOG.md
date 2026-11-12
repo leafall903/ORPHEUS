@@ -40,6 +40,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
   checks; missing grenade physics/clock fields reproduced before integration.
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
+
 ### Restore delivered Fire Strike wide collision and native shield contacts
 
 - Mount original0007's static MOVER sphere sweep on the existing penetrating
@@ -70,6 +87,40 @@ This log records tested changes and their acceptance status. Entries are grouped
   Actual nonempty control probe verifies input/movement gating, no duplicate
   stuns write, repeatable passive capture and causal deadline sensitivity.
 - Main original1399 assertions and expectations remain; client acceptance open.
+### Connect original Mei input resources and ultimate settings
+
+- Mount original Mei05FE entry completion, automatic real reload/low-ammo
+  icicle admission and Hack/EMP edge interlocks using existing control locks.
+  Keep existing authoritative Cryo health handling as the sole healer.
+- Connect source ultimate default5 points/s, generation settings, spawn-ready
+  precedence,253A input gate, effective damage/self-healing credit and same-hero
+  respawn retention. Exclude generic duplicate damage awards and Blizzard credit.
+- Source player placement synchronizes physical/stored pose and now runs for
+  actual ice-pillar player lifts; retain the existing NPC lift driver.
+- Original13 selected charge methods pass11.140s with their unchanged class AST
+  and real mounted fixtures. Selected Cryo/reload15:13 pass, four frost observer
+  errors in one case and one in-flight hit-set difference. Existing Mei/Damage
+  20 pass; two old ice_wall observer cases error. Actual pillar lift/pose probe
+  passes. Full original checks and known failures retained; Frost aggregation,
+  Blizzard and sampled Cryo history remain unfinished. Client acceptance unrun.
+
+### Connect original Symmetra portal pair lifecycle
+
+- Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with
+  existing health/replication/retirement; input edges dismiss/interact through
+  original eligibility, ready time, transit cooldown and1647 relocation.
+- Probe the exit using current capsule stance/peer mask and original temporary
+  pillar movement overlay over the immutable base world. Preserve current body
+  drivers, exact cleanup and configured Photon placement; no duplicate pool.
+- Restore source1571/30 cancel-animation finish only for its permissive match
+  owner. Preserve generic animation flags and strict behavior. Keep the original
+  Winston hero/body metadata constants, coordinated with the Winston owner.
+- Final21 original portal owner cases pass33.697s. First full29 run retains
+  eight old-owner observation errors and Cryo/projected-barrier differences;
+  assertions stay unchanged. Shared27:26 pass/one retained generic Anim flag
+  failure outside this batch's graph scope. Controlled real server input creates
+  the pair; endpoint shields and ready time independently change stored digest.
+  Full cross-owner behavior and client acceptance remain unfinished.
 
 ### Restore both CombatModFilter consumers through one state registration
 
