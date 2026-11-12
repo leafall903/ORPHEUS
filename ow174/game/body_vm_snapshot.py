@@ -135,10 +135,10 @@ _STATE_LAYOUTS = {
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.ControllerButton: ((), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
-    nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.Wait: ((), ("ms", "world_deadline")), nodes.WaitForServerFrames: ((), ()),
     nodes.ConditionalTimer: ((), ()),
     nodes.WaitFrames: (("target",), ()),
-    nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
+    nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ("world_used",)),
     nodes.WeaponVolley: (
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "spread_decay", "links", "reported", "last_values"),
         ("max_shots", "min_shots", "shot_spread"),

@@ -404,6 +404,15 @@ class BodyWorld(runtime.World):
             return body_owner.Target(entity, None)
         return None
 
+    def state_clock(self, state):
+        if self.match is None or self.hero != 0x02E0000000000068:
+            return None
+        if state.instance.graph.index == 0x0241 and state.node.pos in (22, 30, 93):
+            return self.match.tick, 16
+        if state.instance.graph.index == 0x0242 and state.node.pos in (7, 12):
+            return self.match.combat.tick, 16
+        return None
+
     def chase_clock(self, state):
         if (self.match is not None and self.hero == 0x02E0000000000009
                 and not state.instance.component.strict

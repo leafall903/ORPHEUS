@@ -10662,3 +10662,41 @@ newer core chase_clock (Winston), Wait external/passive services, exact metadata
 C47/C49 projected history and all current single actors/Vitals. Future ammo and
 sparse projectile failures remain explicitly open; do not wait to commit this
 independent actual beam fix. Remaining0068 scope still low-confidence6-12h.
+
+## A79 — original Zarya state-clock and idle energy consumers
+
+Restored source World.state_clock(defaultNone), BodyWorld exact0068 scopes:
+0241 nodes22/30/93 use the actual accepted match clock,0242 nodes7/12 use actual
+combat world clock. Existing Wait.world_deadline and Chase.world_used contracts
+are mounted on the same states, with optional exact causal layouts. Current
+Winston chase_clock, external waits, Torb passive, richer2B72 and relocated
+Fortify logic remain. C confirmed no overlapping Wait/Chase WIP.
+Original advance_energy is an active pure function in zarya.py (no copied old
+Barriers/ShieldRecovery manager). It uses the existing Chase.advance_to arithmetic
+and restores its accepted body cursor, not a second tick service. Existing Combat
+world replay invokes it only for live0068 owners. Native EPSILON arithmetic stays.
+
+Original future-primary batch ammo/damage case now passes unchanged, as does
+original authored energy decay. Actual idle energy with no body commands:
+paced/sparse world updates consume their single original1.8/s interval after
+1000ms wait; later body catchup cannot debit it again. New bounded cadence probe
+preserves original per-step EPSILON difference (paced10.24718 vs sparse10.25119,
+not a new exact-parity requirement or rewrite). Combined new clock+original
+future ammo+13 shared runtime =15/15pass6.849s. Log
+worker-a-zarya-state-clock-shared-final.log. Actual body-VM export succeeds with
+active deadline; incrementing real Wait.world_deadline changes snapshot digest,
+restore returns exact digest (worker-a-zarya-state-clock-storage-probe.log).
+No full acceptance/client/network run, and no original assertion altered.
+
+Requested read-only beam handoff: current BEAM_STATES includes only Symmetra and
+Zarya. Symmetra first call delegates primary, second explicit excludesSymmetra,
+so only one call. Moira is absent from BEAM_STATES: generic calls return; its
+Grasp uses separate actual grasp_command ContextVar contacts and one grasp call.
+Echo uses separate _echo_beam with echo_beam_seen frame gate. This proves the
+specific duplicate generic-call issue is scoped; it does not claim all other
+beam consumers' elapsed-clock acceptance. No global second-call deletion.
+
+Next exact action: same native Pet start/expiry and mapped cooldown consumption
+from original0068 Barriers, preserving actual application_tick/cleanse, then
+existing Graviton field/flight clock consumers and outstanding sparse projectile
+impact chronology. Root has A74-A78; A79 is another independent actual boundary.

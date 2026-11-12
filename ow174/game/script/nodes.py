@@ -2865,6 +2865,12 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        clock = self.instance.component.world.state_clock(self)
+        if clock is not None and self.ms > 0:
+            tick, tick_ms = clock
+            frame_ms = self.instance.component.frame_ms
+            elapsed = (self.now % frame_ms + self.ms) // frame_ms * frame_ms
+            self.world_deadline = tick + (elapsed + tick_ms - 1) // tick_ms
         if getattr(self.instance.component.world, "hero", None) == 0x02E0000000000006:
             from ow174.game import torbjorn_charge
 
@@ -2896,6 +2902,12 @@ class Wait(State):
 
     def timer(self, param: int) -> None:
         if param == 1:
+            deadline = getattr(self, "world_deadline", None)
+            if deadline is not None:
+                clock = self.instance.component.world.state_clock(self)
+                if clock is not None and clock[0] < deadline:
+                    self.timer_at(self.instance.component.frame_ms, 1)
+                    return
             self.request_finish()
 
     def tick(self) -> None:
@@ -3083,6 +3095,12 @@ class ChaseVar(State):
         duration = _field(self, "m_5BEFF040")
         self.remaining = int(to_float(self.evaluate(duration, watch=False)) * 1000) if duration else None
         self.last = self.clock()
+        clock = self.instance.component.world.state_clock(self)
+        if clock is not None:
+            tick, tick_ms = clock
+            frame_ms = self.instance.component.frame_ms
+            start = tick * tick_ms - min(tick_ms, frame_ms - 1 - self.now % frame_ms)
+            self.world_used = max(getattr(self, "world_used", start), start)
         if target is not None:
             var = self.instance.find_var(*target)
             before = var.value()
@@ -3156,6 +3174,13 @@ class ChaseVar(State):
         now = self.clock()
         dt = now - self.last
         self.last = now
+        world_used = getattr(self, "world_used", None)
+        if world_used is not None and dt > 0 and not self.reached:
+            clock = self.instance.component.world.state_clock(self)
+            if clock is not None:
+                tick, tick_ms = clock
+                dt = min(dt, max(0, tick * tick_ms - world_used))
+                self.world_used += dt
         if dt <= 0:
             return
         if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):

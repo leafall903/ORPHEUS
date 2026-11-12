@@ -4615,6 +4615,14 @@ class Combat:
                     player._advance_body_frame(Command(frame), posed=False, defer_effects=True)
                 finally:
                     self.now, self.tick = saved_now, saved_tick
+            from ow174.game import zarya
+
+            if not self.match.ended:
+                for player in self.match.players:
+                    script = player.body_script
+                    if (script is not None and script.hero == zarya.HERO and not script.retired
+                            and not player.gone and player.has_body and not self.is_dead(player)):
+                        zarya.advance_energy(script, at)
             self.barriers.world.update(at)
             orisa_fortify.advance_idle(self, at)
             for player in self.match.players:
