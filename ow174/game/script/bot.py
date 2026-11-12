@@ -713,7 +713,8 @@ class BotWorld(runtime.World):
         if (self.match is not None and (self.hero, state.instance.graph.index, state.node.pos) in
                 ((TROOPER_HERO, 0x1422, 4), (HEAVY_ASSAULT_HERO, 0x140E, 5))):
             attacker = self.match.combat._npc_melee_attacker(state)
-            if attacker is not None and attacker.spawner.get("manual_spawn") is True and not attacker.firing:
+            if (attacker is not None and attacker.spawner.get("manual_spawn") is True
+                    and (not attacker.firing or attacker.attack_mode == "melee")):
                 if elapsed_ms == 0:
                     self.apply_modify_health(state)
                     settings = state.node.field("m_modifyHealth") or {}

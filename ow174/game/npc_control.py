@@ -13,10 +13,19 @@ def manual(bot):
     return bot.spawner.get('manual_spawn') is True
 
 
-def button(bot):
+def button(bot, *, mode=None):
     script = bot.body_script
     if script is None:
         raise ValueError('NPC body script is unavailable')
+    mode = bot.attack_mode if mode is None else mode
+    if mode == "charge":
+        if bot.hero != heavy_assault.HERO:
+            raise ValueError('NPC charge input is unavailable')
+        return heavy_assault.CHARGE_BUTTON
+    if mode == "melee":
+        if bot.hero not in heavy_assault.MELEE:
+            raise ValueError('NPC melee input is unavailable')
+        return heavy_assault.BUTTON
     result = script.component.world.ai_weapon_button(0)
     if type(result) is not int:
         raise ValueError('NPC primary weapon input is unavailable')
@@ -49,16 +58,27 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player, *, reposition=False):
+def start(match, player, *, melee=False, charge=False, reposition=False):
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
-    value = button(bot)  # validate before changing policy
+    if sum((melee, charge, reposition)) > 1:
+        raise ValueError('select one NPC attack')
+    mode = "charge" if charge else "melee" if melee else "reposition" if reposition else "primary"
+    value = button(bot, mode=mode)  # validate before changing policy
     if reposition:
         sniper_reposition.begin(match.combat, bot, player)
     elif bot.attack_mode == "reposition":
         sniper_reposition.stop(bot, match.tick)
-    bot.attack_mode = "reposition" if reposition else "primary"
+    if bot.attack_input and (previous := button(bot)) != value:
+        bot.body_script.component.edges([(previous, False)])
+        bot.attack_input = False
+    if bot.attack_mode == "charge" and mode != "charge":
+        component = bot.body_script.component
+        ability = heavy_assault.ability(component, heavy_assault.CHARGE_GRAPH, heavy_assault.CHARGE_ABILITY)
+        if ability is not None:
+            heavy_assault.stop_charge(component, ability)
+    bot.attack_mode = mode
     if bot.hero == 0x02E00000000001CE:
         component = bot.body_script.component
         index = component.entity_var(9948).value()
@@ -236,7 +256,7 @@ def update_input(fight, bot):
         enabled = victim is not None and not fight._control_immune(victim)
     if previous_target is not None and previous_target != bot.attack_target:
         _retire_target_input(bot, value)
-    if heavy_assault.update(bot, component, enabled):
+    if bot.attack_mode == "primary" and heavy_assault.update(bot, component, enabled):
         enabled = False
     desired = target.entity if enabled else None
     if (bot.hero == assassin.HERO and component.world.manual_target != desired):

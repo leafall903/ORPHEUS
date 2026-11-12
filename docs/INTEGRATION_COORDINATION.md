@@ -149,3 +149,13 @@ Sigma shield production and Echo/storage fixtures. All36 combined owner/charge/
 storage checks and two existing positional-contract/storage checks passed.
 The two passive-shield failures recorded for B4 are resolved without removing
 their original expected values.
+
+Root restored the original manual NPC melee/charge arguments over current
+services, retaining original checks and explicit input/navigation modes. The
+unsupported spatial-context guard avoids a real Heavy Assault VM retirement.
+All62 existing NPC control/navigation checks pass; actual close Trooper/Heavy
+melee25/75, stop/reset and Recon charge295 probes pass. Original at2m Trooper,
+Sentry displacement and captured Sentry wall-damage differences remain recorded
+in `parallel-root-manual-*-check.log`; the old heavy_drives observer also needs
+mapping to current charge state. Preserve the original assertions. Worker C
+owns Bastion stance/control follow-up; root retains NPC API/navigation scope.
