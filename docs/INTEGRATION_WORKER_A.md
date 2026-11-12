@@ -506,3 +506,53 @@ Next clean-boundary action: absorb canonicale875ed87 or newer, then audit0003
 Tracer recall/Pulse/weapon source consumers and000A Widowmaker core. Do not keep
 expanding acceptance instead of progressing these owners. Preserve all source
 checks and commit actual code batches even when old/client acceptance is open.
+
+
+A21 committed `48bdb2db`. Clean boundary sync now absorbs canonicale875ed87,
+including root original volley_geometry and real NPC per-pellet paths plus new
+native field layouts. Only CHANGELOG union conflict; combat auto-merged without
+code conflict. Tracer frozen ref8a3ece2db99405a6c14e3e36c0492fc71d4bb48c;
+Widowmaker0bbf016a88d6272db5358c5e4f6a611d4db5b327. Next: compare Tracer
+tracer.py/tracer_pistol.py and Pulse Bomb delivery with current Recalls/PulseBombs
+managers; inventory Widowmaker modules/driver/combat hooks without appearance.
+Sync verification:30 profile/journal/Damage/runtime normal checks passed in worker-a-canonicale875-sync.log.
+
+
+Worker sync5eadb775 absorbs e875ed87;30 checks passed. A22 restores source0003
+Pulse family current-source retirement. Generic foreign reflected rounds still
+survive, excluding only pulse_bomb; its original owner body can retire while
+new holder remains, then the holder's body replacement cancels without blast.
+Normal77 original Tracer core/Pulse/Deflect methods:76 pass, one unchanged
+fuse_left None-vs0 sentinel read fails in
+worker-a-tracer-owner-final.log. Its source assertion remains; do not alter
+shared Rocket sticky/fuse semantics only to manufacture that view.24 actual
+Ana hip/dart foreign-flight, Genji0304 reflected Shuriken teardown, Damage and
+runtime checks pass in worker-a-tracer-retirement-shared.log.
+
+Source0003 owner reconcile, frozen8a3ece2db99405a6c14e3e36c0492fc71d4bb48c:
+- tracer_pistol.py is code-identical (git no-index diff empty after line endings).
+  Bloom retention/rays and actual _shoot consumers are mounted.
+- tracer.py Blink source action is preserved with only current Walls.move_mover
+  adapter; _player is AST-identical. Mobility rejection during Recall/Graviton
+  and same-frame correction remain live.
+- Old body-world RecallSample/RecallSession/remember/begin/end map to existing
+  tracer_recall Recalls Sample/Phase/history/start/update/finish plus actual
+  001A phase nodes. Position/health restoration, cleanse, blocked rewind point,
+  input freeze, cancellation cooldown and retirement all have consumers and
+  snapshot layouts. Original restore-three-second-health-ammo correction passes:
+  do not add a duplicate manual refill when current authored graph already does.
+- Old independent PulseBombs manager maps to current Bomb(Rocket) plus existing
+  PulseBombs command anchors/sampled gap poses, _fly/_sweep/_stick/_explode and
+  transport retirement. Preserve current recovered D71ACD velocity update rather
+  than replace it with the earlier source's explicitly reconstructed trajectory.
+  Original Pulse main tests pass. Source-body retirement now matches the old
+  manager. Frozen absorption, reflected source, attachment/Recall detachment,
+  fuse, lifetime, blast/cover and kill credit retain one authoritative driver.
+- The one old unarmed fuse sentinel view remains open, not missing explosion or
+  ownership functionality. Full frozen ref also contains many cross-owner hero
+  changes, which root owns for formal reconcile/ancestry. No appearance work.
+Next exact action: mount000A Widowmaker rifle/headshot/charge plus Infra-Sight
+and Grapple native state/runtime/driver/combat consumers, followed by original
+venom.py and its throw/tick/contact/damage/cleanup consumers. Current combined
+server has no Widow-specific module and no005A grapple callback, so this is
+real missing code; proceed without waiting for the sentinel observation.
