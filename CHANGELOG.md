@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect original sampled Cryo healing to the existing health service
+
+- Consume original VM cumulative healing and CryoHealing history through one
+  _heal_target writer; recognize the native report without a second heal. Keep
+  existing health pools, charge, stats, death and body-retirement rules.
+- Settle at existing HealingEffects installation, cleanse and expiry boundaries;
+  carry its received scalar in the original per-activation history, preserving
+  existing legacy status intervals and the original three-field sample API.
+- Cryo/Baptiste status28:25cases pass,7failed subcases across3cases retained;
+  original Cryo200/cancel/retire/storage checks pass. Separate charge/Damage/
+  runtime27 all pass. Actual typed amp gives24HP over20Cryo ticks once.
+- Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
+  expectations; preserve that cross-owner gap and the known NPC shield-total,
+  held-secondary and flight observer differences without changing assertions.
+
 ### Mount delivered Mei Blizzard flight and area consumers
 
 - Connect original064A release, ballistic terrain/Ice Wall contact,0946 area,

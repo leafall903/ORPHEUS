@@ -25,11 +25,15 @@ class CryoHealing:
     activation: tuple
     at: float
     accounted: float = 0.
-    statuses: list[tuple[float, float, float]] = field(default_factory=list)
+    statuses: list[tuple[float, ...]] = field(default_factory=list)
 
-    def note(self, at, blocked_until, boosted_until):
-        if not self.statuses or self.statuses[-1][1:] != (blocked_until, boosted_until):
-            self.statuses.append((at, blocked_until, boosted_until))
+    def note(self, at, blocked_until, boosted_until, received=1.):
+        row = (at, blocked_until, boosted_until) if received == 1. else (at, blocked_until, boosted_until, received)
+        if self.statuses and at >= self.statuses[-1][0] and self.statuses[-1][1:] == row[1:]:
+            return
+        self.statuses[:] = [old for old in self.statuses if old[0] != at]
+        self.statuses.append(row)
+        self.statuses.sort(key=lambda old: old[0])
 
     def sample(self, cumulative, rate, tick, boost):
         amount = cumulative - self.accounted
@@ -43,9 +47,11 @@ class CryoHealing:
             pulse = self.at + index * period + 1e-9
             while status + 1 < len(self.statuses) and self.statuses[status + 1][0] <= pulse:
                 status += 1
-            _, blocked_until, boosted_until = self.statuses[status]
+            row = self.statuses[status]
+            blocked_until, boosted_until = row[1:3]
             if pulse >= blocked_until:
-                total += boost if pulse < boosted_until else 1.
+                received = row[3] if len(row) > 3 else 1.
+                total += received * (boost if pulse < boosted_until else 1.)
         self.statuses[:] = self.statuses[status:]
         self.at += span
         self.accounted = cumulative

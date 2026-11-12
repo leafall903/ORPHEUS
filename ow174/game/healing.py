@@ -71,8 +71,10 @@ class HealingEffects:
         self.amp = {}
 
     def retire(self, entity):
+        self.combat.record_cryo_status(entity)
         self.anti.pop(entity, None)
         self.amp.pop(entity, None)
+        self.combat.record_cryo_status(entity)
 
     def immune(self, target):
         component = getattr(getattr(target.owner, "body_script", None), "component", None)
@@ -111,12 +113,15 @@ class HealingEffects:
             if target is None or self.combat.vitals_of(target).dead:
                 self.retire(entity)
             elif self.immune(target):
+                self.combat.record_cryo_status(entity)
                 self.anti.pop(entity, None)
                 self.record_regeneration(entity)
+                self.combat.record_cryo_status(entity)
 
     def prune(self):
         for entity in set(self.anti) | set(self.amp):
             self.record_regeneration(entity)
+            self.combat.record_cryo_status(entity)
         for table in (self.anti, self.amp):
             for entity, effect in list(table.items()):
                 if effect.end <= self.combat.tick:
@@ -145,12 +150,14 @@ class HealingEffects:
         return sum((b - a) * at((a + b) / 2) for a, b in pairwise(sorted(points))) / (end - start)
 
     def _install(self, table, entity, source, start, end):
+        self.combat.record_cryo_status(entity)
         self.record_regeneration(entity)
         previous = table.get(entity)
         if previous is not None and previous.start <= self.combat.tick < previous.end:
             start = previous.start
         table[entity] = Modifier(source, start, end)
         self.record_regeneration(entity)
+        self.combat.record_cryo_status(entity)
 
     def accepts(self, rocket):
         if rocket.blast is None or rocket.blast.effect != GRENADE or isinstance(rocket.shooter, bots.Bot):
