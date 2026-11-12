@@ -6,6 +6,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Uprising note: the directors come from the mode script's sequencer
+
+- Corrected `docs/research/uprising-mission.md`. It said nothing but the server could create the
+  phase directors, because no entity definition names them. Read from data: the mode script
+  `0D28` runs a sequencer, `0D47`, whose five SubScript states run `0D48`, `0D49`, `0D4A`, `0D4B`
+  and `0E05` in turn. ORPHEUS still lists the director as a root instance, which is what the
+  client was seen to draw; natively it is a child of the sequencer's state.
+- Added a short section on the waves: every director spawns through the shared graph `0D1C`,
+  whose node 13 creates a hero from the caller's variables. The waves themselves are read, not
+  verified and not played.
+- No code changed.
+
 #### Start points for Uprising, Junkenstein and Retribution from the map data
 
 - The three PvE missions had no spawn rows in the extracted map data, so the server refused to

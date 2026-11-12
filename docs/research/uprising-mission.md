@@ -8,8 +8,8 @@ on 2026-11-12 against ORPHEUS; see the [index](README.md) for the evidence label
 Uprising's objective box is drawn by a director graph, one per phase, that the server puts on the
 game mode entity at run time. `0D4A` draws "DEFEND THE PAYLOAD" with a countdown, `0D4B` draws
 "ESCORT THE PAYLOAD" with the progress bar. The countdown is the mode entity's `#1303`, the
-variable the hero select counts down on. No entity definition names these graphs, so nothing but
-the server can create them.
+variable the hero select counts down on. The mode script reaches the directors through a
+sequencer graph, `0D47`, as SubScripts the server runs.
 
 ORPHEUS now shows these two phases by hand. It plays no mission behind them.
 
@@ -48,13 +48,31 @@ entity's frame:
 - Replacing `0D4A` by `0D4B` under a new instance index makes the client destroy the first and
   draw the second: a full frame destroys the network instances it does not list.
 
+Read from data: the directors are not attached from outside. `0D28` state 10 (node 27) is a
+SubScript to the sequencer `0D47`, and `0D47` states 5 to 9 are SubScripts to `0D48`, `0D49`,
+`0D4A`, `0D4B` and `0E05`, chosen by a switch on its `#59`. An earlier version of this note said
+only the server could create the directors because no entity definition names them; the mode
+script names them itself. `0FEF` is not among the five. By the order of the phases in the
+recording below, `0D48` would be the hack phase, `0D49` the rendezvous and `0E05` the last phase;
+that pairing is not checked.
+
 Seen in a recording of a retail match (Hard, four players): the phases run hack the terminals,
 rendezvous at the payload, defend the payload for 4:00, escort the payload, kill the OR14-NS
 units within 6:00. The defend clock starts at 4:00.
 
 Not decoded: the hack, rendezvous and kill phases and their widgets, what the real director feeds
 `#2190`, what moves the escort bar (`0D4B`'s instance variables 624 and 6627 are candidates),
-the "OBJECTIVE COMPLETE" banner, and the waves `0D4A` spawns through `0D1C`.
+the "OBJECTIVE COMPLETE" banner, and what sets `0D28`'s own `#59` so that it reaches the
+sequencer.
+
+### The waves
+
+Read from data, one pass, not played and not checked against the client. Every director spawns
+its enemies through one shared graph, `0D1C`: its node 13 is a `STUStatescriptActionCreateEntity`
+that makes a hero from the caller's variables (hero `#8398`, position `#8370`, controller `#9318`,
+skin `#8172`). The directors call it as a SubScript once per group, with the group's size, pacing
+and place. The defend director `0D4A` does so across four states of 60 s each. Which units come
+when, and at which markers, is read but not verified, and is not recorded here yet.
 
 ## The map
 
@@ -101,7 +119,9 @@ also wants the spawn component, and whether the players face the way the markers
 ORPHEUS already sends `0D28` with its loading marker on beside `0CB6`, which is what lets the
 client enter the map. It did not send a director, so the HUD had no objective.
 
-It now sends the phase's director as one more root instance of the mode entity, with `#1303`:
+It now sends the phase's director as one more root instance of the mode entity, with `#1303`.
+Natively the director is a child of the sequencer's state; the root instance is what was seen to
+draw:
 
 - `0D4A` from the moment the heroes are assembled, counting 240 s down, sent once a second.
 - `0D4B` when the clock reaches zero, under the next instance index, sent once.
