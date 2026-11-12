@@ -374,6 +374,9 @@ class BodyWorld(runtime.World):
         if cls == "STU_8CBDD81C" and self.match is not None and instance is not None:
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
             return self.match.script_body_position(entity, self.body)
+        if cls == "STU_21A13145" and self.match is not None and instance is not None:
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            return self.match.script_body_eye_position(entity, self.body)
         if (cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
                 and instance.component.entity == self.body
                 and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):

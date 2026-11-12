@@ -82,8 +82,8 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 #104319 STUFirstPersonComponent: m_E29993A5 standing, m_816B830F crouched.
-EYE_STANDING = {0x04000000000002A3: 1.425}
-EYE_CROUCHED = {0x04000000000003CF: 1.085, 0x04000000000002A3: 0.9975}
+EYE_STANDING = {0x04000000000002A3: 1.425, 0x0400000000001235: 1.5}
+EYE_CROUCHED = {0x04000000000003CF: 1.085, 0x04000000000002A3: 0.9975, 0x0400000000001235: 1.2}
 EYE_CROUCHED_DEFAULT = 1.15
 HEAD_BELOW = 0.2  # m under the eye where the head starts (unverified)
 HISTORY = 64  # ticks of body positions kept for the shots' view time (about 1 s; unverified: retail's limit)

@@ -137,6 +137,12 @@ The 104319 RayCast state binds its outputs at RVA `8EC210` and updates them at
 The target-build `002C.097` profile supplies the static category mask for
 Seismic Slam and Piledriver.
 
+The 104319 state-switch evaluator at RVA `1B9B531` supplies indexed cases used
+by Seismic Slam. The transition dependency path at `1B754D0` schedules the
+state check through `1B71220`. The first-person anchor evaluator at `D1AB95` uses the stance
+and mover spring. Doomfist's heights come from body `1235.003`. The static
+selector write at `CB76C7` identifies the world-point form of MoveTo.
+
 ## The Best Defense
 
 The local 104319 graph export supplies the damage-dealt listener in `0DDD`,

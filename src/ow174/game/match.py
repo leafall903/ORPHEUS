@@ -1183,13 +1183,17 @@ class Match:
 
     # --- the body's statescript (ow174/game/script) ------------------------------------------------
 
-    def _script_body_mover(self, entity: int, owner: int) -> Mover | None:
+    def _script_body_player(self, entity: int, owner: int) -> Player | None:
         """Resolve a live player body, including the owner during its own create."""
         for player in self.players:
             if (player.body == entity and player.has_body and player.client is not None
                     and (player.spawned or entity == owner)):
-                return player.mover
+                return player
         return None
+
+    def _script_body_mover(self, entity: int, owner: int) -> Mover | None:
+        player = self._script_body_player(entity, owner)
+        return player.mover if player is not None else None
 
     def script_body_position(self, entity: int, owner: int) -> expr.Vec3 | None:
         mover = self._script_body_mover(entity, owner)
@@ -1199,6 +1203,16 @@ class Match:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
         return None
+
+    def script_body_eye_position(self, entity: int, owner: int) -> expr.Vec3 | None:
+        """The ordinary upright player's first-person stance anchor."""
+        player = self._script_body_player(entity, owner)
+        if player is None:
+            return None
+        mover = player.mover
+        x, y, z = mover.position
+        stance = expr.f32(combat.eye_height(player.hero.body, mover.crouched))
+        return expr.Vec3(x, expr.f32(y + expr.f32(stance + mover.spring)), z)
 
     def script_owner_movement_sample(self, owner: int) -> int | None:
         mover = self._script_body_mover(owner, owner)

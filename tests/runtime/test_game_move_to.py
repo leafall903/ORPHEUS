@@ -129,6 +129,37 @@ class FixedTargetMoveToTests(unittest.TestCase):
                     player.take_commands([Command(START + 1, buttons=0x08)])
                 self.assertEqual(instance.state(state_index).move_request(), (expected, speed))
 
+    def test_doomfist_slam_anchor_uses_stance_and_the_mover_spring(self):
+        player, slam = self.spawn(DOOMFIST, 0x0B27, flat_world(1.0))
+        selector = slam.state(6)
+        anchor = selector.node.field("m_6E8CA10B")
+        eye_position = anchor["m_configVars"][0]
+        self.assertEqual(selector.evaluate(eye_position, watch=False), Vec3(0.0, 2.5, 0.0))
+        self.assertEqual(selector.evaluate(anchor, watch=False), 2.5)
+
+        self.command(player, START + 1, buttons=CROUCH)
+        self.assertTrue(player.mover.crouched)
+        self.assertNotEqual(player.mover.spring, 0.0)
+        x, y, z = player.mover.position
+        eye = selector.evaluate(eye_position, watch=False)
+        self.assertEqual((eye.x, eye.z), (x, z))
+        self.assertAlmostEqual(eye.y, y + 1.2 + player.mover.spring, places=5)
+        self.assertEqual(selector.evaluate(anchor, watch=False), eye.y)
+
+    def test_doomfist_slam_static_target_enables_world_space_travel(self):
+        player, slam = self.spawn(DOOMFIST, 0x0B27, flat_world(1.0))
+        movement = slam.state(9)
+        slam.write((INSTANCE, 431), DESTINATION)
+
+        for entity in (None, Entity(player.body), Entity(0)):
+            with self.subTest(entity=entity):
+                slam.write((INSTANCE, 1883), entity)
+                movement.request(runtime.BEGIN)
+                slam.component.run_now()
+                expected = (DESTINATION, 25.0) if entity == Entity(0) else None
+                self.assertEqual(movement.move_request(), expected)
+                movement.end(False)
+
     def test_doomfist_slam_selector_requires_airborne_clearance(self):
         for jump, clear_ground in ((False, False), (True, False), (True, True)):
             with self.subTest(jump=jump, clear_ground=clear_ground):
@@ -142,13 +173,18 @@ class FixedTargetMoveToTests(unittest.TestCase):
 
                 player.match.tick = START + 1
                 player.take_commands([Command(START + 1, buttons=JUMP if jump else 0)])
+                cast = START + 2
                 if clear_ground:
                     # The ledge ends under the airborne player. Preserve the jump sample.
                     geometry = flat_world(-2.5)
                     player.match.collision_world = geometry
                     player.mover.use(world=geometry)
-                player.match.tick = START + 2
-                player.take_commands([Command(START + 2, buttons=0x10)])  # E / Ability 2
+                    # Input reads the previous command's completed ground query.
+                    self.command(player, cast)
+                    self.assertIs(slam.vars[2413].value(), False)
+                    self.assertTrue(selector.active)
+                    cast += 1
+                self.command(player, cast, buttons=0x10)  # E / Ability 2
 
                 self.assertTrue(ability.flags & nodes.Ability.RUNNING)
                 self.assertEqual(player.mover.airborne, jump)
@@ -167,11 +203,23 @@ class FixedTargetMoveToTests(unittest.TestCase):
                 self.assertEqual(dict(saved["fields"])["sample"], sample)
 
                 if jump:
-                    self.commands(player, range(START + 3, START + 100))
+                    for frame in range(cast + 1, START + 100):
+                        landing = self.command(player, frame)
+                        if not player.mover.airborne:
+                            break
+                    else:
+                        self.fail("Doomfist did not land after the jump")
+                    if not clear_ground:
+                        self.assertFalse(slam.state(1).active)
+                        self.assertTrue(slam.state(58).active)
+                    self.commands(player, range(frame + 1, START + 100))
                     self.assertFalse(player.mover.airborne)
                     self.assertIs(airborne.value(), False)
                     self.assertFalse(selector.active)
-                    self.assertEqual(movement.state(4).payload(), {"value": 1 << 1})
+                    self.assertEqual(movement.state(4).payload()["value"] & 0b11, 1 << 1)
+                    if not clear_ground:
+                        self.assertLess(player.mover.position[2] - landing.position[2], 1.0)
+                        self.assertEqual(player.mover.history[-1].velocity, (0.0, 0.0, 0.0))
 
     def test_doomfist_uppercut_applies_lift_and_attenuation_on_the_authored_frames(self):
         for jump in (False, True):

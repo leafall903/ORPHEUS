@@ -1596,9 +1596,8 @@ class Instance:
                     continue
                 for index in condition.field("m_122DF0CA") or ():
                     state = self.states.get(index)
-                    if state is not None and state.active and not state.flags_check:
-                        state.flags_check = True
-                        self.post(Event(component.now, 0, CHECK, state=state))
+                    if state is not None:
+                        state.request_check()
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""
@@ -1665,9 +1664,8 @@ class Instance:
             for index in indexes:
                 self.component.consume_work("join completion check")
                 state = self.states.get(index)
-                if state is not None and state.active and state is not caller and not state.flags_check:
-                    state.flags_check = True
-                    self.post(Event(self.component.now, 0, CHECK, state=state))
+                if state is not None and state is not caller:
+                    state.request_check()
             return False
         if previous != expr.to_int(node.field("m_B24D1794")) - 1:
             return False
@@ -1799,6 +1797,12 @@ class State:
 
     def request_finish(self, delay: int = 0) -> None:
         self.request(FINISH, delay)
+
+    def request_check(self) -> None:
+        """1B71220: coalesce a pending transition check for an active state."""
+        if self.active and not self.flags_check:
+            self.flags_check = True
+            self.instance.post(Event(self.now, 0, CHECK, state=self))
 
     def timer_at(self, delay: int, param: int = 1, transient: bool = False) -> None:
         self.instance.post(Event(self.now + delay, 0, TIMER, state=self, param=param, transient=transient))

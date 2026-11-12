@@ -751,7 +751,11 @@ class NumericPropertyModifiers(State):
             self.ticks()
 
     def dependency_changed(self):
-        self.publish()
+        if self.instance.component.strict:
+            self.publish()
+        else:
+            # Legacy mode only watches transition operands for this state.
+            self.request_check()
 
     def tick(self):
         self.publish()
@@ -2419,10 +2423,15 @@ class MoveTo(State):
 
     def on_begin(self) -> None:
         speed_config = _field(self, "m_speed")
-        unsupported = ("m_destinationEntity", "m_destinationBone", "m_5BEFF040")
+        unsupported = ("m_destinationBone", "m_5BEFF040")
         if _field(self, "m_B060F688") != 0 or speed_config is None or any(
             _field(self, field) is not None for field in unsupported
         ):
+            return
+        entity_config = _field(self, "m_destinationEntity")
+        # A selector can explicitly supply the invalid entity to name a world point.
+        if (entity_config is not None
+                and self.evaluate(entity_config, watch=False) != Entity(expr.INVALID_ENTITY)):
             return
         destination = self.evaluate(_field(self, "m_865F3D01"), watch=False)
         speed = self.evaluate(speed_config, watch=False)
@@ -2866,8 +2875,15 @@ class Switch(State):
 
     def pick(self) -> str:
         value = self.evaluate(_field(self, "m_262AE982"))
-        for number, case in enumerate(_field(self, "m_05706D1C") or []):
-            if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
+        cases = _field(self, "m_05706D1C") or []
+        indexed = _field(self, "m_F0F0720B") == 1
+        # 104319 1B9B531 supplies the row index for an omitted value in indexed mode.
+        for number, case in enumerate(cases[:64]):
+            if not isinstance(case, dict):
+                continue
+            config = case.get("m_value")
+            match = number if indexed and config is None else self.evaluate(config, watch=False)
+            if equal(value, match):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
 

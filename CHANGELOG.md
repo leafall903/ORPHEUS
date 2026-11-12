@@ -47,6 +47,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   reconstructions. Dynamic receivers, airborne replication, combat feedback
   and original-client acceptance remain open.
 
+#### Seismic Slam movement
+
+- Resolve omitted state-switch values by their authored index. Grounded E now
+  executes the launch velocity action and enters the impact phase on landing.
+- Recheck the launch transition when the mover reports landing. The near-floor
+  jump case now releases its movement modifiers and comes to rest.
+- Read the selector's first-person anchor from the upright player's stance and
+  mover spring. Use Doomfist's authored 1.5 m standing and 1.2 m crouched heights.
+- Accept the selector's explicit invalid entity as a fixed world-space MoveTo
+  destination. Static target selection, impact completion, damage and original
+  client acceptance remain open.
+- Passed Ruff, 923 public Python tests, six dashboard tests and 22 focused
+  movement regressions, including grounded and near-floor Slam commands.
+
 #### Rising Uppercut target reaction
 
 - Evaluate the authored target ranking and send the target reaction script
