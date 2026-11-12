@@ -93,7 +93,7 @@ from ow174.game import (
     world_bubbles,
 )
 from ow174.game.script import support, support_effects
-from ow174.game import knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
+from ow174.game import doomfist, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -1678,6 +1678,7 @@ class Combat:
         self.npc_hit_reactions: dict[int, tuple[int, runtime.Instance]] = {}
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
         self.punch_impacts: dict[int, PunchImpact] = {}
+        self.punches = doomfist.Punches(self)
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -1834,6 +1835,7 @@ class Combat:
         self.input_locks.pop(player.body, None)
         self.booster_contacts.pop(player.body, None)
         self.reaper_blossoms.pop(player.body, None)
+        self.punches.retire(player.body)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -1914,7 +1916,8 @@ class Combat:
 
     def is_stunned(self, actor, *, tick: int | None = None) -> bool:
         body = _source_entity(actor)
-        return (body in self.pins.values() or reinhardt_charge.pinned(self, body)
+        return ((isinstance(actor, bots.Bot) and self.punches.controlled(body))
+                or body in self.pins.values() or reinhardt_charge.pinned(self, body)
                 or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
                 or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
@@ -2410,6 +2413,45 @@ class Combat:
         del self.punch_impacts[player.body]
         self._damage(impact.source, target, impact.damage, False, 0x0B90000000000107, command.frame)
 
+    def _doomfist_shields(self, player, loadout) -> None:
+        """Consume the delivered passive request over the retained shield pool."""
+        if player.hero.guid != doomfist.HERO or player.body_script is None:
+            return
+        if loadout not in (0x0B90000000000106, doomfist.PUNCH, 0x0B90000000000108, doomfist.SLAM):
+            return
+        component = player.body_script.component
+        passive = next((i for i in component.instances.values() if i.graph.index == 0x0DDD), None)
+        if passive is None:
+            return
+        gain_node = passive.graph.node(21 if loadout == 0x0B90000000000108 else 20)
+        gain = _number(passive.evaluate(gain_node.field("m_value")), 0.0)
+        cap = _number(passive.vars[11218].value(), 0.0)
+        rate = _number(passive.state(1).evaluate(passive.graph.node(3).field("m_modifyHealth.m_amount")), 0.0)
+        delay = _number(passive.state(0).evaluate(passive.graph.node(2).field("m_timeout")), 0.0)
+        if not all(math.isfinite(v) and v >= 0 for v in (gain, cap, rate, delay)):
+            return
+        vitals = self.vitals.get(player.body)
+        if vitals is None or vitals.dead:
+            return
+        shield = vitals.temporary_shield
+        old = shield.amount if shield is not None else 0.0
+        current = min(max(0.0, cap - vitals.now.get(SHIELDS_POOL, 0.0)), old + gain)
+        if current > old:
+            vitals.temporary_shield = TemporaryShield(current, current, self.now + delay, rate)
+            vitals.changed.add(SHIELDS_POOL)
+            self._sync_body_health(player, vitals)
+
+    def _launch(self, entity: int, velocity: tuple) -> None:
+        """Route delivered impulse vectors to the existing authoritative mover."""
+        target = next((t for t in self._targets() if t.entity == entity), None)
+        if target is None or self.vitals_of(target).dead:
+            return
+        if isinstance(target.owner, bots.Bot):
+            target.owner.apply_impulse(velocity, self.tick, self._collision())
+        else:
+            target.owner.mover.impulse(velocity)
+            target.owner.mover.external_impulse = True
+
     def stun(self, target, duration):
         deadline = self.tick + math.ceil(duration / TICK)
         self.stuns[target.entity] = max(deadline, self.stuns.get(target.entity, 0))
@@ -2547,6 +2589,7 @@ class Combat:
             self.brigitte.command(player, command, script)
             self._genji_strike(player, command, script)
             self._genji_blade(player, command, script)
+            self.punches.command(player, command)
         except Exception:
             log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
         if command is not None:
@@ -3375,6 +3418,7 @@ class Combat:
                 for wave in due:
                     self._resolve_soundwave(wave)
             self._bot_weapons(at)
+            self.punches.update()
             for player in self.match.players:
                 if player.hero.guid == lucio.HERO:
                     lucio.advance_passive_charge(player, at)

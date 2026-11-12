@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Doomfist Rocket Punch host
+
+- Preserve the source Doomfist owner hosts and Meteor implementation. Route
+  Rocket Punch charge/release, swept dash, first capsule contact, one wall bonus,
+  recovery/cooldown and input-only control through the delivered Punches object.
+  Retain the existing impulse mover and passive shield pool. Restore the scoped
+  authoritative body-forward query used to latch its launch direction.
+- Stop routing the earlier Doomfist punch_contact prototype alongside this host;
+  keep its implementation and the existing Reinhardt Charge route. Suppress
+  control-period input without zeroing the delivered horizontal knockback.
+  The input_suppressed flag gates both newly queued and pending button presses,
+  and joins the passive component and enclosing server snapshot layout.
+- Retain the original21 Rocket Punch checks and shared combat fixture, adapting
+  only the fixture's Sombra import to the combined module name. All21 checks and
+  all13 existing runtime checks passed. The active enclosing server snapshot
+  probe additionally checks getter-free repeatability and dash-state causality.
+- Slams, Meteor, remaining passive/Uppercut and other-hero/NPC dependencies still
+  require reconciliation. Their delivered implementations remain preserved;
+  incomplete whole-line acceptance does not block this code submission. No
+  original-client acceptance, new gameplay feature or acceptance matrix claimed.
+
 ### Mount delivered Death Blossom clocks and idle Reaper bodies
 
 - Retain0044/0045's34-damage, five-per-second pulses, authored channel duration

@@ -677,6 +677,8 @@ class BotWorld(runtime.World):
 
     def skill_locked(self, state):
         controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if self.match is not None and self.match.combat.punches.controlled(state.instance.component.entity):
+            return True
         return controls is not None and not state.instance.component.strict and controls.blocked(state)
 
     def tracked_targets(self, state):
