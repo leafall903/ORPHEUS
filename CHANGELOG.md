@@ -1172,6 +1172,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Publish D.Va's actual mech control and camera handoff
+
+- Component 44 now names the live controlled mech as its current/view body and retains the pilot as primary. Freeze the initial hero-switch write after the body script creates the mech; the old ordering still sent the parked pilot in all three fields.
+- Publish the ready pilot's return/rebind transitions and wait for remote mech create acknowledgement before showing possession to another viewer. Keep ordinary hero possession caching unchanged.
+- Minimal checks: initial owned-mech create and fire probes passed; both real component-44 encoding probes pass for selection and pilot/mech round trips. Undefined-name/duplicate-definition checks and diff whitespace checks pass. Original-client D.Va view/model confirmation remains for the integration owner; this is not full D.Va acceptance.
+
+### 2026-11-13
+
 #### Restore Practice Range patrol bootstrap after reconciliation
 
 - Restore the existing upstream Bot patrol-key, detour and walkable-floor methods used by the new collision loader. The mixed implementation previously raised `AttributeError: Bot._plan_key` and rejected Practice Range admission.

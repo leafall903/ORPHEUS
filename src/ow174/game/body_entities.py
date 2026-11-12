@@ -47,6 +47,23 @@ def _bind_control(pilot, instance, scope_index):
     bot.impulse_mover = None
     bot.firing = False
     pilot.controlled_mech = bot
+    _publish_possession(pilot)
+
+
+def _publish_possession(pilot):
+    """Publish live current/view targets after a ready pilot changes control."""
+    client = pilot.client
+    script = pilot.body_script
+    if (client is None or not pilot.spawned or script is None
+            or not script.create_arrived):
+        return  # Initial creation/switch publishes it after the pilot create.
+    from ow174.game import world
+
+    components = pilot.match._possession(pilot)
+    update = world.EntityUpdate(
+        pilot.entity, world.OP_UPDATE, lambda origin: world.update(origin, components),
+    )
+    client.queue_possession(update, components[44][0])
 
 
 def release_control(pilot):
@@ -63,6 +80,7 @@ def release_control(pilot):
         bot.firing = not bot.dead
         fight = pilot.match.combat
         fight.expose_body(pilot.body, fight.tick or pilot.match.tick)
+        _publish_possession(pilot)
 
 
 def queue_demech_return(match, bot):

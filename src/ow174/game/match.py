@@ -1268,7 +1268,13 @@ class Match:
         """Components 44 (the body the player possesses, views and controls) and 75 (its hero, skin
         theme and the last valid hero)."""
         theme = player.skin[0] or None
-        return {44: [player.body] * 3, 75: [player.hero.guid, theme, None, player.hero.guid]}
+        controlled = getattr(player, "controlled_mech", None)
+        current = (controlled.entity if controlled is not None and not controlled.dead
+                   and controlled in player.match.bots else player.body)
+        # The pilot remains the primary possessable and owns the entry/return
+        # graph. Component 44's current/view fields must name its actual mech:
+        # keeping all three on the parked pilot leaves the client camera there.
+        return {44: [current, current, player.body], 75: [player.hero.guid, theme, None, player.hero.guid]}
 
     def _board(self, player: Player) -> list:
         """Component 64's board fields for the player's own client (stats.py): the mode's player stats
@@ -1448,13 +1454,18 @@ class Match:
             or other.body not in viewer.seen or not viewer.client.bot_create_acked(other.body)
         ):
             return
+        components = self._possession(other)
+        current = components[44][0]
+        if current != other.body and not viewer.client.bot_create_acked(current):
+            return
         possession = (other.body, other.hero.guid, other.skin[0])
+        if current != other.body:
+            possession += (current,)
         if possession == shown.possession:
             return
         shown.possession = possession
-        components = self._possession(other)
         update = EntityUpdate(other.entity, OP_UPDATE, lambda origin: world.update(origin, components))
-        viewer.client.queue_possession(update, other.body)
+        viewer.client.queue_possession(update, current)
 
     # --- lifetime ------------------------------------------------------------------------------
 
@@ -2230,9 +2241,12 @@ class Match:
         player.skin = self.skin_of(player.account_lo, hero.guid)
         player.has_body = True
         if player.client is not None and player.spawned:
-            components = self._possession(player)
             player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction,
                                                                    charge_ratio=charge_ratio))
+            # D.Va's body constructor creates and binds the initial mech. Freeze
+            # possession after that constructor, not while it still names only
+            # the pilot selected by the hero resource.
+            components = self._possession(player)
             if hero.guid == hero_torbjorn.HERO and overload_cooldown > 0:
                 hero_torbjorn.set_overload_cooldown(player, overload_cooldown)
             if hero.guid == hero_torbjorn.HERO and turret_cooldown > 0:
@@ -2245,7 +2259,7 @@ class Match:
                     script.world.passive_charge_due = passive_torb_due
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
-                player.body,
+                components[44][0],
             )
             if old is not None:
                 player.client.queue_entities([EntityUpdate(old, OP_DESTROY)])
