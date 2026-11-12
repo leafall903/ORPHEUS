@@ -317,16 +317,33 @@ class ServerSnapshotTests(unittest.TestCase):
         self.assertNotEqual(current, snapshot_digest(self.capture(session)))
 
     def test_ice_wall_is_causal(self):
-        session, _, players = self.scene()
+        from ow174.game import mei, ice_wall
+
+        session, peers, players = self.scene()
         player = players[0]
+        peer = peers[0]
+        now = 101.1
+        peer.commands(player.body_script.frame + 1, 40, 0, now=now)
+        peer.message(21616, journal_tests.pick(player.entity, mei.HERO), now=now)
+        script = player.body_script
+        for _ in range(8):
+            now += .016
+            session.tick(now)
+            peer.drain()
+            peer.send(now=now)
+        peer.commands(script.frame + 1, 40, 0, now=now)
         walls = player.match.combat.walls
         before = snapshot_digest(self.capture(session))
-        walls.inputs[player.body] = mei_wall.Input(buttons=16, preview=True, rotated=True)
+        peer.commands(script.frame + 1, 1, 16, pitch=8192, now=now)
         preview = snapshot_digest(self.capture(session))
         self.assertNotEqual(before, preview)
-        x, y, z = player.mover.position
-        self.assertTrue(walls.create(player, ((x, y, z + 3),), (1.0, 0.0, 0.0)))
-        (piece,) = walls.pieces.values()
+        for button in (0, 1, 0):
+            peer.commands(script.frame + 1, 1, button, pitch=8192, now=now)
+        self.assertTrue(walls.pieces)
+        self.assertEqual(len(walls.pieces), 5)
+        self.assertTrue(all(piece.actor is player.match.combat.deployables[piece.entity]
+                            and piece.actor.definition == ice_wall.PILLAR for piece in walls.pieces.values()))
+        piece = next(iter(walls.pieces.values()))
         deployed = snapshot_digest(self.capture(session))
         self.assertNotEqual(preview, deployed)
         piece.health -= 30
