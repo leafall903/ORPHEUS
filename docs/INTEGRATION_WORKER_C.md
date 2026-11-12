@@ -2257,3 +2257,37 @@ phase/respawn history and owner-native geometry/command differences. Current
 active work estimate8–18 Cworkerhours lowconfidence (Mei/Symm largest5–11,
 Pharah1–3,Bastion1–2,Sombra/Torb audit1–2); not calendar time or test-count
 percentage. Existing failing checks are retained and do not hold this checkpoint.
+
+
+## C52 — real Ice Wall causal fixture and sole wall observations (2026-11-12)
+
+C51 evidence documentation savedad9b8f594c7a66fe394cc7388ad0bb5563d77a06;
+actual implementation0dcad5d2/root769b27b7. Parent requested narrow fixture
+alignment rather than a production alias or an unhosted test pool.
+All AnaSentry fight.ice_wall observations now read the sole fight.walls,
+without changing any original literal assertion. Other old Sentry API/timing
+assumptions remain intact for subsequent owner audit, not silently stubbed.
+
+ServerSnapshotTests.test_ice_wall_is_causal now selects actual Mei via real
+Peer21616/commands, opens real preview and confirms real16/0/1/0 cast. It keeps
+original before/preview/deployed/damaged/delayed/retired digest assertions and
+health30/expiry+1 mutations, adding5actor identity checks. It no longer asks a
+Soldier to manufacture an unhosted single column with directWalls.create.
+
+Stable selectedv18 `python -B -m unittest -v
+ test_server_snapshot.ServerSnapshotTests.test_ice_wall_is_causal
+ test_game_ana_symmetra_sentry.AnaSymmetraSentryTests.test_mei_recall_retires_ice_attached_sentry_and_clears_slow
+ test_game_ana_symmetra_sentry.AnaSymmetraSentryTests.test_support_expiry_preserves_retained_beam_pulses_and_clears_target`:
+3run40.385s. Real Meifiveactor causal test passes. Two Ana methods proceed past
+old wallname but retain3errors at missing symmetra_sentries in sharedthrow
+fixture and1dependent empty-outcome assertion; not countedpass. Source original
+0016 actual owner Sentry checks remain different fixtures and already pass.
+Log ../worker-c-actual-wall-causal-observer-check.log. No production source or
+assertion values changed in this batch; no new matrix/provider/actor pool.
+
+Next: normal-import original0016 NPC frozen methods now root metadata restored,
+then full retained ice-support/projected-impact helpers and phase/respawn
+consumers. Ana's old devices/next_shot/instance/output interface still requires
+actual owner/protocol audit; do not create a facade manager to fake it. Inspect
+any real missing parent VM output/timing consumer before calling it merely an
+observer. Full wall overlap setup/quantisation/cancel/splash differences persist.

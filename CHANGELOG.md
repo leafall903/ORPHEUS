@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Exercise Ice Wall causal storage through its real owner
+
+- Existing causal storage check now selects Mei and casts five original pillars
+  through real input. Original health, expiry and digest assertions are preserved;
+  shared actor identity is checked without manufacturing a non-owner test pool.
+- Ana Sentry wall observations use the sole wall manager. Real causal check passes;
+  old Sentry-device interface errors remain visible with original assertions.
+
 ### Bind Ice Wall geometry to its original graph actor
 
 - Geometry, collision support and real0932 pillars now use the same entity IDs,

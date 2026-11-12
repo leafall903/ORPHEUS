@@ -262,8 +262,8 @@ class AnaSymmetraSentryTests(unittest.TestCase):
         direction = aim(fight._eye(mei), (x, y, z + 4))
         for buttons in (16, 0, 1, 0):
             run.step({mei: (*direction, buttons)})
-        self.assertEqual(len(fight.ice_wall.pieces), 5)
-        centre = min(fight.ice_wall.pieces.values(), key=lambda piece: abs(piece.feet[0] - x))
+        self.assertEqual(len(fight.walls.pieces), 5)
+        centre = min(fight.walls.pieces.values(), key=lambda piece: abs(piece.feet[0] - x))
         sentry = self.throw(run, symmetra, point=(x, y + 1.55, z + 4))
         self.attach(run, sentry)
         self.assertEqual(sentry.support_pillar, centre.entity)
@@ -278,7 +278,7 @@ class AnaSymmetraSentryTests(unittest.TestCase):
         self.assertEqual(vitals.total, 192)
         self.assertEqual(sentry.target, ana.body)
         run.step({mei: (0, 0, 16)})
-        self.assertFalse(fight.ice_wall.pieces)
+        self.assertFalse(fight.walls.pieces)
         self.assertFalse(fight.symmetra_sentries.devices)
         self.assertFalse(fight.symmetra_sentries.movement_mods(ana.body))
         self.assertEqual(sentry.instance.find_var(*sentry.output).value(), expr.Entity(0))
@@ -323,7 +323,7 @@ class AnaSymmetraSentryTests(unittest.TestCase):
         self.assertEqual(centre.health, 0)
         self.assertNotIn(sentry.body, fight.symmetra_sentries.devices)
         self.assertEqual(sentry.health, 30)
-        self.assertEqual(len(fight.ice_wall.pieces), 4)
+        self.assertEqual(len(fight.walls.pieces), 4)
 
     def test_support_expiry_preserves_retained_beam_pulses_and_clears_target(self):
         outcomes = []
