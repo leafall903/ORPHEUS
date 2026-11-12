@@ -51,7 +51,7 @@ class FakeClient:
     def bot_create_acked(self, entity: int) -> bool:
         return True  # this model acknowledges every create immediately
 
-    def body_id_available(self, entity: int) -> bool:
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
         return True  # this model retains no retired entities
 
     def queue_possession(self, update: world.EntityUpdate, body: int) -> None:

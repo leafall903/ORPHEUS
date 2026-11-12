@@ -588,17 +588,17 @@ class Client:
         in_flight = (batch[0][0] for batch, _ in self.in_flight.values() if batch)
         return min(queued, min(in_flight, default=queued))
 
-    def body_id_available(self, entity: int) -> bool:
-        """Whether a previous player body can no longer be referenced by this peer."""
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
+        """Whether this peer's body reservation had ended at the allocation time."""
         if entity not in self._player_body_reuse_after:
             return True
         ready = self._player_body_reuse_after[entity]
         tail = self._combat_notice_tail.get(entity)
-        return (
-            ready is not None
-            and (tail is None or self._oldest_pending_reliable() > tail)
-            and self.server.environment.monotonic(callsite="client.body_id_available") >= ready
-        )
+        if ready is None or (tail is not None and self._oldest_pending_reliable() <= tail):
+            return False
+        if at is None:
+            at = self.server.environment.monotonic(callsite="client.body_id_available")
+        return at >= ready
 
     def _body_destroy_pending(self, entity: int, oldest: int) -> bool:
         if any(body == entity for body, _, _ in self._display_notices):

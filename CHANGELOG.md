@@ -34,6 +34,24 @@ existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
 
 
+## C65 — retained Sentry owner respawn and historical body allocation
+
+Connected original0016 prewindow retries/retained Sentry-owner replacement to the
+existing respawn list, body switch and single ID ring. Restored optional historical
+allocation time through Client availability while preserving reliable-tail guards,
+all current hero charge branches and same pool health sends.31 actual/shared tests
+pass; final Sentry-only narrowing reran3/3pass. Original active-Winston-sphere and
+early-projectile respawn consumers remain explicitly for C66. No client/network
+action; all original numeric assertions retained.
+
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
 ## A93 — retain independent native casts without extra legacy gates
 
 Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup

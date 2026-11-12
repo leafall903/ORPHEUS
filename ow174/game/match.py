@@ -2094,19 +2094,20 @@ class Match:
             player.loaded_at = now
             log.info("[game] %s: %s loaded the map", self.label(), player.name)
 
-    def _next_body_id(self, player: Player) -> int | None:
+    def _next_body_id(self, player: Player, *, at: float | None = None) -> int | None:
         """Walk the player's ID ring, excluding bodies any connected peer still retains."""
         clients = [viewer.client for viewer in self.players if viewer.client is not None]
         suffix = player.body & 0xFF
         for offset in range(254):
             entity = player.entity | ((suffix + offset) % 255 + 1)
-            if all(client.body_id_available(entity) for client in clients):
+            if all((client.body_id_available(entity) if at is None else client.body_id_available(entity, at=at))
+                   for client in clients):
                 return entity
         return None
 
     def switch_hero(
         self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None,
-        preserve_ultimate: bool = False,
+        preserve_ultimate: bool = False, body_id_at: float | None = None,
     ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
@@ -2140,7 +2141,8 @@ class Match:
         retained_torb_charge = passive_torb_due = None
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
-            entity = self._next_body_id(player)
+            entity = (self._next_body_id(player) if body_id_at is None
+                      else self._next_body_id(player, at=body_id_at))
             if entity is None:
                 return False
             if old_hero != hero.guid or hero.guid != 0x02E0000000000007:
