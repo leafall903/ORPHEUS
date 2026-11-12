@@ -537,6 +537,10 @@ class Mines:
             target = targets.pop(expr.to_entity(entity), None)
             if target is None:
                 continue
+            # The original mine consumes a live particle barrier before body
+            # damage and impulse. A breaking shield still owns the whole hit.
+            if barriers.protect_body(self.fight, target, amount, attacker=mine.source) is not None:
+                continue
             self.fight._damage(
                 mine.owner, target, amount, False, loadout.guid, tick, world_tick=tick, source_scaled=True, source_entity=mine.source, award_ult=False,
             )
