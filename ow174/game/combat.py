@@ -4520,9 +4520,9 @@ class Combat:
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Natural/cancelled allied support uses this same real world loop.
-        # Impact/projected retarget proofs await their actual service adapters.
-        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
+        # Supported impact proofs read the same actors and preview route poses;
+        # admission still feeds the sole world/NPC update loop.
+        return self.sentries.frozen_history_candidates(tick)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The

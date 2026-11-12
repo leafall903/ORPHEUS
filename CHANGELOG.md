@@ -43,6 +43,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect original frozen Sentry support-impact proofs
+
+- Adapt the retained-impact proof to the actual shared geometry queries,
+  original projectile fields, current defense states and existing NPC pose driver.
+  Proven admission runs the same world loop; no actor or health pool is added.
+- Five actual NPC/Helix setup queries admit an82tick gap without mutating inputs;
+ 25 Sentry/damage/native-Pet checks pass. C53's25 original expiry/cancel subcases
+  also reached a passing terminal outcome. Original Helix full-method baseline
+  timing failures remain recorded, and projected/respawn admission stays pending.
+- Original-client acceptance remains unperformed; implementation is saved without
+  waiting for the complete acceptance group.
+
 ### Restore shared original Sentry geometry queries
 
 - Restore original cover/target/barrier/splash prediction entry points over the
