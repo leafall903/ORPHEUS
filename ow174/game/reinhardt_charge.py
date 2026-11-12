@@ -162,6 +162,19 @@ def counter_duration(instance):
     return expr.to_float(instance.evaluate(values.get(0x0D800000000000D7)))
 
 
+def counter_frame(fight, player):
+    """Delivered posed-command hook also admits close opposing windups."""
+    if player.hero.guid != barrier.REINHARDT or fight.is_stunned(player) or fight.is_dead(player):
+        return False
+    script = player.body_script
+    instance = next((i for i in script.component.instances.values() if i.graph.index == 0x7D), None)
+    phase = instance.states.get(40) if instance is not None else None
+    if phase is None or not phase.active:
+        return False
+    yaw = player.mover.yaw * math.tau / 65536
+    return counter(fight, player, instance, (math.sin(yaw), 0., math.cos(yaw)), fight._enemies(player))
+
+
 def counter(fight, player, instance, forward, enemies):
     from ow174.game.combat import aim, capsule_visible, segment_distance
 
@@ -185,7 +198,7 @@ def counter(fight, player, instance, forward, enemies):
             continue
         flag = script.component.entity_var(596, create=False)
         tx, _, tz = aim(owner.mover.yaw, 0)
-        if flag is None or not expr.truthy(flag.value()) or fx * tx + fz * tz >= 0:
+        if flag is None or not expr.truthy(flag.value()) or fx * tx + fz * tz >= -expr.EPSILON:
             continue
         a, b = target.segment()
         if segment_distance(centre, a, b) > radius + target.radius:
@@ -196,7 +209,9 @@ def counter(fight, player, instance, forward, enemies):
             angle = math.acos(max(-1., min(1., (dx * fx + dz * fz) / distance)))
             if angle > math.radians(cone) / 2 + math.asin(min(1., target.radius / distance)):
                 continue
-        if not capsule_visible(fight._collision(), centre, a, b, target.radius):
+        from ow174.game.reinhardt_hammer import _wall_clear
+        if (not capsule_visible(fight._collision(), centre, a, b, target.radius)
+                or not _wall_clear(fight, centre, a)):
             continue
         opposing = next((i for i in script.component.instances.values() if i.graph.index == 0x007D), None)
         own = next((t for t in fight._targets() if t.owner is player), None)

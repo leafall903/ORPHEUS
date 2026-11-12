@@ -40,6 +40,11 @@ def pinned(fight, entity):
             or any(c.captured == entity for c in fight.charge_contacts.values()))
 
 
+def control_deadline(fight, entity):
+    # Selected counter tests read the current canonical native stun clock.
+    return fight.stuns.get(entity, 0)
+
+
 _BRIGITTE_VIEWS = {}
 
 
@@ -190,7 +195,7 @@ class HammerTests(unittest.TestCase):
                 self.run.step(hold)
                 fight = self.match.combat
                 self.assertEqual(self.health(self.rein), 497.5)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
                 for _ in range(70):
                     self.run.step(hold)
                 self.assertFalse(controlled(fight, self.rein.body))
@@ -680,7 +685,7 @@ class HammerTests(unittest.TestCase):
         self.run.step({self.other: (-16384, 0, 3)})
         self.run.step(hold)
         self.assertEqual(self.health(self.rein), 497.5)
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
         self.assertFalse(pinned(fight, self.enemy.body))
         self.assertFalse(controlled(fight, self.enemy.body))
         self.assertFalse(fight.charges)
@@ -784,7 +789,7 @@ class FireStrikeTests(unittest.TestCase):
                     self.run.step({self.enemy: (-16384, 0, 3)})
                     self.run.step(hold)
                     self.assertEqual(self.health(self.rein), 497.5)
-                    self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+                    self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
                     self.assertIs(launched(), original)
                     if button == 16:
                         self.assertFalse(self.ability().flags & self.ability().RUNNING)
@@ -1939,8 +1944,8 @@ class MutualChargeTests(unittest.TestCase):
         fight = self.match.combat
         self.assertTrue(controlled(fight, self.rein.body))
         self.assertTrue(controlled(fight, self.enemy.body))
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 125)
-        self.assertEqual(fight.control_deadline(self.enemy.body) - fight.tick, 125)
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 125)
+        self.assertEqual(control_deadline(fight, self.enemy.body) - fight.tick, 125)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
         self.assertFalse(fight.charges)
@@ -1994,7 +1999,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (0, 1, 3))
         self.start()
         self.advance(70)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
 
@@ -2002,7 +2007,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (0, 1, 3))
         self.start(yaw=0)
         self.advance(60, yaw=0)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(len(self.match.combat.charges), 2)
 
     def test_perpendicular_charge_windups_do_not_counter_at_contact_range(self):
@@ -2010,7 +2015,7 @@ class MutualChargeTests(unittest.TestCase):
         self.run.step({self.rein: (16384, 0, 8), self.enemy: (-32768, 0, 8)})
         for _ in range(5):
             self.run.step({self.rein: (16384, 0, 0), self.enemy: (-32768, 0, 0)})
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         for player in (self.rein, self.enemy):
             self.assertIs(player.body_script.component.entity_var(596).value(), True)
 
@@ -2018,7 +2023,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (3, 1, .1))
         self.start()
         self.advance(60)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(len(self.match.combat.charges), 2)
 
     def test_static_wall_blocks_counter_and_both_end_at_the_obstacle(self):
@@ -2026,7 +2031,7 @@ class MutualChargeTests(unittest.TestCase):
         charge_wall(self, 1.5)
         self.start()
         self.advance(80)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertFalse(self.match.combat.charges)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
@@ -2073,7 +2078,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         fight = self.match.combat
         for player in (self.rein, self.enemy):
             self.assertTrue(controlled(fight, player.body))
-            self.assertEqual(fight.control_deadline(player.body) - fight.tick, 125)
+            self.assertEqual(control_deadline(fight, player.body) - fight.tick, 125)
             self.assertFalse(player.body_script.component.held)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 250 if hero == 0x02E000000000012F else 200)
@@ -2129,7 +2134,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         self.assertEqual(self.health(self.rein), 500)
         self.run.step(hold)
         self.assertEqual(self.health(self.rein), 497.5)
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
         self.assertFalse(dash.active)
         self.assertEqual(len(self.enemy.client.messages(combat.HIT)), 1)
         for _ in range(47):
@@ -2175,7 +2180,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.run.step(hold)
                 self.assertEqual(self.health(self.rein), 497.5)
                 self.assertEqual(self.health(self.enemy), 200)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
                 self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertFalse(charge.states[40].active)
                 self.assertEqual(cooldown.value(), 10)
@@ -2401,7 +2406,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                         break
                     self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assertAlmostEqual(self.health(self.rein), 409.960726, places=5)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 32)
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 32)
                 self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertNotIn(self.enemy.body, fight.punches.dashes)
                 self.assertIn(self.rein.body, fight.punches.impacts)
@@ -3081,7 +3086,7 @@ class EarthshatterTests(unittest.TestCase):
             if self.health(self.enemy) < 200:
                 break
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(self.match.combat.control_deadline(self.enemy.body) - self.match.combat.tick, 157)
+        self.assertEqual(control_deadline(self.match.combat, self.enemy.body) - self.match.combat.tick, 157)
         self.advance(156)
         self.assertTrue(controlled(self.match.combat, self.enemy.body))
         self.advance(1)
@@ -3117,7 +3122,7 @@ class EarthshatterTests(unittest.TestCase):
                 break
         self.assertEqual(wave.hit, {old_key, (replacement, fight.replacement_ticks[replacement])})
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(fight.control_deadline(replacement) - fight.tick, 157)
+        self.assertEqual(control_deadline(fight, replacement) - fight.tick, 157)
         self.advance(157)
         self.assertFalse(controlled(fight, replacement))
         self.assertEqual(self.health(self.enemy), 150)
@@ -3149,7 +3154,7 @@ class EarthshatterTests(unittest.TestCase):
             if controlled(fight, old_body):
                 break
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(fight.control_deadline(old_body) - fight.tick, 157)
+        self.assertEqual(control_deadline(fight, old_body) - fight.tick, 157)
         self.advance(157)
         self.assertFalse(controlled(fight, old_body))
         self.assertEqual(self.health(self.enemy), 150)

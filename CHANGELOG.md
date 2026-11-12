@@ -64,6 +64,26 @@ This log records tested changes and their acceptance status. Entries are grouped
   the old healing_boost_until field. Current healing status is hosted by
   HealingEffects. Keep those original observations/expectations and logs; they
   neither block this code submission nor constitute full Ana acceptance.
+### Mount delivered Reinhardt mutual Charge windup counters
+
+- Mount the source counter query on posed commands as well as running contact,
+  admitting nearby opposing windups in either input order. Preserve authored
+  two-second profiles, tolerant opposite-facing comparison, query cone/radius,
+  IceWall/static cover, no damage and independent cooldowns.
+- Drain running subgraphs queued during Ability.stop so mutual knockdown cannot
+  resume either old drive. Use the existing native stun clock and Charge state.
+- All10 original mutual scenarios pass, including125-tick exact expiration,
+  heading/cone/team/cover rejection, body retirement and fresh cooldown casts.
+  Combined original mutual/Movement/Contact/Punch/mover/physics/runtime/input/
+  epoch157 run155 pass; retain the two original Shatter source-key inspection
+  errors. No assertion is dropped or numerical expectation relaxed.
+- Persist the B14 original assertion audit:1399 asserts in original per-method
+  order; zero changed assertion Constants. Raw AST has observer mappings to
+  current state. Source bump/release offsets5/2 are explicit in original0007.
+- Full cross-hero/NPC counters, charge object contacts and Earthshatter remain
+  in progress; client acceptance remains open. No publication or network action.
+
+
 ### Mount delivered Reinhardt Charge capture and bump lifecycle
 
 - Route actual Charge contacts to the same Charge record that owns bounded
@@ -84,6 +104,19 @@ This log records tested changes and their acceptance status. Entries are grouped
   Earthshatter integration continue; original-client acceptance remains open.
 
 
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
 ### Mount delivered Reinhardt Charge horizontal drive
 
 - Restore source007D's30-degree-per-second steering and authored16.5m/s drive
