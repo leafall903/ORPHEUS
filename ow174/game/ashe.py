@@ -403,7 +403,7 @@ class Companions:
                      if item.graph.index == 0x153B), None)
                if script is not None else None)
         if gun is None:
-            npc.remove_actor(fight.match, bot)
+            npc.remove_body(fight.match, bot)
             self.unavailable_reason = "B.O.B. weapon component did not initialize"
             return None
         at = fight.tick
@@ -416,6 +416,8 @@ class Companions:
                     mover, profiles["bob_idle"], charge_until, at, owner.mover.yaw, gun_seconds,
                     charge_instigator=owner.body if charge_instigator is None else charge_instigator)
         self.active[owner.body] = actor
+        bot.impulse_mover = mover
+        bot.combat_geometry = (mover.data.stand_height, mover.data.stand_radius, 1.55, True)
         script.component.world.match = fight.match
         # 1536/node11's factory output m_B3019338 is entity variable512;
         # the following actual PlayScript action targets that same slot.
@@ -430,7 +432,7 @@ class Companions:
 
         actor = self.active.pop(body, None)
         if actor is not None:
-            npc.remove_actor(self.combat.match, actor.bot)
+            npc.remove_body(self.combat.match, actor.bot)
             script = actor.owner.body_script
             if script is not None and script.entity == body:
                 from ow174.game.script import expr
@@ -440,7 +442,7 @@ class Companions:
                     script.component.set(512, expr.Entity(0))
 
     def update(self, tick):
-        from ow174.game import immunity, sombra_hack
+        from ow174.game import immunity
 
         fight = self.combat
         for body, actor in list(self.active.items()):
@@ -464,7 +466,7 @@ class Companions:
             if bot.dead:
                 self.retire(actor.owner_body)
                 continue
-            if (fight.is_stunned(bot, tick=tick) or sombra_hack.locked(bot, tick)
+            if (fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot.entity, tick)
                     or immunity.heavy_carry_active(bot, bot.entity)):
                 actor.target = None
                 bot.firing = False
@@ -491,7 +493,7 @@ class Companions:
                 collision = fight._collision()
                 direction = tuple(axis / distance for axis in delta)
                 wall = collision.cast_ray(origin, direction, distance)
-                ice = fight.ice_walls.cast(origin, direction, distance)
+                ice = fight.walls.cast(origin, direction, distance)
                 visible_reach = distance - target.radius
                 if ((wall is not None and wall.distance < visible_reach)
                         or (ice is not None and ice[0] < visible_reach)):
@@ -524,6 +526,7 @@ class Companions:
 
     def _pose(self, actor, tick):
         from ow174.game import bob_victim, heavy_charge, immunity, mei_wall
+        from ow174.game.mover import statescript_mods
         from ow174.game.combat import health_tags
         from ow174.game.commands import Command
         from ow174.game.script import expr, graph
@@ -532,33 +535,35 @@ class Companions:
         if actor.phase == "charge" and tick >= actor.charge_until:
             self._stop_charge(actor, tick, "timeout")
         before = tuple(mover.position)
-        fight.impulses.apply_npc(bot, mover, tick)
         mover.use(world=fight._collision())
-        carry = heavy_charge.carry_move(fight.match, bot, bot.entity)
+        carry = _carry_move(fight, bot)
         charging = actor.phase == "charge" and carry is None
-        from ow174.game import sombra_hack
-
-        stunned = fight.is_stunned(bot, tick=tick) or sombra_hack.locked(bot, tick)
-        if stunned:
+        stunned = fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot.entity, tick)
+        rooted = fight.junkrat.rooted(bot.entity, tick)
+        if stunned or rooted:
             mover.velocity = (0.0, mover.velocity[1], 0.0)
-        command = Command(tick, forward=127 if charging and not stunned else 0,
+        script = bot.body_script
+        active = statescript_mods(script.component) if script is not None else {}
+        mover.track_mods(fight.movement_mods(bot, active, tick=tick), tick)
+        command = Command(tick, forward=127 if charging and not stunned and not rooted else 0,
                           yaw=actor.charge_yaw if charging else round(bot.yaw))
-        if carry is not None:
-            fight.ice_walls.step_pose(mover, command, TICK, tick, move_to=carry)
-        elif charging and not stunned:
-            fight.ice_walls.step(mover, command, TICK, tick, top_only=True)
-        else:
-            fight.ice_walls.step(mover, command, TICK, tick)
+        mover.step_pose(command, TICK, tick, move_to=carry, ground_override=fight.walls.ground(mover))
+        fight.walls.move_mover(mover, before)
         bot.position, bot.velocity = tuple(mover.position), tuple(mover.velocity)
-        bot.movement_flags, bot.movement_gravity = mover.flags, mover.gravity_scale
         bot.held, bot.last_held = mover.throttles, mover.input_throttles
-        bot.input_tick, bot.moved_tick = mover.input_tick, tick
-        if charging and not stunned:
+        bot.input_tick, bot.moved_tick, bot.last_tick = mover.input_tick, tick, tick
+        if charging and not stunned and not rooted:
             wall_hit = None
-            if fight.ice_walls.pieces:
+            if fight.walls.pieces:
                 contact_graph = graph.graph(0x1537)
                 radius = contact_graph.node(166).field("m_radius.m_value")
-                wall_hit = fight.ice_walls.sweep(before, bot.position, radius=radius, y_offset=1.0)
+                delta = tuple(b-a for a,b in zip(before, bot.position, strict=True))
+                length = math.hypot(*delta)
+                if length:
+                    direction = tuple(axis/length for axis in delta)
+                    hit = fight.walls.cast((before[0], before[1]+1, before[2]), direction, length, radius=radius)
+                    if hit is not None:
+                        wall_hit = (tuple(a+d*hit[0] for a,d in zip(before,direction,strict=True)),hit[1])
             target = self._contact(actor, before, wall_hit[0] if wall_hit is not None else bot.position)
             if target is not None:
                 other = self.actor_for(target.entity)
@@ -584,13 +589,9 @@ class Companions:
                     loadout = asset.guid if isinstance(asset, expr.Asset) else loadout
                     tags = health_tags(None, modify)
                 # Route the uppercut into the attached pool at reconstructed body contact.
-                barrier = fight.barrier_phase(target)
-                if barrier is not None:
-                    fight.damage_personal_barrier(target.entity, barrier, bot, amount)
-                    return
                 actor.uppercut_target = target.entity
-                fight._damage(bot, target, amount, False, loadout, tick, world_tick=tick, damage_tags=tags)
-                if (not fight.vitals_of(target).dead
+                landed = fight._damage(bot, target, amount, False, loadout, tick, world_tick=tick, hit_tags=tags)
+                if (landed and not fight.vitals_of(target).dead
                         and not immunity.fortify_active(target.owner, target.entity)):
                     from ow174.game.bots import Bot
 
@@ -611,12 +612,13 @@ class Companions:
                         )
             elif wall_hit is not None:
                 point, piece = wall_hit
-                mei_wall.clip_mover(mover, point)
+                fight.walls.place_mover(mover, point, ())
+                mover.velocity = (0.0, mover.velocity[1], 0.0)
                 bot.position, bot.velocity = tuple(mover.position), mover.velocity
                 self._stop_charge(actor, tick, "ice_wall")
-                if fight.ice_walls.marked(piece):
+                if piece.impact_marked:
                     amount = contact_graph.node(170).field("m_modifyHealth.m_amount.m_value")
-                    fight.ice_walls.damage(piece, bot, amount)
+                    fight.walls.damage(piece, bot, amount)
             elif (tick > actor.born + 1 and not mover.airborne
                   and math.hypot(bot.position[0] - before[0], bot.position[2] - before[2]) < 0.01):
                 self._stop_charge(actor, tick, "wall")
@@ -645,7 +647,7 @@ class Companions:
             hit = ray_capsule(start, direction, a, b, radius + target.radius)
             if hit is None or hit > length + 1e-6:
                 continue
-            if heavy_charge.blocks_bob_uppercut(target.owner, actor.charge_yaw):
+            if _blocks_bob_uppercut(target.owner, actor.charge_yaw):
                 continue
             origin = (start[0], start[1] + min(1.0, mover.data.stand_height / 2), start[2])
             point = (target.feet[0], target.feet[1] + min(1.0, target.height / 2), target.feet[2])
@@ -959,3 +961,32 @@ def coach_directions(state, direction) -> tuple:
             length = math.sqrt(_dot(ray, ray))
             found.append(tuple(component / length for component in ray))
     return tuple(found)
+
+
+def _skill_locked(fight, entity, tick):
+    return any(lock.until > tick * TICK for lock in fight.sombra_controls.locks.get(entity, ()))
+
+
+def _carry_move(fight, bot):
+    for source, application in getattr(fight, "heavy_charge_pins", {}).items():
+        if application.component.entity != bot.entity:
+            continue
+        carrier = next((other for other in fight.match.bots if other.entity == source and not other.dead), None)
+        if carrier is not None:
+            from ow174.game.combat import aim
+            direction = aim(round(carrier.yaw), 0)
+            return ((carrier.position[0]+direction[0], carrier.position[1], carrier.position[2]+direction[2]), 20.0)
+    return None
+
+
+def _blocks_bob_uppercut(owner, charge_yaw):
+    # Original 1537/16 rejection of an opposing Heavy charge without tag067D.
+    from ow174.game import heavy_charge
+    if getattr(owner, "body", None) != heavy_charge.BODY:
+        return False
+    script = owner.body_script
+    if script is None or script.component.fault is not None or script.component.owner_dead:
+        return False
+    flag = script.component.entity_var(596, create=False)
+    turn = (charge_yaw - round(owner.yaw) + 32768) % 65536 - 32768
+    return flag is not None and flag.value() is True and abs(turn) > 16384

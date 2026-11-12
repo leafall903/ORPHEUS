@@ -525,6 +525,10 @@ class BodyWorld(runtime.World):
         return history.expires_ms if history is not None else None
 
     def ability_start_allowed(self, state) -> bool:
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and state.instance.graph.index == 0x1536 and state.index == 1
+                and self.match.combat.companions.active_for(self.body)):
+            return False
         if not self.ability_resource_available(state):
             return False
         # The hosted projection supplies its overlap gate while the native
@@ -1859,6 +1863,21 @@ class BodyWorld(runtime.World):
     def play_script_host(self, instance, node):
         from ow174.game import photon_barrier
 
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and not instance.component.strict and instance.graph.index == 0x1536 and node.pos == 3
+                and node.field("m_6D7701B7") is None
+                and (node.field("m_script") or {}).get("m_graph") == "0x0580000000001537"):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                charge = expr.to_float(instance.evaluate({"$":"STUConfigVarDynamic", "m_identifier":14668, "m_60DB8F99":0}))
+                duration = 10.0 * expr.to_float(self.ruleset(13032), 1.0)
+                instance.write((expr.INSTANCE, 14669), duration)
+                inherited = instance.source_entity()
+                self.match.combat.companions.summon(player, charge_seconds=charge, gun_seconds=duration,
+                    charge_instigator=inherited if expr.valid_entity(inherited) else self.body)
+            return True
+
         if self.match is not None and self.hero == photon_barrier.HERO:
             return self.match.combat.photon_barriers.play(instance, node) is True
         if self.match is not None and self.hero == 0x02E000000000023B:
@@ -2590,6 +2609,9 @@ class BodyScript(ReplicatedBody):
         """
         if not math.isfinite(amount) or amount < 0:
             raise ValueError("ultimate health-event amount must be finite and nonnegative")
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
         if not amount or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -2661,6 +2683,9 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
         if self.world.match is not None and (self.hero == 0x02E0000000000065
                 or self.world.match.combat.junkrat.tire.busy(self.entity)):
             return 0.0
@@ -2724,6 +2749,10 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return
 
         if self.world.match is not None and (self.hero == 0x02E0000000000065
                 or self.world.match.combat.junkrat.tire.busy(self.entity)):

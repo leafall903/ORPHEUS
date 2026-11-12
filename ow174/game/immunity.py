@@ -178,3 +178,13 @@ def fortify_active(owner, entity):
         return False
     flag = script.component.entity_var(9161, create=False)
     return flag is not None and flag.value() is True
+
+
+def heavy_carry_active(owner, entity):
+    """Read the original Heavy carry flag on the live victim body VM."""
+    script = getattr(owner, "body_script", None)
+    if (script is None or getattr(script, "retired", False) or script.component.owner_dead
+            or script.component.entity != entity):
+        return False
+    flag = script.component.entity_var(2024, create=False)
+    return flag is not None and flag.value() is True
