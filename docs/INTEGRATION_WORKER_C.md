@@ -2933,3 +2933,44 @@ private observation names and client verification tails remain documented and
 are not new host work. Continue only against a concrete demonstrated original
 producer/consumer, not repeated acceptance-matrix expansion. Original refs and
 prepared input bytes remain immutable; no client/network/publication action.
+
+
+## C67 — original explicit AI callbacks and target-search SDK
+
+Root's bounded missing-path audit exposed real retained APIs, not merely renamed
+hero hosts. Copied original0008 script.ai_behavior and script.target_search with
+all original arithmetic/lifetime checks. ai_behavior.Context/91EF24A9 timer1/2,
+previous-handle restoration, cleanup/failure/destroy now dispatch from the single
+existing nodes.AIBehavior. Its existing selected flag/manual selects_ai_behavior
+policy remains the default when no explicit native context is supplied; explicit
+component87 contexts own selection and use original callbacks. World provides the
+original optional ai_behavior_context query, default NotImplemented; no new NPC
+selector/targets/manager/context fabricated. Added exactly ai_previous to existing
+passive state snapshot layout, preserving selected as well.
+
+TargetSearch Route/Relationship/CandidateParameter/category/route/mask_matches/
+candidate_masks/condition/radial_capsule are restored as the original explicit
+public primitives. They validate known inputs, float32 geometry and parameter
+scopes without automatically enumerating candidates or selecting NPC targets.
+A pure SDK is not itself a second production search host.
+
+Copied original test_script_ai_behavior.py/test_script_target_search.py unchanged:
+35run34pass1fail0.021s, ../worker-c-c67-ai-search-check.log. Failure remains original
+AIBehaviorTests.test_unimplemented_strict_target_search_cannot_return_empty_success:
+current TrackTargets returns on NotImplemented rather than source's strict unknown
+error. No assertion was removed, no generic target policy changed to force green.
+Current manual/NPC/context/association and script runtime regression47/47pass6.809s,
+../worker-c-c67-manual-ai-shared-check.log. Exact command: unittest
+ test_game_npc_control test_npc_context test_npc_controller_associations
+ test_script_runtime -v. Body VM saved-native-handle causal test passes.
+
+Remaining path audit is specific: source0008 assassin.selects_search/search and
+mask/condition callers are not automatically proved equivalent by SDK restoration;
+current actual Assassin uses npc_context/controller-target hosts and requires an
+algorithm/caller comparison next. Source0015 combat_pose is transient ContextVar,
+whose actual Lucio Soundwave and Zarya primary are currently posed Combat.command
+consumers; exact public API preservation/mapping will be a separate batch.
+control_effect.apply_stun needs current protection/stun/actual224E mapping, not a
+copy with missing defenses.phase/_apply_stun names. Root explicitly took the real
+00DD Volskaya LiftHost/Match/Mei-wall production chain; C will not modify those
+physical/scene seams. No duplicate host or original input mutation.
