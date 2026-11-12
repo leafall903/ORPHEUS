@@ -4120,6 +4120,7 @@ class Combat:
             self.now, self.tick = previous_time, previous_tick
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
+        self.junkrat.advance_before(first, now, tick)
         field_first = self.tick + 1
         for at in range(field_first, first):
             canisters = [rocket for rocket in self.rockets

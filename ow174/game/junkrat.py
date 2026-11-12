@@ -250,6 +250,34 @@ class Junkrat:
         return (mine.creator.body != mine.source or mine.creator.body_script is not mine.script
                 or mine.script.retired)
 
+    def advance_before(self, first, end_now, end_tick):
+        """Replay original deployable events before the retained shared window."""
+        from ow174.game.combat import TICK
+
+        fight = self.combat
+        saved_now, saved_tick = fight.now, fight.tick
+        after = saved_tick + 1
+        try:
+            while after < first:
+                flights = [mine.flight for mine in (*self.mines.values(), *self.traps.values())
+                           if not mine.parked and mine.flight.last_tick is not None]
+                deadlines = [when for when, _ in self.trap_deadlines() if when >= after]
+                at = min(first, min(deadlines, default=first),
+                         min((max(after, flight.last_tick + 1) for flight in flights), default=first))
+                if at >= first:
+                    break
+                fight.now, fight.tick = end_now - (end_tick - at) * TICK, at
+                fight.barriers.world.update(at)
+                for flight in flights:
+                    if flight in fight.rockets:
+                        fight._fly(flight)
+                        self.sync_pose(flight.mine)
+                due = [trap for when, trap in self.trap_deadlines() if when <= at]
+                self.update_traps(due)
+                after = at + 1
+        finally:
+            fight.now, fight.tick = saved_now, saved_tick
+
     def update(self):
         for mine in [*self.mines.values(), *self.traps.values()]:
             self.sync_pose(mine)
