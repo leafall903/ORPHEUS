@@ -262,6 +262,29 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Reconcile delivered Fortify clocks with historical Hanzo contacts
+
+- Mount original Fortify rebase/idle clock algorithms in a scoped adapter instead
+  of replacing the current Orisa barrier manager. Retain posed activation/anchor
+  evidence and capture pending/anchor fields in both storage serializers. Advance
+  established phase clocks before each historical Dragon dose, including bounded
+  pre-retention continuation, and clear fresh pending state at the endpoint.
+- Historical incoming8243 removes only a fresh endpoint Fortify factor while
+  preserving other multipliers; historical critical queries use the same gate.
+  Preserve the rebased future0CF4/node6 chase clock until its relocated start:
+  current per-tick replay previously overwrote its future last timestamp and
+  expired a new4s cast inside an older300-tick interval. All other chase variants
+  keep their current behavior. Retire stale Dragon command anchors with bodies.
+- Allfour original Dragon Fortify methods now pass, and all17 original Dragon
+  behavior methods pass together; the two original storage methods already
+  passed in A15. All27 bow/Fortify/cooldown/melee/Damage/runtime focused checks
+  passed after the future-chase bridge. Live Fortify anchor/pending changes affect
+  both body/server digests, repeated exports remain stable with variable and
+  expression getters disabled. Preserve previous native/client open boundaries.
+- Remove the retained journal check's extra EOF blank line. Remaining Hanzo work
+  includes delivered Storm ricochet and arrow-deflection reconciliation, followed
+  by source-owner audit; do not claim whole0005 completion yet.
+
 ### Mount explicit delivered combat profiles through server startup and replay
 
 - Mount original combat_profiles.Profiles and CLI --reconstructed-hanzo-sonic-

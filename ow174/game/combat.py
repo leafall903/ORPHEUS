@@ -52,6 +52,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 
 from ow174.game import (
+    orisa_fortify,
     sonic,
     dragon,
     absorption,
@@ -2409,14 +2410,16 @@ class Combat:
             instance.component.destroy(instance)
 
     @staticmethod
-    def _fortify_reduction(target: Target) -> float | None:
+    def _fortify_reduction(target: Target, *, tick=None) -> float | None:
+        if orisa_fortify.historical_pending(target.owner, tick):
+            return None
         if immunity.fortified(target.owner, target.entity):
             return immunity.damage_scale(target.owner, target.entity)
         return None
 
     def _direct_hit(self, shooter, target: Target, hit: HitDef, distance: float, critical: bool, frame: int,
                     *, world_tick: int | None = None) -> None:
-        critical = critical and hit.critical > 1.0 and self._fortify_reduction(target) is None
+        critical = critical and hit.critical > 1.0 and self._fortify_reduction(target, tick=world_tick if world_tick is not None else self.tick) is None
         amount = hit.amount * hit.scale(distance) * (hit.critical if critical else 1.0)
         self._damage(shooter, target, amount, critical, hit.loadout, frame, world_tick=world_tick,
                      hit_tags=hit.tags, boost_credit=hit.boost_credit)
@@ -3814,6 +3817,7 @@ class Combat:
         from ow174.game import defenses, npc_shields
 
         dragon_poses = self._dragon_gap_poses(tick)
+        orisa_fortify.rebase_fortify(self, tick)
         self.echo_duplicates.update(now)
         self.pulse_bombs.prepare_gap(tick, self._targets())
         for player in self.match.players:
@@ -3861,9 +3865,6 @@ class Combat:
             self.now, self.tick = now - (tick - first + 1) * TICK, first - 1
             self.zenyatta.update()
             self.now, self.tick = previous_time, previous_tick
-        if self.dragons and first > self.tick + 1:
-            self.dragons[:] = [flight for flight in self.dragons
-                               if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
@@ -3873,17 +3874,27 @@ class Combat:
             phase = any(player.body_script is not None and player.body_script.world_frame_anchor is not None
                         and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
                         for player in self.match.players)
-            if not canisters and not phase:
+            dragon_clock = ((self.dragons or any(rocket.continuation is not None for rocket in self.rockets))
+                            and any(_active_fortify(owner) is not None for owner in self.match.players))
+            if not canisters and not phase and not dragon_clock:
                 break
             self.now, self.tick = now - (tick - at) * TICK, at
+            orisa_fortify.advance_idle(self, at)
             for player in self.match.players:
                 self._advance_idle_protection(player)
             for rocket in list(self.rockets):
                 soldier = getattr(getattr(rocket.shooter, "hero", None), "guid", None) == defenses.SOLDIER
-                if rocket in canisters or (soldier and rocket.last_tick is not None):
+                if (rocket in canisters or (soldier and rocket.last_tick is not None)
+                        or dragon_clock and rocket.continuation is not None):
                     self._fly(rocket)
+            if dragon_clock:
+                self.dragons[:] = [flight for flight in self.dragons
+                                   if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.projectiles.heal_fields(at, at)
             field_first = at + 1
+        if self.dragons and field_first < first:
+            self.dragons[:] = [flight for flight in self.dragons
+                               if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
         for at in range(first, tick + 1):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
@@ -3902,6 +3913,7 @@ class Combat:
                 finally:
                     self.now, self.tick = saved_now, saved_tick
             self.barriers.world.update(at)
+            orisa_fortify.advance_idle(self, at)
             for player in self.match.players:
                 self._advance_idle_protection(player)
                 winston.charge_world(player, self)
@@ -3979,6 +3991,9 @@ class Combat:
             if at < tick:
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
+        for player in self.match.players:
+            if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
+                player.body_script.orisa_fortify_pending = False
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -4058,7 +4073,7 @@ class Combat:
         for vitals in self.vitals.values():
             if vitals.sleep_until and tick >= vitals.sleep_until:
                 vitals.clear_sleep()
-        for table in (self.history, self.vitals, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
+        for table in (self.history, self.vitals, self.dragon_pose_anchors, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
             for entity in [key for key in table if key not in current]:
                 del table[entity]
         for source, victim in list(self.pins.items()):
@@ -5647,7 +5662,7 @@ class Combat:
             critical = head is not None and head <= reach
         else:
             critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
-        critical = (shown.critical_allowed and critical and self._fortify_reduction(target) is None)
+        critical = (shown.critical_allowed and critical and self._fortify_reduction(target, tick=self.tick) is None)
         amount = factor * direct.amount * direct.scale(travelled + t) * (direct.critical if critical else 1.0)
         landed = self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
@@ -6418,7 +6433,8 @@ class Combat:
                 critical = (
                     (direct.projectile_headshot or direct.loadout == ECHO_TRI_SHOT_LOADOUT or zen_orb)
                     and direct.critical > 1.0 and contact_y >= struck.feet[1] + struck.eye - HEAD_BELOW
-                    and not immunity.fortified(struck.owner, struck.entity)
+                    and not (immunity.fortified(struck.owner, struck.entity)
+                             and not orisa_fortify.historical_pending(struck.owner, self.tick))
                 )
                 amount = direct.amount * (direct.critical if critical else 1.0)
                 if (rocket.scale_direct or zen_orb
@@ -7667,7 +7683,7 @@ class Combat:
         return barrier.health
 
     @staticmethod
-    def _incoming_damage(target: Target, amount: float) -> float:
+    def _incoming_damage(target: Target, amount: float, *, tick=None) -> float:
         """Host live incoming-damage8243, including actual0CF4 Fortify's0.6 stack.
 
         Applying it before the shared armor consumer is server reconstruction;
@@ -7683,6 +7699,12 @@ class Combat:
         scalar = _number(slot.value() if isinstance(slot, runtime.Var) else None, fallback)
         if not math.isfinite(scalar):
             scalar = fallback
+        if orisa_fortify.historical_pending(target.owner, tick):
+            # Remove only this endpoint's new Fortify multiplier. Keep other
+            # authored incoming8243 factors in the combined consumer.
+            fortify = defenses.fortify_scale(target.owner)
+            if fortify is not None and fortify > 0:
+                scalar /= fortify
         return amount * max(0.0, scalar)
 
     @staticmethod
@@ -8140,10 +8162,10 @@ class Combat:
         sound_pool = vitals.extra.get(sound_barrier.POOL_KEY)
         sound_before = sound_pool.now if sound_pool is not None else 0.0
         minimum = self._minimum_health(target, vitals)
-        base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1]), minimum,
+        base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1], tick=world_tick if world_tick is not None else self.tick), minimum,
                                     armour_scalar=armour_scalar, beam=beam)
                 if boost_credit is not None else 0.0)
-        dealt = vitals.damage(self._incoming_damage(target, amount), minimum,
+        dealt = vitals.damage(self._incoming_damage(target, amount, tick=world_tick if world_tick is not None else self.tick), minimum,
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False

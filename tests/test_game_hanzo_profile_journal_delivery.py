@@ -35,4 +35,3 @@ class DeliveredHanzoProfileJournalTests(unittest.TestCase):
             bad.apply("configure_hanzo_profiles", {**args, "match_id": match.id, "dragon": {}})
         self.assertIsNone(match.combat.sonic_profile)
         self.assertIsNone(match.combat.dragon_profile)
-
