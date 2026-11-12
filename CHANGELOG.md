@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt active hammer swings
+
+- Restore source0048 active-window target queries, overlapping capsule dedup,
+  delayed contact and replacement-body generation handling. Merge physical
+  primary/melee alias controls before computing input edges, preserving held
+  attack when switching keys. Source ring origins use the current body basis.
+- Apply the original alternating radial ring through existing additive
+  Knockbacks; retain a single authoritative mover and existing Photon surface
+  consumer. Persist swing records in server snapshots and retire owner records.
+- Preserve the full original Reinhardt regression module without changed
+  assertions. Original Segment/Hammer25 ran with two flank-Bash damage failures
+  and13 subcase errors from old Brigitte/charge/target/control observations.
+  Active-window, late-entry, replacement-body, alias handoff, alternating
+  impulses, occlusion and retirement checks pass. All33 shared runtime/input/
+  epoch checks pass. Logs: worker-b-reinhardt-hammer-third.log and
+  worker-b-reinhardt-hammer-shared-fixed.log in external verification storage.
+- Active original hammer on the enclosing real GameServer snapshot passes
+  repeatability, getter-free capture and stored-contact causality.
+- Charge, Earthshatter, full surface/object swing interactions and owner-line
+  completion remain in progress. Original-client acceptance remains open;
+  no network operation, push, appearance migration or new acceptance matrix.
+
+
 ### Mount delivered Winston idle bubble release
 
 - Schedule the source pending deployment on its original release frame and

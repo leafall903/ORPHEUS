@@ -216,6 +216,15 @@ HELIX_BARRIER_PROJECTILES = frozenset((0x040000000000072C, 0x0400000000001C86)) 
 # --- geometry -----------------------------------------------------------------------------------------
 
 
+REINHARDT = barrier.REINHARDT
+HAMMER = 0x0048
+HAMMER_TARGETS = {3: (1, 8), 4: (2, 9)}
+
+
+def segment_pair_distance(a, b, c, d):
+    return math.dist(*closest_segments(a, b, c, d))
+
+
 def eye_height(body: int, crouched: bool = False) -> float:
     known = view_offsets.get(body)
     if known is not None:
@@ -1855,6 +1864,7 @@ class Combat:
         self.history: dict[int, deque] = {}  # entity -> (tick, feet, height, eye) of the last HISTORY ticks
         self.input_locks = {}
         self.booster_contacts = {}
+        self.hammer_hits = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
         self.pending_attacks: list[PendingAttack] = []
@@ -2084,6 +2094,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
+        self.hammer_hits.pop(player.body, None)
         self.tesla_frames.pop(player.body, None)
         self.stuns.pop(player.body, None)
         for entity, impact in tuple(self.punch_impacts.items()):
@@ -3569,46 +3580,96 @@ class Combat:
         self._damage(player, target, rate * script.frame_ms * 0.001, False,
                      loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame, beam=True)
 
-    def _hammer(self, player, command, script, instance):
-        """Selected 0048 swing. Sample the authored capsule once per hit activation."""
-        counters = self.melee_seen.setdefault(script.entity, {})
-        for index, query_position in ((3, 5), (4, 7)):
-            state = instance.states.get(index)
-            if state is None:
-                continue
-            key = (instance.id, index)
-            seen = counters.get(key, 0)
-            counters[key] = state.counter
-            if state.counter == seen or not state.active or command is None:
-                continue
-            query = instance.graph.node(query_position)
-            axes = deflection.basis(command.aim()[0], 0)
+    def _hammer(self, player, command, script, instance) -> None:
+        """Reconstructed 0048 target search; authored states own swing timing and damage.
 
-            def endpoint(field):
-                offset = state.evaluate(query.field(field), watch=False)
-                return tuple(value + sum(coordinate * axis[i] for coordinate, axis in zip(offset, axes))
-                             for i, value in enumerate(player.mover.position))
+        Endpoints/radii are evaluated from the two native queries per swing. Local
+        query space is mapped through command aim about the feet. Exact native
+        sweep/filter/knockback behavior and defense services remain unaccepted.
+        """
+        if script.hero != REINHARDT or command is None:
+            return
+        forward = aim(*command.aim())
+        yaw = command.aim()[0] * 2 * math.pi / 65536
+        right = (math.cos(yaw), 0.0, -math.sin(yaw))
+        up = (forward[1] * right[2], forward[2] * right[0] - forward[0] * right[2],
+              -forward[1] * right[0])
+        feet = tuple(player.mover.position)
+        eye = self._eye(player)
 
-            start, end = endpoint("m_05BE62DD"), endpoint("m_B3A77CD0")
-            radius = _number(state.evaluate(query.field("m_radius"), watch=False), 0.0)
-            modify = state.node.field("m_modifyHealth")
-            amount = _number(state.evaluate(modify["m_amount"], watch=False), 0.0)
-            loadout = state.evaluate(modify["m_loadout"], watch=False)
-            loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
-            eye = self._eye(player)
-            view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
-            self.photon_barriers.melee(player, eye, end, radius, amount)
-            for target in self._enemies(player):
-                if target.entity in absorbed:
+        def position(value):
+            return tuple(feet[k] + right[k] * value.x + up[k] * value.y + forward[k] * value.z
+                         for k in range(3))
+
+        view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+        records = self.hammer_hits.setdefault(script.entity, {})
+        for instance in (instance,):
+            if instance.graph.index != HAMMER:
+                continue
+            for index, queries in HAMMER_TARGETS.items():
+                state = instance.states.get(index)
+                key = (instance.id, index)
+                if state is None or not state.active:
+                    records.pop(key, None)
                     continue
-                shown = self.seen(target, view_tick)
-                if shown is None:
-                    continue
-                a, b = shown.segment()
-                if (math.dist(*closest_segments(start, end, a, b)) <= radius + shown.radius
-                        and capsule_visible(self._collision(), eye, a, b, shown.radius)
-                        and not deflection.blocks_melee(player, target, state)):
-                    self._damage(player, target, amount, False, loadout, command.frame)
+                counter, hit = records.get(key, (state.counter, set()))
+                if counter != state.counter:
+                    hit = set()
+                records[key] = (state.counter, hit)
+                modify = state.node.field("m_modifyHealth") or {}
+                amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0)
+                loadout = state.evaluate(modify.get("m_loadout"), watch=False)
+                loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
+                volumes = []
+                for query in queries:
+                    tracker = instance.states.get(query)
+                    if tracker is None or not tracker.active:
+                        continue
+                    a, b = (tracker.evaluate(tracker.node.field(name), watch=False)
+                            for name in ("m_05BE62DD", "m_B3A77CD0"))
+                    radius = _number(tracker.evaluate(tracker.node.field("m_radius"), watch=False), 0.0)
+                    if isinstance(a, expr.Vec3) and isinstance(b, expr.Vec3) and radius > 0.0:
+                        volumes.append((position(a), position(b), radius))
+                if ("surfaces",) not in hit and volumes:
+                    self.photon_barriers.melee(player, eye, volumes[0][1], volumes[0][2], amount)
+                    hit.add(("surfaces",))
+                for target in self._enemies(player):
+                    victim_key = ("body", (target.entity, self.replacement_ticks.get(target.entity)))
+                    if victim_key in hit:
+                        continue
+                    shown = self.seen(target, view_tick)
+                    if shown is None:
+                        continue
+                    c, d = shown.segment()
+                    if (any(segment_pair_distance(a, b, c, d) <= radius + shown.radius
+                            for a, b, radius in volumes)
+                            and not winston._wall_blocks(self, eye, c, shown.radius)
+                            and capsule_visible(self._collision(), eye, c, d, shown.radius)):
+                        hit.add(victim_key)
+                        if deflection.blocks_melee(self, player, target.owner, modify):
+                            continue
+                        dealt = self._damage(player, target, amount, False, loadout, command.frame,
+                                             hit_tags=health_tags(state, modify))
+                        if dealt and not self._control_immune(target):
+                            self._hammer_knockback(state, modify, target, command.frame)
+
+
+    def _hammer_knockback(self, state, modify, target, frame):
+        # Scoped 0048 reconstruction. The ring value supplies a planar velocity
+        # delta because the authored base is zero. Native conversion remains open.
+        rings = modify.get("m_knockbackRings") or ()
+        origin = state.evaluate(modify.get("m_724CBA57"), watch=False)
+        if not rings or not isinstance(origin, expr.Vec3):
+            return
+        point = (origin.x, origin.y, origin.z)
+        ring = rings[0]
+        radius = _number(state.evaluate(ring.get("m_radius"), watch=False), 0)
+        if math.dist(point, target.feet) <= radius:
+            speed = _number(state.evaluate(ring.get("m_9102DA3F"), watch=False), 0)
+            dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
+            distance = math.hypot(dx, dz)
+            scale = speed / distance if distance else 0.
+            self.knockbacks.apply(target, expr.Vec3(dx * scale, 0., dz * scale), impact_frame=frame)
 
     def _advance_idle_protection(self, player):
         """Admitted Soldier/Reaper body-clock recovery without a new movement pose."""
@@ -3899,7 +3960,7 @@ class Combat:
         for vitals in self.vitals.values():
             if vitals.sleep_until and tick >= vitals.sleep_until:
                 vitals.clear_sleep()
-        for table in (self.history, self.vitals, self.replacement_ticks, self.genji_assists, self.stuns):
+        for table in (self.history, self.vitals, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
             for entity in [key for key in table if key not in current]:
                 del table[entity]
         for source, victim in list(self.pins.items()):
