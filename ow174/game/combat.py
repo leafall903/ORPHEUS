@@ -7512,6 +7512,11 @@ class Combat:
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
         assisted = None
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                # This same native pillar is already represented by its actual
+                # solid slab below; its generic body capsule must not hit early.
+                continue
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
             if (target.entity in rocket.hit_entities or self._has_protection(target, PHASE_STATES)
@@ -8357,6 +8362,13 @@ class Combat:
             return 0.0
         boost = self.orisa.superchargers.scale(rocket.shooter)
         source = _along(point, incident_direction, -0.0001)
+        # Sample the original solid-wall exposure before any impact can remove
+        # cover. Bound native pillars share these geometry objects and pools.
+        ice_splash = (() if not self.walls.pieces or blast is None or blast.amount <= 0.0 else tuple(
+            (piece, amount) for piece, manager, amount in self._splash_barriers(
+                rocket, point, source, None if ice is None else (ice[1], self.walls),
+            ) if manager is self.walls
+        ))
         blockers = tuple((actor, manager)
                          for manager in (self.orisa_barriers, self.orisa.superchargers)
                          for actor in manager.opponents(rocket.shooter))
@@ -8430,8 +8442,11 @@ class Combat:
             protected_out.update(protected)
         victims = []
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                continue  # same actual pillar is settled by its solid geometry below
             if ice is not None and target.entity == ice[1].entity:
-                continue  # same actual pillar is settled by the impact surface below
+                continue
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
                 continue
             if target.owner is not None and self.vitals_of(target).dead:
@@ -8480,6 +8495,8 @@ class Combat:
         if ice is not None:
             self.walls.damage(ice[1], rocket.shooter, ice_damage + blast.amount * blast.splash(0.0),
                               team=rocket.team)
+        for piece, amount in ice_splash:
+            self.walls.damage(piece, rocket.shooter, amount, team=rocket.team)
         for barrier, amount in shield_damage:
             self.brigitte.damage_barrier(barrier, amount)
         for barrier, amount in deployed_splash:

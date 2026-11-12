@@ -2405,3 +2405,41 @@ original files/assertions and current A/B hosts. Estimated remaining C effort
 6–15 active hours, low confidence; largest uncertainty is complex old phase/
 retarget timing versus actual native owner lifecycles. No client operation,
 publication or network access performed.
+
+
+## C55 actual bound-pillar projectile geometry and blast consumers
+
+C54 source Helix failures were actual shared-consumer omissions, not merely old
+observation names. The generic Rocket body sweep saw the same native0932 pillar
+before its solid slab face, so it destroyed support before the original expected
+contact tick. _sweep_rocket now excludes ONLY a target whose same entity maps to
+a Walls piece AND whose owner is that exact piece.actor. Native pillars without
+this geometry binding and every other device/Mine remain body candidates.
+
+With that fix, all five original methods advanced beyond the former presence
+assertion and stopped at source2569: adjacent columns had no splash damage.
+Actual _explode had never consumed original wall closest-face splash; it instead
+tried generic pillar capsule exposure, which was blocked by the pillar's own
+solid geometry. It now samples original _splash_barriers before health changes,
+retains only the existing Walls service, excludes the exact impact piece, skips
+same-bound actor body splash, and applies each sampled amount through existing
+Walls.damage into the same actual native actor/Vitals. No extra pool/actor,
+geometry provider or driver. No query run when no physical pieces exist.
+
+Original selected test_in_flight_helix_breaks_ice_sentry_support_before_npc_thaw:
+all5NPC stepped/gap subcases pass34.340s, unchanged original assertions/numbers.
+Same external observation/signature adaptations documented C54. Log
+../worker-c-c55-helix-splash-check.log. The intermediate geometry-only result
+retained5failures17.764s at adjacent-wall expectation (superseded by the complete
+source algorithm). Focused original DamageTests+ProjectileTimingTests+WallTests.
+test_projectiles_stop_damage_one_pillar_and_do_not_hit_body_behind:16/16pass3.715s,
+../worker-c-c55-projectile-shared-check.log.
+
+Original on/after-thaw source method (5NPC x2 offsets) remains running as
+handle1866; not countedpass. Reproducer
+../parallel-merge/worker-c-frozen-ice-thawed-impact-source-check.py, log
+../worker-c-c55-thawed-impact-check.log. Current implementation is saved without
+waiting for that whole-family result. Next persist terminal outcome, continue
+actual projected-recipient replay admission/phase clocks and Pharah impact cover;
+Bastion Heavy stance/push interlocks remain. Remaining C effort6–14 active hours,
+low confidence. No client/network/publication action.
