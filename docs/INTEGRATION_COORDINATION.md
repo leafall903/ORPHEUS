@@ -854,3 +854,31 @@ committed template after canonical fast-forward, and verify byte identity.
 It selects combined-server, runtime-inputs-v15 and existing ORPHEUS Python.
 The earlier manual invocation remains valid; default wrapper handoff below
 supersedes its statement that workspace RUN_SERVER still selects original main.
+
+
+A50 eee40dff received1daf9b2b mounts original Heavy/BOB capture on the actual
+Combat1408/1407 and heavy_assault stop service; it does not enable the copied
+legacy heavy_charge manager. B40 42d18f6c received3467abc6 stores Ball-only
+actual construction pair without changing input leases; source frames=False
+expiry uses the existing tagged pool. Worker actual raw unequal birth(1012,1044),
+world1053/body1085,175shield→expiryWorld1615,VM frozen,HUD600 and strict causal
+storage are verified; failed raw Sombra-lock acquisition remains explicit.
+A51 2af1bf5e received440e6c0f binds original spies to actual APIs without numeric
+changes. A52 2d46cfe7 receivedc040c8cd restores only original Ashe eye heights
+1.445/1.0115, preserving all other maps and catalog priority.
+
+Root frozen22744 terminal24run22pass1retained old add_impulse observer failure
+and1original PvE-input skip51.672s. Original exact outer Coach distances now
+match all three values; inner launch observation remains A's actual queue
+fixture task. Eye/ADS/player spread/world-only Adaptive expiry/runtime pass.
+Ashe PvE fixture still calls obsolete load_bundle/cache_clear; A53 owns its
+real composed-input/locked-mover adaptation, with original numbers intact.
+
+Workspace RUN_SERVER is copied from the committed template, original wrapper
+backed up at parallel-merge/RUN_SERVER.pre-combined-65319706.cmd. Byte identity,
+all referenced files and receipt are verified. The template also passes existing
+--data-dir to original ORPHEUS operational state so accounts/settings remain in
+the existing location; no profile/runtime copies. This handoff is now complete,
+superseding the earlier pending default-launcher statements. No services or
+client were started; occupied-port guard remains effective. Remaining runtime
+source consumers are still being integrated by all three persistent workers.

@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain existing operational state in the combined workspace launcher
+
+- The versioned workspace entry selects combined server code and original
+  composed inputs while retaining existing account/settings state through the
+  unchanged--data-dir CLI. The old workspace wrapper is backed up externally.
+- Root joint24run22pass, one original NPC-input skip and one preserved old
+  add_impulse observer failure51.672s; exact Ashe eye/outer distances and actual
+  Ball world-only shield expiry now execute together. No original values changed.
+
+
 ### Connect prepared integration inputs to the existing local server entry
 
 - Existing START_SERVER_LOCAL.cmd can select the composed original runtime
