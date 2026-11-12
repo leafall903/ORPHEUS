@@ -39,6 +39,7 @@ from ow174.game import (
     ball,
     ball_mines,
     hook,
+    whole_hog,
     barrier,
     assassin_victim,
     ashe,
@@ -200,7 +201,7 @@ FIELDS = {
     sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
-    knockback.Knockbacks: _names("combat serial active"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen"),
     support_effects.Effects: _names("match attachments boost_frames"),
     support_effects.EffectWorld: _names("hero mode match source owner"),
     sombra_control.DeviceWorld: _names("hero mode fight body tags"),
@@ -325,7 +326,7 @@ OPTIONAL_FIELDS = {
 }
 DATACLASSES = (
     message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
-    hook.Flight,
+    hook.Flight, whole_hog.Spec,
     ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,

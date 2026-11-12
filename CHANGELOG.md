@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore actual Whole Hog force capture on the shared mover
+
+- Capture original force/rings and volley identity through hitscan/deflection;
+  one deduplicated force submission uses the existing Knockbacks mover queue.
+  Preserve current control priorities and exact force-ledger server storage.
+- Actual volley/rings/VM plus Damage/runtime22/22 pass; raw two-client causal
+  server storage passes. Original separate external damping/world-gap behavior
+  and resulting damage/HIT difference remain open with assertions preserved.
+  No client acceptance run.
+
 ### Restore original Roadhog body-node self healing
 
 - Original0240/node18 heal budget now runs through the existing ModifyHealth and
