@@ -94,7 +94,7 @@ from ow174.game import (
     world_bubbles,
 )
 from ow174.game.script import support, support_effects
-from ow174.game import doomfist, meteor, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
+from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -571,6 +571,13 @@ class WaveHealthPool:
 
 
 @dataclass
+class ConditionalPool:
+    pool_id: int
+    most: float
+    now: float
+
+
+@dataclass
 class TemporaryArmour:
     amount: float
     until: float
@@ -584,6 +591,8 @@ class TemporaryShield:
     rate: float
     activation: tuple[int, int] | None = None
     pool_id: int = 0xFFFFFFFF
+    grant_deadline: float | None = None
+    grant_cap: float | None = None
 
 
 @dataclass
@@ -626,6 +635,7 @@ class Vitals:
         self.ids[HEALTH_POOL] = pool_id
         self.wave_health: WaveHealthPool | None = None
         self.wave_health_id = 0
+        self.conditional_pools: dict[int, ConditionalPool] = {}
         self.extra: dict[tuple, TemporaryPool] = {}
         self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
@@ -683,11 +693,19 @@ class Vitals:
 
     @property
     def temporary_cap(self) -> float:
-        return self.temporary_shield.maximum if self.temporary_shield is not None else 0.0
+        shield = self.temporary_shield
+        return ((shield.grant_cap if shield.grant_cap is not None else shield.maximum)
+                if shield is not None else 0.0)
 
     @property
     def temporary_decay_at(self) -> float:
-        return self.temporary_shield.decay_from if self.temporary_shield is not None else 0.0
+        shield = self.temporary_shield
+        return ((shield.grant_deadline if shield.grant_deadline is not None else shield.decay_from)
+                if shield is not None else 0.0)
+
+    @property
+    def temporary_decay_rate(self) -> float:
+        return self.temporary_shield.rate if self.temporary_shield is not None else 0.0
 
     @property
     def temporary_pool_used(self) -> bool:
@@ -714,7 +732,10 @@ class Vitals:
         if given > 0:
             pool_id = (shield.pool_id if shield is not None else
                        max((*self.ids.values(), self.wave_health_id)) + 1)
-            self.temporary_shield = TemporaryShield(old + given, cap, now + delay, rate, pool_id=pool_id)
+            self.temporary_shield = TemporaryShield(
+                old + given, cap, now + delay, rate, pool_id=pool_id,
+                grant_deadline=now + delay, grant_cap=cap,
+            )
             self.changed.add(SHIELDS_POOL)
         return given
 
@@ -747,12 +768,16 @@ class Vitals:
     def total(self) -> float:
         shield = self.temporary_shield
         wave = self.wave_health.current if self.wave_health is not None else 0.0
-        base = sum(self.now.values()) + wave + self.temporary_armour
+        base = sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values()) + wave + self.temporary_armour
         return base + (shield.amount if shield else 0.0) + sum(pool.now for pool in self.extra.values())
 
     @property
     def base_total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values())
+
+    @property
+    def base_maximum(self) -> float:
+        return sum(self.most.values()) + sum(pool.most for pool in self.conditional_pools.values())
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -804,7 +829,42 @@ class Vitals:
 
     def pool_current(self, kind: int) -> float:
         bonus = self.wave_health
-        return self.now.get(kind, 0.0) + (bonus.current if kind == HEALTH_POOL and bonus is not None else 0)
+        pool = self.conditional_pools.get(kind)
+        return (self.now.get(kind, 0.0) + (pool.now if pool is not None else 0)
+                + (bonus.current if kind == HEALTH_POOL and bonus is not None else 0))
+
+    pool_total = pool_current
+
+    def pool_maximum(self, kind):
+        pool = self.conditional_pools.get(kind)
+        bonus = self.wave_health
+        return (self.most[kind] + (pool.most if pool is not None else 0)
+                + (bonus.capacity if kind == HEALTH_POOL and bonus is not None else 0))
+
+    def set_conditional_pool(self, kind, amount):
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("conditional pool amount must be finite and nonnegative")
+        pool = self.conditional_pools.get(kind)
+        if pool is None:
+            if amount == 0:
+                return
+            pool = self.conditional_pools[kind] = ConditionalPool(5 + len(self.conditional_pools), 0, 0)
+        pool.most = pool.now = amount
+        self.changed.add(kind)
+
+    def restore_pool(self, kind, amount):
+        amount = max(0.0, amount)
+        given = min(amount, max(0.0, self.most[kind] - self.now[kind]))
+        if given:
+            self.now[kind] += given
+        pool = self.conditional_pools.get(kind)
+        if pool is not None:
+            extra = min(amount - given, max(0.0, pool.most - pool.now))
+            pool.now += extra
+            given += extra
+        if given:
+            self.changed.add(kind)
+        return given
 
     def normal_health(self, maximum: bool) -> float:
         """Read the normal component-51 records in wire order with float32 accumulation."""
@@ -815,6 +875,8 @@ class Vitals:
                 total = expr.f32(total + expr.f32(pools[kind]))
                 if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                     total = expr.f32(total + expr.f32(bonus.capacity if maximum else bonus.current))
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                total = expr.f32(total + expr.f32(pool.most if maximum else pool.now))
         return total
 
     def capped_damage(self, amount: float, minimum_health: float = 0.0, *, armour_scalar=None, beam=False) -> float:
@@ -825,6 +887,7 @@ class Vitals:
         preview.now = dict(self.now)
         preview.changed = set()
         preview.extra = {key: copy(pool) for key, pool in self.extra.items()}
+        preview.conditional_pools = {key: copy(pool) for key, pool in self.conditional_pools.items()}
         preview.bonus_armour = [copy(pool) for pool in self.bonus_armour]
         preview.temporary_shield = copy(self.temporary_shield)
         preview.wave_health = copy(self.wave_health)
@@ -845,6 +908,15 @@ class Vitals:
                     pool.now -= take
                     taken += take
                     left -= take
+                    self.changed.add(kind)
+            if left <= 0.0:
+                break
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                take = min(left, pool.now)
+                if take > 0:
+                    pool.now -= take
+                    left -= take
+                    taken += take
                     self.changed.add(kind)
             if left <= 0.0:
                 break
@@ -896,11 +968,7 @@ class Vitals:
         """Heal health, then armour, then shields (unverified: the order). Returns what it gave."""
         left = max(0.0, amount)
         for kind in (HEALTH_POOL, ARMOUR_POOL, SHIELDS_POOL):
-            give = min(left, self.most[kind] - self.now[kind])
-            if give > 0.0:
-                self.now[kind] += give
-                self.changed.add(kind)
-                left -= give
+            left -= self.restore_pool(kind, left)
             if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                 give = min(left, bonus.capacity - bonus.current)
                 if give > 0:
@@ -909,7 +977,7 @@ class Vitals:
                     self.changed.add(kind)
         given = max(0.0, amount) - left
         self.ult_healing_deficit = max(
-            0.0, min(self.ult_healing_deficit - given, sum(self.most.values()) - self.base_total),
+            0.0, min(self.ult_healing_deficit - given, self.base_maximum - self.base_total),
         )
         return given
 
@@ -919,6 +987,8 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                parts[kind * POOLS + 1] = world.pool(pool.pool_id, kind, pool.most, pool.now)
             if kind == HEALTH_POOL and self.wave_health_id:
                 bonus = self.wave_health
                 parts[1] = (world.pool(self.wave_health_id, kind, bonus.capacity, bonus.current)
@@ -1827,6 +1897,7 @@ class Combat:
         self.punches = doomfist.Punches(self)
         self.slams = doomfist.Slams(self)
         self.meteors = meteor.Meteors(self)
+        self.primal_bonus: dict[int, float] = {}
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -1992,6 +2063,7 @@ class Combat:
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
         self.meteors.casts.pop(player.body, None)
+        self.primal_bonus.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2683,6 +2755,7 @@ class Combat:
         self.barriers.sync(player)
         reaper.advance_entry(player)
         self._shadow(player, command)
+        self._winston_health(player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
@@ -2779,7 +2852,6 @@ class Combat:
         self.baptiste.command(player, command)
         try:
             self._weapon_beam(player, command, script)
-            self._winston_tesla(player, command, script)
             self._melee(player, command, script)
             self._soundwave(player, command, script)
             self.brigitte.command(player, command, script)
@@ -2800,6 +2872,32 @@ class Combat:
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
         self._flush_pending_attacks()
+
+    def _winston_health(self, player, script) -> None:
+        """Delivered0109 health transform, preserving its authored lifetime."""
+        if player.hero.guid != winston.HERO:
+            return
+        state = winston.primal_health(script.component)
+        extra = _number(state.evaluate(state.node.field("m_amount")), 0.0) if state else 0.0
+        old = self.primal_bonus.get(player.body, 0.0)
+        target = next((target for target in self._targets() if target.owner is player), None)
+        if target is None:
+            return
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            extra = 0.0
+        if old == extra:
+            return
+        vitals.most[HEALTH_POOL] += extra - old
+        vitals.now[HEALTH_POOL] = min(vitals.now[HEALTH_POOL], vitals.most[HEALTH_POOL])
+        vitals.changed.add(HEALTH_POOL)
+        if extra > old and not vitals.dead:
+            vitals.heal(sum(vitals.most.values()))
+        if extra:
+            self.primal_bonus[player.body] = extra
+        else:
+            self.primal_bonus.pop(player.body, None)
+        self._sync_body_health(player, vitals)
 
     def _soundwave(self, player, command, script) -> None:
         """0079's 0776 st11 health operation, once per authored activation.
@@ -3581,6 +3679,7 @@ class Combat:
             self.now, self.tick = now - (tick - at) * TICK, at
             for player in self.match.players:
                 self._advance_idle_protection(player)
+                winston.charge_world(player, self)
             self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()
@@ -4032,7 +4131,7 @@ class Combat:
             if target.entity == _source_entity(shooter) or not self._ally(shooter, target):
                 continue
             vitals = self.vitals_of(target)
-            if not vitals.dead and vitals.base_total < sum(vitals.most.values()) - EPSILON:
+            if not vitals.dead and vitals.base_total < vitals.base_maximum - EPSILON:
                 targets.append(target)
         return targets
 
@@ -4249,7 +4348,9 @@ class Combat:
                     self.timed_hits.remove(dose)
 
     def cleanse_ana_effects(self, entity):
+        self.healing.record_regeneration(entity)
         self.healing.anti.pop(entity, None)
+        self.healing.record_regeneration(entity)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != entity or hit.healing]
 
     def body_clearance(self, player, point, *, radius=None):
@@ -4786,9 +4887,9 @@ class Combat:
             range_left = reach if field_spec is not None or grenade is not None else None
             barrage = (not npc and shooter.hero.guid == 0x02E0000000000008
                        and (state.instance.graph.index, state.index) == (barrage_motion.GRAPH, barrage_motion.STATE))
-            motion = ()
+            curve_motion = ()
             if barrage:
-                direction, motion = barrage_motion.launch(state, activation[0], number, direction)
+                direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
             if reach and range_left is None and not field_canister and not barrage:
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
@@ -4920,7 +5021,7 @@ class Combat:
                         damage_charge=charge_context,
                         charge_eligible=not (barrage or (not npc and shooter.hero.guid == BASTION
                                              and source_graph == 0x024F)),
-                        motion=motion, deflect_lifetime=lifetime if barrage else None,
+                        motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
@@ -5884,10 +5985,9 @@ class Combat:
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
+            rocket.source_entity = struck.entity
             if rocket.is_barrage:
                 rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
-            if getattr(rocket, "pulse_bomb", False):
-                rocket.source_entity = struck.entity
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
             for name in ("direct", "blast"):
                 definition = getattr(rocket, name)
@@ -5899,7 +5999,8 @@ class Combat:
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
             rocket.direction = (pulse_facing if pulse_facing is not None else defense[2]
                                 if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch))
-            rocket.position = _along(point, rocket.direction, 1e-4)
+            separation = min(1e-4, max(0.0, duration - contact_time) * rocket.speed)
+            rocket.position = _along(point, rocket.direction, separation)
             if rocket.velocity is not None:
                 rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
             rocket.reflected = True
@@ -5908,7 +6009,8 @@ class Combat:
 
                 rocket.dose_scalar = (nano.offense(self, rocket.source_entity)
                                       * self.orisa.superchargers.scale(rocket.shooter))
-            spent = min(duration, contact_time + (1e-4 / rocket.speed if rocket.speed else 0.0))
+            spent = min(duration, contact_time + (separation / rocket.speed if rocket.speed else 0.0))
+            rocket.travelled += separation
             rocket.flown += spent - contact_time
             rocket.left -= spent
             if rocket.left <= EPSILON:
@@ -6834,7 +6936,7 @@ class Combat:
             if getattr(getattr(owner, "hero", None), "guid", None) == doomfist.HERO:
                 # Delivered0DDD has a separate capped temporary pool; its HUD
                 # maximum stays the body's intrinsic declared health.
-                maximum = sum(vitals.most.values())
+                maximum = vitals.base_maximum
             script.set_health(vitals.total, maximum)
 
     def _barrier_hit(self, shooter, origin, direction, length):
@@ -7678,7 +7780,7 @@ class Combat:
         if (target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
             vitals.ult_healing_deficit = min(
-                sum(vitals.most.values()) - vitals.base_total,
+                vitals.base_maximum - vitals.base_total,
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
@@ -7765,7 +7867,7 @@ class Combat:
 
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source
+            if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
                     and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
@@ -7778,6 +7880,11 @@ class Combat:
                     script.gain_ult_charge(points, target_definition=definition, recipient=target.entity)
                 else:
                     script.gain_ult_charge(points)
+            if award_ult and enemy and current_source and hero == winston.HERO:
+                definition = (victim.body if isinstance(victim, bots.Bot)
+                              else getattr(getattr(victim, "hero", None), "body", None))
+                winston.charge_damage(script, max(0.0, base_before - vitals.base_total),
+                                      target.entity, definition, getattr(victim, "body_script", None))
             if enemy and current_source and hero == 0x02E0000000000029:
                 tick = self.match.tick if world_tick is None else world_tick
                 self.genji_assists.setdefault(target.entity, {})[shooter.body] = (shooter, tick)
@@ -7805,7 +7912,7 @@ class Combat:
             return True
         self._sync_body_health(victim, vitals)
         if not killed and not isinstance(victim, bots.Bot) and victim.body_script is not None:
-            regeneration.damaged(victim.body_script, _source_entity(shooter))
+            regeneration.damaged(victim.body_script, _source_entity(shooter), self.tick)
         if isinstance(victim, bots.Bot) and isinstance(victim.body_script, BotScript):
             from ow174.game import npc_shields
 

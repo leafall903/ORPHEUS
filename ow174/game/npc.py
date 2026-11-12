@@ -60,9 +60,14 @@ def load_catalog(path: Path) -> dict[str, Definition]:
     return result
 
 
+class BodyScriptUnavailable(ValueError):
+    """A requested timed body failed before publishing its identity or creates."""
+
+
 def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
           autonomous: bool = False, acquire: bool = False, pursue: bool = False, specials: bool = False,
-          authored_assassin: bool = False, authored_trooper: bool = False) -> bots.Bot:
+          authored_assassin: bool = False, authored_trooper: bool = False,
+          difficulty_index: int | None = None) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -70,6 +75,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC spawn needs a validated definition')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
         raise ValueError('invalid NPC team or yaw')
+    if difficulty_index is not None and (type(difficulty_index) is not int or not 0 <= difficulty_index <= 3):
+        raise ValueError('manual NPC difficulty must select one of four authored entries')
     position = tuple(position)
     if type(autonomous) is not bool:
         raise ValueError('NPC autonomous mode must be boolean')
@@ -96,6 +103,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     if autonomous:
         data["autonomous_targeting"] = True
+    if difficulty_index is not None:
+        data["difficulty_index"] = difficulty_index
     if acquire or pursue:
         data["acquire_targets"] = True
     if specials:
@@ -108,10 +117,14 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
     bot.yaw = float(bots.s16(yaw))
     bot.retain_corpse = True
     match.combat.next_bot += 1
-    match._prepare_bot_script(bot)
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    match._prepare_bot_script(bot)
+    if difficulty_index is not None and bot.body_script is None:
+        match.bots.remove(bot)
+        match.combat.vitals.pop(entity, None)
+        raise BodyScriptUnavailable('required body script failed before publication')
     match.combat._sync_body_health(bot, match.combat.vitals[entity])
     match.combat.record_replacement(entity)
     if authored_assassin:

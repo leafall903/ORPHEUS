@@ -376,6 +376,20 @@ class BodyWorld(runtime.World):
             return body_owner.Target(entity, None)
         return None
 
+    def chase_clock(self, state):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0109 and state.node.pos == 25
+                and state.instance.component.entity == self.body):
+            return self.match.tick * 16
+        return NotImplemented
+
+    def external_wait(self, state):
+        return (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0B8B and state.node.pos == 3
+                and state.instance.component.entity == self.body)
+
     def linked_tracked_targets(self, state):
         if (self.match is not None and self.hero == 0x02E000000000012F
                 and not state.instance.component.strict
@@ -1928,6 +1942,9 @@ class BodyScript(ReplicatedBody):
         self.passive_charge_ms = 0
         self.reaper_charge_ms = 0
         self.reaper_charge_tick = match.tick if hero == 0x02E0000000000002 and match is not None else None
+        self.winston_charge_ms = 0
+        self.winston_charge_tick = match.tick if hero == 0x02E0000000000009 and match is not None else None
+        self.winston_primal_clock = None
         self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
@@ -2075,6 +2092,7 @@ class BodyScript(ReplicatedBody):
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
         self.frame = frame
+        regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
         ultimate.sync_practice_timer(self)
@@ -2096,7 +2114,7 @@ class BodyScript(ReplicatedBody):
             self.world.scope_host.run_frame(frame, edges)
         else:
             self.component.run_frame(frame, edges)
-        self.self_healing += regeneration.report(self)
+        self.self_healing += regeneration.report(self, frame)
         for windows in (self.control_windows, self.sleep_windows, self.frost_windows):
             windows[:] = [(low, high) for low, high in windows if high > frame]
         self._report_self_repair()
@@ -2340,6 +2358,11 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E0000000000009:
+            from ow174.game import winston
+
+            winston.charge_passive(self, self.component.frame_ms if self.world.match is None else 0)
+            return
         if self.hero == BASTION:
             if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
                 self.passive_charge_ms = 0

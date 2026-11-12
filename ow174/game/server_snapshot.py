@@ -132,7 +132,7 @@ FIELDS = {
         "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
-        "punch_impacts punches slams meteors projected_barriers projected_casts sigma_barriers charge_contacts "
+        "punch_impacts punches slams meteors primal_bonus projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
@@ -159,7 +159,7 @@ FIELDS = {
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
-        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation"),
+        "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
         "repairs barriers rally_seen stuns"
@@ -211,7 +211,7 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick ult_gain_bonus ultimates reports report_count self_healing support_healing "
+        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick winston_charge_ms winston_charge_tick winston_primal_clock ult_gain_bonus ultimates reports report_count self_healing support_healing "
         "self_repairs control_windows sleep_windows frost_windows"
     ),
     driver.BodyWorld: _names("hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
@@ -255,8 +255,8 @@ FIELDS = {
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
-    BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context"),
-    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context"),
+    BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
@@ -265,6 +265,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    combat.ConditionalPool,
     fold.Scope,
     doomfist.Dash, doomfist.Impact, doomfist.Slam,
     meteor.Cast,

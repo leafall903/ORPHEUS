@@ -565,6 +565,12 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def chase_clock(self, state):
+        return NotImplemented
+
+    def external_wait(self, state):
+        return False
+
     def controller_button(self, state: "State", pressed: bool) -> None:
         """Host transport for a supported controller logical-button state."""
         if state.instance.component.strict:
@@ -708,6 +714,9 @@ class World:
 
     def end_health(self, state: "State") -> None:
         pass
+
+    def set_health_pool(self, state: "State", active: bool):
+        return NotImplemented
 
     def spatial_binding_owner(self, entity: int):
         """An explicit 96333BBE auxiliary owner, or None for known absence."""

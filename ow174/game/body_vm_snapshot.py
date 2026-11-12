@@ -70,6 +70,7 @@ _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "world_frame_anchor", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
     "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing", "reaper_charge_ms", "reaper_charge_tick",
+    "winston_charge_ms", "winston_charge_tick", "winston_primal_clock",
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
@@ -80,6 +81,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
+    nodes.AIControlOverride: (("remove_record",), ()),
     nodes.BodyPlacement: ((), ()),
     nodes.FilterArray: ((), ()),
     nodes.StaticTagTarget: ((), ()),
@@ -97,6 +100,7 @@ _STATE_LAYOUTS = {
     nodes.VoiceStimulus: (("voice_handle", "voice_attempts", "voice_duration", "voice_part",
                            "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
                            "voice_submitted", "voice_failed"), ()),
+    nodes.VoiceSetOverride: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
@@ -523,12 +527,12 @@ class _Export:
             fields = {"hero", "mode"}
             optional = ()
             if kind is BodyWorld:
-                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context")
+                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))
             if kind is BotWorld:
-                optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context")
+                optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
                                "controller_inputs", "heavy_counter_stuns"))

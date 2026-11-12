@@ -169,3 +169,8 @@ assigned deliveries are not yet reconciled by this worker.
 Canonical synchronization after C9: f3989db0; preserve all original worker A/B/root
 consumers. Only CHANGELOG required conflict resolution, retaining both entries.
 C10 must verify received NPC/sniper, Doomfist and retained movement bridges.
+
+Clean C11/C12 synchronization: root17b8eec7 (Echo curve_motion and reflected
+source_entity ownership, integrated prepared-input profile, A/B current owners).
+Only CHANGELOG conflicted; keep both entries. Resolve single functional SHAs
+for reception; do not replay this coordination merge as an owner delivery.

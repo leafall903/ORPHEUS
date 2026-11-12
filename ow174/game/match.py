@@ -941,6 +941,7 @@ class Match:
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
                 controller_entity=controller_entity, match=self,
+                difficulty_index=bot.spawner.get("difficulty_index"),
             )
             component = getattr(bot.body_script, "component", None)
             if isinstance(component, runtime.Component):
