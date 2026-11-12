@@ -906,7 +906,13 @@ class BotWorld(runtime.World):
                         fight = self.match.combat
                         for target in fight._enemies(attacker):
                             if expr.Entity(target.entity) in recipients and not fight.vitals_of(target).dead:
-                                fight._radial_impulse(target, tuple(origin), horizontal, upward)
+                                recipient = getattr(target.owner, "body_script", None)
+                                if ((self.hero, state.instance.graph.index, state.node.pos) == (HEAVY_ASSAULT_HERO, 0x140E, 5)
+                                        and recipient is not None and recipient.hero == 0x02E0000000000015
+                                        and recipient.component.entity_var(1216).value() == 2):
+                                    heavy_assault._push(attacker, target, state, settings, defer=True)
+                                else:
+                                    fight._radial_impulse(target, tuple(origin), horizontal, upward)
                 return True
         value = heavy_assault.modify_health(self, state, elapsed_ms)
         if value is NotImplemented and self.match is not None and elapsed_ms == 0:

@@ -2596,3 +2596,46 @@ consumers, with actual drive admission rather than invented heavy_drives views.
 Any source support still unmounted remains explicit. C58 phase integration and
 C57 wall-source consumers already committed; no live check at this checkpoint.
 No client/network/publication action.
+
+
+## C60 actual Heavy melee force on configured Bastion
+
+Original0015 test_trooper_and_heavy_melee_hit_each_bastion_form_once_per_press
+requires Heavy80*Ironclad-5 damage and negativeZ displacement in each form.
+The actual manual BotWorld route intercepted Heavy140E/node5 before the original
+heavy_assault.modify_health/_push path, then called generic _radial_impulse.
+Its current modifier26 response is0 on configured Sentry, suppressing the source
+Heavy force. Original _push constructs the authored vector directly, without
+that generic response scalar. Preserve this explicit source mode behavior only:
+actualHeavy140E/node5 + actualBastion1216==2 consumes original _push vector through
+the already-owned Knockbacks queue at the recipient's next physical action.
+Other targets retain _radial_impulse/mod26/Fortify behavior; _push's default
+immediate behavior and its other callers remain unchanged. No global mod26 edit,
+new driver, impulse pool or helper manager. Correction remains original.
+
+Earlier SET-only diagnosis was an unproven and over-narrow hypothesis. Exact
+_has_velocity_set gating still failed the Sentry test; it was removed. Do not
+write that Sentry necessarily carries a visible tupleSET as established fact.
+The authoritative evidence is original configured-mode force plus the actual
+manual branch/mod26 suppression and successful same-existing-queue execution.
+
+New actual producer case verifies original59damage, preserved mode2, negativeZ
+movement, stop/no repeat damage and emptied action queue. Final newcase+Damage8:
+9/9pass5.219s, ../worker-c-c60-scoped-heavy-impulse-check.log. Original complete
+melee method now Heavy Recon/Sentry/Tank3subcases allpass12.193s; only the3known
+Trooper25/19/19expected-vs0 failures remain. No original assertion/numeric change.
+../worker-c-c60-original-melee-restored.log. Before scoped restoration source had
+those3 plusHeavySentry displacement failure (4fail12.146s).
+
+The superseded SET-gated broad run27241 naturally terminated46run45pass1newcase
+fail163.658s; it is not claimed fullgreen or current final-suite evidence. No
+process was killed: a later exact-command stop attempt found no running matching
+process because it had finished. Broad log
+../worker-c-c60-final-heavy-impulse-check.log. Initial only-_push edit had8Damage
+pass andtheSentryfailure4.132s because the actual manual route bypassed _push.
+These diagnostic outcomes are retained, not hidden by replacing assertions.
+
+Next C61: actualTrooper melee target/native consumer (threezero-damage failures),
+then Heavy capture mode/timing using the real existing1407/1408 host. Retained
+heavy_charge support functions are not a second gameplay driver. Remaining
+4–10 C activehours lowconfidence; no client/network/publication action.
