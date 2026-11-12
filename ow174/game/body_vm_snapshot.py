@@ -570,7 +570,7 @@ class _Export:
             if kind is ControllerWorld:
                 fields.update(("readers", "filter_inputs", "pin_services", "linked_target_inputs", "numeric_modifiers"))
             if kind is BodyWorld:
-                optional = ("beam_barrier", "passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
+                optional = ("beam_barrier", "healing_tick", "passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "_possessor_query", "zenyatta_charge_ammo"))

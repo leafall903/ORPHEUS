@@ -725,6 +725,8 @@ class Vitals:
         self.death_tick: int | None = None
         self.killer: int | None = None
         self.ult_healing_deficit = 0.0
+        self.healing_damage = []
+        self.health_changes = {}
         self.sleep_until = 0
         self.sleep_wake_floor = 0
         self.sleep_view = None
@@ -1151,7 +1153,31 @@ class Vitals:
                 taken += take
         return taken
 
-    def heal(self, amount: float) -> float:
+    def record_health_change(self, tick: int, amount: float) -> None:
+        self.health_changes[tick] = self.health_changes.get(tick, 0.0) + amount
+
+    def historical_heal_capacity(self, tick: int) -> float:
+        later = sum(change for at, change in self.health_changes.items() if at > tick)
+        return max(0.0, self.base_maximum - self.base_total + later)
+
+    def credit_healing_damage(self, amount: float, tick: int) -> None:
+        previous = self.ult_healing_deficit
+        self.ult_healing_deficit = min(self.base_maximum - self.base_total, previous + amount)
+        added = self.ult_healing_deficit - previous
+        if added > 0:
+            if self.healing_damage and self.healing_damage[-1][0] == tick:
+                _, last = self.healing_damage[-1]
+                self.healing_damage[-1] = tick, last + added
+            else:
+                self.healing_damage.append((tick, added))
+
+    def healing_eligible(self, tick: int | None) -> float:
+        if tick is None:
+            return self.ult_healing_deficit
+        future = sum(amount for at, amount in self.healing_damage if at > tick)
+        return max(0.0, self.ult_healing_deficit - future)
+
+    def heal(self, amount: float, *, tick=None) -> float:
         """Heal health, then armour, then shields (unverified: the order). Returns what it gave."""
         left = max(0.0, amount)
         for kind in (HEALTH_POOL, ARMOUR_POOL, SHIELDS_POOL):
@@ -1163,10 +1189,24 @@ class Vitals:
                     left -= give
                     self.changed.add(kind)
         given = max(0.0, amount) - left
-        self.ult_healing_deficit = max(
-            0.0, min(self.ult_healing_deficit - given, self.base_maximum - self.base_total),
-        )
+        eligible = min(given, self.healing_eligible(tick))
+        self._cap_healing_deficit(self.ult_healing_deficit - eligible)
         return given
+
+    def _cap_healing_deficit(self, eligible: float) -> None:
+        self.ult_healing_deficit = max(0.0, min(eligible, self.base_maximum - self.base_total))
+        # Undated damage is older than every tracked entry. Trim the oldest
+        # tracked damage when consumed or displaced by the remaining HP deficit.
+        tracked = sum(amount for _, amount in self.healing_damage)
+        remaining = max(0.0, tracked - self.ult_healing_deficit)
+        for index, (at, amount) in enumerate(self.healing_damage):
+            if amount > remaining:
+                self.healing_damage[index] = at, amount - remaining
+                del self.healing_damage[:index]
+                break
+            remaining -= amount
+        else:
+            self.healing_damage.clear()
 
     def component(self, kinds) -> dict:
         """Component 51 with these pools' fields set (the others are left as they are)."""
@@ -5667,7 +5707,7 @@ class Combat:
             self._cryo_healing(player)
 
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
-                     end_tick=None, healing_scaled=False):
+                     end_tick=None, healing_scaled=False, healing_tick=None):
         vitals = self.vitals_of(target)
         if vitals.dead:
             return 0.0
@@ -5678,9 +5718,14 @@ class Combat:
                 amount *= vitals.healing_time(end - seconds, end) / seconds
             else:
                 amount *= vitals.healing_factor(self.now)
-        eligible = vitals.ult_healing_deficit
-        given = vitals.heal(amount)
+        if healing_tick is not None and healing_tick < self.tick:
+            amount = min(amount, vitals.historical_heal_capacity(healing_tick))
+        eligible = vitals.healing_eligible(healing_tick)
+        before = vitals.base_total
+        given = vitals.heal(amount, tick=healing_tick)
         if given > 0.0:
+            vitals.record_health_change(self.tick if healing_tick is None else healing_tick,
+                                        vitals.base_total - before)
             if not isinstance(shooter, (bots.Bot, SceneHazard)):
                 shooter.stats.add(stats.HEALING, given)
                 if target.owner is shooter or (not self.match.game_map.free_for_all and target.team == shooter.team):
@@ -8736,11 +8781,11 @@ class Combat:
             self._heal_target(healer, target, amount, source_entity=source_body,
                               seconds=seconds, end_tick=None if ticks is None else ticks[1])
 
-    def heal_self(self, entity, amount):
-        """Apply an owned self heal through the existing live target/pool path."""
+    def heal_self(self, entity, amount, *, tick=None):
+        """Apply the owned original heal with its actual command-world association."""
         for target in self._targets():
             if target.entity == entity:
-                self._heal(target.owner, target, amount)
+                self._heal_target(target.owner, target, amount, end_tick=tick, healing_tick=tick)
                 return
 
     def _heal(self, healer, target: Target, amount: float, *, source_body=None) -> float:
@@ -9740,10 +9785,10 @@ class Combat:
             return True
         if (not shield_drain and target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
-            vitals.ult_healing_deficit = min(
-                vitals.base_maximum - vitals.base_total,
-                vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
-            )
+            vitals.credit_healing_damage(max(0.0, base_before - vitals.base_total),
+                                         self.tick if world_tick is None else world_tick)
+        vitals.record_health_change(self.tick if world_tick is None else world_tick,
+                                    vitals.base_total - base_before)
         hero_torbjorn.turret_damaged(self, target)
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
         if isinstance(shooter, bots.Bot) and (credit := self._credit_player(shooter)) is not None:

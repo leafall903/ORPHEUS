@@ -317,6 +317,8 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.body_definition = body_definition
+        if hero == 0x02E0000000000040:
+            self.healing_tick = None
         self.beam_barrier = None
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
@@ -874,7 +876,7 @@ class BodyWorld(runtime.World):
     def heal_self(self, entity, amount):
         """Apply original0240 timed healing to this same live body only."""
         if self.match is not None and entity == self.body:
-            self.match.combat.heal_self(entity, amount)
+            self.match.combat.heal_self(entity, amount, tick=getattr(self, "healing_tick", None))
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
@@ -2495,7 +2497,7 @@ class BodyScript(ReplicatedBody):
 
     def command(
         self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
-        *, grounded: bool | None = None, airborne: bool | None = None,
+        *, grounded: bool | None = None, airborne: bool | None = None, healing_tick: int | None = None,
     ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
@@ -2513,8 +2515,17 @@ class BodyScript(ReplicatedBody):
             return
         if frame < self.frame:
             raise CommandEpochError(self.frame, frame)
+        def run_frame(at, edges):
+            if self.hero != 0x02E0000000000040:
+                return self._run(at, edges)
+            previous = self.world.healing_tick
+            self.world.healing_tick = None if healing_tick is None else healing_tick - (frame - at)
+            try:
+                return self._run(at, edges)
+            finally:
+                self.world.healing_tick = previous
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
-            self._run(missing, [])
+            run_frame(missing, [])
         if self.hero == GENJI and airborne is not None:
             # 01C7 state 4 publishes the IN_AIR mask and its inverse (D3D7EA/D3D9D6/D3D9EF).
             # Its initial packed state is zero, so an initially false output has no write.
@@ -2535,7 +2546,7 @@ class BodyScript(ReplicatedBody):
             # Delivered alias policy: merge physical controls before finding edges.
             previous |= bool(previous & 0x800)
             current |= bool(current & 0x800)
-        self._run(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
+        run_frame(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
