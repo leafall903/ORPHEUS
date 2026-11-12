@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain actual Sombra skill-lock history for original Grapple queries
+
+- Record original lock windows from the same applied Hack/EMP instances in
+  Controls, retaining expired windows until the recipient consumes them. Expose
+  original first-lock query over actual recipient component frames and verify
+  component identity; keep current active locks, hold latches and graph ownership.
+- Release an existing Ball tether through its existing cancel callback when a
+  real non-hack-only control interrupt occurs. No second EMP host or guessed
+  client/world clock offset is introduced.
+- Real Hack probe verifies first-lock bounds and history after effect expiry.
+  Existing Ana/Sombra control, runtime and Damage40 run39pass1original mesh skip
+  in56.723s. Ball caller hookup remains worker B's independent batch.
+
+
 ### Restore delivered Ball form and critical-hit history
 
 - Current targets read the original active Roll form to reject head criticals;
