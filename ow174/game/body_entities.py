@@ -52,6 +52,7 @@ def _bind_control(pilot, instance, scope_index):
 def release_control(pilot):
     bot, pilot.controlled_mech = pilot.controlled_mech, None
     if bot is not None:
+        pilot.match.combat.knockbacks.retire_whole_hog(bot.entity, forget=False)
         pilot.match.combat.zarya_gravitons.release(bot)
         bot.control_mover = None
         bot.control_buttons = 0
@@ -197,7 +198,9 @@ def _advance_mech(pilot, bot, command, seconds, tick, *, posed=True, endpoint=Tr
     if posed:
         if not hooked and not (stunned and getattr(match.scene_host, 'step_hook_victim', lambda *_: False)(bot, command, seconds, tick)):
             mover.step_pose(command, seconds, tick, world_driven=pulled)
-        bot.position, bot.velocity = tuple(mover.position), mover.velocity
+        bot.position = tuple(mover.position)
+        bot.velocity = tuple(a + b for a, b in zip(mover.velocity,
+            match.combat.knockbacks.whole_hog_velocity(bot.entity), strict=True))
         bot.yaw, bot.pitch = mover.yaw, mover.pitch
         bot.moved_tick = tick
     else:

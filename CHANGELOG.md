@@ -11,6 +11,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Actual extraction/loader checks preserve base records and bytes, reject base
   overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
 
+### Apply WholeHog world motion to the actual controlled mech
+
+- Reuse the owned0407 control mover for external displacement while pilot input
+  keeps its original body-frame driver and pending velocity queue. Release only
+  the selected external channel when control ends; no second mover or epoch.
+- Raw unequal-epoch/queue/storage, owned Hook, initial fire and runtime16/16 pass.
+  Original deadline and cross-controller caller audits continue; no client run.
+
+### Restore ordinary NPC WholeHog motion on existing movers
+
+- Original selected world motion reuses each NPC's same registered mover and
+  explicit movement data, with one base/external step per tick and owned cleanup.
+- Five real bodies, explicit data, same-tick and actual coupled server storage
+  plus player/runtime17/17 pass. Keep standalone foreign-context export closed;
+  owned-mech epoch and cross-controller handoffs remain next. No client run.
 
 ### Preserve original stance metadata extraction
 
