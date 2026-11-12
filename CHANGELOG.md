@@ -1,5 +1,46 @@
 # Changelog
 
+## A103 — original typed-row policy on the sole mover modifier ledger
+
+Confirmed original007A typed_override_scalar_order_expiration_and_base_restoration
+expected14 but current modded returned11: typed MoverData rows were ignored before
+scalarx2. Retained that original method text and originaltyped causal storage
+method in normal test_delivered_typed_mover. Restore actual component_data strict
+full-field/finite/nonnegative-integral parsing and typed_data selection. Typed
+STU_ED2B22BD rows now enter current statescript_mods→same Mover.mods with original
+privateindex-1 and priority; same Mod.start/end publication semantics remain.
+modded selects last typedrow before applying existing numeric modifiers.
+
+Player and actual ownedMech sync supply the same mover and precise next-published
+frame to statescript_mover_data. No inferred component/world epoch: actual test
+componentframe100 versus moverpublish10 selects real records starting11, same
+priority/start/key tie and expired rows clear13. Preview script_data remains
+stored for owner queries, but recovered physicalposes use only their own eligible
+mod rows (frame10 base5.5, frame11 selected7), preventing premature preview use.
+Standalone single-profile query preserved; multiple profile query without an
+actual mover clock remains strict rather than inventing timing. Full original
+explicit typed_data API accepts the supplied ordered records.
+
+Current explicit external flight/retained flight_profile keeps its existing
+precedence over typed rows; no Flux/retained Valkyrie path replaced. No new
+manager, ledger, data copy package, mover field or clock. MoverData already had
+exact storage support; original passive whole-server typed mutation is causal.
+Root's platform/Match init/spawn/remote hunks are untouched; only two existing
+Player sync calls and one existing ownedMech sync call change.
+
+Final originaltyped scalar/causal2 + actual published clock/strict parser/external
+flight3 + originalMercy backward/pendingprofile2 + ownedMech recoveredposes1
+=8/8pass23.994s, worker-a-typed-mover-causal-final-check.log. Previous joint added
+Mech melee:8pass/1fail due existing BotScript.hero Mei guard (C notified). DVa
+fusion23184 Nonevs.4 TypeError explicitly reproduced on committedA102 before this
+batch; log worker-a-typed-mover-fusion-baseline.log. Those source assertions remain.
+
+Next finish actual consumer signing. A101 Moira is definitively no missing
+consumer. A102 frozen affiliation is implemented. A final read-only comparison
+of original private FLIGHT_ROLE record versus current per-pose statescript_flight
+must distinguish effective mounted behavior from missing old observer symbols;
+no unproved host/clock duplication or acceptance-green gate will be introduced.
+
 ## A102 — preserve existing grenade launch affiliation in native status routing
 
 A98's original victim loop uses Rocket.team, but StatusWorld's original standalone
