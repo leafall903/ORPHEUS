@@ -310,7 +310,11 @@ class Translocators:
             if (owner.body == actor.source_body and script is not None and not script.retired
                     and script.component is actor.cast.component and not self.combat.is_dead(owner)):
                 # Keep the graph's cooldown write on the same clock as a contiguous run.
-                owner._advance_body_gap(tick)
+                from ow174.game.sombra_replay import body_frame
+
+                frame = body_frame(script, tick)
+                if frame is not None and frame > script.frame:
+                    owner._advance_body_gap(frame)
             self.destroy(entity)
         finally:
             match.tick = scheduled

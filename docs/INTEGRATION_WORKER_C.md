@@ -1342,3 +1342,78 @@ retained sentry/Pharah impulse cover/Bastion NPC boundary audits. Current remain
 rough14-28 active C hours (low confidence, overlapping categories), not a calendar
 promise; largest unreviewed surface is shared consumer equivalence, not raw old
 observer names. Do not hold functional batch for these unmounted replay checks.
+
+
+## C37: original Sombra owner replay on actual world/body anchors
+
+Parent base3ae8e793, includes root16e57a68 Mercy driver indentation fix.
+No driver._run edits in this batch. Mounted the original012E sombra_replay
+owner functions and bounded480-step accepted-reaction scheduler, adapting the
+actual sole sombra_charge/translocators hosts. The old Camo-only world consumer
+now delegates to this single scheduler. It selects original Camo/EMP/throw/recall
+and sparse natural-charge deadlines, not fresh player input. Original64-frame
+EMP early replay precedes retained combat tail. Endpoint remains open; retained
+intermediate ticks finish their accepted reactions after world contacts.
+
+body_frame/world_frame derive solely from actual script.world_frame_anchor.
+Temporary match/combat clocks are restored after replay; application releases
+use their mapped world time. Neutral replay accepts only original Translocator
+volley0C19, not pistol fire. Airborne recall uses the existing physical Mover and
+Player._step_body_pose, with explicit replay_accepted propagated through early
+branches. Optional flags defaultFalse. Beacon expiry cooldown now translates
+world expiry into the same owner body clock, instead of assuming identical epochs.
+
+Fixture adaptation: one original charge assertion reads round(Lock.until/TICK)
+instead of absent old until_tick. Expected at+334 and all original literals/
+assertions unchanged; no new runtime alias/duplicate Lock expiry clock.
+
+v15 environment/test_environment selected, original inputs unchanged. Normal
+python -B -m unittest test_game_sombra_charge.SombraChargeTests plus original
+SombraCombatTests damage-Camo-world-gap/camo-speed/primary-exit/lethal-Helix and
+ test_game_script_runtime -v:36run63.218s,35pass1preservedfailure. All15 normal
+charge methods now pass, including all4 formerly pending world-only methods.
+Original Helix lethal fixture still death_tick None vs cast+2=1053; assertion
+retained (also part of original C33 known lethal-world difference), not claimed
+fixed. worker-c-sombra-replay-owner-check.log. Initial run14pass1oldLock APIerror
+was corrected only by the real expiry query adaptation above.
+
+Five selected original TranslocatorTests methods compiled as untouched class AST
+with real globals (normal full module still imports unmounted old control/NPC
+protocols): world_only_throw_releases_on_time_and_unlocks_recall;
+world_only_airborne_recall_matches_descent_and_landing;
+camo_replay_preserves_an_already_accepted_throw;
+world_only_authored_lifetime_starts_cooldown_at_expiry;
+authored_manual_recycle_starts_cooldown_on_the_device_clock.
+All5 pass44.677s, worker-c-sombra-replay-translocator-check.log. No method/assert
+AST edits. Existing10 C34 basic cases not represented as rerun here.
+
+Actual differing-clock probe: switch original Sombra with start_frame2000 on
+actual world1050 => anchor(1050,2000); original charge deadline body2063 maps to
+world1113, update1114 yields exactly5/faultNone, bodyframe2063. Log
+worker-c-sombra-replay-clock-probe-corrected.log. Earlier probe(1050,1000) also
+awarded5 but had an invalid probe-only at<1000 assumption; not implementation
+failure and not used as passing evidence. Parse/duplicate-method audit clean.
+Initial shared command misspelled test_game_npc_navigation/test_game_movement;
+13actual Genji cases passed but two module imports errored. Corrected command
+uses actual test_npc_navigation/test_game_mover, not altered test fixtures.
+
+Remaining original sombra_replay application_replay_until/advance_applications
+not yet mounted: actual non-Sombra recipients often lack world_frame_anchor.
+Next C38 must record known application recipient-clock/world-clock association
+on the same actual Lock, consume incoming EMP/source-retirement waits without
+recipient input, and preserve live-source world expiry policy. Do not guess
+body1000+/world50 correspondence or create another application manager/timer.
+Then actual Sombra device Portal/Sentry/Torb consumers; remaining Mei wall,
+Symm retained-sentry/placement, Pharah impact cover, Bastion NPC boundaries remain
+as previously recorded. Functional C37 is independent of those remaining gaps.
+
+Final corrected shared command: python -B -m unittest test_genji_passive_charge
+ test_npc_navigation test_game_mover test_game_mercy_charge
+ test_game_sombra_charge.SombraChargeTests.test_world_only_natural_charge_caps_and_admits_a_fresh_emp
+ -v :115tests allpass175.104s,worker-c-sombra-replay-shared-corrected-check.log.
+Includes all original Mercy scope/idle/retained charge and physical Mover checks;
+no Python source edits during this corrected group. All original checks retained.
+Next C38 priority refined by A55 actual evidence: canonical Controls.play uses
+play_loaded_graph(contextKind0), so real0B1F has no Wait58 despite existing Lock.
+Audit original0200 sombra_hack.invoke Queue.submit(request) and restore real
+request start entries first, then incoming replay; no fake Wait/query alias.

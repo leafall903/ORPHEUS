@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Replay original Sombra accepted owner reactions and charge deadlines
+
+- Replace Camo-only idle replay with the original bounded owner scheduler for
+  natural charge, accepted EMP/Translocator releases and physical recall descent.
+  Use actual world/body anchors, retain open endpoints and one existing Mover.
+- Original charge15 pass; selected untouched original Translocator5 pass;
+  runtime/Camo joint36 has35pass and one retained original lethal-Helix failure.
+  Genji/navigation/Mover/Mercy shared115 all pass; real different-epoch charge
+  probe passes. Incoming application retirement and
+  remaining device consumers are still pending; no client acceptance performed.
+
 ### Retain existing operational state in the combined workspace launcher
 
 - The versioned workspace entry selects combined server code and original
