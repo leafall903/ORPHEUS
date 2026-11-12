@@ -66,7 +66,7 @@ class Gravitons:
                                  tick + math.ceil(duration / tick_seconds), radius))
 
     def _includes(self, field, target):
-        from ow174.game.combat import capsule_visible, segment_distance
+        from ow174.game.combat import segment_distance
 
         owner = target.owner
         if (self.fight.replacement_ticks.get(target.entity, 0) > self.fight.tick
@@ -78,9 +78,15 @@ class Gravitons:
                 or immunity.wraith_active(owner, target.entity) or immunity.cryo_active(owner, target.entity)):
             return False
         a, b = target.segment()
-        return (segment_distance(field.position, a, b) - target.radius <= field.radius
-                and capsule_visible(self.fight._collision(), field.position, a, b, target.radius,
-                                    walls=self.fight.walls))
+        if segment_distance(field.position, a, b) - target.radius > field.radius:
+            return False
+        point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+        delta = tuple(v - o for v, o in zip(point, field.position, strict=True))
+        distance = math.sqrt(sum(v * v for v in delta))
+        if distance <= 1e-9:
+            return True
+        wall = self.fight.cover_ray(field.position, tuple(v / distance for v in delta), distance)
+        return wall is None or wall >= distance
 
     def includes(self, field, target, *, tick=None):
         return self._includes(field, target)

@@ -1,5 +1,26 @@
 # Changelog
 
+## A85 — original Graviton eye-point cover consumer
+
+Cleanly absorbed root faec1f1c (worker merge652efbce) including five pure geometry
+queries, B61 actual NPC sole-mover ownership and C wall geometry. Restored source
+Graviton eye-point ray admission through existing Combat.cover_ray. It reads the
+same settled static world, IceWall and actual Cryo body geometry; no second trace
+service or historical-time facade was introduced. Current birth, radius, team,
+phase/Fade/Recall/Fortify and same-body protections remain on the existing path.
+
+Original static-wall and direct5/DOT20 methods plus NPC same-mover2, Flux overlap1,
+Fortify2 all pass (8 methods; only the SwiftStrike method
+fails its2subcases, all other7 pass),20.531s. Original SwiftStrike team/
+cover method now reaches its genuine missing ability-stop assertion (dash.active
+True vsFalse), which belongs to the next existing mobility consumer batch. All
+assertions/numerics retained. Log worker-a-zarya-field-cover-eye-check.log.
+
+Next: frozen field offense on existing Rocket/Field and source mobility stop/
+ready gates, then actual idle reload/cadence audit. Original193 width boundary,
+old recovery-ledger observations and Ana50/native60 remain visible.
+
+
 ## A84 — original0068 world charge and respawn credit
 
 Restored source f5b7366d original ultimate_charge_ready_frame and Combat's single
