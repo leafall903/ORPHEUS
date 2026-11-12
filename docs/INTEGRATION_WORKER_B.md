@@ -78,6 +78,23 @@ alone is not evidence that a line's consumers are actually mounted.
 - Retained original resources/interrupts/throttles/held-primary suites: all22
   checks pass without behavior/assertion changes. These exercise real ability
   input, magazine clocks, Flashbang exits, movement gates and retained fire.
+- Input/lifecycle batch `f694f758` submitted; canonical `728e6abe` synchronized
+  in local merge `2ac8acae` before the cross-hero defense audit.
+- Retained original Wraith10 and Deflect15 scenarios; all pass with current
+  mounted Reaper/Genji services and the explicit complete projectile-tag input.
+  The source reflection-budget endpoint check found a genuine free epsilon
+  displacement; separation now uses and charges only remaining flight budget.
+- Preserve the source pool grant deadline/cap separately from decay integration
+  cursor/depletion. Together with13 passive checks, the Deflect run passes28.
+- Original20 Grasp checks are retained. The first run has one failure and four
+  errors: source aggregate deadline/rate observations differ from canonical
+  native extra pools, and three checks refer to the source pool_reports queue.
+  Audit actual pending grant/posed/fault semantics during023B integration; do
+  not weaken or remove these checks or assume a missing name means no Grasp.
+- Shared Echo/Genji Deflect33 checks have7 failures/2 errors both before and
+  after this reflection change. The baseline uses HEAD's exact _sweep_rocket
+  function in process, preserving the WIP tree. Evidence is retained outside
+  Git at worker-b-reflection-shared.log and its -baseline counterpart.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -89,7 +106,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Audit remaining Doomfist barrier/defense/NPC source services against mounted
+1. Audit remaining Doomfist barrier/NPC source services against mounted
    canonical equivalents. Preserve original checks and source docs; report
    actual missing consumers separately from renamed helper APIs.
 2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted

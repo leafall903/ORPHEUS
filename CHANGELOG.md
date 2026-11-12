@@ -36,6 +36,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Preserve Doomfist defense consumers and flight budget
+
+- Retain original10 Wraith,15 Deflect and20 Grasp scenarios using actual
+  canonical services for their renamed observations. Wraith10 and Deflect15
+  pass with explicit complete external projectile tags; all13 passive checks
+  pass alongside Deflect (28 total).
+- Restore the delivered reflection endpoint policy: only move the separation
+  epsilon that remaining flight can pay for, and count it in travelled
+  distance. Keep source shield grant deadline/cap separate from the advancing
+  integration cursor and depleted wire maximum. Existing positional shield
+  constructor arguments remain unchanged; new stored fields are appended.
+- Preserve Grasp's first20-check result (one failure/four errors), concerning
+  old aggregate-field observations and source pool_reports versus native extra
+  pool staging. Actual023B pending/posed/fault consumers still need audit.
+- Echo/Genji shared33-check regression has7 failures/2 errors both with this
+  change and HEAD's original sweep function. Retain both logs; no original
+  check was removed. Whole-line/client acceptance remains open, no push.
+
 ### Retain Doomfist input and Meteor lifecycle checks
 
 - Preserve the original magazine/resource, Flashbang-interrupt, throttle and
@@ -50,6 +68,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   positional snapshot fixture plus13 passive checks pass (14 total).
 - Remaining source defense/barrier/NPC equivalents and full-line audit stay
   open; original-client acceptance is unchanged. No client, network or push.
+
+### Mount delivered manual Sniper repositioning
+
+- Preserve Bastion delivery0015's original sniper_reposition.py unchanged.
+  Restore the existing manual reposition argument, authored wait/MoveTo,
+  cooldown, stop/target-loss handling and post-reposition weapon resumption.
+  Route this explicit mode through current navigation without replacing the
+  existing automatic142C retreat or ordinary pursuit.
+- Retain the attack mode in Bot initialization/death and enclosing snapshots.
+  All three unchanged original NPC reposition checks passed against the actual
+  external NPC graph/catalog/mover inputs, without a source-package import
+  fallback. Shared NPC/navigation checks continue separately.
+- C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
+  Roll/runtime and Slam checks passed after preserving both velocity adapters.
 
 ### Mount delivered Hand Cannon scatter and shield-pool policy
 

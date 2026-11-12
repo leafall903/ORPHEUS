@@ -555,6 +555,8 @@ class TemporaryShield:
     rate: float
     activation: tuple[int, int] | None = None
     pool_id: int = 0xFFFFFFFF
+    grant_deadline: float | None = None
+    grant_cap: float | None = None
 
 
 @dataclass
@@ -654,11 +656,19 @@ class Vitals:
 
     @property
     def temporary_cap(self) -> float:
-        return self.temporary_shield.maximum if self.temporary_shield is not None else 0.0
+        shield = self.temporary_shield
+        return ((shield.grant_cap if shield.grant_cap is not None else shield.maximum)
+                if shield is not None else 0.0)
 
     @property
     def temporary_decay_at(self) -> float:
-        return self.temporary_shield.decay_from if self.temporary_shield is not None else 0.0
+        shield = self.temporary_shield
+        return ((shield.grant_deadline if shield.grant_deadline is not None else shield.decay_from)
+                if shield is not None else 0.0)
+
+    @property
+    def temporary_decay_rate(self) -> float:
+        return self.temporary_shield.rate if self.temporary_shield is not None else 0.0
 
     @property
     def temporary_pool_used(self) -> bool:
@@ -685,7 +695,10 @@ class Vitals:
         if given > 0:
             pool_id = (shield.pool_id if shield is not None else
                        max((*self.ids.values(), self.wave_health_id)) + 1)
-            self.temporary_shield = TemporaryShield(old + given, cap, now + delay, rate, pool_id=pool_id)
+            self.temporary_shield = TemporaryShield(
+                old + given, cap, now + delay, rate, pool_id=pool_id,
+                grant_deadline=now + delay, grant_cap=cap,
+            )
             self.changed.add(SHIELDS_POOL)
         return given
 
@@ -5848,7 +5861,8 @@ class Combat:
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
             rocket.direction = (pulse_facing if pulse_facing is not None else defense[2]
                                 if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch))
-            rocket.position = _along(point, rocket.direction, 1e-4)
+            separation = min(1e-4, max(0.0, duration - contact_time) * rocket.speed)
+            rocket.position = _along(point, rocket.direction, separation)
             if rocket.velocity is not None:
                 rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
             rocket.reflected = True
@@ -5857,7 +5871,8 @@ class Combat:
 
                 rocket.dose_scalar = (nano.offense(self, rocket.source_entity)
                                       * self.orisa.superchargers.scale(rocket.shooter))
-            spent = min(duration, contact_time + (1e-4 / rocket.speed if rocket.speed else 0.0))
+            spent = min(duration, contact_time + (separation / rocket.speed if rocket.speed else 0.0))
+            rocket.travelled += separation
             rocket.flown += spent - contact_time
             rocket.left -= spent
             if rocket.left <= EPSILON:
