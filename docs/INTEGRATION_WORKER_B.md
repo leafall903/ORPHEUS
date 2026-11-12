@@ -95,6 +95,28 @@ alone is not evidence that a line's consumers are actually mounted.
   after this reflection change. The baseline uses HEAD's exact _sweep_rocket
   function in process, preserving the WIP tree. Evidence is retained outside
   Git at worker-b-reflection-shared.log and its -baseline counterpart.
+- Defense batch `6f7ef665` submitted. Synchronized canonical NPC-control modes
+  `9cad40e8` in local merge `b8f98009`; use its mounted melee/charge paths rather
+  than implementing a second NPC driver. Earlier missing-mode observation was
+  from the older728e6abe tree, not the current canonical implementation.
+- Winston delivery0009: retain the complete original winston.py and mount
+  Primal's health transform, explicit world-clock lifetime, source passive
+  cadence, target/tag damage charge and body retirement. Preserve the existing
+  Tesla prototype code but stop routing it alongside the deduplicated original
+  Tesla path; the two had charged/damaged the same command twice.
+- Original source fixture is test_delivered_winston.py; existing canonical
+  test_game_winston.py is preserved unchanged. Source charge27 plus canonical
+  Tesla12/runtime13 run52 checks:49 pass. Remaining cases are unmounted Jump
+  Pack's1 launch damage, old barriers.actors observation and the DVa pilot
+  profile/controlled-mech interlock. Explicit DVa graph/mover supplements allow
+  both source definitions to spawn; lazy vitals observation is adapted, but the
+  pilot profile still expects .96 loss where current controlled-mech admission
+  leaves that player pool unchanged. Do not bypass the actual DVa lifecycle.
+- Focused DVa/cadence snapshot/modifier/Lucio28 checks:27 pass, only that DVa
+  profile check fails. Active Primal enclosing-server getter-free capture and
+  cadence causality pass (fixture charge setup, not natural-charge evidence).
+  Register the active VoiceSetOverride class; retain all owner cadence fields
+  in both body-VM and enclosing-server snapshots.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -106,11 +128,11 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Audit remaining Doomfist barrier/NPC source services against mounted
-   canonical equivalents. Preserve original checks and source docs; report
-   actual missing consumers separately from renamed helper APIs.
-2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
-   Uppercut or Meteor as a complete Doomfist line.
+1. Mount Winston JumpPack/PrimalPunches over current wall, impulse and barrier
+   services without installing duplicate bubble controllers. Reconcile source
+   Tesla barrier/volume checks, then retain the remaining original source suites.
+2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
+   controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
    actual original source checks. Do not replace shared files wholesale.
 4. Retain source docs and remaining Doomfist checks; reconcile reflected damage,

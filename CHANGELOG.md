@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Winston health and charge clocks
+
+- Retain complete0009 winston.py and mount the original Primal health/refill,
+  lifetime/expiry, passive5-point cadence, damage-target/tag arithmetic and
+  retirement consumers. Scope the new Wait/Chase clock hooks to compatible
+  Winston body states; other heroes and strict worlds retain their clocks.
+- Stop routing the duplicate narrow Tesla damage callback alongside the
+  deduplicated path, preserving both implementations. Keep source fixtures
+  separately as test_delivered_winston; canonical Tesla tests remain unchanged.
+- Source charge27 plus existing Tesla12/runtime13:49 of52 pass. Remaining
+  checks concern unmounted Jump Pack launch damage, source bubble observation
+  and DVa pilot/controlled-mech admission. Focused cadence/snapshot/modifier/
+  Lucio/DVa28:27 pass, with the same DVa profile interlock retained as a failure.
+- Register stored cadence/Primal health and VoiceSetOverride snapshot state.
+  Active Primal enclosing-server getter-free repeatability/cadence causality
+  passes with fixture charge setup. JumpPack, Primal punches and the source
+  bubble adapters remain pending; no whole-line or original-client acceptance
+  claimed, and no client, network access or push performed.
+
 ### Preserve Doomfist defense consumers and flight budget
 
 - Retain original10 Wraith,15 Deflect and20 Grasp scenarios using actual

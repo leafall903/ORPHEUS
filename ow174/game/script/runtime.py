@@ -565,6 +565,12 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def chase_clock(self, state):
+        return NotImplemented
+
+    def external_wait(self, state):
+        return False
+
     def controller_button(self, state: "State", pressed: bool) -> None:
         """Host transport for a supported controller logical-button state."""
         if state.instance.component.strict:

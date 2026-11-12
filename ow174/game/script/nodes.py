@@ -2657,6 +2657,8 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        if self.ms > 0 and self.instance.component.world.external_wait(self):
+            return
         if self.dynamic():
             self.ticks()
             self.tick()
@@ -2852,6 +2854,10 @@ class ChaseVar(State):
         self.var: Var | None = None
         self.interrupted = False
 
+    def clock(self):
+        value = self.instance.component.world.chase_clock(self)
+        return self.now if value is NotImplemented else value
+
     def on_enter(self) -> None:
         target = lvalue(_field(self, "m_out_Var"))
         initial = _field(self, "m_EB0FC261")
@@ -2864,7 +2870,7 @@ class ChaseVar(State):
         self.interrupted = False
         duration = _field(self, "m_5BEFF040")
         self.remaining = int(to_float(self.evaluate(duration, watch=False)) * 1000) if duration else None
-        self.last = self.now
+        self.last = self.clock()
         if target is not None:
             var = self.instance.find_var(*target)
             before = var.value()
@@ -2930,8 +2936,9 @@ class ChaseVar(State):
                 self.request_finish()
 
     def tick(self) -> None:
-        dt = self.now - self.last
-        self.last = self.now
+        now = self.clock()
+        dt = now - self.last
+        self.last = now
         if dt <= 0:
             return
         if self.reached and (self.instance.graph.index, self.node.pos) != (0x2B72, 2):

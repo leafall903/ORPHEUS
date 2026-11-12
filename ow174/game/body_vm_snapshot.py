@@ -70,6 +70,7 @@ _SCRIPT = frozenset((
     "hero", "entity", "record", "frame_ms", "world", "component", "frame", "buttons", "stream",
     "create_arrived", "retired", "first_owner_frame", "world_frame_anchor", "server_only", "ult_seconds", "passive_charge_ms", "self_healing",
     "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing", "reaper_charge_ms", "reaper_charge_tick",
+    "winston_charge_ms", "winston_charge_tick", "winston_primal_clock",
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
@@ -97,6 +98,7 @@ _STATE_LAYOUTS = {
     nodes.VoiceStimulus: (("voice_handle", "voice_attempts", "voice_duration", "voice_part",
                            "voice_started_at", "voice_delay", "voice_cooldown", "voice_retry_at",
                            "voice_submitted", "voice_failed"), ()),
+    nodes.VoiceSetOverride: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
     nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
