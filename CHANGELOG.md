@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Unify actual raised-shield contacts and retain shattered planes
+
+- Add real RaisedBarrier.trace to existing shared contacts, preserving bubbles
+  policy/team filtering and preferring its actual native pool over the same
+  body's legacy prototype. Earthshatter delegates to this shared query and
+  retains only frozen geometry/pose for shields it breaks, protecting subsequent
+  rays without cloning actors/VMs. Use source owner/generation/activation keys.
+- Source fixture break input now targets actual authored Vitals; its old graph
+  getter reads the existing0095 instance. All original numerical expectations
+  remain unchanged (1399 main assertions, same order/count/Constants).
+- Three original Shatter shield cases plus causal snapshot pass; broader33
+  run has29 input skips. Explicit descriptor Echo8 retains two damage failures
+  reproduced with the previous shared contact implementation. Its actual raised
+  mesh snapshot now passes after registering only the two owned context callback
+  methods; original Possessor/retirement plus that capture pass9/9.
+- One original Shatter controls-key observation remains open. Original-client
+  acceptance remains open; no check or damage expectation was weakened.
+
 ### Restore delivered Earthshatter clipped ground and native shield contacts
 
 - Route the existing Wave through source0007's101-ray wall/terrain clipping,

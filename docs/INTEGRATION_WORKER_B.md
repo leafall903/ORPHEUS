@@ -394,6 +394,30 @@ alone is not evidence that a line's consumers are actually mounted.
   pool fixture input and source control ownership consumers, then completion
   audit before advancing tank owners. Full B21 snapshot session82747 still live.
 
+## B24 shared raised-shield contacts and frozen broken plane
+
+- Root confirmed ownership of _barrier_contact for this batch. Add existing
+  RaisedBarrier.trace, suppress duplicate legacy body pool, preserve bubbles,
+  owner-team and deadline behavior. Source Wave.shield_poses stores frozen
+  geometry/pose only, not another actor. Correct original source shield ledger
+  keys to owner body/generation/activation. Retain broken plane for other rays.
+- Source fixture current=30 now changes actual authored Vitals via existing
+  damage consumer; barrier-instance getter reads actual0095. No assertions or
+  Constants changed. Main audit remains1399 same method counts/order.
+- `worker-b-shatter-native-shared.log`:33 total,4 pass29 input skips. These include
+  actual original break/drop/teamchange, later shield activation, far-side body
+  and causal wave snapshot. Full31 prior ledger-key correction left1fail1error;
+  corrected ledger test now passes. Remaining controls-key observer stays open.
+- `worker-b-shatter-native-echo.log`: explicit proper collision input enables8,
+  initially2fail1error. Baseline shared-contact monkeypatch reproduces same
+  damage488/380 and same context snapshot error. Fix this batch's own B22
+  callback omission with exact world-owned method whitelist, not broad callable
+  acceptance. `worker-b-shatter-native-context-snapshot.log`:9/9 original actual
+  raised-pool capture +Possessor7 +native retirement pass. Damage failures remain.
+- Next: true source control ownership/knockdown observation and damage tags;
+  complete remaining shield surfaces/history for other managers. B21 snapshot
+  full-suite session82747 still running; do not claim it passed.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at
