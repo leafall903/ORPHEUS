@@ -33,6 +33,7 @@ from ow174.game import (
     absorption,
     actors,
     baptiste,
+    ball,
     barrier,
     assassin_victim,
     barriers,
@@ -154,7 +155,7 @@ FIELDS = {
         "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
-        "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
+        "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     doomfist.Punches: _names("combat dashes impacts controls"),
     doomfist.Slams: _names("combat casts"),
@@ -329,7 +330,7 @@ DATACLASSES = (
     echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
     reinhardt_barrier.RaisedBarrier,
     genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
-    earthshatter.Wave, reinhardt_charge.Charge,
+    earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier,
     deflection.ProjectileTags,

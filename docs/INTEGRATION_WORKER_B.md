@@ -557,6 +557,115 @@ alone is not evidence that a line's consumers are actually mounted.
   FireStrike deployment objects, Photon plane/mesh and Brigitte cross-owner
   host audit. Keep source tests and all numerical boundaries intact.
 
+## B31 — Fire Strike Photon and Supercharger consumers
+
+- Add actual Photon actors via C29 contact() (original plane or configured mesh)
+  and actual Orisa Supercharger geometry to existing ordered Fire Strike loop.
+  Captured rocket.team preserved, same penetration ledger suppresses repeat
+  hits, actual Supercharger damage owns registry/aura retirement.
+- worker-b-photon-strike-plane-probe.log: real Q actor, original plane, shield
+  loss100 and downstream body100 once. No invented mesh/second pool.
+- worker-b-device-native-pool-probe.log: real device200->100->0 before lifetime,
+  active registry/buff removal and scale1. Original ordinary Fusion aim records
+  actual CRITICAL loss17; do not change source expected6 to green.
+- worker-b-rein-device-focused.log:19/19 allied Fire Strike150/charge, allied
+  Charge and runtime. Full worker-b-rein-native-device-second.log:25 tests,
+  9 subfail/1error. Last error charge_contacts old getter now maps actual
+  charges and focused case passes; retain original numerical failures.
+- Complete original Fusion69/Supercharger69 assertion order and Constants
+  preserved. Adapters read absorption.GRASP, temporary_shields, actual manager
+  and rocket metadata, source controls/pins, native pool and armour_scalar1.0.
+- NEXT B32: source Charge tracker deployment contact/175 damage on existing
+  Charge/Device pool respecting wall/team order. Remaining owner estimate16–36
+  effective hours, uncertain Ball/Sigma/shared NPC/Brigitte. No acceptance wait.
+
+## B32 — Original Charge deployment collision and damage
+
+- Restore original Superchargers.charge_contact and Geometry.overlaps exactly
+  from frozen0007 implementation on the existing actual mesh and Device pool.
+  Tracker56 native localoffset/radius fallback0.5 and flag961 identify impact;
+  existing wall/static visibility retains cover and opponent filtering.
+- Write actual entity to original tracker output, drain authored phase, clear
+  output, stop existing Charge.007D node125 MODIFY_HEALTH consumes its original
+  amount175 against same Device pool and existing buff scale. No duplicate
+  movement driver, hardcoded damage substitute or Brigitte1408 takeover.
+- worker-b-charge-device-third.log:3/3 full original cases, enemy200->25 once,
+  states58.counter1/driveended/targets empty, untouched downstream body, allied
+  skip and static cover. worker-b-charge-device-regression.log:55/55 existing
+  Movement7+Contact21+Mutual10+runtime17. Original assertions unchanged.
+- Earlier first log31 had only known missing device175 before implementation;
+  second log missing sourceGeometry.overlaps exposed actual helper dependency,
+  restored exact original helper before successful third log.
+- NEXT clean sync accepted canonical, then actual Brigitte shield host and
+  remaining source surface histories; audit fuller owner consumers before
+  formal line completion. Keep Fusion numerical/source metadata gaps explicit.
+
+## B33 — Exact Brigitte owner health-query precedence
+
+- Actual prepared Brig had0EE3 active with587250/5860 and no owner shield pool.
+  Generic typed CURRENT short-circuited invalid Pet13214 to legal0 before the
+  existing BrigitteCombat.native pool initialization could run. Earlier probe
+  printed graph pos32 rather than state32; that was not incompatible input.
+- Restore only non-strict actual BodyWorld body-definition/bound match/samebody,
+  hero0195+graphEE3+CURRENT+Dynamic entity13214 context1. Delegate existing host,
+  retain unknown NotImplemented/strict semantics; no alternate Shield host.
+- worker-b-brig-health-priority-first.log: original Hammer and samebody reused
+  shield2pass; Fire Strike proceeds past oldKeyError to real250versus150 missing
+  contact consumer. worker-b-brig-health-typed-runtime.log25/25 unchanged tests.
+- Full worker-b-brig-health-priority-regression.log61:3fail6errors1skip. Errors
+  are original winston_domes legacy cache; failures actual Helix170vs130/shield
+  break wearer165vs200 and Rein whip shield1600vs1530. Retain all expectations.
+- NEXT B34: route actual same Brig barrier pool into Fire Strike orderedcontacts
+  and shared barrier query; preserve captured team, exact shield identity and
+  source surface history rather than constructing another actor.
+
+## B34 — Fire Strike uses the existing Brigitte shield faces/pool
+
+- Refactor Brigitte barrier_ray only into nearest selection over existing face
+  geometry contacts. Default interface/result unchanged; optional capturedteam
+  passed to original opponent filter, owner identity unchanged. No second host.
+- Enumerate actual shields in Fire Strike ordered loop; source key is negative
+  ownerbody plus replacement tick/state30.counter, source scale from actual
+  Superchargers, actual damage_barrier owns pool and terminal1 semantics.
+- worker-b-brig-strike-first.log original shield penetration/body/downstream,
+  Hammer/replacement3 pass. Final exact source key/scale also probed actual
+  changed affiliation in worker-b-brig-strike-captured-team.log: default query
+  excludes newally, capturedteam hits same shield250->150/body105/downstream100.
+- worker-b-brig-strike-regression.log full65:7subfail6oldWinCacheerrors1skip.
+  Four sourceflank bash cases hit48versus47 timing before later expectations;
+  same3Helix/Reinwhip numerical failures as B33. No original assertion edits.
+- NEXT source shared query/explicit Brigitte shield dispatch and Shatter frozen
+  surface history, retaining original partial host geometry/terminal1. Do not
+  mistake remaining Bash timing for only observer drift or claim line complete.
+
+## B35 — Ball physical module and actual feedback/movement entry
+
+- Original01CA ball.py retained complete. Actually mount feedback before body
+  script frames and motion through existing swept Mover, below current control/
+  world/native movement requests and external impulse priority. Snapshot knows
+  Combat.ball_grapples and original Grapple datatype, no second controller.
+- Restore original scoped body-position and default velocity native queries.
+  Before that, actual clearance origin evaluated0/childNone, forbidding start;
+  actual body transform now drives the authored3.5m ray and runtime variables.
+- worker-b-ball-motion-physics-probe.log proves original10s cooldown,40tick hover
+  and landing-scope7counter1. Important limitation: scope is ground-ray trigger,
+  not completed body contact; after90ticks Y4.966796875/airTrue. Retain remaining
+  descent semantics audit; do not force ground/cancel native scope to green.
+- Ground/low-clearance rejection and roll-toggle original cases pass. Full
+  worker-b-ball-motion-third.log35 including runtime17:7subfail5errors, true
+  missing landing damage/air locks/critical policy plus olddeflection.SIGMA and
+  missingfireball fixture imports. worker-b-ball-motion-snapshot.log1/1 existing
+  wave/charge stored-state test. No full Ball completion claim.
+- Complete original fixtures combat110/grapple99/pile76/roll17 assertions have
+  exact original AST (only module imports adapted). Grapple fixture retained,
+  unexecuted until its actual controller is mounted; no copied-only claim.
+- NEXT B36: original _piledriver damage/impulse/steering locks and exact decline
+  with control/defense; then mount original Grapple controller/lifecycle and
+  source form/critical/spread/passive consumers. Preserve all failed checks.
+- Brig shared query intentionally unchanged: original0007 Shatter enumerated
+  Rein/Win/Orisa/Sigma only. Do not infer new Brig/Photon Shatter behavior or
+  delete existing other-owner Photon implementation; parent owns that boundary.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue

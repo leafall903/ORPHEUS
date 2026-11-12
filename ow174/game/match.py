@@ -535,7 +535,7 @@ class Player:
             drive = reinhardt_charge.drive(fight, self, command, seconds)
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
-        from ow174.game import hanzo_movement
+        from ow174.game import ball, hanzo_movement
 
         climb = hanzo_movement.climb_request(
             self, command, seconds,
@@ -567,6 +567,10 @@ class Player:
             )
             if outcome is not None:
                 movement_end = state, outcome
+        elif (self.hero.guid == 0x02E00000000001CA and not stunned
+              and not self.mover.external_impulse
+              and (ball_motion := ball.motion(self, seconds, command)) is not None):
+            self._move_pose(command, seconds, tick, move_to=ball_motion)
         else:
             movement_limit = None
             if script is not None and not stunned and not self.mover.external_impulse:
@@ -1809,6 +1813,9 @@ class Match:
                 contact = player.mover.wall_contact
                 if controller is not None and (contact is not None or 14980 in controller.vars):
                     wall_ride.feedback(controller, contact)
+            if self.collision_world is not None and script.hero == 0x02E00000000001CA:
+                from ow174.game import ball
+                ball.feedback(player)
             if posed and self.collision_world is not None:
                 earthshatter.prepare(self.combat, player)
             if movement_end is not None:

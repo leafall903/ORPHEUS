@@ -77,6 +77,13 @@ def seed_base(owner_word: int, instance_word: int, state_word: int, counter: int
             + (state_word & 0xffff) * 7 + (counter & 63)) & 0xffff
 
 
+def quantized_direction(forward) -> tuple[float, float, float]:
+    """Original Viper API through the shared native unsigned aim round trip."""
+    from ow174.game.weapon_aim import quantized_direction as round_trip
+
+    return round_trip(forward)
+
+
 def seed_index(base: int, shot: int, pellet: int) -> int:
     """D5F8D0/184B250, including both14-bit masks."""
     return uniform_table()[((base & 0xffff) * 131 + shot * 23 + pellet * 3) & 16383] & 16383

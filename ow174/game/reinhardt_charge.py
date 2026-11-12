@@ -333,6 +333,15 @@ def advance(fight, player, command, start, seconds):
     enemies = sorted(fight._enemies(player), key=lambda t: (math.dist(feet, t.feet), t.entity))
     if counter(fight, player, instance, forward, enemies):
         return
+    tracker = instance.states.get(56)
+    device = fight.orisa.superchargers.charge_contact(player, tracker, start, feet, forward)
+    if device is not None:
+        output = expr.lvalue(tracker.node.field("m_8A2905A0"))
+        instance.write(output, (expr.Entity(device.entity),))
+        drain_end(instance)
+        instance.write(output, ())
+        stop(fight, player.body, charge)
+        return
     from ow174.game.reinhardt_hammer import _wall_clear
     for target in enemies:
         key = (target.entity, fight.replacement_ticks.get(target.entity))
@@ -383,3 +392,25 @@ def advance(fight, player, command, start, seconds):
         charge.pinned = None
         if wall is not None:
             stop(fight, player.body, charge)
+
+
+def deployable_impact(fight, state, elapsed_ms):
+    """Original007D tracker output feeds its authored175 damage node."""
+    if (state.instance.graph.index, state.node.pos) != (0x007D, 125):
+        return NotImplemented
+    if elapsed_ms:
+        return True
+    component = state.instance.component
+    source = fight._target_entity(component.entity)
+    targets = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
+    if (source is None or source.owner.body_script is None
+            or source.owner.body_script.component is not component or not isinstance(targets, tuple)):
+        return True
+    shooter = source.owner
+    amount = expr.to_float(state.evaluate(state.node.field("m_modifyHealth.m_amount"), watch=False))
+    if amount > 0:
+        manager = fight.orisa.superchargers
+        for device in tuple(manager.opponents(shooter, shooter.team)):
+            if expr.Entity(device.entity) in targets:
+                manager.damage(device, amount * manager.scale(shooter))
+    return True
