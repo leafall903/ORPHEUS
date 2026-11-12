@@ -1155,6 +1155,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
+        self.input_suppressed = False  # delivered input-only control, separate from death/physics
         self.maximum_health = None  # explicit authoritative body-health input, when supplied
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
@@ -1461,6 +1462,8 @@ class Component:
     def edges(self, buttons: list[tuple[int, bool]]) -> None:
         """Button edges at now, on every instance (0x7FF789C66AA0 queues each on all the instances)."""
         for button, pressed in buttons:
+            if pressed and self.input_suppressed:
+                continue
             for instance in list(self.instances.values()):
                 instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
@@ -1919,6 +1922,8 @@ class Instance:
     def button_edge(self, button: int, pressed: bool) -> None:
         """A logical-button edge (event 8): the held list, then every LogicalButton/Ability state of the
         graph's m_logicalButtonStateIndices, active or not."""
+        if pressed and self.component.input_suppressed:
+            return
         component = self.component
         component.button = button
         if pressed and button not in component.held:

@@ -40,3 +40,17 @@ root integration. Revise from completed owner reconciliations and actual shared
 conflicts. File counts and acceptance pass percentages do not prove code merge
 completion. The ten formally merged hero refs and partially integrated owners
 remain the starting state; the overall objective is still active.
+
+## First committed intake
+
+The root received A1 `0e13388f` as `ecf4a68e` (Shadow Step/native button
+transitions) and C1 `cd7cb8f3` as `0be0ca2a` (Bastion repair/charge). B1
+`41d6de0e` is received with the merge named `merge: receive worker B Rocket
+Punch integration`. All worker commits and histories remain reachable.
+
+Root reconciled the A/B cleanup and snapshot registrations, retained the six
+unowned scene-Bot fixture defaults, and bridged Bastion repair admission to B's
+shared input-suppression flag. All97 combined Punch/Shadow/button/runtime/scene/
+repair/charge/storage checks passed. An actual Punch control-service probe also
+confirmed that controlled Bastion cannot consume queued/continuous repair.
+These are batch integration results, not whole-hero or client acceptance.

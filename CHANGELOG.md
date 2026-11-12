@@ -4,6 +4,39 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Receive the first three parallel implementation batches
+
+- Receive B1's delivered Rocket Punch host alongside A1 Shadow Step and C1
+  Bastion repair/charge. Preserve both body-retirement paths, every causal
+  snapshot registration and A's input-transition CHECK context.
+- Bridge Bastion's repair admission to the shared input_suppressed flag used
+  by Punch control, retaining its separate delayed-control history. An actual
+  Punch control-service probe confirmed no queued/continuous repair during control.
+- All97 combined Punch/Shadow/button/runtime/scene/repair/charge/storage checks
+  passed after reconciliation. Worker source commits remain preserved; this is
+  batch admission, not whole-line/client acceptance. Workers continue independently.
+
+### Mount delivered Doomfist Rocket Punch host
+
+- Preserve the source Doomfist owner hosts and Meteor implementation. Route
+  Rocket Punch charge/release, swept dash, first capsule contact, one wall bonus,
+  recovery/cooldown and input-only control through the delivered Punches object.
+  Retain the existing impulse mover and passive shield pool. Restore the scoped
+  authoritative body-forward query used to latch its launch direction.
+- Stop routing the earlier Doomfist punch_contact prototype alongside this host;
+  keep its implementation and the existing Reinhardt Charge route. Suppress
+  control-period input without zeroing the delivered horizontal knockback.
+  The input_suppressed flag gates both newly queued and pending button presses,
+  and joins the passive component and enclosing server snapshot layout.
+- Retain the original21 Rocket Punch checks and shared combat fixture, adapting
+  only the fixture's Sombra import to the combined module name. All21 checks and
+  all13 existing runtime checks passed. The active enclosing server snapshot
+  probe additionally checks getter-free repeatability and dash-state causality.
+- Slams, Meteor, remaining passive/Uppercut and other-hero/NPC dependencies still
+  require reconciliation. Their delivered implementations remain preserved;
+  incomplete whole-line acceptance does not block this code submission. No
+  original-client acceptance, new gameplay feature or acceptance matrix claimed.
+
 ### Mount delivered Bastion Self-Repair and ultimate gates
 
 - Retain the original0153 repair sampler, bounded per-frame reports and0044

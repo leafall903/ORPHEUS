@@ -582,6 +582,8 @@ class BodyWorld(runtime.World):
 
     def skill_locked(self, state):
         controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if self.match is not None and self.match.combat.punches.controlled(state.instance.component.entity):
+            return True
         return controls is not None and not state.instance.component.strict and controls.blocked(state)
 
 
@@ -836,6 +838,17 @@ class BodyWorld(runtime.World):
                                and p.body == self.body and p.hero.guid == self.hero), None)
                 return Entity(player.entity) if player is not None else None
 
+        if (cfg.get("$") == "STU_021D01CD" and self.hero == 0x02E000000000012F
+                and self.match is not None and instance is not None):
+            from ow174.game.combat import aim
+
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            owner = next((p for p in self.match.players if p.has_body and p.body == entity), None)
+            if owner is not None:
+                return Vec3(*aim(owner.mover.yaw, owner.mover.pitch))
+            bot = next((b for b in self.match.bots if b.entity == entity), None)
+            if bot is not None:
+                return Vec3(*aim(round(bot.yaw), 0))
         if (cfg.get("$") == "STU_021D01CD" and instance is not None and instance.graph.index == 0x0257
                 and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
             player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
@@ -2054,6 +2067,8 @@ class BodyScript(ReplicatedBody):
             self.sleep_windows[-1] = low, min(high, end)
 
     def controlled_at(self, frame: int) -> bool:
+        if self.component.input_suppressed:
+            return True
         local = any(low <= frame < high
                    for windows in (self.control_windows, self.sleep_windows, self.frost_windows)
                    for low, high in windows)

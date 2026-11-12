@@ -415,6 +415,7 @@ class Player:
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
         fight = self.match.combat
+        command = fight.punches.command_input(self, command)
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
             return
@@ -479,15 +480,17 @@ class Player:
         if self.hero.guid == GENJI:
             self.genji_mobility.before_pose(self, command, seconds, driven=bool(requests))
         movement_end = None
+        punch = None if stunned or pulled else fight.punches.movement(self, command)
         retained = getattr(self, "valkyrie_pose", None)
         flight_profile = retained.profile if retained is not None and command.frame <= retained.through else None
-        charge_start = tuple(self.mover.position) if self.hero.guid in (
-            0x02E0000000000007, 0x02E000000000012F,
-        ) else None
+        charge_start = tuple(self.mover.position) if self.hero.guid == 0x02E0000000000007 else None
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
+        elif punch is not None:
+            outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
+            fight.punches.movement_result(self, outcome)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(
@@ -558,6 +561,7 @@ class Player:
         defer_effects: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
+        command = self.match.combat.punches.command_input(self, command)
         script = self.body_script
         if script is not None and command.frame <= script.frame and script.hero == moira.MOIRA:
             # A late movement pose cannot resample an ability on an already evaluated body frame.
