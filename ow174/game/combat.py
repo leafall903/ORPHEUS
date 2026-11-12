@@ -666,6 +666,7 @@ class Vitals:
         self.most = {HEALTH_POOL: float(health), ARMOUR_POOL: float(armour), SHIELDS_POOL: float(shields)}
         self.now = dict(self.most)
         self.adaptive_activation: tuple[int, int] | None = None
+        self.adaptive_until = 0
         self.ids = {}
         pool_id = 1
         for kind in (SHIELDS_POOL, ARMOUR_POOL):  # world.health numbers them so
@@ -3906,6 +3907,8 @@ class Combat:
         vitals = self.vitals.get(player.body)
         tag = moira.ADAPTIVE_SHIELD_TAG
         if state is None or not state.active:
+            if vitals is not None:
+                vitals.adaptive_until = 0
             if vitals is not None and (pool := vitals.extra.get(("adaptive", tag))) is not None and not pool.removed:
                 vitals.remove_temporary(("adaptive", tag))
                 self._sync_body_health(player, vitals)
@@ -3918,6 +3921,14 @@ class Combat:
         activation = (instance.id, state.counter)
         if vitals.dead or vitals.adaptive_activation == activation:
             return
+        vitals.adaptive_activation = activation
+        lifetime = _number(instance.vars[567].value(), 0.0) if 567 in instance.vars else 0.0
+        duration_ms = round(lifetime * 1000)
+        if duration_ms > 0:
+            deadline = (state.start + duration_ms) // script.frame_ms
+            vitals.adaptive_until = ball.world_tick_at_body(script, deadline)
+            if self._expire_adaptive_shield(player, vitals, self.tick):
+                return
 
         radius = _number(instance.evaluate(instance.graph.state(9).field("m_radius")), 0.0)
         origin = self._eye(player)
@@ -3930,9 +3941,18 @@ class Combat:
         )
         amount = _number(expr.evaluate(state.node.field("m_amount"),
                                       _AdaptiveShieldContext(instance, count)), 0.0)
-        vitals.adaptive_activation = activation
         if vitals.add_temporary(("adaptive", tag), tag, SHIELDS_POOL, amount, self.tick):
             self._sync_body_health(player, vitals)
+
+    def _expire_adaptive_shield(self, owner, vitals, tick):
+        if not 0 < vitals.adaptive_until <= tick:
+            return False
+        vitals.adaptive_until = 0
+        key = ("adaptive", moira.ADAPTIVE_SHIELD_TAG)
+        if key in vitals.extra and not vitals.extra[key].removed:
+            vitals.remove_temporary(key)
+        self._sync_body_health(owner, vitals)
+        return True
 
     def _npc_melee(self, state, *, health=False):
         """Host Trooper/Heavy's authored sphere with live capsules and cover."""
@@ -4412,6 +4432,8 @@ class Combat:
             for player in self.match.players:
                 self._advance_idle_protection(player)
                 winston.charge_world(player, self)
+                if player.hero.guid == ball.HERO and (vitals := self.vitals.get(player.body)) is not None:
+                    self._expire_adaptive_shield(player, vitals, at)
             self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()

@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
+
 ### Mount delivered Ball Fireball contacts on the same motion and impulse hosts
 
 - Consume original1203 high-speed search, capsule/cone/LOS,50 damage, pull/lift

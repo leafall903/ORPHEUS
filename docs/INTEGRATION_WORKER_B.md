@@ -778,16 +778,53 @@ alone is not evidence that a line's consumers are actually mounted.
   installing old numeric-only Vitals alongside it. Then owner spread/passive/
   charge and actual Minefield (ball_mines module currently lacks live manager).
 
+## B40 — Actual Ball epoch pair and world-only Adaptive expiry
+
+- Original source expiry floor(state.start+duration_ms)/frame_ms now maps with
+  actual constructor Ball.ball_birth=(match.tick,start_frame). Tuple never
+  rewrites on live input; new BodyScript gets its own actual pair. No generic
+  world_frame_anchor/lease enablement, guessed offset or protocol epoch reset.
+  Helpers use exact integer frame_ms/16ms arithmetic, first world tick reaching
+  the native body deadline. Grapple source upper limit maps into body domain.
+- Keep current actual tagged extra shield pool. Register adaptive_until on real
+  Vitals; clear only that same pool/tombstone at world expiry without advancing
+  body VM. Active source counter identity remains latched after expiry; source
+  stale admission is retained when an activation actually materializes.
+- Both strict exporter schemas register Ball-only ball_birth explicitly;
+  server schema registers adaptive_until. No unknown-field suppression.
+- worker-b-ball-clock-focused.log20/20: original same-domain world expiry,
+  replacement, actual Grapple launch and runtime17. Original stale first-command
+  fixture still sees adaptive_activationNone before state6 materializes; its
+  assertion remains unchanged. Followup probe also stayedNone/0shields/600HP,
+  so do not claim the stale activation branch fully verified.
+- Initial raw probe's unequal assertion failed because actual server FIRST_TICK
+  is1000 and normal birth(1004,1004); no patch/fake epoch used. Real raw commands
+  followed by raw HeroPick creates actual unequal pair(1012,1044). In
+  worker-b-ball-birth-shield-raw-storage-second.log actual world1053/body1085
+  grants175, expiresWorld1615. Actual server.tick(missed) plus UDP keepalives,
+  no body commands:175 before expiry,0/HUD600 at expiry, source frame/now frozen.
+  Active strict BodyVM/server exports pass; real adaptive_until mutation/restoral
+  changes/restores server digest. Real raw replacement creates(1615,1085) and
+  fresh Vitals; old retired pair unchanged; both strict exports still pass.
+- worker-b-ball-grapple-birth-bounds.log attempted real Sombra->new Ball applied
+  lock, but no lock acquired(KeyError); no fakeLock/window installed. Full
+  original aligned Grapple mechanics still pass focused case; actual cross-hero
+  lock acquisition/bounds remains next source integration work, not merely an
+  observer label. Do not wait for this entire boundary before saving expiry.
+- NEXT clean-sync latest root after this boundary. Then Ball source shield API/
+  passive/spread/charge and actual Minefield manager, and exact control/Hack/EMP
+  fixture consumers. Root owns original tools CLI intake; do not touch tools.
+
 ## Exact next work
 
-1. Commit B39 independent delivery, then clean-sync canonical. Continue source
-   Ball Adaptive Shield actual tagged pool world-only expiry/stale admission;
-   do not replace current Vitals/tagged shield host with original numeric-only
-   fields. Then original spread/passive/charge and actual Minefield manager.
-   Preserve Piledriver high-origin/descent/pull/steer numerical differences,
-   Fireball half-push11.0 boundary and historical-control clock gap. Full Ball
-   owner combat26 earlier audit retains6fail4errors, no completed-line claim.
-   Rein shared Brig/Shatter boundary remains parent-owned evidence audit.
+1. Commit B40 actual expiry/birth-pair saved boundary, then clean-sync latest
+   canonical. Continue source Ball shield API/passive/spread/charge and actual
+   Minefield manager. Cross-hero Hack/EMP lock acquisition and body-domain
+   historical bounds still need original consumer evidence; no fake windows.
+   Keep source stale first-command activationNone, Piledriver high-origin/pull/
+   steering and Fireball half-push11.0 expectations unchanged. No full-line claim.
+   Root owns original tools CLI; preserve tools and remaining Sigma original
+   fixtures for its actual CLI dependency audit.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
