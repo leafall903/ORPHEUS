@@ -8,7 +8,7 @@ from ow174.game import collision, contacts
 from ow174.game.collision import Ground
 from ow174.game.commands import Command
 from ow174.game.mover import IN_AIR, Mover, mover_data, loaded_mover_table
-from ow174.game.script import expr, graph, runtime
+from ow174.game.script import expr, graph, runtime, nodes
 
 MEI = 0x02E00000000000DD
 EPS = 1e-5
@@ -144,6 +144,7 @@ class Walls:
         self.combat = combat
         self.pieces: dict[int, Pillar] = {}
         self.inputs: dict[int, Input] = {}
+        self.anchors = {}
 
     def create(self, player, points, axis):
         from ow174.game.combat import TICK
@@ -309,19 +310,38 @@ class Walls:
             del bot.wall_mover
         return True
 
+    def anchor(self, body, piece, instance):
+        if piece is None:
+            self.anchors.pop(body, None)
+        else:
+            ability = next((state for state in instance.states.values()
+                            if isinstance(state, nodes.Ability)
+                            and state.flags & nodes.Ability.RUNNING), None)
+            if ability is not None:
+                self.anchors[body] = (piece.entity, ability)
+
     def remove(self, piece):
         if self.pieces.pop(piece.entity, None) is not None:
+            for body, (entity, ability) in tuple(self.anchors.items()):
+                if entity == piece.entity:
+                    self.anchors.pop(body)
+                    ability.stop()
+                    ability.instance.component.run_now()
             sentries = getattr(self.combat, "symmetra_sentries", None)
             if sentries is not None:
                 sentries.retire_supported_by(piece.entity)
 
     def retire(self, body):
         self.inputs.pop(body, None)
+        self.anchors.pop(body, None)
         for piece in tuple(self.pieces.values()):
             if piece.owner == body:
                 self.remove(piece)
 
     def update(self, tick):
+        for body, (_, ability) in tuple(self.anchors.items()):
+            if not ability.flags & nodes.Ability.RUNNING:
+                self.anchors.pop(body)
         for entity, piece in tuple(self.pieces.items()):
             if piece.expires <= tick:
                 self.remove(piece)
@@ -375,6 +395,14 @@ class Walls:
             if hit is not None and (best is None or hit[0] < best[0]):
                 best = hit[0], piece, hit[1]
         return best
+
+    def contact(self, origin, direction, reach, static_hit):
+        wall = self.cast(origin, direction, static_hit.distance if static_hit is not None else reach)
+        if wall is None or (static_hit is not None and wall[0] >= static_hit.distance):
+            return static_hit, None
+        distance, piece, normal = wall
+        point = tuple(x + d * distance for x, d in zip(origin, direction, strict=True))
+        return collision.RayHit(distance, point, normal, 0, 0), piece
 
     def flail_contacts(self, origin, direction, reach, minimum_alignment):
         from ow174.game.combat import _dot, _sub

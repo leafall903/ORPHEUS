@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Widowmaker Grapple cast, pull and Ice Wall anchors
+
+- Restore source000A STU_4BBC5D09 cast state, authored005A range/speed and
+  hit/miss outputs. Adapt the original static/pillar contact and active ability
+  anchor into current Walls; pillar removal stops the original grapple graph.
+  Explicit zero entity/bone MoveTo fields now reach the existing swept mover.
+  Preserve delivered terminal node93 reconstruction and its cooldown, plus the
+  current DVa move completion consumer. No second movement/combat manager.
+- Record GrappleCast.cast/RaycastResult and Walls.anchors in getter-free VM/server
+  snapshot layouts. Active cast export is stable/read-only and changes with its
+  stored travel time. Original grapple6 and pillar selection/removal2 pass;
+  original wall storage/expiry1 passes; shared Damage/runtime21 pass.
+- Keep complete original Ice Wall test module with only current Mei identity
+  and snapshot constructor fixture adapters. Remaining Venom/cross-owner checks
+  are preserved for later consumers; no whole000A completion claimed yet.
+
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
 - Preserve source000A primary/scoped authored critical defaults (2/2.5), effective

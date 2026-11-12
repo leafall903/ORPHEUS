@@ -163,7 +163,7 @@ FIELDS = {
     sigma_barrier.BarrierWorld: _names("hero mode barrier"),
     health_packs.PackWorld: _names("hero mode match entity"),
     orisa_barrier.Geometry: _names("world triangles source"),
-    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_wall.Walls: _names("combat pieces inputs anchors"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
@@ -274,6 +274,7 @@ OPTIONAL_FIELDS = {
 DATACLASSES = (
     combat_profiles.Profiles,
     sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
+    runtime.RaycastResult,
     hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,

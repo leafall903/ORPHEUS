@@ -5153,6 +5153,11 @@ class Combat:
             raise ValueError("Sonic profile must be mounted before active projectiles")
         self.sonic_profile = profile
 
+    def grapple_cast(self, state):
+        from ow174.game import widowmaker
+
+        return widowmaker.grapple_cast(self, state)
+
     def revealed_to(self, viewer, target) -> bool:
         """Read current team-scoped reconstructed reveal state."""
         from ow174.game import widowmaker
