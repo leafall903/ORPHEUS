@@ -268,3 +268,23 @@ per-arrow sonar metadata, impact beacon creation, tick refresh and viewer
 projection, then original dragon.py with launch/expiry/update consumers. No
 runtime inputs are generated or altered in this worker.
 A13 shared regression: test_script_runtime test_script_button_transitions test_reaper_shadow:31/31 passed under the root runtime-inputs-v1 profile.
+
+
+A13 committed `292e1cfa`. A14 mounts original sonic.py unchanged and its live
+shoot/impact/tick/reveal consumers, source-history birth and full storage. Root
+profile plus `ORPHEUS_HANZO_SONIC_PROFILE=../hero-lanes/0005/hanzo-sonic-profile.json`
+loads external inputs. Original13 Sonic Player tests passed:12 in
+worker-a-hanzo-sonic-player-second.log, remaining Fortify in
+worker-a-hanzo-sonic-fortify-final.log after compatibility query mount. AST
+omits only absent test_game_hanzo_npc top-level import, no assertions. Six Sonic
+cooldown checks pass in worker-a-hanzo-sonic-cooldown-final.log. Original
+five-definition lease test (32 slots, disjoint IDs, preserved old bases, u32
+clock and29-bit boundaries) is retained in test_game_hanzo_lease_delivery.py
+and passed. Original lease implementation mounted;42 current projectile and
+Bastion lifecycle checks pass in worker-a-hanzo-fifth-lease-regression.log.
+Sonic/cooldown/bow source test files retained unchanged. Range_left is original
+stored remaining path; range_limit bridges current nonlegacy analytic sweep.
+Next exact actions: mount dragon.py, initial034F manual0101 cast delivery,
+initial penetration and terminal Flight continuation, historical target poses,
+then source combat_profiles + CLI/lobby/GameServer startup/replay plumbing.
+No whole0005 completion claimed; no runtime input files changed.

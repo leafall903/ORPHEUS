@@ -18,6 +18,7 @@ from pathlib import Path
 
 from ow174.game import (
     hanzo_movement,
+    sonic,
     absorption,
     actors,
     baptiste,
@@ -130,7 +131,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "match vitals history replacement_ticks input_locks booster_contacts rockets sonic_profile sonars pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -266,6 +267,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    sonic.Profile, sonic.Beacon,
     hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,
