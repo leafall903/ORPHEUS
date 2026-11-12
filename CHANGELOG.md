@@ -13071,3 +13071,48 @@ forcevictim endpoint replay on soleKnockbacks with Rocket.source_entity frozen
 identity; self/unknown/C68ownPharah endpoint remains its actualinput path. B96
 receipts prevent laterphysical duplicate. Rootconfirmed this sourceownership
 boundary; earlierglobalendpointreserve was our inference, not a userconstraint.
+
+
+## B99 — restore foreign-force victim endpoint ownership
+
+Rootcorrected our earlierunfounded globalendpointreserve: originalgapfixture
+providesendpointrealcommand onlytoPharahshooter, notitsSombrarecipient. Preserve
+actualsource/victim ownership rather than leavingall recipientsoneposebehind.
+ExistingRocket.source_entity (notlive shooter.body or assumedsource_body) now
+flows through frozenplan application into sameKnockbacks.launch_sources metadata.
+ActualpositiveADD only; originalforcegeometry/scalars/physics/order unchanged.
+
+Knownforeign-source victims get endpointneutralpose on SAME normal_ticks loop,
+Player/Mover/acceptedreceipt path. Self/unknown earlyreturn unchanged. Pharah is
+NOT globallyexempt: onlyactualC68 ownselected state (actualacceptedairborne marker,
+pendingrelease/Barrage, orhoverrecovering consumer) keepsits existingendpoint
+path. RealforeignidlePharah with noownproducer is fullyreplayed. No newMotion,
+manager, guessedepoch, driver or wholehero specialcase to fakeSombrafixturegreen.
+
+ADD composes: firststill-unretiredknownforeign source is retained whenlater
+unknown/selfimpulses arrive, untilsameforce retires. Metadata doesnotclaim those
+laterADDs replacedtheexistingforce. Exactlaunch_sources storage/retire/targetdead/
+scriptstop cleanup added; B96receipts reject duplicatevictim pose/fire while
+actualshooterendpoint packet remains its originalC68 path.
+
+Originalprimary/concussive sourcefullmethod nowpasses6.954s: originalshot/health,
+>1m movement andbothplayers' EXACTpaced/gap pose comparisons unchanged. First
+joint original/currentforce/epoch/C68/serverstorage/runtime23/23 pass96.125s.
+Afterrootownership/multievent refinements, all5 targetedoriginal/foreignidlePharah/
+latevictimFIRE/sourceADDretention/actualC68owner tests pass11.449s; strengthened
+actualownJet+Barrage proof requiresacceptedforeignlaunchmarker andshows existing
+pharah.replay (notgenericdriver) advancesit, focused1pass1.821s. InitialnewownJet
+setup didnotactuallyactivateC68 state; replacedwithalready-proved actualC68launch
+helper, not production changes or weakerownership assertions. Logs worker-b-force-
+endpoint-{mounted,joint,ownership-corrected,selected-owner}.log. No original
+numericassertions changed, no clientacceptance.
+
+The priorconfirmedforceendpoint gap is nowresolved by actualforeigninputownership,
+not relabelledobserver. B96closesgenericbodyepoch/receipt prerequisites. B97source
+secondcontrollerSDK andB98toolfixture/tagprovider consumers delivered separately;
+A106/root retainremainingstaticNPCtool API/primarySniper scopes. Bsixowneractual
+signatures inB96 remainvalid; withinthisboundedowner audit there is now NO further
+confirmedunmountedproductionconsumer. Legacyfullsource numeric/arena/resource/
+SDKdefaultbackend conflicts andclienttransport verification are separate tails,
+not code-delivery gates. Nextexactaction: finalstrictSDKarg boundary review and
+reportboundedclosure to root; do not manufactureadditionalfeatures or matrice(s).

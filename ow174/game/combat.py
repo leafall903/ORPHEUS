@@ -4991,6 +4991,8 @@ class Combat:
                 self._respawn_retained_owners(
                     retained_owners, sentry_damage_starts, allocation_clock,
                     sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
+            if at == tick:
+                self.knockbacks.replay_launches(at, TICK, endpoint=True)
             if at < tick:
                 self.knockbacks.replay_launches(at, TICK)
                 pharah.replay(self, at, TICK)
@@ -8720,7 +8722,7 @@ class Combat:
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
         if blast is None or (blast.amount <= 0.0 and not (accretion and blast.source_impulse_scale)):
             if pharah:
-                self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
+                self._apply_pharah_impulses(pharah_impulses, source_entity=rocket.source_entity, protected=set(protected) | set(broken_particle_barriers or ()))
             if ice is not None:
                 self.walls.damage(ice[1], rocket.shooter, ice_damage * wall_scale, team=rocket.team,
                                   source_scaled=wall_source_scaled, source_body=rocket.source_body)
@@ -8866,7 +8868,7 @@ class Combat:
                     )
 
         if pharah:
-            self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
+            self._apply_pharah_impulses(pharah_impulses, source_entity=rocket.source_entity, protected=set(protected) | set(broken_particle_barriers or ()))
 
     def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None,
                          normal=(0.0, 0.0, 0.0), defer=False):
@@ -8926,10 +8928,10 @@ class Combat:
             impulse = (dx * scale, upward, dz * scale)
             impulses.append((target, impulse))
         if not defer:
-            self._apply_pharah_impulses(impulses, protected=protected)
+            self._apply_pharah_impulses(impulses, source_entity=rocket.source_entity, protected=protected)
         return tuple(impulses)
 
-    def _apply_pharah_impulses(self, impulses, *, protected=()):
+    def _apply_pharah_impulses(self, impulses, *, protected=(), source_entity=None):
         for target, impulse in impulses:
             if target.entity in protected or self.vitals_of(target).dead:
                 continue
@@ -8941,7 +8943,7 @@ class Combat:
             else:
                 applied = target.owner.mover.add_impulse(impulse, self.tick)
                 if any(applied):
-                    self.knockbacks.record_launch(target)
+                    self.knockbacks.record_launch(target, source_entity=source_entity)
 
     def _pharah_source_impulse_path(self, origin, target, shooter):
         """Delivered source prediction independently tests middle and nearest sight points."""

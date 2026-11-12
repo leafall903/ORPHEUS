@@ -62,6 +62,7 @@ class Knockbacks:
         self.serial = 0
         self.active: dict[int, Mover] = {}
         self.launches: dict[int, int] = {}
+        self.launch_sources: dict[int, int | None] = {}
         self.body_epochs: dict[int, tuple] = {}
         self.replayed_frames: dict[int, tuple] = {}
         self.whole_hog_seen = {}
@@ -129,6 +130,7 @@ class Knockbacks:
         if previous is not None and (script is None or previous[0] is script):
             self.body_epochs.pop(entity, None)
             self.launches.pop(entity, None)
+            self.launch_sources.pop(entity, None)
             self.replayed_frames.pop(entity, None)
 
     def replayed_pose(self, player, frame):
@@ -152,16 +154,22 @@ class Knockbacks:
         at, frame = pair
         return frame + (tick - at) * round(dt * 1000) // script.frame_ms
 
-    def record_launch(self, target):
+    def record_launch(self, target, *, source_entity=None):
         """Retain an accepted player impulse on this same physical host."""
         from ow174.game import bots
         if not isinstance(target.owner, bots.Bot):
             self.launches[target.entity] = self.combat.tick
+            source = source_entity if type(source_entity) is int and expr.valid_entity(source_entity) else None
+            previous = self.launch_sources.get(target.entity)
+            # ADD composes with the live force. A later unknown/self event cannot
+            # revoke a still-unretired foreign victim's endpoint ownership.
+            if previous is None or previous == target.entity:
+                self.launch_sources[target.entity] = source
 
     def replay_until(self, previous):
         return previous + REPLAY_LIMIT if self.launches else previous
 
-    def replay_launches(self, tick, dt):
+    def replay_launches(self, tick, dt, *, endpoint=False):
         """Original neutral missing-pose consumer, using declared epoch anchors."""
         from ow174.game.projectiles import MAX_LEASE_FRAME
         fight, match = self.combat, self.combat.match
@@ -177,12 +185,24 @@ class Knockbacks:
                 target = targets.get(entity)
                 if target is None or not match._shown(target.owner) or fight.vitals_of(target).dead:
                     self.launches.pop(entity, None)
+                    self.launch_sources.pop(entity, None)
                     continue
                 player = target.owner
                 script = player.body_script
                 if script is None or script.retired:
                     self.launches.pop(entity, None)
+                    self.launch_sources.pop(entity, None)
                     continue
+                if endpoint:
+                    source = self.launch_sources.get(entity)
+                    if source is None or source == entity:
+                        continue
+                    from ow174.game import pharah
+                    own_pharah = script.hero == pharah.HERO and (
+                        entity in fight.pharah_airborne or pharah.pending_release(script)
+                        or pharah.hover_recovering(script))
+                    if own_pharah:
+                        continue  # Preserve an actually selected C68 action, not every Pharah body.
                 frame = self.body_frame(player, tick, dt)
                 if frame is None or frame > MAX_LEASE_FRAME:
                     continue  # No equal-epoch or stale receipt-frame assumption.
@@ -198,6 +218,7 @@ class Knockbacks:
                         history[-1] = at, tuple(mover.position), *shape
                 if not mover.airborne and not any(mover.velocity) and not mover.velocity_changes:
                     self.launches.pop(entity, None)
+                    self.launch_sources.pop(entity, None)
         finally:
             match.tick, fight.tick, fight.now = scheduled
 
@@ -446,6 +467,7 @@ class Knockbacks:
 
     def retire(self, entity, *, forget=True):
         self.launches.pop(entity, None)
+        self.launch_sources.pop(entity, None)
         self.retire_whole_hog(entity, forget=forget)
         if forget:
             self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
