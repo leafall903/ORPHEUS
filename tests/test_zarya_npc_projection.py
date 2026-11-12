@@ -115,10 +115,15 @@ class ZaryaNpcProjectionTests(unittest.TestCase):
         self.assertIsNotNone(pet)
         self.assertIs(pet.recipient_component, recipient.body_script.component)
         self.assertIs(symmetra_turrets._single_replay_projection(fight), recipient)
+        self.assertIsNot(recipient.body_script.component.world.weapon_buttons,
+                         recipient.body_script.controller.world.weapon_buttons)
         before = snapshot_digest(helper.capture(session))
-        pet.vitals.damage(1)
+        # Perturb stored health alone; damage/heal also retain wire/credit history.
+        pool = next(key for key, value in pet.vitals.now.items() if value > 0)
+        original_health = pet.vitals.now[pool]
+        pet.vitals.now[pool] -= 1
         self.assertNotEqual(snapshot_digest(helper.capture(session)), before)
-        pet.vitals.heal(1)
+        pet.vitals.now[pool] = original_health
         self.assertEqual(snapshot_digest(helper.capture(session)), before)
         original = pet.recipient_component
         pet.recipient_component = caster.body_script.component
