@@ -394,7 +394,7 @@ class InstanceContext(Context):
 
         component = self.instance.component
         if (not component.strict and self.instance.graph.index == 0x0B8B
-                and getattr(component.world, "hero", None) == 0x02E00000000001CA
+                and getattr(component.world, "hero", None) in (0x02E0000000000003, 0x02E00000000001CA)
                 and getattr(component.world, "body_definition", None) is not None
                 and getattr(component.world, "match", None) is not None
                 and cls == "STU_F7262B36"

@@ -24,6 +24,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+### Reuse the NPC driver for proven frozen sentry history
+
+- Mount original bounded no-support frozen-lock proof through the existing
+  Match NPC/combat tick loop. Historical frost reads use the recorded frame;
+  current navigation/control/mover ownership stays intact.
+- All five actual Mei-freeze/Sentry/NPC producers match89 normal ticks to one
+  skipped update; the prior empty admission loses25 beam ticks. Original31
+  Frost/Sentry/Damage methods pass; old optional-NPC-mover fixture errors remain.
+- Observe barrier removals from final Torb turret attacks before beam settlement.
+  Ice-support/projected-impact/phase/respawn history consumers remain partial.
+
+### Preserve original Flux receiver terminals and five-NPC source checks
+
+- Original1DBC terminal actions3/5/45/61 now destroy that exact receiver on its
+  non-strict Match host; generic stop-event behavior remains for other resources.
+  This repairs the Heavy6601 early-exit branch exposed by actual NPC input.
+- Restore original Flux placement/targets/actor-point modules and full Sigma
+  fixture, retaining985 original assertions after namespace/mover-name mapping.
+  Unrelated missing Symmetra imports stay in their original using methods.
+- Six actor-point checks pass. Original five-NPC test now reaches correct Heavy
+  early exit; four other bodies lift and land but retain their existing shared
+  impulse mover, conflicting with old dedicated-mover None assertions. Those
+  assertions and the dependent final count remain unchanged. No client run.
+
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the
@@ -126,6 +150,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   v18 remains candidate pending actual NPC admission; no client acceptance run.
 
 
+### Restore original sleep view owner queries and authored delay
+
+- Existing strict224E sampler now reads the actual owner's yaw/pitch; sampling
+  follows original Wait29 and retains the initial hit clock after wake shortening.
+  Preserve existing unknown-parent checks and avoid a second sampler world.
+- Real Dart4 cases cover default/explicit authored wait, early damage, continued
+  view hold and exact wake release. Two methods pass; an older Moira fixture's
+  tick-versus-seconds deadline expectation remains unchanged and recorded.
+
 ### Deliver original manual Assassin effects to the real player controller
 
 - Original declared target-filter provider, paired native queries and PlayScript
@@ -210,6 +243,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   while recipient body clocks remain unchanged. Original70:68pass, two retained
   snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
   remaining owner consumer inventory and rough activehours persisted.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 
 ### Preserve controller Pin services in causal server storage
 
@@ -10341,3 +10385,25 @@ blocking delivery on these preserved old boundary assertions.
 ### Tank owner consumer convergence audit
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
+
+## A72 — Tracer authored damage-tag and charge entry reconciliation
+
+Restored original0003 damage credit through the existing sole `ultimate_charge`
+012/0B8B host, carrying actual resolved loss, recipient and original hit tags.
+Tracer is excluded from the generic points-only fallback, so Pulse contact5 and
+blast350 retain their original excluded-tag semantics. Original common-body
+node39 capability preparation runs before accepted Tracer frames and damage;
+existing false2426 is preserved. The original passive owner query is scoped to
+Tracer0B8B and delegated before the typed controller provider, preserving normal
+60-second policy vs explicit zero passive override. No second charge graph,
+manual suppression constant, new snapshot field or Flux lifecycle change.
+
+Original focused checks: six/six pass7.293s, covering passive5/s and cap, passive
+restart before Pulse retirement, excluded contact/blast, ordinary resolved pistol
+loss/cap, original72-point multipliers and2426 gate. Prior standalone actual
+armour/shield loss also passed. Log `worker-a-tracer-charge-source-six.log`.
+The old worker tree cannot import original Flux fixture due to missing old
+sigma_accretion dependency; root reports its current fixture is already adapted.
+Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
+TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
+All original assertions/failures retained. No client session/network/publication.

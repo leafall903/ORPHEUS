@@ -1492,3 +1492,34 @@ Absorb explicit stablead673b00 before pair implementation, retaining C43/C44 bod
 - Original4 active methods passed10.333s without skips/assert changes: default manual effect creation/wire/release, contact25 then delayed100/s lethal, no replacement rate transfer, and strict full request then missing submission rejection. Env: v18 plus ORPHEUS_PVE_CONTROLLER_EXTENSION=original0200/ashe-parent-navigation-prepared-entities.json.gz (fixture gate only) and ORPHEUS_CAPTURED_CONTROLLER_PRESENCE=original0200/assassin-captured-presence-native-validation.json. worker-a-assassin-recipient-core.log. Shared real manual/no-duplicate test + entity filter + Match effects17/17 passed4.748s (worker-a-assassin-recipient-shared.log).
 - Actual full GameServer active pair reached HP174.30000001192093; exactly one controller1177, no body1177. Whole-server actual ctx position mutation changed/restored digest with foreign watchers/effect services active, worker-a-assassin-active-pair-storage.log. No older exporter or fake observer needed.
 - Next exact small boundary: original authored224E Wait29 delay into existing BodyWorld sleep-view sampler, then shared-task/nine-owner handoff to root. Root has reserved0068 Zarya for subsequent task; do not start until handoff confirmation.
+
+## A71 - original224E sleep view queries and authored sampling clock
+
+- Deeper actual probe corrected the initial path-only mapping: existing BodyWorld.sample_sleep_view ran224E node30->34 but lacked original_ViewWorld's STU_CC53F52B/7BE6D76D yaw/pitch native queries, so strict sampling returnedNone. Restore those exact owner-pose reads inside the existing BodyWorld, scoped to224E/self body/actual Match player. Keep current unknown-parent/Pin rejection and existing LinkedTarget sleep implementation. Do not copy a second_ViewWorld or sleep manager.
+- Original sleep_view.delay_ticks now maps to Combat._update_sleep_view reading actual224E/node29.m_timeout.m_value. Real early damage also exposed lost original start: shortened sleep_until caused sampling after1tick instead of the authored wait once native reads worked. Recover initial hit tick from the existing immutable sleep_wake_floor minus its original floor duration. No new sleep state/clock added.
+- New actual Dart regression: original.15 and explicit authored.32 waits, each with/without early real damage; view remains unset before boundary, captures actual owner yaw/pitch at boundary, holds through actual sleep_until tick and releases exactly then.2methods/4cases passed19.017s, worker-a-sleep-view-clock-release.log. Earlier actual missing query/shortened-start evidence worker-a-sleep-view-sampler-baseline.log and worker-a-sleep-shortened-start-baseline.log.
+- Original MoiraSleep view method's sampling/initial lock checks now pass, then it fails its unchanged while loop after real wake: cast returns integer sleep_until tick but loop compares fight.now seconds against it. Preserve this source fixture unit conflict/expectations, not a runtime view-hold gap. worker-a-sleep-view-authored-clock.log records initial2pass/1originalfail.
+- Full source-path mapping: original_ViewWorld.native -> current BodyWorld.native exact two owner queries; original unparented sample -> existing linked_target_sample/strict224E node34; sample() -> existing BodyWorld.sample_sleep_view actual Match world; delay_ticks() -> current Combat's authored Wait29 query. All original functionality has consumers without adding the absent source file/duplicate host.
+- Next root-requested final0003 Pulse direct5+blast350 ultimate-charge policy audit, then nine-owner/shared000E final handoff;0068 Zarya waits for root handoff confirmation.
+
+## A72 — Tracer authored damage-tag and charge entry reconciliation
+
+Restored original0003 damage credit through the existing sole `ultimate_charge`
+012/0B8B host, carrying actual resolved loss, recipient and original hit tags.
+Tracer is excluded from the generic points-only fallback, so Pulse contact5 and
+blast350 retain their original excluded-tag semantics. Original common-body
+node39 capability preparation runs before accepted Tracer frames and damage;
+existing false2426 is preserved. The original passive owner query is scoped to
+Tracer0B8B and delegated before the typed controller provider, preserving normal
+60-second policy vs explicit zero passive override. No second charge graph,
+manual suppression constant, new snapshot field or Flux lifecycle change.
+
+Original focused checks: six/six pass7.293s, covering passive5/s and cap, passive
+restart before Pulse retirement, excluded contact/blast, ordinary resolved pistol
+loss/cap, original72-point multipliers and2426 gate. Prior standalone actual
+armour/shield loss also passed. Log `worker-a-tracer-charge-source-six.log`.
+The old worker tree cannot import original Flux fixture due to missing old
+sigma_accretion dependency; root reports its current fixture is already adapted.
+Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
+TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
+All original assertions/failures retained. No client session/network/publication.

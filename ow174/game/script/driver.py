@@ -1019,6 +1019,16 @@ class BodyWorld(runtime.World):
                 result = resolve(self, cfg, instance)
                 if result is not NotImplemented:
                     return result
+
+        if (self.match is not None and instance is not None and instance.graph.index == 0x224E
+                and cfg.get("$") in ("STU_CC53F52B", "STU_7BE6D76D")):
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.EVALUATION_FAILED)
+            if expr.to_entity(value) == self.body:
+                player = self.match.script_player_body(self.body, self.body)
+                if player is not None:
+                    units = player.mover.yaw if cfg["$"] == "STU_CC53F52B" else player.mover.pitch
+                    return expr.f32(units * (360.0 / 65536))
+            return expr.EVALUATION_FAILED
         if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
                 and instance.graph.index == 0x1513 and not instance.component.strict):
             value = instance.graph.node(45).field("m_value")
@@ -1105,6 +1115,17 @@ class BodyWorld(runtime.World):
                 point = self.match.script_body_position(entity, self.body)
                 if point is not None:
                     return point
+
+        if (self.hero == 0x02E0000000000003 and self.match is not None and instance is not None
+                and instance.graph.index == ultimate.CHARGE_GRAPH and cfg.get("$") == "STU_F7262B36"):
+            # Original Tracer0B8B uses this as its passive-owner eligibility query.
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_801B298F")))
+            owner = next((player for player in self.match.players
+                          if player.has_body and player.body == entity), None)
+            script = getattr(owner, "body_script", None)
+            return (entity == self.body and script is not None
+                    and script.component is instance.component and not script.component.owner_dead
+                    and script.ult_seconds == ULT_SECONDS)
 
         if instance is not None and instance.graph.index == ultimate.CHARGE_GRAPH and ultimate.practice_timer(self):
             result = ultimate.tagged_damage_query(self, cfg, instance)
@@ -1244,7 +1265,7 @@ class BodyWorld(runtime.World):
         if charge is not NotImplemented:
             return charge
         cls = cfg.get("$")
-        if (self.hero == barrier.REINHARDT and instance is not None
+        if (self.hero in (0x02E0000000000003, barrier.REINHARDT) and instance is not None
                 and instance.graph.index == ULT_GAIN_GRAPH
                 and cls in ("STU_AC829876", "STU_A58C1E63")):
             from ow174.game.ultimate_charge import match_admission
@@ -2512,7 +2533,7 @@ class BodyScript(ReplicatedBody):
         if authored_symmetra:
             symmetra_charge.sync(self)
 
-        if self.hero == barrier.REINHARDT and self.world.match is not None:
+        if self.hero in (0x02E0000000000003, barrier.REINHARDT) and self.world.match is not None:
             enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
             if enabled is None or enabled.value() is None:
                 common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)

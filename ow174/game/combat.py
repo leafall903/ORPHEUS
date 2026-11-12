@@ -2533,8 +2533,14 @@ class Combat:
         vitals = self.vitals.get(player.body)
         if vitals is None or not self.is_asleep(player) or vitals.sleep_view is not None:
             return
-        start = vitals.sleep_until - SLEEP_TICKS
-        if self.tick < start + math.ceil(0.15 / TICK) or player.body_script is None:
+        definition = graph.graph(0x224E)
+        if definition is None or player.body_script is None:
+            return
+        # Wake recovery can shorten sleep_until; the stored floor retains the
+        # actual hit tick. Wait29 still schedules this same authored view branch.
+        start = vitals.sleep_wake_floor - SLEEP_WAKE_FLOOR_TICKS
+        delay = math.ceil(definition.node(29).field("m_timeout.m_value") / TICK)
+        if self.tick < start + delay:
             return
         vitals.sleep_view = player.body_script.world.sample_sleep_view()
 
@@ -2761,7 +2767,6 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
-        self.hooks.cancel_owner(target.entity)
         from ow174.game import sigma_flux
 
         sigma_flux.interrupt_flux_lift(self, actor)
@@ -2769,6 +2774,8 @@ class Combat:
             from ow174.game import sniper_retreat
 
             sniper_retreat.interrupt(actor)
+
+        self.hooks.cancel_owner(target.entity)
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
             self.ball_contacts.pop(actor.body, None)
@@ -4397,6 +4404,24 @@ class Combat:
             if not (visor or recovery or windup or passive):
                 break
 
+    def frozen_sentry_replay(self, tick):
+        """Admit the delivered bounded frozen lock through the existing NPC driver."""
+        from ow174.game import cryo
+
+        freeze_ticks = math.ceil(mei.FREEZE_MS / round(TICK * 1000))
+        if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
+            return ()
+        if (self.respawns or self.photon_barriers.actors or self.barriers.world.actors
+                or self.blizzard.areas or self.walls.pieces
+                or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
+                       for barrier in self.barriers.scripted.values())
+                or any(cryo.active(player) for player in self.match.players)
+                or any(bot.firing or bot.impulse_mover is not None for bot in self.match.bots)):
+            return ()
+        # Ice-support/projected-impact proofs remain in the delivered owner
+        # module; admit them only after their original service consumers map.
+        return self.sentries.frozen_history_candidates(tick)
+
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
         other players' body frames only on the ticks that send (`frames`)."""
@@ -4419,6 +4444,19 @@ class Combat:
         old_photon = tuple(self.photon_barriers.actors.values())
         old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
                             for actor in self.barriers.world.actors.values())
+        def observe_sentry_cover_ends():
+            nonlocal old_photon, old_spheres
+            for actor in old_photon:
+                if self.photon_barriers.actors.get(actor.source_body) is not actor:
+                    photon_cover_ends.append((actor, min(self.now, now - (tick - actor.expires) * TICK)))
+            for actor, expiry in old_spheres:
+                if self.barriers.world.actors.get(actor.entity) is not actor:
+                    ended = self.now if expiry is None else min(self.now, now - (tick - expiry) * TICK)
+                    sphere_cover_ends.append((actor, ended))
+            old_photon = tuple(self.photon_barriers.actors.values())
+            old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
+                                for actor in self.barriers.world.actors.values())
+
         dragon_poses = self._dragon_gap_poses(tick)
         orisa_fortify.rebase_fortify(self, tick)
         self.echo_duplicates.update(now)
@@ -4624,16 +4662,7 @@ class Combat:
             if at != tick and self.baptiste.fields:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
-            for actor in old_photon:
-                if self.photon_barriers.actors.get(actor.source_body) is not actor:
-                    photon_cover_ends.append((actor, min(self.now, now - (tick - actor.expires) * TICK)))
-            for actor, expiry in old_spheres:
-                if self.barriers.world.actors.get(actor.entity) is not actor:
-                    ended = self.now if expiry is None else min(self.now, now - (tick - expiry) * TICK)
-                    sphere_cover_ends.append((actor, ended))
-            old_photon = tuple(self.photon_barriers.actors.values())
-            old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
-                                for actor in self.barriers.world.actors.values())
+            observe_sentry_cover_ends()
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -4644,6 +4673,7 @@ class Combat:
                 player.body_script.orisa_fortify_pending = False
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
+        observe_sentry_cover_ends()
         self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends)
         self.portals.update()
         self.projectiles.update(tick, first_tick=field_first)
@@ -9665,7 +9695,7 @@ class Combat:
                 charge.damaged(script, target.entity, dealt, damage_charge, frame=frame,
                                extra=max(0.0, dealt - base) if boost_credit is not None else 0.0)
 
-            if award_ult and enemy and current_source and hero == 0x02E0000000000007:
+            if award_ult and enemy and current_source and hero in (0x02E0000000000003, 0x02E0000000000007):
                 from ow174.game import ultimate_charge
 
                 ultimate_charge.damage(shooter, target, dealt, hit_tags)
@@ -9676,7 +9706,7 @@ class Combat:
                 mei_ultimate.grant(shooter, dealt, loadout=loadout)
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007)
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
