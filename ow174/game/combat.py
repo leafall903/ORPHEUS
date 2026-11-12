@@ -4782,13 +4782,27 @@ class Combat:
 
 
     def body_health(self, entity):
-        vitals = self.vitals.get(entity)
-        if vitals is not None:
-            return vitals.total, vitals.maximum
+        """Read delivered component51 lifetimes without allocating a pool."""
+        owner = next((player for player in self.match.players
+                      if not player.gone and player.has_body and player.body == entity), None)
+        if owner is None:
+            owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
+        if owner is None:
+            owner = self.deployables.get(entity)
+        if owner is not None:
+            vitals = self.vitals.get(entity)
+            if vitals is not None:
+                return vitals.total, vitals.maximum
+            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+                       else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
+            return float(maximum), float(maximum)
+        if (entity == world.GAME_MODE_ENTITY
+                or any(not p.gone and p.entity == entity for p in self.match.players)):
+            return 0.0, 0.0
         for actor in self.sigma_barriers.values():
             if actor.entity == entity:
                 return actor.vitals.total, actor.vitals.maximum
-        return NotImplemented
+        return None
 
     def heal_target(self, healer, entity, amount, frame, *, allow_self=False, tags=None):
         if (amount <= 0 or (entity == healer.body and not allow_self)

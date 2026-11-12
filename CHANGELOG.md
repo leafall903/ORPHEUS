@@ -8018,3 +8018,18 @@ client operations performed. Whole nonappearance integration remains active.
   parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
   Orisa input skips before availability fix), and
   parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
+
+
+### Restore original read-only health-query lifetimes
+
+- Restore source013B Combat.body_health live player/NPC/controller/mode and
+  missing-entity behavior in place of the partial combined cache-only lookup.
+  Keep current Sigma and actual Deployable pools, preserve current maximum
+  aggregation, and do not allocate Vitals while reading missing cached state.
+  Departed/replaced bodies return native lookup failure instead of falling
+  through to compatibility null; active bodies without a client remain readable.
+- Original health/controller queries, Genji passive, owner query guards, fold
+  and runtime80 checks all pass. Both previously preserved Ana leave subcase
+  failures now pass unchanged. Evidence:
+  parallel-root-restored-health-query-check.log. No source assertion modified,
+  no second pool/manager or new game feature. Remaining batches continue.
