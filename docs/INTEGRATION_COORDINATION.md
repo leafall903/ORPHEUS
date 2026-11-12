@@ -614,3 +614,13 @@ surfaces/owners; C: Photon Q/plane/mesh, then Blizzard/Cryo history and remainin
 owners. C is explicitly authorized one narrow existing navigator partial-slow
 bridge, preserving its mover/clock/control path. Root retains NPC snapshot and
 full original source/language integration audit. All three workers persist.
+
+
+Root frozen ee3f30ba joint31622 is now terminal:83run82pass, one preserved
+Mine/Fortify float residual67.00000286102295 vs66.99999928474426 (3.576e-6),
+45.656s, no skips. New Mine, multi-source Frost, Punch, runtime, damage and
+four original shield splash consumers execute together. No original assertion
+or rounding precision changed. Root has no live tests or code WIP; all ready
+batches are committed and the three workers continue. NPC controller snapshot
+registration remains the next concrete root integration task; overall goal
+is active and incomplete.
