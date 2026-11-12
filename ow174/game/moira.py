@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 
-from ow174.game import absorption, bots, combat, deflection, sigma_barrier, stats
+from ow174.game import absorption, actors, bots, combat, deflection, sigma_barrier, stats
 from ow174.game.script import entity_filter, expr, nodes, runtime
 from ow174.game.script.target_volume import Volume
 
@@ -700,7 +700,7 @@ def _grasp_contact(fight, player, command, search):
         if shown is None or not volume.capsule(shown.feet, shown.radius, shown.height)[0]:
             continue
         owner = target.owner
-        definition = owner.body if isinstance(owner, bots.Bot) else owner.hero.body
+        definition = owner.body if isinstance(owner, (bots.Bot, actors.Deployable)) else owner.hero.body
         tags = catalog.get(definition)
         if tags is not None:
             static = entity_filter.TagSet(static=(tag & 0xFFFFFFFF for tag in tags))
