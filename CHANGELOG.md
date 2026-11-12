@@ -9368,3 +9368,7 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 
 - Restore original BOB frontal/carry/opposing-charge semantics in existing Heavy1408/1407 Combat consumers and stop cleanup, using the same actual BOB mover. Preserve Player routing and original source victim selection.
 - Actual carry/wall300HP/release, stop, hero replacement and opposing pass/Player capture probes passed; NPC control/runtime/Bob52/52 passed. Preserve complete original BOB-NPC fixture and remaining API/lateral/status audit.
+
+### Worker A51 - preserve original assertions across integrated API bindings
+
+- Point original Viper ray spies, damage-tag spies and Coach helper check at actual combined signatures/locations; preserve every expected numeric/tag/hash value and comparison. Original spread/Dynamite/pattern24/24 passed.
