@@ -1991,7 +1991,8 @@ class Match:
         return None
 
     def switch_hero(
-        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None
+        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None,
+        preserve_ultimate: bool = False,
     ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
@@ -2053,6 +2054,9 @@ class Match:
             elif hero.guid == hero_torbjorn.HERO:
                 overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
                 turret_cooldown = max(0.0, player.turret_cooldown_until - self.combat.now)
+            if player.hero.guid == 0x02E000000000012E:
+                self.combat.sombra_charge.prepare_retirement(
+                    player, preserve_ultimate and player.hero.guid == hero.guid)
             self.combat.retire_player_body(player, next_hero=hero.guid)
             if old_hero == 0x02E0000000000007:
                 self.stop_body_script(player)

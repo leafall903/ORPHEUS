@@ -785,3 +785,23 @@ stored value in both exporters. Actual Phase2 supports this override already;
 no new runtime behavior or arbitrary dataclass admission. Actual40tick Assassin
 sample test26721 terminal1pass19.514s: flags causal in VM/server, restore exact,
 getter guarded, unknown field rejected. Root has no live tests after that run.
+
+
+C36 original22972db0 is now integrated with exact original Sombra-only0B8B
+charge, existing multipliers/cap/tags, active EMP suppression, profile pause and
+same-hero respawn retention. Other hero ultimate owners remain their original
+current services; generic Sombra award is excluded only when original host is
+enabled with actual input. Root resolved snapshot import preserving both
+assassin_movement.Sample and new Sombra host, retaining all prior fields.
+
+Root review caught delivered _run indentation placing charge.sync/component
+run outside the ordinary branch. It is corrected before merge commit: existing
+Mercy scope_host remains the sole runner, Sombra sync wraps only ordinary
+component.run_frame. Worker C confirmed the defect and will absorb this root
+fix. Frozen root13084 is terminal32pass62.098s, comprising selected original
+natural/pistol/respawn/full stored charge plus Mercy regeneration, Genji passive
+and runtime. No numeric assertion changed. Four original world-only Sombra
+charge/recovery checks are not claimed complete; C37 actual replay still pending.
+Original main e1128509 is verified ancestor. Fresh original-language extension
+audit finds zero missing C/C++/C# source paths across32 delivered source trees;
+external original C#/C++ tool repositories were separately verified clean.

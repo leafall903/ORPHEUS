@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Mercy scope execution during Sombra charge integration
+
+- Keep original Sombra charge sync inside the ordinary component-run branch;
+  Mercy retains its existing sole scope host runner. Root caught and corrected
+  the delivered indentation error before receiving this implementation batch.
+- Selected original Sombra natural/damage/respawn/stored-state checks plus Mercy
+  regeneration, Genji passive and runtime all32 pass62.098s. Original Sombra
+  world-gap replay consumers remain pending, without blocking this code merge.
+
 ### Preserve original Assassin movement samples in strict stored snapshots
 
 - Register original immutable movement Sample flags/axis in the two existing
@@ -68,6 +77,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Depends on C35 original4f866474; worker-local duplicate1ba85a31 is not another
   delivery. Body/world historical clock mapping remains explicit pending work.
   Fireball/Minefield and full Ball/client acceptance remain open.
+### Mount original Sombra authored charge on its existing shared graph
+
+- Connect original012E natural0B8B cadence, resolved damage/tag admission,
+  multipliers/cap, active-EMP suppression, debug pause and same-hero respawn
+  retention in a Sombra-only host. Preserve current Reinhardt/Genji/Roadhog and
+  other owner charge hosts; prevent generic Sombra double credit when selected.
+- Select original ultimate-context data through the explicit prepared profile;
+  reuse real player controller/body records. Keep original optional
+  preserve_ultimate=False API alongside current pose/frame options, supplying
+  True only for Sombra automatic respawn.
+- Original Sombra core11 pass42.025s; first full player15 retained four missing
+  world-replay cases for the following batch. Shared Genji/Symmetra/runtime39
+  active checks pass; additional Orisa/Torb17 pass5original NPC-data skips.
+  Original constants/expectations remain unchanged; full NPC fixture imports
+  and accepted world-only replay remain open, not a submission gate.
 
 ### Retain actual Sombra skill-lock history for original Grapple queries
 

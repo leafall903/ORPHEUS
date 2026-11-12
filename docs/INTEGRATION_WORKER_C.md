@@ -1252,3 +1252,93 @@ consumer. Then world-only Translocator throw/recall/lifetime, orphaned incoming
 applications and actual Portals/Sentry/Torb device consumers. Pending original
 Sombra generic .hacks fixture names must adapt to actual Controls.locks if only
 observers; no alias manager and no claim absence solely from old import/attr.
+
+C35 SHA4f866474 delivered; B38/root accepted. Continue C36 without waiting for
+C37 world replay or full acceptance. Root owns missing original tools CLI; C has
+no tools WIP. Candidate v14 selects immutable original ultimate/translocator data.
+
+C36: original Sombra0B8B charge service
+--------------------------------------
+Relevant original012E ultimate_charge.UltimateCharge methods are mounted as
+sombra_charge.Charge / fight.sombra_charge: enabled/_owner/initialize/sync/
+next_passive_frame/prepare_retirement/retire_body/_target/_tags/native/damage.
+Source Sombra formulas/cadence/admission stay in actual0B8B graph. Copy scoped to
+Sombra; canonical ultimate_charge.py functions/context admission for Rein/Genji
+unchanged, Roadhog and other delivered hosts remain sole existing owners. Do not
+copy source RETAINED_HEROES/roadhog host across them. Unused source hosted_catalog
+state is not added. Generic cost/60 and damage gain excluded only when this
+original selected Sombra host is enabled, not for other heroes.
+
+Native adapter is narrow nonstrictSombra0B8B before generic typed interception;
+only source-recognized configs handled, NotImplemented falls through. Input is
+loaded during real owned warmup (world.hero is actualSombra), and source native
+resolves actual controller entity, not fake/aliased body. Source natural wait,
+2426/config-change event,12918 debug pause,842 actual ultimate Ability suppression,
+DAMAGE_DEALT params/tags and cap run through the existing VM. Before/after body
+frame sync prevents a generic second clock. Actual resolved net pool loss passed
+once; noncharacter device row remains ineligible. Static classification depends
+on supplied source body/tag context; no invented missing tags or broad filters.
+
+Original same-hero retention uses current controller/body lifetime: optional
+Match.switch_hero preserve_ultimate=False added alongside preserve_pose/start_frame;
+only Sombra automatic respawn suppliesTrue, other owners keep prior call and
+retention paths. Explicit switch defaultsFalse/reset. Real leave clears pending
+retention; body retirement clears pause key. Actual old/new graph cost clamps
+saved points. Original active/paused/context/retained causal state registered.
+
+v14 input path D:/overwatch1.7.4/verification/hero-lanes/012E/
+ ultimate-context-research.json (actual directory includes space after overwatch),
+SHA256 c7be92f1e83720d722a8e82cd1019e0178ad8a5c980862fc89f00a1a9106eee4.
+Use v14 environment.json.environment/test_environment, including
+ORPHEUS_ULTIMATE_DATA and ORPHEUS_TRANSLOCATOR_DATA; no source input bytes changed.
+Raw source Charge fixture copied with only actual service API/import adaptation:
+fight.ultimate_charge -> fight.sombra_charge, old .hacks -> actual
+.sombra_controls.locks, source tags keyword -> hit_tags, lazy NPC import in its
+own class setUpClass. AST literal Counter exactly matches source; expectations
+unchanged. No legacy manager alias or fake fixtures introduced.
+
+Initial normal module command python -B -m unittest test_game_sombra_charge -v:
+15player methods52.434s; first run8pass5fail2error plusNPCsetup error (reported
+failures5/errors3). Two fixture API errors corrected, real retention missing
+consumer fixed; same-hero/excluded-tags/actual EMP-spend3 allpass4.222s. An initial
+signature patch had missed current multi-line switch_hero definition; fixed
+actual kw declaration before final checks, never weakened the original check.
+
+Exact final core: normal import SombraChargeTests, unittest.getTestCaseNames,
+exclude exactly these4 pending world-only replay methods (all original asserts
+remain in the module):
+ test_lethal_rifle_before_natural_deadline_preserves_only_earned_charge;
+ test_natural_pause_restores_the_existing_profile_multiplier;
+ test_world_only_emp_recovery_keeps_natural_charge_deadlines;
+ test_world_only_natural_charge_caps_and_admits_a_fresh_emp.
+Other11 allpass42.025s,worker-c-sombra-charge-core-check.log. Includes exact5/s,
+cap/scalar,actualpistol/melee netloss, armour/shields/fataloverkill, no-credit miss/
+wall/ally/receiveddamage/noncharacter beacon, ultimate suppression/tag exclusions,
+paid EMP spend, retention/reset and actual full context/pause/deferred-retention
+snapshot. Core excludes world-only subcase method wholly, not just its failing
+subcase. The untouched full module and first failed log are retained.
+
+Shared exact python -B -m unittest test_genji_passive_charge test_symmetra_charge
+ test_game_torbjorn_charge test_orisa_charge test_game_script_runtime -v:
+97run14.538s,39pass58skip (Torb/Orisa fixture env markers absent), no failures.
+worker-c-sombra-charge-shared-check.log. Do NOT claim97activechecks. To exercise
+actual other owners, same v14 plus ORPHEUS_TORBJORN_GRAPH_BUNDLE pointing at the
+existing canonical base game_graphs_174.json.gz (supplement stays selected) and
+ORPHEUS_ORISA_CHARGE pointing at existing canonical data/orisa_charge_174.json:
+python -B -m unittest test_orisa_charge
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_passive_timer_adds_five_per_one_second_wait
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_combat_and_passive_modifiers_are_not_bypassed
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_permission_and_enabled_links_reject_charge
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_cap_then_actual_damage_completes_charge_and_ultimate_starts
+ -v :22run11.405s,17pass5originalNPCdataset skips,
+worker-c-sombra-charge-owner-check.log. No test skip conditions modified.
+
+Next C37: mount original sombra_replay to consume actual next_passive_frame and
+accepted EMP/Translocator releases, same physical Mover for world-only recall
+poses, source retirement/application clocks. Avoid duplicate C33 Camo consumer
+and preserve genuine owner/world frame anchor instead of assuming equal epochs.
+Then Sombra actual Portal/Sentry/Torb device consumers and remaining source wall/
+retained sentry/Pharah impulse cover/Bastion NPC boundary audits. Current remaining
+rough14-28 active C hours (low confidence, overlapping categories), not a calendar
+promise; largest unreviewed surface is shared consumer equivalence, not raw old
+observer names. Do not hold functional batch for these unmounted replay checks.
