@@ -1936,6 +1936,38 @@ implementation or infer absent module names mean absent interception.
 
 Log worker-b-sigma-grasp-original.log. No production change or client run.
 Next exact action: original self-grant replay dedup/lifecycle and full source
-shield fixture over existing played1D03/TemporaryPool/Grasp.converted. Current
-play queue policy skips an existing matching lease but replay after retirement
-requires auditing original absorption activation identity, not a fake facade.
+shield fixture over existing played1D03/TemporaryPool/Grasp.converted. Initial inspection expected matching-lease policy to skip a live duplicate;
+B72 actual probe instead proves the selected request creates another live
+lease. Audit original absorption activation identity, not a fake facade.
+
+
+## B72 — original Grasp action activation dedup on existing ledger
+
+Baseline actual cast/60absorbed→436 then same34 action creates an extra live
+1D03 id30. Correct earlier assumption: the selected action's create policy
+does not merely need post-expiry guarding. Restore023B grant_shields original
+(instance.id,absorption.counter) consumption on solefight.absorption.converted,
+an already registered map cleaned by existing retire/update. Validate current
+owner/component/resource/target before consumption; same activation returns
+handled even after its actual lease expires, and zero/capped grants consume
+that same activation. No second pool, ledger, queue host or component field.
+The low-level actual PlayScript Queue and directcallee primitive are unchanged.
+
+New actual source positive/live/expired replay and zero/laterparammutation/
+replacement-clear2 +originalGrasp10 +Damage8/runtime13 =33/33 pass15.153s.
+Baseline initially discovered the importedTestCase alias caused ten duplicate
+discovery checks; use module-qualified fixture, not imported TestCase binding.
+Logs worker-b-sigma-replay-{baseline,mounted,joint}.log preserve all results.
+
+Mounted20run28.035s retains two older test_sigma_shields contract conflicts: its
+primitive-boundary repeated grants and reused-wire-slot tests invoke the SAME
+1D02 source action with unchanged absorption counter, expecting extra grants
+to400 / another52.2. Original023B explicitly forbids that replay, even after
+expiry. Keep those assertions AND their execution path unchanged rather than
+moving them to directcallee simply for green; marked original owner-contract
+conflict (1fail1error), not merely a getter mismatch. Remaining old7 pass.
+
+No original-client acceptance run. Next exact action: restore complete original
+023B grasp_shields fixture with actual state/pool/ledger observers, retain all
+numeric expectations, and audit legitimate fresh second-cast/decay/lifecycle
+against same1D03 and native queue. Then source typedfilter/query caller audit.

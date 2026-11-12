@@ -82,6 +82,16 @@ def play_shield_script(world, instance, node):
     )
     if request is None or request.targets != (world.body,):
         return
+    absorption = instance.states.get(1)
+    if absorption is None or not absorption.counter:
+        return True
+    converted = world.match.combat.absorption.converted
+    activation = instance.id, absorption.counter
+    if converted.get(world.body) == activation:
+        return True
+    # Original023B consumes an absorption activation even for a zero/capped grant.
+    # The existing registered ledger outlives a played lease's retirement.
+    converted[world.body] = activation
     queue = play_queue.Queue(instance.component, lambda guid: play_queue.Load("ready", definition))
     queue.submit(request)
     if queue.pending:

@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original Grasp source activation dedup
+
+- Existing registered Grasp ledger consumes each original absorption activation
+  once, including zero grants and replay after lease expiry; replacement clears it.
+  Native queue/callee primitives and health pools remain the existing services.
+- New/source/shared33 checks pass. Two older same-action repeated-grant tests
+  conflict with original023B idempotence and remain unchanged. No client run.
+
 ### Preserve original Sigma Grasp interception checks
 
 - Restore all10 original023B actual-input interception checks byte-for-byte;
