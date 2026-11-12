@@ -615,6 +615,11 @@ class BodyWorld(runtime.World):
 
 
     def relocate_through_portal(self, instance, node):
+        from ow174.game import symmetra
+
+        result = symmetra.teleport_body(self, instance, node)
+        if result is not NotImplemented:
+            return result
         portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
         return portals.relocate(instance, node) if portals is not None else NotImplemented
 
@@ -725,8 +730,11 @@ class BodyWorld(runtime.World):
         return NotImplemented
 
     def compatibility_play_script(self, instance, node):
-        from ow174.game import barriers
+        from ow174.game import barriers, symmetra
 
+        result = symmetra.play_transit_script(self, instance, node)
+        if result is not NotImplemented:
+            return result
         if self.hero == 0x02E000000000023B and self.match is not None:
             if instance.graph.index == 0x1D02 and node.pos == 34:
                 from ow174.game import interception
@@ -878,6 +886,10 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
+        if instance is not None:
+            value = symmetra.transit_position_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if self.hero == symmetra_charge.HERO:
             value = symmetra_charge.native(self, cfg, instance)
             if value is not NotImplemented:

@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Symmetra transit action consumers
+
+- Connect original15F5 own-body PlayScript and1647 relocation to existing
+  body/script handlers. Preserve physical body identity, velocity/orientation,
+  current mover history and combat discontinuity; reject dead/ended/bad targets.
+- Supply original15F5 known-body position query narrowly ahead of typed spatial
+  dispatch and preserve the original base World relocation protocol as unknown.
+  Existing portal fallback and other graph/strict dispatch remain intact.
+- All9 original teleport action checks pass1.836s; body-owner/Damage15 pass
+  2.027s. Original checks byte-preserved. Pair placement/admission/interaction
+  remain unmounted, so this does not claim a complete teleporter or client check.
+
 ### Connect delivered actor-backed Symmetra sentry core
 
 - Launch actual2658 NPCs through existing spawn/health/replication/retirement;
