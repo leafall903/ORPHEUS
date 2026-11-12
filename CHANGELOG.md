@@ -28,6 +28,41 @@ This log records tested changes and their acceptance status. Entries are grouped
   or original-client acceptance is claimed.
 
 ### Mount delivered Torbjorn original charge and owner gates
+### Integrate delivered Widowmaker Venom Mine and poison consumers
+
+- Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
+  world tick, body retirement, rifle/projectile contacts, melee and explosion.
+  Preserve authored arming/health/radius/75-point poison, fractional accumulator,
+  owner-only reveal, reflected ownership/lifetime, and Ice Wall attachment cleanup.
+- Adapt old shield/Genji/Matrix services to current combined barrier managers and
+  single _deflector host; freeze Matrix eligibility at launch. Explicit snapshot
+  layouts include flights/mines/poison, optional cached properties and the new
+  launch bit; replay configuration records Venom/Widow source constants.
+- Original Venom9 plus Ice Wall attachment1:9 pass, retained Helix test failure
+  only at shooter-health assertion (160.089 versus old200); the mine is destroyed.
+  Current native/shared explosion self-damage is preserved rather than replacing
+  the source's older enemy-only splash loop. Original reflected poison/flight
+  lifetime3, Matrix absorption/wall precedence2 and reflected state snapshot1 pass.
+  Shared Damage/ProjectileTiming/runtime28 checks pass. All original assertions
+  retained; full source Deflect/Matrix fixtures included with API-name adapters.
+
+### Mount delivered Widowmaker Grapple cast, pull and Ice Wall anchors
+
+- Restore source000A STU_4BBC5D09 cast state, authored005A range/speed and
+  hit/miss outputs. Adapt the original static/pillar contact and active ability
+  anchor into current Walls; pillar removal stops the original grapple graph.
+  Explicit zero entity/bone MoveTo fields now reach the existing swept mover.
+  Preserve delivered terminal node93 reconstruction and its cooldown, plus the
+  current DVa move completion consumer. No second movement/combat manager.
+- Record GrappleCast.cast/RaycastResult and Walls.anchors in getter-free VM/server
+  snapshot layouts. Active cast export is stable/read-only and changes with its
+  stored travel time. Original grapple6 and pillar selection/removal2 pass;
+  original wall storage/expiry1 passes; shared Damage/runtime21 pass.
+- Keep complete original Ice Wall test module with only current Mei identity
+  and snapshot constructor fixture adapters. Remaining Venom/cross-owner checks
+  are preserved for later consumers; no whole000A completion claimed yet.
+
+
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
 
@@ -8059,3 +8094,39 @@ client operations performed. Whole nonappearance integration remains active.
   failures now pass unchanged. Evidence:
   parallel-root-restored-health-query-check.log. No source assertion modified,
   no second pool/manager or new game feature. Remaining batches continue.
+
+
+### Reconcile original temporary-shield APIs
+
+- C19 introduced two genuine same-name collisions: tagged decay replaced the
+  existing Doom clocked decay method, and a tagged dictionary property replaced
+  the existing numeric temporary_shields total. Preserve both implementations.
+  Dispatch one-clock and tag/amount decay to their original bodies; retain the
+  original numeric total and expose real existing extra pools as tagged_shields.
+  No additional pool, ID, TTL, fake numeric/dictionary view or combat manager.
+- Adapt source Torb consumers/fixtures only to the unambiguous tagged property;
+  every original literal expectation is AST-identical. Source Grasp fixture
+  constant maps directly to mounted absorption.SHIELD_TAG0x5847, removing the
+  missing obsolete-module import. Keep other source assertions unchanged.
+- Original Doom Punch/Mutual/epochs/handoff + Torb real attacks, adaptive loss,
+  passive timing/replacement/respawn55 checks all pass after repair. The initial
+  real damage/control TypeErrors and later six numeric-vs-dictionary subcase
+  failures were reproduced and resolved, not ignored. Evidence:
+  parallel-b17-c19-shield-consumers-check.log. No client/publication operations.
+
+
+### Preserve NPC foreign-variable consumers in one method
+
+- AST audit found the final non-property duplicate method: BotWorld.entity_var.
+  Merge the overwritten Heavy9161/Assassin foreign-variable consumers into the
+  active Song/manual-Assassin implementation. Preserve manual target's live
+  player checks and unknown fallback; no duplicate VM/controller or source alias.
+- Actual Heavy reads both live9161 values through the restored consumer. NPC
+  control/Lucio control27 run25 pass and2 optional input skips. Repository AST
+  audit now finds no duplicate definitions except intentional property setters.
+  Evidence: parallel-root-npc-foreign-var-probe.log and
+  parallel-root-npc-foreign-var-core-check.log.
+- Broader original NPC combat-state probe33 retains1 failure/1 error in the
+  separate CombatModFilter versus CombatDamageFilter registration/host contract,
+  with2 input skips; preserve original expectations for later provider merge.
+  It does not gate the completed actual foreign-variable code submission.

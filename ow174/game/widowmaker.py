@@ -4,7 +4,7 @@ The frozen delivery carries these functions in Combat/BodyScript. Keep their
 resource-driven policy without installing a second combat or script manager.
 """
 import math
-from ow174.game.script import expr, graph, nodes
+from ow174.game.script import expr, graph, nodes, runtime
 
 HERO = 0x02E000000000000A
 
@@ -120,3 +120,38 @@ def update(fight):
             state = instance.states.get(0)
             if isinstance(state, nodes.TrackTargets) and state.active and not state.ending:
                 state.refresh()
+
+
+def grapple_cast(self, state):
+    """Reconstructed hook against static surfaces and selected Ice Wall pillars.
+
+    005A's initial search range20 and travel speed40 are authored. Native
+    4BBC5D09 virtual14 (RVA C93AB0) selects field170 unless the existing
+    static-contact output field140 is true, then selects field1E8 (22).
+    This host performs only the initial cast, not that contact recheck.
+    Surface filters, animated muzzle origin and entity/bone attachment need
+    native confirmation. The existing swept MoveTo handles the pull.
+    """
+    from ow174.game.combat import _number, aim
+
+    if (state.instance.graph.index != 0x005A or state.index != 0
+            or state.instance.component.world.hero != 0x02E000000000000A):
+        return None
+    source = next((p for p in self.match.players if p.body == state.instance.component.entity), None)
+    if (source is None or self.is_dead(source) or source.body_script is None
+            or source.body_script.component is not state.instance.component):
+        return None
+    reach = _number(state.evaluate(state.node.field("m_2AFC083F"), watch=False), 0.0)
+    speed = _number(state.evaluate(state.node.field("m_speed"), watch=False), 0.0)
+    if reach <= 0 or speed <= 0:
+        return None
+    direction = aim(round(source.mover.yaw), source.mover.pitch)
+    origin = self._eye(source)
+    static_hit = self._collision().cast_ray(origin, direction, reach)
+    hit, piece = self.walls.contact(origin, direction, reach, static_hit)
+    self.walls.anchor(source.body, piece, state.instance)
+    result = runtime.RaycastResult(
+        hit is not None, None,
+        expr.Vec3(*hit.point) if hit else None, expr.Vec3(*hit.normal) if hit else None,
+    )
+    return result, (hit.distance if hit else reach) / speed

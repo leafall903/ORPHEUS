@@ -34,6 +34,7 @@ _RUNTIME_FIELDS = {
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.venom", "ow174.game.widowmaker",
     "ow174.game.view_offsets", "ow174.game.defenses", "ow174.game.ultimate",
     "ow174.game.assassin", "ow174.game.assassin_victim", "ow174.game.npc_context",
     "ow174.game.barriers",

@@ -341,14 +341,6 @@ class BotWorld(runtime.World):
         self.controller_inputs: dict[int, int] = {}
         self.heavy_counter_stuns: list[tuple[int, float]] = []
 
-    def entity_var(self, entity: int, var: int):
-        if self.match is not None and (
-            (self.hero == ASSASSIN_HERO and var in ASSASSIN_VICTIM_VARS)
-            or (self.hero == HEAVY_ASSAULT_HERO and var == 9161)
-        ):
-            return self.match.combat.scripted_body_var(entity, var)
-        return super().entity_var(entity, var)
-
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         controller = self.controller
         if (self.hero == 0x02E000000000007A and self.match is not None
@@ -565,6 +557,12 @@ class BotWorld(runtime.World):
                         and script is not None and script.component.entity == entity):
                     value = script.component.entity_var(var, create=False)
                     return value.value() if value is not None else None
+            return None
+        if self.match is not None and (
+            (self.hero == ASSASSIN_HERO and var in ASSASSIN_VICTIM_VARS)
+            or (self.hero == HEAVY_ASSAULT_HERO and var == 9161)
+        ):
+            return self.match.combat.scripted_body_var(entity, var)
         return super().entity_var(entity, var)
 
     def native(self, cfg: dict, instance: runtime.Instance):

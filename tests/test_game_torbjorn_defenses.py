@@ -405,7 +405,7 @@ class TorbjornDefenseTests(unittest.TestCase):
         self.assertEqual(protector_hp.total, protector_before)
         self.assertEqual(protector.stats.value(stats.HERO_DAMAGE), 0)
         self.advance(run, torb, protector, 145, defender_aim=toward_zarya)
-        self.assertNotIn(sigma_grasp.SHIELD_TAG, protector_hp.temporary_shields)
+        self.assertNotIn(sigma_grasp.SHIELD_TAG, protector_hp.tagged_shields)
 
     def test_reflected_ana_rifle_wounds_overload_and_credits_genji(self):
         ana_hero = next(hero for hero in heroes().values() if hero.name == "Ana")
@@ -507,7 +507,7 @@ class TorbjornDefenseTests(unittest.TestCase):
                 self.assertEqual(owner.stats.value(stats.HERO_DAMAGE), damage)
                 self.assertEqual(owner.body_script.component.entity_var(342).value(), damage)
                 self.advance(run, owner, sigma, 150)
-                self.assertFalse(hp.temporary_shields)
+                self.assertFalse(hp.tagged_shields)
                 self.assertEqual(before - hp.total, damage)
 
     def test_actual_rivet_and_ten_pellets_are_consumed_by_grasp(self):
@@ -933,10 +933,10 @@ class TorbjornDefenseTests(unittest.TestCase):
                                  if i.graph.index == sigma_grasp.GRASP)
                     self.assertEqual(grasp.vars[21312].value(), 25)
                     for _ in range(150):
-                        if sigma_grasp.SHIELD_TAG in hp.temporary_shields:
+                        if sigma_grasp.SHIELD_TAG in hp.tagged_shields:
                             break
                         run.step({})
-                    self.assertAlmostEqual(hp.temporary_shields[sigma_grasp.SHIELD_TAG].now, 15, places=5)
+                    self.assertAlmostEqual(hp.tagged_shields[sigma_grasp.SHIELD_TAG].now, 15, places=5)
                     self.assertAlmostEqual(hp.total, before + 15, places=5)
                     self.assertFalse(fight.molten_pools or fight.molten_burns)
                     continue
@@ -1007,10 +1007,10 @@ class TorbjornDefenseTests(unittest.TestCase):
                                  if i.graph.index == sigma_grasp.GRASP)
                     self.assertEqual(grasp.vars[21312].value(), 25)
                     for _ in range(150):
-                        if sigma_grasp.SHIELD_TAG in hp.temporary_shields:
+                        if sigma_grasp.SHIELD_TAG in hp.tagged_shields:
                             break
                         self.step(run, owner, defender)
-                    self.assertAlmostEqual(hp.temporary_shields[sigma_grasp.SHIELD_TAG].now, 15, places=5)
+                    self.assertAlmostEqual(hp.tagged_shields[sigma_grasp.SHIELD_TAG].now, 15, places=5)
                 else:
                     reflected, = (rocket for rocket in fight.rockets if rocket.spawn == molten_core.POOL)
                     self.assertIs(reflected.shooter, defender)

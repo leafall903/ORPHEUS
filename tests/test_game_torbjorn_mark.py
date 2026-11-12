@@ -389,7 +389,7 @@ class TorbjornMarkTests(unittest.TestCase):
         run.step({ball: (0, 0, 16)})
         self.advance(run, 3)
         tag = torbjorn_charge.ADAPTIVE_SHIELD_TAG
-        self.assertEqual(hp.temporary_shields[tag].now, 100)
+        self.assertEqual(hp.tagged_shields[tag].now, 100)
         self.assertEqual(hp.total, base + 100)
         x, y, z = owner.mover.position
         fixture.place(ball, (x, y, z + 12))
@@ -417,7 +417,7 @@ class TorbjornMarkTests(unittest.TestCase):
         self.assertTrue(torbjorn_mark.active(mark))
         self.assertEqual(turret.target, ball.body)
         self.assertEqual(turret.shots, shots)
-        self.assertEqual(hp.temporary_shields[tag].now, 30)
+        self.assertEqual(hp.tagged_shields[tag].now, 30)
         self.assertEqual(owner.stats.value(stats.HERO_DAMAGE) - credit, 70)
         self.assertEqual(charge.value(), 0)
         for index, remaining in enumerate((16, 2), 1):
@@ -428,7 +428,7 @@ class TorbjornMarkTests(unittest.TestCase):
             self.assertEqual(turret.shots, shots + index)
             self.assertEqual(turret.target, ball.body)
             self.assertIs(fight.torbjorn_marks[key], mark)
-            self.assertEqual(hp.temporary_shields[tag].now, remaining)
+            self.assertEqual(hp.tagged_shields[tag].now, remaining)
             self.assertEqual(owner.stats.value(stats.HERO_DAMAGE) - credit, 70 + 14 * index)
             self.assertEqual(charge.value(), 0)
             self.assertEqual(near_hp.total, near_before)

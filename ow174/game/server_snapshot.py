@@ -18,6 +18,7 @@ from pathlib import Path
 
 from ow174.game import (
     combat_profiles,
+    venom,
     hanzo_movement,
     sonic,
     dragon,
@@ -136,7 +137,7 @@ FIELDS = {
     combat.Combat: _names(
         "molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
-        "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs venom zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
@@ -147,6 +148,7 @@ FIELDS = {
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
+    venom.Mines: _names("combat flights mines poison next_number last_tick"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
     breather.Breathers: _names("fight channels"),
@@ -163,7 +165,7 @@ FIELDS = {
     sigma_barrier.BarrierWorld: _names("hero mode barrier"),
     health_packs.PackWorld: _names("hero mode match entity"),
     orisa_barrier.Geometry: _names("world triangles source"),
-    mei_wall.Walls: _names("combat pieces inputs"),
+    mei_wall.Walls: _names("combat pieces inputs anchors"),
     combat.Vitals: _names(
         "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
@@ -262,6 +264,7 @@ FIELDS = {
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
+    venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
     driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
@@ -274,6 +277,7 @@ OPTIONAL_FIELDS = {
 DATACLASSES = (
     combat_profiles.Profiles,
     sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
+    runtime.RaycastResult, venom.Flight, venom.Mine, venom.Poison,
     hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,
