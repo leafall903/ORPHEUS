@@ -372,3 +372,8 @@ received C16/C17, explicit v4 composer, owned-mech/Storm/Charge/current scopes.
 Keep Molten update once, root Orisa pending cleanup, then root mark/turret
 updates once; do not duplicate those managers when resolving the same feature
 received by root under another merge SHA. This is coordination, not delivery.
+
+Before C19, clean synchronization root0b8d98cb preserves new explicit volley
+geometry/owner records and all existing consumers. Resolve storage fields by
+keeping reconstructed_volley_patterns plus Molten pool/burn fields. Functional
+C18 remains08c8d1bf, root receipt783de900; do not replay coordination merge.

@@ -1933,6 +1933,7 @@ class Combat:
     def __init__(self, match) -> None:
         self.match = match
         self.defender_damage_scale = 1.0
+        self.reconstructed_volley_patterns = False
         self.model_pose_for: Callable[[int], ModelPose | None] = self._wheel_model_pose
         self.wheel_actor_admits: Callable[[int, int, int, int, int], bool] | None = self._wheel_base_actor_admits
         self.vitals: dict[int, Vitals] = {}  # body or bot entity -> its health
@@ -5061,6 +5062,12 @@ class Combat:
                 log.exception("[game] %s: %s's pending attack failed", self.match.label(), attack.shooter.name)
 
 
+    def configure_volley_geometry(self, *, reconstructed_patterns: bool) -> None:
+        """Explicit API opt-in; native spread units, phase and muzzle are unproven."""
+        if type(reconstructed_patterns) is not bool:
+            raise ValueError("reconstructed pattern geometry needs an explicit bool")
+        self.reconstructed_volley_patterns = reconstructed_patterns
+
     def configure_dragonstrike(self, profile: dragon.Profile) -> None:
         """Mount the delivered explicit external reconstructed Dragon profile."""
         if not isinstance(profile, dragon.Profile) or self.rockets or self.dragons:
@@ -5233,6 +5240,22 @@ class Combat:
 
         pulse = not npc and pulse_bomb.is_pulse(shooter, state)
         speed = field("m_projectileSpeed")
+        explicit_directions = None
+        actor_hero = getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None))
+        if self.reconstructed_volley_patterns and actor_hero != dva.HERO:
+            from ow174.game import volley_geometry
+
+            try:
+                explicit_directions = volley_geometry.directions(state, direction, reconstructed_patterns=True)
+                if speed and len(explicit_directions) > 1 and not npc:
+                    raise volley_geometry.UnsupportedGeometry("multiple player projectile leases are not implemented")
+            except volley_geometry.UnsupportedGeometry as error:
+                expr.warn_once(f"volley-geometry:{state.instance.graph.index}:{node.pos}:{error}",
+                               "volley geometry refuses graph%04X/node%d: %s",
+                               state.instance.graph.index, node.pos, error)
+                return
+            if not explicit_directions:
+                return
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
@@ -5327,7 +5350,9 @@ class Combat:
                 elif definition == SLEEP_DART_ENTITY:
                     direct.deflect_override = True
             shot = None
-            if definition is not None:
+            individual_npc_shots = (npc and explicit_directions is not None
+                                    and len(explicit_directions) > 1 and definition is not None)
+            if definition is not None and not individual_npc_shots:
                 shot = self.projectiles.fired(
                     shooter, state, shot_frame, definition, lifetime, origin, direction,
                     activation=activation, snapshot=snapshot,
@@ -5383,6 +5408,8 @@ class Combat:
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)
                     if len(directions) == 1:
                         directions = ring_directions(state, direction) or directions
+                if explicit_directions is not None:
+                    directions = explicit_directions
                 dose_scalar = None
                 if direct is not None and direct.duration > 0.0:
                     from ow174.game import nano
@@ -5398,10 +5425,14 @@ class Combat:
                       and command is not None and command.frame == self.tick):
                     projectile_tick = self.tick
                 for pellet, launch in enumerate(directions):
+                    pellet_shot = (self.projectiles.fired(
+                        shooter, state, shot_frame, definition, lifetime, origin, launch,
+                        activation=activation, snapshot=snapshot,
+                    ) if individual_npc_shots else shot if pellet == 0 else None)
                     model = pulse_bomb.Bomb if pulse else Rocket
                     rocket = model(
                         shooter, shooter.team, origin, launch, speed, lifetime, direct, blast,
-                        shot if pellet == 0 else None,
+                        pellet_shot,
                         last_tick=projectile_tick,
                         gravity=gravity or 0.0,
                         velocity=(velocity if velocity is not None else
@@ -5475,6 +5506,8 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
+        if explicit_directions is not None:
+            directions = explicit_directions
         reaper_shell = None
         if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
             from ow174.game import nano
