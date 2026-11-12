@@ -5059,7 +5059,8 @@ class Combat:
     @staticmethod
     def _owns_shield_recovery(owner):
         return (symmetra.owns_shield_recovery(owner)
-                or getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068)
+                or getattr(getattr(owner, "hero", None), "guid", None) in (
+                    0x02E0000000000068, 0x02E000000000023B))
 
     def _regenerate_shields(self) -> None:
         for target in self._targets():

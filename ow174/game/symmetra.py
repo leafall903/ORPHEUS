@@ -229,7 +229,7 @@ def owns_shield_recovery(owner):
 
 def pool_query(world, cfg, instance):
     """Original0033 own-body current/maximum kind query for shield recovery."""
-    if (world.hero not in (HERO, 0x02E0000000000068) or world.match is None or instance is None
+    if (world.hero not in (HERO, 0x02E0000000000068, 0x02E000000000023B) or world.match is None or instance is None
             or instance.component.strict or instance.graph.index != 0x0033
             or cfg.get("$") not in ("STU_783B4CF0", "STU_68883EAC")):
         return NotImplemented

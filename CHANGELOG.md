@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconnect Sigma base-shield recovery
+
+- Sigma uses the existing0033 recovery integrator and own-body current/maximum
+  pool query; no additional pool or healing scheduler is created.
+- Original rifle/respawn checks and shared recovery/Damage/runtime25 checks
+  pass. Original projectile timing differences and legacy recovery getters stay
+  recorded with unchanged assertions. No original-client acceptance run.
+
 ### Restore Accretion caster blast and original impulse guards
 
 - Existing Accretion explosions settle the caster's original self damage and
