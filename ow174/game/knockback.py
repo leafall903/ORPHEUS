@@ -62,6 +62,8 @@ class Knockbacks:
         self.serial = 0
         self.active: dict[int, Mover] = {}
         self.launches: dict[int, int] = {}
+        self.body_epochs: dict[int, tuple] = {}
+        self.replayed_frames: dict[int, tuple] = {}
         self.whole_hog_seen = {}
         self.whole_hog_motion = {}
 
@@ -108,6 +110,48 @@ class Knockbacks:
         self.serial += 1
         return True
 
+    def observe_body(self, player, script, tick):
+        """Keep the actual constructor pair, without enabling an input lease."""
+        self.body_epochs[player.body] = (script, (tick, script.frame), None)
+        self.replayed_frames.pop(player.body, None)
+
+    def observe_pose(self, player, frame, tick):
+        """Record only a real physical pose; replay must not rewrite this pair."""
+        script = player.body_script
+        if script is None or script.retired:
+            return
+        previous = self.body_epochs.get(player.body)
+        birth = previous[1] if previous is not None and previous[0] is script else None
+        self.body_epochs[player.body] = (script, birth, (tick, frame))
+
+    def forget_body(self, entity, script=None):
+        previous = self.body_epochs.get(entity)
+        if previous is not None and (script is None or previous[0] is script):
+            self.body_epochs.pop(entity, None)
+            self.launches.pop(entity, None)
+            self.replayed_frames.pop(entity, None)
+
+    def replayed_pose(self, player, frame):
+        previous = self.replayed_frames.get(player.body)
+        return previous is not None and previous[0] is player.body_script and frame <= previous[1]
+
+    def body_frame(self, player, tick, dt):
+        from ow174.game.sombra_replay import body_frame
+        script = player.body_script
+        if script is None:
+            return None
+        mapped = body_frame(script, tick, round(dt * 1000))
+        if mapped is not None:
+            return mapped
+        previous = self.body_epochs.get(player.body)
+        if previous is None or previous[0] is not script:
+            return None
+        pair = previous[2] if previous[2] is not None else previous[1]
+        if pair is None:
+            return None
+        at, frame = pair
+        return frame + (tick - at) * round(dt * 1000) // script.frame_ms
+
     def record_launch(self, target):
         """Retain an accepted player impulse on this same physical host."""
         from ow174.game import bots
@@ -120,7 +164,6 @@ class Knockbacks:
     def replay_launches(self, tick, dt):
         """Original neutral missing-pose consumer, using declared epoch anchors."""
         from ow174.game.projectiles import MAX_LEASE_FRAME
-        from ow174.game.sombra_replay import body_frame
         fight, match = self.combat, self.combat.match
         if match.ended or not self.launches:
             return
@@ -140,7 +183,7 @@ class Knockbacks:
                 if script is None or script.retired:
                     self.launches.pop(entity, None)
                     continue
-                frame = body_frame(script, tick, round(dt * 1000))
+                frame = self.body_frame(player, tick, dt)
                 if frame is None or frame > MAX_LEASE_FRAME:
                     continue  # No equal-epoch or stale receipt-frame assumption.
                 mover = player.mover
@@ -148,6 +191,7 @@ class Knockbacks:
                     command = Command(frame, yaw=mover.yaw, pitch=mover.pitch)
                     mover.last_command = command
                     player._step_body_pose(command, dt, tick, replay_accepted=True)
+                    self.replayed_frames[entity] = (script, frame)
                     history = fight.history.get(entity)
                     if history and history[-1][0] >= tick:
                         at, _, *shape = history[-1]
