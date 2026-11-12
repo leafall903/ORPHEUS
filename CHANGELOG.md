@@ -33,6 +33,104 @@ This log records tested changes and their acceptance status. Entries are grouped
   cross-owner control/defense parity remain work. No client run or whole-line
   completion is claimed; all existing failed assertions remain unchanged.
 
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
+### Mount delivered Reinhardt Charge horizontal drive
+
+- Restore source007D's30-degree-per-second steering and authored16.5m/s drive
+  through the existing Charge record and Mover. Preserve the ordinary gravity,
+  swept collision, external action deltas and vertical momentum on release;
+  source windup/end/cooldown graphs retain their authority.
+- Retain heading/activation in the existing Charge record, register the mover's
+  horizontal-mode state in physics snapshots, and use the bounded heading for
+  the existing contact path. Drain a run queued during an aborted phase exit.
+  Keep positional Charge constructor fields unchanged by appending new fields.
+- All105 original checks pass: seven delivered movement/steering/wall/cooldown/
+  death/retirement/vertical-drive scenarios plus98 existing mover, stored
+  physics, runtime, command and epoch checks. Source observers read existing
+  Charge records; armor-bypass fixture intent maps to armour_scalar1.0.
+- Full source capture/bump, cross-charge, deployable collision and Earthshatter
+  integration continue. Existing contact consumers remain mounted; source
+  original-client acceptance remains open. No network or publication action.
+
+
+### Mount delivered Reinhardt swing surface and object contacts
+
+- Reuse delivered capsule/mesh and shell overlap queries against existing
+  Reinhardt, Winston, Brigitte, Sigma, Orisa and Photon actors. Each active
+  swing records the actual surface identity and can meet a new late contact;
+  damage remains owned by the existing manager and health pool.
+- Restore source Ice Wall/Supercharger contact consumers and endpoint exclusion
+  so a visible pillar face can take one85-point hit without exposing the body
+  behind it. Body visibility precedes pillar damage. Future Torbjorn bot actors
+  remain ordinary body targets; no old prototype turret manager is installed.
+- Keep Zenyatta's ultimate helper safe for existing Deployable targets without
+  hero metadata; a nonhero has no ultimate. This prevents an area-consumer
+  exception before the pillar contact can run.
+- Five original shield-only, owner-bypass, reused-body, Ice Wall and Winston
+  shell scenarios pass unchanged assertions. Source Segment/Hammer25 plus
+  shared runtime/commands/epoch33 run58: retain two flank-Bash damage subcase
+  failures and13 old or uninitialized Brigitte/charge/target/control observer
+  errors. No original check is removed or relaxed. Logs remain external.
+- Brigitte's current held-secondary scene leaves its old shield dictionary
+  empty; the read-through test adapter preserves that error. Source Charge,
+  Earthshatter and remaining cross-hero checks/client acceptance stay open.
+
+
+### Mount delivered Reinhardt active hammer swings
+
+- Restore source0048 active-window target queries, overlapping capsule dedup,
+  delayed contact and replacement-body generation handling. Merge physical
+  primary/melee alias controls before computing input edges, preserving held
+  attack when switching keys. Source ring origins use the current body basis.
+- Apply the original alternating radial ring through existing additive
+  Knockbacks; retain a single authoritative mover and existing Photon surface
+  consumer. Persist swing records in server snapshots and retire owner records.
+- Preserve the full original Reinhardt regression module without changed
+  assertions. Original Segment/Hammer25 ran with two flank-Bash damage failures
+  and13 subcase errors from old Brigitte/charge/target/control observations.
+  Active-window, late-entry, replacement-body, alias handoff, alternating
+  impulses, occlusion and retirement checks pass. All33 shared runtime/input/
+  epoch checks pass. Logs: worker-b-reinhardt-hammer-third.log and
+  worker-b-reinhardt-hammer-shared-fixed.log in external verification storage.
+- Active original hammer on the enclosing real GameServer snapshot passes
+  repeatability, getter-free capture and stored-contact causality.
+- Charge, Earthshatter, full surface/object swing interactions and owner-line
+  completion remain in progress. Original-client acceptance remains open;
+  no network operation, push, appearance migration or new acceptance matrix.
+
+
+### Mount delivered Winston idle bubble release
+
+- Schedule the source pending deployment on its original release frame and
+  host existing WorldBubbles actors during chronological combat replay. Advance
+  their lifetime on the same replay clock; Winston Primal follows the current
+  combat tick rather than jumping early to a later world endpoint.
+- Connect the existing world-bubble melee surface-damage consumer while
+  retaining body bypass. Retain all28 source bubble scenarios against actual
+  native actor identity, caster, location and lifetime observations.
+- Source bubble28 plus Primal18:44 of46 pass. Preserve the two original exact
+  float assertions: native f32 point1.10000002384 versus1.1 and health699.039978
+  versus699.04. No precision downgrade or assertion tolerance change.
+- Idle-release probe passes original accepted+3 birth,700 health, identity,
+  nonreplay and9s expiry. Bubble+Primal with700 silent ticks passes expiry and
+  exactly5 post-Primal charge/200ms phase; three original sparse/Primal-clock
+  checks also pass. Old Ana/Tracer bubble suites still need their renamed
+  manager/public-constant observations reconciled; retain those errors.
+- Whole-line/client acceptance remains open. No second bubble/impulse driver,
+  new acceptance matrix, client session, network operation or push.
+
 ### Mount delivered Torbjorn hammer contact windows
 
 - Mount the original168C animation-derived ordinary/Overload impact windows,
@@ -99,6 +197,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   the old healing_boost_until field. Current healing status is hosted by
   HealingEffects. Keep those original observations/expectations and logs; they
   neither block this code submission nor constitute full Ana acceptance.
+
 
 ### Reconcile reflected projectile ownership with original Echo behavior
 
@@ -227,6 +326,154 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Restore normal-module entry for delivered Hanzo checks
+
+- Retain complete original NPC, Matrix, Winston and Experimental Barrier test
+  fixtures. Adapt legacy imports to the already mounted Sniper/Reinhardt hosts;
+  expose142C as the existing Sniper host's GRAPH constant. Retain the frozen
+  pure arrow contact helper as a tests-only fixture, and map old Grasp identity
+  names to the current host. No duplicate production drivers are installed.
+- Fill the current mock-lobby cosmetic callbacks in the original profile startup
+  fixture. All1781 original assertions across five adapted test files are AST-
+  identical. Existing movement/control/barrier modules now import normally.
+- Normal unittest entry (no AST loading): all32 Sonic/Dragon Player checks
+  passed together;11 focused Lunge/climb/contact/budget/strict/storage checks
+  passed; allnine profile/startup/journal checks passed. Keep the complete NPC
+  and cross-owner checks even where original private APIs or prepared inputs
+  still differ; successful module import does not claim whole-line completion.
+
+### Reconcile delivered Fortify clocks with historical Hanzo contacts
+
+- Mount original Fortify rebase/idle clock algorithms in a scoped adapter instead
+  of replacing the current Orisa barrier manager. Retain posed activation/anchor
+  evidence and capture pending/anchor fields in both storage serializers. Advance
+  established phase clocks before each historical Dragon dose, including bounded
+  pre-retention continuation, and clear fresh pending state at the endpoint.
+- Historical incoming8243 removes only a fresh endpoint Fortify factor while
+  preserving other multipliers; historical critical queries use the same gate.
+  Preserve the rebased future0CF4/node6 chase clock until its relocated start:
+  current per-tick replay previously overwrote its future last timestamp and
+  expired a new4s cast inside an older300-tick interval. All other chase variants
+  keep their current behavior. Retire stale Dragon command anchors with bodies.
+- Allfour original Dragon Fortify methods now pass, and all17 original Dragon
+  behavior methods pass together; the two original storage methods already
+  passed in A15. All27 bow/Fortify/cooldown/melee/Damage/runtime focused checks
+  passed after the future-chase bridge. Live Fortify anchor/pending changes affect
+  both body/server digests, repeated exports remain stable with variable and
+  expression getters disabled. Preserve previous native/client open boundaries.
+- Remove the retained journal check's extra EOF blank line. Remaining Hanzo work
+  includes delivered Storm ricochet and arrow-deflection reconciliation, followed
+  by source-owner audit; do not claim whole0005 completion yet.
+
+### Mount explicit delivered combat profiles through server startup and replay
+
+- Mount original combat_profiles.Profiles and CLI --reconstructed-hanzo-sonic-
+  profile, --reconstructed-hanzo-dragon-profile and --reconstructed-projectile-
+  tags. Validate before service/client work, carry through Settings/LobbyServer/
+  GameServer and configure each newly created match before players are added.
+  Preserve default immutable catalog selection; test environment variables do
+  not silently enable a host.
+- Mount the original configure_hanzo_profiles journal root with atomic parsed
+  profile validation, plus full server/future-match profile snapshot storage.
+  Keep original profile quantities/source digests and effective frozen absorption
+  definitions in provenance. The old tag loader's exclusion string is adapted to
+  the combined integer tag constant. Existing Matrix/Grasp consumers read only
+  the optional per-match admission override, with no duplicate absorption host.
+- Eight original profile/normal-server-startup assertions passed with only
+  unrelated NPC imports omitted and three current cosmetic fixture callbacks
+  supplied.27 existing CLI checks plus the retained original profile journal
+  replay/partial-mount check passed. Actual rifle default/full/empty-admission
+  probes pass: Matrix600/600/530 HP, Grasp400/400/330 HP. All23 focused Damage,
+  Deflect and runtime checks passed. Original Ana/Sigma broad checks preserve
+  six old Vitals private-field errors (healing_block_until/bonus_shields), rather
+  than replacing their assertions.
+- Source profile tests retained unchanged. No inputs/assets copied or changed;
+  next integrate the four previously recorded Fortify historical-clock cases.
+
+### Mount delivered Dragonstrike launch and moving-damage continuation
+
+- Mount original dragon.py unchanged and an explicit source_entity damage API
+  alias; reject conflicting source_body/source_entity before any pool lookup. Mount explicit profile, initial034F range,
+  penetration and subframe launch clock, terminal Flight at the actual contact,
+  ongoing seven-sphere damage, independent source body, death/replacement/leave
+  semantics and storage. Keep current ConditionalTimer native phase handling.
+- Mount the delivery's exact command-batch pose evidence methods and bridge the
+  current movement/update scheduler. Retain the original Dragon test file
+  unchanged.15 of19 original Player methods passed, including both phase/server
+  storage checks, batched poses, body penetration, range transformation, original
+  killer after caster replacement/death, independent opposing sources and the
+  final clamped dose. AST loading omitted only unrelated absent NPC fixture.
+- Preserve all failures: four Fortify historical-clock methods still require the
+  delivery's Orisa pose-anchor/pending activation and idle clock consumer. The
+  original two-cast spy/source attribution now passes unchanged, as do source
+  death/replacement checks and the conflicting-source-before-pool probe. All55
+  projectile/Bastion/runtime checks passed; DamageTests results are in checkpoint.
+  Do not weaken the remaining checks or block this implementation commit.
+  Full evidence is worker-a-hanzo-dragon-player-first.log (19 methods) and
+  worker-a-hanzo-dragon-nonstorage.log. Client/native rate/volume semantics remain
+  open as in source. Next mount explicit CLI/lobby/server/replay profile plumbing,
+  then reconcile the remaining Orisa historical clock consumer.
+
+### Mount delivered Sonic impact, attachment and reveal consumers
+
+- Mount original sonic.py unchanged: explicit external profile, per00B9 Sonic
+  payload, body/static impact Beacon, historical birth tick, tick refresh,
+  independent authored010E reveal stacks, attachment freeze and team/FFA query.
+  Capture profile/beacons and preserve deployed fields across source replacement.
+- Mount the original five-definition lease allocation: first four block bases
+  stay unchanged; half-window stride reserves the fifth definition without
+  overlapping any of32 slots or overflowing the29-bit entity index. Preserve
+  current owner/observer delivery. Retain the original all-slot boundary check
+  separately, unchanged, rather than replacing existing projectile tests.
+- Preserve00B9 ballistic path limits as travelled distance with range_left
+  storage and the current analytic sweep; no beacon is created by mere expiry.
+  Adapt the old Fortify query to the current defenses consumer. All13 original
+  Sonic Player checks passed (12 together, final Fortify check separately),
+  six original Sonic cooldown checks passed, the original fifth-lease check
+  passed and42 existing projectile/Bastion lifecycle checks passed. Player tests
+  used isolated AST loading solely to omit an unrelated unmounted NPC fixture
+  import. Original Sonic/cooldown/bow files are retained unchanged.
+- External profile is hero-lanes/0005/hanzo-sonic-profile.json; no asset pack is
+  copied or changed. Explicit server startup profile plumbing and moving Dragon
+  consumers remain next; no full0005 completion is claimed.
+
+### Mount delivered Hanzo Lunge, wall climb and ledge movement
+
+- Mount0005 hanzo_movement through authored010C yaw/velocity actions, posed
+  capsule movement, input synchronization and death/retirement cleanup. Preserve
+  current forced-movement, external impulse and other-hero arbitration. Adapt
+  only the absent Sigma Flux import to the delivery's exact1DBC/node12 active
+  predicate; no second Sigma manager is installed.
+- Capture Climb budget/contact/mantle state in body and server storage. Retain
+  the original movement and climb test files unchanged. Seven original Lunge
+  direction/launch/cooldown/collision/death/strict checks passed. Eight original
+  climb budget/contact/input/landing/ledge checks and the original strict/storage
+  digest check passed through isolated AST loading because unrelated top-level
+  Sonic/Dragon/ExperimentalBarrier fixture imports are not mounted yet. Their
+  original assertions were not altered. Shared runtime/button/Shadow regression
+  results are recorded in the worker checkpoint.
+- Client/native movement acceptance remains open as in the delivery. Sonic,
+  moving Dragon and remaining cross-owner Hanzo consumers are still pending;
+  earlier camera/contact numerical differences remain recorded.
+
+### Mount delivered Hanzo charge, interruption and bow ballistics
+
+- Mount the original hanzo_charge/hanzo_control modules unchanged. Preserve the
+  authored passive/damage0B8B path as Hanzo's default, explicit debug override,
+  cast charge gate, draw cancellation before input release and Storm/manual-cast
+  interruption through existing control cleanup. Capture the climb context slot
+  without claiming that its movement consumer is mounted yet.
+- Mount00B9's scoped critical default and E1A5B579 acceleration. Preserve the
+  delivered analytical arrow sweep, including explicit gravity-only arrows and
+  clipped lifetime across skipped ticks, alongside other projectile policies.
+- Allseven original focused bow/Fortify/charge/melee/death/ballistic checks
+  passed. Original Storm count now correctly stops at five through A11. Its
+  later damage assertion and the draw-recovery final health assertion retain
+  camera/contact differences (140 vs70 and lethal vs125), with checks unchanged.
+- Preserve the original control file including its currently unavailable Sonic/
+  Dragon fixture imports. Lunge/climb, Sonic reveal and moving Dragon consumers
+  remain real next code work; neither whole0005 nor client acceptance is claimed.
+
 ### Restore delivered variable-driven transition rechecks
 
 - Preserve0005's generic CHANGED dispatch: run the state's dependency callback
@@ -379,6 +626,26 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Winston idle bubble release
+
+- Schedule the source pending deployment on its original release frame and
+  host existing WorldBubbles actors during chronological combat replay. Advance
+  their lifetime on the same replay clock; Winston Primal follows the current
+  combat tick rather than jumping early to a later world endpoint.
+- Connect the existing world-bubble melee surface-damage consumer while
+  retaining body bypass. Retain all28 source bubble scenarios against actual
+  native actor identity, caster, location and lifetime observations.
+- Source bubble28 plus Primal18:44 of46 pass. Preserve the two original exact
+  float assertions: native f32 point1.10000002384 versus1.1 and health699.039978
+  versus699.04. No precision downgrade or assertion tolerance change.
+- Idle-release probe passes original accepted+3 birth,700 health, identity,
+  nonreplay and9s expiry. Bubble+Primal with700 silent ticks passes expiry and
+  exactly5 post-Primal charge/200ms phase; three original sparse/Primal-clock
+  checks also pass. Old Ana/Tracer bubble suites still need their renamed
+  manager/public-constant observations reconciled; retain those errors.
+- Whole-line/client acceptance remains open. No second bubble/impulse driver,
+  new acceptance matrix, client session, network operation or push.
+
 ### Mount delivered Winston Jump Pack and Primal strikes
 
 - Mount original JumpPack and PrimalPunches launch/landing, takeoff/impact,
@@ -7256,3 +7523,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Route only the Biotic Field entity through healing. Torbjörn and Zarya still get projectile confirmation for their deployables without creating a healing field.
 - On original Practice Range collision, immediate, delayed and withheld acknowledgements all open the field at tick 1142 and produce identical health at each sampled tick. A second replay verifies that two injured friendly bots receive equal healing and a terminal update across a five-tick gap.
 - Passed 193 focused tests with each runtime data pack, a 268-root replay with matching registered state, Ruff and Git diff checks. Original canister flight, deployment timing and client presentation remain pending.
+
+
+### Delivered input composition and nonappearance source audit
+
+- Extend the existing original-Python input composer to extract only additive
+  records from explicit original delivered graph packs, rejecting conflicting
+  shared graphs and unrelated metadata. Preserve source packs and the current
+  default full projectile catalog. Deployables composition awaits the worker
+  loader; no turret/Molten completion claim yet.
+- Verified original10-graph/1-entity/4-effect output remains byte-identical
+  (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1),
+  duplicate delivery remains idempotent, and both conflicting graph and metadata
+  probes fail before creating output. Original pack hash remains unchanged.
+- Rechecked original-language repository submissions: main e1128509 has only
+  generated relay-roster-stub.bin untracked; OWLib3de17bc9, liz-runtime0d624a7
+  and lobby-upstreamd0cee4c are clean. Existing main is already incorporated.
+  External relay42119/52119 variants differ only by local port; PVE21129 is
+  an older relay without the already-present gallery installer. No missing
+  implementation was found in those relay copies. Preserve research snapshots.
+- No original-client acceptance or network publication performed. Remaining
+  hero consumer integration stays open and is not blocked by acceptance.

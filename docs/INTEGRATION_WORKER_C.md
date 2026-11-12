@@ -307,3 +307,9 @@ Retain original hammer repeat differences53vs47/boosted33. Review remaining
 NPC/phase/defense/reflect/mark contexts against combined owners; no complete
 0006/0008 line or client acceptance is claimed. Other assigned owner families
 remain as previously recorded and must continue after this owner batch.
+
+C16 SHA b889f287 delivered to root. Clean boundary synchronizes root9ec59b74,
+preserving its Hanzo/Orisa/Winston/Rein consumers plus Torb marks/turrets,
+all snapshot fields and all changelog entries. Resolve conflicts by retaining
+both turret update and Orisa pending cleanup, root command ordering, and
+root expanded snapshot fields plus torbjorn_marks. Do not replay this merge.

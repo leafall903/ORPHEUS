@@ -305,6 +305,8 @@ class BodyWorld(runtime.World):
         self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.zenyatta_charge_ammo = None
+        if hero == 0x02E0000000000005:
+            self.hanzo_climb = None
         self.match: Match | None = None
         if hero == 0x02E000000000007A:
             from ow174.game.script import spatial_queries
@@ -381,7 +383,7 @@ class BodyWorld(runtime.World):
                 and not state.instance.component.strict
                 and state.instance.graph.index == 0x0109 and state.node.pos == 25
                 and state.instance.component.entity == self.body):
-            return self.match.tick * 16
+            return self.match.combat.tick * 16
         return NotImplemented
 
     def external_wait(self, state):
@@ -867,6 +869,12 @@ class BodyWorld(runtime.World):
         if result is not NotImplemented:
             return result
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
+        from ow174.game import hanzo_movement
+
+        if instance is not None:
+            movement = hanzo_movement.native(self, cfg, instance)
+            if movement is not NotImplemented:
+                return movement
 
         if self.hero == 0x02E000000000007A and self.match is not None:
             from ow174.game import body_entities
@@ -889,6 +897,25 @@ class BodyWorld(runtime.World):
                 player = next((p for p in self.match.players if p.has_body and p.spawned and not p.gone
                                and p.body == self.body and p.hero.guid == self.hero), None)
                 return Entity(player.entity) if player is not None else None
+
+        if (self.hero == 0x02E0000000000007 and self.match is not None and instance is not None
+                and instance.graph.index == 0x48
+                and cfg.get("$") in ("STU_71A87E92", "STU_021D01CD", "STU_C8C4C20D", "STU_66F3B89E", "STU_2200A66D")
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                cls = cfg.get("$")
+                yaw = player.mover.yaw * math.tau / 65536
+                if cls == "STU_71A87E92":
+                    return Vec3(*player.mover.position)
+                if cls == "STU_021D01CD":
+                    return Vec3(math.sin(yaw), 0., math.cos(yaw))
+                if cls == "STU_C8C4C20D":
+                    return player.mover.yaw * 360. / 65536
+                if cls == "STU_66F3B89E":
+                    return Vec3(math.cos(yaw), 0., -math.sin(yaw))
+                from ow174.game.combat import aim
+                return Vec3(*aim(player.mover.yaw, player.mover.pitch))
 
         if (cfg.get("$") == "STU_021D01CD" and self.hero == 0x02E000000000012F
                 and self.match is not None and instance is not None):
@@ -1583,7 +1610,12 @@ class BodyWorld(runtime.World):
             return self._pharah_velocity_action(instance, node)
         if self.hero == lucio_movement.HERO:
             return lucio_movement.action(instance, node)
-        return mccree.velocity_action(self, instance, node)
+        result = mccree.velocity_action(self, instance, node)
+        if result is NotImplemented:
+            from ow174.game import hanzo_movement
+
+            return hanzo_movement.velocity_action(self, instance, node)
+        return result
 
     def tracked_targets(self, state):
         if (self.communication_wheel and self.match is not None
@@ -1935,6 +1967,9 @@ class BodyScript(ReplicatedBody):
         if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
             raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")
         self.hero = hero
+        if hero == 0x02E000000000013E:
+            self.orisa_pose_anchor = None
+            self.orisa_fortify_pending = False
         self.entity = entity
         self.record = record
         self.frame_ms = max(1, quanta // 1000)
@@ -1961,7 +1996,8 @@ class BodyScript(ReplicatedBody):
         self.world_frame_anchor: tuple[int, int] | None = None
         if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
-        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
+        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
+                                               0x02E0000000000005):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
@@ -2066,6 +2102,9 @@ class BodyScript(ReplicatedBody):
         if self.hero == GENJI and health <= 0:
             self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        if health <= 0 and getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
         if self.component.owner_dead and hasattr(self, "self_repairs"):
             self.self_repairs.clear()
             self.control_windows.clear()
@@ -2112,7 +2151,12 @@ class BodyScript(ReplicatedBody):
             self.component.set(2070, bool(forward or right))
         from ow174.game import tracer
 
-        self._run(frame, tracer.filter_edges(self.world, button_edges(self.buttons, buttons, action)))
+        previous, current = self.buttons, buttons
+        if self.hero == 0x02E0000000000007 and self.world.match is not None:
+            # Delivered alias policy: merge physical controls before finding edges.
+            previous |= bool(previous & 0x800)
+            current |= bool(current & 0x800)
+        self._run(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
@@ -2338,6 +2382,16 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if (self.ult_seconds is not None or self.retired or self.component.owner_dead
+                    or hanzo_control.casting(self) or type(points) not in (int, float)
+                    or not math.isfinite(points) or points <= 0):
+                return 0.0
+            before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            hanzo_charge.damage(self, points)
+            return expr.to_float(self.component.entity_var(ULT_CHARGE).value()) - before
         if self.hero == BASTION:
             if (type(points) not in (int, float) or not self._ult_charge_allowed()
                     or not math.isfinite(points) or points <= 0):
@@ -2388,6 +2442,15 @@ class BodyScript(ReplicatedBody):
 
             winston.charge_passive(self, self.component.frame_ms if self.world.match is None else 0)
             return
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if self.retired or self.component.owner_dead or self.ultimate_running() or hanzo_control.casting(self):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                hanzo_charge.passive(self)
+                return
         if self.hero == BASTION:
             if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
                 self.passive_charge_ms = 0
@@ -2659,6 +2722,9 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
         self.self_repairs.clear()
         self.control_windows.clear()
         self.sleep_windows.clear()

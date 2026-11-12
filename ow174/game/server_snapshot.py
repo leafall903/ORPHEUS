@@ -17,6 +17,10 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    combat_profiles,
+    hanzo_movement,
+    sonic,
+    dragon,
     absorption,
     actors,
     baptiste,
@@ -106,7 +110,7 @@ def _names(text):
 FIELDS = {
     scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
-                       "on_leave on_join on_clock_ready "
+                       "on_leave on_join on_clock_ready combat_profiles "
                        "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
@@ -129,7 +133,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
+        "torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -258,8 +262,8 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
-    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales"),
-    driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
+    driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction valkyrie_pose"),
@@ -267,6 +271,9 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    combat_profiles.Profiles,
+    sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
+    hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,
     doomfist.Dash, doomfist.Impact, doomfist.Slam,

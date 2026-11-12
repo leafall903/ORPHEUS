@@ -118,11 +118,16 @@ KEEP_ROTATION = 0x01000000  # movement state +0 bit 24: the block's own rotation
 PREDICTED = 1  # a volley's sync after LET_GAME_DECIDE: SHOTS_AND_PROJECTILES, the lease's kind
 FRAME_MS = 16
 LEASE_FIRST = 0x00100000  # the first lease id; the server's own ids stay below
-LEASE_SPAN = 1 << 22  # frames (= ids) of one window: 18.6 hours
+LEASE_SPAN = 1 << 21  # frames (= ids) of one window: 9.3 hours
 LEASE_WINDOWS = 2
-# Every window's exclusive stop must fit in a u32, including the last future window.
-MAX_LEASE_FRAME = FRAME_MASK - LEASE_WINDOWS * LEASE_SPAN
-DEFINITIONS_PER_BODY = 4  # leased definitions per slot (Soldier: 072C, 1C86, 072D)
+# Keep the original four block bases per slot. Use the upper half of
+# the first block for the fifth definition, with the same window length.
+LEASE_BLOCK_STRIDE = 2 * LEASE_SPAN
+LEASE_SLOT_STRIDE = 4 * LEASE_BLOCK_STRIDE
+LEASE_SLOTS = 32  # slot 31's final window ends below the 29-bit entity index limit
+DEFINITIONS_PER_BODY = 5
+# Keep the clock drain boundary and leave room for every advertised window.
+MAX_LEASE_FRAME = FRAME_MASK - LEASE_WINDOWS * LEASE_BLOCK_STRIDE
 REPORT_WINDOW = 64  # frames after the shot in which an owner frame may report it
 CONFIRM_TICKS = 3  # at least this after the report (0.05 s)
 UNREPORTED_TICKS = 32  # a shot no owner frame reported gets lease(f) after this
@@ -294,27 +299,25 @@ class Projectiles:
 
     # --- the lease ------------------------------------------------------------------------------------
 
-    def _base(self, player, definition: int) -> int | None:
-        script = player.body_script
-        if script is None:
-            return None
-        defs = definitions(script)[:DEFINITIONS_PER_BODY]
-        if definition not in defs:
-            return None
-        return LEASE_FIRST + (player.slot * DEFINITIONS_PER_BODY + defs.index(definition)) * LEASE_SPAN
+    @staticmethod
+    def _base(slot: int, index: int) -> int:
+        start = LEASE_FIRST + slot * LEASE_SLOT_STRIDE
+        if index == DEFINITIONS_PER_BODY - 1:
+            return start + LEASE_SPAN
+        return start + index * LEASE_BLOCK_STRIDE
 
     def lease(self, player) -> list | None:
         """The body's lease blocks (component 90): two windows from the current frame for each predicted
         definition, with the slot's own ids."""
         script = player.body_script
-        if script is None:
+        if script is None or not 0 <= player.slot < LEASE_SLOTS:
             return None
         newest = player.commands.last_frame
         frame = self.match.tick if newest is None else newest
         start = frame - frame % LEASE_SPAN
         blocks = []
-        for guid in definitions(script)[:DEFINITIONS_PER_BODY]:
-            base = self._base(player, guid)
+        for index, guid in enumerate(definitions(script)[:DEFINITIONS_PER_BODY]):
+            base = self._base(player.slot, index)
             for index in range(LEASE_WINDOWS):
                 window = start + index * LEASE_SPAN
                 blocks.append((guid, window, window + LEASE_SPAN, base, 1))
@@ -322,8 +325,14 @@ class Projectiles:
 
     def lease_id(self, player, definition: int, frame: int) -> int | None:
         """The id the client's allocator gives the first projectile of `definition` in `frame`."""
-        base = self._base(player, definition)
-        return None if base is None else 0xA0000000 | (base + frame % LEASE_SPAN)
+        script = player.body_script
+        if script is None or not 0 <= player.slot < LEASE_SLOTS:
+            return None
+        available = definitions(script)[:DEFINITIONS_PER_BODY]
+        if definition not in available:
+            return None
+        base = self._base(player.slot, available.index(definition))
+        return 0xA0000000 | (base + frame % LEASE_SPAN)
 
     # --- shots ----------------------------------------------------------------------------------------
 

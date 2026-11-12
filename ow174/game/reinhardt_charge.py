@@ -16,6 +16,48 @@ class Charge:
     deadline: int
     pinned: int | None = None
     hit: set[int] = field(default_factory=set)
+    heading: float | None = None
+    activation: int | None = None
+
+
+def drive(fight, player, command, seconds):
+    """Delivered007D horizontal drive; authored phases retain lifetime ownership."""
+    from ow174.game.combat import TICK
+
+    script = player.body_script
+    instance = next((i for i in script.component.instances.values() if i.graph.index == 0x7D), None) if script is not None and script.hero == barrier.REINHARDT else None
+    state = instance.states.get(3) if instance is not None else None
+    if (state is None or not state.active or fight.is_dead(player) or fight.is_stunned(player)
+            or player.gone or not player.spawned or player.client is None):
+        if (charge := fight.charges.get(player.body)) is not None:
+            stop(fight, player.body, charge)
+        return None
+    charge = fight.charges.get(player.body)
+    wanted = command.yaw * math.tau / 65536
+    if charge is None or charge.state is not state or charge.activation != state.counter:
+        duration = expr.to_float(state.evaluate(instance.graph.node(26).field("m_destination"), watch=False))
+        charge = Charge(player, state, fight.tick + math.ceil(duration / TICK),
+                        heading=wanted, activation=state.counter)
+        fight.charges[player.body] = charge
+    if charge.heading is None:
+        charge.heading = wanted
+    delta = (wanted - charge.heading + math.pi) % math.tau - math.pi
+    rate = expr.to_float(instance.find_var(0, 34534).value())
+    limit = math.radians(rate) * seconds
+    charge.heading += max(-limit, min(limit, delta))
+    speed = expr.to_float(instance.find_var(0, 7726).value()) * 60
+    return (math.sin(charge.heading) * speed, math.cos(charge.heading) * speed) if speed > 0 else None
+
+
+def drain_end(instance):
+    """Delivered phase exit also retires a run queued by an aborted windup."""
+    instance.component.run_now()
+    drive = instance.states.get(3)
+    phase = instance.states.get(1)
+    running_case = "m_05706D1C[1]"
+    if drive is not None and drive.active and phase is not None and phase.case != running_case:
+        instance.exit_subgraph(phase.node, running_case)
+        instance.component.run_now()
 
 
 def pinned(fight, entity):
@@ -43,7 +85,7 @@ def stop(fight, body, charge):
     if charge.state.active:
         instance = charge.state.instance
         instance.write((0, 59), 0)
-        instance.component.run_now()
+        drain_end(instance)
 
 
 def sync(fight):
@@ -165,7 +207,7 @@ def advance(fight, player, command, start, seconds):
         charge = Charge(player, running, fight.tick + math.ceil(expr.to_float(duration) / TICK))
         fight.charges[player.body] = charge
     feet = tuple(player.mover.position)
-    forward = aim(command.yaw, 0)
+    forward = (math.sin(charge.heading), 0., math.cos(charge.heading)) if charge.heading is not None else aim(command.yaw, 0)
     a = (start[0], start[1] + 1, start[2])
     b = (feet[0], feet[1] + 1, feet[2])
     radius = expr.to_float(instance.find_var(0, 9149).value())

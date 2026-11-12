@@ -13,7 +13,8 @@ from collections import deque
 from contextlib import nullcontext
 from weakref import WeakKeyDictionary
 
-from ow174.game import replay_values
+from ow174.game import replay_values, sonic, dragon
+from ow174.game.combat_profiles import Profiles
 from ow174.game.collision import CollisionProvider, LoadState
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.collision_tape import RecordingCollisionProvider, ReplayCollisionProvider
@@ -37,6 +38,7 @@ OPERATIONS = {
     "datagram": {"data", "address", "now"},
     "tick": {"now", "missed"},
     "switch_hero": {"account", "hero"},
+    "configure_hanzo_profiles": {"match_id", "sonic", "dragon"},
     "skin_changed": {"account", "hero"},
     "send_home": {"account"},
     "take_out": {"player", "reason"},
@@ -270,6 +272,23 @@ class _Session:
             if hero is None:
                 self._fail("unknown hero")
             return self.server.switch_hero(args["account"], hero)
+        if operation == "configure_hanzo_profiles":
+            fight = self._match(args["match_id"]).combat
+            sonic_data, dragon_data = args["sonic"], args["dragon"]
+            if sonic_data is None and dragon_data is None:
+                self._fail("a Hanzo profile must be supplied")
+            if (fight.rockets or (sonic_data is not None and (fight.sonic_profile or fight.sonars))
+                    or (dragon_data is not None and (fight.dragon_profile or fight.dragons))):
+                self._fail("Hanzo profiles must be configured once before projectiles")
+            try:
+                profiles = Profiles(
+                    sonic.profile_from_data(sonic_data) if sonic_data is not None else None,
+                    dragon.profile_from_data(dragon_data) if dragon_data is not None else None,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as error:
+                self._fail(f"invalid Hanzo profile: {error}")
+            profiles.configure(fight)
+            return None
         if operation == "skin_changed":
             return self.server.skin_changed(args["account"], args["hero"])
         if operation == "send_home":

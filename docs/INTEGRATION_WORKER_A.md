@@ -236,3 +236,166 @@ fallback:140 vs70 Storm hit and lethal vs125 recovery arrow. Do not weaken those
 checks or delete native view offsets. Next exact action after the isolated
 runtime commit is finish/submit A12, then mount actual lunge/climb/Sonic/Dragon
 consumers. No whole0005 admission is claimed.
+
+A11 committed `a56f80cb`. A12 now mounts original Hanzo charge/control modules
+unchanged, default authored damage/passive charge (None debug override), control
+draw cancellation/manual-cast/Storm cleanup, bow critical/gravity and analytical
+sweeps, including explicit gravity-only arrows. Allseven focused original bow,
+Fortify/charge, melee/death and ballistic-gap checks passed in
+`worker-a-hanzo-bow-charge-final.log`. Original control file is retained unchanged;
+its full imports still need Sonic/Dragon fixtures/consumers, and its final damage
+assertions retain the previously recorded camera/contact differences. Earlier
+cancel/no-damage/control assertions passed before that numerical failure.
+Next exact action is mount hanzo_movement.py's lunge/climb/ledge and its native
+velocity/pose services; its sole Sigma dependency is the original
+controls_target_pose predicate over the target effect. Then mount original
+sonic.py/dragon.py and their actual shoot/update/cleanup consumers. Do not mark
+0005 complete just because its core modules or delivery ref are retained.
+
+
+A12 committed `cf1a7bb6`. A13 mounts original010C movement code (one dependency
+adapter preserves exact1DBC/node12 active semantics locally because no complete
+Sigma Flux owner exists here). Body native/velocity, posed climb/mantle, command
+sync and death/retirement cleanup are live; both storage serializers retain all
+five Climb fields. Original movement/climb files retained unchanged. Seven Lunge
+checks passed via normal module loading; eight climb checks plus strict/storage
+sensitivity passed by isolated AST loading only to omit unrelated missing
+Sonic/Dragon/ExperimentalBarrier imports. Logs:
+`worker-a-hanzo-movement-first.log`, `worker-a-hanzo-climb-focused.log`,
+`worker-a-hanzo-movement-snapshot.log`. Original damage expectations from A12
+are preserved. Next exact action is mount original sonic.py, profile config,
+per-arrow sonar metadata, impact beacon creation, tick refresh and viewer
+projection, then original dragon.py with launch/expiry/update consumers. No
+runtime inputs are generated or altered in this worker.
+A13 shared regression: test_script_runtime test_script_button_transitions test_reaper_shadow:31/31 passed under the root runtime-inputs-v1 profile.
+
+
+A13 committed `292e1cfa`. A14 mounts original sonic.py unchanged and its live
+shoot/impact/tick/reveal consumers, source-history birth and full storage. Root
+profile plus `ORPHEUS_HANZO_SONIC_PROFILE=../hero-lanes/0005/hanzo-sonic-profile.json`
+loads external inputs. Original13 Sonic Player tests passed:12 in
+worker-a-hanzo-sonic-player-second.log, remaining Fortify in
+worker-a-hanzo-sonic-fortify-final.log after compatibility query mount. AST
+omits only absent test_game_hanzo_npc top-level import, no assertions. Six Sonic
+cooldown checks pass in worker-a-hanzo-sonic-cooldown-final.log. Original
+five-definition lease test (32 slots, disjoint IDs, preserved old bases, u32
+clock and29-bit boundaries) is retained in test_game_hanzo_lease_delivery.py
+and passed. Original lease implementation mounted;42 current projectile and
+Bastion lifecycle checks pass in worker-a-hanzo-fifth-lease-regression.log.
+Sonic/cooldown/bow source test files retained unchanged. Range_left is original
+stored remaining path; range_limit bridges current nonlegacy analytic sweep.
+Next exact actions: mount dragon.py, initial034F manual0101 cast delivery,
+initial penetration and terminal Flight continuation, historical target poses,
+then source combat_profiles + CLI/lobby/GameServer startup/replay plumbing.
+No whole0005 completion claimed; no runtime input files changed.
+
+
+A14 committed `1b11d19c`. A15 mounts source dragon.py (single source_entity ->
+source_body keyword adapter), live034F range/pierce/subframe continuation,
+independent moving damage source, source leave cleanup and full storage. Exact
+source observe_dragon_pose/_dragon_gap_poses methods are mounted; match command
+pose evidence now consumed. Existing ConditionalTimer already runs0101's
+1s/1.2s phases, confirmed by original stored-timer mutation check.
+Original19 DragonPlayer methods retained unchanged and executed via AST solely
+to omit absent test_game_hanzo_npc import:14 passed,5 method failures preserved
+(2 failures and5 errors including dependent subtests). Four methods need original
+Orisa Fortify historical pose-anchor/pending activation/idle clocks; fifth is
+an API spy checking source_entity while combined adapter passes source_body.
+Range/penetration, exact subframe, source death/replacement, opposing sources,
+expiry/clamped dose and both VM/server storage methods pass. Logs:
+worker-a-hanzo-dragon-player-first.log and worker-a-hanzo-dragon-nonstorage.log.
+No old checks changed. Next exact action: mount original combat_profiles,
+--reconstructed-hanzo-{sonic,dragon}-profile CLI flags, lobby Settings ->
+GameServer -> each match configure and journal operation/snapshot capture;
+then merge original Orisa Fortify history without replacing newer Orisa barrier
+manager. Root has been asked whether its latest damage API already bridges the
+old source_entity keyword; do not wait to continue startup consumers.
+
+A15 final attribution adjustment authorized by root: restore dragon.py exactly
+and add explicit _damage(source_entity) synonym. A conflicting non-None
+source_body/source_entity raises before even vitals_of lookup. Allthree original
+two-cast spy, source replacement and source death methods pass unchanged; the
+conflict probe passes with vitals_of instrumented to reject any access. This
+retires the old API-spy failure:15/19 unique original DragonPlayer methods now
+pass, four Fortify historical-clock methods remain. Original full19-method
+log predates the alias; worker-a-hanzo-dragon-source-api.log is final attribution
+evidence.55 existing projectile/Bastion/runtime checks pass in
+worker-a-hanzo-dragon-shared.log. Keep the four source Fortify checks unchanged.
+A15 final DamageTests regression:8/8 passed in worker-a-hanzo-dragon-damage-regression.log.
+
+
+A15 committed `dfae83bb`. A16 mounts original combat_profiles, CLI options,
+Settings/LobbyServer/GameServer -> each match live configuration, atomic
+configure_hanzo_profiles journal root and future/current profile capture.
+Original source tag loader adapts only string-vs-int exclusion constant. Default
+matrix_definitions=None keeps current immutable catalogs; explicit frozenset
+feeds existing _trace_absorption, _deflector, _matrix_hit, deflections.intercept
+and interception.absorption consumers consistently. No new absorption driver.
+Original8 profile argument/startup methods all pass in
+worker-a-hanzo-startup-profile-first.log. AST omits only unrelated NPC fixture
+imports in Sonic/Dragon fixture modules, and the old mock lobby receives the
+current three cosmetic callbacks (no assertion modified). Original28 total CLI
+and retained journal-root checks pass in worker-a-hanzo-profile-cli-journal.log.
+Actual Ana hip round probes compare default/full/empty admissions: Matrix
+600/600/530HP in worker-a-hanzo-profile-absorption.log; Grasp400/400/330HP in
+worker-a-hanzo-profile-grasp-final.log.23 Damage/Deflect/runtime checks pass in
+worker-a-hanzo-profile-final-shared.log. Broad old Ana/Sigma suite preserves six
+private Vitals field errors (healing_block_until/bonus_shields), recorded in
+worker-a-hanzo-profile-default-regression.log; do not weaken its checks.
+Next exact action: port source Orisa Fortify pose-anchor, activation pending,
+rebase and idle clock methods as a scoped adapter to current defenses/BodyScript,
+without replacing current orisa_barrier manager; rerun four original Dragon
+Fortify chronology methods. Then finish Hanzo source-owned consumers (notably
+Storm ricochet/arrow deflection) and owner reconcile, proceed Tracer/Widowmaker.
+
+
+A16 committed `983a9752`, accepted with A12-A16 by root canonical59c15a5a.
+A17 mounts original Fortify rebase/idle algorithms in orisa_fortify.py, adapting
+only the host container and excluding the unrelated old barrier throw clock.
+Actual posed new activation counter/anchor evidence, dual capture, pre-dose
+history clocks, pending endpoint gate and original8243 multiplicative factor
+reconciliation are live. Four original Dragon Fortify methods pass in
+worker-a-hanzo-fortify-chronology-first.log; all17 behavior methods together pass
+in worker-a-hanzo-fortify-final-behavior.log (two storage methods passed A15).
+Original ordinary bow fresh300tick check exposed current ChaseVar.tick resetting
+its future last to an older replay time. Scoped0CF4/node6 guard keeps it idle
+before rebased start; all27 original bow/Fortify/cooldown/melee/Damage/runtime
+checks then pass in worker-a-hanzo-fortify-bow-final.log. Other chase paths stay
+unchanged. Both Fortify fields change body/server digests and repeated capture
+is stable while Var.value/Instance.evaluate are disabled, in
+worker-a-hanzo-fortify-storage-final.log. Stale Dragon pose anchors now retire
+with other body histories. Extra EOF blank line from A16 original journal method
+extraction removed. No checks weakened, no new matrix and no runtime data writes.
+Next exact action: mount original0005 Storm one-bounce metadata and response,
+using current sweep/contact/deflection services; inspect arrow_deflection.py for
+actual missing consumers versus modern equivalent deflection/interception code.
+Then whole0005 owner reconcile; continue0003/000A audits. At a clean boundary,
+absorb canonical59c15a5a or newer to include root curve_motion/source attribution
+and other workers' new native fields. Do not interrupt a live implementation.
+
+
+A17 committed `8c12de89`, accepted by root334dbda3; canonical clean62dd2bf0.
+A18 restores ordinary imports for original Hanzo checks: complete NPC, Matrix,
+Winston and Experimental Barrier fixtures retained; legacy barrier_mesh maps
+existing reinhardt_barrier, sniper_special maps existing sniper_reposition with
+actual142C GRAPH identity. Frozen source arrow_deflection pure geometry retained
+byte-for-byte as tests/hero_delivery_arrow_deflection.py, consumed by original
+fixture checks rather than installing an unmounted production driver. Legacy
+Grasp fixture names alias current absorption identities in a tiny test helper.
+Profile mock lobby gets current three cosmetic callbacks. All1781 assertions in
+these five adapted files are AST-identical to frozen source (including unittest
+assert methods). Original runtime tests remain unchanged.
+Normal module entry now passes without AST:
+`python -B -m unittest test_game_hanzo_sonic.SonicPlayerTests test_game_hanzo_dragons.DragonPlayerTests`
+32/32,130.855s, worker-a-hanzo-fixture-normal-player-final.log.
+`python -B -m unittest test_game_hanzo_profiles test_game_hanzo_profile_journal_delivery`
+9/9, worker-a-hanzo-fixture-normal-second.log.
+11 focused normal Lunge/climb/strict/storage methods pass in
+worker-a-hanzo-fixture-normal-climb-final.log. All control/barrier fixture modules
+import normally in worker-a-hanzo-fixture-import.log. Profile envs are root
+runtime-inputs-v1 plus ORPHEUS_HANZO_PROFILE=0005/hanzo-dragon-profile.json,
+ORPHEUS_HANZO_SONIC_PROFILE=0005/hanzo-sonic-profile.json and
+ORPHEUS_MATRIX_TAGS=$ORPHEUS_PROJECTILE_TAGS. Other whole NPC/cross-owner private
+API checks are preserved, not declared all passed. Next clean-boundary action
+is absorb canonical62dd2bf0, then original Storm one-bounce implementation and
+normal fixture dependencies for its original tests, keeping all assertions.

@@ -384,6 +384,7 @@ class Player:
                         self.mover.step(command, seconds, self.match.tick, simulate_pose=self._move_pose)
                     self._advance_body_frame(command)
                 self.match.combat.pulse_bombs.observe_command_pose(self, command.frame, first_pose == command.frame)
+                self.match.combat.observe_dragon_pose(self, command.frame, first_pose == command.frame)
                 script = self.body_script
                 if script is not None and script.hero == SOLDIER and script.frame == command.frame:
                     from ow174.game import defenses, ultimate
@@ -500,13 +501,29 @@ class Player:
         retained = getattr(self, "valkyrie_pose", None)
         flight_profile = retained.profile if retained is not None and command.frame <= retained.through else None
         charge_start = tuple(self.mover.position) if self.hero.guid == 0x02E0000000000007 else None
+        drive = None
+        if charge_start is not None and not pulled and not stunned:
+            from ow174.game import reinhardt_charge
+            drive = reinhardt_charge.drive(fight, self, command, seconds)
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
+        from ow174.game import hanzo_movement
+
+        climb = hanzo_movement.climb_request(
+            self, command, seconds,
+            superseded=bool(requests) or self.mover.external_impulse or stunned or pulled or punch is not None,
+        )
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
             fight.punches.movement_result(self, outcome)
+        elif climb is not None:
+            start_y = self.mover.position[1]
+            outcome = self._move_pose(command, seconds, tick, move_to=climb, flight_profile=flight_profile)
+            hanzo_movement.climbed(self, start_y, outcome, command.frame)
+        elif drive is not None:
+            self.mover.step_pose(command, seconds, tick, horizontal_drive=drive)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(
@@ -600,8 +617,17 @@ class Player:
                 moira.grasp_command(self.match.combat, self, command)
                 if posed and script.hero == moira.MOIRA and command.buttons & 2 else nullcontext()
             )
+            previous_frame = script.frame
+            previous_fortify = combat._active_fortify(self) if posed else None
+            previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
                 self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+                if posed and self.body_script is script and script.frame > previous_frame:
+                    fortify = combat._active_fortify(self)
+                    if fortify is not None:
+                        if fortify.counter != previous_cast:
+                            script.orisa_fortify_pending = True
+                        script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
                 self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         script = self.body_script
@@ -1693,6 +1719,9 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            from ow174.game import hanzo_movement
+
+            hanzo_movement.sync(player)
             if posed and script.hero == 0x02E0000000000079:
                 from ow174.game import wall_ride
 
