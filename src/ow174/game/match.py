@@ -35,7 +35,19 @@ from dataclasses import replace
 from functools import partial
 from typing import TYPE_CHECKING
 
-from ow174.game import bodytrace, bots, combat, correction, heroselect, movelog, notices, pools, stats, world
+from ow174.game import (
+    bodytrace,
+    bots,
+    combat,
+    correction,
+    dva,
+    heroselect,
+    movelog,
+    notices,
+    pools,
+    stats,
+    world,
+)
 from ow174.game.collision import (
     CollisionProvider,
     LoadState,
@@ -414,22 +426,21 @@ class Player:
         script = self.body_script
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
 
-    def new_body(self, entity: int) -> None:
-        """Set up the allocated body at the spawn point."""
+    def new_body(self, entity: int, at: tuple | None = None) -> None:
+        """Set up the allocated body at the spawn point, or `at` (feet, yaw units)."""
         self.body = entity
-        self.mover = self.new_mover()
+        self.mover = self.new_mover(at)
         self.impulse_correction = None
 
-    def new_mover(self) -> Mover:
-        """The body's mover at the spawn point, with the hero's values and the match's pinned collision.
-        It cannot run before collision is ready. It uses what stops its own team's physics
+    def new_mover(self, at: tuple | None = None) -> Mover:
+        """The body's mover at the spawn point or `at`, with the hero's values and the match's pinned
+        collision. It cannot run before collision is ready. It uses what stops its own team's physics
         proxy (some props stop one team only, as on Blizzard World), both in a free-for-all."""
         game_map = self.match.game_map
         world = self.match.collision_world
         category = mover_category(self.team, game_map.free_for_all)
-        return Mover(
-            self.spawn[0], _yaw_units(self.spawn[1]), world, mover_data(self.hero.body), category=category
-        )
+        position, yaw = at or (self.spawn[0], _yaw_units(self.spawn[1]))
+        return Mover(position, yaw, world, mover_data(self.hero.body), category=category)
 
     def describe(self) -> str:
         return f"{self.name} ({self.hero.name}, team {self.team + 1})"
@@ -488,6 +499,7 @@ class Match:
         self.assembled = False
         self.players: list[Player] = []
         self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict]] = []
+        self.forms = dva.Forms(self)
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -915,6 +927,12 @@ class Match:
             if not viewer.seen[other.body]:
                 continue
             updates.append(EntityUpdate(other.body, movement=other.movement()))
+        for loose in self.forms.loose.values():
+            # A called mech stands still, and the client reads which way it faces from its movement
+            # state: the pilot's boarding state turns her aim to it. Without a record that is yaw 0.
+            if loose.script is None and viewer.seen.get(loose.entity):
+                state = Movement(loose.position, loose.yaw, input_frame=NO_INPUT)
+                updates.append(EntityUpdate(loose.entity, movement=state))
         shown = self.bots_shown.get(viewer.slot)
         client = viewer.client
         if client is not None and shown is not None and self.tick - shown >= BOT_RECORD_DELAY:
@@ -1269,7 +1287,8 @@ class Match:
         for bot in self.bots:
             if bot.entity == entity:
                 return expr.Vec3(*bot.position)
-        return None
+        loose = self.forms.loose.get(entity)
+        return expr.Vec3(*loose.position) if loose is not None else None
 
     def script_owner_movement_sample(self, owner: int) -> int | None:
         mover = self._script_body_mover(owner, owner)
@@ -1374,9 +1393,22 @@ class Match:
             player.body_script_failed = isinstance(error, ScriptBudgetError)
             log.exception("[game] %s: no body statescript for %s", self.label(), player.describe())
             return
+        dva.on_foot(script)
         script.created(create)
         player.body_script = script
         bodytrace.started(player, script)
+
+    @staticmethod
+    def detach_body_script(player: Player) -> None:
+        """The player's body script leaves him unretired: its graphs run on for a body he left
+        (dva.Loose), and no frame of it is sent any more."""
+        script = player.body_script
+        if script is not None:
+            bodytrace.stopped(player, script)
+            initial = script.stream.initial_owner
+            if initial is not None and player.client is not None:
+                player.client.cancel_entity_record(initial)
+            player.body_script = None
 
     @staticmethod
     def stop_body_script(player: Player, *, failed: bool = False) -> None:
@@ -1546,15 +1578,18 @@ class Match:
         suffix = player.body & 0xFF
         for offset in range(254):
             entity = player.entity | ((suffix + offset) % 255 + 1)
-            if all(client.body_id_available(entity) for client in clients):
+            if entity not in self.forms.loose and all(client.body_id_available(entity) for client in clients):
                 return entity
         return None
 
-    def switch_hero(self, player: Player, hero: Hero) -> bool:
+    def switch_hero(self, player: Player, hero: Hero, *, at: tuple | None = None, keep: bool = False) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
         body. These records can share a datagram in that order. When the packet budget splits them,
-        the later records wait for acknowledgement of their prerequisites."""
+        the later records wait for acknowledgement of their prerequisites.
+
+        A change of form (dva.py) is the same switch with the new body `at` (feet, yaw units) where
+        the old one stood, and with `keep` the old body stays for whoever destroys it later."""
         old = player.body if player.has_body else None
         old_hero = player.hero.guid if old is not None else None
         if old is not None:
@@ -1562,7 +1597,7 @@ class Match:
             if entity is None:
                 return False
             self.combat.retire_player_body(player)
-            player.new_body(entity)
+            player.new_body(entity, at)
             self.combat.record_replacement(entity)
         self._count_hero(player)
         player.hero = hero
@@ -1575,15 +1610,40 @@ class Match:
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,
             )
-            if old is not None:
-                player.client.queue_entities([EntityUpdate(old, OP_DESTROY)])
-        if old is not None:
-            self.destroy_for_others(player, old)
+        if old is not None and not keep:
+            self.destroy_body(player, old)
         self.notices.hero_switched(player, old_hero)
         theme, golden = player.skin
         look = f", skin theme {theme:X}{' + golden weapon' if golden else ''}" if theme else ""
         log.info("[game] %s: %s plays %s%s", self.label(), player.name, hero.name, look)
         return True
+
+    def destroy_body(self, player: Player, body: int) -> None:
+        """One of the player's bodies goes, on his client and on the others that have it."""
+        if player.client is not None and player.spawned:
+            player.client.queue_entities([EntityUpdate(body, OP_DESTROY)])
+        player.seen.pop(body, None)
+        self.destroy_for_others(player, body)
+
+    def show_loose(self, loose: dva.Loose, hero: Hero) -> None:
+        """A hero body no player plays, on every client in the world: placed by its transform as a
+        bot's is, with the hero's pools and its owner's team and skin."""
+        owner = loose.owner
+        health, armour, shields = pools.body_pools(hero.guid, hero.body)
+        components = world.health(health, health, armour, shields)
+        components[26] = [combat.HERO_BIT | owner.team_bit]
+        components[123] = [hero.guid]
+        skin = tuple(self.skin_of(owner.account_lo, hero.guid))
+        position, rotation = loose.position, _rotation(loose.yaw)
+
+        def build(origin: int) -> world.RecordWriter:
+            return world.create(origin, hero.body, components, flags=BODY_FLAGS, position=position,
+                                rotation=rotation, skin=skin)
+
+        for viewer in self.players:
+            if viewer.client is not None and viewer.spawned:
+                viewer.client.queue_entities([EntityUpdate(loose.entity, OP_CREATE, build)])
+                viewer.seen[loose.entity] = False  # its movement records follow the create
 
     def _count_hero(self, player: Player) -> None:
         """Put what the player did since his last pick on the hero he played: the board's numbers he

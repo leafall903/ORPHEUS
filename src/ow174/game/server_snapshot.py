@@ -21,6 +21,7 @@ from ow174.game import (
     combat,
     contacts,
     correction,
+    dva,
     heroselect,
     notices,
     npc_navigation,
@@ -88,7 +89,7 @@ FIELDS = {
     ),
     Match: _names(
         "environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick "
-        "controller assemble_ends assembled players _body_messages started on_leave ended bots "
+        "controller assemble_ends assembled players _body_messages forms started on_leave ended bots "
         "_npc_planning_turn "
         "_pending_bot_scripts bots_shown notices combat collision_provider collision_state collision_world "
         "_collision_failed scene_host_factory scene_host scene_host_started scene_host_error"
@@ -109,6 +110,7 @@ FIELDS = {
         "entity most now temporary_shields ids wave_health wave_health_id changed died_at death_tick killer"
     ),
     combat.WaveHealthPool: _names("capacity current"),
+    dva.Forms: _names("match loose pending"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -167,7 +169,7 @@ OPTIONAL_FIELDS = {
     npc_navigation.Navigator: _names("charge_contact"),
 }
 DATACLASSES = (
-    driver.WheelCallout, driver.WheelSprayEvent,
+    driver.WheelCallout, driver.WheelSprayEvent, dva.Loose,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,

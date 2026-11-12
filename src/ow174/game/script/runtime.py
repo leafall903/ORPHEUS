@@ -720,6 +720,18 @@ class World:
         if resource is not None:
             self.play_resolved_script(instance, node, resource)
 
+    def create_owned_entity(self, instance: "Instance", node: Node):
+        """STU_B6E3C77D: an entity made for the owner of the body. True once the world handled the
+        node, its output included."""
+        return NotImplemented
+
+    def destroy_entity(self, instance: "Instance", node: Node):
+        """STU_523EE38D outside the strict scenes."""
+        return NotImplemented
+
+    def board(self, state: "State") -> None:
+        """STU_CA861E44 began: the body is in the entity it names."""
+
     def create_script_entity(self, instance: "Instance", node: Node, definition: int, position: expr.Vec3):
         instance.component.unsupported(instance, "entity creation service", node.cls, node)
 
