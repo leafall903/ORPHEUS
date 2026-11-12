@@ -1952,7 +1952,7 @@ class Combat:
         script = bot.body_script
         shots, script.component.shots[:] = list(script.component.shots), []
         if not stunned:
-            for state, number, time, activation in shots:
+            for state, number, time, activation, *launch in shots:
                 try:
                     self._shoot(bot, command, state, number, time, activation=activation,
                                 snapshot=snapshot or script.latest_live, command_quanta=quanta)
@@ -3151,7 +3151,7 @@ class Combat:
         if self.is_dead(player):
             if player.hero.guid == 0x02E0000000000065:
                 terminal = command or Command(self.tick, yaw=round(player.mover.yaw), pitch=round(player.mover.pitch))
-                for state, number, time, activation in shots:
+                for state, number, time, activation, *launch in shots:
                     if state.instance.graph.index == 0x022A and state.allows_dead():
                         self._shoot(player, terminal, state, number, time, activation=activation)
             return
@@ -3223,13 +3223,14 @@ class Combat:
                 wave = earthshatter.start(self, player)
                 if wave is not None:
                     self.shatters[player.body] = wave
-            for state, number, time, activation in shots:
+            for state, number, time, activation, *launch in shots:
                 try:
-                    self._shoot(player, command, state, number, time, activation=activation)
+                    options = {"viper_launch": launch[0]} if launch else {}
+                    self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
         elif player.hero.guid == 0x02E000000000006E:
-            for state, number, time, activation in shots:
+            for state, number, time, activation, *launch in shots:
                 if state.instance.graph.index != 0x0257 or state.node.pos != 4:
                     continue
                 anchor = script.world_frame_anchor
@@ -5267,7 +5268,7 @@ class Combat:
         shots, component.shots[:] = tuple(component.shots), []
         if bot.dead or self.is_stunned(bot, tick=frame):
             return
-        for state, number, time, activation in shots:
+        for state, number, time, activation, *launch in shots:
             if state.instance.graph.index == weapon_graph and state.node.pos in volleys:
                 self._shoot(bot, None, state, number, time, activation=activation, launch_tick=frame)
 
@@ -5340,12 +5341,13 @@ class Combat:
                 shots, script.component.shots[:] = list(script.component.shots), []
                 if self.is_stunned(bot, tick=tick):
                     shots = []
-                for state, number, time, activation in shots:
+                for state, number, time, activation, *launch in shots:
                     if not allowed:
                         continue
                     self._shoot(
                         bot, None, state, number, time, activation=activation,
                         snapshot=snapshot or script.latest_live,
+                        **({"viper_launch": launch[0]} if launch else {}),
                     )
                 if snapshot is not None:
                     for viewer in self.match.players:
@@ -5529,7 +5531,8 @@ class Combat:
 
     def _shoot(
         self, shooter, command, state, number: int, time: int,
-        *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None, command_quanta=None,
+        *, activation: tuple[int, int], snapshot: Snapshot | None = None,
+        viper_launch: tuple[float, int] | None = None, launch_tick: int | None = None, command_quanta=None,
     ) -> None:
         if (not isinstance(shooter, bots.Bot) and command is not None
                 and self.sentries.fired(shooter, command, state)):
@@ -5567,6 +5570,11 @@ class Combat:
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
             direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
+            if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
+                    and state.instance.component is shooter.body_script.component):
+                from ow174.game import ashe
+
+                direction = ashe.viper_direction(direction, number, viper_launch)
         if not npc and self.blizzard.fired(shooter, state, shot_frame, origin, direction,
                                           activation=activation, snapshot=snapshot):
             return
@@ -5600,6 +5608,10 @@ class Combat:
         direct = hit_def(state, node.field("m_6396149F"))
         if (not npc and shooter.hero.guid == BASTION and direct is not None
                 and (state.instance.graph.index, node.pos) == (0x012E, 30)
+                and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
+            direct = replace(direct, critical=2.0)
+        if (not npc and shooter.hero.guid == 0x02E0000000000200 and direct is not None
+                and state.instance.graph.index == 0x14FC
                 and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
             direct = replace(direct, critical=2.0)
         if direct is not None:
@@ -9628,7 +9640,7 @@ class Combat:
         from ow174.game.script.bot import DEATH_VOLLEY_GRAPH
 
         shots, script.component.shots[:] = list(script.component.shots), []
-        for state, number, time, activation in shots:
+        for state, number, time, activation, *launch in shots:
             if ((state.instance.graph.index, state.node.pos) == (DEATH_VOLLEY_GRAPH, 0)
                     and state.allows_dead()):
                 self._shoot(bot, None, state, number, time, activation=activation)
