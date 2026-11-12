@@ -109,6 +109,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original Heavy melee force on configured Bastion
+
+- Reconnect the explicit original Heavy/Sentry interaction to the existing
+  physical action queue, retaining its authored damage/vector and configured
+  mode. Other targets retain their current modifier26 and force policy.
+- Nine focused checks pass; original Heavy melee cases pass in all three Bastion
+  forms. Three original Trooper zero-damage failures and capture timing remain
+  recorded for the next batch; no client acceptance was performed.
+
 ### Keep retained Heavy damage calls compatible with the shared API
 
 - Preserve the original three support-module tag expressions using the current
