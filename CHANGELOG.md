@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered variable-driven transition rechecks
+
+- Preserve0005's generic CHANGED dispatch: run the state's dependency callback
+  and recheck authored completion for every still-active, nonending owner. Keep
+  the existing coalescing flags and A1 CHECK button identity. The earlier scoped
+  023A/0C8C behavior is included in the generic route.
+- Retain the original Hanzo combat check file unchanged. Storm's stock already
+  reached zero, but the missing146A transition recheck left its branch active and
+  emitted seven arrows; it now emits the original five and exits that branch.
+- All31 original Shadow/button/runtime checks and16 dynamic-magazine/charge
+  checks passed. The34-check Hanzo/shared run passed33; its remaining damage
+  expectation concerns the pending Hanzo critical consumer with newer native
+  view offsets (140 versus70), after the five-arrow assertion passed. Preserve
+  the expectation and the combined camera service rather than changing either
+  to hide the difference. Hanzo charge/control/bow wiring continues separately.
+
 ### Synchronize worker A with the explicit merged input loader
 
 - Merge stable9c842c3e and retain shared NPC attack-mode/spatial fixes, Echo

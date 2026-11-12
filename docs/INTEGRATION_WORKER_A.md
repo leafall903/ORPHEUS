@@ -218,3 +218,21 @@ ORPHEUS_NPC_DATA=combined-server-runtime/data and PYTHONPATH=tests. The profile
 contains the explicit original Mercy bindings/graphs, DVa graph/movers and full
 3528-projectile tags; worker does not alter its files. Next work is Hanzo charge/
 control (modules absent), followed by lunge/climb/native pose consumers.
+
+Worker sync committed `60261ec3`. Current isolated runtime batch restores the
+source0005 generic CHANGED transition recheck with active/ending protection,
+keeping dependency_changed and A1 CHECK input context. Root explicitly approved
+the general route after the frozen source comparison. All31 Shadow/button/
+runtime checks and16 dynamic magazine/charge checks passed. Storm's stock5 now
+stops after5 emissions; the old scoped route emitted7 despite stock0.
+
+Pending uncommitted A12 work must be preserved: original hanzo_charge.py and
+hanzo_control.py; BodyWorld Hanzo climb placeholder/snapshot field; original
+control test file; Hanzo damage/passive charge and control interruption hooks;
+bow critical/gravity/lifetime consumers. Full draw/Fortify checks passed. The
+original Storm and control-recovery numerical expectations differ with current
+view_offsets.get (native camera values) versus frozen source's static camera
+fallback:140 vs70 Storm hit and lethal vs125 recovery arrow. Do not weaken those
+checks or delete native view offsets. Next exact action after the isolated
+runtime commit is finish/submit A12, then mount actual lunge/climb/Sonic/Dragon
+consumers. No whole0005 admission is claimed.

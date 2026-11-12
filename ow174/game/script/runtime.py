@@ -1901,15 +1901,11 @@ class Instance:
                     self.component.button = previous
         elif event.kind == CHANGED:
             state.flags_changed = False
-            if state.active:
+            if state.active and not state.ending:
                 state.dependency_changed()
-                # 023A's animation and cancel transitions watch the authored
-                # ChaseVar, cancel latch, and mover values they evaluate.
-                if self.graph.index == 0x023A and state.node.field("m_transitionPlug"):
-                    state.try_complete()
-                elif self.graph.index == 0x0C8C and state.node.pos in (33, 275):
-                    # The encounter subscript watches the final-wave flag and
-                    # the live defender condition through its transition plugs.
+                # Delivered variable-driven transitions apply to every authored
+                # owner, including146A's exhausted Storm Arrow branch.
+                if state.active and not state.ending:
                     state.try_complete()
         elif event.kind == ENTRY:
             self.run_node(event.node, None)
