@@ -1562,3 +1562,123 @@ control priorities. Then cross-owner Hog victim credit and non-Flux Sigma.
 Remaining B effort approximately14–27 active hours, low confidence: Hog4–7,
 non-Flux Sigma6–12, other owned caller/storage closure4–8. Root Flux and A Zarya
 remain separate. Original failed assertions do not block delivered code batches.
+
+
+## B60 — original player WholeHog world motion on the sole capsule host
+
+Restore original Motion(owner,body,velocity,tick,npc_mover) as selected source
+state INSIDE sole Knockbacks. Player WholeHog no longer injects a parallel native
+queue delta: original world16ms damping calls the SAME player Mover.displace,
+leaving input velocity independent. Player.movement sums that original external
+velocity for the actual observer. Same-tick updates skip already consumed ticks;
+world-gap substeps include active source motion. Native queue requests keep
+priority and retire only the selected source channel; original Hook contact also
+retires ONLY that selected channel, leaving generic physical owners unchanged.
+Halt/root/pin/graviton/immunity preemption does not replay old external slices
+when released. Damageable non-body devices have no fabricated player capsule.
+Exact Motion and ledger fields are registered in strict server storage.
+
+Original total WholeHog damage/HIT relation now passes, correcting B53's
+329.0097vs336 after restoring original separate damping; with runtime13 this is
+14/14 pass4.066s. Five original motion cases + existing direct force regression
+6/6 pass46.373s:16ray aggregation/cap/decay and same-worldtick no-double-update,
+real wall sweep, continuous vs60tick world-only gap, actual Hook takeover, and
+read-only full-server export with motion velocity/dedup causal mutation. Followup
+six checks have only an old defenses.control_immune observation error; map it to
+actual fight._control_immune(player_target) and that original Fortify resume case
+passes1/1 in3.220s. The other five pass18.257s, including an added fresh body
+command PLUS another world update in the same tick with no duplicate external
+movement, death/replacement cleanup, far ring and repeated caps/owner death.
+Logs worker-b-hog-world-motion-{mount,original-2,boundaries,fortify}.log.
+
+Preserve original defense/graviton/trap/knockback fixture files in full. Real
+service mappings replace obsolete impulse views, radial callback observer,
+Fortify query and SoundBarrier constant; all original motion assertion-call ASTs
+match under those name/getter mappings. Trap fixture imports the Graviton module
+instead of leaking its TestCase into discovery. No expected numeric value changed.
+The original tests still include NPC/trap/graviton/counter scopes not yet all
+mapped; do not count the entire file as passed.
+
+Next exact action B61: ordinary five-NPC selected world motion on their SAME
+impulse_mover and prepared movement_data, then owned-DVa actual control_mover and
+body/world epoch queue contract. Those still use B53's narrower ordinary queue or
+explicit owned-mech skip; player success is not whole-owner completion. Root
+owns Flux, A Zarya. Cross-owner victim credit, historical reduction offset0,
+Halt/native-vector overlap details and non-Flux Sigma remain. No client run.
+
+
+## B61 — actual ordinary NPC selected motion and coupled storage
+
+Ordinary NPC WholeHog now uses the original selected Motion ledger too. Reuse
+owner.impulse_mover first; when absent, the existing manual mover allocator or a
+single registered owner mover uses actual movement_data before the body table.
+Motion.npc_mover aliases that SAME object. The sole host runs its neutral base
+pose and original external displacement/damping once per world tick; Match skips
+its ordinary NPC movement path for this selected kind. Actual modifiers, ground
+and wall constraints remain in that same host. Cleanup removes only selected
+state and restores the same mover's native velocity, never replaces mover slots.
+Owned control_mover remains explicitly unsupported here pending B62 epoch audit.
+
+Actual original five prepared NPC factories each move forward/up and clean up,
+retaining the existing mover. Regression asserts same-tick Match/NPC/Combat calls
+do not repeat displacement, and explicit Definition gravity_scale3 remains the
+actual mover data and produces original-formula external lift1.32. An actual raw
+HeroPick/Q ServerSession with associated NPC body/controller pair proves active
+Motion aliases the same mover and full-server velocity mutation/restoration
+changes/restores its digest. Those three NPC regressions + player force + runtime13
+are17/17 pass39.844s; external five-body probe also passes. Logs:
+worker-b-hog-world-motion-{five-npc,npc-regression,npc-coupled}.log.
+
+Initial NPC storage probe incorrectly requested standalone Component export.
+It correctly refused the foreign NpcContext on all five actors. Existing full
+server exporter already validates and binds that exact body/controller pair as
+enclosing references. The corrected test keeps standalone rejection and proves
+the real enclosing ServerSession; no unknown context facade/serializer fallback
+or weakened original assertion was introduced. No client acceptance run.
+
+A82 independently fixes Graviton NPC aliases and release; B uses the same owner
+slot and does not touch that manager. Generic native queue, Hook, root/pin/Halt/
+Graviton priorities remain. Other active NPC movement owners and dormant navigation/
+wall mover handoffs still need full cross-owner source checks; the ordinary
+five-body proof does not establish every interaction. Original source NPC-specific
+knockback methods still require their complete original fixture/API integration.
+
+Next exact action B62: owned DVa actual control_mover/body-command epoch and
+world-only selected displacement, preserving the same sole mover and original
+queue semantics. Then remaining Hog control/vector/victim-credit checks and
+non-Flux Sigma. Do not duplicate root Flux or A Zarya, and do not let retained
+numeric/deadline checks prevent implemented batches from being submitted.
+
+
+## B62 — owned DVa selected world displacement without a second body epoch
+
+WholeHog now accepts the actual owned mech's existing control_mover as its sole
+Motion.npc_mover alias. Its world tick applies ONLY external capsule displacement
+and original damping: do not step/track modifiers with a fabricated world-domain
+Command on that body-domain mover. Actual pilot input remains the existing
+body_entities driver. Its observer velocity includes the same external ledger;
+release_control retires only this selected motion before dropping ownership and
+restores the native velocity. No impulse_mover clone or new persistent field.
+
+Actual factory/mount probe preserves frozen VM frame, identical last command and
+clock while five inputless world ticks move the same mech; strict Component VM
+passes. Raw two-client HeroPick creates/possesses the real0407 and casts actual
+WholeHog. Unequal world/body frames and nonzero clock_offset remain unchanged
+during five inputless world ticks, with real displacement. A real typed pending
+body-frame velocity request stays queued during those world ticks, survives the
+first pilot frame, and is consumed ONLY by its original second body frame.
+Strict VM and full-server motion-velocity mutation/restoration pass. Same mover
+identity and unchanged impulse slot persist through that sequence; releasing the
+actual control binding clears selected state and restores native velocity.
+
+Raw epoch/queue/storage + existing owned-mech Hook + original initial-mech fire
+and runtime13 =16/16 pass34.484s. Logs worker-b-hog-owned-motion-{mount,raw}.log.
+This retires the explicit B53/B61 owned-mech skip, without claiming every generic
+force/control overlap is reconciled. No client acceptance run.
+
+Next exact action: original Hog mitigation deadline offset0 inside the existing
+Breather channel, preserving integer inclusive source semantics and all original
+assertions; then remaining source control/vector/victim-credit caller audit and
+non-Flux Sigma. Do not change global clocks/leases or rebuild movement objects.
+Root Flux and A Zarya remain separate. Source NPC/full cross-owner fixture
+couplings remain recorded rather than being counted complete from this batch.

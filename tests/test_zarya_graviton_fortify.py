@@ -87,4 +87,3 @@ class ZaryaGravitonFortifyTests(unittest.TestCase):
         self.assertEqual(tuple(self.b.mover.position), position)
         self.assertEqual(self.b.mover.velocity, (0.0, 0.0, 0.0))
         self.assertAlmostEqual(before - self.health(), 0.048, places=5)
-

@@ -8,13 +8,14 @@ No difficulty scaling or enemy AI behavior is inferred by this extractor.
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from extract_game_graphs import EnumTables, GraphXml, StuXml, body_record, full_guid, guid_index  # noqa: E402
+from extract_game_graphs import EnumTables, GraphXml, StuXml, body_record, full_guid, guid_index, tag  # noqa: E402
 
 from ow174.game.npc import Definition  # noqa: E402
 
@@ -25,7 +26,44 @@ def numbers(entries):
             and value.get('$') in ('STUConfigVarInt', 'STUConfigVarFloat')}
 
 
-def extract(folder, enums, selections):
+def associated_ai(body_path, enums, fingerprint):
+    """Keep authored association evidence without allocating a runtime controller.
+
+    Component class names are STU definitions, not native component indices.
+    Initial graph overrides belong to the associated entity, not the body.
+    """
+    body = StuXml(body_path, enums)
+    field = 'm_8B9A461F'
+    ref = body.field(body.root, field)
+    if body.root.get(field) not in (None, '{null}'):
+        raise ValueError('AI association must be an entity definition reference')
+    if ref is None:
+        return None
+    guid = ref.get('GUID', '')
+    if tag(ref) != 'ref' or not re.fullmatch(r'[0-9A-Fa-f]{1,12}\.003', guid) or not guid_index(guid):
+        raise ValueError('AI association must reference a nonzero .003 entity definition')
+    path = body_path.with_name(f'{guid_index(guid):012X}.003.xml')
+    xml = StuXml(path, enums)
+    if tag(xml.root) != 'STUEntityDefinition':
+        raise ValueError('AI association needs an STUEntityDefinition root')
+    components = xml.field(xml.root, 'm_componentMap')
+    if components is None or tag(components) != 'map':
+        raise ValueError('AI association needs a component map')
+    record, _ = body_record(path, enums, None, None, include_ai_weapons=False)
+    fingerprint(path)
+    for entry in record['graphs']:
+        if entry['graph'] is not None:
+            graph_path = path.parent.parent / '01B' / f"{entry['graph']:012X}.01B.xml"
+            # Parse each initial graph as well as hashing it; a missing or malformed
+            # graph must not look like a prepared controller graph bundle.
+            GraphXml(graph_path, enums).record(entry['graph'])
+            fingerprint(graph_path)
+    return {'association_field': field, 'entity': f'0x{full_guid(guid):016X}',
+            'component_classes': [tag(entry) for entry in components],
+            'initial_graphs': record['graphs'], 'runtime_controller_allocated': False}
+
+
+def extract(folder, enums, selections, *, include_ai_evidence=False):
     rows, sources, keys = [], {}, set()
 
     def fingerprint(path):
@@ -84,6 +122,8 @@ def extract(folder, enums, selections):
         rows.append({'key': key, 'hero': f'0x{definition.hero:016X}', 'body': f'0x{definition.body:016X}',
             'name': name, 'health': definition.health, 'armour': definition.armour,
             'shields': definition.shields, 'pool_evidence': evidence, 'unapplied_pool_nodes': unapplied})
+        if include_ai_evidence:
+            rows[-1]['ai_evidence'] = associated_ai(body_path, enums, fingerprint)
     return {'format_version': 1, 'definitions': rows, 'source_sha256': sources,
             'limits': ['Base body pools only; no mission difficulty scaling, AI or client acceptance.']}
 
@@ -94,10 +134,13 @@ def main():
     parser.add_argument('--owlib', type=Path, required=True)
     parser.add_argument('--npc', action='append', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--include-ai-evidence', action='store_true',
+                        help='Record associated entity components/initial graphs; does not enable AI')
     args = parser.parse_args()
     if args.output.resolve().is_relative_to(ROOT):
         parser.error('NPC data must be written outside the source repository')
-    data = extract(args.xml, EnumTables(args.owlib / 'TankLib/STU/Types'), args.npc)
+    data = extract(args.xml, EnumTables(args.owlib / 'TankLib/STU/Types'), args.npc,
+                   include_ai_evidence=args.include_ai_evidence)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
     print(f"Prepared {len(data['definitions'])} NPC definitions: {args.output}")

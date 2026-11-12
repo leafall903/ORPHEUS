@@ -264,7 +264,9 @@ class Hooks:
                             and flight.target.owner not in fight.match.players)):
                     self.cancel_owner(body)
                     continue
-                # Existing shared physical/control owners retain their mover priority.
+                # Original Hook overrides the selected Whole Hog external channel;
+                # other shared physical owners retain their existing priority.
+                fight.knockbacks.retire_whole_hog(flight.target.entity, forget=False)
                 self.interrupt(flight.target)
                 if isinstance(flight.target.owner, bots.Bot):
                     bot = flight.target.owner

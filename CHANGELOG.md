@@ -43,6 +43,81 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore shared original Sentry geometry queries
+
+- Restore original cover/target/barrier/splash prediction entry points over the
+  existing solid walls and current shield geometry, preserving actual actor and
+  service identities without advancing hosts or spending health.
+- Actual Mei/predicted-pose and raised Reinhardt stored-state checks pass;
+  remaining native shield input fixtures are explicitly pending, and do not
+  prevent submitting these existing-source consumers. No new runtime pool.
+
+
+### Restore explicit NPC mover export options
+
+- Restore original006E --base/--npc-catalog/--output on the existing mover export
+  tool, retaining stance metadata and the original34 physical fields.
+- Actual extraction/loader checks preserve base records and bytes, reject base
+  overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+
+### Apply WholeHog world motion to the actual controlled mech
+
+- Reuse the owned0407 control mover for external displacement while pilot input
+  keeps its original body-frame driver and pending velocity queue. Release only
+  the selected external channel when control ends; no second mover or epoch.
+- Raw unequal-epoch/queue/storage, owned Hook, initial fire and runtime16/16 pass.
+  Original deadline and cross-controller caller audits continue; no client run.
+
+### Restore ordinary NPC WholeHog motion on existing movers
+
+- Original selected world motion reuses each NPC's same registered mover and
+  explicit movement data, with one base/external step per tick and owned cleanup.
+- Five real bodies, explicit data, same-tick and actual coupled server storage
+  plus player/runtime17/17 pass. Keep standalone foreign-context export closed;
+  owned-mech epoch and cross-controller handoffs remain next. No client run.
+
+### Preserve original stance metadata extraction
+
+- Restore original012F FirstPerson extraction alongside the existing34 mover
+  values and retain its complete original tests. Actual XML-to-loader checks
+  preserve physical data; current view catalog remains the runtime provider.
+- Preserve two old mover-view API test errors and four opt-in skips explicitly;
+  no source assertion, game geometry or numeric expectation was changed.
+
+
+### Restore original NPC evidence and status extraction tools
+
+- Restore the original optional NPC associated-entity evidence export and status
+  definition/child graph supplemental extraction CLI paths, preserving current
+  AI association, map/mode and difficulty-profile extraction.
+- Original/shared42 extractor checks and an actual immutable-base CLI probe pass.
+  Runtime packs and appearance extraction are unchanged; integration continues.
+
+
+### Preserve three original-language integration checkpoints
+
+- Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
+  unified Ice Wall actor/pool implementations without waiting for whole-owner
+  acceptance. Preserve source assertions, shared actors and existing budgets.
+- Record the joint26 failures and passing original2 IceSentry checks explicitly;
+  workers continue actual owner/fixture reconciliation. Full integration remains
+  in progress, with appearance migration excluded.
+### Restore ordinary NPC WholeHog motion on existing movers
+
+- Original selected world motion reuses each NPC's same registered mover and
+  explicit movement data, with one base/external step per tick and owned cleanup.
+- Five real bodies, explicit data, same-tick and actual coupled server storage
+  plus player/runtime17/17 pass. Keep standalone foreign-context export closed;
+  owned-mech epoch and cross-controller handoffs remain next. No client run.
+
+### Restore original player WholeHog world damping
+
+- The sole Knockbacks host now applies original selected external motion through
+  the same player capsule and observer velocity, without a second native delta.
+  Preserve generic queue/control priority and Hook takeover of this channel only.
+- Original damage/runtime14 and motion/storage6 checks pass, plus lifecycle,
+  Fortify/range/cap and same-tick command/world boundaries. Keep full original
+  fixtures and numbers; NPC/owned-mech coupling remains next. No client run.
 ### Preserve three original-language integration checkpoints
 
 - Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
@@ -87,6 +162,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Admit natural allied support in frozen sentry history
+
+- The existing bounded proof now admits natural/cancelled allied Ice Wall support
+  using the same NPC/combat driver. Unit acquisition and historical proof share
+  the same actual unit filter; a solid column is not another beam enemy.
+- Original22 shared methods pass. Original source NPC support checks progress
+  through explicit delivered mover data; old dedicated-rocket observer errors
+  and the pending final selected check are recorded without weakening assertions.
+- Impact/projected-retarget adapters remain an explicit following batch.
+
 ### Exercise Ice Wall causal storage through its real owner
 
 - Existing causal storage check now selects Mei and casts five original pillars

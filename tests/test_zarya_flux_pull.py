@@ -73,4 +73,3 @@ class ZaryaFluxPullTests(unittest.TestCase):
         self.assertIsNone(self.effect(target))
         self.assertFalse(fight.zarya_gravitons.fields)
         self.assertFalse(fight.zarya_gravitons.pulled)
-

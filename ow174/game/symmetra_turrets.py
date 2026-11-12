@@ -107,7 +107,7 @@ class Turrets:
         from ow174.game.combat import segment_distance
 
         best = None
-        for target in self.combat._enemies(sentry.owner):
+        for target in _unit_targets(self.combat, sentry.owner):
             # The delivered acquisition searches units, not the separate solid
             # Ice Wall object that may also back this same sentry's support.
             if (isinstance(target.owner, actors.Deployable)
@@ -156,11 +156,11 @@ class Turrets:
             bot.body_script.component.set(478, True)  # reconstructed deployed flag
         bot.moved_tick = self.combat.tick
 
-    def frozen_history_candidates(self, end_tick):
+    def frozen_history_candidates(self, end_tick, *, support_impacts=True):
         if self.combat.match.game_map.free_for_all or not self.sentries:
             return ()
         first = self.sentries[0]
-        targets = self.combat._enemies(first.owner)
+        targets = _unit_targets(self.combat, first.owner)
         target = next((candidate for candidate in targets if candidate.entity == first.target), None)
         if target is None or not self._held_frozen_pose(target, first.last_tick):
             return ()
@@ -190,7 +190,8 @@ class Turrets:
         if _projected_barriers(self.combat) and not hostile_support:
             return ()
         if hostile_support or (others and self.combat.rockets):
-            if not self._ice_support_rocket(support, target, first.last_tick, end_tick):
+            if (not support_impacts
+                    or not self._ice_support_rocket(support, target, first.last_tick, end_tick)):
                 return ()
         else:
             if others and not self._out_of_range_history(others, first.last_tick):
@@ -670,6 +671,15 @@ class Turrets:
         history = self.combat.history.get(target.entity, ())
         return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
                    for sample in history)
+
+
+def _unit_targets(fight, shooter):
+    """Use the same unit search in acquisition and its historical lock proof."""
+    from ow174.game import actors, ice_wall
+
+    return [target for target in fight._enemies(shooter)
+            if not (isinstance(target.owner, actors.Deployable)
+                    and target.owner.definition == ice_wall.PILLAR)]
 
 
 def _external_motion(fight, actor):

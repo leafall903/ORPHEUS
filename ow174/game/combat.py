@@ -4514,15 +4514,15 @@ class Combat:
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
             return ()
         if (self.respawns or self.photon_barriers.actors or self.barriers.world.actors
-                or self.blizzard.areas or self.walls.pieces
+                or self.blizzard.areas
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Ice-support/projected-impact proofs remain in the delivered owner
-        # module; admit them only after their original service consumers map.
-        return self.sentries.frozen_history_candidates(tick)
+        # Natural/cancelled allied support uses this same real world loop.
+        # Impact/projected retarget proofs await their actual service adapters.
+        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -4575,7 +4575,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.hooks.flights or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
+            or self.hooks.flights or self.knockbacks.whole_hog_motion or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -8875,6 +8875,26 @@ class Combat:
     def _barrier_hit(self, shooter, origin, direction, length):
         trace = getattr(getattr(self.match, 'scene_host', None), 'trace_barrier', None)
         return trace(shooter, origin, direction, length) if trace is not None else None
+
+    def cover_ray(self, origin, direction, reach, *, exclude=None):
+        from ow174.game.prediction_geometry import cover_ray
+        return cover_ray(self, origin, direction, reach, exclude=exclude)
+
+    def visible_target(self, origin, target):
+        from ow174.game.prediction_geometry import visible_target
+        return visible_target(self, origin, target)
+
+    def trace_barrier(self, shooter, origin, direction, limit):
+        from ow174.game.prediction_geometry import trace_barrier
+        return trace_barrier(self, shooter, origin, direction, limit)
+
+    def _splash_targets(self, rocket, point, visible_from, *, targets=None):
+        from ow174.game.prediction_geometry import splash_targets
+        return splash_targets(self, rocket, point, visible_from, targets=targets)
+
+    def _splash_barriers(self, rocket, point, visible_from, impact):
+        from ow174.game.prediction_geometry import splash_barriers
+        return splash_barriers(self, rocket, point, visible_from, impact)
 
     def ray_obstruction(self, origin, direction, length):
         terrain = ray_world(self._collision(), origin, direction, length)

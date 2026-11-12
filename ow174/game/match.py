@@ -317,7 +317,8 @@ class Player:
             mover.position,
             mover.yaw,
             mover.pitch,
-            mover.velocity,
+            tuple(a + b for a, b in zip(mover.velocity,
+                  self.match.combat.knockbacks.whole_hog_velocity(self.body), strict=True)),
             mover.flags | (combat.DEAD if self.match.combat.is_dead(self) else 0),
             throttles=mover.throttles,
             input_frame=input_frame,
@@ -1454,6 +1455,8 @@ class Match:
             hooks = getattr(self.combat, "hooks", None)
             if hooks is not None and hooks.controlled(bot.entity):
                 continue  # the retained hook consumer owns this tick's shared body mover.
+            if bot.entity in self.combat.knockbacks.whole_hog_motion:
+                continue  # Sole selected source host advances this same NPC mover once.
             npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
             if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
                 continue
