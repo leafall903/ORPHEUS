@@ -336,7 +336,8 @@ Zenyatta's and Ana's ally searches have the same shape and are left unanswered u
 checked. Where the decode stops, it does this, and each point is a reconstruction:
 
 1. **Filter bits.** Every player's and bot's body has bit 0, and bit 4 while dead. Nothing has
-   bit 21.
+   bit 21. Bit 0 is also what the server now sends in a body's component 26 beside its team: the
+   client needs it there (see the live runs).
 2. **Candidates** are the match's player and bot bodies, not the world's lists.
 3. **Other bodies' variables.** A condition reads the candidate's variables as unset, so
    Guardian Angel's `c.#478`, `c.#653` and `c.#11264` rules do not turn anyone away.
@@ -348,26 +349,56 @@ checked. Where the decode stops, it does this, and each point is a reconstructio
 6. **The search frame.** The period of `m_DD792FF0` is played; the hash that offsets each state's
    frame is not.
 7. **`m_93AB8C13`** is not played: the staff's node 7 drops its target the refresh it is lost.
+8. **The heal** is given by the server at the staff's status state, at the rate that state hands
+   on (`#6578`), to the ally in `#468`. Graph `0079` is not mounted on the target: the local
+   runtime pack does not hold it, nor `006C`. The boost does nothing on the server.
 
 Hack's nodes are not answered: their sight goes through two hardpoint fields and their condition
 through evaluators that are not read.
 
+## What the client's own copies of the searches need
+
+Read from data and seen live. Two of Mercy's searches are client-only states, so the owner's
+client answers them itself and the server's answer never reaches it:
+
+- The staff's node 7 writes `#468`, the beam's target. Its condition holds it to the entity the
+  server put in `#375`, but the client still has to find that entity among its own candidates.
+- Guardian Angel's node 30 writes `#1691`.
+
+Both filters reduce to kind 1 (step 3 above), so the client gathers their candidates from its
+world's list of entities with filter bit 0. A body's filter bits are what the server sends in its
+component 26. With the team bit alone the client found nobody and drew no beam; with bit 0 added
+it draws the beam (the two runs below). So a hero's body carries bit 0 on the wire.
+
+The staff's healing is not a ModifyHealth of graph `006B`. Its node 62 is a status state
+(`STU_431F3FCC`) that hands the resource `0019.04A` one value, `002A.0A4` = the staff's `#6578`
+(55), for the beam's target `#468`. `SceneWorld._witch_staff_effect` reads that resource as
+graph `0079` mounted on the target with message `000F.025` carrying the value, and `0079`'s own
+ModifyHealth gives the health. The boost's node 66 is the same state without a value; its status
+graph is `006C`.
+
 ## Seen live against ORPHEUS
 
-2026-11-12, the original client in the Practice Range as Mercy, driven by a virtual gamepad, one
-run.
+The original client in the Practice Range as Mercy, driven by a virtual gamepad.
+
+**Run 1, 2026-11-12, bodies sent with the team bit alone.**
 
 - **Seen.** With a Friendly Bot about 15 m ahead at the crosshair, the Guardian Angel button flew
   Mercy to it: the next picture, 0.7 s later, has the bot filling the view. The server's log has
   the flight's own nodes running in that second.
-- **Not seen.** No target mark on the bot before the press, so the client's own search (node 30)
-  did not pick it. Holding primary fire at the same bot from 3 m and from 10 m drew no beam. The
-  bot was at full health, so healing could not show either.
-- **Not tried.** An ally outside the cone or behind a wall, an enemy, a second player.
+- **Not seen.** Holding primary fire at the same bot from 3 m and from 10 m drew no beam.
 
-A likely reason for the missing mark and beam, not checked: the client runs the same filters on
-the filter bits the server gave the bot's body, which are the team bit alone, and both filters ask
-for bit 0.
+**Run 2, the same day, bodies sent with bit 0 too.**
+
+- **Seen.** Holding primary fire at a Friendly Bot about 12 m ahead: the staff opens and a yellow
+  stream runs from its head to the bot (two pictures, 1.5 s into two separate holds). Guardian
+  Angel again: one picture in flight, the next, 0.6 s later, at the bot.
+- **Not clear.** Holding secondary fire: the staff opens in its other pose with its light blue,
+  and one picture of two has a faint blue trace toward the bot. No clear boost beam.
+- **Not seen.** A mark on the bot while aiming at it before Guardian Angel. Whether this build
+  draws one is not known.
+- **Could not show.** Healing: the bot was at full health and nothing in the Range damages it.
+- **Not tried.** An ally outside the cone or behind a wall, an enemy, a second player.
 
 ## Not decoded
 

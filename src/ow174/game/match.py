@@ -738,7 +738,7 @@ class Match:
         # Freeze its initial pools here so retransmitting the create keeps the same baseline.
         vitals = self.combat.vitals.get(bot.entity)
         components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.ids)
-        components[26] = [TEAM_BIT << bot.team]
+        components[26] = [combat.HERO_BIT | TEAM_BIT << bot.team]
         definition, position, rotation = bot.body, bot.position, _rotation(bot.yaw)
         return EntityUpdate(
             bot.entity, OP_CREATE,
@@ -793,7 +793,7 @@ class Match:
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
-        components[26] = [owner.team_bit]
+        components[26] = [combat.HERO_BIT | owner.team_bit]
         components[123] = [owner.hero.guid]
         if own:
             lease = self.combat.projectiles.lease(owner)

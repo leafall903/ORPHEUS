@@ -6,11 +6,12 @@ masks, the cone, clear sight, and the best score where one target is asked for.
 
 import math
 import unittest
+from unittest.mock import patch
 
 from test_game_combat import Run
 from test_game_mover import FLOOR, wall
 
-from ow174.game import combat
+from ow174.game import combat, match, stats
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -190,6 +191,47 @@ class StaffTests(unittest.TestCase):
     def test_no_lock_through_a_wall(self):
         blocked = wall(-5.0, 3.0, 5.0, 3.0, y0=GROUND, y1=GROUND + 6.0)
         self.assertEqual(self.locked((True, (0.0, GROUND, 6.0)), walls=blocked)[1], ())
+
+    def test_the_beam_heals_the_ally_at_the_staffs_own_rate(self):
+        arena = Arena((True, (0.0, GROUND, 6.0)))
+        ally = arena.others[0]
+        vitals = arena.match.combat.body_vitals(ally.body, ally)
+        vitals.damage(150.0)
+        arena.steps(40, FIRE)  # the lock, then the beam
+        before = vitals.total
+        arena.steps(125, FIRE)  # two seconds
+        self.assertAlmostEqual(vitals.total - before, 2 * 55.0, delta=2.0)  # 006B #6578
+        self.assertGreater(arena.mercy.stats.value(stats.HEALING), 100.0)
+
+    def test_the_beam_does_not_heal_an_enemy_or_past_full_health(self):
+        arena = Arena((False, (0.0, GROUND, 6.0)))
+        vitals = arena.match.combat.body_vitals(arena.others[0].body, arena.others[0])
+        vitals.damage(150.0)
+        arena.steps(120, FIRE)
+        self.assertAlmostEqual(vitals.total, 50.0)
+        arena = Arena((True, (0.0, GROUND, 6.0)))
+        vitals = arena.match.combat.body_vitals(arena.others[0].body, arena.others[0])
+        arena.steps(120, FIRE)
+        self.assertAlmostEqual(vitals.total, 200.0)
+
+
+class BodyFilterBitsTests(unittest.TestCase):
+    """The client's own searches gather bodies from its list of entities with filter bit 0: without it
+    the staff's beam target and Guardian Angel's own search find nobody (seen in the client)."""
+
+    def components(self, build) -> dict:
+        with patch.object(match.world, "create") as create:
+            build(0)
+        return create.call_args.args[2]
+
+    def test_player_and_bot_bodies_carry_bit_0_and_their_team(self):
+        run = Run()
+        player = run.players[0]
+        bits = self.components(run.match._body_builder(player, None))[26]
+        self.assertEqual(bits, [combat.HERO_BIT | match.TEAM_BIT << player.team])
+        bot = run.match.bots[0]
+        bits = self.components(run.match._bot_create_update(bot).build)[26]
+        self.assertEqual(bits, [combat.HERO_BIT | match.TEAM_BIT << bot.team])
 
 
 if __name__ == "__main__":

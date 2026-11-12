@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Caduceus Staff beam in the client and its healing
+
+- Bodies now carry filter bit 0 beside their team in component 26, for players and bots. The
+  client's own copies of two of Mercy's searches (the staff's beam target, node 7 of `006B`, and
+  Guardian Angel's node 30 of `006E`) are client-only states that gather their candidates from the
+  client's list of entities with that bit; with the team bit alone they found nobody and no beam
+  was drawn. `docs/research/track-targets.md` has the reading and both live runs.
+- The staff now heals. Its status state (`006B` node 62) hands the status resource `0019.04A` the
+  rate `#6578`, 55 health a second, for the beam's target; the server gives that health to the
+  ally in `#468` while the state is on, with the healing stat and ultimate charge the other
+  heals get. Shortcut: graph `0079`, which the resource mounts on the target, is not in the local
+  runtime pack, so its own ModifyHealth is not what runs. The damage boost does nothing on the
+  server yet: its status graph `006C` is not packed either.
+- Added three runtime tests: the bits of a player's and a bot's body, the heal's rate and stat,
+  and no heal for an enemy or past full health.
+- Passed Ruff and 922 public Python tests. The runtime suite ran 1685 tests with the 26 known
+  failures and one more, `test_ten_leave_rejoins_keep_old_connection_packets_out_of_the_new_lifecycle`.
+  It fails only with a pack that holds the Practice Range bot bodies, as its sibling
+  `test_healthy_ownership_keeps_world_timing_and_soldier_input` already did: each body's create
+  record is one byte longer with the new bit, which moves the scripted loss onto other
+  datagrams. Both pass on a pack with the hero bodies alone.
+- Original client, Practice Range: holding primary fire at a Friendly Bot draws the yellow beam
+  from the staff to the bot, and Guardian Angel's flight was caught in two pictures. Not shown:
+  health rising (the bot was at full health and nothing there damages it), a clear boost beam, a
+  target mark for Guardian Angel.
+
 #### Target search for Guardian Angel and the Caduceus Staff
 
 - Decoded the client's `STUStatescriptStateTrackTargets` search in

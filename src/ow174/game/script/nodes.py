@@ -3566,8 +3566,10 @@ class TargetEffects(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.children = {}
+        self.applied_at: int | None = None  # when a world that applies the effect itself last did
 
     def on_enter(self) -> None:
+        self.applied_at = None
         result = self.instance.component.world.target_effects(self)
         if result is not NotImplemented:
             self.ticks()
