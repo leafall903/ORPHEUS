@@ -227,8 +227,10 @@ class Controls:
                 self.restore_body(entity)
 
     def enemies(self, player):
+        from ow174.game import ball_mines
+
         return (target for target in self.fight._enemies(player)
-                if not isinstance(target.owner, actors.Deployable)
+                if not isinstance(target.owner, (actors.Deployable, ball_mines.Mine))
                 and getattr(target.owner, "body_script", None) is not None
                 and not self.fight.damage_immune(target.owner))
 
@@ -463,6 +465,8 @@ class Controls:
         return runtime.RaycastResult(clear, expr.Entity(target.entity if clear else 0), expr.Vec3(*point), None)
 
     def play(self, instance, node):
+        from ow174.game import ball_mines
+
         if instance.component.strict or instance.graph.index not in (HACK, EMP, PULSE):
             return NotImplemented
         resource = play.resolve_resource(instance, node)
@@ -495,7 +499,7 @@ class Controls:
                 else:
                     health_packs.submit(pack.component, definition, resource, request)
         for target in fight._targets():
-            if isinstance(target.owner, actors.Deployable):
+            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
                 continue
             if target.entity not in request.targets or fight.vitals_of(target).dead or fight.damage_immune(target.owner):
                 continue
@@ -504,6 +508,11 @@ class Controls:
             script = getattr(target.owner, "body_script", None)
             if script is None:
                 continue
+            # Original0200 recipient invocation replaces the previous graph,
+            # including its start-entry lifetime, before submitting this request.
+            for prior in tuple(script.component.instances.values()):
+                if prior.graph.index == definition.index:
+                    script.component.destroy(prior)
             application = self.invoke(script.component, definition, request)
             if application is not None and definition.index == EFFECT:
                 duration = expr.to_float(application.evaluate(application.graph.node(96).field("m_value")))

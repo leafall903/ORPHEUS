@@ -1569,3 +1569,40 @@ fight.portals + actor-backed PortalPair; actualSentries are fight.sentries
 real actors/components and unique Vitals, not mount legacy duplicate managers.
 A owns BOB timeout/gun continuation; its exactexpiry/refresh stack sent separately.
 C39/body888 remains merged unchanged. No client/network acceptance performed.
+
+
+## C41: replace the original recipient graph before reapply
+
+Read-only refresh probe: ordinaryHack Wait instance25 existed; actualEMP created
+new effect27 with realWait58, while prior effect25 stayed first in actual
+component.instances but lost its Wait through shared state lifecycle. Original
+instance_for legitimately returned that stale first effect, causing KeyError58.
+worker-c-sombra-reapply-baseline-probe.log preserves both actualinstances/vars.
+
+Mounted the explicit original0200 sombra_hack.invoke recipient prelude: destroy
+matching prior graph on the actual component before submitting current ready
+request. Body-only delivery; existing device policy unchanged. One existing
+component, same source/context/params andouter Lock lifetimes retained. Does not
+fake/repoint query functions, add an effect instance, extend expiry or change
+original template data. Existing outerworld locks/history still preserve their
+independent accepted intervals until normal cleanup; actual priorVM retires.
+
+v16 environment/test_environment; python -B -m unittest
+ test_ashe_emp.AsheEmpTests.test_emp_refreshes_the_lock_from_its_own_impact_after_ordinary_hack
+ test_ashe_hack
+ test_game_sombra_combat.SombraCombatTests.test_emp_target_denies_hack_until_expiry_without_spending_cooldown
+ test_game_sombra_combat.SombraCombatTests.test_paid_emp_matches_pulse_and_expiry_with_no_player_commands
+ test_game_sombra_combat.SombraCombatTests.test_hacked_body_death_retires_effect_and_ownership
+ test_game_sombra_combat.SombraCombatTests.test_hero_replacement_does_not_inherit_the_retired_body_silence
+ test_game_sombra_charge.SombraChargeTests test_script_play_queue
+ test_script_play_loaded test_game_script_runtime -v:79allpass71.646s,
+worker-c-sombra-reapply-check.log. Originalrefresh distinctnewWait/laterend,
+originalcooldown rejection/no-spend, sourceownership, paidworld-onlyEMP and
+retirement all pass. All15charge andentireAsheHack class preserved. No fixture/
+assert edits or Python edits during the group. No client/network validation.
+
+Next C42: actual actor device consumers (Torb already consults soleLocks,
+Sentry still lacks its originaldisablebeam bridge; PortalPair uses actual
+fight.portals/Bot endpoints). Body source-retirement/incoming clock helper remains
+unmounted; no equal-epoch assumption will be introduced to close oldfixtures.
+C40 retained actual Wait input history andC39 base lifetime remain unchanged.
