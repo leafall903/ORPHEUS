@@ -863,6 +863,14 @@ class Mover:
         self.spring_steps = (0, 0)
         self.landed = False
 
+    def add_timed_mod(self, index: int, op: int, value: float, start: int, end: int) -> None:
+        """Publish the delivered finite modifier on the server tick clock."""
+        # -1 already identifies scheduled impulse records in this unified mover.
+        prefix = (-2, start)
+        slot = max((key[2] for key in self.mods if key[:2] == prefix), default=-1) + 1
+        key = (*prefix, slot)
+        self.mods[key] = Mod(index, op, f32(value), start, end, key=key)
+
     def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
         a mod that came on acts from the next frame on, one that went off acts up to this frame. The
@@ -876,6 +884,8 @@ class Mover:
             else:
                 mod.value, mod.priority = value, priority
         for key, mod in list(self.mods.items()):
+            if key[0] == -2:
+                continue
             if key not in active and mod.end is None:
                 mod.end = frame + 1
             elif posed and mod.end is not None and mod.end <= frame:
@@ -1011,7 +1021,16 @@ class Mover:
         self.horizontal_driven = horizontal_drive is not None
         dt = seconds
         frame = command.frame
-        active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        active = []
+        for key, mod in list(self.mods.items()):
+            if key[0] == -2:
+                if tick >= mod.end:
+                    del self.mods[key]
+                elif mod.acts(tick):
+                    active.append(mod)
+            elif mod.acts(frame):
+                active.append(mod)
+        active.sort(key=Mod.order)
         if speed_scale != 1.0:
             active.append(Mod(SPEED, MULTIPLY, speed_scale, frame))
         flight_scale, profile = self.flight_scale, self.script_data

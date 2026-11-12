@@ -1521,6 +1521,7 @@ class Match:
                 first = max(self.combat.tick + 1, tick - combat.COMBAT_CATCH_UP + 1)
             for at in range(first, tick + 1):
                 self.tick = at
+                self.combat.slams.advance_impulses(at)
                 self._advance_bots(at)
                 self.combat.update(now - (tick - at) * combat.TICK, at,
                                    frames=frames and at == tick)
