@@ -693,6 +693,54 @@ class World(_TriangleScene):
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
 
+    def shockwave_ground(
+        self, centre, feet, max_rise: float, max_drop: float, cast_range: float, category: int
+    ) -> bool:
+        """Check static ground continuity from a candidate back to the raised cast origin.
+
+        The 104319 Shockwave samples at most a metre apart. The static geometry
+        provides point support heights for the native contact probes.
+        """
+        if not all(math.isfinite(value) for value in (*centre, *feet, max_rise, max_drop, cast_range)):
+            return False
+        if min(max_rise, max_drop, cast_range) < 0.0:
+            return False
+
+        geometry = self.ray_geometry or self
+        x, y, z = feet
+        start_y = y + 1.0
+        previous = geometry.ground(x, z, start_y, y - cast_range - 1.0, category)
+        if previous is None:
+            return False
+
+        dx, dy, dz = centre[0] - x, centre[1] - start_y, centre[2] - z
+        length = math.hypot(dx, dy, dz)
+        if not math.isfinite(length):
+            return False
+        steps = math.ceil(length)
+        accumulated = 0.0
+        for step in range(1, steps + 1):
+            fraction = step / steps
+            top = start_y + dy * fraction
+            support = geometry.ground(
+                x + dx * fraction,
+                z + dz * fraction,
+                top,
+                top - cast_range - 2.0,
+                category,
+            )
+            if support is None:
+                return False
+            delta = support.y - previous.y
+            allowance = math.hypot(dx, dz) / steps if step == 1 else 1.0
+            if abs(delta) < allowance:
+                accumulated = math.copysign(max(0.0, abs(accumulated) - allowance), accumulated)
+            accumulated += delta
+            if not -max_drop <= accumulated <= max_rise:
+                return False
+            previous = support
+        return True
+
     @classmethod
     def load(cls, path: str | Path, identifiers: frozenset[int] = frozenset()) -> "World":
         """A cache file's movement world for a mode that keeps these placeable identifiers."""

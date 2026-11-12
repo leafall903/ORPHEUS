@@ -3522,6 +3522,66 @@ class TrackTargets(State):
         return {"targets": tuple((entity, 0) for entity in self.targets)}  # age policy unverified
 
 
+@state_class("STUStatescriptStateShockwave")
+class Shockwave(State):
+    """Run the grounded Slam wave's zero-radius begin and full-range first tick."""
+
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.target = lvalue(self.node.field("m_8A2905A0"))
+        self.managed = False
+
+    def on_begin(self) -> None:
+        component = self.instance.component
+        # The other authored wave profiles use timed growth or movement sampling.
+        if (
+            (self.instance.graph.index, self.node.pos) == (0x0B27, 95)
+            and self.target is not None
+            and self.node.field("m_04F3240D") is None
+            and truthy(self.evaluate(self.node.field("m_3418CEA4"), watch=False))
+            and self.collect(0.0)
+        ):
+            self.managed = True
+            self.ticks()
+        elif component.strict:
+            component.unsupported(self.instance, "shockwave service", self.node.cls, self.node)
+
+    def collect(self, reach: float) -> bool:
+        instance = self.instance
+        bodies = instance.component.world.shockwave_targets(self, reach)
+        if bodies is NotImplemented:
+            return False
+        current = instance.context().var(*self.target)
+        existing = current if isinstance(current, tuple) else ()
+        seen = {item.id for item in existing if isinstance(item, Entity)}
+        added = []
+        for body in bodies:
+            if expr.valid_entity(body) and body not in seen:
+                seen.add(body)
+                added.append(Entity(body))
+        if added:
+            instance.write(self.target, (*existing, *added))
+        return True
+
+    def tick(self) -> None:
+        # C95270: the authored immediate flag bypasses travel time, but the
+        # full-range query still runs on the first tick before FINISH.
+        reach = to_float(self.evaluate(self.node.field("m_6A79BD98"), watch=False))
+        if not self.collect(max(0.0, reach) if math.isfinite(reach) else 0.0):
+            component = self.instance.component
+            if component.strict:
+                component.unsupported(self.instance, "shockwave service", self.node.cls, self.node)
+        self.request_finish()
+
+    def on_cleanup(self) -> None:
+        self.managed = False
+
+    def payload(self) -> dict:
+        # The sampled bodies go through the authored output, separate from the
+        # optional native auxiliary list at +0x278.
+        return {"has_list": False} if self.managed else {}
+
+
 @state_class("STUStatescriptStatePhysicsExplosion", strict_only=True)
 class PhysicsExplosion(State):
     def on_enter(self):

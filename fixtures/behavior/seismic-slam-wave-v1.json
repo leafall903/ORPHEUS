@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "seismic-slam.immediate-wave-lifecycle.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "e5e0a9e95be4d1385d1047b84d1da8e22f5347da",
+    "paths": ["src/ow174/game/script/runtime.py"],
+    "reference": "104319 graph 0B27 nodes 95 and 93, C92510, C95270, CADD72, and C95C90"
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 123,
+    "frame_ms": 16,
+    "seed": 1,
+    "begin_time_ms": 0,
+    "first_tick_frame": 1,
+    "reach": 6.0,
+    "initial_targets": 0,
+    "begin_candidates": [2147483649, 2147483649],
+    "tick_candidates": [2147483649, 2147483650, 2147483650, 0]
+  },
+  "expected": {
+    "events": [
+      ["sample", 0.0],
+      ["read_targets", [2147483649]],
+      ["sample", 6.0],
+      ["read_targets", [2147483649, 2147483650]]
+    ],
+    "active_after_begin": true,
+    "active_after_tick": false,
+    "auxiliary_list_present": false,
+    "finish_marker": 99
+  }
+}

@@ -485,6 +485,10 @@ class World:
     def tracked_targets(self, state: "State"):
         return NotImplemented
 
+    def shockwave_targets(self, state: "State", reach: float):
+        """Body identifiers eligible for this sample, or NotImplemented for an unsupported query."""
+        return NotImplemented
+
     def static_target_tag(self, tag: int):
         """A unique bound map target, or NotImplemented for unresolved lookup."""
         return NotImplemented

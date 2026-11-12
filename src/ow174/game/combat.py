@@ -1132,6 +1132,33 @@ class Combat:
                 found.append((target.entity, expr.f32(max(0.0, axis_distance - target.radius))))
         return tuple(found)
 
+    def shockwave_targets(
+        self, owner: int, centre, origin, *, reach: float, yaw: float, angle: float, category: int,
+        ground: tuple[float, float, float, int], accepts,
+    ) -> tuple[int, ...]:
+        """Select opposing bodies in a grounded sector using the shared static scene."""
+        collision = self.match.collision_world
+        source = self.match._message_player(owner)
+        if collision is None or source is None:
+            return ()
+        rays = collision.ray_geometry or collision
+        heading = math.radians(yaw)
+        forward_x, forward_z = math.sin(heading), math.cos(heading)
+        half_angle = math.cos(math.radians(angle * 0.5))
+        found = []
+        for target in self._enemies(source):
+            x, _, z = _sub(target.feet, centre)
+            distance = math.hypot(x, z)
+            if distance > reach or x * forward_x + z * forward_z < distance * half_angle:
+                continue
+            if not accepts(target.entity):
+                continue
+            if not _communication_visible(rays, origin, target, category, self.model_pose_for(target.entity)):
+                continue
+            if collision.shockwave_ground(origin, target.feet, *ground):
+                found.append(target.entity)
+        return tuple(found)
+
     def _wheel_model_pose(self, entity: int) -> ModelPose | None:
         player = self.match._message_player(entity)
         script = player.body_script if player is not None else None

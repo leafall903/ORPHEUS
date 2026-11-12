@@ -201,6 +201,7 @@ TRACK_TARGET_RAY_CATEGORIES = {
     **ABILITY_RAY_CATEGORIES,
     0x069000000000002D: 0x1FDF,  # default 104319 tracker profile, using its static CBC flags
 }
+SHOCKWAVE_GROUND_CATEGORY = 0x1F9F  # 104319 ground probe profile 0016.097
 DOOMFIST_PASSIVE_GRAPH = 0x0DDD
 DOOMFIST_SHIELD_GRAPH = 0x0DF3
 UPPERCUT_TARGET_GRAPH = 0x0E7D
@@ -377,6 +378,17 @@ class BodyWorld(runtime.World):
         if cls == "STU_8CBDD81C" and self.match is not None and instance is not None:
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
             return self.match.script_body_position(entity, self.body)
+        if cls == "STU_71A87E92" and self.match is not None and instance is not None:
+            # CCC750 accepts a bound entity at the origin and a nonzero vector as a literal point.
+            value = instance.evaluate(cfg.get("m_entity"))
+            if isinstance(value, Vec3) and value != Vec3(0, 0, 0):
+                return value
+            entity = expr.to_entity(value)
+            if expr.valid_entity(entity):
+                position = self.match.script_body_position(entity, self.body)
+                if position is not None:
+                    return position
+            return expr.EVALUATION_FAILED
         if cls == "STU_21A13145" and self.match is not None and instance is not None:
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
             return self.match.script_body_eye_position(entity, self.body)
@@ -807,7 +819,7 @@ class BodyWorld(runtime.World):
                 # CAF254 defaults an omitted sight origin to the transformed centre.
                 origin = centre if origin_config is None else tuple(origin)
                 rows = self.match.combat.track_hostile_bodies(self.body, centre, radius, origin, category)
-                limit = state.node.field("m_2A0FB8BB")
+                limit = state.node.field("m_C39691D9")  # CAF449: maximum result count.
                 if limit is not None:
                     count = state.evaluate(limit, watch=False)
                     if type(count) is int:
@@ -825,6 +837,38 @@ class BodyWorld(runtime.World):
         from ow174.game import mccree
 
         return mccree.targets(self, state)
+
+    def shockwave_targets(self, state, reach):
+        if self.match is None or (state.instance.graph.index, state.node.pos) != (0x0B27, 95):
+            return NotImplemented
+        fields = state.node.fields
+        primary = fields.get("m_filter") or {}
+        masks = tuple(primary.get(key) for key in ("m_4EA686DB", "m_84065FD1", "m_89831602"))
+        sight = (fields.get("m_3D667CE3") or {}).get("m_C1903771") or {}
+        category = TRACK_TARGET_RAY_CATEGORIES.get(expr.guid_of(sight.get("m_C1903771")))
+        if masks != (20, 64, 1) or category is None:
+            return NotImplemented
+        centre = state.evaluate(fields.get("m_05BE62DD"), watch=False)
+        origin = state.evaluate(fields.get("m_D59188D5"), watch=False)
+        yaw = state.evaluate(fields.get("m_D45E22FA"), watch=False)
+        angle = state.evaluate(fields.get("m_A30B383E"), watch=False)
+        ground = tuple(state.evaluate(fields.get(key), watch=False) for key in
+                       ("m_E81B2985", "m_FF3B7DF2", "m_525E5A40"))
+        if not (nodes._finite_vector(centre) and nodes._finite_vector(origin)
+                and nodes._finite_number(yaw) and nodes._finite_number(angle)
+                and all(nodes._finite_number(value) and value >= 0 for value in ground)):
+            return ()
+        component = state.instance.component
+
+        def accepts(entity):
+            # CADA91 binds the iterator's candidate to the authored filter expression.
+            with component.parameter_scope({8: Entity(entity)}):
+                return state.evaluate(primary.get("m_condition"), watch=False) is True
+
+        return self.match.combat.shockwave_targets(
+            self.body, tuple(centre), tuple(origin), reach=reach, yaw=yaw, angle=angle, category=category,
+            ground=(*ground, SHOCKWAVE_GROUND_CATEGORY), accepts=accepts,
+        )
 
     def modify_health(self, state, elapsed_ms):
         """Apply named shield decay or report damage from a supported target tracker."""
@@ -861,6 +905,20 @@ class BodyWorld(runtime.World):
             return NotImplemented
         target = expr.lvalue(target_config)
         paired = expr.lvalue(state.node.field("m_B12BFE8B"))
+        if node_key == (0x0B27, 93) and target == (0, 375) and paired is None:
+            if state.evaluate(config.get("m_instigator"), watch=False) != Entity(self.body):
+                return NotImplemented
+            selection = state.evaluate(target_config, watch=False)
+            if isinstance(selection, tuple):
+                victims = tuple(dict.fromkeys(
+                    victim.id for victim in selection
+                    if isinstance(victim, Entity) and expr.valid_entity(victim.id)
+                    and victim.id not in state.hit_entities
+                ))
+                state.hit_entities.update(victims)
+                # The wave can close its subgraph before combat consumes this frame's damage.
+                self._queue_tracked_damage(state, config, victims, activation=None)
+            return True
         if target is None or paired is None:
             return NotImplemented
         tracker = next((

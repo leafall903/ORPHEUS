@@ -363,6 +363,21 @@ def hull_box(x0, x1, y0, y1, z0, z1, mask=0x1FDF) -> tuple:
     return mask, centroid, corners, planes, faces, edges
 
 
+class ShockwaveGroundTests(unittest.TestCase):
+    def test_flat_floor_and_ramp_propagate_but_gap_does_not(self):
+        self.assertTrue(World(FLOOR).shockwave_ground((0, 2.8, -3), (0, 1, 3), 1.45, 1.45, 1.45, MOVER))
+        slope = World(ramp(-4, 4, 0, 30))
+        self.assertTrue(slope.shockwave_ground((0, 5.8, 3), (0, 0.6, -3), 1.45, 1.45, 1.45, MOVER))
+        gap = World(box(-3, 3, 0, 1, -4, -1) + box(-3, 3, 0, 1, 1, 4))
+        self.assertFalse(gap.shockwave_ground((0, 2.8, -3), (0, 1, 3), 1.45, 1.45, 1.45, MOVER))
+
+    def test_height_limits_follow_the_direction_from_target_to_cast_origin(self):
+        step = World(box(-3, 3, 0, 2.25, -3, 0) + box(-3, 3, 0, 1, 0, 3))
+        self.assertTrue(step.shockwave_ground((0, 4.05, -2), (0, 1, 2), 1.25, 0.75, 1.45, MOVER))
+        self.assertFalse(step.shockwave_ground((0, 4.05, -2), (0, 1, 2), 0.75, 1.25, 1.45, MOVER))
+        self.assertTrue(step.shockwave_ground((0, 2.8, 2), (0, 2.25, -2), 0.75, 1.25, 1.45, MOVER))
+
+
 class ChunkTests(unittest.TestCase):
     """The collision chunk's format, on a hand-made chunk, and the cache."""
 

@@ -16,6 +16,22 @@ python -B -m unittest tests.public.test_behavior_contracts
 
 Normal public test discovery also runs this contract. For cross-language checks, set `ORPHEUS_BEHAVIOR_FIXTURES` to the other checkout's `fixtures/behavior` directory so both consumers read the same file. Without that setting, the test uses this repository's fixtures. Record the exact Python and Rust revisions used for a comparison.
 
+## Seismic Slam lifecycle
+
+The [synthetic wave fixture](../fixtures/behavior/seismic-slam-wave-v1.json) checks
+that the immediate wave starts at zero reach, deduplicates candidate bodies,
+and gives its child state the full-range result before finishing. It pins the
+server VM baseline and the build 104319 graph and callback references. The
+Python test runs the state through the normal VM entry points.
+
+The [prepared-runtime regression](../tests/runtime/test_doomfist_slam.py)
+uses real command input and the locally prepared 104319 graph. It checks
+damage through the forward sector, static walls and ground gaps, and overlap
+with the close impact. Run it with the prepared runtime described in
+[CONTRIBUTING.md](../CONTRIBUTING.md#prepared-runtime-checks). The fixture
+covers lifecycle. Exact ground contacts, displacement, presentation and
+original-client acceptance need separate observations.
+
 ## Fixture fields
 
 | Field | Meaning |

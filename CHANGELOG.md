@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Seismic Slam ground shockwave
+
+- Run the authored initial and full-range samples of the grounded impact.
+  Resolve its forward sector from the saved landing point and authored yaw.
+- Check hostile bodies against static sight and ground continuity using the
+  shared collision scene. Apply the authored damage once to each selected
+  target. The graph's candidate filter excludes close-impact recipients.
+- Read the close sphere's maximum count from its actual 104319 field. Slam
+  leaves that field unset, and a regression covers six simultaneous close hits.
+- Encode the native empty auxiliary-list payload when an active wave reaches a
+  body frame. The wave can finish within one command frame.
+- Add a shared synthetic lifecycle fixture for wave sampling, deduplication
+  and child-state delivery.
+- Passed Ruff, 926 public Python tests, six dashboard tests and 113 prepared-runtime
+  combat, movement, collision and state-codec regressions. Static point samples
+  approximate native support contacts. Exact edge geometry, dynamic blockers,
+  displacement, live air targeting and original-client presentation remain open.
+
 #### Seismic Slam close impact
 
 - Finish the authored impact delay using the 104319 timer schedule and ordinary

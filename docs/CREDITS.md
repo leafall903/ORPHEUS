@@ -149,6 +149,13 @@ states. The timer schedule at RVA `8E5A90` and the lower-priority callback at
 transform at `C9AFB0` and visibility fallback at `CAF254` inform the shared
 capsule query.
 
+The 104319 Shockwave callbacks at `C92510` and `C95270` supply the initial
+and full-range samples. The query at `C99A80`, candidate filter at `CADA91`
+and ground checks at `C9C810` inform the static reconstruction. The ground
+support category comes from profile `0016.097`. The state writer at `C95C90`
+supplies the optional auxiliary-list layout. TrackTargets at `CAF449` reads
+the maximum result count from `m_C39691D9`.
+
 ## The Best Defense
 
 The local 104319 graph export supplies the damage-dealt listener in `0DDD`,
