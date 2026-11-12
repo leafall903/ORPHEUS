@@ -4456,7 +4456,9 @@ class Combat:
                                if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
         from itertools import chain
 
-        early_end = min(first, self.tick + sombra_replay.emp_replay_frames(self) + 1)
+        replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
+                         sombra_replay.application_replay_until(self, self.tick))
+        early_end = min(first, replay_end + 1)
         for at in chain(range(self.tick + 1, early_end), range(first, tick + 1)):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
@@ -4481,6 +4483,7 @@ class Combat:
                 winston.charge_world(player, self)
                 if player.hero.guid == ball.HERO and (vitals := self.vitals.get(player.body)) is not None:
                     self._expire_adaptive_shield(player, vitals, at)
+            sombra_replay.advance_applications(self.match, at - 1)
             self.sombra_controls.update()
             self.recalls.update()
             self.breathers.update()
