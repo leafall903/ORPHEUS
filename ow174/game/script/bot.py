@@ -761,8 +761,29 @@ class BotWorld(runtime.World):
             return True
         return controls is not None and not state.instance.component.strict and controls.blocked(state)
 
+    def thunderstorm_targets(self, state):
+        source = next((bot for bot in self.match.bots
+                       if bot.entity == state.instance.component.entity), None)
+        if source is None or source.dead:
+            return ()
+        radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+        offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        if not math.isfinite(radius) or radius <= 0 or not isinstance(offset, expr.Vec3):
+            return ()
+        center = tuple(axis + delta for axis, delta in zip(source.position, offset))
+        # Reconstructed search: hostile living player mover origins in the authored sphere.
+        # Obstruction belongs to the graph's later ray.
+        players = {player.body: player for player in self.match.players}
+        return tuple(expr.Entity(target.entity) for target in self.match.combat._enemies(source)
+                     if target.entity in players
+                     and math.dist(center, players[target.entity].mover.position) <= radius)
+
     def tracked_targets(self, state):
         from ow174.game import heavy_assault, npc
+
+        if (self.match is not None and state.instance.graph.index == DEATH_VOLLEY_GRAPH
+                and state.node.pos == 70):
+            return tuple(target.id for target in self.thunderstorm_targets(state))
 
         if (self.match is not None and self.hero == npc.TROOPER_HERO
                 and (state.instance.graph.index, state.node.pos) == (0x1034, 16)):

@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
+
+
 ### Retain actual Sombra skill-lock history for original Grapple queries
 
 - Record original lock windows from the same applied Hack/EMP instances in

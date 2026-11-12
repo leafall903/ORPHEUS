@@ -4208,7 +4208,7 @@ class Combat:
         other players' body frames only on the ticks that send (`frames`)."""
         if self.match.collision_world is None:
             return
-        from ow174.game import defenses, npc_shields
+        from ow174.game import archives_thunderstorm, defenses, npc_shields
 
         dragon_poses = self._dragon_gap_poses(tick)
         orisa_fortify.rebase_fortify(self, tick)
@@ -4234,6 +4234,9 @@ class Combat:
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(npc_shields.recovery_pending(bot) for bot in self.match.bots)
+            or any(isinstance(bot.body_script, BotScript) and not bot.dead
+                   and archives_thunderstorm.active_tracker(bot.body_script.component) is not None
+                   for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
@@ -5428,7 +5431,7 @@ class Combat:
 
     def _bot_weapons(self, tick: int) -> None:
         """Advance the weapon bodies of the map's firing bots and consume their volley reports."""
-        from ow174.game import npc_control
+        from ow174.game import archives_thunderstorm, npc_control
 
         host = getattr(self.match, 'scene_host', None)
         for bot in self.match.bots:
@@ -5457,9 +5460,12 @@ class Combat:
                     allowed = npc_control.acquire(self, bot)
                 else:
                     allowed = npc_control.update_input(self, bot) if controlled and not authored else not self.is_stunned(bot)
+                advanced = script.frame < vm_tick
                 snapshot = script.advance_live(vm_tick, bot.position)
                 if bot not in self.match.bots or bot.body_script is not script:
                     continue
+                if advanced:
+                    archives_thunderstorm.advance(self, bot, script.component)
                 from ow174.game import assassin
 
                 assassin.refresh_control(script.component.world, script.component)

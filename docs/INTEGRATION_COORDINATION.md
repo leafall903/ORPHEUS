@@ -701,3 +701,15 @@ archives_thunderstorm34924 and full nonappearance original-language audit.
 The overall objective remains incomplete; batch counts are not a feature
 completion percentage. Existing lower-confidence estimate must be revised
 from remaining owner/source audit, not acceptance case counts.
+
+
+Root now mounts original archives_thunderstorm.py34924 per-target consumers,
+not just the prior death-volley mode gate. Current tracked_targets stores IDs,
+so original selection is adapted at that exact representation boundary. Search
+uses original7m sphere/8m ray/25DPS graph fields, existing shield intercept and
+actual health. Existing retained scheduler/sole NPC script driver calls it only
+when advancing the actual component. The original live probe's seven cases
+(clear/wall/range/ally/reacquire/disable/re-enable) pass without changing expected
+6.4/zero. Its startup selects the combined graph/catalog and explicit34924 mode
+rather than the old isolated review tree. Root-v13 joint remains frozen on
+canonical330fc5bb session23880; do not mutate that source until terminal.
