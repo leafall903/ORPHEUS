@@ -110,6 +110,19 @@ function renderTiming(timing) {
     + input.turns_with_backlog + " turns with queued work");
 }
 
+function renderFaults(faults = []) {
+  byId("fault-panel").hidden = faults.length === 0;
+  byId("fault-count").textContent = String(faults.length);
+  const rows = document.createDocumentFragment();
+  for (const fault of faults.slice().reverse()) {
+    const row = rows.appendChild(document.createElement("tr"));
+    for (const value of [fault.tick, fault.room, fault.stage, fault.connection ?? "—", fault.reason]) {
+      row.insertCell().textContent = String(value);
+    }
+  }
+  byId("fault-rows").replaceChildren(rows);
+}
+
 function render() {
   const rooms = snapshot?.rooms ?? [];
   const options = JSON.stringify(rooms.map(({ id, name }) => [id, name]));
@@ -160,6 +173,7 @@ function render() {
 
   renderGeometryControls(geometry && !sample ? [] : actors);
   renderTiming(snapshot?.timing);
+  renderFaults(snapshot?.faults);
   renderActors(actors);
   for (const view of views) {
     renderView(view, sample, actors);

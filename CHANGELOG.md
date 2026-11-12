@@ -6,6 +6,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Room fault containment
+
+- Moved pending and active peers into their owning room and separated room operations from worker routing and scheduling. Added transactional admission, idempotent whole-room retirement and a sender that borrows only one connection.
+- Introduced typed combat, room and worker faults with retained causes. Failed room work now retires its peers, input, delivery queues and projectiles; a room-local unwind fallback handles unexpected panics. Ambiguous ownership and fatal shared transport failures still stop the worker. Normal leave grace, malformed-request rejection and local bot/flight recovery retain their scope.
+- Propagated previously discarded combat, respawn and player-request failures. Delayed work from an older body generation can no longer clear newer projectiles. Preserved all-or-nothing respawn preparation.
+- Added a synthetic recovery contract, encrypted two-room regressions, cleanup and partially modified-state checks, and bounded room-fault records in the optional read-only inspector. The contract is a Rust recovery policy with no Python or original-server equivalence claim.
+- Passed formatting, both Clippy lanes, 375 default / 378 inspector public tests, exact Rust 1.85.0 checking, all 66 prepared baseline checks and two new prepared tests. Those tests cover malformed versus failed player requests and surviving input, world delivery, hits, patrol and new admission after real ECS failures or input panic. Native runtime preflight/startup, JavaScript syntax and documentation links passed. Hosted checks for this change are pending; original-client acceptance and same-room multiplayer remain open.
+- Earlier foundation and World-query work passed all five hosted jobs and merged through PRs #28 and #30. Typed StateScript lowering and the large `script_init.rs` split remain open.
+
 #### Explicit World query availability
 
 - Made World position and foreign-variable methods required `Option` queries. Propagated unavailable results through expression member access, vector arithmetic, length and distance with typed diagnostics instead of invented origin or unset values.

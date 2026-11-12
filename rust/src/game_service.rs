@@ -28,7 +28,9 @@ use crate::{
     game_controller::ControllerFrame,
     game_egress::GameEgress,
     game_ingress::{GameIngress, MapReadiness, MapReadyStep, MessageKind, WorldReadiness, pong},
-    game_instance::{Instance, Member, RETAIL_QUANTA, TOURNAMENT_QUANTA, ownership},
+    game_instance::{
+        Instance, Member as InstanceMember, RETAIL_QUANTA, TOURNAMENT_QUANTA, ownership,
+    },
     game_link::{ACK, KIND_FRAME, Packet},
     game_messages::{Message, encode, locate},
     game_replication::{Record, WorldDelivery},
@@ -41,6 +43,10 @@ use crate::{
     script_wire::chunk,
     world::{EntityUpdate, GAME_MODE_ENTITY, MAX_PAYLOAD, SkinTheme, frame},
 };
+
+mod room;
+mod state;
+use room::{FaultRecord, RoomError, RoomStage, WorkerError, guard_room};
 
 #[cfg(any(test, feature = "inspector"))]
 use std::collections::BTreeMap;
@@ -104,7 +110,18 @@ enum Request {
     },
     #[cfg(any(test, feature = "inspector"))]
     Debug {
-        reply: mpsc::SyncSender<game_debug::Snapshot>,
+        reply: mpsc::SyncSender<io::Result<game_debug::Snapshot>>,
+    },
+    #[cfg(test)]
+    Inject {
+        id: MatchId,
+        stage: RoomStage,
+        fault: room::InjectedFault,
+        reply: mpsc::SyncSender<bool>,
+    },
+    #[cfg(test)]
+    Faults {
+        reply: mpsc::SyncSender<Vec<FaultRecord>>,
     },
 }
 
@@ -305,7 +322,7 @@ impl GameService {
                     "game worker did not return a debug snapshot",
                 ),
                 mpsc::RecvTimeoutError::Disconnected => stopped(),
-            })
+            })?
     }
 
     fn enqueue(&self, request: Request) -> io::Result<()> {
@@ -358,13 +375,20 @@ impl Player {
 struct Room {
     map: GameMap,
     players: Vec<Player>,
-    remaining: usize,
+    members: IndexMap<u32, RoomMember>,
     world: Option<RoomWorld>,
+    #[cfg(test)]
+    injection: Option<(RoomStage, room::InjectedFault)>,
+}
+
+struct RoomMember {
+    slot: usize,
+    peer: Option<Peer>,
 }
 
 impl Room {
     fn appearance(&self, slot: usize) -> Option<PlayerAppearance<'_>> {
-        let player = &self.players[slot];
+        let player = self.players.get(slot)?;
         Some(PlayerAppearance {
             entity: player.entity,
             slot: i8::try_from(slot).ok()?,
@@ -373,11 +397,11 @@ impl Room {
         })
     }
 
-    fn message(&self, slot: usize, initial: bool) -> Message {
+    fn message(&self, slot: usize, initial: bool) -> Result<Message, RoomError> {
         let members: Vec<_> = self
             .players
             .iter()
-            .map(|player| Member {
+            .map(|player| InstanceMember {
                 entity: player.entity,
                 name: &player.info.name,
                 team: player.info.team,
@@ -389,12 +413,15 @@ impl Room {
             map: &self.map,
             members: &members,
         };
-        let player = &self.players[slot];
-        if initial {
+        let player = self
+            .players
+            .get(slot)
+            .ok_or(RoomError::Invariant("member slot outside roster"))?;
+        Ok(if initial {
             instance.load(player.entity, player.quanta())
         } else {
             instance.update(player.entity)
-        }
+        })
     }
 }
 
@@ -470,13 +497,13 @@ impl Peer {
         }
     }
 
-    fn flush_combat(&mut self, schemas: &Schemas, now: Duration) {
+    fn flush_combat(&mut self, schemas: &Schemas, now: Duration) -> Result<(), RoomError> {
         for _ in 0..self.combat_ui.notices.len() {
             let notice = self
                 .combat_ui
                 .notices
                 .pop_front()
-                .expect("pending combat notice");
+                .ok_or(RoomError::Invariant("pending combat notice disappeared"))?;
             let entity = notice.required_identity();
             if entity.is_some_and(|entity| !self.world.identity_ready(entity))
                 || (notice.needs_mode_ui() && !self.world.mode_ready())
@@ -484,10 +511,10 @@ impl Peer {
                 self.combat_ui.notices.push_back(notice);
                 continue;
             }
-            if let Ok(bytes) = notice.encode(schemas) {
-                if let (Ok(ordinal), Some(entity)) = (self.egress.queue_reliable(bytes), entity) {
-                    self.combat_ui.last_notice_by_entity.insert(entity, ordinal);
-                }
+            let bytes = notice.encode(schemas)?;
+            let ordinal = self.egress.queue_reliable(bytes)?;
+            if let Some(entity) = entity {
+                self.combat_ui.last_notice_by_entity.insert(entity, ordinal);
             }
         }
         for _ in 0..self.combat_ui.replacements.len() {
@@ -495,7 +522,7 @@ impl Peer {
                 .combat_ui
                 .replacements
                 .pop_front()
-                .expect("pending bot replacement");
+                .ok_or(RoomError::Invariant("pending bot replacement disappeared"))?;
             let entity = replacement.retired;
             let has_notice = self
                 .combat_ui
@@ -521,11 +548,12 @@ impl Peer {
                 self.world.replace_bot(replacement);
             }
         }
+        Ok(())
     }
 
-    fn reliable(&mut self, schemas: &Schemas, message: Message) -> io::Result<u32> {
-        let bytes = encode(schemas, message.id, &message.fields).map_err(invalid)?;
-        self.egress.queue_reliable(bytes).map_err(invalid)
+    fn reliable(&mut self, schemas: &Schemas, message: Message) -> Result<u32, RoomError> {
+        let bytes = encode(schemas, message.id, &message.fields)?;
+        Ok(self.egress.queue_reliable(bytes)?)
     }
 
     fn advance_loading(
@@ -535,8 +563,10 @@ impl Peer {
         slot: usize,
         now: Duration,
         tick: u32,
-    ) -> io::Result<()> {
-        let player = &room.players[slot];
+    ) -> Result<(), RoomError> {
+        let player = room.players.get(slot).ok_or(RoomError::Invariant(
+            "loading member has invalid roster slot",
+        ))?;
         let ready = WorldReadiness {
             ownership_delivered: self
                 .ownership
@@ -553,18 +583,26 @@ impl Peer {
                     self.ownership = Some(self.reliable(schemas, ownership(player.entity))?);
                 }
                 MapReadyStep::Game => {
-                    self.reliable(schemas, room.message(slot, false))?;
+                    self.reliable(schemas, room.message(slot, false)?)?;
                 }
                 MapReadyStep::World => {
-                    let world = room.world.as_ref().expect("map-entry prerequisites");
-                    let viewer = room.appearance(slot).expect("prepared player");
+                    let world = room
+                        .world
+                        .as_ref()
+                        .ok_or(RoomError::Invariant("map-entry prerequisites missing"))?;
+                    let viewer = room
+                        .appearance(slot)
+                        .ok_or(RoomError::Invariant("prepared player missing"))?;
                     self.world.start(&world.scene, &viewer, tick)?;
                 }
                 MapReadyStep::Controller => self.world.presentation_due = true,
             }
         }
         if self.world.presentation_due {
-            let world = room.world.as_ref().expect("world started");
+            let world = room
+                .world
+                .as_ref()
+                .ok_or(RoomError::Invariant("started world missing"))?;
             self.world.present(&world.scene, tick)?;
         }
         Ok(())
@@ -578,514 +616,11 @@ struct State {
     timing: Option<WorkerTiming>,
     links: GameConnections,
     rooms: HashMap<MatchId, Room>,
-    seats: HashMap<u32, (MatchId, usize)>,
-    peers: IndexMap<u32, Peer>,
+    routes: HashMap<u32, MatchId>,
+    order: IndexMap<u32, ()>,
     next_connection: u32,
-    next_input_peer: usize,
-}
-
-impl State {
-    fn new(schemas: Arc<Schemas>, patrol: PatrolScript) -> Self {
-        Self {
-            schemas,
-            preloaded_patrol: Some(patrol),
-            clock: GameClock::default(),
-            timing: None,
-            links: GameConnections::default(),
-            rooms: HashMap::new(),
-            seats: HashMap::new(),
-            peers: IndexMap::new(),
-            next_connection: 1,
-            next_input_peer: 0,
-        }
-    }
-
-    fn open_match(
-        &mut self,
-        id: MatchId,
-        map: GameMap,
-        players: Vec<MatchPlayer>,
-        world: Option<WorldStart>,
-        now: Duration,
-    ) -> io::Result<Vec<Handoff>> {
-        let remaining = players.len();
-        if self.clock.draining() {
-            return Err(io::Error::new(
-                io::ErrorKind::WouldBlock,
-                "game clock is draining",
-            ));
-        }
-        if self.rooms.contains_key(&id) {
-            return Err(io::Error::new(
-                io::ErrorKind::AlreadyExists,
-                "match already exists",
-            ));
-        }
-        if remaining == 0 || remaining > usize::from(u8::MAX) {
-            return Err(invalid("invalid match roster size"));
-        }
-        let mut room = Room {
-            map,
-            players: players
-                .into_iter()
-                .enumerate()
-                .map(|(slot, info)| Player {
-                    info,
-                    entity: player_entity(slot),
-                    gone: false,
-                })
-                .collect(),
-            remaining,
-            world: None,
-        };
-        let initial = room.message(0, true);
-        let bytes = encode(&self.schemas, initial.id, &initial.fields).map_err(invalid)?;
-        let payload = frame(u32::MAX, u32::MAX, &[(0, bytes)], &[], &[]).map_err(invalid)?;
-        if payload.len() > MAX_PAYLOAD {
-            return Err(invalid("match roster exceeds the game datagram budget"));
-        }
-        if let Some(WorldStart { scene, card }) = world {
-            let patrol = match self.preloaded_patrol.take() {
-                Some(patrol) => patrol,
-                None => PatrolScript::load()?,
-            };
-            room.world = Some(RoomWorld {
-                scene,
-                card,
-                patrol,
-            });
-        }
-
-        let mut tickets = Vec::with_capacity(remaining);
-        for _ in 0..remaining {
-            let connection = self.next_connection;
-            self.next_connection = self.next_connection % MAX_CONNECTION_ID + 1;
-            if self.seats.contains_key(&connection) {
-                return Err(io::Error::new(
-                    io::ErrorKind::WouldBlock,
-                    "game seat ID is still in use",
-                ));
-            }
-            tickets.push(Handoff::new(connection, id)?);
-        }
-        for (slot, ticket) in tickets.iter().enumerate() {
-            let reserved = self
-                .links
-                .reserve_handoff(ticket, u64::from(ticket.conn), now);
-            assert!(reserved, "seat and connection tables are in sync");
-            self.seats.insert(ticket.conn, (id, slot));
-        }
-        self.rooms.insert(id, room);
-        Ok(tickets)
-    }
-
-    fn handle_request(&mut self, request: Request, now: Duration) {
-        match request {
-            Request::Open(request) => {
-                let OpenRequest {
-                    id,
-                    map,
-                    players,
-                    world,
-                    reply,
-                } = *request;
-                let result = self.open_match(id, map, players, world, now);
-                if let Err(mpsc::SendError(Ok(tickets))) = reply.send(result) {
-                    for ticket in tickets {
-                        self.links.cancel_handoff(ticket.conn);
-                    }
-                }
-            }
-            Request::Pending { connection, reply } => {
-                let _ = reply.send(self.links.handoff_pending(connection, now));
-            }
-            Request::Cancel { connection, reply } => {
-                let _ = reply.send(self.links.cancel_handoff(connection));
-            }
-            Request::Seat {
-                connection,
-                id,
-                release,
-                reply,
-            } => {
-                let exists = self
-                    .seats
-                    .get(&connection)
-                    .is_some_and(|&(match_id, _)| match_id == id);
-                if release && exists && !self.links.cancel_handoff(connection) {
-                    self.send_home(connection, now);
-                }
-                let _ = reply.send(exists);
-            }
-            Request::Skin {
-                connection,
-                id,
-                hero,
-                skin,
-                reply,
-            } => {
-                if self.seats.get(&connection).is_some_and(|seat| seat.0 == id) {
-                    let room = self.rooms.get_mut(&id).expect("reserved match");
-                    if let Some(world) = &mut room.world {
-                        world.card.skins.insert(hero, skin);
-                        if let Some(peer) = self.peers.get_mut(&connection) {
-                            peer.world.queue_skin(hero, self.clock.frame(), now);
-                        }
-                    }
-                }
-                let _ = reply.send(());
-            }
-            #[cfg(any(test, feature = "inspector"))]
-            Request::Debug { reply } => {
-                let _ = reply.try_send(self.debug_snapshot());
-            }
-        }
-    }
-
-    #[cfg(any(test, feature = "inspector"))]
-    fn debug_snapshot(&self) -> game_debug::Snapshot {
-        let mut rooms = BTreeMap::new();
-        let mut truncated = false;
-        for (&id, room) in &self.rooms {
-            let Some(world) = &room.world else {
-                continue;
-            };
-            if rooms.len() == MAX_DEBUG_ROOMS {
-                truncated = true;
-                break;
-            }
-            let actors = world.scene.bot_actors();
-            truncated |= actors.len() > MAX_DEBUG_ACTORS;
-            let actors = actors.take(MAX_DEBUG_ACTORS).collect();
-            rooms.insert(
-                id,
-                game_debug::Room {
-                    id: format!("{:016X}{:016X}", id[0], id[1]),
-                    map: format!("{:016X}", room.map.map_guid),
-                    name: room.map.name.clone(),
-                    actors,
-                },
-            );
-        }
-        for (&connection, peer) in &self.peers {
-            let (id, slot) = self.seats[&connection];
-            let Some(room) = rooms.get_mut(&id) else {
-                continue;
-            };
-            if let Some(actor) = peer
-                .world
-                .debug_actor(self.rooms[&id].players[slot].info.team)
-            {
-                if room.actors.len() == MAX_DEBUG_ACTORS {
-                    truncated = true;
-                } else {
-                    room.actors.push(actor);
-                }
-            }
-        }
-        for room in rooms.values_mut() {
-            room.actors.sort_unstable_by_key(|actor| actor.entity);
-        }
-        game_debug::Snapshot {
-            tick: self.clock.frame(),
-            rooms: rooms.into_values().collect(),
-            truncated,
-            timing: self.timing.clone(),
-        }
-    }
-
-    fn retire(&mut self, connection: u32) {
-        self.peers.shift_remove(&connection);
-        if let Some((id, slot)) = self.seats.remove(&connection) {
-            let room = self.rooms.get_mut(&id).expect("reserved match");
-            if let Some(world) = &mut room.world {
-                world.scene.retire_projectiles(connection);
-            }
-            room.players[slot].gone = true;
-            room.remaining -= 1;
-            if room.remaining == 0 {
-                self.rooms.remove(&id);
-            }
-        }
-    }
-
-    fn receive(&mut self, socket: &UdpSocket, bytes: &[u8], address: SocketAddr, now: Duration) {
-        let Ok(received) = self.links.receive(bytes, address, now) else {
-            return;
-        };
-        let connection = received.connection;
-        let (id, slot) = self.seats[&connection];
-        if received.admitted {
-            self.peers
-                .insert(connection, Peer::new(self.rooms[&id].players[slot].entity));
-        }
-        let peer = self.peers.get_mut(&connection).expect("admitted peer");
-        if let Some((ack, bits)) = received.ack {
-            let report = peer.egress.acknowledge(ack, bits);
-            if !self.clock.draining() {
-                peer.world.acknowledge(report, now);
-            }
-        }
-        if let Some(Ok(control)) = received.control {
-            let _ = send(socket, control);
-        }
-        if received.closed {
-            self.retire(connection);
-            return;
-        }
-        peer.open |= received.opened;
-        if self.clock.draining() {
-            if received.admitted {
-                self.send_home(connection, now);
-            }
-            return;
-        }
-        let room = &self.rooms[&id];
-        if received.opened {
-            let _ = peer.reliable(&self.schemas, room.message(slot, true));
-        }
-        if let Some(payload) = received.payload {
-            let Peer {
-                ingress,
-                egress,
-                loading,
-                world,
-                ..
-            } = peer;
-            let commands = ingress.receive(&self.schemas, &payload, |message| {
-                match MessageKind::from(message.id) {
-                    MessageKind::Ping => {
-                        let received = wall_nanoseconds();
-                        if let Ok(pong) = pong(&message.fields, received, wall_nanoseconds()) {
-                            if let Ok(bytes) = encode(&self.schemas, pong.id, &pong.fields) {
-                                let _ = egress.queue_reliable(bytes);
-                            }
-                        }
-                    }
-                    MessageKind::MapLoaded => {
-                        loading.mark_loaded(now);
-                    }
-                    MessageKind::GameMessage if room.world.is_some() => {
-                        world.queue_game_message(self.clock.frame(), now, message);
-                    }
-                    _ => {}
-                }
-            });
-            if let (Ok(commands), Some(_)) = (commands, &room.world) {
-                world.queue_commands(self.clock.frame(), &commands);
-            }
-        }
-    }
-
-    /// Bounded round-robin input work between receive batches and tick checks.
-    /// A busy peer cannot consume the next peer's whole turn.
-    fn advance_input(&mut self, now: Duration) -> bool {
-        let count = self.peers.len();
-        if count == 0 || self.clock.draining() {
-            return false;
-        }
-        let start = self.next_input_peer % count;
-        let tick = self.clock.frame();
-        let mut remaining = INPUT_PER_TURN;
-        let mut peer_limit_hits = 0;
-        for offset in 0..count {
-            let index = (start + offset) % count;
-            let (&connection, peer) = self.peers.get_index_mut(index).expect("active peer index");
-            if !peer.world.has_input_work() {
-                continue;
-            }
-            let (id, slot) = self.seats[&connection];
-            let room = self.rooms.get_mut(&id).expect("prepared room with input");
-            let world = room.world.as_ref().expect("prepared world with input");
-            let viewer = room.appearance(slot).expect("prepared player");
-            let context = ShotContext {
-                team: viewer.team,
-                quanta: room.players[slot].quanta(),
-                tick,
-                now,
-            };
-            let budget = remaining.min(INPUT_PER_PEER);
-            let (used, leave) = peer
-                .world
-                .advance_input(&world.scene, &viewer, context.quanta, budget)
-                .unwrap_or((budget, true));
-            remaining -= used;
-            if self.timing.is_some() && used == INPUT_PER_PEER {
-                peer_limit_hits += 1;
-            }
-            self.next_input_peer = (index + 1) % count;
-            let shots = peer.world.take_hitscan();
-            if (!leave && peer.world.combat_body_active()) || !shots.is_empty() {
-                let world = room.world.as_mut().expect("prepared world with combat");
-                let (bots, queries) = world.scene.bot_simulation();
-                bots.activate_combat();
-                for shot in shots {
-                    if let Ok(Some(hit)) = bots.hitscan(&queries, shot, context, |entity| {
-                        peer.world.identity_ready(entity)
-                    }) {
-                        peer.bot_hit(hit);
-                    }
-                }
-            }
-            if leave {
-                peer.clear_world();
-                if let Some(world) = &mut room.world {
-                    world.scene.retire_projectiles(connection);
-                }
-                peer.loading = MapReadiness::default();
-                if self.links.begin_leaving(connection, now) {
-                    let _ = peer.reliable(&self.schemas, leave_message());
-                }
-            }
-            if remaining == 0 {
-                break;
-            }
-        }
-        let backlog = self.peers.values().any(|peer| peer.world.has_input_work());
-        if let Some(timing) = &mut self.timing {
-            timing.record_input(
-                INPUT_PER_TURN - remaining,
-                peer_limit_hits,
-                remaining == 0,
-                backlog,
-            );
-        }
-        backlog
-    }
-
-    fn send_home(&mut self, connection: u32, now: Duration) {
-        if self.links.begin_leaving(connection, now) {
-            let peer = self.peers.get_mut(&connection).expect("admitted peer");
-            let _ = peer.reliable(&self.schemas, leave_message());
-        }
-    }
-
-    fn tick(&mut self, socket: &UdpSocket, now: Duration, missed: u64) {
-        let step = self.clock.step(missed, !self.seats.is_empty());
-        let (tick, send_frames, drain, force) = match step {
-            Step::Simulate { frame, send_world } => (frame, send_world, false, false),
-            Step::Drain {
-                frame,
-                entered,
-                force,
-                send_reliable,
-            } => {
-                if entered {
-                    for room in self.rooms.values_mut() {
-                        if let Some(world) = &mut room.world {
-                            world.scene.clear_projectiles();
-                        }
-                    }
-                    for (&connection, peer) in &mut self.peers {
-                        peer.clear_world();
-                        if self.links.begin_leaving(connection, now) {
-                            let _ = peer.reliable(&self.schemas, leave_message());
-                        }
-                    }
-                }
-                (frame, send_reliable, true, force)
-            }
-        };
-        for expired in self.links.expire(now, force) {
-            self.retire(expired.connection);
-        }
-        let mut spawned = HashMap::new();
-        if !drain {
-            for room in self.rooms.values_mut() {
-                if let Some(world) = &mut room.world {
-                    world.scene.step_bots(tick, &world.patrol);
-                }
-            }
-            for (&connection, peer) in &mut self.peers {
-                let (id, slot) = self.seats[&connection];
-                let room = self.rooms.get_mut(&id).expect("admitted room");
-                let Some(world) = &mut room.world else {
-                    continue;
-                };
-                let player = &room.players[slot];
-                let context = ShotContext {
-                    team: player.info.team,
-                    quanta: player.quanta(),
-                    tick,
-                    now,
-                };
-                let Some((owner, launches)) = peer.world.take_projectile_launches() else {
-                    world.scene.retire_projectiles(connection);
-                    continue;
-                };
-                let (simulation, queries) = world.scene.bot_simulation();
-                let (outcomes, hits) =
-                    simulation.advance_projectiles(&queries, connection, owner, launches, context);
-                let _ = peer.world.finish_projectiles(owner, tick, outcomes);
-                for hit in hits {
-                    peer.bot_hit(hit);
-                }
-            }
-            for (&id, room) in &mut self.rooms {
-                if let Some(world) = &mut room.world {
-                    let (bots, queries) = world.scene.bot_simulation();
-                    let replacements = bots.finish_tick(&queries, tick, now).unwrap_or_default();
-                    if !replacements.is_empty() {
-                        spawned.insert(id, replacements);
-                    }
-                }
-            }
-        }
-        for (&connection, peer) in &mut self.peers {
-            let (id, slot) = self.seats[&connection];
-            let room = self.rooms.get_mut(&id).expect("admitted room");
-            if !drain
-                && peer
-                    .advance_loading(&self.schemas, room, slot, now, tick)
-                    .is_err()
-            {
-                peer.clear_world();
-                if let Some(world) = &mut room.world {
-                    world.scene.retire_projectiles(connection);
-                }
-                peer.loading = MapReadiness::default();
-                if self.links.begin_leaving(connection, now) {
-                    let _ = peer.reliable(&self.schemas, leave_message());
-                }
-            }
-            if let Some(replacements) = spawned.get(&id).filter(|_| peer.world.world_started()) {
-                peer.combat_ui.replacements.extend(
-                    replacements
-                        .iter()
-                        .cloned()
-                        .map(|bot| (now.saturating_add(SILENCE_TIME), bot)),
-                );
-            }
-            if send_frames && peer.open {
-                if !drain {
-                    peer.flush_combat(&self.schemas, now);
-                }
-                let movements = if drain {
-                    Vec::new()
-                } else {
-                    room.world
-                        .as_ref()
-                        .map_or_else(Vec::new, |world| peer.world.movement(&world.scene, tick))
-                };
-                let _ =
-                    peer.world
-                        .send_frame(tick, movements, drain, &mut peer.egress, |payload| {
-                            let packet = Packet {
-                                conn: connection,
-                                kind: KIND_FRAME,
-                                flags: ACK,
-                                payload,
-                                ..Packet::default()
-                            };
-                            let outgoing = self.links.transmit(packet).map_err(|error| {
-                                io::Error::other(format!("game link: {error:?}"))
-                            })?;
-                            send(socket, outgoing)
-                        });
-            }
-        }
-        self.clock.renew_if_idle(!self.seats.is_empty(), false);
-    }
+    next_input_peer: Option<u32>,
+    recent_faults: VecDeque<FaultRecord>,
 }
 
 fn leave_message() -> Message {
@@ -1151,14 +686,14 @@ fn run(
     while !stopping.load(Ordering::Acquire) {
         let mut handled = 0;
         for request in requests.try_iter().take(RECEIVE_BATCH) {
-            state.handle_request(request, start.elapsed());
+            state.handle_request(request, start.elapsed())?;
             handled += 1;
         }
         if socket_ready {
             for _ in 0..RECEIVE_BATCH {
                 match socket.recv_from(&mut buffer) {
                     Ok((count, address)) => {
-                        state.receive(&socket, &buffer[..count], address, start.elapsed());
+                        state.receive(&socket, &buffer[..count], address, start.elapsed())?;
                     }
                     Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
                         socket_ready = false;
@@ -1178,18 +713,16 @@ fn run(
                 }
             }
         }
-        let input_ready = state.advance_input(start.elapsed());
+        let input_ready = state.advance_input(start.elapsed())?;
         let now = start.elapsed();
         if now >= due {
             let scheduled = due;
             let (next, missed) = next_tick_after(scheduled, now)
                 .ok_or_else(|| io::Error::other("game tick clock exhausted"))?;
             due = next;
-            let sample = state.timing.is_some()
-                && !state.clock.draining()
-                && state.peers.values().any(|peer| peer.world.world_started());
+            let sample = state.timing.is_some() && !state.clock.draining() && state.world_started();
             let began = sample.then(Instant::now);
-            state.tick(&socket, now, missed);
+            state.tick(&socket, now, missed)?;
             if let (Some(timing), Some(began)) = (&mut state.timing, began) {
                 timing.record_tick(began.elapsed(), now - scheduled, missed);
             }
@@ -1215,6 +748,7 @@ mod tests {
     use super::*;
 
     mod benchmark;
+    mod isolation;
     use crate::{
         bits::{BitReader, BitWriter},
         game_content::PRACTICE_RANGE_MAP,
@@ -1741,8 +1275,9 @@ mod tests {
             MATCH,
             Room {
                 map: scene.map().clone(),
-                remaining: players.len(),
+                members: IndexMap::new(),
                 players,
+                injection: None,
                 world: Some(RoomWorld {
                     scene: Box::new(scene),
                     card: PlayerCard::default(),
@@ -1757,8 +1292,8 @@ mod tests {
                 ..Command::default()
             })
             .collect();
-        let room = &state.rooms[&MATCH];
-        for slot in 0..room.players.len() {
+        for slot in 0..state.rooms[&MATCH].players.len() {
+            let room = &state.rooms[&MATCH];
             let connection = slot as u32 + 1;
             let viewer = room.appearance(slot).unwrap();
             let mut peer = Peer::new(viewer.entity);
@@ -1766,29 +1301,43 @@ mod tests {
                 .start(&room.world.as_ref().unwrap().scene, &viewer, FIRST_TICK)
                 .unwrap();
             peer.world.queue_commands(FIRST_TICK, &commands);
-            state.seats.insert(connection, (MATCH, slot));
-            state.peers.insert(connection, peer);
+            state.routes.insert(connection, MATCH);
+            state.order.insert(connection, ());
+            state.rooms.get_mut(&MATCH).unwrap().members.insert(
+                connection,
+                RoomMember {
+                    slot,
+                    peer: Some(peer),
+                },
+            );
         }
         let acks = |state: &State| {
             state
-                .peers
-                .values()
-                .map(|peer| peer.world.command_ack(FIRST_TICK))
+                .order
+                .keys()
+                .map(|connection| {
+                    state.rooms[&MATCH].members[connection]
+                        .peer
+                        .as_ref()
+                        .unwrap()
+                        .world
+                        .command_ack(FIRST_TICK)
+                })
                 .collect::<Vec<_>>()
         };
-        assert!(state.advance_input(Duration::ZERO));
+        assert!(state.advance_input(Duration::ZERO).unwrap());
         assert_eq!(
             acks(&state),
             [first + 15, first + 15, first + 15, first + 15, FIRST_TICK]
         );
-        assert!(state.advance_input(Duration::ZERO));
+        assert!(state.advance_input(Duration::ZERO).unwrap());
         assert_eq!(
             acks(&state),
             [first + 31, first + 31, first + 31, first + 15, first + 15]
         );
-        assert!(!state.advance_input(Duration::ZERO));
+        assert!(!state.advance_input(Duration::ZERO).unwrap());
         assert_eq!(acks(&state), [first + 31; 5]);
-        let timing = state.debug_snapshot().timing.unwrap();
+        let timing = state.debug_snapshot().unwrap().timing.unwrap();
         assert_eq!(timing.input_budget.turns, 3);
         assert_eq!(timing.input_budget.used, 160);
         assert_eq!(timing.input_budget.peer_limit_hits, 10);
@@ -1914,12 +1463,18 @@ mod tests {
                             let (bots, _) = scene.bot_simulation();
                             assert_eq!(
                                 bots.bodies()
+                                    .unwrap()
                                     .take(3)
                                     .map(|bot| bot.spawn.team)
                                     .collect::<Vec<_>>(),
                                 [0, 1, 1]
                             );
-                            assert!(bots.bodies().take(3).all(|bot| bot.spawn.route.is_empty()));
+                            assert!(
+                                bots.bodies()
+                                    .unwrap()
+                                    .take(3)
+                                    .all(|bot| bot.spawn.route.is_empty())
+                            );
                             bots.body_mut(BOT_ENTITY).unwrap().position = [x - 3.5, y, z];
                             bots.body_mut(BOT_ENTITY + 1).unwrap().position = [x - 5.0, y, z];
                             bots.body_mut(BOT_ENTITY + 2).unwrap().position = [x - 5.0, y, z + 0.8];

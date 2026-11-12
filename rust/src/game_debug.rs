@@ -13,6 +13,18 @@ pub(crate) struct Snapshot {
     pub truncated: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timing: Option<WorkerTiming>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub faults: Vec<RoomFault>,
+}
+
+#[cfg(any(test, feature = "inspector"))]
+#[derive(Serialize)]
+pub(crate) struct RoomFault {
+    pub room: String,
+    pub stage: &'static str,
+    pub connection: Option<u32>,
+    pub tick: u32,
+    pub reason: &'static str,
 }
 
 #[cfg(any(test, feature = "inspector"))]

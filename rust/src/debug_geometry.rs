@@ -407,6 +407,7 @@ mod tests {
         let scene = assets.prepare(GameMap::practice_range()).unwrap();
         let center = scene
             .bots()
+            .unwrap()
             .flat_map(|bot| bot.spawn.route.iter().copied())
             .max_by(|a, b| a[1].total_cmp(&b[1]))
             .expect("the prepared scene has no authored patrol route");

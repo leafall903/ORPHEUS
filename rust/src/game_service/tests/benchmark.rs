@@ -153,14 +153,20 @@ fn prepared_worker_timing_two_solo_rooms() {
     service.stop().unwrap();
 }
 
-struct Driver {
+pub(super) struct Driver {
     client: Client,
     first_command: u32,
     next_command: u32,
 }
 
 impl Driver {
-    fn join(mut client: Client, schemas: &Schemas) -> Self {
+    pub(super) fn submit_input(&mut self) {
+        let command = command_batch(self.next_command, 1, -16384, 0, false);
+        self.client.send(ACK, command);
+        self.next_command += 1;
+    }
+
+    pub(super) fn join(mut client: Client, schemas: &Schemas) -> Self {
         client.handshake();
         let load = client.receive();
         assert_eq!(messages(schemas, &load)[0].message.id, 20300);
@@ -196,7 +202,7 @@ impl Driver {
         }
     }
 
-    fn step(&mut self, schemas: &Schemas, mut counts: Option<&mut PeerCounts>) {
+    pub(super) fn step(&mut self, schemas: &Schemas, mut counts: Option<&mut PeerCounts>) {
         let packet = self.client.receive();
         let received = Instant::now();
         assert_eq!(packet.kind, KIND_FRAME);
@@ -252,7 +258,7 @@ impl Driver {
 }
 
 #[derive(Default)]
-struct PeerCounts {
+pub(super) struct PeerCounts {
     packets: u64,
     world_packets: u64,
     commands: u64,
@@ -266,7 +272,7 @@ struct PeerCounts {
 }
 
 impl PeerCounts {
-    fn report(self) -> Json {
+    pub(super) fn report(self) -> Json {
         assert!(self.world_packets > 1, "expected world replication");
         assert!(
             self.fire_pulses > 0 && !self.hits.is_empty(),

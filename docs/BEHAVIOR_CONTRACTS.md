@@ -28,6 +28,16 @@ cargo test --locked -p orpheus --test world_queries
 
 The Python consumer uses the production strict component and expression evaluator. CI gives both consumers the same fixture file. This establishes query results and diagnostic categories only: Python strict failures stop the component, while Rust records an expression issue and declines the affected operation. Component recovery and fault lifecycle equivalence require separate contracts. Neither this fixture nor its reference revision establishes original-client presentation or gameplay acceptance.
 
+## Rust room recovery policy
+
+The [room isolation fixture](../fixtures/behavior/room-isolation-v1.json) specifies a synthetic server recovery policy: an error or panic retires the affected room, its seats and links, while another room still answers encrypted requests and a new room can be admitted. The [service test](../rust/src/game_service/tests/isolation.rs) consumes it through the real encrypted UDP service with test-only fault injection. It runs in both public Rust test lanes without a runtime pack. This fixture currently has a Rust consumer only and is not included in the Python/Rust differential job.
+
+```powershell
+cargo test --locked -p orpheus encrypted_worker_satisfies_room_recovery_contract
+```
+
+The public case establishes connection and room lifecycle recovery. The separate ignored `prepared_fault_keeps_other_room_input_world_and_patrol_alive` test needs an authorized base 104319 pack to check continued world delivery, input, damage and patrol in a surviving active room. Neither case is a captured original-server result or proof of gameplay fidelity. Other policy fixtures may use this envelope, but must identify their consumers and evidence limits explicitly.
+
 ## Format and evolution
 
 | Field | Meaning |
