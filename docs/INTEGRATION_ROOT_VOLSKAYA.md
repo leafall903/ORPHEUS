@@ -29,3 +29,7 @@ Still verify the tracked actual-entry fixture and baseline non-lift consumers, i
 ## Integrated entry receipt
 
 Tracked test_delivered_volskaya plus existing test_game_world, test_physics_snapshot and test_collision_fingerprint: 56 run, 55 pass, one unchanged fixed-110-tick return assertion failure, 54.606 seconds. The actual late-entry producer now passes native parent wire pose equality. All earlier active VM/whole-server causal and physics assertions pass as described above. Obstruction, rider ceiling and wall cancellation methods pass. This is sufficient to submit and merge existing platform code; no complete acceptance matrix is required.
+
+## Prepared server entry
+
+Tracked workspace_RUN_SERVER.cmd now selects immutable-input profile v19. That profile restores original0267 effect binding and selects original00DD platform bundle. Source SHA256 validation passed for every manifest input immediately before the switch. Original v18 workspace entry is backed up externally. No runtime pack was edited; no listening services or clients started. Relevant native healing and platform consumer checks are recorded above; existing numerical tails remain explicit.
