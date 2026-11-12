@@ -1,5 +1,15 @@
 # Changelog
 
+## C74 — specials-only manual Sniper retains the original primary retreat
+
+Actual public specials-only spawn +manual start reproduced zero retreat despite
+100damage: automatic native handling claimed142C without acquisition updates.
+Require both acquire_targets and acquire_specials in the existing automatic root
+selector; manual primary now receives the same authored gate/search/state.
+Original tool criteria for specials-only/open/stop plus actual explicit/automatic
+ownership and25 manual input checks28/28pass8.745s. No new host or stored fields,
+source assertions unchanged, and no client/network action.
+
 ## C73 — original primary Sniper finite consumer review
 
 Reviewed root d67ef8c8/75f3bbfe against original023B: all14 helpers map to the

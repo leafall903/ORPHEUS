@@ -3309,3 +3309,39 @@ consumer probe for it; this is an explicit configuration-policy boundary, not a
 claim that tested ordinary or acquired branches fail, and no guessed policy was
 introduced. Parent may assign a bounded probe if that combination is intended.
 B99 force endpoints and A106 Sigma/Zarya tools remain their exclusive work.
+
+
+## C74 — public specials-only manual Sniper uses the primary owner
+
+Parent confirmed that specials=True/acquire=False/pursue=False followed by manual
+npc_control.start(primary) is an already supported public combination, not a
+verification-only policy tail. Synced intake6d98ae67 into worker6bcd3e3e first.
+Actual npc.spawn with those three arguments reproduces the C73 dispatcher issue:
+original tool open criteria FAIL with displacement0, activations0, speedNone,
+no windup/recovery, while it directly deals100damage. Baseline receipt is
+../worker-c-c74-specials-baseline.log (one assertion failure, not an import error
+or a stand-in host). Earlier fixture setup corrections were completed before
+this actual baseline: the tool imports tools dependencies and selected profile
+uses ORPHEUS_PVE_NPC_DATA for its immutable five-NPC catalog.
+
+Narrow fix: existing sniper_retreat._root now requires BOTH acquire_targets and
+acquire_specials before it can own142C. This matches the actual Combat automatic
+acquisition/advance contract; manual primary remains owned by primary_scoped and
+same existing sniper_reposition callbacks. Every automatic public entry already
+passes through _root directly(controls_motion/acquire/interrupt/advance) or through
+scoped(native and BotWorld search deferral). Source destination and pose helpers
+are internal to that existing automatic owner. No alternate VM, manager, timer,
+health pool, scene field or graph copy was introduced. The source primary native
+now receives its actual request for specials-only instead of being intercepted
+by an automatic host whose acquisition updater is absent.
+
+Verification with selectedv19: test_sniper_primary_scope + test_game_npc_control
+=28/28pass8.745s, ../worker-c-c74-sniper-scope-check.log. The actual specials-only
+case now passes the original tool's complete open criteria unmodified; ordinary
+open and windup_stop also retain their complete criteria. Actual explicit0015
+reposition and acquire+specials constructions each retain one142C instance and
+the same component, move more than1m with no VM fault, and satisfy the intended
+primary/automatic ownership guards. The original25 manual input tests pass.
+No source assertion/number changed; no old observer alias. This resolves the
+concrete C73 configuration boundary; no unverified-input caveat remains for it.
+No active checks remain. B99 force and A106 tools were untouched.

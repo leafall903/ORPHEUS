@@ -14,7 +14,8 @@ RETRY_MS = 6000  # Static host re-admission policy.
 
 
 def _root(bot):
-    if bot.hero != HERO or bot.body_script is None or not bot.spawner.get("acquire_specials"):
+    if (bot.hero != HERO or bot.body_script is None
+            or not bot.spawner.get("acquire_targets") or not bot.spawner.get("acquire_specials")):
         return None
     component = bot.body_script.component
     if component.strict or component.fault is not None:
