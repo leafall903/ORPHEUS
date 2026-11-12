@@ -2167,6 +2167,8 @@ class Combat:
         self.input_locks = {}
         self.booster_contacts = {}
         self.hammer_hits = {}
+        self.zarya_charge_tick = 0
+        self.zarya_charge_ready: dict[int, int] = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
         self.matrix_definitions: frozenset[int] | None = None
@@ -2471,6 +2473,7 @@ class Combat:
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
+        self.zarya_charge_ready.pop(player.body, None)
         if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
             molten_core.retire_owner(self, player)
             hero_torbjorn.destroy_turret(self, player)
@@ -4677,6 +4680,10 @@ class Combat:
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
+            if at > self.zarya_charge_tick:
+                if self.zarya_charge_tick:
+                    self._charge_zarya_passive(self.zarya_charge_tick + 1, at)
+                self.zarya_charge_tick = at
             self.now, self.tick = now - (tick - at) * TICK, at
             for player, script, release in bubble_releases.get(at, ()):
                 if (player.body_script is not script or self.is_dead(player)
@@ -6578,6 +6585,14 @@ class Combat:
                         if release_tick:
                             rocket.stamp_launch(release_tick)
                     self._submit_attack(shooter, shot_frame, rocket)
+                if not npc and spawn == graviton.FIELD_ENTITY and shooter.hero.guid == 0x02E0000000000068:
+                    from ow174.game import zarya
+
+                    script = shooter.body_script
+                    ready_frame = zarya.ultimate_charge_ready_frame(script)
+                    if ready_frame:
+                        elapsed = max(0, ready_frame - script.frame) * script.frame_ms
+                        self.zarya_charge_ready[shooter.body] = self.match.tick + math.ceil(elapsed / (TICK * 1000))
             return
         if direct is None or direct.amount <= 0.0:
             return
@@ -9303,6 +9318,45 @@ class Combat:
                 return max(0.0, 1.0 + modifier) if math.isfinite(modifier) else 1.0
         return 1.0
 
+    def _zarya_charge_script(self, player, source: int):
+        from ow174.game import zarya
+
+        script = getattr(player, "body_script", None)
+        if (self.match.ended or not isinstance(script, BodyScript) or script.hero != zarya.HERO
+                or script.entity != source or player.body != source or player.gone
+                or not player.spawned or not player.has_body or player.client is None
+                or script.retired or script.component.owner_dead or script.component.fault is not None):
+            return None
+        if any(rocket.source_body == source and rocket.spawn == graviton.FIELD_ENTITY
+               for rocket in self.rockets):
+            return None
+        return script
+
+    def _zarya_charge_ready_tick(self, script) -> int | None:
+        from ow174.game import zarya
+
+        authored = zarya.ultimate_charge_ready_frame(script)
+        ready = self.zarya_charge_ready.get(script.entity)
+        if authored is None or (ready is None and authored):
+            return None
+        # A sparse world update can pass the field's deadline before removing the field.
+        field_ready = max((field.end_tick + 1 for field in self.zarya_gravitons.fields
+                           if field.source_body == script.entity), default=0)
+        return max(ready or 0, field_ready)
+
+    def _charge_zarya_passive(self, first: int, last: int) -> None:
+        from ow174.game import zarya
+
+        for player in self.match.players:
+            script = self._zarya_charge_script(player, player.body)
+            if script is not None and script.ult_seconds > 0:
+                ready = self._zarya_charge_ready_tick(script)
+                if ready is not None:
+                    start = max(first, ready, self.replacement_ticks.get(player.body, 0) + 1)
+                    if start <= last:
+                        elapsed = (last - start + 1) * TICK
+                        script.award_ult_charge(elapsed * zarya.ULT_PASSIVE_PER_SECOND)
+
     def _charge_echo_health_event(self, player, amount: float, *, source_body=None) -> None:
         """Mount health-event charge for Echo and the hero body currently copied by Echo."""
         script = getattr(player, 'body_script', None)
@@ -9961,9 +10015,16 @@ class Combat:
                 from ow174.game import mei_ultimate
 
                 mei_ultimate.grant(shooter, dealt, loadout=loadout)
+            if (award_ult and enemy and current_source and hero == 0x02E0000000000068
+                    and not self.echo_duplicates.active(shooter)):
+                zarya_script = self._zarya_charge_script(shooter, shooter.body)
+                if zarya_script is not None:
+                    ready = self._zarya_charge_ready_tick(zarya_script)
+                    if ready is not None and ready <= (self.tick if world_tick is None else world_tick):
+                        zarya_script.award_ult_charge(dealt)
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007)
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007, 0x02E0000000000068)
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
@@ -10622,6 +10683,9 @@ class Combat:
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
+        if (isinstance(old_script, BodyScript) and old_script.hero == 0x02E0000000000068
+                and player.hero.guid == old_script.hero and old_script.component.fault is None):
+            points = old_script.component.entity_var(ULT_CHARGE).value()
         switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
                     if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
         if not switched:

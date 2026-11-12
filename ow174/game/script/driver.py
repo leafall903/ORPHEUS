@@ -2733,6 +2733,13 @@ class BodyScript(ReplicatedBody):
         if cost > 0 and charge < cost:
             self.set_ult_charge(min(cost, charge + points))
 
+    def award_ult_charge(self, points: float) -> None:
+        """Apply an original absolute health/world award after its host eligibility gate."""
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if points > 0 and cost > 0 and charge < cost:
+            self._gain_ult_points(cost, charge, f32(points))
+
     def credit_ult_charge(self, points: float) -> None:
         """Apply an authored absolute award with the retained Duplicate bonus."""
         if self.ult_gain_bonus:
@@ -2910,6 +2917,14 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E0000000000068:
+            from ow174.game import zarya
+
+            if (self.world.match is None and self.ult_seconds > 0
+                    and not self.retired and not self.component.owner_dead
+                    and not self.ultimate_running()):
+                self.award_ult_charge(zarya.ULT_PASSIVE_PER_SECOND * self.frame_ms / 1000)
+            return  # Actual Match world admission owns its existing charge host.
         if self.hero == 0x02E0000000000040:
             from ow174.game import roadhog_charge
 

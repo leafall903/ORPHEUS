@@ -140,6 +140,9 @@ class Gravitons:
                         and not reinhardt_charge.pinned(self.fight, target.entity)):
                     pulls.setdefault(target.entity, (target, field.position, seconds))
             if tick >= field.end_tick:
+                ready = self.fight.zarya_charge_ready.get(field.source_body)
+                if ready is not None:
+                    self.fight.zarya_charge_ready[field.source_body] = max(ready, field.end_tick + 1)
                 self.fields.remove(field)
         # Resolve all damage before movement, so a later field can kill a target
         # without leaving a pull queued for its retired body.

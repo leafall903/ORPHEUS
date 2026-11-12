@@ -1,5 +1,44 @@
 # Changelog
 
+## A84 — original0068 world charge and respawn credit
+
+Restored source f5b7366d original ultimate_charge_ready_frame and Combat's single
+zarya_charge_tick/ready host: passive5/s uses accepted Match world ticks, cast's
+actual body/world pair, live flight exclusion, field end+1 admission, and actual
+body birth. Ordinary beam/grenade/melee damage awards actual lost HP once, with
+original world-ready gate. Generic fallback excludes Zarya to avoid two awards;
+Graviton direct/DOT retain award_ult=False. Same-body source/client/fault/death
+eligibility is original source policy. The two causal host fields are registered
+in existing exact server snapshot. Retirement removes readiness for old body.
+Original BodyScript.award_ult_charge uses current capped _gain_ult_points so the
+retained Duplicate bonus is not discarded. Existing Echo health-event host is
+preserved, and copied Zarya damage is excluded from this second credit branch.
+World passive uses the same copied body's bonus. No new012/charge manager.
+
+Baseline original passive100ticks failed0.56 vs8. After integration original7
+methods pass9.656s: passivepaced/sparse, fieldend+170, futurecast+500 lock,
+latebody2cases, realweapon damage and post-field melee admission. Additional
+original overkill/cap/ally/miss/absorbed/heldQ pass; death test exposed missing
+source _respawn Zarya charge preservation. Added only source-matching healthy
+BodyScript capture to current respawn points bridge (not global hero switching),
+then all four original methods pass6.566s. Logs worker-a-zarya-world-charge-
+original-check.log and worker-a-zarya-charge-respawn-original-check.log.
+
+Crossowner originalEcho13+Zarya4+server snapshot1 ran18 in41.376s:16passed,
+Zarya respawn fail subsequently fixed as above; copiedSoldier passive fixture
+still computes1000*None because current Soldier uses natural0B8B rather than its
+old numeric ult_seconds timer. This error occurs in its expected-value expression;
+all other12Echo checks and existing whole-server combat snapshot pass. No original
+assertions/numbers modified. Original blocks-charge wholemethod also stops at
+prior health193.4 vs<193 (before charge assertions), kept visible. Original193
+projectile point/extent residual from A83 remains unchanged.
+
+Next: source field offense snapshot on existing Rocket/Field; sync root's actual
+cover_ray query for original field LOS; then mobility-stop/idle-reload/cadence
+consumer audit. No duplicate active actors, movers, regen ledgers or acceptance
+matrix. Estimated remaining3–7active hours low confidence, not a submission gate.
+
+
 This log records tested changes and their acceptance status. Entries are grouped by date until a version is explicitly released.
 
 ## Unreleased
