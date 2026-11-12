@@ -250,6 +250,26 @@ def charge_ultimate(component, seconds, running):
         component.set(ULT_CHARGE, min(cost, f32(charge + step)))
 
 
+def project_movement_flags(world, instance, node):
+    """Delivered two-predicate query on an actual known physical flag source."""
+    from ow174.game.mover import IN_AIR
+
+    if node.cls != "STU_96F1DBCF" or node.field("m_entity") is None:
+        return None
+    other_outputs = ("m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29", "m_103A8581",
+                     "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27", "m_A10CC74B")
+    if (any(node.field(name) is not None for name in other_outputs)
+            or any((node.field(name) or {}).get("links") for name in ("m_2102C541", "m_E37BC6C2"))):
+        return None
+    if not any(node.field(name) is not None for name in ("m_105DF1D6", "m_49F4B33C")):
+        return None
+    entity = expr.to_entity(instance.evaluate(node.field("m_entity")))
+    flags = world.movement_flags(entity) if entity else None
+    if flags is NotImplemented:
+        return None
+    return 3, 0 if flags is None else (1 if flags & IN_AIR else 2)
+
+
 def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int, bool]]:
     """The logical-button edges of one command (0x7FF789C66AA0): one per changed bit, pressed = the bit is
     now set; an action byte presses and releases its button."""
@@ -318,6 +338,7 @@ class BodyWorld(runtime.World):
             watch_environment=self._poll_entity_query, watch_owner=self._poll_entity_query,
         )
         # Server warm-up constructs a script with the null entity sentinel.
+        self._possessor_query = None
         self._entity_query_context = None
         if expr.valid_entity(body):
             self._entity_query_context = entity_queries.Context(
@@ -847,15 +868,51 @@ class BodyWorld(runtime.World):
 
             barriers.retire(self.match.combat, entity)
 
+    def entity_possessor_context(self, entity: int):
+        if self.match is None or entity != self.body or self.hero != barrier.REINHARDT:
+            return NotImplemented  # retain other heroes' existing dedicated native adapters
+        if self._possessor_query is None:
+            self._possessor_query = entity_queries.Context(
+                entity, True, True, True, lookup=self._lookup_possessor,
+                watch_environment=None, watch_possession=None, watch_possessor=self._watch_possessor,
+            )
+        return self._possessor_query
+
+    def _lookup_possessor(self, entity):
+        # The Match owns these controller/body identities. No relation is
+        # inferred from team, health or the ability's running state.
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, possessor=entity_queries.Possession(player.entity))
+            if player.entity == entity:
+                return entity_queries.Target(entity, possessor=None)
+        if any(bot.entity == entity for bot in self.match.bots):
+            return NotImplemented  # NPC component43/controller ownership is not installed here.
+        return None
+
+    def _watch_possessor(self, watcher, target):
+        # InstanceContext already records this config in native_dependency.
+        # Match relation changes are polled at command boundaries; native
+        # component43 callback allocation/phase order is not reconstructed.
+        return None
+
+    def movement_flags(self, entity):
+        resolver = getattr(self.match, "script_movement_flags", None)
+        return resolver(entity, getattr(self, "body", 0)) if callable(resolver) else NotImplemented
+
     def movement_flag_projection(self, instance, node):
-        # Reconstructed only for Baptiste1983's single crouch output. The other
-        # 96F1DBCF projections remain unknown; do not synthesize their flags.
+        # Keep the existing scoped crouch consumer; delivered known-bit flags
+        # below read actual physics and leave other projections unsupported.
         if (self.match is not None and self.hero == 0x02E0000000000221
                 and instance.graph.index == 0x1983 and node.state == 8):
             for player in self.match.players:
                 if player.has_body and player.body == self.body:
                     crouched = player.mover.crouched and not instance.component.owner_dead
                     return 0x40, 0x40 if crouched else 0
+        if self.hero == barrier.REINHARDT:
+            return project_movement_flags(self, instance, node)
         return None
 
     def linked_target_sample(self, entity: int):
@@ -1073,6 +1130,14 @@ class BodyWorld(runtime.World):
         if charge is not NotImplemented:
             return charge
         cls = cfg.get("$")
+        if (self.hero == barrier.REINHARDT and instance is not None
+                and instance.graph.index == ULT_GAIN_GRAPH
+                and cls in ("STU_AC829876", "STU_A58C1E63")):
+            from ow174.game.ultimate_charge import match_admission
+
+            value = match_admission(instance, cfg)
+            if value is not NotImplemented:
+                return value
         if instance is not None and instance.graph.index == 0x156B:
             from ow174.game import photon_barrier
 
@@ -2264,6 +2329,13 @@ class BodyScript(ReplicatedBody):
         if authored_symmetra:
             symmetra_charge.sync(self)
 
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+            if enabled is None or enabled.value() is None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None:
+                    # Original completed-body capability binding, not a forced gate.
+                    common.run_node(common.graph.node(39), None)
         if self.hero == torbjorn_charge.HERO:
             torbjorn_charge.prepare(self)
         ultimate.sync_practice_timer(self)
@@ -2648,6 +2720,8 @@ class BodyScript(ReplicatedBody):
             return
         if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
             return
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            return  # delivered0B8B owns cadence; no diagnostic cost/60 fill
         # A supplied shared-graph gate owns passive charge, even when disabled.
         # The fallback only covers hosts that have not supplied that gate.
         enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
@@ -2879,6 +2953,8 @@ class BodyScript(ReplicatedBody):
         if self.world.match is not None:
             self.world.match.unregister_body_component(self.component)
         self.component.disconnect_foreign_watchers()
+        if self.world._possessor_query is not None:
+            self.world._possessor_query.retire()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

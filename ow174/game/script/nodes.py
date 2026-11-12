@@ -1166,9 +1166,12 @@ class NPCControllerLinkedState(RegisteredState):
             super().on_cleanup()
 
 
-@state_class(combat_mod_filter.CLASS, strict_only=True)
 class CombatModFilter(RegisteredState):
     """Local registration and explicit events for native tag-only profiles."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.combat_filter = None
 
     def on_begin(self):
         if self.instance.component.strict:
@@ -1176,13 +1179,14 @@ class CombatModFilter(RegisteredState):
             self.register()
 
     def on_cleanup(self):
-        if self.instance.component.strict:
+        component = self.instance.component
+        if component.strict and self in component.state_registries.get(self.node.cls, ()):
             super().on_cleanup()
 
     def filter_event(self, resource, tags):
         component = self.instance.component
         with component.operation():
-            if (not self.active or self.ending
+            if (not self.active or self.ending or self.combat_filter is None
                     or self not in component.state_registries.get(self.node.cls, ())):
                 return None
             return combat_mod_filter.evaluate(self, resource, tags)
@@ -4273,15 +4277,28 @@ class ModifyHealth(State):
         self.instance.component.world.end_health(self)
 
 
-@state_class("STUStatescriptStateCombatModFilter", strict_only=True)
-class CombatDamageFilter(State):
-    def on_enter(self):
+@state_class(combat_mod_filter.CLASS, strict_only=True)
+class CombatDamageFilter(CombatModFilter):
+    """One registry path for a bound damage host or the proven tag-only callback."""
+
+    def on_begin(self):
         component = self.instance.component
-        if component.world.bind_combat_damage_filter(self) is not True:
+        if not component.strict:
+            return
+        self.combat_filter = None
+        binding = component.world.bind_combat_damage_filter(self)
+        if binding is True:
+            self.register()
+        elif binding is NotImplemented:
+            super().on_begin()  # Validate the complete supported tag-only schema before registration.
+        else:
             component.unsupported(self.instance, "combat damage filter", self.node.cls, self.node)
 
     def on_end(self, finished):
-        self.instance.component.world.unbind_combat_damage_filter(self)
+        if self.instance.component.strict and self.combat_filter is None:
+            self.instance.component.world.unbind_combat_damage_filter(self)
+
+
 @state_class("STUStatescriptStatePet")
 class CompatiblePet(State):
     """Factory-backed entity output with the lifetime of its source state."""

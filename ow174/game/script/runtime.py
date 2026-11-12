@@ -375,6 +375,14 @@ class InstanceContext(Context):
             result = torbjorn_charge.native(component.world, cfg, self.instance)
             if result is not NotImplemented:
                 return result
+        if (not component.strict and component.world.hero == 0x02E000000000013E
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            from ow174.game import orisa_charge
+
+            result = orisa_charge.pool_loss_fold(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
 
     def native(self, cfg: dict):
@@ -481,6 +489,12 @@ class InstanceContext(Context):
                 # Preserve the delivered unavailable-instance guard before any
                 # alternate query provider evaluates the entity selector.
                 return body_owner.evaluate(self, cfg)
+        if (cls == entity_queries.POSSESSOR
+                and component.world.entity_possessor_context(component.entity) is not NotImplemented):
+            # This explicit source host owns its namespace and subscriptions;
+            # retain the unavailable body-owner guard above and every other
+            # host's existing controller/body-owner precedence below.
+            return entity_queries.evaluate(self, cfg)
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
@@ -557,6 +571,10 @@ class World:
     answers like an empty world."""
 
     def respawn_body(self, instance, node):
+        return NotImplemented
+
+    def movement_flags(self, entity):
+        """Authored movement flags, missing mover, or an unavailable host."""
         return NotImplemented
 
     def movement_flag_projection(self, instance, node):
@@ -996,6 +1014,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def entity_possessor_context(self, entity: int):
+        """Explicit component43 relation context, independently scoped by the host."""
         return NotImplemented
 
     def entity_definition_resource(self, entity: int):

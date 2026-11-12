@@ -43,7 +43,7 @@ def pinned(fight, entity):
 def control_deadline(fight, entity):
     # Read the active canonical counter clocks; graph endpoints are inclusive.
     from ow174.game.defense_filters import last_countdown_world_tick
-    deadlines = [fight.stuns.get(entity, 0)]
+    deadlines = [fight.stuns.get(entity, 0), fight.source_control_deadline(entity)]
     if entity in fight.punches.controls:
         deadlines.append(math.ceil(fight.punches.controls[entity] / combat.TICK))
     for stun in fight.brigitte.stuns:
@@ -51,6 +51,20 @@ def control_deadline(fight, entity):
         if stun.instance.component.entity == entity and phase is not None and phase.active:
             deadlines.append(last_countdown_world_tick(phase) + 1)
     return max(deadlines)
+
+
+def reinhardt_barrier_instance(player):
+    return next(i for i in player.body_script.component.instances.values() if i.graph.index == 0x95)
+
+
+def set_reinhardt_shield_health(fight, body, amount):
+    actor = fight.barriers.authored_for(body)
+    if actor is None:
+        fight.reinhardt_barriers[body].current = amount
+    else:
+        # Fixture input targets the actual native shield pool, not its sync cache.
+        from ow174.game import barriers
+        barriers.damage(fight, actor, max(0., actor.vitals.total - amount))
 
 
 def any_controls(fight):
@@ -3099,7 +3113,7 @@ class EarthshatterTests(unittest.TestCase):
         self.assertFalse(self.match.combat.shatters)
         self.advance(1)
         wave = self.match.combat.shatters[self.rein.body]
-        self.assertEqual((wave.speed, wave.reach, wave.cone, wave.duration), (40, 20, 50, 2.5))
+        self.assertEqual((wave.speed, wave.reach, wave.cone, wave.stun_seconds), (40, 20, 50, 2.5))
         self.advance(10)
         self.assertAlmostEqual(wave.travelled, 6.4, places=5)
         self.assertEqual(self.health(self.enemy), 200)
@@ -3251,7 +3265,7 @@ class EarthshatterTests(unittest.TestCase):
         for _ in range(30):
             self.run.step(hold)
         shield = fight.reinhardt_barriers[self.enemy.body]
-        state = fight._barrier_instance(self.enemy).states[17]
+        state = reinhardt_barrier_instance(self.enemy).states[17]
         first_raise = state.counter
         self.fill()
         self.run.step({**hold, self.rein: (0, 0, 32)})
@@ -3278,7 +3292,7 @@ class EarthshatterTests(unittest.TestCase):
             self.run.step(hold)
         self.assertEqual(shield.current, 1500)
         generation = fight.replacement_ticks.get(self.enemy.body)
-        self.assertEqual(wave.shield_hit, {
+        self.assertEqual(wave.shields, {
             (self.enemy.body, generation, first_raise),
             (self.enemy.body, generation, state.counter),
         })
@@ -3383,14 +3397,14 @@ class EarthshatterTests(unittest.TestCase):
                 self.assertLess(wave.travelled, 8)
                 self.assertEqual(shield.current, 1600)
                 self.assertFalse(wave.hit)
-                self.assertFalse(wave.shield_hit)
+                self.assertFalse(wave.shields)
 
                 self.rein.team = 1 - initial_team
                 for _ in range(42):
                     self.run.step(hold)
                 self.assertEqual(shield.current, 1550 if shield_becomes_hostile else 1600)
                 self.assertEqual(50 in wave.blocked, shield_becomes_hostile)
-                self.assertEqual(bool(wave.shield_hit), shield_becomes_hostile)
+                self.assertEqual(bool(wave.shields), shield_becomes_hostile)
                 self.assertEqual(self.health(self.enemy), 500)
                 self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertEqual(self.health(self.other), 200 if shield_becomes_hostile else 150)
@@ -3550,15 +3564,15 @@ class EarthshatterTests(unittest.TestCase):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                 shield = self.match.combat.reinhardt_barriers[self.enemy.body]
                 if outcome == "break":
-                    shield.current = 30
+                    set_reinhardt_shield_health(self.match.combat, self.enemy.body, 30)
                 self.fill()
                 self.run.step({self.rein: (0, 0, 32), self.enemy: (-32768, 0, 2)})
                 for _ in range(60):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                     wave = self.match.combat.shatters.get(self.rein.body)
-                    if wave is not None and wave.shield_hit:
+                    if wave is not None and wave.shields:
                         break
-                self.assertTrue(wave is not None and wave.shield_hit)
+                self.assertTrue(wave is not None and wave.shields)
                 if outcome == "team_change":
                     self.enemy.team = self.rein.team
                     for _ in range(90):
@@ -4364,7 +4378,7 @@ class BarrierTests(unittest.TestCase):
         self.fire()
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.shield().current, 1580)
-        instance = self.match.combat._barrier_instance(self.rein)
+        instance = reinhardt_barrier_instance(self.rein)
         self.assertEqual(instance.find_var(0, 586).value(), 1580)
         self.assertEqual(self.enemy.client.messages(combat.HIT), [])
 
@@ -4578,7 +4592,7 @@ class BarrierTests(unittest.TestCase):
         self.fire((2.0, 2.0, -2.0))
         self.assertFalse(self.shield().active)
         self.assertEqual(self.health(self.other), 180)
-        self.assertFalse(self.match.combat._barrier_instance(self.rein).states[17].active)
+        self.assertFalse(reinhardt_barrier_instance(self.rein).states[17].active)
 
     def test_owner_leave_removes_live_barrier_before_next_rifle_hit(self):
         self.place(self.other, (0, 1, -2))
@@ -4614,7 +4628,7 @@ class BarrierTests(unittest.TestCase):
         self.fire((2.0, 2.0, -2.0))
         self.assertFalse(self.shield().active)
         self.assertEqual(self.health(self.other), 180)
-        self.assertFalse(self.match.combat._barrier_instance(self.rein).states[17].active)
+        self.assertFalse(reinhardt_barrier_instance(self.rein).states[17].active)
 
     def test_quick_melee_damages_shield_and_owner_instead_of_being_blocked(self):
         self.place(self.enemy, (0.0, 1.0, 2.0))
@@ -4704,7 +4718,7 @@ class BarrierTests(unittest.TestCase):
         fight = self.match.combat
         hero = self.enemy.hero
         old_body = self.enemy.body
-        old_activation = fight._barrier_instance(self.enemy).states[17].counter
+        old_activation = reinhardt_barrier_instance(self.enemy).states[17].counter
 
         self.assertTrue(self.match.switch_hero(self.enemy, heroes()[SOLDIER]))
         self.assertNotEqual(self.enemy.body, old_body)
@@ -4717,7 +4731,7 @@ class BarrierTests(unittest.TestCase):
         new_barrier = self.shield(self.enemy)
         self.assertIsNot(new_barrier, old_barrier)
         self.assertTrue(new_barrier.active)
-        self.assertEqual(fight._barrier_instance(self.enemy).states[17].counter, old_activation)
+        self.assertEqual(reinhardt_barrier_instance(self.enemy).states[17].counter, old_activation)
         self.assertEqual(new_barrier.current, 1600)
         self.assertIn(shot, fight.rockets)
         for _ in range(65):
@@ -4729,7 +4743,7 @@ class BarrierTests(unittest.TestCase):
     def test_fire_strike_hits_a_later_raise_without_hitting_the_same_body_again(self):
         hold, shot, shield = self.fire_strike_first_barrier_hit()
         fight = self.match.combat
-        pet = fight._barrier_instance(self.enemy).states[17]
+        pet = reinhardt_barrier_instance(self.enemy).states[17]
         old_activation = pet.counter
         self.run.step({self.enemy: (-32768, 0, 0)})
         self.assertFalse(pet.active)

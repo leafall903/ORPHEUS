@@ -91,6 +91,8 @@ _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.CombatModFilter: (("combat_filter",), ()),
+    nodes.CombatDamageFilter: (("combat_filter",), ()),
     nodes.RecallRewind: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -181,7 +183,7 @@ _VALUE_LAYOUTS = {
                          "watch_environment", "watch_owner", "retired"),
     entity_queries.Context: ("owner", "namespace_present", "environment_present",
                              "possession_context_present", "lookup", "watch_environment",
-                             "watch_possession", "retired", "lookup_linked", "lookup_participant"),
+                             "watch_possession", "retired", "lookup_linked", "lookup_participant", "watch_possessor"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
     runtime.RaycastResult: ("hit", "entity", "point", "normal"),
@@ -536,7 +538,7 @@ class _Export:
                 optional = ("beam_barrier", "passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
-                               "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))
+                               "_body_owner_context", "_entity_query_context", "_possessor_query", "zenyatta_charge_ammo"))
             if kind is BotWorld:
                 optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
@@ -569,6 +571,7 @@ class _Export:
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                     BodyWorld._lookup_possessor, BodyWorld._watch_possessor,
                                      BodyWorld._poll_entity_query, BodyWorld._query_spatial, BotWorld._lookup_entity_link)):
             return {"class": "builtins.method", "identity": self.identity(obj),
                     "owner": ["component", "world"], "function": _name(obj.__func__)}

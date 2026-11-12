@@ -2055,6 +2055,7 @@ class Combat:
         self.genji_blades: dict[int, dict] = {}  # body -> (instance, tracker) -> (activation, victims)
         self.genji_assists: dict[int, dict] = {}  # victim -> source body -> (Genji player, last damage tick)
         self.stuns: dict[int, int] = {}  # body identity -> exclusive world-tick deadline
+        self.controls: dict[tuple[int, int, str], float] = {}  # original independent source clocks
         self.npc_hit_reactions: dict[int, tuple[int, runtime.Instance]] = {}
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
         self.punch_impacts: dict[int, PunchImpact] = {}
@@ -2144,6 +2145,7 @@ class Combat:
         ice_wall.retired(actor)
         self.vitals.pop(entity, None)
         self.stuns.pop(entity, None)
+        self._retire_source_controls(entity)
         self.history.pop(entity, None)
         self.replacement_ticks.pop(entity, None)
         for viewer in self.match.players:
@@ -2258,6 +2260,7 @@ class Combat:
         self.hammer_hits.pop(player.body, None)
         self.tesla_frames.pop(player.body, None)
         self.stuns.pop(player.body, None)
+        self._retire_source_controls(player.body)
         for entity, impact in tuple(self.punch_impacts.items()):
             if player.body in (entity, impact.source_body):
                 del self.punch_impacts[entity]
@@ -2325,6 +2328,7 @@ class Combat:
         self.replacement_ticks[body] = self.match.tick
         self.input_locks.pop(body, None)
         self.stuns.pop(body, None)
+        self._retire_source_controls(body)
         self.frost_hits.pop(body, None)
         self.clear_pins(body)
 
@@ -2332,12 +2336,29 @@ class Combat:
         self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not bot]
         self.projectiles.cancel_npc(bot, self.match.tick)
 
+    def source_control_deadline(self, entity):
+        return max((self.tick + math.ceil((end - self.now) / TICK - 1e-9)
+                    for (victim, _, _), end in self.controls.items() if victim == entity), default=0)
+
+    def _retire_source_controls(self, entity):
+        for key in tuple(self.controls):
+            if key[0] == entity:
+                del self.controls[key]
+
+    def control(self, target, source, kind, seconds):
+        """Original independently expiring hard-control sources on existing consumers."""
+        if self.vitals_of(target).dead or seconds <= 0 or self._control_immune(target):
+            return
+        self.controls[target.entity, source, kind] = self.now + seconds
+        self.interrupt(target)
+
     def is_stunned(self, actor, *, tick: int | None = None) -> bool:
         body = _source_entity(actor)
         return ((isinstance(actor, bots.Bot) and self.punches.controlled(body))
                 or body in self.pins.values() or reinhardt_charge.pinned(self, body)
                 or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
+                or self.source_control_deadline(body) > (self.tick if tick is None else tick)
                 or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
                 or self.is_asleep(actor, tick=tick)
                 or self.frost_progress(actor, tick=self.tick if tick is None else tick) >= 1.0)
@@ -2366,7 +2387,7 @@ class Combat:
         vitals = self.vitals.get(entity)
         sleep = vitals.sleep_until if vitals is not None else 0
         pull = self.match.tick + 1 if entity in self.zarya_gravitons.pulled else 0
-        return max(sleep, pull, self.stuns.get(entity, 0))
+        return max(sleep, pull, self.stuns.get(entity, 0), self.source_control_deadline(entity))
 
     def damage_immune(self, owner):
         vitals = self.vitals.get(_source_entity(owner))
@@ -4198,6 +4219,9 @@ class Combat:
                 del self.personal_barriers[body]
         for entity in [key for key, deadline in self.stuns.items() if deadline <= tick]:
             del self.stuns[entity]
+        for key, end in tuple(self.controls.items()):
+            if end <= self.now or key[0] not in current:
+                del self.controls[key]
         for player in self.match.players:
             if player.body not in self.charge_contacts:
                 continue
@@ -4223,8 +4247,15 @@ class Combat:
 
     def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False):
         candidates = []
+        native_raised = [actor for actor in self.barriers.enemies(shooter)
+                         if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in native_raised}
+        for actor in native_raised:
+            distance = actor.trace(origin, direction, length, radius)
+            if distance is not None:
+                candidates.append((distance, actor.owner, actor))
         raised = self.barrier.intersect(shooter, origin, direction, length)
-        if raised is not None:
+        if raised is not None and raised[1] not in native_bodies:
             candidates.append((raised[0], raised[2], raised[1]))
         for hit in (
             self.barriers.world.trace(shooter, origin, direction, length, radius),
@@ -8649,8 +8680,8 @@ class Combat:
                 self._tell_hit(shooter, target, dealt, flags, frame)
                 shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
-                orisa_charge.damage(shooter, target, dealt, loadout)
                 if source_body is None or source_body == shooter.body:
+                    orisa_charge.damage(shooter, target, dealt, loadout, adaptive_shield_loss=adaptive_loss)
                     lucio.charge_damage(shooter, target, base_before - vitals.base_total, loadout)
                 moira.gain_combat_charge(
                     shooter, dealt, body=source_body, damage_target=target, damage_tags=hit_tags,
@@ -8684,13 +8715,18 @@ class Combat:
                 charge.damaged(script, target.entity, dealt, damage_charge, frame=frame,
                                extra=max(0.0, dealt - base) if boost_credit is not None else 0.0)
 
+            if award_ult and enemy and current_source and hero == 0x02E0000000000007:
+                from ow174.game import ultimate_charge
+
+                ultimate_charge.damage(shooter, target, dealt, hit_tags)
+
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
                     and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
-                points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
+                points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == 0x02E000000000006E:
@@ -8724,6 +8760,7 @@ class Combat:
             vitals.death_tick = self.match.tick if world_tick is None else world_tick
             vitals.killer = attacker
         if killed:
+            self._retire_source_controls(target.entity)
             self._genji_eliminations(target, shooter, vitals.death_tick)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.

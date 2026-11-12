@@ -312,6 +312,137 @@ alone is not evidence that a line's consumers are actually mounted.
   the existing combined Sombra module name; unrelated fixture cases still need
   their shared-service API reconciliation.
 
+## B19 delivered physical movement predicates
+
+- Read actual existing physical flags through Match and BodyWorld/BotWorld;
+  retain Graviton/Halt/Knockback precedence and decline DVa controlled movers.
+  Source two-predicate mask3 projection rejects unknown outputs/flows. Existing
+  Baptiste crouch and Assassin controller projections stay scoped and unchanged.
+- `worker-b-movement-flags-second.log`:32 checks,30 pass,2 original NPC health
+  assertion failures (340.56/490.56 versus300/450). All missing movement_flags
+  errors and Assassin initialization errors are resolved. No assertion edits.
+- Next: source0007 authored0B8B charge admission and passive cadence; investigate
+  health differences via actual source consumers. Do not change tolerances or
+  create a competing mover. Synchronize canonical after this clean commit.
+
+## B20 original Reinhardt0B8B economy
+
+- Port original ultimate_charge.py and mount its scoped admission on real
+  Combat damage. Bind actual01C7/node39 only when the source2426 slot is unset.
+  Keep current Genji path and other heroes untouched; avoid duplicate fallback
+  fill/direct damage credits for Reinhardt.
+- `worker-b-rein-economy-shared.log`:43/43 pass (original six economy cases,
+  ChargeMovement and runtime). `worker-b-rein-passive-first.log`: full9 retains
+  respawn reset0vs60 and missing retained_ult_charge/entity_possessor_context.
+  Full Talon run `worker-b-rein-charge-second.log` is still in progress.
+- Exact next action: audit source Match retained charge capture/consume paths
+  and canonical existing Torbjorn retention; extend the existing lifecycle,
+  preserve same-hero pending creation and hero-switch reset. Then original
+  possessor context read-through, source NPC health and Earthshatter consumers.
+
+## B21 retained Reinhardt charge lifecycle
+
+- Original same-hero capture/consume/hero-switch reset now uses existing Match
+  replacement, start_body_script and leave paths. Secure body ID before capture;
+  pending creation preserves the value and retires the old script. Schema field
+  registered in server_snapshot.Player. No other hero retention policy replaced.
+- `worker-b-rein-retained-focused.log`: both original respawn and delayed creation
+  cases pass. Full Passive9 plus server_snapshot ongoing in
+  `worker-b-rein-retained-first.log`; original possessor-context error remains
+  B22 scope. FullTalon17 previous run retained14 subfails/52 old-observer errors
+  (Knockbacks dict membership etc.), not a passing acceptance claim.
+- Next B22: append original POSSESSOR/BODY dataclass/context inputs while retaining
+  existing linked/participant/Component76 queries and DVa dedicated projection.
+
+## B22 explicit original possession query contexts
+
+- Keep current body_owner/controller_queries semantics for existing hosts.
+  Explicit entity_possessor_context hosts use the original typed lookup with
+  callback/lifetime guards. Reinhardt uses actual Match controller/body IDs;
+  NPC component43 remains unknown, and DVa/Genji existing adapters remain.
+- Append Target.possessor/body_field and Context.watch_possessor after current
+  fields; retain all shared linked/participant/Component76 code. Snapshot and
+  body-VM schemas include the context and watch callback. Original tests copied
+  under delivered names; only source fixture provider declaration/import adapts.
+- `worker-b-rein-relation-focused.log`:16/16 original Possessor7 +Passive9 pass.
+  `worker-b-rein-relation-second.log`:76/76 earlier shared checks pass; expanded
+  repeat `worker-b-rein-relation-third.log` still running. Source entity-query
+  suite retains2 unrelated body_health(instance) call-shape/error-text failures.
+  `worker-b-rein-relation-snapshot.log`:29 retains4 original expectation failures
+  (Component report fields, Assassin factory, Soldier stored fields including
+  new _possessor_query, MovementFlags registry class). Do not weaken checks.
+- B21 full server snapshot run session82747 remains ongoing externally. Next:
+  Earthshatter actual wave/control/surface audit, source NPC health/observer
+  reconciliation; then remaining owner functionality beyond Rein/Winston/Doom.
+
+## B23 Earthshatter clipped ground/native shield consumers
+
+- Preserve existing Wave constructor/state lifetime and mount source ground,
+  ice, wall-plane clipping and same-step exposed-body checks. Source blocked
+  ray/endpoints are stored. Current actual held native shields join the existing
+  surface query; damage goes through existing manager and source activation keys.
+  Old helpers remain private and unrouted; no extra controller or health pool.
+- `worker-b-shatter-clipped-shared.log`:44/44 pass. Full source Shatter31 in
+  `worker-b-shatter-clipped-first.log` retains1fail3errors (baseline1fail11errors).
+  Remaining: actual control observer, barrier graph getter/shared contact query,
+  test writes legacy state.current30 but native Vitals resync restores1600.
+  Preserve all original numeric assertions; adapt only real fixture inputs.
+- Main source assertion audit:1399/1399, same per-method call order/count,
+  zero changed Constant lists; raw getter AST maps duration/shield_hit onto
+  actual stun_seconds/shields. B22 expanded83 finished all passing.
+- Next: source destroyed-shield pose history/remaining surfaces; exact native
+  pool fixture input and source control ownership consumers, then completion
+  audit before advancing tank owners. Full B21 snapshot session82747 still live.
+
+## B24 shared raised-shield contacts and frozen broken plane
+
+- Root confirmed ownership of _barrier_contact for this batch. Add existing
+  RaisedBarrier.trace, suppress duplicate legacy body pool, preserve bubbles,
+  owner-team and deadline behavior. Source Wave.shield_poses stores frozen
+  geometry/pose only, not another actor. Correct original source shield ledger
+  keys to owner body/generation/activation. Retain broken plane for other rays.
+- Source fixture current=30 now changes actual authored Vitals via existing
+  damage consumer; barrier-instance getter reads actual0095. No assertions or
+  Constants changed. Main audit remains1399 same method counts/order.
+- `worker-b-shatter-native-shared.log`:33 total,4 pass29 input skips. These include
+  actual original break/drop/teamchange, later shield activation, far-side body
+  and causal wave snapshot. Full31 prior ledger-key correction left1fail1error;
+  corrected ledger test now passes. Remaining controls-key observer stays open.
+- `worker-b-shatter-native-echo.log`: explicit proper collision input enables8,
+  initially2fail1error. Baseline shared-contact monkeypatch reproduces same
+  damage488/380 and same context snapshot error. Fix this batch's own B22
+  callback omission with exact world-owned method whitelist, not broad callable
+  acceptance. `worker-b-shatter-native-context-snapshot.log`:9/9 original actual
+  raised-pool capture +Possessor7 +native retirement pass. Damage failures remain.
+- Next: true source control ownership/knockdown observation and damage tags;
+  complete remaining shield surfaces/history for other managers. B21 snapshot
+  full-suite session82747 still running; do not claim it passed.
+
+## B25 actual independent Earthshatter controls
+
+- Evidence corrected earlier observation-only attribution: source.controls is
+  real independent(victim, source, kind)->seconds lifetime, not a name alias for
+  canonical victim->max-tick stuns. Mount it on actual is_stunned/movement_pause
+  and interrupt consumers, snapshot schema, update expiry and victim cleanup.
+  Earthshatter no longer writes stuns as well. Preserve source-on-departure
+  knockdown; retire only victim entries on death/body retirement.
+- Existing HitDef.tags now reaches _damage. Source Charge can capture a body
+  under ordinary control; reject existing captures across current owners and
+  actual immunity, not every stun. No migration of Punch/Brigitte/NPC hosts.
+- `worker-b-shatter-source-controls-second.log`:62/62 original Shatter31,
+  ChargeContact21, Passive9 and causal wave snapshot pass. First61 had one
+  capture guard failure, corrected to original source rule before this run.
+  `worker-b-shatter-owned-control-snapshot.log`:actual nonempty owned control
+  gates input/movement, leaves stuns empty and changes repeatable passive digest
+  when its deadline changes. Keep all original source expectations intact.
+- Remaining7-owner rough effort16-36 effective hours, low confidence: Rein other
+  surfaces/NPC completion, Hog/Zarya/Ball/Sigma source/native reconciliation and
+  Doom/Win cross-owner closure. Main risks Ball movement/impulse, Sigma pending
+  extra pools, sharedNPC/Brigitte interactions. No full-acceptance blocking.
+- Next: clean sync latest canonical, then source shield-history/surface and NPC
+  completion audit; advance remaining owners. Full B21 snapshot session82747
+  remains live with partial errors logged, never counted passing.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

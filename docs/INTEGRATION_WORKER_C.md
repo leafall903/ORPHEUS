@@ -697,3 +697,5 @@ interlock/conflict closure4–5h. These overlap ranges and are not a calendar pr
 without changing literal assertions, then original Mei modules/Blizzard and
 Sombra/Ashe missing consumers. Do not linger on every private observer before
 mounting actual missing code. Preserve all boundaries above and no new matrix.
+
+C26 SHA152ea32d delivered. Clean sync rootb3ca1ee2 keeps all A/B/root consumers, source filter/wave/control lifetimes and C21–25 receiver variants. Only CHANGELOG conflict; preserve both. C27 now Mei source pool/status/Blizzard, not Junkrat (A owns0065).

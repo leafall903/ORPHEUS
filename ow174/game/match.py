@@ -261,6 +261,7 @@ class Player:
         self.body_script: BodyScript | None = None  # the body's statescript, run from the commands
         self.controlled_mech: bots.Bot | None = None
         self.body_script_failed = False  # a hero reselect can replace this body's failed script
+        self.retained_ult_charge: float | None = None
         self.genji_mobility = Mobility()
         # Other players' bodies this player's client has: body -> False in the frame of its create.
         self.seen: dict[int, bool] = {}
@@ -1533,6 +1534,26 @@ class Match:
                      if player.body == entity and player.has_body and player.client is not None
                      and not player.gone and (player.spawned or entity == owner)), None)
 
+    def script_movement_flags(self, entity, owner):
+        """Read delivered physical flags with existing movement-owner priority."""
+        for player in self.players:
+            if (player.body == entity and player.has_body and player.client is not None
+                    and (player.spawned or entity == owner)):
+                return player.mover.flags
+        for bot in self.bots:
+            if bot.entity != entity:
+                continue
+            if bot.control_mover is not None:
+                return NotImplemented  # the controlled DVa contract is separate
+            mover = self.combat.zarya_gravitons.npc_movers.get(entity)
+            pull = self.combat.orisa.pulls.get(entity)
+            if mover is None and pull is not None:
+                mover = pull.mover
+            if mover is None:
+                mover = self.combat.knockbacks.active.get(entity)
+            return mover.flags if mover is not None else bot.movement_flags
+        return None
+
     def script_body_position(self, entity: int, owner: int) -> expr.Vec3 | None:
         """The current match pose of a body, including the owner during its own create."""
         player = self.script_player_body(entity, owner)
@@ -1702,6 +1723,11 @@ class Match:
             lucio.restore_charge(script, charge_ratio, player.entity)
         else:
             orisa_charge.restore(script, charge_ratio, player.entity)
+        if player.retained_ult_charge is not None:
+            if script.hero == 0x02E0000000000007:
+                cost = expr.to_float(script.component.entity_var(338).value())
+                script.set_ult_charge(min(cost, player.retained_ult_charge))
+            player.retained_ult_charge = None
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
@@ -1946,6 +1972,12 @@ class Match:
             entity = self._next_body_id(player)
             if entity is None:
                 return False
+            if old_hero != hero.guid or hero.guid != 0x02E0000000000007:
+                player.retained_ult_charge = None
+            elif (script := player.body_script) is not None and script.entity == old and not script.retired:
+                slot = script.component.entity_var(342, create=False)
+                if slot is not None:
+                    player.retained_ult_charge = max(0.0, expr.to_float(slot.value()))
             # Reconstructed source policy for the authored 14F2 receiver.
             # The old script stays live until the replacement ID is secured.
             if old_hero == hero.guid == GENJI and player.body_script is not None:
@@ -1966,6 +1998,8 @@ class Match:
                 overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
                 turret_cooldown = max(0.0, player.turret_cooldown_until - self.combat.now)
             self.combat.retire_player_body(player, next_hero=hero.guid)
+            if old_hero == 0x02E0000000000007:
+                self.stop_body_script(player)
         player.hero = hero
         if old is not None:
             player.new_body(entity)
@@ -2012,6 +2046,7 @@ class Match:
             return
         self.notices.left(player)
         player.gone = True
+        player.retained_ult_charge = None
         player.client = None
         player.spawned = False
         self.stop_body_script(player)

@@ -3,7 +3,8 @@
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import actors, barrier
+from ow174.game import actors, barrier, reinhardt_barrier
+from ow174.game.collision import MOVER
 from ow174.game.script import expr, runtime
 
 RAYS = 101
@@ -58,6 +59,8 @@ class Wave:
     hit: set = field(default_factory=set)
     shields: set = field(default_factory=set)
     travelled: float = 0.0
+    blocked: set = field(default_factory=set)
+    shield_poses: list = field(default_factory=list)
 
 
 def start(fight, player):
@@ -98,15 +101,14 @@ def start(fight, player):
 
 
 def hurt(fight, wave, target, definition):
-    vitals = fight.vitals_of(target)
-    before = vitals.total
-    fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
-                  world_tick=fight.tick, source_body=wave.state.instance.component.entity)
-    if not isinstance(target.owner, actors.Deployable) and not vitals.dead and vitals.total < before:
-        fight.stun(target, wave.stun_seconds)
+    accepted = fight._damage(wave.shooter, target, definition.amount, False, definition.loadout, fight.tick,
+                             world_tick=fight.tick, source_body=wave.state.instance.component.entity,
+                             hit_tags=definition.tags)
+    if accepted and not isinstance(target.owner, actors.Deployable):
+        fight.control(target, wave.state.instance.component.entity, "earthshatter", wave.stun_seconds)
 
 
-def close_hit(fight, wave):
+def _legacy_close_hit(fight, wave):
     from ow174.game.combat import capsule_visible, segment_distance
 
     start = (wave.origin[0], wave.origin[1] + .1, wave.origin[2])
@@ -129,7 +131,7 @@ def close_hit(fight, wave):
         fight.barrier.damage(entity, health, wave.close.amount)
 
 
-def advance(fight, wave):
+def _legacy_advance(fight, wave):
     """Sweep consecutive ground chords, retaining blocked rays and hit identities."""
     from ow174.game.combat import segment_distance
 
@@ -179,6 +181,154 @@ def advance(fight, wave):
                for start, end in segments):
             wave.hit.add(key)
             hurt(fight, wave, target, wave.normal)
+    wave.travelled = distance
+    if distance < wave.reach:
+        return False
+    wave.state.request_finish()
+    wave.state.instance.component.run_now()
+    return True
+
+
+def _distance_xz(point, a, b):
+    dx, dz = b[0] - a[0], b[2] - a[2]
+    squared = dx * dx + dz * dz
+    share = max(0.0, min(1.0, ((point[0] - a[0]) * dx + (point[2] - a[2]) * dz) / squared)) if squared else 0
+    return math.hypot(point[0] - a[0] - share * dx, point[2] - a[2] - share * dz)
+
+
+def _before_wall(point, clip):
+    if clip is None:
+        return True
+    end, normal = clip
+    return sum((p - q) * n for p, q, n in zip(point, end, normal, strict=True)) < 0
+
+
+def _captured_trace(pose, origin, direction, length):
+    geometry, feet, yaw, pitch, radius, height, _ = pose
+    return reinhardt_barrier.intersect(geometry, feet, yaw, pitch, origin, direction, length,
+                                      owner_radius=radius, owner_height=height)
+
+
+def _shield_contact(fight, wave, origin, direction, length):
+    contact = fight._barrier_contact(wave.shooter, origin, direction, length)
+    # A shield broken by this wave retains its original blocking plane even
+    # for the not-yet-visited rays in the current step. No live actor clone.
+    for pose in wave.shield_poses:
+        distance = _captured_trace(pose, origin, direction, length)
+        if distance is not None and (contact is None or distance < contact[0]):
+            contact = distance, None, pose
+    return contact
+
+
+def close_hit(fight, wave):
+    from ow174.game.combat import capsule_visible, segment_distance
+
+    start = (wave.origin[0], wave.origin[1] + .1, wave.origin[2])
+    for target in fight._enemies(wave.shooter):
+        a, b = target.segment()
+        if segment_distance(wave.centre, a, b) > wave.radius + target.radius:
+            continue
+        end = (target.feet[0], target.feet[1] + .1, target.feet[2])
+        delta = tuple(q - p for p, q in zip(start, end, strict=True))
+        length = math.hypot(*delta)
+        shield = (_shield_contact(fight, wave, start, tuple(d / length for d in delta), length)
+                  if length else None)
+        if (capsule_visible(fight._collision(), start, a, b, target.radius)
+                and not fight.walls.blocked(start, end) and shield is None):
+            hurt(fight, wave, target, wave.close)
+
+
+def advance(fight, wave):
+    """Delivered clipped ground front on the existing Wave and native surfaces."""
+    world = fight._collision()
+    distance = min(wave.reach, max(0.0, (fight.now - wave.started) * wave.speed))
+    if distance <= wave.travelled:
+        return False
+    segments = []
+    for index, previous in enumerate(wave.fronts):
+        if index in wave.blocked or previous is None:
+            continue
+        angle = wave.yaw + math.radians(wave.cone * (index / (RAYS - 1) - .5))
+        x, z = wave.origin[0] + math.sin(angle) * distance, wave.origin[2] + math.cos(angle) * distance
+        ground = world.ground(x, z, previous[1] + wave.height, previous[1] - wave.height, MOVER)
+        if ground is None or ground.normal[1] < .5:
+            wave.blocked.add(index)
+            continue
+        current = (x, ground.y, z)
+        start = (previous[0], previous[1] + wave.height, previous[2])
+        end = (x, ground.y + wave.height, z)
+        delta = tuple(b - a for a, b in zip(start, end, strict=True))
+        length = math.hypot(*delta)
+        if not length:
+            continue
+        toward = tuple(v / length for v in delta)
+        wall = world.cast_ray(start, toward, length, MOVER)
+        limit = wall.distance if wall is not None else length
+        ice = fight.walls.cast(start, toward, limit)
+        normal = ice[2] if ice is not None else (wall.normal if wall is not None else None)
+        if ice is not None:
+            limit = ice[0]
+        wall_clip = None
+        if normal is not None:
+            wave.blocked.add(index)
+            if limit <= 0:
+                continue
+            current = tuple(p + v * limit for p, v in zip(previous, toward, strict=True))
+            if sum(v * n for v, n in zip(toward, normal, strict=True)) < 0:
+                normal = tuple(-n for n in normal)
+            wall_clip = current, normal
+        start = (previous[0], previous[1] + .1, previous[2])
+        end = (current[0], current[1] + .1, current[2])
+        delta = tuple(b - a for a, b in zip(start, end, strict=True))
+        shield_length = math.hypot(*delta)
+        direction = tuple(v / shield_length for v in delta) if shield_length else toward
+        shield = _shield_contact(fight, wave, start, direction, shield_length)
+        actor = None
+        if shield is not None and (wall_clip is None or shield[0] < limit):
+            at, owner, actor = shield
+            if owner is not None:
+                entity = actor if type(actor) is int else actor.entity if hasattr(actor, 'entity') else actor.body
+                source = getattr(actor, 'body', getattr(actor, 'owner_body', entity))
+                phase = actor.instance.states.get(17) if isinstance(actor, reinhardt_barrier.RaisedBarrier) else None
+                key = (source, fight.replacement_ticks.get(source), phase.counter if phase is not None else None)
+                if key not in wave.shields:
+                    pose = None
+                    if isinstance(actor, reinhardt_barrier.RaisedBarrier):
+                        feet, yaw, pitch, owner_radius, height = actor.pose()
+                        pose = actor.geometry, tuple(feet), yaw, pitch, owner_radius, height, actor.entity
+                    fight._damage_contact_barrier(shield, wave.normal.amount, shooter=wave.shooter)
+                    wave.shields.add(key)
+                    if pose is not None and actor.health <= 0 and pose not in wave.shield_poses:
+                        wave.shield_poses.append(pose)
+            current = tuple(start[k] + direction[k] * at - (.1 if k == 1 else 0) for k in range(3))
+            wave.blocked.add(index)
+        segments.append((previous, current, wall_clip, actor))
+        wave.fronts[index] = current
+    for target in fight._enemies(wave.shooter):
+        key = target.entity, fight.replacement_ticks.get(target.entity)
+        if key in wave.hit or fight.vitals_of(target).dead:
+            continue
+        for start, end, wall_clip, actor in segments:
+            if (not -.1 <= target.feet[1] - end[1] <= wave.height
+                    or _distance_xz(target.feet, start, end) > target.radius
+                    or not _before_wall(target.feet, wall_clip)):
+                continue
+            if actor is not None:
+                origin = (start[0], start[1] + .1, start[2])
+                point = (target.feet[0], target.feet[1] + .1, target.feet[2])
+                delta = tuple(b - a for a, b in zip(origin, point, strict=True))
+                length = math.hypot(*delta)
+                direction = tuple(v / length for v in delta) if length else (0., 0., 0.)
+                if (isinstance(actor, reinhardt_barrier.RaisedBarrier)
+                        and actor.trace(origin, direction, length) is not None):
+                    continue
+                if type(actor) is tuple and _captured_trace(actor, origin, direction, length) is not None:
+                    continue
+                if _shield_contact(fight, wave, origin, direction, length) is not None:
+                    continue
+            wave.hit.add(key)
+            hurt(fight, wave, target, wave.normal)
+            break
     wave.travelled = distance
     if distance < wave.reach:
         return False
