@@ -110,12 +110,14 @@ class Statuses:
             for instance in list(item.component.instances.values()):
                 item.component.destroy(instance)
 
-    def impact(self, shooter, target, damage_scale=1.0, *, boost_credit=None):
+    def impact(self, shooter, target, damage_scale=1.0, *, boost_credit=None,
+               source_entity=None, healing_scale=1.0, broken_particle_barriers=None):
         fight = self.match.combat
         vitals = fight.vitals_of(target)
         if vitals.dead or fight.now < vitals.invulnerable_until or not self.available():
             return
-        source = getattr(shooter, "body", getattr(shooter, "entity", 0))
+        source = (getattr(shooter, "body", getattr(shooter, "entity", 0))
+                  if source_entity is None else source_entity)
         hostile = source != target.entity and (
             self.match.game_map.free_for_all or shooter.team != target.team
         )
@@ -132,7 +134,8 @@ class Statuses:
             self.applied[key] = item
         item.damage_scale = damage_scale
         message_receive.receive(item.root, message_receive.Packet(support_effects.START, source, source, ()))
-        self._advance(item, fight.tick, boost_credit=boost_credit)
+        self._advance(item, fight.tick, boost_credit=boost_credit, shooter=shooter,
+                      healing_scale=healing_scale, broken_particle_barriers=broken_particle_barriers)
         self._record_filters(target, fight.tick)
 
     def update(self, frame):
@@ -201,7 +204,8 @@ class Statuses:
             if not history:
                 del self.filter_history[entity]
 
-    def _advance(self, item, frame, *, boost_credit=None, historical=False):
+    def _advance(self, item, frame, *, boost_credit=None, historical=False, shooter=None,
+                 healing_scale=1.0, broken_particle_barriers=None):
         fight = self.match.combat
         target = next((t for t in fight._targets() if t.entity == item.target), None)
         body_script = getattr(target.owner, "body_script", None) if target is not None else None
@@ -216,7 +220,8 @@ class Statuses:
             item.last_frame = frame
         else:
             item.component.run_now()  # repeated impact's queued starts, not another frame
-        source = next((p for p in self.match.players if p.has_body and p.body == item.source), None)
+        source = (shooter if shooter is not None else
+                  next((p for p in self.match.players if p.has_body and p.body == item.source), None))
         if target is None or source is None:
             return
         for instance in list(item.component.instances.values()):
@@ -232,11 +237,13 @@ class Statuses:
             modify = state.node.field("m_modifyHealth")
             amount = expr.to_float(state.evaluate(modify.get("m_amount"), watch=False))
             if instance.graph.index == 0x0B99:
-                fight.heal_target(source, item.target, amount, frame, allow_self=True)
+                fight._heal_target(source, target, amount * healing_scale,
+                                   source_entity=item.source, healing_tick=frame)
             else:
                 fight._damage(source, target, amount * item.damage_scale, False,
                               expr.guid_of(modify.get("m_loadout", {}).get("m_loadout")),
-                              frame, world_tick=frame, boost_credit=boost_credit)
+                              frame, world_tick=frame, boost_credit=boost_credit,
+                              source_body=item.source, broken_particle_barriers=broken_particle_barriers)
 
     def _filters(self, entity):
         filters = []

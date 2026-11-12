@@ -2452,3 +2452,43 @@ The present manual original impact API is active and verified, while ordinary
 projectile grenades deliberately still use existing single health/status path.
 Preserve original healing-status fixtures/assertions when adapting existing
 composed graph/current phase interfaces; do not add observer aliases/secondhost.
+
+## A98 — actual grenade and cleanse consume the same original status VMs
+
+Existing grenade victim/cover loop now invokes the same HealingEffects native
+impact when the explicit0267 binding is loaded. Original0004 Combat1778 documents
+that original instant100 heal/60 damage replaces the carrier outer50 event;
+no second health event is applied. Retain existing Matrix strength, captured
+Mercy damage scalar/boost credit, exact Rocket.source_entity and same-event
+broken-particle protection. Instant healing uses current _heal_target with that
+source identity; original damage uses current _damage with actual source/credit.
+Unbound profile retains existing explicit ordinary status path, not a guessedVM.
+Deployable/source admission and collision decisions are unchanged.
+
+Accepted cleanse now retires only actual0C72 negative children in the same host,
+preserving positive0B99, while retaining actual filter transitions and passive/
+shield ledgers. Pooled healing queries same native status presence. Cryo history
+includes native filter boundaries; no new status dictionary, actor or timer.
+A75 future-Pet fixture identity reads the real active0C72 instance when binding
+exists, retaining all original assertIs/lifetime/value assertions; without binding
+it still observes its original Modifier. No fake runtime observer alias added.
+
+Rootv19 supplies immutable source0267 binding (same3 full graph objects). Actual
+native/grenade/server-storage7 methods plus originalNativePetApplication2 =9/9
+pass30.942s, worker-a-native-healing-grenade-check.log. Includes actual hostile
+Ana0267 grenade60 once, no outer50; friendly100 once/actual
+0B99/1.5; pooled anti-heal; real personal/projected accepted cleanse and future
+application including changed-team rejection; same Zarya sparse ledger and
+whole-server causal hash+unknown rejection. All assertions/numbers preserved.
+
+Review scope: original Statuses._scale initializes bonus1, returns0 for value<=0,
+otherwise max(bonus,value). Thus positive0.5 becomes1 already in original policy;
+not an A97 neutral merge change. Real original/loaded modifiers are0B99/node8
+Float1.5 and0C72/node17 Int0; no unsupported new fractional-debuff feature added.
+
+Next A99: preserve/adapt original0004 healing-status fixtures to current composed
+provider/phase/sole-host observation, extend native Matrix/credit regression and
+complete exact consumer mapping/handoff. Existing Baptiste fixture still polls
+legacy amp/anti Modifier tables; adapt to actual native graph/timer observations
+without changing original expected health/timing values or adding runtime aliases.
+Those observations are validation tails, not missing or unsubmitted A98 code.

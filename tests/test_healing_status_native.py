@@ -105,3 +105,41 @@ class NativeHealingStatusTests(unittest.TestCase):
             helper.capture(session)
         del item.component.world.unregistered
         self.assertEqual(snapshot_digest(helper.capture(session)), before)
+
+    def test_actual_grenade_replaces_carrier_with_one_native_damage_and_cleanse(self):
+        from test_zarya_native_cleanse import NativePetApplicationTests
+        for projected in (False, True):
+            with self.subTest(projected=projected):
+                run, fight, caster, victim = NativePetApplicationTests().encounter(projected)
+                body = next(t for t in fight._targets() if t.owner is victim)
+                self.assertEqual(fight.vitals_of(body).total, (200 if projected else 400) - 60)
+                items = [item for item in fight.healing.applied.values() if item.target == victim.body]
+                self.assertTrue(items)
+                self.assertTrue(any(instance.graph.index == 0x0C72 for item in items
+                                    for instance in item.component.instances.values()))
+                self.assertNotIn(victim.body, fight.healing.anti)
+                self.assertEqual(fight.healing.factor(body), 0)
+                self.assertEqual(fight._heal_pools(victim, fight.vitals_of(body), 20), 0)
+                fight.cleanse_ana_effects(victim.body)
+                self.assertEqual(fight.healing.factor(body), 1)
+                self.assertFalse(any(instance.graph.index == 0x0C72 for item in items
+                                     for instance in item.component.instances.values()))
+
+    def test_actual_friendly_grenade_heals_once_and_runs_original_amp_child(self):
+        from test_zarya_native_cleanse import ZaryaNativeCleanseTests
+        fixture = ZaryaNativeCleanseTests()
+        run, fight, ana, caster, victim = fixture.encounter(False, protect=False)
+        self.assertTrue(run.match.switch_hero(ana, heroes()[ANA]))
+        ana.mover.position[:] = [0, 1, 0]
+        ana.mover.body = None
+        ana.team = victim.team
+        body = next(t for t in fight._targets() if t.owner is victim)
+        fight.vitals_of(body).damage(150)
+        fight._sync_body_health(victim, fight.vitals_of(body))
+        fixture.throw_biotic_grenade(run, ana, victim)
+        self.assertEqual(fight.vitals_of(body).total, 350)
+        self.assertTrue(any(instance.graph.index == 0x0B99 for item in fight.healing.applied.values()
+                            if item.target == victim.body for instance in item.component.instances.values()))
+        for _ in range(20):
+            run.step({})
+        self.assertEqual(fight.healing.factor(body), 1.5)

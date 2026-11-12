@@ -141,6 +141,27 @@ class HealingEffects(healing_status.Statuses):
                 if effect.end <= self.combat.tick:
                     del table[entity]
 
+    def has_status(self, entity):
+        return (entity in self.anti or entity in self.amp or entity in self.filter_history
+                or any(item.target == entity for item in self.applied.values()))
+
+    def cleanse(self, entity):
+        """Retire only actual negative child graphs at the accepted cleanse event."""
+        target = next((target for target in self.combat._targets() if target.entity == entity), None)
+        if target is None:
+            return
+        self.combat.record_cryo_status(entity)
+        self.record_regeneration(entity)
+        self.anti.pop(entity, None)
+        for item in self.applied.values():
+            if item.target == entity:
+                for instance in list(item.component.instances.values()):
+                    if instance.graph.index == 0x0C72:
+                        item.component.destroy(instance)
+        self._record_filters(target, self.combat.tick)
+        self.record_regeneration(entity)
+        self.combat.record_cryo_status(entity)
+
     def factor(self, target, *, tags=(), seconds=0.0, end_tick=None):
         anti, amp = self.anti.get(target.entity), self.amp.get(target.entity)
         dynamic = target.entity in self.filter_history or any(
@@ -217,6 +238,14 @@ class HealingEffects(healing_status.Statuses):
             end = fight.tick + math.ceil(self.spec.duration / TICK)
             # Same declared one-boost Matrix policy used by the weapon flight.
             strength = scalar * (2.0 if rocket.amplified else 1.0)
+            if self.available():
+                # Original0267 graphs replace the carrier's outer damage event.
+                # One existing victim/cover decision feeds one same-host VM impact.
+                damage_scale = strength * (rocket.boost_credit[1] if rocket.boost_credit else 1.0)
+                self.impact(rocket.shooter, target, damage_scale, boost_credit=rocket.boost_credit,
+                            source_entity=source, healing_scale=strength,
+                            broken_particle_barriers=broken_particle_barriers)
+                continue
             if allied:
                 fight._heal_target(rocket.shooter, target, self.spec.heal * strength, source_entity=source)
                 self._install(self.amp, target.entity, source,
