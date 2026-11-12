@@ -805,3 +805,32 @@ charge/recovery checks are not claimed complete; C37 actual replay still pending
 Original main e1128509 is verified ancestor. Fresh original-language extension
 audit finds zero missing C/C++/C# source paths across32 delivered source trees;
 external original C#/C++ tool repositories were separately verified clean.
+
+
+## Current integrated server invocation
+
+The workspace-root RUN_SERVER.cmd still targets original ORPHEUS main with
+runtime-104319; it does not yet select this combined worktree. Final default
+launcher handoff remains an explicit root item. The integrated server can use
+its existing CLI with the prepared original inputs below, without installing
+new packages or copying a runtime. These are launch instructions, not a claim
+that a server/client was started during integration.
+
+```powershell
+Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
+$profile = Get-Content '../parallel-merge/runtime-inputs-v15/environment.json' -Raw | ConvertFrom-Json
+foreach ($entry in $profile.environment.PSObject.Properties) {
+    [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
+}
+$combatArguments = @($profile.server_cli_arguments)
+& '../../ORPHEUS/.venv/Scripts/python.exe' -u -B -m ow174 @combatArguments --mode retail --no-launch --host 127.0.0.1 --bnet-port 1118 --port 3724 --dashboard-port 3725 --game-port 3730 --test-players 1 --data-dir '../parallel-merge/server-state'
+```
+
+Runtime input selection uses environment only; original test selectors stay out
+of this command. The explicit Hanzo CLI arguments are required by the existing
+profile admission; environment fixture names alone do not configure them.
+Root actual parse_args/_combat_profiles accepts both original profiles, loads
+reconciled BOB2533/25C3 entity/graph and strict current-bound mover, and retains
+full default projectile admission. No services or client were started. The first
+probe read loaded_mover_table before actual lazy loading; corrected probe calls
+existing mover_data first, with no implementation change.
