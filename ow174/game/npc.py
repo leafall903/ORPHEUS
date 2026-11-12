@@ -6,10 +6,11 @@ guessing NPC schema variable meanings. Calls belong to the match update thread.
 
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from ow174.game import bots, combat, npc_navigation, world
+from ow174.game.mover import MoverData
 
 
 ACQUISITION_RANGE = 100.0  # Stationary host policy in metres.
@@ -30,16 +31,33 @@ class Definition:
     health: float
     armour: float = 0.0
     shields: float = 0.0
+    mover: MoverData | None = None
+    controller: int | None = None
 
     def __post_init__(self):
         for value, kind in ((self.hero, 0x02E0), (self.body, 0x0400)):
             if type(value) is not int or value >> 48 != kind or not value & 0xFFFFFFFFFFFF:
                 raise ValueError('NPC definition needs full hero and body GUIDs')
+        if self.controller is not None and (
+            type(self.controller) is not int or self.controller >> 48 != 0x0400
+            or not self.controller & 0xFFFFFFFFFFFF
+        ):
+            raise ValueError('NPC controller needs a full entity definition GUID')
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError('NPC definition needs a name')
         if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
                for value in (self.health, self.armour, self.shields)) or self.health <= 0:
             raise ValueError('NPC pools must be finite and health must be positive')
+        if self.mover is not None:
+            if type(self.mover) is not MoverData or any(
+                type(value := getattr(self.mover, field.name)) not in (int, float)
+                or not math.isfinite(value) for field in fields(MoverData)
+            ):
+                raise ValueError('NPC mover must contain finite numeric values')
+            if any(getattr(self.mover, name) <= 0 for name in (
+                'stand_height', 'stand_radius', 'crouch_height', 'crouch_radius',
+            )):
+                raise ValueError('NPC capsule dimensions must be positive')
 
 
 def load_catalog(path: Path) -> dict[str, Definition]:
@@ -55,8 +73,17 @@ def load_catalog(path: Path) -> dict[str, Definition]:
         key = row['key']
         if not isinstance(key, str) or key not in '123456789' or len(key) != 1 or key in result:
             raise ValueError('NPC catalog needs unique selection keys 1..9')
+        mover = row.get('mover')
+        controller = row.get('controller')
+        if controller is not None and not isinstance(controller, str):
+            raise ValueError('NPC controller catalog needs a hexadecimal GUID string')
+        if mover is not None:
+            if not isinstance(mover, dict) or set(mover) != {f.name for f in fields(MoverData)}:
+                raise ValueError('NPC mover catalog must contain all authored mover fields')
+            mover = MoverData(**mover)
         result[key] = Definition(int(row['hero'], 16), int(row['body'], 16), row['name'],
-                                 row['health'], row['armour'], row['shields'])
+                                 row['health'], row['armour'], row['shields'], mover,
+                                 int(controller, 16) if controller is not None else None)
     return result
 
 
@@ -104,6 +131,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if definition.controller is not None:
+        data['controller_definition'] = f'0x{definition.controller:016X}'
     hero = {'name': definition.name, 'body': f'0x{definition.body:016X}', 'health': definition.health}
     if autonomous:
         data["autonomous_targeting"] = True
@@ -115,7 +144,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         data["acquire_specials"] = True
     if authored_trooper:
         data["authored_trooper"] = True
-    bot = bots.Bot(entity, data, hero, {})
+    bot = bots.Bot(entity, data, hero, {}, mover=definition.mover)
     if pursue:
         bot.pursuit = npc_navigation.Pursuit()
     bot.yaw = float(bots.s16(yaw))
