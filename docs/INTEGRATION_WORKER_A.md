@@ -172,3 +172,28 @@ Next exact action: audit the remaining0020 own weapon/support/charge consumers
 against its ref, then complete0003 Recall/Pulse reconciliation and0004 healing
 status/regeneration chronology, followed by0005/000A. Root's manual NPC attack
 entry9cad40e8 is a separate pending synchronization at the next clean boundary.
+
+143A batch committed `c6775daf`. Mercy chronology batch now retains original
+damage-wait anchoring, passive scale history/pruning and reads history per body
+frame. Combined HealingEffects records actual change/expiry boundaries instead
+of adding another status manager. All67 regeneration/Valkyrie/runtime checks
+passed; focused actual grenade cases match original140->143.52 delayed healing
+and180.24 amplified healing. Passive history is getter-free/repeatable/causal.
+
+Mercy original input reconciliation for root (worker did not edit runtime):
+`combined-server-runtime/data/game_graphs_174.json.gz` has702 graphs and no
+effect_scripts. `combined-server-runtime/mercy-effect-graphs.json.gz` has705
+graphs and four bindings:0019->0079,0016->006C,02CC->10DC,02CD->10DD (full04A0
+effect GUIDs);006C/10DC/10DD are the three additional graphs. In a separate
+Python process, set graph.GRAPHS_PATH to that existing pack before loading tests
+and clear graph._data/_records/graph caches; original
+`test_game_mercy_boost_charge` + `test_game_mercy_support_effects` passed13 with
+no skips. Set ORPHEUS_RUNTIME_DIR to the usual combined runtime; no new asset
+copy or network is needed. Root acknowledged and owns the explicit input union.
+
+The0020 owner audit found zenyatta.py differs from delivery only in combined
+barrier/healing adapters, safe NPC identity checks and a dead-owner guard. Its
+combat/support/FFA/cooldowns run passed68 of69; the remaining module import is
+the original public barriers.PROJECTED constant (025C), not missing gameplay.
+Next exact action: preserve the original barrier constants/import interface,
+then finish0020/0003 owner reconciliation and progress0005/000A.

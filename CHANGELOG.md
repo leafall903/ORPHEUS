@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile delivered Mercy passive regeneration chronology
+
+- Retain0004's original damage-wait anchoring and passive scale retention/prune
+  helpers. Record the combined healing host's actual status changes and expiry
+  boundaries; late body frames consume their historical antiheal/amplification
+  factor rather than the endpoint factor. Keep damage before the next owner's
+  command from prematurely finishing the authored one-second wait.
+- Register retained passive scales in body/server snapshots. Preserve the
+  ordinary grenade/healing manager and legacy self-healing consumer; do not run
+  a duplicate status VM or award team-healing credit for the passive.
+- All67 actual-grenade/regeneration/Valkyrie/runtime checks passed. The focused
+  original gap expectation remains140 HP until delayed input, then143.52 HP
+  without duplicate credit; friendly amplification yields180.24 HP as delivered.
+  The retained timeline capture is getter-free, repeatable and value-sensitive.
+- An independent process selecting the existing Mercy effect pack passed all13
+  original boost-credit/support-effect checks without skips. The default base
+  runtime lacks its four bindings/three extra graphs; root will merge those
+  existing external inputs while preserving the original packs. No runtime data
+  was changed by this worker and no original-client acceptance is claimed.
+
 ### Mount delivered manual NPC difficulty and conditional health pools
 
 - Preserve0020's four-tier143A selector, conditional health/shield pool records,
