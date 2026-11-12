@@ -893,3 +893,33 @@ Then original Mei Blizzard/Cryo, Sombra and Ashe. Root also flagged DeviceWorld
 old symmetra_portal imports: adapt actual fight.portals endpoint/service consumers,
 not a name alias or second manager. Remaining rough estimate16-32 active hours,
 low confidence, excludes root reception and client acceptance.
+
+C29 SHA1bcd0e56 delivered. Coordination sync898cd33b accepted root intake;
+CHANGELOG merge preserved both sides, shared code merged without conflict.
+
+C30: authorized existing navigator frost movement bridge
+------------------------------------------------------
+Only npc_navigation.py changes: existing drive receives match, reads the same
+fight.movement_mods; tracks existing source-script plus imposed modifier on the
+same Mover and scales explicit MoveTo speed (Mover's MoveTo bypasses run_forward).
+Existing ledge approach uses this helper when a real body world is present;
+released ledge still has no horizontal target. No second state, Mover, Frost,
+clock, control policy, input, path or search-budget change. Existing full freeze,
+root/immovable/control gates remain intact. Preserve original _drop_step call
+signature: initial combined check exposed one existing mock assertion against
+signature, fixed code rather than editing the original assertion.
+
+v9 exact check: python -B -m unittest test_npc_navigation test_mei_frost -v
+46allpass14.815s, worker-c-frost-nav-final-check.log. Before ledge extension,
+navigation37allpass6.143s. Real prepared Trooper (1D40/controller), actual
+fight._frost_hit(target,source=player,initial=.5), same navigator.mover identity,
+20worldticks distance1.6123046875 normal vs0.8056640625 slowed. Initial probe used
+navigation's deliberately scriptless fixture and was invalid for Frost because
+normal cleanup removes status on bodies lacking scripts; final probe uses actual
+prepared Trooper body/VM, not a fake status receiver.
+
+Next C31: mount original mei_blizzard.py flight/area/retire into same existing
+projectile/deflection/absorption/status hosts, then normal-import original full
+Mei ultimate/frost source modules when their real dependencies are mounted.
+Keep sampled Cryo history and old wall/shield/deflect observers explicit; never
+replace actual consumers by aliases or weaken strict guards/assertions.

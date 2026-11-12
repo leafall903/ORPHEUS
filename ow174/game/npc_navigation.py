@@ -8,7 +8,7 @@ from functools import partial
 from ow174.game import assassin, bots, combat, heavy_assault
 from ow174.game.collision import NOT_GROUND
 from ow174.game.commands import Command
-from ow174.game.mover import Mover, mover_data
+from ow174.game.mover import Mod, Mover, modded, mover_data, statescript_mods
 from ow174.game.script import expr, nodes, runtime
 
 GRID, MAX_NODES, PLAN_INTERVAL, PLAN_SLICE = 1.0, 2048, 30, 4
@@ -560,7 +560,7 @@ def _step(match, bot, tick, seconds, search_budget):
             heavy_assault.stop_charge(bot.body_script.component, ability)
             stop(bot)
             return
-        outcome = _drive(bot, nav, tick, seconds, destination, speed)
+        outcome = _drive(match, bot, nav, tick, seconds, destination, speed)
         if outcome is False or nav.stuck >= 8:
             heavy_assault.stop_charge(bot.body_script.component, ability)
             stop(bot)
@@ -601,7 +601,7 @@ def _step(match, bot, tick, seconds, search_budget):
                 request_reposition(reposition, tick, runtime.ABORT)
                 stop(bot)
                 return
-        outcome = _drive(bot, nav, tick, seconds, tuple(destination), speed)
+        outcome = _drive(match, bot, nav, tick, seconds, tuple(destination), speed)
         if outcome is not None:
             request_reposition(reposition, tick, runtime.FINISH if outcome else runtime.ABORT)
         return
@@ -658,7 +658,7 @@ def _step(match, bot, tick, seconds, search_budget):
         bot.velocity, bot.held, bot.keys = (0.0, 0.0, 0.0), (0, 0), False
         nav.mover.velocity = (0.0, 0.0, 0.0)
         return
-    _drive(bot, nav, tick, seconds, destination, bot.pace)
+    _drive(match, bot, nav, tick, seconds, destination, bot.pace)
 
 
 def teammate_clear(match, bot, start, end, data):
@@ -710,7 +710,23 @@ def _avoid_teammates(match, bot, nav, destination, seconds):
     return None
 
 
-def _drive(bot, nav, tick, seconds, destination, speed):
+def _movement_speed(match, bot, nav, tick, speed):
+    # MoveTo has an explicit speed, so the same frost modifier must scale that
+    # request as well as the existing mover's prepared values.
+    script = bot.body_script
+    active = statescript_mods(script.component) if script is not None else {}
+    nav.mover.track_mods(match.combat.movement_mods(bot, active, tick=tick), tick-1)
+    imposed = match.combat.movement_mods(bot, {}, tick=tick)
+    if imposed:
+        mods = [Mod(index, op, value, tick, priority=priority, key=key)
+                for key, (index, op, value, priority) in imposed.items()]
+        values = modded(nav.mover.data, sorted(mods, key=Mod.order))
+        speed *= values.run_forward / nav.mover.data.run_forward
+    return speed
+
+
+def _drive(match, bot, nav, tick, seconds, destination, speed):
+    speed = _movement_speed(match, bot, nav, tick, speed)
     yaw = bots.turned(
         bot.yaw, bots.heading(destination[0] - bot.position[0], destination[2] - bot.position[2]),
         bots.TURN_RATE * seconds)
@@ -751,8 +767,11 @@ def _drop_step(bot, nav, tick, seconds):
         return
     released = drop.released or before[0] <= RIALTO_DEPARTURE[0] + 0.015 or tick - started >= 55
     nav.path = (LedgeDrop(started, released),)
+    component = getattr(bot.body_script, "component", None)
+    match = getattr(getattr(component, "world", None), "match", None)
+    speed = 4.0 if match is None else _movement_speed(match, bot, nav, tick, 4.0)
     nav.mover.step_pose(Command(tick, yaw=round(bot.yaw), pitch=round(bot.pitch)), seconds, tick,
-                        move_to=None if released else (RIALTO_DEPARTURE, 4.0))
+                        move_to=None if released else (RIALTO_DEPARTURE, speed))
     bot.position, bot.velocity = tuple(nav.mover.position), nav.mover.velocity
     bot.held = (0, 0) if released else bots.throttles(bot.yaw, (-1.0, 0.0))
     bot.last_held, bot.input_tick, bot.keys = bot.held, tick, not bot.dead

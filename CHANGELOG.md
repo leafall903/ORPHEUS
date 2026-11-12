@@ -4,6 +4,46 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Apply existing frost modifiers to autonomous NPC navigation
+
+- Feed the existing per-body movement modifier into the same navigator Mover;
+  scale explicit MoveTo speeds and the existing ledge approach without changing
+  targets, planning, clocks, full-control gates or body allocation.
+- Original navigation37 and Mei frost9 all pass14.815s. A real prepared Trooper
+  receiving the actual frost consumer at50% travels0.8056640625 versus
+  1.6123046875 over20ticks, preserving the same navigator Mover.
+
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
 ### Restore delivered Fire Strike and shattered Winston shell consumers
 
 - Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
