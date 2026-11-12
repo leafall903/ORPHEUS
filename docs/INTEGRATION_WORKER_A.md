@@ -1,5 +1,34 @@
 # Integration worker A checkpoint
 
+## A108 — DVa accepted Booster force on the sole world replay host
+
+Integrated B101 shared accepted-force opt-in (source b93b1d3f, local b3fd2c63)
+without changing its default callers. Original012E Booster push now supplies the
+actual047E ModifyHealth component entity to that existing Knockbacks host only
+after a real accepted nonzero force. Owned Mech uses its runtime entity, never
+its parked pilot. Existing Fortify/response0/finite guards stay before recording;
+there is no upward-only admission, preserving original horizontal-only push.
+
+The actual native0407 Player had no call to the existing Booster contact helper:
+047E tracking/ModifyHealth were active and the native mover travelled15m while
+the victim took no contact damage. Mounted that same helper in the admitted
+native command branch, excluding controlled/parked and Graviton-pulled bodies.
+No new contact actor, force manager, numeric policy or damage path was added.
+
+Baseline with native contact mounted but before replay opt-in: both native and
+owned contact dealt exactly10 but20worldticks without recipient input left the
+victim unmoved. New actual proof checks both native/owned, exactlyone contact,
+source identity, unchanged990/1000 health, actual no-input displacement, and
+exact paced/gap final position+velocity equality. Focused source Booster contact
+plus B101 manual Heavy/Trooper/generic/originalnode35 tests:6/6 pass10.920s.
+Profilev19, no original assertions changed. Evidence external:
+parallel-merge/worker-a-dva-booster-force-accepted-gap-baseline.log and
+parallel-merge/worker-a-dva-booster-npc-force-joint-check.log.
+
+A105/A107 handoffs remain checkpoints: this concrete original consumer gap is
+now fixed; root final global reconciliation remains separate. No client session,
+full acceptance matrix, push or external runtime writes were performed.
+
 Worktree: `verification/merge-worker-a`, branch `integration/merge-worker-a`.
 Base: `bf7fad86`. Root coordinator owns intake/canonical merging and conflicts.
 
