@@ -1851,3 +1851,27 @@ Sigma interactions. No original-client acceptance run. Next exact action: real
 active/bounced Sphere strict-server snapshot causal probe then remaining
 Sigma charge/Grasp/barrier consumers and missing original fixture/CLI imports.
 Root owns Flux; A owns Zarya; Hog cross-owner remainder remains open.
+
+
+## B68 — real raw-input bounced Sphere strict storage proof
+
+Add an actual ServerSession/peer HeroPick Sigma/fire probe, not a synthetic
+Rocket. The real187F source state belongs to that same current body VM; actual
+scene contact decrements budget100→99 and reverses flight. Unequal body/world
+epochs remain distinct. Strict VM export and whole-server capture succeed.
+Read-only capture rejects variable evaluation/VM advancement through mocks, and
+independent mutations of real remaining bounce budget, terrain response/radius,
+velocity and remaining lifetime each change the whole-server hash; restoration
+restores it. Two inputless world ticks leave the same body frame/instance and
+budget intact while the same projectile continues its own world flight.
+
+New probe initially incorrectly expected contact instant speed1 AFTER the
+unspent world slice had already added gravity (actual1.002223875). Correct the
+new probe to observe the resulting slow reflected flight below2; the original
+source contact callback still independently asserts exactspeed1 and passes.
+Do not change physics to satisfy an incorrectly timed new observer. Original
+assertions are untouched in this batch. Final raw probe1/1 pass81.482s; initial
+failed observation and corrected run retained in worker-b-sigma-sphere-raw-
+storage{,-corrected}.log. No production fields or runtime changes this batch.
+No original-client acceptance run. Continue Sigma ultimate charge and Grasp
+source consumers; original aliases in frozen fixtures must map to true hosts.

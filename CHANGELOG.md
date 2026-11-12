@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Verify actual bounced Hypersphere storage
+
+- Raw HeroPick/input/wall contact proves same-body VM identity, separate epochs,
+  and read-only strict storage for actual bounce budget, response, velocity and
+  remaining lifetime. Inputless world flight retains the current body frame.
+- The causal raw-server check passes; no runtime change or client acceptance run.
+
 ### Restore original Hypersphere wall response
 
 - Same Rocket consumes the original wall radius, fractional gravity, normalized
