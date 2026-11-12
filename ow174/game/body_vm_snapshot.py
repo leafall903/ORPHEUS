@@ -72,7 +72,8 @@ _SCRIPT = frozenset((
     "ult_gain_bonus", "ultimates", "reports", "report_count", "support_healing", "reaper_charge_ms", "reaper_charge_tick",
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
-_SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick")
+_SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick",
+                    "orisa_pose_anchor", "orisa_fortify_pending")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",

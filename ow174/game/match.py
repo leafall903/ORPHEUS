@@ -604,8 +604,17 @@ class Player:
                 moira.grasp_command(self.match.combat, self, command)
                 if posed and script.hero == moira.MOIRA and command.buttons & 2 else nullcontext()
             )
+            previous_frame = script.frame
+            previous_fortify = combat._active_fortify(self) if posed else None
+            previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
                 self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+                if posed and self.body_script is script and script.frame > previous_frame:
+                    fortify = combat._active_fortify(self)
+                    if fortify is not None:
+                        if fortify.counter != previous_cast:
+                            script.orisa_fortify_pending = True
+                        script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
                 self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
         script = self.body_script

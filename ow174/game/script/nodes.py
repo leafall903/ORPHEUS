@@ -2935,6 +2935,11 @@ class ChaseVar(State):
                 self.request_finish()
 
     def tick(self) -> None:
+        if (self.instance.graph.index, self.node.pos) == (0x0CF4, 6) and self.now < self.start:
+            # Delivered Fortify rebases a fresh endpoint cast into the future
+            # while the combined scheduler replays older damage frames. Do not
+            # overwrite that relocated clock with a pre-activation tick.
+            return
         dt = self.now - self.last
         self.last = self.now
         if dt <= 0:
