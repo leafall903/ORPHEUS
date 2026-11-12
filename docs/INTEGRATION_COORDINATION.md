@@ -302,3 +302,29 @@ healing_boost_until observation errors; leave every assertion intact. Evidence:
 parallel-root-projectile-family-retirement-check.log and
 parallel-root-ana-retirement-final-audit.log. Prepared Spec.load reports60 damage,
 100 healing; do not overwrite original prepared graphs to force old50 values.
+
+
+## Persisted intake checkpoint: 2026-11-12
+
+Canonical code71d04534 includes A12-A17, B10-B13 and C13-C15 through real
+consumer merges. Preserve each worker source commit; no ancestry-only credit.
+The frozen59c15a5a batch passed92 original projectile/lease/runtime/command/
+epoch/handoff/Overload checks. The subsequent71d04534 batch passed36 original
+ChargeMovement/runtime/epoch/handoff checks. Logs are outside the worktree:
+parallel-batch-a12-c15-check.log and parallel-a17-b13-merge-check.log.
+Original Hanzo profile module import currently fails on missing
+ test_game_hanzo_npc fixture; A owns preserving and committing source dependency
+fixtures, without rewriting original assertions or blocking implementation.
+
+Explicit prepared input manifest is ../parallel-merge/runtime-inputs-v3/environment.json.
+It reuses the immutable minimal v1 graph supplement and full3528 projectile
+catalog, adds source Hanzo profile hashes and explicit server CLI arguments.
+Hanzo environment names alone configure source tests, not automatic server
+startup. No alternate Matrix/Grasp subset is selected by default.
+C16 owns original actor-backed turret and narrow deployables metadata loader;
+root will compose only its missing source records after review (five graphs,
+two entities and original deployables mapping). B continues source Charge
+capture/bump; A continues source ricochet and missing fixture imports.
+All three workers remain assigned persistently; external coordination.json is
+the resume ledger. Keep all original code, report differences, and commit even
+when complete acceptance has not passed. Exclude appearance and Rust cutover.
