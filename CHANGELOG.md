@@ -23,6 +23,36 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
   checks; missing grenade physics/clock fields reproduced before integration.
+### Restore delivered Fire Strike wide collision and native shield contacts
+
+- Mount original0007's static MOVER sphere sweep on the existing penetrating
+  flight path. A wide projectile now stops before the wall even at a ray endpoint.
+- Include actual RaisedBarrier pools in existing Fire Strike contact collection,
+  deduplicate owner/body generation and activation, resolve travel order with
+  shield-before-body ties, and skip a carried shield after an earlier lethal
+  body hit. Retain legacy contacts when no actual native actor owns that body.
+- All37 original focused wall/extent/multiple shields/later raise/reused body,
+  Hammer+Strike and runtime checks pass. Full original Barrier/Strike46 retains
+  11subfail6errors (previous17/9), including actual shield lifecycle/pool input,
+  explosion/Brigitte and frozen-team interface work; preserve all expectations.
+- Main1399 assertions retain original counts/order/Constants. Client acceptance
+  remains open. Long B21 snapshot69 finished with3fail8errors3skip, recorded.
+
+### Restore independent Earthshatter control lifetimes
+
+- Mount source0007's actual(victim, source, kind) hard-control clocks on existing
+  input, movement pause and interruption consumers. Earthshatter writes this
+  authoritative ledger instead of a second stuns deadline; independent sources
+  expire independently, caster departure preserves existing knockdown, and
+  victim death/replacement/retirement clears only that victim's records.
+- Pass existing HitDef damage tags. Restore original Charge admission: ordinary
+  knockdown does not forbid capture; existing captures and immunity do. Preserve
+  Punch, Brigitte, NPC and other native control owners.
+- All62 original Shatter31, ChargeContact21, Passive9 and causal snapshot checks
+  pass, including owner departure/team changes and pin outlasting knockdown.
+  Actual nonempty control probe verifies input/movement gating, no duplicate
+  stuns write, repeatable passive capture and causal deadline sensitivity.
+- Main original1399 assertions and expectations remain; client acceptance open.
 
 ### Restore both CombatModFilter consumers through one state registration
 

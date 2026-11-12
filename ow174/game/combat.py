@@ -7062,6 +7062,12 @@ class Combat:
                 best = (t, target)
         collision = self._collision()
         wall = collision.cast_ray(rocket.position, direction, step)
+        if rocket.penetrated is not None:
+            # Source0007 uses the real static MOVER sphere sweep for wide Fire
+            # Strike, including contacts before an exact centre-ray endpoint.
+            swept = collision.cast_sphere(rocket.position, direction, step, rocket.penetration_radius, MOVER)
+            if swept is not None and (wall is None or swept.distance < wall.distance):
+                wall = swept
         if wall is not None and (best is None or wall.distance < best[0]):
             best = (wall.distance, None)
         field = rocket.deployment if isinstance(rocket.deployment, baptiste.FieldSpec) else None
@@ -7282,13 +7288,24 @@ class Combat:
                 rocket.blast = replace(rocket.blast, amount=rocket.blast.amount * factor)
 
     def _fire_strike_contacts(self, rocket, direction, limit, start_tick, tick_per_distance, *, stops):
-        """Reconstructed capsule contacts and mesh crossings in travel order."""
+        """Delivered native shield/body contacts in physical travel order."""
         contacts = []
-        meshes = self.barrier.intersections(rocket.shooter, rocket.position, direction, limit)
-        for distance, entity, health in meshes:
+        raised = [actor for actor in self.barriers.enemies(rocket.shooter)
+                  if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in raised}
+        for actor in raised:
+            distance = actor.trace(rocket.position, direction, limit, rocket.penetration_radius)
+            phase = actor.instance.states.get(17)
+            key = (-actor.body, (self.replacement_ticks.get(actor.body), phase.counter if phase is not None else None))
+            if (distance is not None and key not in rocket.penetrated
+                    and (distance < limit or not stops)):
+                contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit):
+            if entity in native_bodies:
+                continue
             key = (entity, self.barrier.children[entity])
-            if key not in rocket.penetrated:
-                contacts.append((distance, key, None, health))
+            if key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, entity, key, (distance, health, entity)))
         for target in self._enemies(rocket.shooter):
             key = (target.entity, self.replacement_ticks.get(target.entity))
             if key in rocket.penetrated:
@@ -7297,13 +7314,17 @@ class Combat:
             radius = target.radius + rocket.penetration_radius
             distance = ray_capsule(rocket.position, direction, a, b, radius)
             if distance is not None and (distance < limit or (distance == limit and not stops)):
-                contacts.append((distance, key, target, None))
-        for distance, key, target, health in sorted(contacts, key=lambda row: row[0]):
+                contacts.append((distance, 1, target.entity, key, target))
+        for distance, kind, _, key, target in sorted(contacts, key=lambda row: row[:3]):
             self._amplify_flight(rocket, direction, distance, start_tick, tick_per_distance)
-            rocket.penetrated.add(key)
-            if target is None:
-                self.barrier.damage(key[0], health, rocket.direct.amount)
+            if kind == 0:
+                _, owner, actor = target
+                if isinstance(actor, reinhardt_barrier.RaisedBarrier) and self.is_dead(owner):
+                    continue  # a nearer body hit can retire its carried shield
+                rocket.penetrated.add(key)
+                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
             else:
+                rocket.penetrated.add(key)
                 self._apply_hit(
                     rocket.shooter, target, rocket.direct, rocket.direct.amount, False, self.tick,
                     world_tick=self.tick, source_entity=rocket.source_entity,

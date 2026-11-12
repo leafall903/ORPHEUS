@@ -443,18 +443,34 @@ alone is not evidence that a line's consumers are actually mounted.
   completion audit; advance remaining owners. Full B21 snapshot session82747
   remains live with partial errors logged, never counted passing.
 
+## B26 Fire Strike real wide collision/native raised shields
+
+- Existing_sweep uses actual cast_sphere/MOVER on the real collision engine,
+  source0007's recovered sphere policy. Existing_fire_strike_contacts includes
+  real native RaisedBarrier actual pool and original negative owner-body key,
+  generation and activation. Resolve ordered shield/body contacts and recheck
+  owner death after earlier body contact. No extra projectile walker.
+- Source fixture radius/hit_targets reads actual penetration_radius/penetrated;
+  no assertion or Constant changes. Main audit1399/1399 same method order/count.
+- `worker-b-rein-strike-focused.log`:37/37 pass. Full46 original Shield/Strike
+  `worker-b-rein-fire-strike-native.log` retains11subfail6errors vs baseline17/9:
+  Brigitte missing actual shield host, lifecycle/pool cache inputs, explosions,
+  unported frozen-team query keyword and old Barriers membership observations.
+- B21 full long snapshot69 completed2325.838s:3fail8errors3skip. One original
+  possessor error fixed byB22/B24. Others oldbeam/Brig/Orisa/Winston/Rein/Moira
+  interfaces plus Genji stored fan. Real stored differences: Zarya176vs188,
+  Bap/Sigma absorption0vs24 and Moira IceWall250 unchanged. All retained in
+  worker-b-rein-retained-first.log; no full-green or completion claim.
+
 ## Exact next work
 
-1. Submit B18 immovable batch, then synchronize latest canonical at
-   a clean boundary and continue0007 source counter/deployable Charge and
-   Earthshatter. Source charge_drive/blocked/contact step live in original
-   combat.py around812-1388 and match._step_body_pose around365-411. Preserve
-   a single driver while migrating these consumers. Continue source
-   full Charge and Earthshatter. Reconcile original observations with the actual
-   native services; do not install competing shield or movement controllers.
-   Continue
-   Winston cross-hero status/NPC equivalence audit, then advance remaining tank
-   owners; no duplicate bubble/impulse controller and no naming-only completion.
+1. Commit B26, then clean-sync canonical after parent acceptance. Continue
+   source0007 actual shield retirement/death/control/break/recast consumers,
+   real native pool fixture inputs, source frozen-team queries and remaining
+   surface histories. Preserve original grenade incident-side occlusion and
+   projectile world-position/lifetime metadata; do not add another controller.
+   Audit Fire Strike phase/contact inputs and retained original tests before
+   formally calling0007 complete. Then advance remaining tank owners.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
