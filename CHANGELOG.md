@@ -35,6 +35,52 @@ This log records tested changes and their acceptance status. Entries are grouped
   unchanged apart from frost fixture import naming; no client check implied.
 - Autonomous navigator partial slow still needs its authorized narrow bridge;
   Blizzard, sampled Cryo history and full pending fixture imports remain open.
+### Restore delivered Fire Strike and shattered Winston shell consumers
+
+- Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
+  damage their single native pool once and continue through the body. Read
+  captured rocket affiliation in these and actual native impact cover queries.
+- Retain a shell's actual centre/radius only when this Shatter wave breaks it.
+  Already blocked rays stay stopped; later rays distinguish natural expiry,
+  rifle destruction and destruction by this wave, without another actor.
+- All43 focused original Winston physical interactions, Shatter31 and causal
+  snapshot checks pass. Full original14 retains exact1.1 versus nativef32
+  1.10000002384 and two existing Brigitte host errors. Keep original49
+  assertions/expected values; only current query/getter fixture adapters change.
+- Original-client acceptance remains open.
+
+### Restore native shield impact splash recipient handling
+
+- Keep the actual native mesh hit as this impact's cover before damaging its
+  pool, then resolve exposed bodies through the existing explosion path. This
+  preserves protection when the same hit breaks the shield without swallowing
+  splash onto an exposed body. Exclude duplicate area damage from the same
+  body's separate collision-descriptor adapter; never exchange the descriptors.
+- Reuse the exact native mesh transform in one stateless trace helper. Preserve
+  front-side near-surface splash/falloff; rear explosions do not damage the
+  forward shield. Other shield and sticky-projectile paths retain their hosts.
+- All60 original focused four shield splash cases, existing near-shield falloff,
+  Pharah primary/edge and runtime checks pass. Complete original suites retain
+  known Echo488/380, missing sigma_grasp import, Brigitte and pending team-bound
+  observations; assertions and original numeric expectations are unchanged.
+- Original-client acceptance remains open.
+
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
 
 ### Mount delivered Junkrat grenade launch and terrain physics
 
@@ -102,6 +148,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   Actual nonempty control probe verifies input/movement gating, no duplicate
   stuns write, repeatable passive capture and causal deadline sensitivity.
 - Main original1399 assertions and expectations remain; client acceptance open.
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
+
 ### Connect original Mei input resources and ultimate settings
 
 - Mount original Mei05FE entry completion, automatic real reload/low-ammo
@@ -8761,3 +8824,116 @@ client operations performed. Whole nonappearance integration remains active.
  received in the separate intake tree while that source tree stayed frozen.
  Evidence: parallel-widow-frozen-replay-check.log and
  parallel-b18-c20-a26-core-check.log. No original-client or publication action.
+
+
+## A34 - actual Junkrat Concussion Mine actor and remote lifecycle
+
+Mounted frozen0065 source `c31d926214d74bbb6d5f308cabce92c65d8a48fc` Mine launch,
+sticky flight, replacement/output ownership, remote deferred detonation,
+source-body retirement, real25HP damage/destruction and radial impulse. Mine is
+one actual Deployable subtype; targets, body-health queries and storage refer to
+its same Vitals object. No second actor or compatibility health pool exists.
+Static/IceWall parking and Matrix-only airborne interception use existing shared
+collision/absorption; parked explosion reuses the actual barrier protected set
+for impulse. Current source/body/death guards and all shared projectile paths
+remain. Added source phase/Cryo query names delegating actual current state hosts.
+
+Preserved complete original28 Mine tests unchanged. With external v7 profile:
+26 pass, one optional Reinhardt-collision skip, one retained native Fortify float
+rounding residual (67.00000286102295 vs66.99999928474426); assertions unchanged.
+Damage/ProjectileTiming plus two original stored-state checks17 pass. Actual
+launched Mine storage probe confirms target actor/pool alias and causal deadline/
+health digest changes. Logs outside Git: worker-a-junkrat-mine-full-second.log,
+worker-a-junkrat-mine-shared.log, worker-a-junkrat-mine-snapshot.log.
+No original-client run or network/publication. This is a Mine code boundary.
+
+The imported original tire/charge and hostility/tag modules are necessary source
+dependencies, preserved with current relation-provider import adapters; their
+activation/command/native hooks are NOT yet claimed complete. Next exact action:
+mount original Trap cast/arm/status09BC/root consumers using the same actor/Vitals
+and existing movement host, then Tire039C/control/climb/recovery and charge0B8B.
+Root owns input union and frozen-ref reconciliation. Remaining0065 integration
+estimate remains low confidence4-8 active worker hours, excluding root conflicts.
+
+A34 clean-boundary sync: absorbed submitted intake7e9de0af; resolved stored Combat fields by retaining both Junkrat and current controls. No code consumer removed. Continue original0065 Trap activation.
+
+
+## A35 - actual Steel Trap actor, status and player restraint
+
+Mounted original0065 Trap projectile cast on the same Deployable/Vitals path,
+park/arm/search/damage/filter branches, original09BC victim status, independent
+per-owner roots, source/replacement/victim-death cleanup and player movement-only
+restraint preserving aim and attacks. Original projectile expiry now retains the
+authored Mine explosion flag instead of silently retiring every deployable.
+Fixed real lifecycle cleanup: an airborne, not-yet-attackable Trap must retain its
+existing Vitals until parked; do not recreate a second pool when targets appear.
+
+Preserved complete original37 Trap tests unchanged. Baseline first Trap check
+failed because no Trap existed. Launch/arm80 and movement checks now pass;
+4 original lethal/destruction/multiple-root checks all pass with v9 inputs.
+Focused21 checks:19 pass, one projected-barrier method has two retained old
+bubble.health observer failures while actual body protection/root suppression
+uses the current authored0256 Vitals. Damage/ProjectileTiming and stored-export
+checks in that run pass. Actual launched Trap probe confirms pool identity,
+active original09BC and causal release-tick export; no fake health observer.
+Initial full37 run preserved15 failure records before the actual pool fix;
+remaining known work includes original catch-up/deadlines/NPC consumers, native
+Fortify float rounding, current Cryo healing and old barrier/spy observations.
+External logs: worker-a-junkrat-trap-{baseline,full-first,death-final,shared,snapshot}.log.
+
+Root candidate v9 profile supplies original09BC and103A/11A9 union; base/source
+packs unchanged. Worker-only narrow external union is superseded by v9. No client
+run/publication. Next exact action A36: original ballistic/deployable deadline
+replay outside retained window, then actual NPC restraint consumers; continue
+Tire039C/control/climb/recovery and charge0B8B. Neither entire0065 completion nor
+all original assertions passing is claimed at this partial consumer boundary.
+
+
+## A36 - original deployable deadline replay
+
+Restored source0065 event replay outside the shared retained combat window.
+Known airborne Mine/Trap flights advance at their actual world tick, then original
+Trap arming/capture/release deadlines run before retained updates. Only existing
+deployable actors participate; shared combat retention and other hero clocks
+remain intact. No new timer/pool/observer or acceptance matrix was introduced.
+
+Original first-batched-update test (Mine/Trap, ground/empty, strides8/256) and
+arming/capture skipped-update test both pass. Original long-gap hardcoded check
+still expects55/243 whereas current actual trajectory gives57/245; assertion is
+preserved. Separate actual gameplay probe confirms damage80, capture, retirement
+and root release exactly match for contiguous/8/256 updates, all57/245. Damage,
+ProjectileTiming and original release/source-replacement checks17 pass. Logs:
+worker-a-junkrat-trap-clock-{first,parity,shared}.log. Tests use external v9 profile.
+No client run/publication. Next exact action: mount original NPC restraint against
+current actual navigation/impulse/Heavy charge and Assassin consumers, keeping
+ranged/melee fire available; then Tire and charge. A35 residuals remain recorded.
+
+
+## A37 - Steel Trap consumers on actual NPC movement and charge hosts
+
+Mounted source0065 restraint on current shared NPC route/manual navigation,
+current knockback and Bot impulse entry points. Capture retires pending physical
+impulse, cancels the actual existing Heavy1408 charge and Assassin contact owner;
+rooted Heavy cannot start its movement charge, while ordinary ranged/melee input
+is retained. Existing actual NPC removal now releases Trap/status/root immediately.
+No old duplicate heavy_charge/assassin manager or displacement field restored.
+
+External v9 real five-body probe passes: actual damage, same Trap Vitals, root,
+blocked impulse, fixed pose and release; four ordinary NPCs regain impulse while
+Heavy1254's native modifier26 zero response remains authoritative after release.
+Current difficulty/conditional-pool mitigation yields78.8 on Enforcer/Assassin;
+do not replace it with old raw80 expectations. Actual live Heavy charge begins,
+then capture resets its real phase, and removal synchronously retires09BC/root:
+all pass. Trooper actual ranged attack while rooted deals120 and does not move.
+Sniper120-tick probe produced no shot and is retained for follow-up, not called a
+passing source assertion. Original NPC control/navigation62 checks all pass.
+
+Preserved entire original test_junkrat_npc_combat.py with assertions unchanged;
+its normal import currently fails on old script.health_query (richer current
+health_queries provider exists), and original script.bot death-volley constants
+are also pending. No fake aliases/observer pools added. Mayhem/death-volley is
+confirmed A-owned and follows Tire/charge activation. Logs outside Git:
+worker-a-junkrat-npc-{original-baseline,actual-final,attacks-second,heavy,shared-final}.log.
+No client run/publication. Next exact action: original Tire039C actor/control/
+climb/recovery and command hooks, then original0B8B charge and Mayhem/death-volley;
+follow up unchanged original NPC import contract and current Sniper clock evidence.

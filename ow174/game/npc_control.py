@@ -232,6 +232,8 @@ def update_input(fight, bot):
     previous_target = bot.attack_target
     target = target_player(fight, bot) if active else None
     enabled = target is not None
+    if fight.junkrat.rooted(bot.entity, fight.tick) and (bot.attack_mode == "charge" or bot.hero == assassin.HERO):
+        enabled = False  # movement/contact attacks stop; ranged and melee input remains live.
     if bot.attack_mode == "reposition":
         if not enabled:
             sniper_reposition.stop(bot, fight.tick)

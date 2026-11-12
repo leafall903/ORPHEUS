@@ -382,6 +382,9 @@ class BodyWorld(runtime.World):
                 return entity_queries.Target(entity, None)
         if entity == runtime.GAME_MODE_ENTITY or any(bot.entity == entity for bot in match.bots):
             return entity_queries.Target(entity, None)
+        junkrat = getattr(match.combat, "junkrat", None)
+        if junkrat is not None and junkrat.lookup(entity) is not None:
+            return entity_queries.Target(entity, None)
         ability = getattr(match.combat, "orisa", None)
         if ability is not None and (entity in ability.orbs or entity in ability.superchargers.active):
             return entity_queries.Target(entity, None)
@@ -946,6 +949,11 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
+
+        if self.match is not None and instance is not None:
+            value = self.match.combat.junkrat.query(cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         if instance is not None:
             from ow174.game import symmetra_placement
@@ -1909,6 +1917,8 @@ class BodyWorld(runtime.World):
                 and match.combat.orisa.receive(target, message, sender)):
             return
         if match is not None and sender == self.body:
+            if match.combat.junkrat.message(target, message, sender):
+                return
             if self.hero == ice_wall.MEI and ice_wall.cancel(match.combat, target, message, params, sender):
                 return
             if match.queue_body_message(target, message, params, sender):

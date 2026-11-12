@@ -18,7 +18,12 @@ from pathlib import Path
 
 from ow174.game import symmetra_portals, symmetra_turrets
 from ow174.game import (
+    assassin_controller,
+    enforcer_controller,
     combat_profiles,
+    junkrat,
+    junkrat_charge,
+    junkrat_tire,
     venom,
     hanzo_movement,
     sonic,
@@ -69,7 +74,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import fold, scopes, support_effects
+from ow174.game.script import entity_hostility, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -142,7 +147,7 @@ FIELDS = {
     combat.Combat: _names(
         "portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
-        "pulse_bombs venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
@@ -153,6 +158,10 @@ FIELDS = {
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
+    junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
+    junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
+    junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
+    junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
     venom.Mines: _names("combat flights mines poison next_number last_tick"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
@@ -249,6 +258,8 @@ FIELDS = {
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
                                    "lookup watch_environment watch_possession retired lookup_linked lookup_participant watch_possessor"),
     runtime.World: _names("hero mode"),
+    enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
+    assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -277,10 +288,13 @@ OPTIONAL_FIELDS = {
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction valkyrie_pose"),
     npc_navigation.Navigator: _names("charge_contact"),
-    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
+    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
     combat_profiles.Profiles,
+    junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
+    entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,
+    entity_tags.Context, entity_tags.Target, entity_tags.Tags,
     sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
     runtime.RaycastResult, venom.Flight, venom.Mine, venom.Poison,
     hanzo_movement.Climb,
