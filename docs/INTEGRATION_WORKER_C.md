@@ -2189,3 +2189,105 @@ add another pool or fake a mirrored view. C51 prioritises this owner boundary,
 then full frozen ice-support/projected-impact helper mapping/phase/respawn
 consumers. Parent root owns optional NPC mover/controller metadata merge.
 All original source/failed checks retained; no full0016 or client claim.
+
+
+## C51 — one graph-backed Ice Wall pillar identity/pool/lifetime (2026-11-12)
+
+Implementation checkpoint0dcad5d2 (root accepted as769b27b7). Synced6946e560
+with root's optionalNPC mover/controller metadata via isolated stash/pop; no
+source overwrite or lingeringstash. C51 replaces Walls.create's extra5IDs,
+standalone0636 Components and independent400HP/5sec clocks with geometry records
+bound to the original0932 Deployable, its Vitals and expires_tick. Pillar.health
+and expires read/write that same existing ledger/timer; fallback scalar fields
+are only unhosted placement candidates, not another published actor/pool.
+Actual owner6275..6279 slots validate definition/sourcebody/owner. Original
+accepted placement/rotation can use the same spawn factory and exact authored
+PlayScript recipient when replacing/creating that column; no guessed nearby
+owner or newclock. Source command's actual ground ray supplies the accepted
+anchor when native2478 is not its original rotated placement; source geometry
+keeps its original double-precision point, while actor wire pose remains existing
+native encoding. Preserve original rectangle/lift/placement algorithms and
+provided NPC movement_data. No full asset copies or input-pack modifications.
+
+Geometry and native actor removal now retire each other once, clear the one
+Vitals entry, original owner slots and actual child VM/foreign watchers. Removed
+actor damage is inert, rather than recreating a dead pool. Existing body+surface
+contacts avoid double debits for Rein, Winston Tesla/Jump/Primal, NPC area and
+same ice-impact blast; unrelated actors/abilities remain on their existing paths.
+Objects receive blast damage, without an invalid character.mover impulse.
+
+Original0016 IceSentry2 selected methods allpass17.984s (same AST fixture asC50,
+only old walls observation name adapted); former .health=.5 break now retires
+its actual actor, geometry and attached Sentry. Log
+../worker-c-symm-single-pillar-original-check.log. Root independently revalidated
+same original2/2pass9.922s on accepted checkpoint.
+
+Real unequal-epoch ServerSnapshot scene uses actual Mei selection+wall buttons
+16/0/1/0:5geometry records==the same5real0932actor IDs, bodyfaultNone,
+world1020/body1088. Whole-server strict export stable on two captures;
+piece.health=.5 changes sole pool and actor health with same poolIDs(0,),
+changes strict digest; removal empties both maps/Vitals and real child instances,
+then strict export stillpasses. Log
+../worker-c-symm-single-pillar-server-storage-probe.log. No fake VM or data view.
+
+Broad source Wall/placement/Rein/Damage64run140.539s produced23failure and18error
+records (not fullpass): old APIs (_splash/pinned/charge_drives/controlled/Brig),
+tuple-Frost fixture and actual geometry/splash/cancel differences retained. It
+also found two real new-code gaps (Vec3 fallback subscripting and object radial
+impulse) corrected before final checks. After fixes, handle15604 terminal:
+27run25.997s,20passedmethods/6failedmethods(7assertrecords)/1StopIteration;
+all8Damage and actual Rein single85-hit method pass. Do not count it allgreen.
+Log ../worker-c-symm-single-pillar-fallback-check.log.
+
+Final accepted-source-anchor/source-point correction: handle41210 terminal,
+5run7.676s,4pass/1retainedStopIteration. Original preview/rotation now creates5,
+offcentre obstruction omits correct column in BOTH rotations, unsafe-lift rejects
+then accepts fresh confirmation, and standing-on-wall creates the expected upper
+wall. All original literal assertions preserved. Remaining existing-overlap
+fixture makes no initial wall (StopIteration182), to audit next rather than
+remove the check. Log ../worker-c-symm-single-pillar-confirmation-check.log.
+
+Root requested C52 source-observer updates: AnaSentry ice_wall_arena must read
+sole fight.walls; retain all old assertions/other Sentry differences. Original
+ServerSnapshot.test_ice_wall_is_causal must use a real Mei5actor input fixture;
+old nonMei directWalls.create is intentionally not a way to create unhosted
+placeholder actors. Keep original health/expiry/digest causal assertions.
+Then continue full original frozen ice-support/projected-impact helpers,
+phase/respawn history and owner-native geometry/command differences. Current
+active work estimate8–18 Cworkerhours lowconfidence (Mei/Symm largest5–11,
+Pharah1–3,Bastion1–2,Sombra/Torb audit1–2); not calendar time or test-count
+percentage. Existing failing checks are retained and do not hold this checkpoint.
+
+
+## C52 — real Ice Wall causal fixture and sole wall observations (2026-11-12)
+
+C51 evidence documentation savedad9b8f594c7a66fe394cc7388ad0bb5563d77a06;
+actual implementation0dcad5d2/root769b27b7. Parent requested narrow fixture
+alignment rather than a production alias or an unhosted test pool.
+All AnaSentry fight.ice_wall observations now read the sole fight.walls,
+without changing any original literal assertion. Other old Sentry API/timing
+assumptions remain intact for subsequent owner audit, not silently stubbed.
+
+ServerSnapshotTests.test_ice_wall_is_causal now selects actual Mei via real
+Peer21616/commands, opens real preview and confirms real16/0/1/0 cast. It keeps
+original before/preview/deployed/damaged/delayed/retired digest assertions and
+health30/expiry+1 mutations, adding5actor identity checks. It no longer asks a
+Soldier to manufacture an unhosted single column with directWalls.create.
+
+Stable selectedv18 `python -B -m unittest -v
+ test_server_snapshot.ServerSnapshotTests.test_ice_wall_is_causal
+ test_game_ana_symmetra_sentry.AnaSymmetraSentryTests.test_mei_recall_retires_ice_attached_sentry_and_clears_slow
+ test_game_ana_symmetra_sentry.AnaSymmetraSentryTests.test_support_expiry_preserves_retained_beam_pulses_and_clears_target`:
+3run40.385s. Real Meifiveactor causal test passes. Two Ana methods proceed past
+old wallname but retain3errors at missing symmetra_sentries in sharedthrow
+fixture and1dependent empty-outcome assertion; not countedpass. Source original
+0016 actual owner Sentry checks remain different fixtures and already pass.
+Log ../worker-c-actual-wall-causal-observer-check.log. No production source or
+assertion values changed in this batch; no new matrix/provider/actor pool.
+
+Next: normal-import original0016 NPC frozen methods now root metadata restored,
+then full retained ice-support/projected-impact helpers and phase/respawn
+consumers. Ana's old devices/next_shot/instance/output interface still requires
+actual owner/protocol audit; do not create a facade manager to fake it. Inspect
+any real missing parent VM output/timing consumer before calling it merely an
+observer. Full wall overlap setup/quantisation/cancel/splash differences persist.

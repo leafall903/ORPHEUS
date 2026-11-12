@@ -10460,6 +10460,11 @@ class Combat:
         if victim.hero.guid == barrier.REINHARDT:
             reinhardt_barrier.sync(self, victim)
             self.barriers.reinhardt.sync(victim)
+        if (getattr(victim.hero, "guid", None) == 0x02E0000000000068
+                or any(actor.component.world.hero == barriers.ZARYA and actor.recipient is victim
+                       for actor in self.barriers.scripted.values())):
+            self.barriers.retire(victim.body)
+            barriers.retire_owner(self, victim)
         self._interrupt_reaper(victim.body, victim)
         from ow174.game import sigma_flux
 

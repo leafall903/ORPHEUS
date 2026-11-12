@@ -648,8 +648,12 @@ def create(world, state):
 def retire(fight, entity):
     barrier = fight.barriers.scripted.get(entity)
     expiry = _expiry(fight, barrier) if barrier is not None else None
+    ending_on_deadline = (expiry is not None and expiry.duration.ending and expiry.duration.reached
+                          and expiry.duration.counter == expiry.generation
+                          and expiry.duration.now // barrier.source.frame_ms == expiry.frame)
     if (expiry is not None and fight.tick <= expiry.tick
-            and fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
+            and (fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
+                 or ending_on_deadline)
             and not fight.is_dead(barrier.parent)
             and barrier.parent.body_script is not None
             and barrier.parent.body_script.component is barrier.source
