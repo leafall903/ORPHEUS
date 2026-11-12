@@ -129,7 +129,7 @@ class DynamiteTests(unittest.TestCase):
 
                 with patch.object(fight, "_damage", wraps=fight._damage) as damage:
                     self.wait_fuse(run, second_grenade)
-                self.assertEqual([call.kwargs["damage_tags"] for call in damage.call_args_list],
+                self.assertEqual([call.kwargs["hit_tags"] for call in damage.call_args_list],
                                  [BLAST_TAGS] * (1 if delay else 2))
                 after_blasts = 150 - 5 * first_pulses
                 self.assertEqual(vitals.total, after_blasts)
@@ -144,7 +144,7 @@ class DynamiteTests(unittest.TestCase):
                     self.assertEqual(vitals.total, after_blasts - 5)
                     while run.frame <= second_burn.until:
                         run.step({})
-                self.assertEqual([call.kwargs["damage_tags"] for call in damage.call_args_list],
+                self.assertEqual([call.kwargs["hit_tags"] for call in damage.call_args_list],
                                  [BURN_TAGS] * 20)
                 self.assertTrue(all(call.args[0] is second for call in damage.call_args_list))
                 self.assertEqual(second_burn.pulses, 20)

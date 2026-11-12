@@ -43,7 +43,7 @@ def fire(case, run, player, target, *, ads=False):
             player.take_commands([Command(run.frame, yaw=yaw, pitch=pitch, buttons=buttons)])
     case.assertEqual(len(vectors), 6)
     case.assertEqual(hitscan.call_count, 6)
-    case.assertEqual([call.args[2] for call in hitscan.call_args_list], [v[0] for v in vectors])
+    case.assertEqual([call.args[3] for call in hitscan.call_args_list], [v[0] for v in vectors])
     weapon = next(i for i in player.body_script.component.instances.values() if i.graph.index == 0x14FC)
     case.assertEqual(weapon.vars[53].value(), 6)
     for vector, forward, _launch in vectors:
@@ -101,7 +101,7 @@ class AsheSpreadTests(unittest.TestCase):
                     consume(player, Command(run.frame))
                     self.assertEqual(component.shots, [])
                 self.assertEqual(hitscan.call_count, 3)
-                rays.append([call.args[2] for call in hitscan.call_args_list])
+                rays.append([call.args[3] for call in hitscan.call_args_list])
         self.assertEqual(*rays)
 
     def test_player_real_hip_and_ads_rays_hit_and_respect_wall_and_team(self):

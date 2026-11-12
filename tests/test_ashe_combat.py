@@ -12,7 +12,7 @@ from unittest.mock import patch
 from test_game_combat import KANEZAKA_DM, Run, aim
 from test_game_mover import FLOOR, wall
 
-from ow174.game import combat, world
+from ow174.game import ashe, combat, world
 from ow174.game.collision import World
 from ow174.game.content import HEROES_PATH, PRACTICE_RANGE, heroes
 from ow174.game.script import graph, nodes
@@ -255,7 +255,7 @@ class AsheCombatTests(unittest.TestCase):
                         if item.graph.index == 0x1513)
         state = instance.state(16)
         for direction in ((0, 0, 1), (0, 1, 0), (1, 0, 0)):
-            rays = combat.fixed_pellet_directions(state, direction)
+            rays = ashe.coach_directions(state, direction)
             self.assertEqual(len(rays), 15)
             self.assertEqual(rays[0], direction)
             for ray in rays:

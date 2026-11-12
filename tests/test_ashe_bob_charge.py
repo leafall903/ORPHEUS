@@ -65,7 +65,7 @@ class BobChargeTests(unittest.TestCase):
         hit = damage.call_args
         self.assertIs(hit.args[0], actor.bot)
         self.assertEqual((hit.args[2], hit.args[4]), (120, 0x0B9000000000020C))
-        self.assertEqual(hit.kwargs["damage_tags"],
+        self.assertEqual(hit.kwargs["hit_tags"],
                          (0x0D80000000004489, 0x0D80000000000644, 0x0D80000000004D2B))
         self.assertEqual(actor.stopped_reason, "enemy")
         self.assertEqual(actor.uppercut_target, enemy.body)
