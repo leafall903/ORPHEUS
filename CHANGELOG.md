@@ -20,6 +20,19 @@ This log records tested changes and their acceptance status. Entries are grouped
   grants from the already hosted Genji0B8B normal passive profile. Retain the
   old assertion and both implementations; do not suppress that passive solely
   to reproduce the older Echo fixture's zero-debug-fill assumption.
+### Resolve Moira deployed-target definition dispatch
+
+- Resolve server Deployable targets through their authoritative body/definition,
+  alongside Bot bodies, rather than dereferencing a Player-only hero field.
+  Retain these targets in Grasp acquisition, tag filtering and cover/damage.
+- An actual Moira/Mei command probe retains Deployable targets and reduces the
+  nearer authored pillar from400 to384 without a script fault. Both original
+  enemy-Grasp/self-heal checks pass. The original shield/pillar combined check
+  remains skipped without its prepared barrier descriptor in this worker run;
+  no assertion, target or check was removed to conceal it.
+- This is the root-authorized narrow shared-owner correction found during the
+  NPC/Wall integration. It adds no gameplay or acceptance-matrix scope.
+
 ### Mount delivered prepared-NPC impulse and shared wall body consumers
 
 - Mount0008's prepared manual-body impulse admission, actual mover lookup,

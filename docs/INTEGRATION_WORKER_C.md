@@ -133,12 +133,20 @@ Root explicitly requires any future long journal run on a frozen committed SHA
 in a detached worktree, never the actively edited worker tree, and never a gate.
 No running long test remains from session33339/process53540.
 
+Eleventh batch SHA: `3e3aab4a` (ready for root receipt).
+Twelfth batch: `fix: resolve Moira deployed target definitions` retains physical
+Deployable targets while selecting their body metadata instead of Player.hero.
+Actual Moira/Mei pillar probe:400->384, no VM fault. Two original Grasp checks
+pass; one combined barrier/pillar test lacks its external descriptor and skips.
+Logs: worker-c-moira-deployable-{contact-check,pillar-probe}.log.
+No long test remains active. Future journal checks use frozen committed trees.
+
 ## Exact next work
 
-1. Submit/reconcile C11, then perform root-authorized narrow Moira Deployable
-   definition dispatch correction (do not remove damageable targets). Review
-   remaining Pharah defense/barrier/control equivalence and continue the other
-   six owner families. Core charge/flight/edges45 pass; NPC physical11/12 pass.
+1. Submit/reconcile C11/C12, synchronize latest canonical prepared-input entry
+   and preserve root Echo curve_motion/source_entity fixes. Review remaining
+   Pharah defense/barrier/control equivalence and continue the other six owner
+   families. Moira Deployable correction is mounted; do not remove those targets. Core charge/flight/edges45 pass; NPC physical11/12 pass.
    Root/worker B still owns complete Roadhog hooks and root owns NPC input/nav;
    preserve the C11 narrow physical-body adapter when bringing those implementations in.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
