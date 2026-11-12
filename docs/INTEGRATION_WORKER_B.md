@@ -340,6 +340,20 @@ alone is not evidence that a line's consumers are actually mounted.
   preserve same-hero pending creation and hero-switch reset. Then original
   possessor context read-through, source NPC health and Earthshatter consumers.
 
+## B21 retained Reinhardt charge lifecycle
+
+- Original same-hero capture/consume/hero-switch reset now uses existing Match
+  replacement, start_body_script and leave paths. Secure body ID before capture;
+  pending creation preserves the value and retires the old script. Schema field
+  registered in server_snapshot.Player. No other hero retention policy replaced.
+- `worker-b-rein-retained-focused.log`: both original respawn and delayed creation
+  cases pass. Full Passive9 plus server_snapshot ongoing in
+  `worker-b-rein-retained-first.log`; original possessor-context error remains
+  B22 scope. FullTalon17 previous run retained14 subfails/52 old-observer errors
+  (Knockbacks dict membership etc.), not a passing acceptance claim.
+- Next B22: append original POSSESSOR/BODY dataclass/context inputs while retaining
+  existing linked/participant/Component76 queries and DVa dedicated projection.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

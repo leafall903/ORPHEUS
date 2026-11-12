@@ -25,6 +25,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
 
 ### Record worker A seven-owner reconciliation boundaries
+### Preserve delivered Reinhardt charge across body replacement
+
+- Capture source0007's earned charge only after securing a replacement ID,
+  retain it through delayed same-hero creation, consume once when the actual
+  new script exists, and clear it on hero changes or leave. Retire the outgoing
+  Reinhardt script in the existing body lifecycle. Other hero policies remain.
+- Register the retained field in the server snapshot schema. Both original
+  respawn/switch and deferred creation tests pass without expectation edits;
+  full Passive and server snapshot checks continue in the external log.
+- Original-client acceptance remains open.
+
 ### Mount delivered Reinhardt authored charge admission and cadence
 
 - Connect source0007's scoped resolved-damage admission to the actual0B8B graph,
