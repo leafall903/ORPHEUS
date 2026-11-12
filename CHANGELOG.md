@@ -9574,3 +9574,11 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A52 - original Ashe FirstPerson fields
 
 - Restore251C standing1.445/crouched1.0115 while preserving current full shared lookup/catalog priority. Original eye/low-cover/history and movement checks passed; original exact Coach15m distance/count assertions now all pass, exposing only the existing obsolete add_impulse spy. No expectations changed.
+
+### Worker A synchronization after A52
+
+Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain all parallel source and local launcher commits.
+
+### Worker A53 - activate original Ashe NPC checks on shared inputs
+
+- Use one composed graph provider/current locked mover table and existing actual catalog/current-bound extension for original fixtures; remove obsolete secondary-loader/cache calls and stale input gate. Preserve all numeric assertions. Normal15 methods now run without skips; original API/one Heavy hit differences retained in logs.

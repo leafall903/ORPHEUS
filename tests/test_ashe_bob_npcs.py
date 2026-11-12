@@ -19,7 +19,7 @@ from ow174.game.mover import statescript_mods
 from ow174.game.script import expr, graph
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
-EXTRA = Path(os.environ.get("ORPHEUS_PVE_GRAPH_EXTENSION", "."))
+EXTRA = Path(os.environ.get("ORPHEUS_MOVER_EXTENSION", "."))
 
 
 @unittest.skipUnless(fixtures.CATALOG.is_file() and fixtures.BUNDLE.is_file() and EXTRA.is_file(),
