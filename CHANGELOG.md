@@ -17,6 +17,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Hand Cannon scatter and shield-pool policy
+
+- Route0D0A's eleven independently colliding pellets through the delivered
+  radial spread/jitter generator and server seed binding. Retain the null
+  critical sentinel and honor an explicit positive projectile critical value.
+- Mount source Vitals aggregate shield add/decay consumers, cap/no-delay-reset
+  policy, source pool identity and explicit zero-ID retirement. Preserve other
+  existing temporary-shield producers' default identity. Exclude temporary
+  shield loss from Doomfist's authored damage charge.
+- All21 original Hand Cannon checks,13 passive-shield checks and the Meteor
+  temporary-shield charge regression pass (35 total). This includes the two
+  source API/wire checks reported during canonical Uppercut intake. Previously
+  failing released-pellet Meteor scenarios and health-loss charge also pass.
+- Remaining original Meteor shared-service API observations, NPC/status/barrier
+  interlocks and the whole-line audit are still pending. Original-client
+  acceptance remains open. No external inputs copied, client launch or push.
+
 ### Mount delivered Doomfist Uppercut consumers
 
 - Mount the retained Uppercut host with the delivered sphere, dual-height/Cryo

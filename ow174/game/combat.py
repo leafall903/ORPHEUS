@@ -231,6 +231,8 @@ def aim(yaw: int, pitch: int) -> tuple[float, float, float]:
 
 def projectile_directions(state, direction, shot, activation):
     """Echo 19E5/st3 ring with authored radius and reconstructed seed identity."""
+    if (state.instance.graph.index, state.index) == (0x0D0A, 2):
+        return hand_cannon_directions(state, direction, state.instance.component.entity, shot, activation)
     if (state.instance.graph.index, state.index) != (0x19E5, 3):
         return (direction,)
     cfg = state.node.field("m_5EC1EB38") or {}
@@ -248,6 +250,29 @@ def projectile_directions(state, direction, shot, activation):
     instance = state.instance
     base = weapon_spread.seed_base(instance.component.entity, instance.id, state.node.pos, activation[0])
     return weapon_spread.single_ring_directions(direction, radius, 3, spread, base, shot)
+
+
+def hand_cannon_directions(state, direction, owner, shot, activation):
+    """Apply the delivered radial pattern and declared server seed binding."""
+    if (state.instance.graph.index, state.index) != (0x0D0A, 2):
+        return (direction,)
+    cfg = state.node.field("m_5EC1EB38") or {}
+    if cfg.get("$") != "STU_613BDDB0":
+        return (direction,)
+    spread = _number(state.evaluate(cfg.get("m_spread"), watch=False), 0.0)
+    jitter = _number(state.evaluate(cfg.get("m_92308789"), watch=False), 0.0)
+    count = int(_number(state.evaluate(state.node.field("m_numProjectilesPerShot"), watch=False), 1))
+    rings = []
+    for ring in cfg.get("m_0D30E40C") or ():
+        radius = _number(state.evaluate(ring.get("m_6425FFB9"), watch=False), 0.0)
+        pellets = int(_number(state.evaluate(ring.get("m_B19BD35D"), watch=False), 0))
+        if not math.isfinite(radius) or radius < 0 or not 0 < pellets <= 64:
+            return (direction,)
+        rings.append((radius, pellets))
+    if not (0 <= spread < 90 and 0 <= jitter < 90) or sum(n for _, n in rings) != count:
+        return (direction,)
+    base = weapon_spread.seed_base(owner, state.instance.id, state.node.pos, activation[0])
+    return weapon_spread.radial_directions(direction, spread, jitter, rings, base, shot)
 
 
 def _dot(a, b) -> float:
@@ -527,6 +552,7 @@ class TemporaryShield:
     decay_from: float
     rate: float
     activation: tuple[int, int] | None = None
+    pool_id: int = 0xFFFFFFFF
 
 
 @dataclass
@@ -623,6 +649,43 @@ class Vitals:
         shield = self.temporary_shield
         return ((shield.amount if shield is not None else 0.0)
                 + sum(pool.now for pool in self.extra.values() if pool.kind == SHIELDS_POOL))
+
+    @property
+    def temporary_cap(self) -> float:
+        return self.temporary_shield.maximum if self.temporary_shield is not None else 0.0
+
+    @property
+    def temporary_decay_at(self) -> float:
+        return self.temporary_shield.decay_from if self.temporary_shield is not None else 0.0
+
+    @property
+    def temporary_pool_used(self) -> bool:
+        return self.temporary_shield is not None
+
+    def decay_temporary_shields(self, now: float) -> float:
+        """Advance the delivered tagged aggregate on the authoritative clock."""
+        shield = self.temporary_shield
+        if shield is None or now <= shield.decay_from:
+            return 0.0
+        lost = min(shield.amount, (now - shield.decay_from) * shield.rate)
+        shield.decay_from = now
+        return self.spend_temporary_shield(lost)
+
+    def add_temporary_shields(self, amount, cap, rate, delay, now, *, count_intrinsic=False):
+        """Delivered aggregate policy: a capped gain never rearms its delay."""
+        if self.dead or amount <= 0 or cap <= 0:
+            return 0.0
+        self.decay_temporary_shields(now)
+        shield = self.temporary_shield
+        old = shield.amount if shield is not None else 0.0
+        occupied = old + (self.now[SHIELDS_POOL] if count_intrinsic else 0.0)
+        given = min(amount, max(0.0, cap - occupied))
+        if given > 0:
+            pool_id = (shield.pool_id if shield is not None else
+                       max((*self.ids.values(), self.wave_health_id)) + 1)
+            self.temporary_shield = TemporaryShield(old + given, cap, now + delay, rate, pool_id=pool_id)
+            self.changed.add(SHIELDS_POOL)
+        return given
 
     def grant_armour(self, amount: float, cap: float, until: float) -> float:
         """Reconstructed cohorts; healing never refills them. Native pool hosting remains open."""
@@ -840,8 +903,11 @@ class Vitals:
             parts[ARMOUR_POOL * POOLS + 1] = bytes(part)
         if self.temporary_shield is not None:
             shield = self.temporary_shield
+            pool_id = shield.pool_id
+            if pool_id != 0xFFFFFFFF and shield.amount <= 0:
+                pool_id = 0
             parts[SHIELDS_POOL * POOLS + 1] = world.pool(
-                0xFFFFFFFF, SHIELDS_POOL, shield.maximum, shield.amount,
+                pool_id, SHIELDS_POOL, shield.maximum, shield.amount,
             )
         for pool in self.extra.values():
             if pool.kind in kinds:
@@ -992,6 +1058,8 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if graph_index == 0x0D0A and node_index == 2 and cfg.get("$") == "STU_00D9C7E1":
+        critical_default = -1.0
     if isinstance(loadout, expr.Asset) and loadout.guid == ECHO_TRI_SHOT_LOADOUT:
         # 19E5 leaves the field null. Use a scoped reconstructed headshot default.
         critical_default = 2.0
@@ -1037,7 +1105,7 @@ def hit_def(state, cfg) -> HitDef | None:
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164),
+        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164) or (graph_index, node_index) == (0x0D0A, 2),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=(0.0 if graph_index == 0x0BD4 or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
@@ -2477,12 +2545,7 @@ class Combat:
         vitals = self.vitals.get(player.body)
         if vitals is None or vitals.dead:
             return
-        shield = vitals.temporary_shield
-        old = shield.amount if shield is not None else 0.0
-        current = min(max(0.0, cap - vitals.now.get(SHIELDS_POOL, 0.0)), old + gain)
-        if current > old:
-            vitals.temporary_shield = TemporaryShield(current, cap, self.now + delay, rate)
-            vitals.changed.add(SHIELDS_POOL)
+        if vitals.add_temporary_shields(gain, cap, rate, delay, self.now, count_intrinsic=True) > 0:
             self._sync_body_health(player, vitals)
 
     def _launch(self, entity: int, velocity: tuple) -> None:
@@ -7469,6 +7532,8 @@ class Combat:
                     and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
+                if hero == doomfist.HERO:
+                    points = max(0.0, base_before - vitals.base_total)
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))

@@ -134,3 +134,18 @@ passed after reconciling shared combat code. The original Pharah fixture still
 loads the real frozen Sigma helper via package fallback solely for its top-level
 import; these checks do not claim Sigma integration. Worker C continues the
 delivered reflected-curve restart/eye/seed consumers separately.
+
+A6 `9669c2f4` is received as `72891263`; all18 original quantized-missile,
+single-landing, released-bomb/runtime checks passed. C7 `2d2da024` is received
+as `83dd1eee`; retain the four original control subcase failures (two concussion
+boundaries, two post-Roll hit-count cases) matching the recorded owner baseline.
+The shared26 runtime/Shadow checks pass and Barrage abort/recast is mounted.
+
+B5 `7f9b0e73` restores Hand Cannon radial launch, typed critical behavior,
+temporary-pool allocation/decay/retirement and Doomfist charge admission. Root
+keeps TemporaryShield's fifth positional activation argument intact, appending
+pool_id after it and passing the new ID by keyword. This preserves existing
+Sigma shield production and Echo/storage fixtures. All36 combined owner/charge/
+storage checks and two existing positional-contract/storage checks passed.
+The two passive-shield failures recorded for B4 are resolved without removing
+their original expected values.

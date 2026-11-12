@@ -289,3 +289,28 @@ def jittered_ring_directions(forward, rings, spread: float, jitter: float, base:
             tangent = _unit(_cross(forward, axis))
             yield tuple(f32(v) for v in _rotate(direction, tangent, _uniform(sample + 1, -jitter, jitter)))
             pellet += 1
+
+
+def radial_directions(forward, spread, jitter, rings, base, shot):
+    """Delivered D80310 rings for Doomfist's zero phase and unit aspect."""
+    right = _cross(forward, (0, 1, 0))
+    squared = sum(value * value for value in right)
+    if squared < 1.1754943508222875e-36:
+        right = (1.0, 0.0, 0.0)
+    else:
+        right = tuple(value / math.sqrt(squared) for value in right)
+    jitter_radians = f32(f32(jitter) * f32(math.pi / 180))
+    ring_radians = f32(max(f32(f32(spread) - f32(jitter)), 0.0) * f32(math.pi / 180))
+    width = f32(2 * jitter_radians)
+    table = uniform_table()
+    directions = []
+    for radius, count in rings:
+        for index in range(count):
+            azimuth = f32(f32(index / count) * f32(math.tau))
+            axis = _rotate(right, forward, azimuth)
+            seed = seed_index(base, shot, len(directions))
+            first = f32(f32(f32(f32(table[seed]) * width) * 2.0 ** -32) - jitter_radians)
+            second = f32(f32(f32(f32(table[(seed + 1) & 16383]) * width) * 2.0 ** -32) - jitter_radians)
+            vector = _rotate(forward, axis, f32(f32(ring_radians * radius) + first))
+            directions.append(_rotate(vector, _cross(forward, axis), second))
+    return tuple(directions)

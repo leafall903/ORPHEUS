@@ -58,6 +58,15 @@ alone is not evidence that a line's consumers are actually mounted.
   follow-up passes all5 checks. Queued Uppercut report getter-free enclosing
   server snapshot repeatability/causality also passes. Source fixture cap/delay
   reads use the existing canonical shield-object fields; assertions remain.
+- Uppercut batch `8759d171` submitted. Hand Cannon now mounts original radial
+  eleven-pellet scatter, seeded jitter, explicit critical handling and null
+  sentinel. Original21 Hand Cannon checks all pass.
+- The source aggregate shield add/decay API and low-range pool identity now
+  mount over canonical TemporaryShield; other producers retain their existing
+  default identity. Original13 passive checks all pass, including capped-delay
+  retention and exact pool2/clear-to0 wire checks. Doomfist damage charge uses
+  ordinary health loss, excluding temporary shield damage as the source did.
+  Combined21+13+the Meteor temporary-shield charge regression: all35 pass.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -69,8 +78,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount original eleven-pellet Hand Cannon scatter and its remaining source
-   target/damage consumers. Reconcile Meteor's original shared-service API
+1. Reconcile Meteor's original shared-service API
    observations against current APIs without dropping behavior assertions.
 2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
    Uppercut or Meteor as a complete Doomfist line.
