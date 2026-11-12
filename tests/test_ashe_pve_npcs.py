@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import test_ashe_combat as fixtures
 
-from ow174.game import ashe, combat, heavy_charge, immunity, mover, npc, npc_control, npc_melee, world
+from ow174.game import ashe, combat, heavy_assault, immunity, mover, npc, npc_control, npc_melee, world
 from ow174.game.collision import flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -652,7 +652,7 @@ class AshePveNpcTests(unittest.TestCase):
         run.step({mei: (0, 0, 8)})
         self.assertTrue(immunity.cryo_active(mei, mei.body))
         charge = next(item for item in bot.body_script.component.instances.values()
-                      if item.graph.index == heavy_charge.CHARGE)
+                      if item.graph.index == heavy_assault.CHARGE_GRAPH)
         targets = {item.entity: fight.vitals_of(item) for item in fight._targets() if item.owner is not bot}
         before = {body: vitals.total for body, vitals in targets.items()}
         for _ in range(100):
@@ -685,7 +685,7 @@ class AshePveNpcTests(unittest.TestCase):
                 player.mover.yaw, player.mover.pitch = fixtures.aim(fight._eye(player), (0, 2, 12))
                 self.assertEqual(npc_control.start(run.match, player), bot.entity)
                 charge = next(item for item in bot.body_script.component.instances.values()
-                              if item.graph.index == heavy_charge.CHARGE)
+                              if item.graph.index == heavy_assault.CHARGE_GRAPH)
                 movement = charge.graph.node(71)
                 for _ in range(90):
                     run.step({})
@@ -739,7 +739,7 @@ class AshePveNpcTests(unittest.TestCase):
         player.mover.yaw, player.mover.pitch = fixtures.aim(fight._eye(player), (0, bot.position[1] + 1, 12))
         self.assertEqual(npc_control.start(run.match, player), bot.entity)
         charge = next(item for item in bot.body_script.component.instances.values()
-                      if item.graph.index == heavy_charge.CHARGE)
+                      if item.graph.index == heavy_assault.CHARGE_GRAPH)
         return run, player, bot, charge
 
     def start_melee(self, name, *, distance=None):

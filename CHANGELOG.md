@@ -9572,3 +9572,8 @@ Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain
 ### Worker A53 - activate original Ashe NPC checks on shared inputs
 
 - Use one composed graph provider/current locked mover table and existing actual catalog/current-bound extension for original fixtures; remove obsolete secondary-loader/cache calls and stale input gate. Preserve all numeric assertions. Normal15 methods now run without skips; original API/one Heavy hit differences retained in logs.
+
+### Worker A54 - BOB impact and retired-victim cleanup
+
+- Bind original Heavy fixture graph ID to actual1408 host. Restore BOB1407 release at same-frame wall impact and stop the actual carrier when its BOB body retires, preserving shared Player recovery and stop/cooldown states.
+- Original full carry/300HP/gun-resume and opposing capture passed; retain old static phase2 versus current stop phase0 assertions unchanged.
