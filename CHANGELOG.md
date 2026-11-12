@@ -1,5 +1,57 @@
 # Changelog
 
+## A100 — current consumer convergence and actual Matrix preservation
+
+Actual original Matrix geometry fixture now observes real native Applied child
+arrival instead of polling obsolete Modifier dictionaries. Original80 hostile /
+200 friendly health and0/1.5 factor expectations pass1.914s, including actual
+matrix-crossed grenade and original100/60 instant event strength. No fallback
+observer/second status table, no changed numeric expectation. Normal original
+Baptiste fixture remains unchanged; its old table/timer observations are a
+verification adapter tail, not an absent grenade/Matrix consumer. New proof is
+in test_healing_status_native.NativeHealingStatusTests.
+
+This supersedes earlier no-known-omission summaries: nine owned hero cores,
+shared000E and0068 boundaries are integrated as described A27/A63/A72 and A74–99,
+with these newly identified original production gaps queued explicitly:
+- A101: current Moira generic grasp is called twice per Combat.command with
+  fixedframe sample and no own dedup; root delegated original01A2 source/fixture
+  proof and same-host restoration. Source Beam/HOT/orb clocks must not mix.
+- A102: original grenade victim selection uses Rocket.team, while new native
+  faction predicate currently re-reads live source team. Preserve that existing
+  frozen flight affiliation/exactsource in same StatusWorld, no new host.
+- A103: original007A/0068 typed mover reconstruction chooses last active typed
+  row bypriority/start/key; current single-profile statescript_mover_data rejects
+  multiple profiles. This is a real missing original consumer policy, not missing
+  API spelling. Restore samehelper/order, sameMover.script_data and scalar mods.
+
+Shared mover symbol audit precise map (names alone were not completion evidence):
+- 0003 embedded_mover_data and0068/007A component_data parsing is in current
+  statescript_mover_data, consumed by Player synchronization and actual owned
+  Mech body_entities mover. Singletyped profile is mounted; multirow above open.
+- active_data is current sameMover.values, selected from flight/script_data/base
+  and scalar modded values in step_pose. Current body geometry/physics reads it.
+- 0004 movement_throttles /007A throttle_mods are modified_throttles, actually
+  called after active mod selection before movement integration.
+- 0200 knockback_scale is actual add_impulse category26 priority/order reduction;
+  old load_movers was just load_mover_bundle(...)[0], and that original strict
+  immutable/fingerprint-bound loader already serves Ashe actual BOB profiles.
+- 0002 lateral move_toward_horizontal callers map to same mover._move_to/displace
+  in current navigation/Player movement and original Graviton horizontal branch.
+  Old launch callers belonged shared Doomfist motion; current sole impulse/
+  velocity host consumes them, not a missing Reaper ability. No alias added.
+- 0065 pet_relation was not fully equivalent to entity_link: A96 preserved its
+  original explicitSDK/provider behavior in the unique runtime query chain;
+  no default inferred game ownership or duplicate Pet manager introduced.
+
+Owner handoff remains source-reconciliation, not full client/matrix acceptance.
+0004 dynamic healing_status now actually mounted (A97–99), superseding A72's
+static-ordinary-only assumption. All original source assertions/known numerical
+or geometry/policy conflicts remain. Root owns source ancestry/history and
+Volskaya platform, defaultv19 activation, appearance exclusion and otherowners.
+No uncommitted implementation here beyond next named tasks. Low-confidence A
+remaining activework2–5h for these three concrete gaps/mapping, not a merge gate.
+
 ## A99 — preserve original Mercy status checks and immediate lifecycle consumers
 
 Preserved normal tests/test_game_mercy_healing_status.py from original0004:

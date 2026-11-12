@@ -164,3 +164,32 @@ class NativeHealingStatusTests(unittest.TestCase):
                 self.assertFalse(item.component.instances)
                 self.assertNotIn((fixture.ana.body, bot.entity), fixture.fight.healing.applied)
                 npc.remove_spawned(fixture.match)
+
+    def test_actual_matrix_strength_scales_native_instant_event_but_not_filter(self):
+        import test_baptiste_healing_status as original
+        from test_baptiste_matrix import deploy_matrix
+        from test_game_combat import aim
+        for friendly in (False, True):
+            with self.subTest(friendly=friendly):
+                fixture = original.BaptisteHealingStatusTests()
+                fixture.arena(friendly=friendly)
+                self.addCleanup(fixture.doCleanups)
+                fixture.bap.team = fixture.ana.team
+                matrix = deploy_matrix(fixture.run, fixture.bap)
+                matrix.position = (0.0, 2.0, 6.0)
+                matrix.rotation = (0.0, 0.0, 0.0, 1.0)
+                if friendly:
+                    fixture.injure(180)
+                target = fixture.targets[fixture.ally]
+                angles = aim(fixture.fight._eye(fixture.ana),
+                             (target.feet[0], target.feet[1] + target.height / 2, target.feet[2]))
+                for frame in range(60):
+                    fixture.step({fixture.ana: (*angles, 16 if frame == 0 else 0)})
+                    if any(item.target == target.entity for item in fixture.fight.healing.applied.values()):
+                        break
+                else:
+                    self.fail("actual matrix-crossed grenade did not reach the native status host")
+                self.assertEqual(fixture.health(), 200 if friendly else 80)
+                for _ in range(5):
+                    fixture.step()
+                self.assertEqual(fixture.fight.healing.factor(target), 1.5 if friendly else 0)
