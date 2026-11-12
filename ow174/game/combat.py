@@ -3134,6 +3134,11 @@ class Combat:
         repairs, script.self_repairs[:] = list(script.self_repairs), []
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
+            if player.hero.guid == 0x02E0000000000065:
+                terminal = command or Command(self.tick, yaw=round(player.mover.yaw), pitch=round(player.mover.pitch))
+                for state, number, time, activation in shots:
+                    if state.instance.graph.index == 0x022A and state.allows_dead():
+                        self._shoot(player, terminal, state, number, time, activation=activation)
             return
         if mei.protected(player):
             self._clear_frost(player)
@@ -5772,7 +5777,13 @@ class Combat:
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)
                     if len(directions) == 1:
                         directions = ring_directions(state, direction) or directions
-                if explicit_directions is not None:
+                if (not npc and junkrat_profile is not None and state.instance.graph.index == 0x022A):
+                    from ow174.game import launch_ring
+
+                    directions = launch_ring.projectile_directions(state, direction, number, activation)
+                    if directions is None:
+                        raise ValueError("unsupported authored Total Mayhem launch")
+                elif explicit_directions is not None:
                     directions = explicit_directions
                 dose_scalar = None
                 if direct is not None and direct.duration > 0.0:
@@ -9580,6 +9591,10 @@ class Combat:
                     # The server owns the death event. Run it before the observer snapshot even
                     # if the victim sends no further commands.
                     component.run_now()
+                    if victim.hero.guid == 0x02E0000000000065:
+                        script._report_shots()
+                        self.command(victim, Command(self.tick, yaw=round(victim.mover.yaw),
+                                                     pitch=round(victim.mover.pitch)))
             except Exception:
                 log.exception("[game] %s: %s's body script failed on %X", label, victim.name, DIED)
         self.brigitte.died(victim)
