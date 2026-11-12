@@ -226,15 +226,12 @@ def _defer_grapple_interrupt(script, frame):
 
 
 def _grapple_interrupt_after(script, frame, tick):
-    from ow174.game import sombra_emp
-
-    skill_lock = sombra_emp.first_lock_after(script, frame, tick)
+    controls = script.world.match.combat.sombra_controls
+    skill_lock = controls.first_lock_after(script, frame, tick)
     latest = tick if skill_lock is None else skill_lock
-    controls = getattr(script, 'timed_control_commands', {})
-    return min(
-        (start for windows in controls.values() for start, _ in windows if frame < start <= latest),
-        default=skill_lock,
-    )
+    windows = (script.control_windows, script.sleep_windows, script.frost_windows)
+    return min((start for group in windows for start, _ in group if frame < start <= latest),
+               default=skill_lock)
 
 
 def settle_grapple_interrupt(fight, player, frame):
@@ -253,7 +250,8 @@ def _latch_interrupted_grapple(player):
     last = player.mover.last_command
     if last is not None and last.buttons & 2:
         script = player.body_script
-        script.emp_suppressed_buttons = getattr(script, 'emp_suppressed_buttons', 0) | 2
+        controls = script.world.match.combat.sombra_controls
+        controls.held[player.body] = controls.held.get(player.body, 0) | 2
 
 
 def _end_grapple(player):

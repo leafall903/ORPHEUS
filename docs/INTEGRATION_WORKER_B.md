@@ -720,15 +720,49 @@ alone is not evidence that a line's consumers are actually mounted.
   that explicit history-time-domain gap rather than guess offsets. DirectRun
   source clocks are aligned; immediate applied-lock cancellation can be verified.
 
+## B38 — Actual Grapple lifecycle, lock history and strict stored state
+
+- Source Ball.update_grapple now consumes posed commands after existing death/
+  hard-control admission. Retire/death release same tether; Combat._interrupt
+  retains original deferred frame behavior, settlement follows script advance.
+  Store real grapple_seen and optional grapple_interrupt_frame explicitly in
+  server/strictBodyVM schemas. Existing same Mover supplies attached pendulum.
+- Source _grapple_interrupt_after calls C35 sole Controls.first_lock_after;
+  generic source hard-control windows read current control/sleep/frost lists,
+  never treated as Hack locks. Original repeated-press suppression uses existing
+  Controls.held, no unmounted emp_suppressed_buttons or second EMP manager.
+- Dependency: original C35 SHA4f866474, locally cherry-picked as1ba85a31 only to
+  test actual production API. Parent must receive originalC35 once, not duplicate.
+  Kept both owner docs/changelog entries when importing dependency. No fakeNone.
+- worker-b-ball-grapple-first.log29:10 original Grapple+runtime17 pass,5suberrors
+  in2 methods from old interceptor signature and _Graph constructor. Exact
+  fixtures now observe actual active native Deflect/Grasp with current query
+  signature/tuple and current snapshot ctor. Snapshot case passes adapters.log;
+  guard four source subcases pass guard-second.log. Thus all12 original cases
+  passed across these runs; original99 assertion AST exactly unchanged.
+- worker-b-ball-grapple-active-storage.log: actual controlled raw receiver,
+  original320 empty bootstrap, secondary launch frame1325 arrives1329 with real
+  wall anchor(0,1.55,12). Active-flight strict export_body_vm/export_server_state
+  counter change changes both digests; restoration restores both. Raw four more
+  inputs attach same object. Both strict captures change across transition;
+  actual rope mutation/restoration changes/restores server digest. No state
+  forced into activation, extra whitelist or unknown-field suppression.
+- Retain precise limitation: source latest-bound argument is world fight.tick,
+  controlled server body1000+ versusworld50 lacks a Ball anchor. Do not guess
+  conversion or claim historical control equivalence from aligned Run cases.
+- NEXT B39 Fireball actual damage/impulse and contact lifecycle; then full
+  original source control/Hack/EMP, spread/passive/charge and Minefield. Ball
+  owner combat26 audit retains6fail4errors in earlier log, no whole-line claim.
+
 ## Exact next work
 
-1. Commit B30, then clean-sync canonical after parent acceptance. Continue
-   source0007 actual shield retirement/death/control/break/recast consumers,
-   real native pool fixture inputs, source frozen-team queries and remaining
-   surface histories. Preserve original grenade incident-side occlusion and
-   projectile world-position/lifetime metadata; do not add another controller.
-   Audit Fire Strike phase/contact inputs and retained original tests before
-   formally calling0007 complete. Then advance remaining tank owners.
+1. Commit B38 independent delivery with C35 prerequisite explicitly recorded.
+   Next B39 source Fireball damage/impulse/contact lifecycle on same actual
+   Roll/Grapple motion; then Ball spread/passive/charge and Minefield source
+   owner audit. Preserve actual Piledriver high-origin/descent/pull/steer numeric
+   differences and unconverted historical-control clock boundary. Full Ball
+   owner combat26 audit retains6fail4errors; no completed-line claim.
+   Rein shared Brig/Shatter boundary remains parent-owned evidence audit.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

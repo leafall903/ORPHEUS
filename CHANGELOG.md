@@ -15,6 +15,21 @@ This log records tested changes and their acceptance status. Entries are grouped
   pass with6.4 damage per16frames where authored, zero in blocked cases.
   No original numeric expectation or shield geometry was changed.
 
+### Mount delivered Ball Grapple lifecycle on the existing motion host
+
+- Route original launch/anchor travel/attachment, release/cooldown, body death/
+  retirement, hard-control interruption and deferred settlement to the same Ball
+  motion host. Reuse Controls.held for received-button latching and C35's actual
+  Sombra lock history; no second EMP/Grapple controller or guessed clock offset.
+- All12 original Grapple cases and runtime17 pass across full/targeted runs.
+  Only obsolete interception/snapshot fixture APIs were adapted; all99 original
+  assertion AST nodes remain unchanged.
+- Real controlled server raw input creates flight1325->1329 and attaches the
+  same Grapple. Active-flight strict BodyVM/server causal counter mutation and
+  restore pass; attached capture and real rope server-state mutation/restore pass.
+- Depends on C35 original4f866474; worker-local duplicate1ba85a31 is not another
+  delivery. Body/world historical clock mapping remains explicit pending work.
+  Fireball/Minefield and full Ball/client acceptance remain open.
 
 ### Retain actual Sombra skill-lock history for original Grapple queries
 
@@ -74,6 +89,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+
 ### Restore delivered Ball form and critical-hit history
 
 - Current targets read the original active Roll form to reject head criticals;
