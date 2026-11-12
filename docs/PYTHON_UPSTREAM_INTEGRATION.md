@@ -79,4 +79,3 @@ are unresolved API/wire expectations; the tests have not been rewritten.
 A separate local Piledriver scenario also retains a rifle-hit assertion failure
 after the changed descent timing. Full equivalence and complete acceptance are
 not asserted. These checks are recorded for review rather than submission gates.
-
