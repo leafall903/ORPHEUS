@@ -13,6 +13,10 @@ the server can create them.
 
 ORPHEUS now shows these two phases by hand. It plays no mission behind them.
 
+The players start at four plain markers in an Underground tunnel, which the mode script names by a
+target tag. The map has no spawn point entities, so the map extractor found no start until it
+learned that rule.
+
 ## The mode's graphs
 
 Read from data. Mode `000F.0C5` (and `001A.0C5`, All Heroes) names the mode script `0D28`, a
@@ -55,9 +59,42 @@ the "OBJECTIVE COMPLETE" banner, and the waves `0D4A` spawns through `0D1C`.
 ## The map
 
 Read from data. The mission's 89 placeables on King's Row (Uprising) are 68 markers of entity
-`16DC` along the route, 19 of `0176`, one `07A4` and one `1B3E`. None names a graph and none is
-a spawn point of the kind the other maps have: the map's entry in the extracted map data has no
-spawns. Where the players start is not decoded.
+`16DC` along the route, 19 of `0176`, one `07A4` and one `1B3E`. The map has no base map and one
+entity chunk of 1145 records over 88 definitions, and none of those definitions has the spawn
+component `STU_737C5C41` that the other maps' spawn points have.
+
+### Where the players start
+
+The players start at four `0176` markers that carry target tag `0x310` in their instance data:
+records 1125 to 1128, placeables 1420 to 1423, in a row about 1.3 m apart around
+(-65.4, -4.4, -91.6). No other placeable of the map carries a team tag, and no placed definition
+carries `0x310` itself.
+
+The mode script names them. `0D28` node 23 writes `0x310` into the mode entity's var 8364 at
+index 0, and its state 8 then runs `0C8F`, the spawn graph the PvP modes share. `0C8F` gathers the
+entities carrying the tag in 8364 index 0 for team 0 and index 1 for team 1. On game message
+`0685.025` it picks one for the requester's team and answers with `0687.025`, whose parameter
+`03A1` is the chosen marker. Index 1 is never set, so team 1 has no list. The mode's record gives
+only team 0 a controller and a body script, and the queue card names one team of four.
+
+Junkenstein's Revenge and Retribution are built the same way: `0C8C` and `100B` write `0x310`
+into var 8364 index 0, and their maps hold six and four `0176` markers with that tag. Storm
+Rising is not: its mode script never names var 8364, and what its four specially tagged spawn
+rows are for is not decoded.
+
+The directors name two more `0176` markers: tag `0x339` (record 967), which `0D4A` writes into
+var 8931, and tag `0x337` (record 423), which `0D4B` writes there. What var 8931 does is not
+decoded.
+
+Context, not a decoded rule: `0C8F` asks for entities by tag alone, and ORPHEUS's port of it
+(`StaticTagTarget`, through `static_tag_targets` in `script/scene.py`) does the same. Every PvP
+map also has 42 to 134 team-tagged entities on definitions the server does not create. A server
+holds only the placeables it creates, so the extractor's rule stays inside that set.
+
+Not decoded: which player gets which marker (ORPHEUS's port of the picker `STU_5E805B5A` takes a
+random one not used in the last 3 s), what receives `0687.025` for Uprising (its controller
+`0D2A`, `1194` and `0D29` have no entry for it, unlike PvP's `0C90`), whether the native picker
+also wants the spawn component, and whether the players face the way the markers do.
 
 ## Compared with ORPHEUS
 
@@ -73,8 +110,12 @@ This is a presentation driven by hand. The directors' own server states never ru
 spawn, the payload does not exist, the escort bar stays empty and the mission never ends. The
 "PAYLOAD HEALTH" panel is left closed, since there is no payload to read.
 
-ORPHEUS cannot host the map from stock data, because the map has no spawn point. See below for
-how it was run.
+The map extractor (`tools/extract_game_maps.py`) now lists the four `0x310` markers as team 0
+spawn rows: an entity the server creates whose only team tag is `0x310`. Over all 95 maps the
+rule adds 14 rows: these four, Retribution's four and Junkenstein's six. It leaves out six
+Junkenstein markers tagged `0x30D`, which `0C8C` never writes, and one marker of a menu backdrop
+map that is tagged for both teams. The players take the markers in the server's usual turn order.
+Map data extracted before this change still has no start for the map.
 
 ## Seen live against ORPHEUS
 
@@ -90,5 +131,15 @@ service used. The repository and the local pack were not changed for it.
 - That earlier run started the clock at the first spawn, under the hero select, so the box opened
   at 3:22. The clock now starts when the heroes are assembled.
 
-Not checked: a second player, a player who joins during the escort phase, and the Story mode
-`000F`.
+Later the same day, the same card with the decoded start. The four rows were built with the
+extractor's own row code from the installed map chunk and added to the local map data, because
+the local DataTool lacks the mode the extractor's entity input needs; the changed extractor
+itself was not run.
+
+- The map loaded, the hero select opened and the defend box followed as before.
+- The player stood on the tracks of an Underground tunnel with tiled walls, at full health on
+  solid ground. The view faced the tunnel's side wall. About a quarter turn to the right it looked
+  along the rails at a train whose front reads "KING'S ROW".
+
+Not checked: a second player (so the four markers were seen with one body only), a player who
+joins during the escort phase, and the Story mode `000F`.
