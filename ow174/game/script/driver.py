@@ -1069,6 +1069,14 @@ class BodyWorld(runtime.World):
         if charge is not NotImplemented:
             return charge
         cls = cfg.get("$")
+        if (self.hero == barrier.REINHARDT and instance is not None
+                and instance.graph.index == ULT_GAIN_GRAPH
+                and cls in ("STU_AC829876", "STU_A58C1E63")):
+            from ow174.game.ultimate_charge import match_admission
+
+            value = match_admission(instance, cfg)
+            if value is not NotImplemented:
+                return value
         if instance is not None and instance.graph.index == 0x156B:
             from ow174.game import photon_barrier
 
@@ -2214,6 +2222,13 @@ class BodyScript(ReplicatedBody):
     def _run(self, frame: int, edges: list) -> None:
         from ow174.game import torbjorn_charge
 
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+            if enabled is None or enabled.value() is None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None:
+                    # Original completed-body capability binding, not a forced gate.
+                    common.run_node(common.graph.node(39), None)
         if self.hero == torbjorn_charge.HERO:
             torbjorn_charge.prepare(self)
         ultimate.sync_practice_timer(self)
@@ -2595,6 +2610,8 @@ class BodyScript(ReplicatedBody):
             return
         if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
             return
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            return  # delivered0B8B owns cadence; no diagnostic cost/60 fill
         # A supplied shared-graph gate owns passive charge, even when disabled.
         # The fallback only covers hosts that have not supplied that gate.
         enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)

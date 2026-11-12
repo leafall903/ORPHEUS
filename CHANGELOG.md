@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt authored charge admission and cadence
+
+- Connect source0007's scoped resolved-damage admission to the actual0B8B graph,
+  and run the original01C7/node39 capability binding rather than forcing its
+ 2426 gate. Reinhardt's real Match body bypasses diagnostic cost/60 fill and
+  the generic direct damage-credit route; other heroes keep existing paths.
+- All43 original six economy, Charge movement and runtime checks pass: five
+  points per second, modifiers/suppression/cap, Hammer cap, Earthshatter spending
+  and authored post-channel lock. Full original Passive9 retains one respawn
+  charge-loss failure and two retained-charge/possessor interface errors for
+  the next source-consumer batch. Full Talon checks continue externally.
+- Original expectations remain intact; client acceptance remains open.
+
 ### Read delivered physical movement predicates from existing owners
 
 - Restore Reinhardt/NPC known-mask3 movement queries using existing player,
