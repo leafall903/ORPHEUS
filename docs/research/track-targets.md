@@ -145,10 +145,26 @@ steps 4 and 5. The wheel leaves the yaw empty, so that copy must take the entity
 `m_8D13DD07` and `m_2F5FAF65`, and per candidate `m_294660A6`, `m_C1B724B2` and the point
 `m_48837057`. Hack's states 25 and 38 set `m_229DD034` and `m_48837057` to hardpoints.
 
+### 4. Gathering the candidates
+
+`0xCAACF0` (state, search context, owner data), partly read. The search context is the block the
+refresh keeps at its frame +0x1A0: the volume at +0x20, the candidate list at +0x70 with its count
+at +0x78, the spatial query at +0x290 and the profile at +0x2A8.
+
+1. `0xC72D50` reduces the node's filter to a kind. Kinds 1, 0x40, 0x10000 and 0x40000 are
+   gathered from lists the world keeps for them (`0xCAAB40`).
+2. Otherwise the filter's bits at its +0x20 are tested. Any of 0x400C1 gathers those lists too
+   (`0xCAAB40` with 0x150041). If other bits remain, a sphere query runs around the volume's source
+   point with radius = context +0x60 + context +0x68, and `0xCAB8A0` is called for each entity
+   found. That callback is where the cone and the filter are applied; it is not read yet.
+
+An entity carries its own filter bits in component 25, with its team in bits 23 to 27
+(`script/entity_team.py`). The node's `m_4EA686DB` is matched against those bits: 0x10 and 0x4 on
+the hostile query, 0x200000 on Guardian Angel's, 0x200010 on the staff's.
+
 ## Open
 
-- Where the cone and the entity filter are applied to the candidates: `0xD8E3F0`, `0xDA9BA0`,
-  `0xCAACF0` and `0xC89F60` are not read.
+- The callback `0xCAB8A0` (cone and filter per entity), `0xCAAB40`, and the ranking `0xC89F60`.
 - `STUConfigVarFilter`: `m_4EA686DB`, `m_84065FD1`, `m_89831602`, `m_1E14CCA8`, `m_27CF71D5`,
   `m_66747E7D` and the conditions.
 - `m_43478CAD` inside the ranking, and the distance term's lower bound (Guardian Angel's 2).
