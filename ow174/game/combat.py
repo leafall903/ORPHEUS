@@ -71,6 +71,7 @@ from ow174.game import (
     molten_core,
     torbjorn_mark,
     torbjorn_charge,
+    symmetra,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -2621,6 +2622,11 @@ class Combat:
         """Delivered obstruction/control exit using the existing Charge record."""
         charge = self.charges.get(player.body)
         if charge is None:
+            instance = self._charge_instance(player)
+            phase = instance.states.get(40) if instance is not None else None
+            if phase is not None and phase.active:
+                instance.write((0, 59), 0)
+                reinhardt_charge.drain_end(instance)
             return
         target = self._target_entity(charge.pinned)
         if impact and target is not None:
@@ -2924,7 +2930,7 @@ class Combat:
                     state.presses.clear()
                     state.stop()
         component.run_now()
-        if script.hero == barrier.REINHARDT:
+        if component.world.hero == barrier.REINHARDT:
             instance = next((i for i in component.instances.values() if i.graph.index == 0x7D), None)
             if instance is not None:
                 reinhardt_charge.drain_end(instance)
@@ -3089,7 +3095,8 @@ class Combat:
                 log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
         try:
             self._echo_beam(player, command, script)
-            self._weapon_beam(player, command, script)
+            if player.hero.guid != symmetra.HERO:
+                self._weapon_beam(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
         self._flush_pending_attacks()
@@ -3268,6 +3275,8 @@ class Combat:
         Body capsules, eye origin and one damage sample per posed command are
         server reconstruction. Native selection, lock tolerances and cadence remain open.
         """
+        if player.hero.guid == symmetra.HERO:
+            return symmetra.primary(self, player, command)
         spec = BEAM_STATES.get(player.hero.guid)
         if spec is None:
             return

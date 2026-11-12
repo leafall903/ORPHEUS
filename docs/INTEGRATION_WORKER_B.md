@@ -15,6 +15,28 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B17 completion5c9a8f45 submitted/root acceptedde3c2335. Local sync8dc396d6
+ d7529630 preserves authored Sniper search and source retirement. B18 restores
+  source immovable9161/6601 query before captures/bumps, and the phase exit works
+  before a drive record exists. Existing Heavy navigation/1408 native counter
+  hosts remain authoritative; do not copyheavy_charge's independent walker.
+- Shared interrupt drain now reads component.world.hero; BotScript has nohero
+  property. This removes the real swallowed NPC area exception. Original
+  Fortify/Cryo/expiry-to-capture+Mutual/runtime/input/epoch45 all pass. Log
+  worker-b-reinhardt-immovable-shared.log. OriginalNPC3 suites retain5 passive
+  cadence failures and5 missingmovement_flags host-interface errors; original
+  health/response assertions reached before those errors are retained, and
+  team-change capture release passes. Logworker-b-reinhardt-npc-capture-second.log.
+- Native Heavy6601 is alreadyTrue (1254); data is present. Source body projection
+ 96F1DBCF needs the real physical movement flags (onlyknown two-bit outputs,
+  preserve existing Baptiste crouch/Assassin controller policies and strict
+  unknown rejection). Do not hide that missing consumer in a fixture getter.
+- Reinhardt passive still uses legacy cost/ult_seconds debug fill (1540/60 per
+  second), causing22.997 over56 ticks. Original0B8B source cadence is5 points;
+  implement owner admission/VM clock and retire only this hero's debug fill.
+  No acceptance failure blocks saving the completed physical consumer batch.
+
+
 - B16 cross60cbfda6 submitted/root acceptedffe56d54. Local syncd546d8c6
  bd7e03af retains finite Matrix/NPC inputs. B17 restores source0007's exact
   progress<min(distance,speed*seconds)/2 Punch obstruction condition. Collision
@@ -292,7 +314,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B17 collision-completion batch, then synchronize latest canonical at
+1. Submit B18 immovable batch, then synchronize latest canonical at
    a clean boundary and continue0007 source counter/deployable Charge and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve

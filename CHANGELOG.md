@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Synchronize worker A for cross-owner charge handoff
+
+- Absorb canonical a7728f76 at a clean boundary before restoring the original
+  Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
+
 ### Record worker A seven-owner reconciliation boundaries
 
 - Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
@@ -81,7 +86,32 @@ This log records tested changes and their acceptance status. Entries are grouped
   and snapshot constructor fixture adapters. Remaining Venom/cross-owner checks
   are preserved for later consumers; no whole000A completion claimed yet.
 
+### Mount delivered Symmetra dual TrackRay primary consumers
+
+- Replace Symmetra's single-ray prototype consumer with original157C primary
+  feedback for both100/101 rays, hit/miss targets,0.2m fallback, live damage
+  rate and shield-ammo/charge target queries. Use existing world/ice/Cryo cover
+  and existing native/held/spherical/deployed barrier actors and health owners;
+  derive tag membership from actual prepared definitions, not inferred health.
+- The command pipeline already called the generic beam helper twice. Invoke
+  this delivered Symmetra consumer once per posed frame; retain other heroes'
+  received paths. Add original has_tag lookup without changing absorbable
+  policy, and register the real beam_barrier world field in passive storage.
+- All original PhotonProjector/utility/melee core cases pass; the complete
+  retained21-case file has17 pass/four shield-recovery failures. Recovery is
+  the next missing owner consumer, not a reason to drop or delay this primary.
+- Actual native Winston shell probe: ten frames reduce700 to690.3997802734375
+  (native float32 health updates), leave the distant body500, and feed its real
+  tagged shell ID back to the authored graph. The old Zenyatta dome fixture
+  still reads absent Barriers.domes; retain that observation/error rather than
+  inventing a second manager or fake alias to satisfy it.
+- Sentries, portals/placement, original charge, shield recovery and long-lived
+  orb/scheduler bridges still need reconciliation. No whole0016, new matrix
+  or original-client acceptance is claimed.
+
+### Mount delivered Torbjorn original charge and owner gates
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
+
 
 - Preserve source000A primary/scoped authored critical defaults (2/2.5), effective
   damage charge and stale ultimate-press expiration on the combined body host.
@@ -95,6 +125,42 @@ This log records tested changes and their acceptance status. Entries are grouped
   Shared Damage/runtime/profile27 checks:25 pass,2 optional input skips.
 - Frozen source:hero-deliveries/000A at0bbf016a88d6272db5358c5e4f6a611d4db5b327.
   Grapple and Venom consumers remain actual pending work, not whole-line complete.
+### Restore delivered Charge immovable receiver contacts
+
+- Restore source9161/6601 receiver handling before capture or side damage,
+  including Heavy Assault, Fortify and Cryo. Feed the existing authored impact
+  flags and ordinary phase exit; windup exits also work before a drive record
+  exists. Reuse existing NPC movement and native1408 counter hosts.
+- Read the shared interruption guard from component.world.hero so BotScript
+  targets use their existing interface without a swallowed area exception.
+- All45 original Fortify/Cryo/expiry-to-capture, mutual, runtime/input/epoch
+  checks pass. Original NPC3 suites retain5 passive-charge subfailures and5
+  movement_flags host-interface errors; their original expectations remain.
+  Heavy side contact no longer removes health, and team-change release passes.
+- Keep the pending source movement-flags consumer and Reinhardt0B8B cadence
+  explicit: the legacy cost/60 debug fill produces22.997 instead of source0/5
+  over this fixture window. No numerical assertion change or extra NPC driver.
+  Client acceptance remains open; logs remain external.
+
+
+### Restore delivered Rocket Punch collision completion
+
+- Apply source0007's actual-progress obstruction test to the existing Punch
+  collision host. A capsule still creeping along contact skin is reported as
+  blocked when progress is below half the requested step, without changing the
+  collision engine or its tolerances.
+- Feed arrival/obstruction into authored0D06 lifetime Wait5 as ordinary FINISH;
+  its existing branches retire movement/forced modifiers and retain recovery
+  and cooldown. The pose callback accepts an actual runtime State. Keep012F's
+  completed Dash history and expose active native drives in0007 fixtures.
+- All23 original Punch/wall/ordinary-hit checks pass, including four ordinary
+  hit scenarios, unchanged heading, inactive VM movement and an exactly stable
+  stopped pose ten ticks later. Original012F's21 history/cooldown checks remain.
+- Combined Cross17/Mutual10/shared98 run125: remaining8 subfailures and9 errors
+  all belong to existing Brigitte scenarios; no other failures occur. Preserve
+  all1399 original assertions and unchanged Constants; raw getter AST adapts to
+  actual current state. Logs remain external; client acceptance stays open.
+
 
 ### Restore Pulse Bomb current-source retirement boundary
 
@@ -200,6 +266,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   hosts remain separate owners. Cross-owner3EBB record equivalence still needs
   audit (Orisa currently emits empty detail arrays); whole0006 completion and
   original-client acceptance are not claimed.
+
 
 ### Mount delivered Molten Core projectiles, areas and status consumers
 
@@ -8129,3 +8196,36 @@ client operations performed. Whole nonappearance integration remains active.
   real damage/control TypeErrors and later six numeric-vs-dictionary subcase
   failures were reproduced and resolved, not ignored. Evidence:
   parallel-b17-c19-shield-consumers-check.log. No client/publication operations.
+
+
+### Preserve NPC foreign-variable consumers in one method
+
+- AST audit found the final non-property duplicate method: BotWorld.entity_var.
+  Merge the overwritten Heavy9161/Assassin foreign-variable consumers into the
+  active Song/manual-Assassin implementation. Preserve manual target's live
+  player checks and unknown fallback; no duplicate VM/controller or source alias.
+- Actual Heavy reads both live9161 values through the restored consumer. NPC
+  control/Lucio control27 run25 pass and2 optional input skips. Repository AST
+  audit now finds no duplicate definitions except intentional property setters.
+  Evidence: parallel-root-npc-foreign-var-probe.log and
+  parallel-root-npc-foreign-var-core-check.log.
+- Broader original NPC combat-state probe33 retains1 failure/1 error in the
+  separate CombatModFilter versus CombatDamageFilter registration/host contract,
+  with2 input skips; preserve original expectations for later provider merge.
+  It does not gate the completed actual foreign-variable code submission.
+
+
+### Retain original projectile catalog queries and storage checks
+
+- Restore original deflection BUILD/TAGS_PATH input identities and immutable
+  ProjectileTags.absorbable API using the existing0145 tag policy and blob.
+  No new loader or query-time file read. Source Widow snapshot fixture now
+  writes the actual registered projectile_tags member rather than creating an
+  unused projectile_catalog attribute; original literal expectations remain.
+- Original catalog/actual-byte snapshot/reflected-flight storage4 all pass.
+  Broader A25 Deflect/Matrix/snapshot/shared84 had2 missing API errors repaired
+  here and2 retained source ammo/cadence expectations (174/144 vs187/157).
+  The actual clock guard work remains worker A's separate consumer batch.
+  Evidence: parallel-root-widow-catalog-storage-check.log and
+  parallel-a25-venom-shared-check.log. Do not count partial owner intake as
+  all-source completion. Original client/publication operations not performed.

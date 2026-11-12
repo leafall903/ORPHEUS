@@ -750,3 +750,12 @@ only dva_body/zarya/sigma identity imports point to actual current hosts.
 A28 owner reconciliation checkpoint: current seven-owner map moved to the top
 of this document, superseding chronological next-actions. Latest source code
 boundary isbd8f0a37; no production code changed in this documentation batch.
+
+### New root-directed cross-owner handoff after A28
+
+Clean sync: canonical a7728f76 absorbed after7c014166; retain all root shield,
+charge, catalogue and replay fixes. Root requests actual3EBB Adaptive Shield loss
+policy for Genji/Orisa from source0006. Existing _damage already measures the
+same real Vitals.extra pool loss for Torb/Moira. Orisa existing012 packet still
+sends empty0x624; Genji existing generic gain receives full dealt. Restore those
+single hosts without another012, passive/profile change or Fortify replacement.

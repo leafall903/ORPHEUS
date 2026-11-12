@@ -409,6 +409,14 @@ class InstanceContext(Context):
         )
 
         component = self.instance.component
+        if (not component.strict and component.world.hero == 0x02E0000000000016
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x157C):
+            from ow174.game import symmetra
+
+            result = symmetra.target_query(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         if (not component.strict and component.world.hero == 0x02E0000000000006
                 and getattr(component.world, "body_definition", None) is not None
                 and self.instance.graph.index == 0x0B8B):

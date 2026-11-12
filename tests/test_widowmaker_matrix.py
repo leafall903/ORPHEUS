@@ -155,10 +155,10 @@ class MatrixCatalogSnapshotTests(unittest.TestCase):
         fight = player.match.combat
         data = {"version": 1, "build": deflection.BUILD,
                 "entities": {"0x040000000000004C": []}}
-        fight.projectile_catalog = deflection.ProjectileTags(json.dumps(data).encode())
+        fight.projectile_tags = deflection.ProjectileTags(json.dumps(data).encode())
         first = snapshot_digest(case.capture(session))
         data["entities"]["0x040000000000004C"] = ["0x0D60000000000145"]
-        fight.projectile_catalog = deflection.ProjectileTags(json.dumps(data).encode())
+        fight.projectile_tags = deflection.ProjectileTags(json.dumps(data).encode())
         original = Path.read_bytes
 
         def guarded_read(path):
