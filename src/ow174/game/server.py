@@ -782,10 +782,12 @@ class Client:
             mine = match.combat.ball_mines.devices.get(entity)
             script = mine.body_script if mine is not None else None
         if script is None and match.combat is not None:
-            from ow174.game import orisa_presentation, reinhardt_presentation
+            from ow174.game import orisa_presentation, reinhardt_presentation, sigma_presentation
             script = reinhardt_presentation.projection(match.combat, entity)
             if script is None:
                 script = orisa_presentation.projection(match.combat, entity)
+            if script is None:
+                script = sigma_presentation.projection(match.combat, entity)
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
         if bot is None and script is None:

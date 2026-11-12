@@ -305,7 +305,7 @@ class Shot:
     release_at: int | None = None  # the tick of the release and destroy
     field_ids: dict[tuple[int, int | None], int] = field(default_factory=dict)  # (viewer slot, parent) -> id
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
-    authoritative: bool = False  # server-authored Orisa flights without prediction leases
+    authoritative: bool = False  # server-authored flights without prediction leases
     field_due: int | None = None
     field_tick: int | None = None
     field_airborne: bool = False
@@ -408,8 +408,14 @@ class Projectiles:
     ) -> Shot | None:
         """Register a volley projectile on the owner and observer paths that apply to its source."""
         npc = isinstance(player, bots.Bot)
-        authoritative = (not npc and player.hero.guid == 0x02E000000000013E
-                         and state.instance.graph.index in (0x0BD4, 0x0CCB, 0x0BD7))
+        sigma_rock = ((state.instance.graph.index, state.node.pos, definition)
+                      == (0x1BBB, 9, 0x04000000000018B7)
+                      and not state.node.field("m_45271E8C")
+                      and _sync(state) == PREDICTED)
+        authoritative = (not npc and (
+            (player.hero.guid == 0x02E000000000013E
+             and state.instance.graph.index in (0x0BD4, 0x0CCB, 0x0BD7))
+            or (player.hero.guid == 0x02E000000000023B and sigma_rock)))
         if not authoritative and (_sync(state) != PREDICTED or (not npc and self.lease_id(player, definition, frame) is None)):
             return None
         spawned = _defs(state.node.field("m_49CBA3BC"))

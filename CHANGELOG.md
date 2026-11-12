@@ -72,6 +72,29 @@ post-expiry25 fragments/165 damage/25 notices. A small actual-flight probe found
 25 unique directions and15.7555-degree full angular span for primary and secondary
 fragments, with no remaining rockets after expiry. Client model/chain visibility
 still needs an in-game look; no complete acceptance matrix was run.
+## Sigma tank presentation repair
+
+Experimental Barrier now creates the original2D25 entity for each viewer and
+opens its H0 stream from the same1A2A component that owns existing collision and
+health. Position, team and health follow that actor; recall stays in the authored
+child graph, and replacing the owner retires the client entity.
+
+Accretion1BBB node9 is explicitly non-local-predicted. The old projectile admission
+required a prediction lease, silently leaving18B7 without client create/launch.
+Admit that exact original volley through the existing ACK-gated projectile
+consumer for owner and observers; reuse its impact release and retirement.
+Integration reuses Orisa authoritative admission and acknowledged owner readiness,
+keeping all Reinhardt, Orisa and Sigma projection consumers.
+No second combat VM, damage calculation or replacement model was added.
+
+Minimal v19 checks: barrier create/full-frame/production Client consumer/motion/
+recall/owner retirement; rock owner+observer create/launch/70damage/impact retire/
+primary recovery; authored rock timeout without damage; original37speed/18gravity
+trajectory; two-sphere airburst distribution and direct25+30 damage all pass
+(6 focused cases, two runs). A legacy direct-control assertion still indexes the
+old fight.stuns map and is not used as acceptance of the newer control host.
+Original-client shield/rock appearance, E animation recovery and hit effects still
+require the integration operator's visual confirmation.
 
 ## A108 — DVa accepted Booster force on the sole world replay host
 

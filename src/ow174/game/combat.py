@@ -2322,6 +2322,7 @@ class Combat:
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
         self.sigma_barriers: dict[int, sigma_barrier.Barrier] = {}
+        self.sigma_barrier_wire: set[int] = set()
         self.reinhardt_geometry = reinhardt_barrier.configured_geometry()
         self.reinhardt_barriers: dict[int, reinhardt_barrier.Barrier] = {}
         self.walls = mei_wall.Walls(self)

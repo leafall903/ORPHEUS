@@ -328,6 +328,9 @@ def update_barriers(combat):
                 barrier.instance.write(expr.lvalue(state.node.field("m_B3019338")), expr.Entity(0))
             continue
         barrier.update(combat)
+    from ow174.game import sigma_presentation
+
+    sigma_presentation.sync(combat)
 
 
 def barrier_intersection(combat, shooter, origin, direction, reach):
