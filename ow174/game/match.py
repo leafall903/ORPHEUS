@@ -1764,6 +1764,7 @@ class Match:
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
+        self.combat.junkrat.charge.attach(player)
         if player.hero.guid == 0x02E000000000007A:
             from ow174.game import body_entities
 
@@ -1778,6 +1779,7 @@ class Match:
             body_entities.release_control(player)
         script = player.body_script
         if script is not None:
+            player.match.combat.junkrat.charge.detach(player, body=script.entity)
             bodytrace.stopped(player, script)
             initial = script.stream.initial_owner
             if initial is not None and player.client is not None:
@@ -1996,6 +1998,8 @@ class Match:
         old = player.body if player.has_body else None
         from ow174.game import hero_torbjorn, lucio, torbjorn_charge
 
+        if old is not None:
+            self.combat.junkrat.charge.prepare_replacement(player, hero)
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
         overload_cooldown = turret_cooldown = 0.0
@@ -2077,6 +2081,7 @@ class Match:
         chat goes), and the match ends with its last player."""
         if player.gone:
             return
+        self.combat.junkrat.charge.forget(player)
         self.notices.left(player)
         player.gone = True
         player.retained_ult_charge = None
