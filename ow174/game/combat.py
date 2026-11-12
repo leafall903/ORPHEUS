@@ -4884,9 +4884,9 @@ class Combat:
             range_left = reach if field_spec is not None or grenade is not None else None
             barrage = (not npc and shooter.hero.guid == 0x02E0000000000008
                        and (state.instance.graph.index, state.index) == (barrage_motion.GRAPH, barrage_motion.STATE))
-            motion = ()
+            curve_motion = ()
             if barrage:
-                direction, motion = barrage_motion.launch(state, activation[0], number, direction)
+                direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
             if reach and range_left is None and not field_canister and not barrage:
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
@@ -5018,7 +5018,7 @@ class Combat:
                         damage_charge=charge_context,
                         charge_eligible=not (barrage or (not npc and shooter.hero.guid == BASTION
                                              and source_graph == 0x024F)),
-                        motion=motion, deflect_lifetime=lifetime if barrage else None,
+                        motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
@@ -5982,10 +5982,9 @@ class Combat:
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
+            rocket.source_entity = struck.entity
             if rocket.is_barrage:
                 rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
-            if getattr(rocket, "pulse_bomb", False):
-                rocket.source_entity = struck.entity
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
             for name in ("direct", "blast"):
                 definition = getattr(rocket, name)

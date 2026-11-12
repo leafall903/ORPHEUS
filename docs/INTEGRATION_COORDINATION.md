@@ -174,7 +174,7 @@ tags from hero-lanes/006E/prepared/projectile_tags_174.json explicitly selected.
 
 C9 `e9849f58` is received by the merge named `merge: receive worker C Pharah
 impulses and tagged curves`. The explicit is_barrage marker separates the
-seven-field sampler from Echo's existing one-field motion payload. All30
+seven-field sampler from unrelated sticky motion configuration. All30
 Pharah impulse/curve/reflection/physics checks and six Echo checks passed;
 preserve two original Echo damage/copied-charge differences. The parser
 exceptions are resolved, without deleting either motion implementation.
@@ -245,3 +245,31 @@ hook mover reuse, retaining root's attack_mode/reposition cleanup. Root keeps
 NPC input/navigation ownership. Do not mount a second Roadhog controller; B
 owns0040. This ownership change is explicitly coordinated to preserve existing
 shared behavior while the remaining NPC impulse checks are reconciled.
+
+## Root Echo reconciliation
+
+Actual damage tracing found six direct5 hits and six incorrectly halved12.5
+blasts. The normal reflection handoff updated source_body but only updated
+source_entity for Pulse Bomb. Root now transfers both for all normal reflectors,
+restoring the frozen Echo full hostile blast behavior. Separating curve_motion
+from the existing sticky gravity loop also removes the accidental config payload
+introduced when the new Barrage local reused the loop variable name. Echo's
+gravity implementation remains the original existing path; this was not an
+additional Echo curve sampler to retain. All29 original cross-hero reflection/
+Helix/curve checks pass after the repair; original assertions are unchanged.
+
+The remaining copied-Genji718 versus663 assertion has precise read-only evidence
+in `parallel-root-echo-copied-charge-audit.log`: damage awards331.5 twice and
+eleven neutral5-point grants. The original Genji profile uses ult_seconds0 as
+its authored-passive default and explicitly enables2426; it is not the older
+Echo fixture's generic debug-fill toggle. Keep both original implementations
+and the original assertion. This profile difference is not resolved by disabling
+the delivered Genji passive or weakening the Echo numeric expectation.
+
+Long StoredJournal/model-fingerprint checks must run against a frozen committed
+tree. Worker C's70-check full snapshot run retained2 failures/10 errors/3 skips,
+including three ManifestMismatch errors caused by continued code changes during
+the run; those three are not evidence of an implementation defect. Retain the
+rest for consumer audits, without treating this moving-tree run as full acceptance
+or blocking implementation commits. Root's focused immutable captures remain
+separate evidence; avoid rerunning the43-minute group on an actively edited tree.

@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile reflected projectile ownership with original Echo behavior
+
+- Hand authoritative source_entity to every normal reflector alongside shooter,
+  team and source_body. Reflected Echo stickies previously kept their original
+  Echo source and incorrectly applied self_scale0.5 against that now-hostile
+  player: all six25-point blasts became12.5. Preserve the original full enemy
+  damage and the existing self-damage policy for the current projectile owner.
+- Keep the Barrage curve local separate from the sticky gravity-config loop;
+  unrelated projectiles no longer store that loop's final config as a curve.
+  The explicit Barrage marker, gravity and reflected budget remain intact.
+- All29 original Echo sticky/Helix/Doomfist/Pharah curve/reflection checks passed.
+  The unchanged copied-Genji charge assertion still differs718 vs663. Read-only
+  per-command auditing proves two correct331.5 damage awards plus eleven5-point
+  grants from the already hosted Genji0B8B normal passive profile. Retain the
+  old assertion and both implementations; do not suppress that passive solely
+  to reproduce the older Echo fixture's zero-debug-fill assumption.
+
 ### Retain delivered Pharah charge, flight and source sight consumers
 
 - Preserve the original charge, flight-boundary and rocket-edge suites unchanged.
