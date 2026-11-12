@@ -109,6 +109,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Keep retained Heavy damage calls compatible with the shared API
+
+- Preserve the original three support-module tag expressions using the current
+  hit_tags parameter. Three call contracts validate and eight damage checks pass.
+- This support module is not the current NPC damage driver; actual Heavy/Bastion
+  capture and motion differences remain under audit without a second manager or
+  claims of gameplay completion. Client acceptance remains open.
+
 ### Integrate original phase expiry into Sentry history
 
 - Feed actual Wraith/Fade expiry from their existing clock pairs to the existing
