@@ -290,3 +290,15 @@ Jump Pack and Primal strikes`; all78 original Winston/runtime checks and all19
 shared command/epoch/handoff checks passed after the generic transition merge.
 The source Jump/Primal controllers reuse existing collision, knockback and
 WorldBubble services; only Winston selects the source command horizon.
+
+Root's additional original Ana reflection audit found a second real cross-owner
+retirement conflict: generic cleanup deleted detached reflected rounds, and
+Genji/D.Va cleanup erased every current-shooter projectile. Preserve independent
+incoming reflected flights while retaining Genji0304's delivered own-family
+teardown and ordinary D.Va cleanup. Six unchanged Ana/Genji/D.Va/Echo lifecycle
+checks pass, including retired deflector killer identity. The broader original
+Ana13 run now retains two50-versus-prepared60 grenade failures and three old
+healing_boost_until observation errors; leave every assertion intact. Evidence:
+parallel-root-projectile-family-retirement-check.log and
+parallel-root-ana-retirement-final-audit.log. Prepared Spec.load reports60 damage,
+100 healing; do not overwrite original prepared graphs to force old50 values.

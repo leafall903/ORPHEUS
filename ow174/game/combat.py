@@ -2123,6 +2123,7 @@ class Combat:
         self.rockets[:] = [
             rocket for rocket in self.rockets
             if rocket.shooter is not player
+            or (rocket.reflected and rocket.shot is None)
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
@@ -2136,7 +2137,14 @@ class Combat:
             if not sources:
                 del self.genji_assists[victim]
         if player.hero.guid in (0x02E0000000000029, 0x02E000000000007A):
-            self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not player]
+            # Retain foreign reflected rounds and Genji's delivered0304 teardown.
+            self.rockets[:] = [
+                rocket for rocket in self.rockets
+                if rocket.shooter is not player or (
+                    rocket.reflected and rocket.source_graph is not None
+                    and not (player.hero.guid == 0x02E0000000000029 and rocket.source_graph == 0x0304)
+                )
+            ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
 
     def record_replacement(self, body: int) -> None:
