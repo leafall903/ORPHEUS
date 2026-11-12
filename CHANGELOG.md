@@ -53,6 +53,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original controller effect wire emission, manual Assassin recipient/coupling
   and PinEffectServices stored callbacks remain the next root integration batch;
   the independent empty VM core is mounted without claiming that scope complete.
+### Reconcile delivered Recall protection contracts
+
+- Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
+- Current original both-phase immunity and actual Dart playback/expiry checks pass; full AnaRecall group7pass/2known conflicting failures. No runtime or client behavior changed in this audit.
+
+### Bind original BOB no-launch checks to the real force host
+
+- Original corpse/head-on no-force assertions now inspect the existing Knockbacks active host, retaining assertion intent and original numerical checks without a compatibility queue.
+- Selected lifecycle/cooldown10 methods reached8 passes and old-observer errors in two methods; the two corrected entry methods now pass both cast orders. No production behavior or client acceptance changed.
+
+### Retain original BOB control expectations on the sole Frost host
+
+- Save real-host spray/Blizzard checks alongside the original table-based fixtures, reading actual Frost deadlines without compatibility state. Preserve original damage, exact thaw resume and fixed lifetime assertions.
+- Native-host sleep/spray/Blizzard methods all pass (3 methods, including both contiguous/skipped sleep paths). No production behavior changed; original observer differences remain recorded, client acceptance not run.
 
 ### Preserve NPC control interruption through Photon guards
 
@@ -78,6 +92,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Route original Sombra device effects into existing summoned actors
+
+- Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,
+  using original device tags and live endpoint owner slots. Same entities/Vitals;
+  Sentry locks stop beam/slow and endpoint locks block PortalPair interaction.
+- Real10-second Torb/Sentry Hack probes and near/remote PortalEMP relay pass;
+  original device/shared32 and control/charge43 all pass. No oldprototype manager
+  aliases or copied pools. Fulllegacy fixture/retirement boundaries remain recorded.
+
 ### Refresh original Hack receiver graph lifetimes on EMP
 
 - Apply the original recipient graph replacement before the existing PlayScript
@@ -9877,3 +9900,42 @@ run the remaining original Mine lifetime/source-property and status/EMP checks
 against the sole Controls service. Audit source component-key/filter context,
 gap expiry and overlapping real EMP applications; then finish Ball cross-hero
 control/physical boundaries. No complete Ball/7-line merge claim.
+
+
+### B45 — original Minefield lifetime and EMP source context
+
+- Restored the exact source MineWorld0B1F/node19 alive-source condition on the
+  actual Mine Component. Without this callback the foreign source condition
+  cleared8912 before its authored duration; no second EMP manager was introduced.
+- Existing sole Controls now computes only actual Mine locks from their actual
+  application.start plus original duration milliseconds. Mine Components are
+  born in world tick domain; their VM entry cursor may be frame-end+15ms.
+  Other body/NPC/device lock clocks are unchanged. Preserve C42 Bot/Sentry
+  adaptations when merging the same apply_devices region.
+- Restored9 original Mine lifecycle/status methods and the original real EMP
+  cast helper against composed graphs/sole Controls. Only module/constant API
+  names changed (sombra_control.HERO/PULSE/EFFECT/EMP); no fake sombra_emp module,
+  substituted provider or numerical expectation was added. Original assertions
+  remain identical after that explicit name mapping.
+- v17:9run8pass1fail. Passed actual flight EMP through landing; allied/wall/range
+  exclusions; disabled-mine rifle destruction; creator0/.5/2 lifetime values;
+  infinite lifetime; live0/.5/1 knockback values; original tick-gap native fade;
+  overlapping actual EMPs keep the mine disabled until the final deadline.
+- Original single-EMP deadline-1 still fails: after corrections the Lock remains
+  active until30.223 and effect.teardown remainsFalse, but run_frame(1888) reaches
+  frame-end30223 and the authored graph clears8912, allowing trigger at world
+  tick1888 (30.208), before the fixture's ceil deadline1889. This is an unresolved
+  VM/frame-boundary consumer discrepancy, not classified as merely observation.
+  Kept the original assertion; did not alter global run_frame or source values.
+- Shared runtime13 and actual paidEMP no-command expiry1 pass. An additional
+  source-replacement Sombra fixture retains missing test_game_sombra_grenade
+  import error; reported with the earlier C-owned NPC fixture boundary. Initial
+  split-fixture missing World/world/SOLDIER imports fixed without assert edits.
+- No original-client acceptance or complete Ball delivery claim. Logs remain in
+  external worker-b-ball-mine-lifecycle-2/emp-destroy-2/expiry-shared files.
+
+Next exact action: continue original Mine component-key/filter/source queries,
+phase/Cryo/Transcendence/bubble admissions and endpoint causal ordering. Keep the
+single-EMP strict frame boundary visible; reconcile it only from original code,
+not by changing expectations. Then remaining Ball control/physical/source tests,
+followed by the large unaudited Hog/Zarya/Sigma owner consumers.

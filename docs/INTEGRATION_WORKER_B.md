@@ -973,3 +973,43 @@ run the remaining original Mine lifetime/source-property and status/EMP checks
 against the sole Controls service. Audit source component-key/filter context,
 gap expiry and overlapping real EMP applications; then finish Ball cross-hero
 control/physical boundaries. No complete Ball/7-line merge claim.
+
+B44 delivered SHA: `d06c74a3`.
+
+### B45 — original Minefield lifetime and EMP source context
+
+- Restored the exact source MineWorld0B1F/node19 alive-source condition on the
+  actual Mine Component. Without this callback the foreign source condition
+  cleared8912 before its authored duration; no second EMP manager was introduced.
+- Existing sole Controls now computes only actual Mine locks from their actual
+  application.start plus original duration milliseconds. Mine Components are
+  born in world tick domain; their VM entry cursor may be frame-end+15ms.
+  Other body/NPC/device lock clocks are unchanged. Preserve C42 Bot/Sentry
+  adaptations when merging the same apply_devices region.
+- Restored9 original Mine lifecycle/status methods and the original real EMP
+  cast helper against composed graphs/sole Controls. Only module/constant API
+  names changed (sombra_control.HERO/PULSE/EFFECT/EMP); no fake sombra_emp module,
+  substituted provider or numerical expectation was added. Original assertions
+  remain identical after that explicit name mapping.
+- v17:9run8pass1fail. Passed actual flight EMP through landing; allied/wall/range
+  exclusions; disabled-mine rifle destruction; creator0/.5/2 lifetime values;
+  infinite lifetime; live0/.5/1 knockback values; original tick-gap native fade;
+  overlapping actual EMPs keep the mine disabled until the final deadline.
+- Original single-EMP deadline-1 still fails: after corrections the Lock remains
+  active until30.223 and effect.teardown remainsFalse, but run_frame(1888) reaches
+  frame-end30223 and the authored graph clears8912, allowing trigger at world
+  tick1888 (30.208), before the fixture's ceil deadline1889. This is an unresolved
+  VM/frame-boundary consumer discrepancy, not classified as merely observation.
+  Kept the original assertion; did not alter global run_frame or source values.
+- Shared runtime13 and actual paidEMP no-command expiry1 pass. An additional
+  source-replacement Sombra fixture retains missing test_game_sombra_grenade
+  import error; reported with the earlier C-owned NPC fixture boundary. Initial
+  split-fixture missing World/world/SOLDIER imports fixed without assert edits.
+- No original-client acceptance or complete Ball delivery claim. Logs remain in
+  external worker-b-ball-mine-lifecycle-2/emp-destroy-2/expiry-shared files.
+
+Next exact action: continue original Mine component-key/filter/source queries,
+phase/Cryo/Transcendence/bubble admissions and endpoint causal ordering. Keep the
+single-EMP strict frame boundary visible; reconcile it only from original code,
+not by changing expectations. Then remaining Ball control/physical/source tests,
+followed by the large unaudited Hog/Zarya/Sigma owner consumers.

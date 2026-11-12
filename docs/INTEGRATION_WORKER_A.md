@@ -1425,3 +1425,7 @@ Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/
 ## Clean synchronization after A62
 
 Absorb intake d7139d1a: original shared PlayerController/filter lifecycle and its source fixture, C41/C42 lock/device consumers, Ball Mine factory/damage, strict storage/replay arithmetic identity. Only changelog union conflict; retain both entries. Actual owner source policies preserved; no external runtime/base writes. Next verify only newly composed owner status/controller boundaries, avoiding duplicate broad acceptance passes.
+
+## A64 shared-controller assignment and clean synchronization
+
+Root reassigned original0200 remaining000E dynamic owner/effect wire/manual Assassin/LinkedTarget/Pin causal storage after the nine-core boundary. Absorb stable canonical/intake6d51297b, only changelog union conflict; keep both ControllerWorld and MineWorld exact storage branches, every current codec and scalar replay profile. Root owns intake reception only for this shared task. C43 owns LogicalButton/body_button/ability gates; do not duplicate it. First independent batch: optional original dynamic/bound-var owner-full encoder, default16 combination bit equivalence captured before changes externally.

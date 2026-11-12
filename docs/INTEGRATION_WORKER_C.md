@@ -1606,3 +1606,82 @@ Sentry still lacks its originaldisablebeam bridge; PortalPair uses actual
 fight.portals/Bot endpoints). Body source-retirement/incoming clock helper remains
 unmounted; no equal-epoch assumption will be introduced to close oldfixtures.
 C40 retained actual Wait input history andC39 base lifetime remain unchanged.
+
+
+## C42: actual actor-backed Torb, Sentry and Portal device receivers
+
+Replaced optional legacy torbjorn_turrets/symmetra_sentries/symmetra_portals
+consumer lookup with actual fight.turrets actors, fight.sentries.sentries Bot
+and fight.portals PortalPair endpoints. Character targeting/body invocation now
+excludes those actual devices; attached Sentry eligibility retained. Original
+Torb34/Sentry36F/Portal417+60A/2EC metadata applies only to those actual actors
+and selected0B1F/0B32 queries, not a global character-tag implementation. Existing
+ball_mines sole manager path including flightEMP and Baptiste device path retained.
+B44 adds Mine exclusion andB45 preciseMine-only expiry on root; preserve both
+those predicates/expiry when receiving C42 (C42 does not change Lock.until).
+
+Existing receiver cache uses actual Bot.body_script.component when present,
+not a second DeviceWorld VM. Same actor/entity/Vitals/team; no manager alias,
+new actor, pool or source data. Oldbody entry loop excludes known device bindings,
+so application delivered once. Actual Sentry lock clears its existing slow/aura
+and existing Turrets.update skipsbeam; actual PortalPair interaction rejects
+locked endpoints. Torb already had actual soleLocks fire gate, preserved.
+
+Original endpoint tags/slots copied as readonlymetadata into actualPortals.
+endpoint_pair/endpoint_owner expose existingpair and present original ownerVM;
+no guessed owner after sourcebody retirement. Actual0B32 possessed-owner selectors
+read that existingcomponent; BotWorld only original1624/1625 foreign slot bridge
+returns the actualpublished Var when endpoint identity agrees. Other NPC,
+controller, Archives andDVa slot routes unchanged; unknownreturnsNotImplemented.
+Owner runtime body native and existingEMP drain use actual Vitals, not copied
+endpoint shield storage. Parent explicitly authorized narrowBotWorld bridge.
+
+Three actual fixture-driven probes on v16:
+- TorbjornTurretTests().arena(), switch enemySombra, warm50, place relative to
+ actual turret pose, aim realtarget midpoint, originalbutton2 untilapplication:
+10sec/8912True/faultNone; Lock.application.component is actor.body_script.component.
+ worker-c-sombra-turret-actor-positioned-probe.log.
+- SentryTests.setup_arena/launch with originalwall(), switch enemySombra and
+warm50; use TeleporterTests.place to synchronize actualphysicalBody outside
+10m beam butinside15mHack. Originalbutton2 gives10sec/sameactualcomponent/faultNone.
+Move back to(2,1,1) through samephysicalBody,80worldticks HP200stays200 andslowNone.
+ worker-c-sombra-sentry-actor-physical-probe.log. Old8912observer isNone for this
+ actualSentry; do not claim originalAnaDevice allasserts passed or fake that var.
+- TeleporterTests.deploy(), enemySombra(4,0,0), warm50, paidEMP +35ticks:
+ near entrance shield250->0; remote29.5m endpoint shield250unchanged but both
+ endpoint originalowner-slot relay locks10sec, same Botcomponents/faultNone.
+ Actualowner interaction remains atz0 whilelocked.
+ worker-c-sombra-portal-actor-probe.log. Physical/real graphs, no injected locks.
+Earlier probe mistakes retained: assumed zero-origin whileactualTorb mapspawn
+(54.5654,1,43.6475); Sentry cast withinbeam interrupted bydamage, and later raw
+position edits were overwritten by livephysicalBody because teleport was omitted.
+These invalid setups are not feature/test failures or claimedpassing evidence.
+
+Original32 allpass12.729s: threeSentryTests launch_attach_boot_damage_slow_and_real_movement,
+actual_sentry_damage_credits_its_living_owner,three_beams_stack_slow_and_each_retirement_removes_only_its_effect;
+TeleporterTests confirm_creates_two_authored_bodies_and_owner_can_use_both_ways,
+pair_survives_actual_owner_death_and_dead_owner_cannot_use_it,
+owner_leave_and_hero_switch_remove_both_endpoints;
+TorbjornTurretTests build_then_actual_turret_fire_credits_owner,
+owner_death_preserves_turret_but_hero_change_retires_it;
+ test_game_npc test_game_script_runtime -v. v16 + originalTorbfixture marker to
+existingcanonicalbase, additive supplement remainsselected.
+worker-c-sombra-actor-device-shared-check.log.
+
+Control regression exact python -B -m unittest
+ test_game_sombra_charge.SombraChargeTests test_ashe_hack
+ test_ashe_emp.AsheEmpTests.test_emp_refreshes_the_lock_from_its_own_impact_after_ordinary_hack
+ test_ashe_emp.AsheEmpTests.test_emp_blocks_abilities_without_suppressing_viper_and_releases_at_expiry
+ test_game_sombra_combat.SombraCombatTests.test_paid_emp_matches_pulse_and_expiry_with_no_player_commands
+ test_script_body_owner test_script_entity_filter -v:43allpass60.997s,
+worker-c-sombra-actor-device-control-check.log. No Python edits during finalgroups;
+parse/duplicate-method/diff audits clean. Original fixtures/asserts unmodified.
+No client/network validation. No fullAnaDevice acceptance claim; oldprototype
+fixtures/private observers still need realactor adaptation with assertions retained.
+
+Next C43: originalincoming application source-retirement/recipient-clock replay
+and broad ability/logicalbutton consumers, normalimport fullSombraEMP/control/
+grenade/NPC helpers with actual dependencies. Shareddevice retirement/ownerdeath
+and expiry may expose crossowner originalsource protocols; persist, do not gate
+functional commits. Symmretainedsentry/wall placement, Mei geometry and remaining
+Pharah/Bastion boundaries remain as previously recorded.
