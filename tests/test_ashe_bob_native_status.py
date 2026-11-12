@@ -49,3 +49,60 @@ class BobNativeSleepTests(unittest.TestCase):
                 self.assertEqual(actor.until, expiry)
                 self.assertFalse(fight.is_asleep(actor.bot))
         self.assertEqual(results, [[(0, 14), (7, 14), (15, 14)]] * 2)
+
+class BobNativeFreezeTests(unittest.TestCase):
+    def arena(self):
+        run, owner, mei, actor = bob_fixtures.BobTests().cast()
+        self.assertTrue(run.match.switch_hero(mei, find_hero('mei')))
+        mei.mover.position[:] = (0, 1, 7)
+        mei.mover.body = None
+        while run.frame < actor.ready + 12:
+            run.step({})
+        return run, owner, mei, actor
+
+    def test_spray_pauses_bob_until_actual_frost_deadline(self):
+        import test_ashe_frost as fixtures
+        case = fixtures.AsheFrostTests()
+        run, owner, mei, actor = self.arena()
+        fight = run.match.combat
+        for _ in range(120):
+            case.step(run, mei, actor.bot, cast=1)
+            if fight.frozen(actor.bot):
+                break
+        self.assertTrue(fight.frozen(actor.bot))
+        self.assertEqual(fight.vitals[actor.bot.entity].total, 1200 - 30 * 2.75)
+        self.assertLess(fight.vitals[owner.body].total, 200)
+        deadline = fight.frost_hits[actor.bot.entity].frozen_until
+        shots, expiry, health = actor.shots, actor.until, fight.vitals[mei.body].total
+        while run.frame < deadline - 1:
+            case.step(run, mei, actor.bot)
+            self.assertEqual(actor.shots, shots)
+        self.assertEqual(fight.vitals[mei.body].total, health)
+        case.step(run, mei, actor.bot)
+        self.assertEqual(actor.shots, shots + 1)
+        self.assertEqual(fight.vitals[mei.body].total, health - 14)
+        self.assertEqual(actor.until, expiry)
+        self.assertFalse(fight.frozen(actor.bot))
+
+    def test_blizzard_pauses_bob_without_extending_lifetime(self):
+        import test_ashe_blizzard as fixtures
+        case = fixtures.AsheBlizzardTests()
+        run, owner, mei, actor = self.arena()
+        fight = run.match.combat
+        fight.vitals[mei.body] = combat.Vitals(mei.body, 10000)
+        case.launch(run, mei, actor.bot.position)
+        area = case.landed(run)
+        while not fight.frozen(actor.bot) and run.frame * 16 < area.ends:
+            run.step({})
+        self.assertTrue(fight.frozen(actor.bot))
+        deadline = fight.frost_hits[actor.bot.entity].frozen_until
+        shots, expiry = actor.shots, actor.until
+        self.assertGreater(shots, 0)
+        while run.frame < deadline - 1:
+            run.step({})
+            self.assertEqual(actor.shots, shots)
+        run.step({})
+        self.assertEqual(actor.shots, shots + 1)
+        self.assertEqual(actor.until, expiry)
+        case.finish(run, area)
+        self.assertAlmostEqual(fight.vitals[actor.bot.entity].total, 1115)
