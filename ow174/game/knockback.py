@@ -70,7 +70,8 @@ class Knockbacks:
         owner = target.owner
         match = self.combat.match
         if isinstance(owner, bots.Bot):
-            if owner not in match.bots or owner.entity != target.entity or owner.dead:
+            if (owner not in match.bots or owner.entity != target.entity or owner.dead
+                    or self.combat.junkrat.rooted(target.entity, max(match.tick, impact_frame or 0))):
                 return False
             frame = max(match.tick, impact_frame or 0) + 1
         else:

@@ -18,6 +18,8 @@ from pathlib import Path
 
 from ow174.game import symmetra_portals, symmetra_turrets
 from ow174.game import (
+    assassin_controller,
+    enforcer_controller,
     combat_profiles,
     junkrat,
     junkrat_charge,
@@ -77,7 +79,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_contr
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
-from ow174.game.commands import CommandQueue
+from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
@@ -256,6 +258,8 @@ FIELDS = {
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
                                    "lookup watch_environment watch_possession retired lookup_linked lookup_participant watch_possessor"),
     runtime.World: _names("hero mode"),
+    enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
+    assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -284,9 +288,10 @@ OPTIONAL_FIELDS = {
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction valkyrie_pose"),
     npc_navigation.Navigator: _names("charge_contact"),
-    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
+    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    Command,
     combat_profiles.Profiles,
     junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
     entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,

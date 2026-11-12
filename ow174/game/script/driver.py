@@ -1848,10 +1848,11 @@ class BodyWorld(runtime.World):
         return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
 
     def confirm_placement(self, state):
-        if self.match is not None and state.instance.graph.index == 0x1571:
-            portals = getattr(self.match.combat, "portals", None)
-            if portals is not None:
-                return portals.confirm(self, state)
+        if self.match is not None:
+            if state.instance.graph.index == 0x1571:
+                return self.match.combat.portals.confirm(self, state)
+            if state.instance.graph.index == 0x156B:
+                return self.match.combat.photon_barriers.confirm(self, state)
         return NotImplemented
 
     def placement_clock(self, state):
@@ -2597,6 +2598,8 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.world.match is not None and self.world.match.combat.junkrat.tire.busy(self.entity):
+            return 0.0
         if self.hero == 0x02E000000000000A:
             from ow174.game import widowmaker
 
@@ -2657,6 +2660,9 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+
+        if self.world.match is not None and self.world.match.combat.junkrat.tire.busy(self.entity):
+            return
 
         if self.hero == mei.HERO:
             if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):

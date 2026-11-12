@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
+from ow174.game import actors
 from ow174.game.collision import NOT_GROUND
 from ow174.game.commands import JUMP, Command
 from ow174.game.mover import REPEAT, WORLD_GRAVITY, Mover, MoverData, statescript_mods
@@ -93,11 +94,8 @@ def wall_climb_profile():
     return WallClimb(*values)
 
 
-@dataclass
-class Tire:
-    entity: int
-    creator: object
-    source: int
+@dataclass(kw_only=True)
+class Tire(actors.Deployable):
     script: object
     instance: object
     ability: object
@@ -117,6 +115,14 @@ class Tire:
     climbing: bool = False
     retreat: tuple[tuple[float, float, float], float, int] | None = None
     last_retreat_tick: int = 0
+
+    @property
+    def creator(self):
+        return self.owner
+
+    @property
+    def source(self):
+        return self.source_body
 
 
 class TireSystem:
@@ -224,12 +230,17 @@ class TireSystem:
         drive_instance.node_state(profile.node(23)).begin()
         mover.track_mods(statescript_mods(drive_component), self.combat.tick - 1)
         tire = Tire(
-            entity, player, player.body, script, instance, ability, mover, Vitals(entity, health),
-            drive_tick, arm_tick, arm_tick + math.ceil(duration / TICK),
-            HitDef(maximum, loadout.guid if isinstance(loadout, expr.Asset) else None,
-                   rings=((inner, 1.0), (outer, minimum / maximum))),
-            float(ability.evaluate(instance.graph.node(19).field("m_timeout"), watch=False)),
-            replace(command, frame=self.combat.tick, right=0, forward=0), drive_instance, climb=climb,
+            entity=entity, definition=BODY, kind="junkrat-tire", team=player.team,
+            position=tuple(mover.position), health=health, radius=data.stand_radius,
+            height=data.stand_height, owner=player, source_body=player.body,
+            created_tick=self.combat.tick, expires_tick=arm_tick + math.ceil(duration / TICK),
+            script=script, instance=instance, ability=ability, mover=mover, vitals=Vitals(entity, health),
+            drive_tick=drive_tick, arm_tick=arm_tick, end_tick=arm_tick + math.ceil(duration / TICK),
+            blast=HitDef(maximum, loadout.guid if isinstance(loadout, expr.Asset) else None,
+                         rings=((inner, 1.0), (outer, minimum / maximum))),
+            recovery=float(ability.evaluate(instance.graph.node(19).field("m_timeout"), watch=False)),
+            controls=replace(command, frame=self.combat.tick, right=0, forward=0),
+            drive=drive_instance, climb=climb,
         )
         if near_body:
             # The static actor has no native associated companion for the 0232/98 check.
@@ -245,6 +256,7 @@ class TireSystem:
                     tire.retreat = destination, speed, self.combat.tick + math.ceil(window / TICK)
                     tire.last_retreat_tick = self.combat.tick
         self.actors[entity] = tire
+        self.combat.vitals[entity] = tire.vitals
         player.mover.velocity = (0.0, 0.0, 0.0)
         player.mover.throttles = (0, 0)
         script.set_ult_charge(0.0)
@@ -275,7 +287,7 @@ class TireSystem:
         for tire in self.actors.values():
             data = tire.mover.data
             yield Target(tire.entity, tire.creator.team, tuple(tire.mover.position), data.stand_height,
-                         data.stand_radius, 1.0, tire.creator, tire)
+                         data.stand_radius, 1.0, tire, critical_allowed=False, construct=tire)
 
     @staticmethod
     def set_drive_input(tire, slot, tick, *, entity=False):
@@ -384,6 +396,7 @@ class TireSystem:
                 tire.mover.step_pose(replace(command, frame=tick, buttons=buttons), TICK, tick)
                 tire.jump_pending = False
                 tire.last_move_tick = tick
+                tire.position = tuple(tire.mover.position)
                 tire.instance.write((0, 1735), 2)
         for entity, (player, script, _, _, end) in list(self.recovery.items()):
             if self.combat.tick < end and player.body == entity and not script.retired:
@@ -419,6 +432,9 @@ class TireSystem:
         from ow174.game.combat import TICK, Rocket
 
         self.last_result = reason
+        self.combat.vitals.pop(tire.entity, None)
+        self.combat.history.pop(tire.entity, None)
+        self.combat.replacement_ticks.pop(tire.entity, None)
         if tire.retreat is not None:
             tire.retreat = None
             if tire.creator.body == tire.source and tire.creator.body_script is tire.script:
@@ -439,7 +455,7 @@ class TireSystem:
             x, y, z = tire.mover.position
             rocket = Rocket(
                 tire.creator, tire.creator.team, (x, y + .6, z), (0, 0, 1), 0, 0, None, tire.blast,
-                source_entity=tire.source,
+                source_body=tire.source,
             )
             self.combat._explode(rocket, rocket.position)
         if not tire.instance.stopped:

@@ -624,3 +624,46 @@ or rounding precision changed. Root has no live tests or code WIP; all ready
 batches are committed and the three workers continue. NPC controller snapshot
 registration remains the next concrete root integration task; overall goal
 is active and incomplete.
+
+
+## Actual NPC target-controller storage boundary
+
+Root registers exact enforcer_controller.TargetWorld and
+assassin_controller.TargetWorld storage in both exporters, plus all five
+existing optional Bot controller attributes. The actual four-body producer
+uses existing JunkensteinControllerState/JunkensteinBehaviorBranch nodes with
+no additional fields; their exact layouts are registered while the original
+node-model/type validation remains in place. No getter, VM tick or allocation
+runs during export. Assassin Phase2World's separate SceneWorld storage remains
+pending; this boundary does not claim all five controller exports complete.
+
+The actual40tick Trooper/Enforcer/Sniper/Heavy probe now exports each component
+and the combined controlled GameServer (root-npc-target-storage-check.log).
+Targeted regression88747 is terminal:2 tests90.609s, both pass. It creates the
+four live controllers through original npc.spawn/acquisition, proves repeatable
+VM/server snapshots and selected-body sensitivity, guards against native/health
+getter execution, restores identical digests and confirms unknown fields are
+rejected by both exporters. Test fixture imported as module so discovery does
+not inadvertently re-run the entire unrelated snapshot class. Runtime assertions
+are unchanged. Next root boundary is full Phase2World scene/callback/revision
+storage, retaining original state rather than omitting it from snapshots.
+
+
+Root preserves the existing Sombra input/sleep-view filters and Recall hold before
+Trap's movement-only early return. The same restraint still keeps ordinary aim
+and attacks. The input suppressor already handles hard controls; its original
+logic is unchanged. Source order check25300 is terminal40run36pass3fail1skip,
+96.872s. Root movement/aim/fire/release and Sombra checks execute; retained
+Mei250vs170 follows the separately restored Cryo healing. Two source Ana/Tracer
+Recall failures (sleep before windup, lethal-contact old history) occur without
+Trap and remain unclassified source interoperability work assigned back to A,
+with original checks intact. Evidence root-trap-status-order-check.log.
+
+A35 source2585c856 received asdc09dd5d, A36 source0694099e as96190b4f, A37
+dbb9783f asd097ba29; B29 source4f480ed4 as2c6fb142. Movement pause conflict
+keeps both Frost and Trap deadlines. Original world-frame catchup, actual NPC
+restraint and source WorldBubble/Shatter consumers are preserved. Root created
+isolated verification/npc-controller-storage-root on integration/
+npc-controller-storage-root at2c6fb142 to continue Phase2 storage work while
+intake source stayed frozen for25300. No data/runtime copies. It currently has
+no code changes and must be inspected before reuse, not duplicated or removed.

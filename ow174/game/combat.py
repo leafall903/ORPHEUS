@@ -2432,7 +2432,8 @@ class Combat:
         pull = self.match.tick + 1 if entity in self.zarya_gravitons.pulled else 0
         frost = self.frost_hits.get(entity)
         frozen_until = frost.frozen_until if frost is not None else 0
-        return max(sleep, pull, frozen_until, self.stuns.get(entity, 0), self.source_control_deadline(entity))
+        root = max(self.junkrat.roots.get(entity, {}).values(), default=0)
+        return max(sleep, pull, root, frozen_until, self.stuns.get(entity, 0), self.source_control_deadline(entity))
 
     def damage_immune(self, owner):
         vitals = self.vitals.get(_source_entity(owner))
@@ -2680,8 +2681,9 @@ class Combat:
         if script is None:
             return
         component = script.component
-        from ow174.game import assassin, hanzo_control
+        from ow174.game import assassin, hanzo_control, photon_barrier
 
+        photon_barrier.interrupt(script)
         self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
@@ -3109,6 +3111,8 @@ class Combat:
                 and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
+        if command is not None:
+            self.junkrat.tire.begin(player, command)
         self.barriers.sync(player)
         if script.hero == sigma_barrier.HERO and not defer_effects:
             # The authored owner mode changed on this posed frame. Reuse the
@@ -3122,6 +3126,8 @@ class Combat:
         self.winston_jump.command(player, command, dead=self.is_dead(player))
         hero_torbjorn.overload(self, player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
+        if self.junkrat.tire.busy(player.body):
+            shots = [shot for shot in shots if shot[0].allows_dead()]
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
         if command is not None and reinhardt_charge.counter_frame(self, player):
@@ -3848,7 +3854,9 @@ class Combat:
                 continue
             a, b = shown.segment()
             if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
-                    and capsule_visible(self._collision(), origin, a, b, shown.radius)):
+                    and capsule_visible(self._collision(), origin, a, b, shown.radius,
+                        mesh_blocks=lambda point,direction,length: self.photon_barriers.trace(
+                            shooter,point,direction,length) is not None)):
                 if (deflections.blocks_melee(self, shooter, target, state, modify)
                         or self._genji_deflects(target, contact.direction)):
                     continue
@@ -3865,6 +3873,8 @@ class Combat:
 
         world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
         self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
+        self.photon_barriers.melee(shooter, origin, centre, radius,
+                                   amount * self.orisa.superchargers.scale(shooter))
         self.venom.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
@@ -4098,6 +4108,8 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        if self.tick and (self.junkrat.tire.actors or self.junkrat.tire.recovery):
+            first = retained
         for player in self.match.players:
             if player.hero.guid == symmetra_charge.HERO:
                 symmetra_charge.advance_idle(player, first - 1, round(TICK * 1000), before_combat=True)
@@ -4126,6 +4138,7 @@ class Combat:
             self.now, self.tick = previous_time, previous_tick
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
+        self.junkrat.advance_before(first, now, tick)
         field_first = self.tick + 1
         for at in range(field_first, first):
             canisters = [rocket for rocket in self.rockets
@@ -4368,7 +4381,7 @@ class Combat:
             if vitals.sleep_until and tick >= vitals.sleep_until:
                 vitals.clear_sleep()
         for table in (self.history, self.vitals, self.dragon_pose_anchors, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
-            for entity in [key for key in table if key not in current]:
+            for entity in [key for key in table if key not in current and self.junkrat.lookup(key) is None]:
                 del table[entity]
         for source, victim in list(self.pins.items()):
             if source not in current or victim not in current:
@@ -5631,6 +5644,13 @@ class Combat:
                                           if m.get("$") == "STU_E1A5B579"), blast,
                                       max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
                     return
+                if definition == junkrat.TRAP_PROJECTILE:
+                    self.junkrat.cast_trap(shooter, state, origin, direction, speed, lifetime,
+                                          sum(max(0.0, _number(state.evaluate(m.get("m_599AB8D7"), watch=False), 0.0))
+                                              for m in node.field("m_projectileMotions") or ()
+                                              if m.get("$") == "STU_E1A5B579"),
+                                          max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
+                    return
 
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
@@ -6544,7 +6564,10 @@ class Combat:
 
     def _expire(self, rocket: Rocket) -> None:
         if rocket.mine is not None:
-            self.junkrat.retire(rocket.mine)
+            if rocket.detonate_on_expiry:
+                self.junkrat.detonate(rocket.mine)
+            else:
+                self.junkrat.retire(rocket.mine)
             return
         rocket.ended = "expired"
         self._landed(rocket)
@@ -9429,6 +9452,7 @@ class Combat:
         self.knockbacks.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
+        self.junkrat.release_trap_victim(bot.entity)
         self.clear_pins(bot.entity)
         self.stuns.pop(bot.entity, None)
         self._end_npc_hit_reaction(bot.entity)
@@ -9505,6 +9529,7 @@ class Combat:
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
+            photon_barrier.interrupt(victim.body_script)
             self.primal_punches.interrupt(victim.body_script)
             self._winston_health(victim, victim.body_script)
 
@@ -9534,6 +9559,7 @@ class Combat:
         self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != victim.body]
         wall_ride.cancel(victim)
         assassin_victim.retire_target(self, victim.body)
+        self.junkrat.release_trap_victim(victim.body)
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)
         self.recalls.retire(victim.body)
@@ -9587,6 +9613,9 @@ class Combat:
             return
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
+            return
+        if self.junkrat.tire.busy(player.body):
+            self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
         old_script = player.body_script
         points, pending = None, ()

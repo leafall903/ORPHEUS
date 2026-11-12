@@ -134,6 +134,13 @@ def surfaces(fight, player, volumes, amount, seen):
 
     for manager in (fight.orisa_barriers, fight.photon_barriers):
         if manager.geometry is None:
+            if manager is fight.photon_barriers:
+                for actor in manager.opponents(player):
+                    token = key(actor.source_body, actor.body)
+                    if token not in seen and any(visible(point) for a,b,radius in volumes
+                            for point in manager.capsule_contacts(actor,a,b,radius)):
+                        manager.damage(actor,amount)
+                        seen.add(token)
             continue
         for actor in manager.opponents(player):
             token = key(actor.source_body, actor.body)

@@ -66,6 +66,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   rejection while this worker continued changing source during the2325s run,
   not evidence of a Genji defect. Keep the rejection; long journal acceptance
   requires the parent's frozen canonical run. Client acceptance remains open.
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
 
 ### Mount delivered Junkrat grenade launch and terrain physics
 
@@ -8839,3 +8870,120 @@ mount original Trap cast/arm/status09BC/root consumers using the same actor/Vita
 and existing movement host, then Tire039C/control/climb/recovery and charge0B8B.
 Root owns input union and frozen-ref reconciliation. Remaining0065 integration
 estimate remains low confidence4-8 active worker hours, excluding root conflicts.
+
+A34 clean-boundary sync: absorbed submitted intake7e9de0af; resolved stored Combat fields by retaining both Junkrat and current controls. No code consumer removed. Continue original0065 Trap activation.
+
+
+## A35 - actual Steel Trap actor, status and player restraint
+
+Mounted original0065 Trap projectile cast on the same Deployable/Vitals path,
+park/arm/search/damage/filter branches, original09BC victim status, independent
+per-owner roots, source/replacement/victim-death cleanup and player movement-only
+restraint preserving aim and attacks. Original projectile expiry now retains the
+authored Mine explosion flag instead of silently retiring every deployable.
+Fixed real lifecycle cleanup: an airborne, not-yet-attackable Trap must retain its
+existing Vitals until parked; do not recreate a second pool when targets appear.
+
+Preserved complete original37 Trap tests unchanged. Baseline first Trap check
+failed because no Trap existed. Launch/arm80 and movement checks now pass;
+4 original lethal/destruction/multiple-root checks all pass with v9 inputs.
+Focused21 checks:19 pass, one projected-barrier method has two retained old
+bubble.health observer failures while actual body protection/root suppression
+uses the current authored0256 Vitals. Damage/ProjectileTiming and stored-export
+checks in that run pass. Actual launched Trap probe confirms pool identity,
+active original09BC and causal release-tick export; no fake health observer.
+Initial full37 run preserved15 failure records before the actual pool fix;
+remaining known work includes original catch-up/deadlines/NPC consumers, native
+Fortify float rounding, current Cryo healing and old barrier/spy observations.
+External logs: worker-a-junkrat-trap-{baseline,full-first,death-final,shared,snapshot}.log.
+
+Root candidate v9 profile supplies original09BC and103A/11A9 union; base/source
+packs unchanged. Worker-only narrow external union is superseded by v9. No client
+run/publication. Next exact action A36: original ballistic/deployable deadline
+replay outside retained window, then actual NPC restraint consumers; continue
+Tire039C/control/climb/recovery and charge0B8B. Neither entire0065 completion nor
+all original assertions passing is claimed at this partial consumer boundary.
+
+
+## A36 - original deployable deadline replay
+
+Restored source0065 event replay outside the shared retained combat window.
+Known airborne Mine/Trap flights advance at their actual world tick, then original
+Trap arming/capture/release deadlines run before retained updates. Only existing
+deployable actors participate; shared combat retention and other hero clocks
+remain intact. No new timer/pool/observer or acceptance matrix was introduced.
+
+Original first-batched-update test (Mine/Trap, ground/empty, strides8/256) and
+arming/capture skipped-update test both pass. Original long-gap hardcoded check
+still expects55/243 whereas current actual trajectory gives57/245; assertion is
+preserved. Separate actual gameplay probe confirms damage80, capture, retirement
+and root release exactly match for contiguous/8/256 updates, all57/245. Damage,
+ProjectileTiming and original release/source-replacement checks17 pass. Logs:
+worker-a-junkrat-trap-clock-{first,parity,shared}.log. Tests use external v9 profile.
+No client run/publication. Next exact action: mount original NPC restraint against
+current actual navigation/impulse/Heavy charge and Assassin consumers, keeping
+ranged/melee fire available; then Tire and charge. A35 residuals remain recorded.
+
+
+## A37 - Steel Trap consumers on actual NPC movement and charge hosts
+
+Mounted source0065 restraint on current shared NPC route/manual navigation,
+current knockback and Bot impulse entry points. Capture retires pending physical
+impulse, cancels the actual existing Heavy1408 charge and Assassin contact owner;
+rooted Heavy cannot start its movement charge, while ordinary ranged/melee input
+is retained. Existing actual NPC removal now releases Trap/status/root immediately.
+No old duplicate heavy_charge/assassin manager or displacement field restored.
+
+External v9 real five-body probe passes: actual damage, same Trap Vitals, root,
+blocked impulse, fixed pose and release; four ordinary NPCs regain impulse while
+Heavy1254's native modifier26 zero response remains authoritative after release.
+Current difficulty/conditional-pool mitigation yields78.8 on Enforcer/Assassin;
+do not replace it with old raw80 expectations. Actual live Heavy charge begins,
+then capture resets its real phase, and removal synchronously retires09BC/root:
+all pass. Trooper actual ranged attack while rooted deals120 and does not move.
+Sniper120-tick probe produced no shot and is retained for follow-up, not called a
+passing source assertion. Original NPC control/navigation62 checks all pass.
+
+Preserved entire original test_junkrat_npc_combat.py with assertions unchanged;
+its normal import currently fails on old script.health_query (richer current
+health_queries provider exists), and original script.bot death-volley constants
+are also pending. No fake aliases/observer pools added. Mayhem/death-volley is
+confirmed A-owned and follows Tire/charge activation. Logs outside Git:
+worker-a-junkrat-npc-{original-baseline,actual-final,attacks-second,heavy,shared-final}.log.
+No client run/publication. Next exact action: original Tire039C actor/control/
+climb/recovery and command hooks, then original0B8B charge and Mayhem/death-volley;
+follow up unchanged original NPC import contract and current Sniper clock evidence.
+
+
+## A38 - original RIP-Tire actor, operator control and recovery
+
+Mounted original0065 Tire039C placement/readiness/charge consumption, authoring
+0233 drive selector, wall-climb0234, exclusive operator commands, remote detonation,
+100HP actor damage/destruction, source/owner retirement, posthumous timeout,
+respawn deferral and1.5s recovery. Tire is one actual Deployable and its same
+Vitals in targets/storage; no second construct pool/driver created. Deadline replay
+includes Tire timeout/recovery outside the retained shared window. Busy Tire gates
+both current passive and generic damage charge, pending original0B8B activation.
+Restored original explicit Player.take_commands(not_after=...) through existing
+strict CommandQueue horizon, preserving Bastion horizon and epoch bounds.
+
+Original46 Tire tests preserved unchanged. Baseline readiness had no actor;
+readiness+front placement now2 pass. Full initial46 run preserved6 failure and
+6 error records. Follow-up6 affected checks:5 pass (steering/jump, falloff325,
+input-silence catchup, detonation600/owner credit/no refund, posthumous timeout);
+expiry-frame frag collision has two retained failing subcases. Full run remaining
+native Fortify float residual and old grasp_grants private observer errors are
+preserved; no fake observer restored. Original command epochs/handoff/command
+checks plus Damage/ProjectileTiming34 pass. Actual launched Tire stored probe
+passes same actor/pool identity and causal controller/deadline digest export;
+registered exact Command dataclass fields for its real retained control record.
+External logs worker-a-junkrat-tire-{baseline,full-first,second,shared,snapshot-final}.log.
+
+Original inputs used read-only: hero-lanes/0065/junkrat_tire_174.json and
+tire-0234-extracted.json via ORPHEUS_JUNKRAT_TIRE_PROFILE and
+ORPHEUS_JUNKRAT_TIRE_CONTROLLER. Root owns composed profile/provenance admission;
+no base runtime copy/change or client run/publication. Next exact action: original
+0B8B single charge host, entity/filter provider adapters and actual damage012;
+then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
+0065 actual integration estimate now low-confidence2-5 active worker hours,
+excluding root intake/conflicts and acceptance-only residuals.
