@@ -895,6 +895,10 @@ class World:
     def compatibility_stop_script(self, instance: "Instance", node: Node):
         return NotImplemented
 
+    def target_tag_candidates(self):
+        """Ordered active candidate IDs and their effective tag keys, or unknown."""
+        return NotImplemented
+
     def target_tag_entities(self, tag: int):
         """Ordered entity IDs for an explicitly known single-tag search."""
         return NotImplemented

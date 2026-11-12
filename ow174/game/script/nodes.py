@@ -5363,6 +5363,44 @@ class StaticTagTarget(State):
 # --- actions and conditions ------------------------------------------------------------------------
 
 
+def find_tagged_entities(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """CB8EC0: publish the ordered matches of a declared world tag query."""
+    component = instance.component
+    if not component.strict:
+        return NotImplemented
+    output = node.field('m_4AEEE6A1')
+    target = expr.dynamic(output)
+    if target is None and output is not None and (
+            not isinstance(output, dict) or output.get('$') not in expr.CONSTANTS):
+        component.unsupported(instance, 'target-tag query destination', node.cls, node)
+    if target is not None and target[1]:
+        configs = [node.field(name) for name in ('m_9C7BD8B8', 'm_B486603E', 'm_8B2A4DF3')]
+        if not any(cfg is not None for cfg in configs) or node.field('m_F8274C10') is not None:
+            component.unsupported(instance, 'target-tag query configuration', node.cls, node)
+        candidates = component.world.target_tag_candidates()
+        if candidates is NotImplemented:
+            component.unsupported(instance, 'target-tag candidate catalog', node.cls, node)
+        var = instance.find_var(*target)
+        if var.links:
+            component.unsupported(instance, 'target-tag linked destination', node.cls, node)
+        before = var.value()
+        var.base = ()  # CB8FAC clears before evaluating the three input groups.
+        any_tags, required, excluded = (
+            {value.guid & 0xFFFFFFFF for value in play._iter_values(instance, cfg)
+             if isinstance(value, expr.Asset) and value.guid}
+            for cfg in configs
+        )
+        matches = []
+        for entity, tags in candidates:
+            component.consume_work('target-tag candidate filter')
+            if (not any_tags or not any_tags.isdisjoint(tags)) and required <= tags and excluded.isdisjoint(tags):
+                matches.append(expr.Entity(entity))
+        var.base = tuple(matches)
+        instance.changed(var, before)
+    instance.follow(node, 'm_outPlug', None)
+    return True
+
+
 @handler('STU_42578342')
 def collect_targets(instance: Instance, node, caller) -> bool:
     """Write the collected entity array before following the action output."""
@@ -5374,6 +5412,11 @@ def collect_targets(instance: Instance, node, caller) -> bool:
         entity_queries.collect_tagged(instance, node)
         instance.follow(node, 'm_outPlug', None)
         return True
+    if filter_config is None and (
+        node.field('m_9C7BD8B8') is not None or node.field('m_8B2A4DF3') is not None
+        or component.world.target_tag_candidates() is not NotImplemented
+    ):
+        return find_tagged_entities(instance, node, caller)
     output = lvalue(node.field('m_4AEEE6A1'))
     if (output is None or node.field('m_ADEB6E05') not in (None, 1) or node.field('m_2BBEEAB8') not in (None, 0)
             or any(node.field(key) is not None for key in ('m_9C7BD8B8', 'm_8B2A4DF3'))):

@@ -11656,3 +11656,34 @@ do not add second projectile/controller. B82 dependency432a38f2. Sixowner closur
 claim remains withdrawn until frozen and staged sibling positive consumers are
 both mapped. Remaining active code audit/merge estimate6–14h, excludes source
 numeric conflicts/legacy observers/fullNPCfixture recovery/client validation.
+
+
+## B84 — restore original explicit general target-tag query consumer
+
+Frozen58 STU42578342 supports ordered explicit world candidate catalogs with
+any/required/excluded tag groups. Current collect_targets only had stronger
+0D76 special consumer, participant filters and single-required-tag path; those
+do not replace this public strictVM behavior. Restore original helper AST
+identically (decorator remains on unified dispatcher), World unknown default,
+Scene explicit setter/getter and retirement removal. The actual same dispatcher
+selects this branch for any/excluded or an explicitly supplied catalog; existing
+0D76/filter/single-tag backend paths remain. No implicit catalog creation, new
+world/cache/host or permissive unknown fallback. Scene exact metadata adds
+_target_tag_candidates to shared SCENE_WORLD_FIELDS for all existing derived
+strict exporters (root/C notified to union their simultaneous fields).
+
+Original source test method restored unchanged: ordered any/all/excluded
+matches replace stale destination; unbound/rebound IDs cannot inherit old tags;
+empty known catalog yields empty output. That method plus entity_queries and
+runtime42/42 pass1.737s. Full Scene/entity_queries/runtime128run126pass1fail1error
+1.855s: retained healthquery initial91 vs0 and movement sample-output strict
+error in unchanged consumers. No assertions edited. Initial attempt omitted
+external profile and produced resource errors; selected-input rerun recorded
+separately. Helper AST source equality checked. Logs worker-b-doom-tag-catalog-
+{selected,bounded}.log. No client acceptance.
+
+Next exact action: frozenHandCannon ray_cover Cryo blocker restoration on actual
+existing rocket sweep (currently static ray_world only), then SDK7 public API/
+classID inventory. Do not overwrite stronger current projectile paths or
+collect_targets branches. B82/B83 restoration remains required, not optional
+validation-tail work. All existing input/unknown boundaries retained.

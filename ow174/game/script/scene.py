@@ -263,6 +263,7 @@ class SceneWorld(runtime.World):
         self.indexed_targets: dict[int, dict[tuple[int, int], int] | None] = {}
         self.target_record_scalars: dict[int, dict[int, float] | None] = {}
         self.entity_filter_records: dict[int, entity_filter.Record] = {}
+        self._target_tag_candidates: dict[int, frozenset[int]] | None = None
         self.target_tag_members: dict[int, tuple[int, ...]] = {}
         self.entity_directions: dict[int, tuple[expr.Vec3 | None, expr.Vec3 | None]] | None = None
         self.model_gate_consumers = {}
@@ -380,6 +381,8 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        if self._target_tag_candidates is not None:
+            self._target_tag_candidates.pop(entity, None)
         self.notify_entity_filter_change(entity, retired=True)
         self._owned_deployables.pop(entity, None)
         for owner, deployables in self._owned_deployables.items():
@@ -461,6 +464,22 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def set_target_tag_candidates(self, candidates) -> None:
+        """Declare the active query order and effective uint32 tags explicitly."""
+        ordered = {}
+        for entity, tags in candidates:
+            self._bound_entity(entity)
+            keys = frozenset(tags)
+            if entity in ordered or any(type(tag) is not int or not 0 < tag <= 0xFFFFFFFF for tag in keys):
+                raise ValueError("invalid target-tag candidate catalog")
+            ordered[entity] = keys
+        self._target_tag_candidates = ordered
+
+    def target_tag_candidates(self):
+        if self._target_tag_candidates is None:
+            return NotImplemented
+        return tuple(self._target_tag_candidates.items())
 
     def set_target_tag_entities(self, tag: int, entities) -> None:
         """Supply the ordered active matches for an authored TargetTag."""

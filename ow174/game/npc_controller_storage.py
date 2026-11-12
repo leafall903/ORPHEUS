@@ -7,6 +7,7 @@ SCENE_WORLD_FIELDS = (
     '_native_state_misses',
     '_owned_deployables',
     '_possession_revisions',
+    '_target_tag_candidates',
     'absent_spatial_binding_owners',
     'ai_behavior_requests',
     'ai_control_records',
