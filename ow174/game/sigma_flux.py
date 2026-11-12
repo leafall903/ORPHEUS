@@ -48,6 +48,12 @@ def body_protection(owner):
     return None
 
 
+def has_effect(owner):
+    script = owner.body_script
+    return script is not None and any(instance.graph.index == FLUX_EFFECT
+                                      for instance in script.component.instances.values())
+
+
 def release_phased_flux_target(player):
     """End an existing lift when an OW1 phase ability takes effect."""
     if body_protection(player) != "phase":
