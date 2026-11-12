@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore all delivered FirstPerson fallback fields and original catalog selection
+
+- Union35 missing original standing/crouched fields from32 delivered source
+  maps, preserving every current field and external catalog priority. Shared
+  source values have zero conflicts; all fields match the original33body catalog.
+- Prepare v16 selecting unchanged006E view_offsets_174.json through the existing
+  strict loader, with its original recorded SHA256 verified. No camera feature,
+  eye value, geometry, source input or assertion was invented or rewritten.
+- Static original-source/current/catalog comparison passes. Existing original
+  all32hero view/ray and shared checks follow; no acceptance gate blocks commit.
+
+
 ### Retain existing operational state in the combined workspace launcher
 
 - The versioned workspace entry selects combined server code and original

@@ -882,3 +882,23 @@ the existing location; no profile/runtime copies. This handoff is now complete,
 superseding the earlier pending default-launcher statements. No services or
 client were started; occupied-port guard remains effective. Remaining runtime
 source consumers are still being integrated by all three persistent workers.
+
+
+Root all32 source EYE_STANDING/EYE_CROUCHED audit finds35 missing original
+literal fields, zero source conflicts/differences. Three symbolic DVa.MECH
+keys resolve to original0407, whose1.74 values are already present. Current
+VIEW_OFFSETS selection was absent, so missing fields actually hit generic
+fallbacks. Source33body catalog006E/prepared/view_offsets_174.json is unchanged,
+SHA1ad16eacd4464f13db61725f99b212cb6a2f7c4d2ab7bf2c3853348c65290d10
+matches original input-hash receipt. Every current+original legacy field found
+in that catalog matches exactly. Root merges35 original code fields preserving
+all existing maps and the current strict catalog-first reader. Provenance lives
+in parallel-merge/original-eye-field-union.json; no runtime/game archive copied.
+Candidatev16 adds only original ORPHEUS_VIEW_OFFSETS via existing loader. Source
+bodies verified from canonical graph data:0024Reinhardt,08BAMei,200BBall,2AB1Sigma;
+prior informal chat labels were corrected, exact GUIDs alone drive integration.
+Original all32hero ray/stance checks are next; current default entry remainsv15
+until v16 has actual checks, while the code fields are committed independently.
+A53 df1f8a9c receivedd873f2e1 normalizes original PvE fixtures to actual composed
+graph provider/locked mover without old loaders. B41 493093e2 received21e1b364
+mounts original Cannon spread/combat charge; no separate temporary pool.
