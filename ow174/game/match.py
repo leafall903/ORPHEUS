@@ -357,6 +357,7 @@ class Player:
         )
         if script is not None and script.world_frame_anchor is not None:
             fresh = [item for item in fresh if item.frame > script.frame]
+        fresh = [item for item in fresh if not self.match.combat.knockbacks.replayed_pose(self, item.frame)]
         self.match.combat.hooks.observe_input(self, fresh)
         if fresh:
             data = echo_movement.effective_data(self)
@@ -470,6 +471,8 @@ class Player:
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
         fight = self.match.combat
+        if not replay_accepted:
+            fight.knockbacks.observe_pose(self, command.frame, tick)
         fight.knockbacks.prepare_victim(self, command.frame)
         command = fight.punches.command_input(self, command)
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
@@ -1909,6 +1912,7 @@ class Match:
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
+        self.combat.knockbacks.observe_body(player, script, self.tick)
         self.combat.junkrat.charge.attach(player)
         if player.hero.guid == 0x02E000000000007A:
             from ow174.game import body_entities
@@ -1924,6 +1928,7 @@ class Match:
             body_entities.release_control(player)
         script = player.body_script
         if script is not None:
+            player.match.combat.knockbacks.forget_body(script.entity, script)
             player.match.combat.junkrat.charge.detach(player, body=script.entity)
             bodytrace.stopped(player, script)
             initial = script.stream.initial_owner

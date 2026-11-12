@@ -33,3 +33,9 @@ Tracked test_delivered_volskaya plus existing test_game_world, test_physics_snap
 ## Prepared server entry
 
 Tracked workspace_RUN_SERVER.cmd now selects immutable-input profile v19. That profile restores original0267 effect binding and selects original00DD platform bundle. Source SHA256 validation passed for every manifest input immediately before the switch. Original v18 workspace entry is backed up externally. No runtime pack was edited; no listening services or clients started. Relevant native healing and platform consumer checks are recorded above; existing numerical tails remain explicit.
+
+## Complete lifecycle beyond retained timing assertion
+
+Read-only supplemental lifecycle probe ran the unchanged original normal-match method to its unchanged fixed110 return assertion, then continued the same match. The platform naturally completed its route after five more ticks, remained idle for the original75 ticks, rearmed when the original rider returned, carried again above the original0.2m threshold, and closed/restored the identical original base World on all players leaving. Base collision fingerprint was unchanged. Receipt: parallel-merge/root-volskaya-complete-lifecycle.log. No movement timing or source assertion was edited to pass.
+
+Canonical be36954f joint: 87 run, 85 pass, one existing crouched absolute-lift difference (5.3896484375 vs5.4) and one old opposite-owner direct-wall setup without an actual native wall instance. Both exact failures were reproduced on detached pre-platform5ce70aec with identical methods and assertions (2.889s). Their baseline receipt is root-preplatform-placement-baseline.log; combined receipt root-canonical-healing-target-platform-joint.log (85.621s). Native status, actual target queries, scalar SDKs, wall source-damage and platform obstruction/cancellation cases in that joint pass. These two baseline tails were not changed by the platform integration.

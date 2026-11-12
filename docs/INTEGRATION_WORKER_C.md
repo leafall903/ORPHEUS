@@ -3117,3 +3117,94 @@ Mei22F0/node14/state6 and body08BA, absent by literal in current runtime. Audit
 its original actual caller before adding any current interception/deflection
 contact; do not instantiate a second defense manager. Other known C64/C65 scopes
 are already implemented; root/B own Volskaya and shared generic force respectively.
+
+
+## C70 — original Snowball Deathmatch Mei22F0 defense
+
+Root's literal audit found a real mode-specific production omission. Original0004
+script.graph.snowball_body_graph resolves mode0059 ->2250/node0 body registration
+(STU12F037C4/STU4082287A) for Mei08BA ->22F0. Current v18 composed inputs ALREADY
+contain2250,22F0 and the exact mode metadata; no pack/descriptor or input rewrite.
+Restored that original resolver and append-once BodyScript._spawn registration
+using existing BodyWorld.body_definition. Ordinary Mei/other modes decline before
+registration; the same body component owns one original additional graph.
+
+Connected22F0/node14/state6 absorb to existing interception geometry and current
+Combat absorption/deflector paths. Original full-cone angle uses half-angle for
+this mode only, with original boxes, tagged admission, body identity, lifetime and
+control gates. Reuses same target/closest-contact ordering; no defense manager,
+actor, timer or health pool. Original contact writes instance41's source Entity
+and follows its authored output; this state has NO amount slot. Current Matrix/
+Grasp/Genji branches retain their current semantics. Ordinary Mei quick melee
+never gains this defense.
+
+Restored six original0004 gameplay test methods with all30 assert-call ASTs exactly
+matching frozen source. Fixture selects the current composed profile and existing
+Mercy staff/blaster scene; old tag-function monkeypatch maps the current immutable
+admission-set input (empty allowed set represents adding0145 to all definitions).
+No expected numbers or gameplay assertions weakened. Mode/body registration,
+front absorption/source41/zero hero credit, rear/expired20damage, tag exclusion,
+54+4 tick expiry/cooldown/repress, stock nonmode absence, and fresh replacement
+all6/6pass11.813s, ../worker-c-c70-mei-snowball-check.log.
+
+Added one actual mode-window body-VM export causal check, with run_now prohibited:
+it passes. Broad deliveredMei/PharahDefense/Damage command45run41pass3fail1import
+error75.581s, ../worker-c-c70-snowball-shared-check.log. All7 mode cases and Damage8
+pass. The original broad Mei tests retain wall-preview ammo10, range10.75 and
+icicle falloff45 absolute differences; no claim of baseline reproduction was made
+in this batch. PharahDefense imports old sigma_grasp, absent by old name; no fake
+module/alias added for green. These tails do not hold this real mode consumer.
+Initial WIP `_spawn` local body_definition name was corrected to its actual existing
+BodyWorld field before these checks; no alternate body-definition cache.
+
+C70 is a real source consumer merge, not a general Snowball AI/UI completion or
+client claim. Strict existing schema stores the additional graph/vars through the
+same BodyScript VM. Next root-assigned C71: actual owned-DVa BotScript in generic
+_melee currently has no script.hero; preserve the original30damage expectation
+and map only the existing polymorphic hero guard, never add a fake BotScript.hero.
+Other concrete shared handoffs remain root Volskaya and B generic force replay.
+
+
+## C71 — actual owned-mech melee polymorphism and owner receipt
+
+Cleanly merged canonical81e2f640 (root original Volskaya/platform/shared SDK) into
+worker77ebadc9 before the narrow fix. A's actual owned-DVa30damage regression
+identified C63's generic _melee guard reading script.hero on a real BotScript.
+The method ALREADY resolves hero from the actual player/Bot identity for all its
+other policies. Reuse that existing local hero for the Mei size guard, one line.
+Do not add BotScript.hero or a second player facade; scale and all melee numbers
+remain unchanged. Original owned-mech melee30/booster10 method plus original
+MeiScale2 and Damage8 =11/11pass8.715s, selected v19 profile,
+../worker-c-c71-mech-melee-scale-check.log. No test assertion edited, no live handles.
+
+### C original-line receipt after the implemented C1–C71 batches
+
+| Frozen original delivery | Frozen commit | Actual current consumer receipt |
+| --- | --- | --- |
+| 0006 Torbjorn | 3d4d42993cfcd78a954e20c1d273ce8b5e0905f5 | hero_torbjorn Overload/pellets/hammer + same actor-backed Turrets/Vitals + molten_core + torbjorn_charge native/passive/damage; C13–19 and later shared consumers |
+| 0008 Pharah | 49c079c48b8ef0b72b770c17f8ad943e2adbe615 | current BodyWorld JumpJet/Mover Hover, Barrage launch/curve/reflect and same physical impact host; original012E accepted replay nowC68; explicit AI/Search SDK and13C2 contract C67/C69 |
+| 0015 Bastion | 034e5ffbc1b31761a669a520710f2e47c5f863e8 | original body VM repair/Reconfiguration/Sentry/Tank/charge/frozen-flight fields C1–3; actual source NPC manual/automatic Sniper on root host; Heavy force/tag/close Trooper consumer C59–61 |
+| 0016 Symmetra | 82c3883eb64697290ba75c7ed47af906e093eab6 | symmetra primary/orb/recovery/charge, actual Sentry Bot/Vitals, real PortalPair and Photon plane-or-mesh C20–29; phase/cover/frozen source history C47–62, root orb route and C65/66 original retained replacement |
+| 00DD Mei | 9d876544dda6426b89ad750f907ba6c6dd083baa | mei/mei_frost/mei_blizzard/mei_ultimate/Cryo sole effects ledger and same physical slow, real5 IceWall actors/Vitals, source size C63; root lift/attached-wall consumers; original0004 mode-scoped22F0 C70 |
+| 012E Sombra | f7e26ff68e979c9cf999124848f0e69a5ef1d3de | same sombra_control lock/effect/recipient clocks, native owner charge, Camo, real Translocator, request Queue/EMP drain/replay C33–46 plus prior fixes; current device/portal/native filters are the actual sole consumers |
+
+These are source-to-current implementation receipts, with individual SHA/test/
+known-failure evidence in earlier entries. Runtime uses original Python/C++/C#
+paths; no Rust switch, appearance transplant, remote publication or client action.
+The source repositories/refs and external original inputs remain immutable.
+Old absolute/stance/fixture/private-observer assertions and client OPEN remain
+preserved verification/contract records and do not hold implemented commits.
+
+Finite confirmed remaining dependencies: B owns original012E generic recipient
+force world-gap replay on the sole Knockbacks/Combat loop; it affects complete
+Pharah primary/Concussive victim displacement, not C68 own accepted flight.
+Root's original Volskaya actual chain is already in canonical81e2f640. One C-held
+shared SDK API is still precisely identified: original0008 script/controller_query
+matches(frozenset)/World.controller_components override, while current strong
+controller_queries Record service owns actual F726/B96D/D3EB resolution. Preserve
+that independent API with record-first explicit fallback, not a second controller
+host; C72 can complete this short SDK boundary if not explicitly reassigned.
+No additional C gameplay producer has been established by the bounded path audit;
+this is not a claim that every foreign inherited helper/test has been exhaustively
+verified. Remaining source legacy literals/data-policy differences stay enumerated
+in earlier entries; do not turn those into new functionality or acceptance gates.
