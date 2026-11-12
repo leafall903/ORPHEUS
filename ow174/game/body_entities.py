@@ -180,6 +180,8 @@ def _advance_mech(pilot, bot, command, seconds, tick, *, posed=True, endpoint=Tr
             return
         pilot.body_script.component.shots.clear()
         pilot.mover.last_command = neutral
+    hooked = (match.combat.hooks.controlled(bot.entity)
+              and match.combat.hooks.drive_allowed(bot.entity, bot) and not mover.external_impulse)
     stunned = match.combat.is_stunned(bot, tick=tick)
     pulled = bot.entity in match.combat.zarya_gravitons.pulled
     received = mover.last_command is command
@@ -190,10 +192,10 @@ def _advance_mech(pilot, bot, command, seconds, tick, *, posed=True, endpoint=Tr
     if blocked:
         active = match.combat.movement_mods(bot, statescript_mods(script.component), tick=tick)
         mover.track_mods(active, command.frame - 1)
-        if not pulled:
+        if not pulled and not hooked:
             mover.velocity = (0.0, mover.velocity[1], 0.0)
     if posed:
-        if not (stunned and getattr(match.scene_host, 'step_hook_victim', lambda *_: False)(bot, command, seconds, tick)):
+        if not hooked and not (stunned and getattr(match.scene_host, 'step_hook_victim', lambda *_: False)(bot, command, seconds, tick)):
             mover.step_pose(command, seconds, tick, world_driven=pulled)
         bot.position, bot.velocity = tuple(mover.position), mover.velocity
         bot.yaw, bot.pitch = mover.yaw, mover.pitch

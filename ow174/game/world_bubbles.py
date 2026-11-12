@@ -192,6 +192,31 @@ class WorldBubbles:
                 best = distance, actor
         return best
 
+    def expiry_tick(self, actor):
+        """Map the existing00FC timer from this actor's observed birth pair."""
+        if actor.component is None:
+            return None
+        hosted = next((i for i in actor.component.instances.values() if i.graph.index == 0xFC), None)
+        timer = hosted.states.get(11) if hosted is not None else None
+        if timer is None or not timer.active:
+            return None
+        seconds = expr.to_float(timer.evaluate(timer.node.field("m_EB0FC261"), watch=False))
+        if not math.isfinite(seconds) or seconds <= 0:
+            return None
+        elapsed = timer.start + round(seconds * 1000) - actor.origin_ms
+        return actor.born_tick + -(-elapsed // actor.component.frame_ms)
+
+    def cover_end(self, shooter, origin, target, ended):
+        from ow174.game.symmetra_turrets import _capsule_ray
+
+        direction, reach = _capsule_ray(origin, target)
+        owner = getattr(shooter, "combat_owner", shooter)
+        return max((at for actor, at in ended
+                    if actor.owner is not owner
+                    and (self.fight.match.game_map.free_for_all or actor.team != shooter.team)
+                    and shell(origin, direction, actor.point, actor.radius, reach) is not None),
+                   default=None) if reach else None
+
     def melee(self, shooter, origin, centre, radius, amount):
         from ow174.game.combat import capsule_visible
 

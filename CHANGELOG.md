@@ -4,6 +4,108 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Flux fixture geometry and explicit source contract differences
+
+- Extract the original parent wall helper with unchanged geometry into the
+  standalone Flux fixture; the original occlusion case now passes1/1.
+- Full Flux/flat-floor/modifier25 checks had22pass, a pending Pulse owner charge
+  assertion and the documented0003/023B caster-death contract difference, plus
+  the now-fixed fixture lookup. Actual death trace confirms original023B descent
+  already committed; preserve that original boundary and all failed assertions.
+
+### Mount original Gravitic Flux on the existing body and movement hosts
+
+- Preserve original023B placement/selection/receiver/lift/slam functions in the
+  original0003 sigma_flux module boundary. Existing body VM callbacks, Player
+  movement, plain NPC impulse mover, interruption/death and strict exports own
+  actual consumption; existing Grasp and Barrier services remain unchanged.
+- Original full cost/selection/lift/grounded slam/effect-end and both body VM
+  exports pass1/1 in30.690s. All original assertions remain; the fixture extracts
+  its actual parent setup instead of importing unrelated missing Accretion.
+  Full source/shared checks remain next; no client acceptance run.
+
+
+### Connect original solid Cryo cover and sentry release
+
+- Merge original all-team Cryo body-capsule cover with the existing native proxy;
+  actual sentry acquisition excludes ice and entering Cryo releases its aura.
+  Existing proven Mei world deadline also retires stale ice without stepping VM.
+- Original raw unequal-epoch/strict storage +14 Sentry +8 Damage methods pass;
+  two original Cryo/sentry checks now reach remaining cancellation-exit differences.
+  Preserve all original assertions and the existing protection/healing owners.
+
+### Restore existing sentry cover-history consumers
+
+- Sentry damage integration receives actual expired/broken Photon and Winston
+  actors and their original clocks, plus existing Mei constructor-domain expiry.
+  Plane/mesh/sphere geometry remains owned by the existing barrier hosts.
+- Real64-tick sphere expiry probe: prior28.672 excess-window damage becomes2.24
+  after cover ends; all14 original Sentry and8 Damage methods pass. Retained Ana
+  observer errors and2 original Cryo cover/exit failures are documented unchanged.
+- Preserve the full original0016 Cryo checks and all7-field body-history data.
+  Generic phase/frozen replay and remaining support helpers follow separately.
+
+### Restore original shield-only EMP damage notifications
+
+- Existing damage pipeline now consumes original shield_drain mode, touching only
+  existing shield records and preserving health/armour, receiver protections,
+  stats/recovery/received-damage callbacks and no-ultimate-credit policy.
+- ActualEMP reports150shield damage/nocharge and existing3-second recovery;
+  mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
+ 52pass and retained oldsnapshot-class/natural-regeneration expectations.
+  No assertion changes or duplicate pools; Symm history consumers follow.
+### Select original NPC associations in the combined workspace entry
+
+- Prepared v18 preserves all previously selected graph/entity records and adds
+  only the five exact original NPC associations. Actual same-BotScript pairs,
+  identity/clock/Var ownership/retirement and existing manual-input27 methods
+  pass; original automatic Assassin retains its existing independent host.
+- Select this prepared input through the existing combined launcher. Original
+  source packs, state directory and Python are retained. Manual1177 recipient
+  activation remains A70 work; old Zen observers/assertions remain recorded.
+  No server service or client acceptance session was started.
+
+### Preserve the original Zen Sniper fixture's manual mode selection
+
+- Map its two old special_attack requests to the existing reposition mode;
+  retain every original assertion, numeric expectation and remaining observer.
+- Candidate v18 actual five-pair and shared manual-input27 methods pass in the
+  combined run. The retained Zen suite still references old state_of/sleeps/
+  special_mover observers and one original projected-shot boundary fails; these
+  are recorded without adding runtime aliases or blocking committed consumers.
+
+### Mount the original automatic Sniper retreat consumer
+
+- Restore original013B opt-in retreat state/native/search/advance/interrupt on
+  the existing BotWorld and NPC weapon loop, plus both strict stored fields.
+  Manual navigation no longer aborts this automatic motion when firing stops.
+  Reuse current trap, wall ground/constrain and mover interfaces; retain the
+  separate existing manual reposition path and no additional controller.
+- Configured original baseline retired the VM on missing sniper_target. Actual
+  retreat/storage/resumed-rifle case now passes; opt-in/range/cover, rear wall,
+  EMP interruption and62 shared input/navigation checks pass. Original Ana Dart
+  moving-during-windup assertion remains failing and unchanged. The additional
+  manual Zen fixture needs its explicit NPC_DATA environment; no client run.
+
+### Preserve the original standalone graph-extension reader
+
+- Restore original0200 load_bundle byte for byte for explicit fingerprint-bound
+  read-only consumers, including existing NPC metadata verification. The live
+  server continues using its sole reconciled additive graph provider.
+- Original three extension checks retain all assertions and use the explicit
+  reader at their fixture boundary; those plus six additive supplement checks
+  pass9/9. Source inputs remain unchanged; no client acceptance was run.
+
+### Retain admitted NPC associations when recomposing runtime inputs
+
+- The existing hero-input composer preserves validated original association
+  rows in its minimal output, rather than dropping them during recomposition.
+- Actual selected v17 and candidate v18 supplements both recompose byte for
+  byte; v18 retains all five source rows. Controller/Mine joint54 and actual
+  Cryo/incoming EMP joint5 checks passed on their frozen combined revisions.
+  v18 remains candidate pending actual NPC admission; no client acceptance run.
+
+
 ### Restore original sleep view owner queries and authored delay
 
 - Existing strict224E sampler now reads the actual owner's yaw/pitch; sampling
@@ -67,6 +169,47 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
   pass. Original explicit AI association/recipient coupling remains next; no
   client acceptance or extra controller allocation added by this fix.
+
+### Restore original shield-only EMP damage notifications
+
+- Existing damage pipeline now consumes original shield_drain mode, touching only
+  existing shield records and preserving health/armour, receiver protections,
+  stats/recovery/received-damage callbacks and no-ultimate-credit policy.
+- ActualEMP reports150shield damage/nocharge and existing3-second recovery;
+  mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
+ 52pass and retained oldsnapshot-class/natural-regeneration expectations.
+  No assertion changes or duplicate pools; Symm history consumers follow.
+
+
+### Keep incoming EMP replay on each actual receiver component clock
+
+- Portal overlap can reference the near pulse from a remote endpoint effect.
+  Resolve that pulse's clock from its own existing component observation, and
+  skip unknown associations while preserving instance dedupe/clock restoration.
+- Real Hack-then-EMP relay reproduces an800ms foreign-clock cursor error and now
+  uses the correct16111ms. Original charge/Ashe/EMP/runtime39all pass; no new
+  stored clock, manager, timer or assertion changes.
+
+### Replay incoming Sombra applications on their observed recipient clocks
+
+- Record each existing Lock's actual delivery world/component association;
+  replay incoming EMP and retired-source Hack instances without advancing body
+  input, restoring component clocks and preserving live-source world expiry.
+- Ordinary/shifted-epoch and10000-tick gap probes retire actual applications
+  while recipient body clocks remain unchanged. Original70:68pass, two retained
+  snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
+  remaining owner consumer inventory and rough activehours persisted.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 
 ### Preserve controller Pin services in causal server storage
 
@@ -198,6 +341,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   while recipient body clocks remain unchanged. Original70:68pass, two retained
   snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
   remaining owner consumer inventory and rough activehours persisted.
+
 
 ### Consume original Sombra ability and logical-button silence policies
 
@@ -10215,3 +10359,6 @@ sigma_accretion dependency; root reports its current fixture is already adapted.
 Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
+### Tank owner consumer convergence audit
+
+Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.

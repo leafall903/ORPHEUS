@@ -103,10 +103,15 @@ class Turrets:
                 self._retire(sentry)
 
     def _target(self, sentry, origin, reach):
+        from ow174.game import cryo
         from ow174.game.combat import segment_distance
 
         best = None
         for target in self.combat._enemies(sentry.owner):
+            # Original0016 acquisition excludes Cryo itself as well as using
+            # its solid capsule to occlude a body behind it.
+            if cryo.active(target.owner):
+                continue
             a, b = target.segment()
             distance = max(0.0, segment_distance(origin, a, b) - target.radius)
             if (distance <= reach and (best is None or distance < best[0])
@@ -658,7 +663,8 @@ class Turrets:
 
     def _recorded_pose(self, target, previous_tick):
         history = self.combat.history.get(target.entity, ())
-        return (previous_tick, target.feet, target.height, target.eye) in history
+        return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
+                   for sample in history)
 
 
 def _attached_barrier(fight, owner):

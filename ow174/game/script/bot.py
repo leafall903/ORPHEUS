@@ -282,8 +282,10 @@ class BotWorld(runtime.World):
         return project_movement_flags(self, instance, node)
 
     def search_position(self, state):
-        from ow174.game import sniper_special
+        from ow174.game import sniper_retreat, sniper_special
 
+        if sniper_retreat.scoped(self, state.instance) and state.node.pos == 39:
+            return None  # Original automatic host resolves the active search after VM advance.
         return sniper_special.search(self, state)
 
     def position(self, entity):
@@ -358,6 +360,8 @@ class BotWorld(runtime.World):
         self.controller_components = controller_components
         self.manual_nameplate = manual_nameplate
         self.manual_target = None
+        self.sniper_target = None
+        self.sniper_retry_at = 0
         self.controller: runtime.Component | None = None
         self.component: runtime.Component | None = None
         self.controller_inputs: dict[int, int] = {}
@@ -607,6 +611,10 @@ class BotWorld(runtime.World):
         return vitals is not None and vitals.dead
 
     def velocity_action(self, instance, node):
+        from ow174.game import sigma_flux
+
+        if sigma_flux.flux_velocity(instance, node):
+            return True
         if not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4:
             return True
         return super().velocity_action(instance, node)
@@ -655,9 +663,19 @@ class BotWorld(runtime.World):
             if value is not NotImplemented:
                 return value
 
-        if self.hero == 0x02E00000000001B8:
-            from ow174.game import sniper_special
+        if instance is not None and self.match is not None:
+            from ow174.game import sigma_flux
 
+            result = sigma_flux.flux_effect_native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+
+        if self.hero == 0x02E00000000001B8:
+            from ow174.game import sniper_retreat, sniper_special
+
+            result = sniper_retreat.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
             result = sniper_special.native(self, cfg, instance)
             if result is not NotImplemented:
                 return result
@@ -849,6 +867,11 @@ class BotWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import assassin, heavy_assault, npc_shields
+
+        from ow174.game import sigma_flux
+        flux = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if flux is not NotImplemented:
+            return flux
 
         value = npc_shields.modify_health(self, state, elapsed_ms)
         if value is not NotImplemented:

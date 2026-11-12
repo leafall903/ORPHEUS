@@ -119,7 +119,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
-from ow174.game import ball, ball_mines
+from ow174.game import ball, ball_mines, hook
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -951,6 +951,32 @@ class Vitals:
             shield.amount -= taken
             if shield.amount <= EPSILON:
                 shield.amount = shield.maximum = 0.0
+            self.changed.add(SHIELDS_POOL)
+        return taken
+
+    def drain_shields(self, amount: float) -> float:
+        """Consume only existing shield-kind records for the authored EMP drain."""
+        left = max(0.0, amount)
+        taken = self.spend_temporary_shield(left)
+        left -= taken
+        for pool in self.extra.values():
+            if pool.kind == SHIELDS_POOL and not pool.removed and left > 0:
+                used = min(left, pool.now)
+                pool.now -= used
+                left -= used
+                taken += used
+                self.changed.add(SHIELDS_POOL)
+        conditional = self.conditional_pools.get(SHIELDS_POOL)
+        if conditional is not None and left > 0:
+            used = min(left, conditional.now)
+            conditional.now -= used
+            left -= used
+            taken += used
+            self.changed.add(SHIELDS_POOL)
+        used = min(left, self.now[SHIELDS_POOL])
+        if used > 0:
+            self.now[SHIELDS_POOL] -= used
+            taken += used
             self.changed.add(SHIELDS_POOL)
         return taken
 
@@ -2104,6 +2130,7 @@ class Combat:
         self.venom = venom.Mines(self)
         from ow174.game import junkrat
 
+        self.hooks = hook.Hooks(self)
         self.ball_mines = ball_mines.Mines(self)
         self.junkrat = junkrat.Junkrat(self)
         from ow174.game import ashe
@@ -2345,6 +2372,7 @@ class Combat:
                 self.sombra_charge.prepare_retirement(player, False)
             self.sombra_charge.retire_body(player.body)
         self.translocators.retire_body(player.body)
+        self.hooks.retire(player.body)
         self.ball_mines.retire(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
@@ -2492,6 +2520,7 @@ class Combat:
                 or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
                 or self.source_control_deadline(body) > (self.tick if tick is None else tick)
+                or self.hooks.controlled(body)
                 or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
                 or self.is_asleep(actor, tick=tick)
                 or self.frost_progress(actor, tick=self.tick if tick is None else tick) >= 1.0)
@@ -2738,6 +2767,15 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        from ow174.game import sigma_flux
+
+        sigma_flux.interrupt_flux_lift(self, actor)
+        if isinstance(actor, bots.Bot):
+            from ow174.game import sniper_retreat
+
+            sniper_retreat.interrupt(actor)
+
+        self.hooks.cancel_owner(target.entity)
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
             self.ball_contacts.pop(actor.body, None)
@@ -3399,6 +3437,8 @@ class Combat:
         self._cryo_healing(player)
         if mei.protected(player):
             self._clear_frost(player)
+            if not mei.cryo_world_expired(player):
+                self.sentries.release_target(player.body)
         if (repairs and not self.is_stunned(player)
                 and not (command is not None and script.controlled_at(command.frame))
                 and player.body not in self.sombra_controls.locks):
@@ -3421,6 +3461,7 @@ class Combat:
             self._sync_projected_barrier(player, script)
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
+        self.hooks.command(player, command)
         self.breathers.observe(player)
         self.sound_barriers.observe(player)
         if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
@@ -4370,6 +4411,21 @@ class Combat:
             return
         from ow174.game import archives_thunderstorm, defenses, npc_shields
 
+        # Original0016 beam integration consumes cover that ended inside the
+        # accepted gap, using the existing actors and their actual clock pairs.
+        sentry_damage_starts, cryo_expiries = {}, {}
+        for player in self.match.players:
+            deadline = mei.cryo_world_deadline(player)
+            if deadline is not None and deadline <= tick:
+                ended = now - (tick - deadline + 1) * TICK
+                sentry_damage_starts[player.body] = ended
+                cryo_expiries[player.body] = ended
+        photon_cover_ends, sphere_cover_ends = [], []
+        barrier_cover_ends = ((self.photon_barriers, photon_cover_ends),
+                              (self.barriers.world, sphere_cover_ends))
+        old_photon = tuple(self.photon_barriers.actors.values())
+        old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
+                            for actor in self.barriers.world.actors.values())
         dragon_poses = self._dragon_gap_poses(tick)
         orisa_fortify.rebase_fortify(self, tick)
         self.echo_duplicates.update(now)
@@ -4381,7 +4437,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
+            or self.hooks.flights or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -4526,6 +4582,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.hooks.update(at)
             self.ball_mines.update(at)
             self.junkrat.update()
             self.orisa.update(at)
@@ -4574,6 +4631,16 @@ class Combat:
             if at != tick and self.baptiste.fields:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
+            for actor in old_photon:
+                if self.photon_barriers.actors.get(actor.source_body) is not actor:
+                    photon_cover_ends.append((actor, min(self.now, now - (tick - actor.expires) * TICK)))
+            for actor, expiry in old_spheres:
+                if self.barriers.world.actors.get(actor.entity) is not actor:
+                    ended = self.now if expiry is None else min(self.now, now - (tick - expiry) * TICK)
+                    sphere_cover_ends.append((actor, ended))
+            old_photon = tuple(self.photon_barriers.actors.values())
+            old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
+                                for actor in self.barriers.world.actors.values())
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -4584,7 +4651,7 @@ class Combat:
                 player.body_script.orisa_fortify_pending = False
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
-        self.sentries.update({}, {}, ())
+        self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends)
         self.portals.update()
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
@@ -4738,8 +4805,20 @@ class Combat:
         return min(candidates, key=lambda hit: hit[0], default=None)
 
     def _cryo_contact(self, shooter, origin, direction, length):
+        from ow174.game import cryo
+
         hit = barriers.ray_hit(self, shooter, origin, direction, length)
-        return hit[0] if hit is not None and hit[1].component.world.hero == mei_wall.MEI else None
+        contacts = [hit[0]] if hit is not None and hit[1].component.world.hero == mei_wall.MEI else []
+        # Original0016 ice is solid cover for either team, not just a hostile
+        # shield. Read actual current body capsules; keep the existing native
+        # actor proxy above for its other consumers.
+        for target in self._targets():
+            if (target.owner not in self.match.players or not cryo.active(target.owner)):
+                continue
+            distance = ray_capsule(origin, direction, *target.segment(), target.radius)
+            if distance is not None and distance <= length:
+                contacts.append(distance)
+        return min(contacts, default=None)
 
     def _melee_pillar_targets(self, origin, centre, radius):
         hits = []
@@ -5648,11 +5727,19 @@ class Combat:
                 else:
                     allowed = npc_control.update_input(self, bot) if controlled and not authored else not self.is_stunned(bot)
                 advanced = script.frame < vm_tick
+                from ow174.game import sigma_flux
+
+                sigma_flux.sync_flux_airborne(script.component, bot.impulse_mover)
                 snapshot = script.advance_live(vm_tick, bot.position)
                 if bot not in self.match.bots or bot.body_script is not script:
                     continue
                 if advanced:
                     archives_thunderstorm.advance(self, bot, script.component)
+                    if (bot.spawner.get("acquire_targets") and bot.spawner.get("acquire_specials")
+                            and getattr(bot, "wall_mover", None) is None):
+                        from ow174.game import sniper_retreat
+
+                        sniper_retreat.advance(self, bot)
                 from ow174.game import assassin
 
                 assassin.refresh_control(script.component.world, script.component)
@@ -9362,6 +9449,7 @@ class Combat:
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
         reflected_reaper_shell: bool = False, source_entity: int | None = None, armour_reduction: bool = True,
+        shield_drain: bool = False,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         if source_entity is not None:
@@ -9373,8 +9461,8 @@ class Combat:
             if self.ball_mines.devices.get(mine.body) is not mine or mine.removing or amount <= 0:
                 return False
             vitals = self.vitals_of(target)
-            if vitals.dead:
-                return False
+            if vitals.dead or shield_drain:
+                return False  # Original Mine EMP disables its controller without health damage.
             if not source_scaled:
                 from ow174.game import nano
                 amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
@@ -9406,11 +9494,11 @@ class Combat:
         from ow174.game import nano
 
         attacker = _source_entity(shooter) if source_body is None else source_body
-        if not source_scaled:
+        if not source_scaled and not shield_drain:
             amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
             amount *= nano.offense(self, attacker)
         component = self._scene_component(shooter) if isinstance(shooter, bots.Bot) else None
-        if component is not None and not source_scaled:
+        if component is not None and not source_scaled and not shield_drain:
             amount = component.world.outgoing_combat_damage(shooter.entity, amount, hit_tags)
         if maximum_damage is not None:
             amount = min(amount, maximum_damage)
@@ -9428,24 +9516,29 @@ class Combat:
             self.barriers.damage(bubble, amount, shooter)
             return False
         self.zenyatta.regenerate_before_damage(target, vitals)
-        amount *= self.zenyatta.boost(target)
+        if not shield_drain:
+            amount *= self.zenyatta.boost(target)
         self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
         temporary_before = vitals.temporary_shields
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
-        if self.now < vitals.nano_until:
+        if self.now < vitals.nano_until and not shield_drain:
             amount *= 0.5
         adaptive = vitals.extra.get(("adaptive", moira.ADAPTIVE_SHIELD_TAG))
         shield_before = adaptive.now if adaptive is not None else 0.0
         sound_pool = vitals.extra.get(sound_barrier.POOL_KEY)
         sound_before = sound_pool.now if sound_pool is not None else 0.0
         minimum = self._minimum_health(target, vitals)
-        base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1], tick=world_tick if world_tick is not None else self.tick), minimum,
-                                    armour_scalar=armour_scalar, beam=beam)
-                if boost_credit is not None else 0.0)
-        dealt = vitals.damage(self._incoming_damage(target, amount, tick=world_tick if world_tick is not None else self.tick), minimum,
-                              armour_scalar=armour_scalar, beam=beam)
+        if shield_drain:
+            base = 0.0
+            dealt = vitals.drain_shields(amount)
+        else:
+            base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1], tick=world_tick if world_tick is not None else self.tick), minimum,
+                                        armour_scalar=armour_scalar, beam=beam)
+                    if boost_credit is not None else 0.0)
+            dealt = vitals.damage(self._incoming_damage(target, amount, tick=world_tick if world_tick is not None else self.tick), minimum,
+                                  armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
         if symmetra.owns_shield_recovery(target.owner):
@@ -9466,7 +9559,7 @@ class Combat:
             elif self.junkrat.lookup(target.entity) is target.owner and not isinstance(shooter, bots.Bot):
                 self._tell_hit(shooter, target, dealt, 0, frame)
             return True
-        if (target.owner is not shooter
+        if (not shield_drain and target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
             vitals.ult_healing_deficit = min(
                 vitals.base_maximum - vitals.base_total,
@@ -10019,6 +10112,7 @@ class Combat:
                 self.deadeye_notices.append((killer, victim, script, root_id, shot_frame, deadline))
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
+        self.hooks.retire(bot.entity)
         hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
@@ -10109,6 +10203,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.hooks.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)
@@ -10119,6 +10214,9 @@ class Combat:
             reinhardt_barrier.sync(self, victim)
             self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
+        from ow174.game import sigma_flux
+
+        sigma_flux.interrupt_flux_lift(self, victim)
         self.translocators.retire_body(victim.body)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:

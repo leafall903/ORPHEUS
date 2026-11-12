@@ -578,7 +578,7 @@ class _Export:
                 optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
-                               "controller_inputs", "heavy_counter_stuns", "control_context"))
+                               "controller_inputs", "heavy_counter_stuns", "control_context", "sniper_target", "sniper_retry_at"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
             if kind is PackWorld:
