@@ -34,6 +34,7 @@ from ow174.game import (
     actors,
     baptiste,
     ball,
+    ball_mines,
     barrier,
     assassin_victim,
     ashe,
@@ -152,13 +153,16 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "ball_mines sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples grapple_seen ball_contacts pile_air_locks orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
+    ball_mines.Mines: _names("fight devices volleys seen"),
+    ball_mines.MineWorld: _names("hero mode manager mine"),
+    ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),
     doomfist.Punches: _names("combat dashes impacts controls"),
     doomfist.Slams: _names("combat casts"),
     winston.JumpPack: _names("combat seen flights"),
@@ -304,6 +308,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
