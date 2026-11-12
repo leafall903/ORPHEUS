@@ -1987,3 +1987,23 @@ Next: source field offense snapshot on existing Rocket/Field; sync root's actual
 cover_ray query for original field LOS; then mobility-stop/idle-reload/cadence
 consumer audit. No duplicate active actors, movers, regen ledgers or acceptance
 matrix. Estimated remaining3–7active hours low confidence, not a submission gate.
+
+## A85 — original Graviton eye-point cover consumer
+
+Cleanly absorbed root faec1f1c (worker merge652efbce) including five pure geometry
+queries, B61 actual NPC sole-mover ownership and C wall geometry. Restored source
+Graviton eye-point ray admission through existing Combat.cover_ray. It reads the
+same settled static world, IceWall and actual Cryo body geometry; no second trace
+service or historical-time facade was introduced. Current birth, radius, team,
+phase/Fade/Recall/Fortify and same-body protections remain on the existing path.
+
+Original static-wall and direct5/DOT20 methods plus NPC same-mover2, Flux overlap1,
+Fortify2 all pass (8 methods; only the SwiftStrike method
+fails its2subcases, all other7 pass),20.531s. Original SwiftStrike team/
+cover method now reaches its genuine missing ability-stop assertion (dash.active
+True vsFalse), which belongs to the next existing mobility consumer batch. All
+assertions/numerics retained. Log worker-a-zarya-field-cover-eye-check.log.
+
+Next: frozen field offense on existing Rocket/Field and source mobility stop/
+ready gates, then actual idle reload/cadence audit. Original193 width boundary,
+old recovery-ledger observations and Ana50/native60 remain visible.
