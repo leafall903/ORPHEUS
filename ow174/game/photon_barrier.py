@@ -233,17 +233,18 @@ class Barriers:
                 pet.request(runtime.ABORT)
                 instance.component.run_now()
 
-    def opponents(self, shooter):
+    def opponents(self, shooter, *, team=None):
+        team = shooter.team if team is None else team
         return tuple(actor for actor in self.actors.values()
                      if actor.health > 0 and actor.owner is not shooter
-                     and (self.fight.match.game_map.free_for_all or actor.team != shooter.team))
+                     and (self.fight.match.game_map.free_for_all or actor.team != team))
 
     def closest(self, barrier, point):
         return self.geometry.closest(barrier.position, barrier.yaw, point)
 
-    def trace(self, shooter, origin, direction, reach, radius=0.0):
+    def trace(self, shooter, origin, direction, reach, radius=0.0, *, team=None):
         best = None
-        for actor in self.opponents(shooter):
+        for actor in self.opponents(shooter, team=team):
             distance = self.geometry.cast(actor.position, actor.yaw, origin, direction, reach, radius)
             if distance is not None and (best is None or distance < best[0]):
                 best = distance, actor

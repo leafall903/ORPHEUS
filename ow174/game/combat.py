@@ -4268,28 +4268,29 @@ class Combat:
 
     # --- targets -----------------------------------------------------------------------------------
 
-    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False):
+    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False, team=None):
+        """Use an explicit launch affiliation without replacing the source owner."""
         candidates = []
-        native_raised = [actor for actor in self.barriers.enemies(shooter)
+        native_raised = [actor for actor in self.barriers.enemies(shooter, team=team)
                          if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
         native_bodies = {actor.body for actor in native_raised}
         for actor in native_raised:
             distance = actor.trace(origin, direction, length, radius)
             if distance is not None:
                 candidates.append((distance, actor.owner, actor))
-        raised = self.barrier.intersect(shooter, origin, direction, length)
+        raised = self.barrier.intersect(shooter, origin, direction, length, team=team)
         if raised is not None and raised[1] not in native_bodies:
             candidates.append((raised[0], raised[2], raised[1]))
         for hit in (
-            self.barriers.world.trace(shooter, origin, direction, length, radius),
-            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius),
-            sigma_barrier.trace(self, shooter, origin, direction, length, radius),
-            self.photon_barriers.trace(shooter, origin, direction, length, radius),
+            self.barriers.world.trace(shooter, origin, direction, length, radius, team=team),
+            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius, team=team),
+            sigma_barrier.trace(self, shooter, origin, direction, length, radius, team=team),
+            self.photon_barriers.trace(shooter, origin, direction, length, radius, team=team),
         ):
             if hit is not None:
                 candidates.append((hit[0], hit[1].owner, hit[1]))
         if bubbles:
-            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius)
+            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius, team=team)
             if hit is not None:
                 candidates.append((hit[0], None, hit[1]))
         return min(candidates, key=lambda hit: hit[0], default=None)
@@ -4627,8 +4628,9 @@ class Combat:
                 best, best_score = target.entity, score
         return best
 
-    def _enemies(self, shooter, *, damageable: bool = False) -> list[Target]:
+    def _enemies(self, shooter, *, damageable: bool = False, team=None) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
+        team = shooter.team if team is None else team
         source = _source_entity(shooter)
         owner = getattr(shooter, "combat_owner", None) if isinstance(shooter, bots.Bot) else shooter
         found = []
@@ -4643,7 +4645,7 @@ class Combat:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
                 continue
-            if not free_for_all and target.team == shooter.team:
+            if not free_for_all and target.team == team:
                 continue
             if (self.vitals_of(target).dead or reaper.intangible(target.owner) or self._has_protection(target, PHASE_STATES)
                     or self.pulse_bombs.recalling(target)):
@@ -7294,7 +7296,7 @@ class Combat:
     def _fire_strike_contacts(self, rocket, direction, limit, start_tick, tick_per_distance, *, stops):
         """Delivered native shield/body contacts in physical travel order."""
         contacts = []
-        raised = [actor for actor in self.barriers.enemies(rocket.shooter)
+        raised = [actor for actor in self.barriers.enemies(rocket.shooter, team=rocket.team)
                   if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
         native_bodies = {actor.body for actor in raised}
         for actor in raised:
@@ -7304,13 +7306,13 @@ class Combat:
             if (distance is not None and key not in rocket.penetrated
                     and (distance < limit or not stops)):
                 contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
-        for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit):
+        for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
             key = (entity, self.barrier.children[entity])
             if key not in rocket.penetrated and (distance < limit or not stops):
                 contacts.append((distance, 0, entity, key, (distance, health, entity)))
-        for target in self._enemies(rocket.shooter):
+        for target in self._enemies(rocket.shooter, team=rocket.team):
             key = (target.entity, self.replacement_ticks.get(target.entity))
             if key in rocket.penetrated:
                 continue
