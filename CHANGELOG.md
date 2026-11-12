@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Piledriver damage, impulse and steering lock consumers
+
+- Consume the original160A landing-search activation, actual origin/distance
+  damage and pull/lift operands once. Route impulses through the existing
+  Knockbacks host; retain actual barrier pool protection and Cryo exclusion.
+- Mount original0.5s steering-only window without suppressing weapon input,
+  preserve delayed input windows, and clear locks on death/body retirement.
+- Six original control/retirement/team/cover/cooldown/death cases plus runtime
+  pass23/23. Full29 retains10 numerical subfail, no errors: high landing-scope
+  origin yields38.47 versus100, pull values and deadline steering remain open.
+- Real raw-server activeRoll and active160A windup export strict BodyVM and
+  server snapshots. Changing active counter/start changes both causal digests;
+  restoring restores both. Full source Pile76/Fireball44 assertion AST unchanged.
+- Fireball fixture dependency retained; its gameplay controller is still pending.
+  Original-client acceptance and full Ball completion remain open.
+
 ### Mount delivered Ball movement and Piledriver feedback
 
 - Restore original ball.py and mount its feedback and motion through the same
