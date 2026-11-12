@@ -1840,10 +1840,11 @@ class BodyWorld(runtime.World):
         return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
 
     def confirm_placement(self, state):
-        if self.match is not None and state.instance.graph.index == 0x1571:
-            portals = getattr(self.match.combat, "portals", None)
-            if portals is not None:
-                return portals.confirm(self, state)
+        if self.match is not None:
+            if state.instance.graph.index == 0x1571:
+                return self.match.combat.portals.confirm(self, state)
+            if state.instance.graph.index == 0x156B:
+                return self.match.combat.photon_barriers.confirm(self, state)
         return NotImplemented
 
     def placement_clock(self, state):

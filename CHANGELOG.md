@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
 ### Connect original Mei per-source frost aggregation
 
 - Mount original0B77 per-body/channel samples, max/additive policies, settings,

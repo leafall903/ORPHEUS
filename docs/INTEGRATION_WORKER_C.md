@@ -846,3 +846,50 @@ No syntheticmesh, newwallmanager or fixture-only patch. Then continue authorized
 NPC bridge and original Mei Blizzard, sampled Cryo history, Sombra/Ashe remainder.
 
 C28 SHA4fd1d4f7 delivered. Clean sync root7e9de0af preserves affiliation capture and all accepted C27/A/B changes; coordination only. C29 Photon sourceplane/Q with original0040 exactmesh, existingonehost.
+
+C29: original Photon Q/plane and configured mesh consumers
+-------------------------------------------------------
+Same existing photon_barrier.Barriers retains one cast/actor health/lifecycle.
+When geometry is None, confirmation uses original0016 placement, actual Q creates
+156C actor and original plane ray/closest contacts; configured original0040 mesh
+still delegates Geometry.cast/closest and canonical placement. No invented mesh.
+Existing interrupt helper is now consumed on control/death; deployed wall remains.
+Ordinary melee now blocks body through Photon and damages its shell exactly once;
+B12 hammer uses analytic capsule/plane contacts plus existing surface seen keys.
+
+Public contact API: manager.contact(actor,origin,direction,reach,radius=0.0)
+returns distance|None; trace(shooter,...,*,team=None) returns (distance,actor)|None.
+contact's source plane uses centre ray (source behavior), configured mesh uses
+existing cast. capsule_contacts(actor,a,b,radius) returns real contact points.
+B29 FireStrike can reuse these; do not skip Photon merely because geometry=None.
+
+Exact verification with v9 environment: python -B -m unittest
+ test_game_moira_photon -v :9pass7.625s,
+worker-c-photon-mesh-v9-final-check.log. v8 same production Q/plane with eight
+original common methods invoked directly (class has mesh-only skip decorator),
+all8pass; only mesh-specific invalid-confirmation/rotation excluded,
+worker-c-photon-plane-v8-final-check.log. Assertions unchanged, no fake geometry.
+Actual real Q plane probe traces 1000m sideways at distance5; actual existing
+hammer contact lowers4000->3945 once and repeated seen set prevents duplicate.
+Actual v9 Q probe at1000m sideways misses, proving authored finite mesh bounds.
+
+Shared exact v9 command: python -B -m unittest test_symmetra_charge
+ test_delivered_reinhardt_winston_barrier test_game_combat.DamageTests
+ test_doomfist_punch -v :52run46.521s,41pass4fail7errors retained,
+worker-c-photon-shared-check.log. Charge9,Damage8,Punch21 allpass; Win suite3pass,
+4fail7errors: FireStrike shell remains700vs600, shatter body455vs500, float point
+1.1000000238vs1.1, controlled/FixedBubble.ray/old shield observer protocols absent.
+B29 is independently integrating Win FireStrike/Shatter consumers. No assertions
+changed or omitted from that shared run. First failing plane/mesh logs retained.
+Recommend v9 exact original0040 mesh profile for configured geometry; v8 remains
+functional original0016 plane mode. No input file bytes changed.
+
+Boundary: original private NPC/wire observer equivalence not established; no new
+alias manager. Sentry retained-history phases, sparse Photon expiry charge clock,
+generic strict placement, sampled Cryo and Blizzard remain actual pending gaps.
+Next independent narrow batch: authorized autonomous navigator consumes existing
+movement_mods for partial frost slow; preserve mover/clock/control/path strategy.
+Then original Mei Blizzard/Cryo, Sombra and Ashe. Root also flagged DeviceWorld
+old symmetra_portal imports: adapt actual fight.portals endpoint/service consumers,
+not a name alias or second manager. Remaining rough estimate16-32 active hours,
+low confidence, excludes root reception and client acceptance.
