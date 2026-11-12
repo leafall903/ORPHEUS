@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered explicit possession query contexts
+
+- Add source0007's typed POSSESSOR/BODY lookups and subscriptions, append their
+  record/context fields after existing fields, and preserve linked/participant,
+  Component76, definition and target-record consumers. Only explicit possessor
+  providers take precedence; Reinhardt binds actual Match controller identities.
+  Other heroes and NPC/DVa retain their existing native query adapters.
+- Retire the original context with its body and register both snapshot schemas.
+  All16 original possessor and Reinhardt Passive cases pass. Earlier76 shared
+  economy/Genji/query/snapshot checks passed; the expanded repeat continues.
+- Preserve complete original query suites. Two unrelated source observations
+  retain existing body_health call-shape/error-text differences. Body-VM29
+  retains four existing schema/factory expectation failures, including the newly
+  stored possessor context alongside existing beam/ammo fields; no checks edited.
+- Original-client acceptance remains open.
+
 ### Preserve delivered Reinhardt charge across body replacement
 
 - Capture source0007's earned charge only after securing a replacement ID,

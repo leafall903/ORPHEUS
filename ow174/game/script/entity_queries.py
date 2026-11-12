@@ -10,6 +10,8 @@ from ow174.game.script import expr, graph, play
 
 EXISTS = 'STU_E72F6348'
 POSSESSED = 'STU_0AC15F78'
+POSSESSOR = 'STU_F7262B36'
+BODY = 'STU_00707E1E'
 LINKED = INDEXED_TARGET = 'STU_A37A910D'
 PARTICIPANT = 'STU_0340A42A'
 DEFINITION = 'STU_1A3FA5B0'
@@ -42,10 +44,21 @@ class Possession:
             raise ValueError('current possession must be a native uint32 identity')
 
 
+@dataclass
+class BodyField:
+    entity: int
+
+    def __post_init__(self):
+        if type(self.entity) is not int or not 0 <= self.entity <= 0xFFFFFFFF:
+            raise ValueError('component44 body field must be a native uint32 identity')
+
+
 @dataclass(frozen=True)
 class Target:
     entity: int
     possession: object = NotImplemented  # None declares component44 absence.
+    possessor: object = NotImplemented  # None declares component43 absence.
+    body_field: object = NotImplemented  # None declares component44 absence.
 
     def __post_init__(self):
         if type(self.entity) is not int or not 0 <= self.entity <= 0xFFFFFFFF:
@@ -53,6 +66,12 @@ class Target:
         if (self.possession is not NotImplemented and self.possession is not None
                 and type(self.possession) is not Possession):
             raise ValueError('expected current possession or known component44 absence')
+        if (self.possessor is not NotImplemented and self.possessor is not None
+                and type(self.possessor) is not Possession):
+            raise ValueError('expected primary possessor or known component43 absence')
+        if (self.body_field is not NotImplemented and self.body_field is not None
+                and type(self.body_field) is not BodyField):
+            raise ValueError('expected body field or known component44 absence')
 
 
 @dataclass
@@ -67,6 +86,7 @@ class Context:
     retired: bool = False
     lookup_linked: object = NotImplemented  # Callable (entity, selector) -> entity or None.
     lookup_participant: object = NotImplemented  # Callable (entity, watcher) -> resolved entity or None.
+    watch_possessor: object = NotImplemented
 
     def __post_init__(self):
         if (type(self.owner) is not int or not 0 <= self.owner <= 0xFFFFFFFF
@@ -122,11 +142,13 @@ def evaluate(evaluation, cfg):
         if type(definition) is not int or not 0 <= definition <= 0xFFFFFFFFFFFFFFFF:
             component.unsupported(instance, "entity definition resource", cls)
         return expr.Asset(definition)
-    if cls not in (EXISTS, POSSESSED, LINKED, PARTICIPANT):
+    if cls not in (EXISTS, POSSESSED, LINKED, PARTICIPANT, POSSESSOR, BODY):
         return NotImplemented
     instance, watcher = evaluation.instance, evaluation.watcher
     component = instance.component
-    context = component.world.entity_query_context(component.entity)
+    provider = (component.world.entity_possessor_context if cls == POSSESSOR
+                else component.world.entity_query_context)
+    context = provider(component.entity)
     if context is NotImplemented:
         return NotImplemented
 
@@ -138,7 +160,7 @@ def evaluate(evaluation, cfg):
         if (type(context) is not Context or context.owner != component.entity or context.retired
                 or instance.stopped or instance.teardown
                 or component.instances.get(instance.id) is not instance
-                or component.world.entity_query_context(component.entity) is not context):
+                or provider(component.entity) is not context):
             unsupported('entity query owner retired during callback')
         if any(type(value) is not bool for value in (
                 context.namespace_present, context.environment_present, context.possession_context_present)):
@@ -200,12 +222,13 @@ def evaluate(evaluation, cfg):
             watch_environment(46)
             return False
         watch_environment(0)
-    elif not context.possession_context_present:
+    elif cls != BODY and not context.possession_context_present:
         return expr.EVALUATION_FAILED
 
     # Native +20 selection uses the first config of 06610EBC, then F64C20
     # unwraps only the first member of nested arrays. Failure/non-entity => 0.
-    value = play.evaluate_scalar(instance, cfg.get('m_entity'), initial=expr.Entity(0), watcher=watcher)
+    selector = {POSSESSOR: 'm_801B298F', BODY: 'm_00903303'}.get(cls, 'm_entity')
+    value = play.evaluate_scalar(instance, cfg.get(selector), initial=expr.Entity(0), watcher=watcher)
     check()
     identifier = expr.to_entity(value) & 0xFFFFFFFF
     if cls == EXISTS and not expr.valid_entity(identifier):
@@ -217,16 +240,30 @@ def evaluate(evaluation, cfg):
         return target is not None
     if target is None:
         watch_environment(0 if context.environment_present else 46)
-        return expr.EVALUATION_FAILED
-    if target.possession is None:
+        return expr.Entity(0) if cls == BODY else expr.EVALUATION_FAILED
+    if cls == BODY:
+        field = target.body_field
+        if field is None:
+            return expr.Entity(0)
+        if type(field) is not BodyField:
+            unsupported('entity query component44 body field')
+        if watcher is not None:
+            call(context.watch_possession, 'entity query possession subscription', watcher, target)
+        if type(field.entity) is not int or not 0 <= field.entity <= 0xFFFFFFFF:
+            unsupported('entity query component44 body field')
+        return expr.Entity(field.entity)
+    relation = target.possessor if cls == POSSESSOR else target.possession
+    if relation is None:
         return expr.Entity(0)
-    if type(target.possession) is not Possession:
-        unsupported('entity query current possession')
+    if type(relation) is not Possession:
+        unsupported('entity query primary possessor' if cls == POSSESSOR
+                    else 'entity query current possession')
     if watcher is not None:
-        call(context.watch_possession, 'entity query possession subscription', watcher, target)
-    if type(target.possession.current) is not int or not 0 <= target.possession.current <= 0xFFFFFFFF:
+        callback = context.watch_possessor if cls == POSSESSOR else context.watch_possession
+        call(callback, 'entity query possession subscription', watcher, target)
+    if type(relation.current) is not int or not 0 <= relation.current <= 0xFFFFFFFF:
         unsupported('entity query current possession')
-    return expr.Entity(target.possession.current)
+    return expr.Entity(relation.current)
 
 
 def _target_query(evaluation, cfg, cls):

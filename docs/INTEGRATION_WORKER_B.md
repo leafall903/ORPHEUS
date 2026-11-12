@@ -354,6 +354,27 @@ alone is not evidence that a line's consumers are actually mounted.
 - Next B22: append original POSSESSOR/BODY dataclass/context inputs while retaining
   existing linked/participant/Component76 queries and DVa dedicated projection.
 
+## B22 explicit original possession query contexts
+
+- Keep current body_owner/controller_queries semantics for existing hosts.
+  Explicit entity_possessor_context hosts use the original typed lookup with
+  callback/lifetime guards. Reinhardt uses actual Match controller/body IDs;
+  NPC component43 remains unknown, and DVa/Genji existing adapters remain.
+- Append Target.possessor/body_field and Context.watch_possessor after current
+  fields; retain all shared linked/participant/Component76 code. Snapshot and
+  body-VM schemas include the context and watch callback. Original tests copied
+  under delivered names; only source fixture provider declaration/import adapts.
+- `worker-b-rein-relation-focused.log`:16/16 original Possessor7 +Passive9 pass.
+  `worker-b-rein-relation-second.log`:76/76 earlier shared checks pass; expanded
+  repeat `worker-b-rein-relation-third.log` still running. Source entity-query
+  suite retains2 unrelated body_health(instance) call-shape/error-text failures.
+  `worker-b-rein-relation-snapshot.log`:29 retains4 original expectation failures
+  (Component report fields, Assassin factory, Soldier stored fields including
+  new _possessor_query, MovementFlags registry class). Do not weaken checks.
+- B21 full server snapshot run session82747 remains ongoing externally. Next:
+  Earthshatter actual wave/control/surface audit, source NPC health/observer
+  reconciliation; then remaining owner functionality beyond Rein/Winston/Doom.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at
