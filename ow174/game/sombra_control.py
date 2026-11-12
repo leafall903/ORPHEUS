@@ -266,7 +266,7 @@ class Controls:
                     matches[0] if matches and request.policy == 2 else None)
 
     def apply_devices(self, instance, definition, resource, request, caster):
-        from ow174.game import symmetra_sentry
+        from ow174.game import symmetra_sentry, ball_mines
 
         if caster is None:
             return
@@ -300,7 +300,12 @@ class Controls:
                     locks = self.locks.setdefault(target.entity, [])
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
-                    locks.append(Lock(application, self.fight.now + duration, pulse))
+                    until = self.fight.now + duration
+                    if isinstance(target.owner, ball_mines.Mine):
+                        # Mine Components are born on this same world clock;
+                        # their actual entry cursor can be at frame end (+15ms).
+                        until = (application.start + round(duration * 1000)) / 1000
+                    locks.append(Lock(application, until, pulse))
                     self.remember_lock(application, duration)
                     if isinstance(target.owner, symmetra_sentry.Sentry):
                         self.fight.symmetra_sentries.set_target(target.owner, None)
