@@ -28,7 +28,7 @@ from test_game_combat import KANEZAKA_DM, FakeClient, Run, aim  # noqa: E402
 from test_sigma_combat import SigmaCombatTests  # noqa: E402
 from test_sigma_flux_placement import SigmaFluxPlacementTests  # noqa: E402
 
-from ow174.game import absorption, combat, enforcer, heavy_assault, mover, npc, npc_control, sigma, sigma_flux
+from ow174.game import absorption, barriers, combat, defenses, enforcer, heavy_assault, mover, npc, npc_control, sigma_barrier, sigma_flux
 from ow174.game import sniper_reposition as sniper  # noqa: E402
 from ow174.game.collision import World  # noqa: E402
 from ow174.game.commands import FIRE  # noqa: E402
@@ -53,6 +53,36 @@ class AuditClient(FakeClient):
         return None  # no NPC transport streams are mounted in this authoritative-only fixture
 
 
+def _grasp_pools(vitals):
+    """Read the actual tagged pools; never construct a compatibility health ledger."""
+    return tuple(pool for pool in vitals.extra.values()
+                 if pool.identifier == absorption.SHIELD_TAG and pool.kind == combat.SHIELDS_POOL)
+
+
+def _airborne_mover(bot):
+    """Original effect-mover lifetime ended on landing; the sole mover may persist."""
+    actual = bot.control_mover or bot.impulse_mover
+    return actual if actual is not None and actual.airborne else None
+
+
+def _particle_pet(fight, player):
+    candidates = [actor for actor in fight.barriers.scripted.values()
+                  if actor.component.world.hero == barriers.ZARYA and actor.vitals is not None
+                  and (actor.recipient_body or actor.parent_body) == player.body
+                  and barriers._live(fight, actor)]
+    return min(candidates, key=lambda actor: barriers._particle_priority(fight, actor)) if candidates else None
+
+
+def _sigma_barrier_separates(fight, shooter, source, target):
+    a, b = target.segment()
+    nearest = (a[0], max(a[1], min(b[1], source[1])), a[2])
+    delta = tuple(value - start for value, start in zip(nearest, source))
+    length = math.sqrt(sum(value * value for value in delta))
+    reach = length - target.radius
+    return (reach > combat.EPSILON and sigma_barrier.barrier_intersection(
+        fight, shooter, source, tuple(value / length for value in delta), reach) is not None)
+
+
 def clear_graph_caches():
     for function in (graph._data, graph._records, graph.graph):
         function.cache_clear()
@@ -66,9 +96,10 @@ def player_damage_sources(fight, player, bot, vitals):
 
     def observe(shooter, target, *args, **kwargs):
         before = vitals.total
-        original(shooter, target, *args, **kwargs)
+        result = original(shooter, target, *args, **kwargs)
         if target.owner is player and (shooter is bot or shooter is player):
             dealt["npc" if shooter is bot else "self"] += before - vitals.total
+        return result
 
     with patch.object(fight, "_damage", side_effect=observe):
         yield dealt
@@ -134,11 +165,11 @@ def scenario(definition, name):
     expected_stun = 50 if name == "accretion" else 0
     displacement = math.hypot(bot.position[0] - origin[0], bot.position[2] - origin[2])
     impulse_passed = name != "accretion" or (
-        lift > 0.05 and displacement > 0.5 and bot.effect_mover is None
+        lift > 0.05 and displacement > 0.5 and _airborne_mover(bot) is None
     )
     lateral_delta = bot.position[0] - origin[0]
     if name == "airburst":
-        impulse_passed = lift > 0.02 and lateral_delta < -0.05 and bot.effect_mover is None
+        impulse_passed = lift > 0.02 and lateral_delta < -0.05 and _airborne_mover(bot) is None
     return {"scenario": name, "expected_base_pool_damage": expected, "damage": lost,
             "stun_ticks": stun_ticks, "expected_stun_ticks": expected_stun,
             "maximum_lift": lift, "horizontal_displacement": displacement,
@@ -244,9 +275,10 @@ def lethal_npc_return(definition):
     def observe(source, target, amount, *args, **kwargs):
         vitals = fight.vitals_of(target)
         before = vitals.total
-        damage(source, target, amount, *args, **kwargs)
+        result = damage(source, target, amount, *args, **kwargs)
         if source is bot and target.owner is player:
             hits.append({"frame": run.frame, "body": target.entity, "amount": amount, "dealt": before - vitals.total})
+        return result
 
     yaw, pitch = view()
     run.step({player: (yaw, pitch, 0)})
@@ -330,9 +362,10 @@ def npc_primary_gate_recovery(definition, mode):
 
     def observe_damage(source, target, amount, *args, **kwargs):
         before = vitals.total
-        damage(source, target, amount, *args, **kwargs)
+        result = damage(source, target, amount, *args, **kwargs)
         if source is bot and target.owner is player:
             hits.append({"frame": run.frame, "damage": before - vitals.total})
+        return result
 
     def reach_hit(old_hits):
         for _ in range(300):
@@ -403,12 +436,12 @@ def incoming(definition, *, grasp=False, barrier=False):
     if barrier:
         for frame in range(40):
             run.step({player: (yaw, 0, 0x02 if frame < 4 else 0)})
-        shield, = fight.barriers.values()
+        shield, = fight.sigma_barriers.values()
     run.step({player: (yaw, pitch, 0)})  # establish the crosshair before public engagement selection
     target = next(t for t in fight._targets() if t.owner is player)
     if shield is not None:
         source = (x, y + mover.mover_data(bot.body).stand_height / 2, z)
-        if not shield.active or fight._blast_passes_barriers(bot, source, target, None):
+        if not shield.active or not _sigma_barrier_separates(fight, bot, source, target):
             raise AssertionError("active Experimental Barrier must separate NPC and Sigma")
     vitals = fight.vitals_of(target)
     before = vitals.total
@@ -433,17 +466,18 @@ def incoming(definition, *, grasp=False, barrier=False):
                         "projectiles": len(fight.rockets) - before_launch})
 
     def record_damage(shooter, target, amount, *args, **kwargs):
-        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-        before_temporary = pool.now if pool else 0
+        pool = _grasp_pools(vitals)
+        before_temporary = sum(entry.now for entry in pool) if pool else 0
         before_total = vitals.total
         active = bool(grasp_instance and grasp_instance.states.get(1) and grasp_instance.states[1].active)
-        original_damage(shooter, target, amount, *args, **kwargs)
+        result = original_damage(shooter, target, amount, *args, **kwargs)
         if target.owner is player:
-            pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
+            pool = _grasp_pools(vitals)
             damage_events.append({"frame": run.frame, "amount": amount, "dealt": before_total - vitals.total,
                                   "grasp_active": active, "temporary_before": before_temporary,
-                                  "temporary_after": pool.now if pool else 0,
+                                  "temporary_after": sum(entry.now for entry in pool) if pool else 0,
                                   "contact_control": fight.pins.get(bot.entity) == player.body})
+        return result
 
     npc_control.start(run.match, player)
     primary_button = npc_control.button(bot)
@@ -462,11 +496,11 @@ def incoming(definition, *, grasp=False, barrier=False):
             if frame == release:
                 npc_control.stop(run.match)
             run.step({})
-            settled = definition.hero != enforcer.ENFORCER or not any(r.shooter is bot for r in fight.rockets)
+            settled = definition.hero != enforcer.HERO or not any(r.shooter is bot for r in fight.rockets)
             if barrier and settled and (shield.vitals.total < shield.vitals.maximum or damage_events):
                 npc_control.stop(run.match)
                 break
-    full_volley = definition.hero != enforcer.ENFORCER or (bool(volleys) and all(
+    full_volley = definition.hero != enforcer.HERO or (bool(volleys) and all(
         row["graph"] == "13EB" and row["projectiles"] == 25 and row["direct"] == 2 for row in volleys
     ))
     if barrier:
@@ -480,14 +514,14 @@ def incoming(definition, *, grasp=False, barrier=False):
                 "passed": survived and full_volley and (
                     (dealt > 0 and controlled and released and shield_damage == 0) if assassin
                     else (bool(volleys) and shield_damage > 0 and dealt == 0)
-                ) and (definition.hero != enforcer.ENFORCER or shield_damage == 50),
+                ) and (definition.hero != enforcer.HERO or shield_damage == 50),
                 "damage": dealt, "barrier_damage": shield_damage, "contact_control": controlled,
                 "control_released_after_stop": released, "executed_volleys": volleys,
                 "body_script_survives": survived}
     if grasp:
         absorbed = grasp_instance.vars[21312].value()
-        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-        bonus = pool.now if pool else 0
+        pool = _grasp_pools(vitals)
+        bonus = sum(entry.now for entry in pool) if pool else 0
         base_damage = before - sum(vitals.now.values())
         temporary_spent = sum(event["temporary_before"] - event["temporary_after"] for event in damage_events)
         during_active = sum(event["dealt"] for event in damage_events if event["grasp_active"])
@@ -516,7 +550,7 @@ def incoming(definition, *, grasp=False, barrier=False):
                 "npc_precharge_frames": precharge,
                 "authored_primary_button": primary_button,
                 "passed": (healthy_script and full_volley and absorbed > 0 and abs(during_active) < 1e-5
-                           and (definition.hero != enforcer.ENFORCER or absorbed == 50)
+                           and (definition.hero != enforcer.HERO or absorbed == 50)
                            and abs(bonus - expected) < 1e-5),
                 "limits": "Manual NPC input; no emitted attack cannot establish absorption."}
     dealt = sum(event["dealt"] for event in damage_events)
@@ -660,10 +694,10 @@ def enforcer_volley_range(definition, distance, *, late_stun=False):
             hits.append((amount, fight.is_stunned(bot)))
         return damage(shooter, target, amount, *args, **kwargs)
 
-    def observe_landed(rocket):
+    def observe_landed(rocket, **kwargs):
         if rocket.shooter is bot:
             travelled.append(rocket.flown * rocket.speed)
-        return landed(rocket)
+        return landed(rocket, **kwargs)
 
     def observe_launch(shooter, *args, **kwargs):
         initial = len(fight.rockets)
@@ -853,10 +887,10 @@ def enforcer_grasp_shield_spill(definition):
             break
     for _ in range(140):
         run.step({player: (yaw, pitch, 0)})
-        if absorption.SHIELD_TAG in vitals.temporary_shields:
+        if bool(_grasp_pools(vitals)):
             break
-    granted = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-    grant = granted.now if granted is not None else 0
+    granted = _grasp_pools(vitals)
+    grant = sum(entry.now for entry in granted) if bool(granted) else 0
     first_activation = grasp.states[1].counter
     ability = grasp.states[0]
     cooldown_at_retry = ability.remaining()
@@ -870,8 +904,8 @@ def enforcer_grasp_shield_spill(definition):
         if impacted and not any(rocket.shooter is bot for rocket in fight.rockets):
             npc_control.stop(run.match)
             break
-    temporary = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-    remaining = temporary.now if temporary is not None else 0
+    temporary = _grasp_pools(vitals)
+    remaining = sum(entry.now for entry in temporary) if bool(temporary) else 0
     shield_damage = shield_max - vitals.now[shield]
     body_damage = vitals.most[combat.HEALTH_POOL] - vitals.now[combat.HEALTH_POOL]
     denied = grasp.states[1].counter == first_activation and not grasp.states[1].active
@@ -883,20 +917,20 @@ def enforcer_grasp_shield_spill(definition):
     before_second = sum(vitals.now.values())
     run.step({player: (yaw, pitch, 0x08)})
     npc_control.start(run.match, player)
-    with patch.object(sigma, "absorbed", wraps=sigma.absorbed) as record_absorption:
+    with patch.object(fight.absorption, "absorbed", wraps=fight.absorption.absorbed) as record_absorption:
         for _ in range(110):
             run.step({player: (yaw, pitch, 0)})
             if record_absorption.call_count >= 25:
                 npc_control.stop(run.match)
                 break
-    second_absorbed = sum(call.args[1] for call in record_absorption.call_args_list)
+    second_absorbed = sum(absorption.amount(call.args[1], call.args[2]) or 0 for call in record_absorption.call_args_list)
     for _ in range(140):
         run.step({player: (yaw, pitch, 0)})
-        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-        if pool is not None and pool.now > 0:
+        pool = _grasp_pools(vitals)
+        if bool(pool) and sum(entry.now for entry in pool) > 0:
             break
-    second_pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-    second_bonus = second_pool.now if second_pool is not None else 0
+    second_pool = _grasp_pools(vitals)
+    second_bonus = sum(entry.now for entry in second_pool) if second_pool else 0
     second_damage = before_second - sum(vitals.now.values())
     unchanged_charge = script.component.entity_var(342).value()
     economy = enforcer_earned_flux(run, player, bot, yaw, pitch, cost)
@@ -944,7 +978,7 @@ def enforcer_earned_flux(run, player, bot, yaw, pitch, cost):
             "final_charge": final_charge,
             "passed": (denied and accretion_damage == 70 and earned == cost == 1960
                        and started and spent == final_charge == 0 and damage == 50 + vitals.maximum / 2
-                       and not flux.flags & nodes.Ability.RUNNING and bot.effect_mover is None)}
+                       and not flux.flags & nodes.Ability.RUNNING and _airborne_mover(bot) is None)}
 
 
 def enforcer_kills_flux_preview(definition):
@@ -1052,7 +1086,7 @@ def enforcer_defense_order(definition, mode):
     hold = 3 if mode == "grasp_first" else 16
     for frame in range(40):
         run.step({player: (yaw, 0, 0x02 if frame < hold else 0)})
-    barrier, = fight.barriers.values()
+    barrier, = fight.sigma_barriers.values()
     if mode == "barrier_breaks":
         barrier.vitals.damage(680)  # leave 20 durability to exercise a break within one volley
     durability = barrier.vitals.total
@@ -1068,8 +1102,8 @@ def enforcer_defense_order(definition, mode):
         if shooter is not bot:
             return
         for pellet in fight.rockets[count:]:
-            shield = sigma.barrier_intersection(fight, bot, pellet.position, pellet.direction, 6)
-            field = sigma.grasp_intersection(fight, bot, pellet.position, pellet.direction, 6)
+            shield = sigma_barrier.barrier_intersection(fight, bot, pellet.position, pellet.direction, 6)
+            field = absorption.grasp_intersection(fight, bot, pellet.position, pellet.direction, 6)
             contacts.append((shield[0] if shield else None, field[0] if field else None))
 
     with patch.object(fight, "_shoot", side_effect=observe):
@@ -1088,8 +1122,8 @@ def enforcer_defense_order(definition, mode):
     for _ in range(130):
         run.step({})
     absorbed = grasp.vars[21312].value()
-    temporary = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-    bonus = temporary.now if temporary is not None else 0
+    temporary = _grasp_pools(vitals)
+    bonus = sum(entry.now for entry in temporary) if bool(temporary) else 0
     base_damage = before - sum(vitals.now.values())
     barrier_first = sum(a is not None and b is not None and a < b for a, b in contacts)
     grasp_first = sum(a is not None and b is not None and b < a for a, b in contacts)
@@ -1128,7 +1162,7 @@ def incoming_npc_melee(definition, mode):
     if mode == "barrier":
         for frame in range(9):
             run.step({player: (yaw, 0, 0x02 if frame < 5 else 0)})
-        shield, = fight.barriers.values()
+        shield, = fight.sigma_barriers.values()
     buttons = {"grasp": 0x08, "accretion": 0x10}.get(mode, 0)
     run.step({player: (yaw, pitch, buttons)})
     if mode == "accretion":
@@ -1148,9 +1182,7 @@ def incoming_npc_melee(definition, mode):
     with player_damage_sources(fight, player, bot, vitals) as dealt:
         for frame in range(80 if mode == "range" else 40):
             grasp_active = grasp is not None and grasp.states.get(1) and grasp.states[1].active
-            separated = shield is not None and shield.active and not fight._blast_passes_barriers(
-                bot, source, target, None,
-            )
+            separated = shield is not None and shield.active and _sigma_barrier_separates(fight, bot, source, target)
             run.step({})
             if attack.flags & nodes.Ability.RUNNING and not began:
                 began = True
@@ -1242,8 +1274,8 @@ def npc_melee_targets(definition, mode):
             commands[other] = (0, 0, 0x08)
         run.step(commands)
         if mode == "projected" and bubble is None:
-            bubble = sigma.particle_barrier(other)
-        phased = sigma.body_protection(other) == "phase"
+            bubble = _particle_pet(fight, other)
+        phased = defenses.intangible(other)
         if vitals[player].total < vitals[player].maximum:
             break
     chosen = attack.instance.vars.get(375)
@@ -1251,8 +1283,7 @@ def npc_melee_targets(definition, mode):
     expected = {player.body} if mode in ("cover", "phase") else {player.body, other.body}
     damage = [vitals[body].maximum - vitals[body].total for body in (player, other, ally)]
     amount = 80 if definition.hero == heavy_assault.HERO else 30
-    durability = (vitals[other].particle_barriers.get(sigma.particle_barrier_key(bubble))
-                  if bubble is not None else None)
+    durability = bubble.vitals.total if bubble is not None else None
     energy = (zarya.body_script.component.entity_var(87).value() or 0) if mode == "projected" else None
     side_pushed = other.mover.velocity[0] > 0
     passed = (selected == expected and damage == [amount, amount if mode == "open" else 0, 0]
@@ -1324,9 +1355,9 @@ def trooper_melee_during_flux(definition):
     for _ in range(65):
         windup_before_lift = bool(attack.flags & nodes.Ability.RUNNING)
         run.step({})
-        if bot.effect_mover is not None and bot.effect_mover.airborne:
+        if _airborne_mover(bot) is not None and _airborne_mover(bot).airborne:
             break
-    lifted = bot.effect_mover is not None and bot.effect_mover.airborne
+    lifted = _airborne_mover(bot) is not None and _airborne_mover(bot).airborne
     ally_damage_at_lift = before - health.total
     cooldown = attack.remaining()
     melee_at_lift = bool(attack.flags & nodes.Ability.RUNNING)
@@ -1336,12 +1367,12 @@ def trooper_melee_during_flux(definition):
     cooldown_expired_in_air = False
     for _ in range(330):
         run.step({})
-        if bot.effect_mover is None:
+        if _airborne_mover(bot) is None:
             break
         melee_during_lift |= bool(attack.flags & nodes.Ability.RUNNING)
         airborne_damage = at_lift - health.total
         cooldown_expired_in_air |= attack.remaining() <= 0
-    landed = bot.effect_mover is None
+    landed = _airborne_mover(bot) is None
     at_landing = health.total
     fresh_melee = False
     for _ in range(40):
@@ -1430,8 +1461,8 @@ def incoming_heavy_charge(definition, mode):
     if mode == "barrier":
         for frame in range(26):
             run.step({player: (yaw, 0, 0x02 if frame < 20 else 0)})
-        shield, = fight.barriers.values()
-        separated = shield.active and not fight._blast_passes_barriers(bot, source, target, None)
+        shield, = fight.sigma_barriers.values()
+        separated = shield.active and _sigma_barrier_separates(fight, bot, source, target)
     run.step({player: (yaw, pitch, 0x08 if mode == "grasp" else 0)})
     npc_control.start(run.match, player)
     component = bot.body_script.component
@@ -1522,7 +1553,7 @@ def heavy_charge_carry(definition, mode):
         run.step({player: (yaw, pitch, 8 if frame == 65 else 0)})
         if fight.pins.get(bot.entity) == player.body:
             break
-    child = next((i for i in component.instances.values() if i.graph.index == heavy_assault.VICTIM_GRAPH), None)
+    child = next((i for i in component.instances.values() if i.graph.index == 0x1407), None)
     flag = component.entity_var(961, create=False)
     captured = (child is not None and child.source_entity() == bot.entity
                 and component.entity_var(7539).value() == expr.Entity(bot.entity))
@@ -1567,7 +1598,7 @@ def heavy_charge_carry(definition, mode):
     displacement = z - player.mover.position[2]
     damage = before_impact - vitals.total
     released = (bot.entity not in fight.pins and not any(
-        i.graph.index == heavy_assault.VICTIM_GRAPH for i in component.instances.values()
+        i.graph.index == 0x1407 for i in component.instances.values()
     ) and component.entity_var(7539).value() is None)
     recovery_seconds = None
     if mode in ("wall", "lethal_wall"):
@@ -1657,21 +1688,18 @@ def heavy_charge_projected_barrier(definition, *, expires_during_approach):
         for _ in range(37):
             run.step({player: (*aim_npc, 0)})
     npc_control.start(run.match, player)
-    bubble = sigma.particle_barrier(player)
+    bubble = _particle_pet(fight, player)
     protected_in_range = captured = captured_while_protected = False
     durability = None
     for frame in range(110):
         run.step({zarya: (*aim_ally, 0x10)} if frame == 65 and not expires_during_approach else {})
-        active = sigma.particle_barrier(player)
+        active = _particle_pet(fight, player)
         if bubble is None and active is not None:
             bubble = active
         if active is not None:
             if abs(bot.position[2] - z) <= 2.1:
                 protected_in_range = True
-            pool = graph.graph(0x0256).node(0).field("m_amount")
-            durability = vitals.particle_barriers.get(
-                sigma.particle_barrier_key(active), expr.to_float(active.evaluate(pool, watch=False)),
-            )
+            durability = active.vitals.total
         if fight.pins.get(bot.entity) == player.body:
             captured = True
             captured_while_protected = active is not None
@@ -1782,7 +1810,7 @@ def heavy_charge_during_flux(definition):
     stayed_grounded = True
     for _ in range(115):
         run.step({})
-        stayed_grounded &= bot.position[1] == floor and bot.effect_mover is None
+        stayed_grounded &= bot.position[1] == floor and _airborne_mover(bot) is None
         if entry is None and heavy_health.total < heavy_before:
             entry = {"charge_phase": phase.value(), "ally_damage": before - ally_health.total,
                      "displacement": math.dist(start, bot.position)}
@@ -1794,7 +1822,7 @@ def heavy_charge_during_flux(definition):
     npc_control.stop(run.match)
     for _ in range(260):
         run.step({})
-        stayed_grounded &= bot.position[1] == floor and bot.effect_mover is None
+        stayed_grounded &= bot.position[1] == floor and _airborne_mover(bot) is None
     flux_damage = heavy_before - heavy_health.total
     return {"scenario": "heavy_assault_charge_during_flux", "entry": entry, "impact": impact,
             "fixture_target_flag_961": True,
@@ -1923,7 +1951,7 @@ def sniper_retreat(definition, mode):
                 first_volley = run.frame
             fired_during_special |= bot.attack_input and phase in (1, 2)
             if mode == "barrier" and shield is None:
-                shield = next(iter(fight.barriers.values()), None)
+                shield = next(iter(fight.sigma_barriers.values()), None)
             barrier_damage = shield.vitals.maximum - shield.vitals.total if shield is not None else 0
             slot = grasp.vars.get(21312)
             absorbed = slot.value() if slot is not None else 0
@@ -1971,10 +1999,10 @@ def sniper_retreat(definition, mode):
             passed &= absorbed == 100
             for _ in range(130):
                 run.step({})
-                if absorption.SHIELD_TAG in vitals.temporary_shields:
+                if bool(_grasp_pools(vitals)):
                     break
-            bonus = vitals.temporary_shields.get(absorption.SHIELD_TAG)
-            passed &= bonus is not None and math.isclose(bonus.now, 60, abs_tol=1e-5)
+            bonus = _grasp_pools(vitals)
+            passed &= bool(bonus) and math.isclose(sum(entry.now for entry in bonus), 60, abs_tol=1e-5)
     else:
         passed = 2.49 <= displacement <= 2.51 and damage == 100
     frame_ms = state.instance.component.frame_ms
@@ -2023,19 +2051,19 @@ def sniper_retreat_during_flux(definition):
     for _ in range(65):
         retreating_before_lift |= state.active
         run.step({})
-        if bot.effect_mover is not None and bot.effect_mover.airborne:
+        if _airborne_mover(bot) is not None and _airborne_mover(bot).airborne:
             break
         if state.active and bot.position != start:
             retreat_position = bot.position
-    lifted = bot.effect_mover is not None and bot.effect_mover.airborne
+    lifted = _airborne_mover(bot) is not None and _airborne_mover(bot).airborne
     lift_damage = before - sniper_health.total
     resumed_retreat = False
     for _ in range(330):
         run.step({})
         resumed_retreat |= state.active or state.counter > 1
-        if bot.effect_mover is None:
+        if _airborne_mover(bot) is None:
             break
-    landed = bot.effect_mover is None and abs(bot.position[1] - start[1]) < 0.01
+    landed = _airborne_mover(bot) is None and abs(bot.position[1] - start[1]) < 0.01
     at_landing = ally_health.total
     for _ in range(145):
         run.step({})
@@ -2276,7 +2304,7 @@ def incoming_flux(definition, *, early=False):
     run.step({player: (yaw, pitch, 0)})
     npc_control.start(run.match, player)
     effects = bot.body_script.component.instances
-    airborne_at_engagement = bot.effect_mover is not None and bot.effect_mover.airborne
+    airborne_at_engagement = _airborne_mover(bot) is not None and _airborne_mover(bot).airborne
     volleys = []
     original_shoot = fight._shoot
 
@@ -2317,7 +2345,7 @@ def incoming_flux(definition, *, early=False):
         attack_passed = incoming_damage > 0 and running and bool(volleys) and volleys[0]["flux_running"] and (
             volleys[0]["height"] == 0 if heavy else airborne_at_engagement and volleys[0]["height"] > 1
         )
-    landed = abs(bot.position[1] - floor) < 0.01 and bot.effect_mover is None
+    landed = abs(bot.position[1] - floor) < 0.01 and _airborne_mover(bot) is None
     return {"scenario": "npc_primary_against_flux_early" if early else "npc_primary_against_flux",
             "incoming_damage": incoming_damage, "flux_damage": npc_before - npc_health.total,
             "airborne_at_engagement": airborne_at_engagement,
@@ -2499,7 +2527,7 @@ def run_audit(catalog, graphs, body_xml, movers=None, *,
                                    for blocked in (False, True))
                     if include_flux_return:
                         results.append(sniper_retreat_during_flux(definition))
-                if include_enforcer_volley and definition.hero == enforcer.ENFORCER:
+                if include_enforcer_volley and definition.hero == enforcer.HERO:
                     for mode in ("stop", "wall", "accretion"):
                         results.append(enforcer_volley_lifecycle(definition, mode))
                     for distance in (6, 11, 18, 90):
