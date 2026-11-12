@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-12
+
+#### Shared Python and Rust behavior contracts
+
+- Added the contribution workflow for language-neutral behavior fixtures, including reference provenance, explicit expected results, gradual backfill and pending original-client acceptance. Linked it from the contributor guide, agent instructions and pull request checklist.
+- Clarified that general Python work uses topic branches and pull requests to `main`, while `leafall` remains the designated hero-development branch with the same pull-request integration requirement.
+- Added a public synthetic JAM framing contract and Python tests using the normal framing sender and receiver, including every two-part split and one-byte delivery. The test accepts an external fixture directory so Python and Rust can consume the same file.
+- Passed Ruff, 920 public Python tests, six dashboard and NPC-console JavaScript tests, 12 local documentation link checks and the focused contract test with the external-directory setting. Original-client acceptance for this synthetic contract is pending.
+
 ### 2026-11-11
 
 #### Graph extraction from the pinned DataTool's UUID fields
@@ -22,6 +31,28 @@ This log records tested changes and their acceptance status. Entries are grouped
   send later than the test allows.
 - Original-client check: on that pack, Practice Range kills still drew the kill feed line.
 - Limit: the UUID values are not in a pinned dump at all, so an entity reference reads as none.
+
+#### Wine and Proton plaintext relay hook compatibility
+
+- Lower the `inHeap()` address floor to `0x10000`, accepting Wine and Proton
+  socket and byte-stream structures allocated in the lower 4 GB virtual address
+  space (`0x1DD10000`–`0x25000000`).
+- Replace raw pointer dereferencing in `scan()` with chunked 64 KB `ReadProcessMemory`
+  calls. Recover from Wine partial-read copy errors (`ERROR_PARTIAL_COPY` with
+  `nread = 0`) via a 4 KB page fallback, preserving adjacent valid pages.
+- Advance the scan offset by `off` instead of the chunk length to preserve candidate
+  byte-stream structures that span across 64 KB chunk boundaries.
+- Log first-fault memory attributes (`VirtualQuery` region base, size, state, protection
+  and `GetLastError`) directly to `wfd.log`.
+- Use safe memory wrappers (`ReadProcessMemory` / `WriteProcessMemory`) on non-MSVC
+  builds while preserving native zero-overhead `__try / __except` paths for MSVC on Windows.
+- Export `worker()` with `__declspec(dllexport)` and an atomic `InterlockedCompareExchange`
+  guard preventing duplicate thread execution when invoked via `CreateRemoteThread`.
+- Add an adaptive polling throttle (125 Hz during startup and for 4 seconds after any swap,
+  relaxing to 20 Hz upon quiescence).
+- Passed clean cross-compilation with `x86_64-w64-mingw32-g++` and 4-suite synthetic memory
+  fault testing under Proton 11.0. Manual acceptance confirmed with original client 104319
+  connecting to Battle.net relay (`21119`) and lobby (`3724`) without timeouts or access violations.
 
 #### Wrecking Ball reticle and Piledriver movement
 
