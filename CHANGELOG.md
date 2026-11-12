@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
 ### Mount original Roadhog Hook through shared movement and storage
 
 - Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one

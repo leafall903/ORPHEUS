@@ -1302,3 +1302,46 @@ Zarya. Do not duplicate those hosts. Remaining B effort after those handoffs is
 approximately14–28 active hours, low confidence: Hog remainder2–5, non-Flux
 Sigma6–12, Rein/Winston/Doom/Ball caller/expiry audit6–11. This is code/audit work,
 not a wall-clock acceptance promise. No completed whole-owner claim is made.
+
+
+## B52 — original0240 body-node timed self heal and live8243 query
+
+Restored original script/self_heal.TimedSelfHeal on existing ModifyHealth for
+0240/node18 only. Its four original budget fields are exact strict VM storage
+fields; keep existing target_body/manual1157 and all other health dispatchers.
+Only a bound world heal_self consumer can activate this scope; empty/unknown
+strict worlds retain failure. BodyWorld applies healing to its own live target
+through the existing Vitals/_heal path. The original body-node budget replaces
+the redundant world-clock dose for this same active node; no second health pool.
+Existing Breathers channel/reduction lifetime remains. Source public
+incoming_damage_scale(owner) now shares actual8243/fallback logic with the real
+incoming damage consumer, preserving historical Fortify adjustment and Breather
+world deadline. Full original test_game_roadhog.py is restored unchanged (AST).
+
+Original RoadhogSelfHeal8/8 pass, including no-world-only-dose followed by body
+catchup, no duplicate healing, windup, cap, cooldown and death. Actual original
+Hook Breather interruption now passes exact15 net hit, fixing B51's10.2 result.
+Actual raw HeroPick/commands start original heal; active strict BodyVM/server
+exports pass, and heal_elapsed mutation/restoration changes/restores the server
+digest. That raw proof + Hook + runtime13 is15/15 pass67.875s. Logs:
+worker-b-hog-selfheal-{wholehog-baseline,mount,storage-core}.log (external).
+
+Conflicting ORIGINAL owner contracts are retained explicitly: Roadhog's
+SelfHeal.test_breather_catches_up_once_across_command_gap_without_replay requires
+no healing for world-only gap until a body callback. Ana's
+AnaBreather.test_started_heal_runs_once_without_owner_commands_and_retires_on_death_or_replacement
+requires300 healing with that body frame frozen. Current implementation follows
+the original0040 body-node ledger; Ana no-command branch fails103.3vs400. Both
+original assertions remain unchanged; no per-fixture mode or extra driver.
+Ana suite also retains three pre-existing getter errors (healing_block_until,
+healing_boost_until, body_barriers); other two cases pass. An initial focused
+invocation used nonexistent RoadhogHookTests loader; correct HookTests rerun is
+included in the15-pass result, not counted as a runtime failure.
+
+Original WholeHog6 baseline has5pass and one test's two subcases error on old
+impulses.hit instrumentation; charge/repeated pellet/end/death/wall/team behavior
+already runs in the current actual projectile/impulse path. Next exact action:
+audit this impulse contract and remaining original Hog projectile/reload/control
+consumers, adapting observers to the actual sole service without weakening
+assertions. Root owns Sigma Flux and A owns Zarya; preserve those boundaries.
+No client acceptance run; no completed whole-Hog owner claim.

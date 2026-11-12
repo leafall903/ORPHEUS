@@ -96,6 +96,11 @@ class Breathers:
             heal = instance.states.get(instance.graph._by_pos[18].state) if instance is not None else None
             if heal is None or not heal.active or heal.ending:
                 continue
+            # Original0240/node18 owns its body-frame heal budget. The manager
+            # retains only its channel/reduction lifetime; never apply a second
+            # world-clock dose to that same active node.
+            if getattr(heal, "heal_duration", 0):
+                continue
             elapsed = max(0.0, min(fight.now, channel.until) - channel.heal_started)
             share = min(1.0, elapsed / channel.heal_duration)
             if math.isclose(share, 1.0, abs_tol=1e-9):

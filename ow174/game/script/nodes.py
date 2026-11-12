@@ -40,6 +40,7 @@ from ow174.game.script import (
     play,
     record_assignment,
     scopes,
+    self_heal,
     shared_vars,
     spray_placement,
     voice_stimulus,
@@ -4456,7 +4457,7 @@ class GamePadVibration(State):
 
 
 @state_class("STUStatescriptStateModifyHealth")
-class ModifyHealth(State):
+class ModifyHealth(self_heal.TimedSelfHeal):
     """Explicit world health service; supported manual1157 clock is reconstructed."""
 
     def __init__(self, *args):
@@ -4474,12 +4475,13 @@ class ModifyHealth(State):
             if not (value is False and self.instance.graph.index == 0x1157
                     and context is not None and context.target_host is not None):
                 self.ticks()
-        elif self.instance.component.strict:
+        elif self.instance.component.strict and not self.heal_duration:
             self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
         else:
             world.apply_modify_health(self)
 
     def tick(self):
+        super().tick()
         elapsed = max(0, self.now - self.last_applied)
         if elapsed:
             self.last_applied = self.now

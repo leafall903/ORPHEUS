@@ -850,6 +850,11 @@ class BodyWorld(runtime.World):
 
         return weapon_assignment(self, instance, node, value)
 
+    def heal_self(self, entity, amount):
+        """Apply original0240 timed healing to this same live body only."""
+        if self.match is not None and entity == self.body:
+            self.match.combat.heal_self(entity, amount)
+
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
