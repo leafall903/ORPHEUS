@@ -9939,3 +9939,28 @@ phase/Cryo/Transcendence/bubble admissions and endpoint causal ordering. Keep th
 single-EMP strict frame boundary visible; reconcile it only from original code,
 not by changing expectations. Then remaining Ball control/physical/source tests,
 followed by the large unaudited Hog/Zarya/Sigma owner consumers.
+
+
+### B46 — original Mine second-search Cryo member and contact checks
+
+- Restored original MineWorld foreign member9588 lookup only for its actual
+  live Mei05FE/state35 candidate VM. Creator reads still require the original
+  source body; no copied status flags or second health/controller pool exists.
+  The original second-search filter now excludes the active Cryo candidate
+  before its relation query, and admits the same candidate after actual cancel.
+- Restored9 full original Mine contact/filter tests with exact assertions and
+  original real helper inputs: second search controls actual damage; one blast
+  hits each eligible enemy once; overlapping enemy mines remain independent;
+  component76 short-circuit and source8117 candidate routing; Roll/Fireball
+  contact; preparation deadline; Wraith; live Cryo/cancel admission.
+- v17 original9 plus shared runtime13 all22 pass. All original assertion ASTs
+  preserved, no provider substitution. Initial missing hold fixture import was
+  fixed; initial Cryo relation_calls [52,50] vs original[52] exposed and drove
+  the real foreign-member correction rather than an expectation change.
+- B45 single-EMP frame-end8912 boundary remains open with its original test.
+  No original-client acceptance or complete Ball line claim.
+
+Next exact action: original world-only phase/Cryo/Transcendence and shield-surface
+Mine consumers; reconcile actual foreign script/ruleset semantics using current
+host APIs rather than adding old fake modules. Preserve the existing no-double-
+EMP path and C42 native NPC device changes at parent merge.

@@ -182,8 +182,16 @@ class MineWorld(runtime.World):
         return super().native(cfg, instance)
 
     def entity_var(self, entity, var):
-        script = self.mine.owner.body_script
-        if entity == self.mine.source and script is not None and script.component.entity == entity:
+        script = self.source_script() if entity == self.mine.source else None
+        if script is None and var == 9588:
+            # Original second-search filter reads the live candidate Cryo stack.
+            # Keep its same owner VM; no copied or fabricated status flag.
+            for target in self.manager.fight._targets():
+                if (target.entity == entity and self.manager.fight._has_protection(
+                        target, {0x02E00000000000DD: (0x05FE, 35)})):
+                    script = target.owner.body_script
+                    break
+        if script is not None:
             slot = script.component.entity_var(var, create=False)
             return slot.value() if slot is not None else None
         return super().entity_var(entity, var)
