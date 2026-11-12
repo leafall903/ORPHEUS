@@ -2597,6 +2597,65 @@ Any source support still unmounted remains explicit. C58 phase integration and
 C57 wall-source consumers already committed; no live check at this checkpoint.
 No client/network/publication action.
 
+## C64 — bounded source-consumer closeout after C63
+
+This audit supersedes the C44 remaining-work inventory above; those historical
+estimates and gaps are retained as history, not a current implementation queue.
+No production change or new acceptance requirement is introduced by this batch.
+
+00DD original body_scale has four production consumers: Combat quick melee,
+target sampling, eye origin, and BodyWorld FDBB. C63 mounts all four on the same
+Mover.values/property. The current actual Matrix paths in deflection.matrix_contact,
+deflection.matrix_distance and matrix.active_boxes evaluate authored box corners
+through their existing state.evaluate; the same BodyWorld FDBB answers their size
+expressions. A missing old dva_matrix fixture/module name is not evidence for
+another Matrix provider. The original third Matrix scale method remains a
+verification tail, not a known missing implementation; it has not been claimed run.
+
+012E Translocator.team is the only missing method name in the compared source
+translocators API. Original returns owner.team; the current actual Deployable
+constructor stores that same owner.team. AST assignment audit of all ow174 Python
+production files found team writes only in Player/Bot constructors (match.py241,
+bots.py147 at this revision). Translocators.update retires on owner body/client/
+death changes. No same-body production team mutation was identified that would
+make this a missing consumer. Keep the existing actor/team/snapshot field rather
+than invent a computed-property backing field or another team service.
+
+BodyWorld still contains old optional symmetra_portals fallback names. Actual
+1571 delivered placement routes through confirm_placement to fight.portals.confirm,
+and create_world_entity to fight.portals.factory; actual1647 relocation first
+routes through symmetra.teleport_body. These are the current sole services. The
+unreached old fallback name alone does not justify a second portal manager.
+Source0016 Mover.body_at remains mapped by symmetra_portals._body_at as recorded
+in C63; its independent CharacterBody is a temporary geometric probe only.
+
+Bounded AST API comparisons found no missing top-level/class methods in original
+hero_torbjorn/molten_core/torbjorn_charge, symmetra/symmetra_charge/
+symmetra_turrets/symmetra_portals, mei/mei_frost/mei_blizzard/mei_ultimate,
+sombra_camo/sombra_replay. This is a naming aid, not proof of complete gameplay;
+0008/0015 original inline implementations are already recorded by C1–12/C60–61,
+and original012E inline lock/charge paths by C33–46. Do not infer module absence
+by looking for newly named pharah/bastion/sombra_control modules in frozen trees
+that implemented those functions inline in Combat/driver instead.
+
+Root completed original0016 orb/NPC route history in92626c86/mainf0a94cc1:
+current scheduled-flight ticks and sole Match driver are now the consumer for original Combat.replays_orb_routes/_step_route_poses/
+_fly_omitted_projectiles and original Match.update route consumer. Root has now handed C
+the equivalence review of _respawn_owners_before_window/_respawn_retained_owners/
+_replace_retained_player/_respawn(allocation_clock) against the current per-frame
+loop. C will sync root
+route changes before that review. No additional still-unmounted
+owner implementation has been established by this bounded audit. Old numeric/
+stance/fixture differences, retained assertions and unexecuted client acceptance
+are separate from this implementation handoff and must not block submitted code.
+
+Estimated remaining C-side source-boundary review is approximately1–3 active
+hours, low confidence; no new implementation hours are assigned without a
+concrete source consumer. The retained-respawn review is C
+next, with existing allocator and sole respawn loop; no second scheduler.
+No tests rerun for this documentation-only batch. C63's16 checks remain the latest
+functional evidence. All external input/source refs remain unchanged.
+
 
 ## C60 actual Heavy melee force on configured Bastion
 

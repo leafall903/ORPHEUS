@@ -1,5 +1,14 @@
 # Changelog
 
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
+
 ## A91 — original earlier break rebase after an ahead body end
 
 Final source audit found a real missing0068 _intercept branch: when the body
