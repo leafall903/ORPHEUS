@@ -7594,3 +7594,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   parallel-a18-normal-profile-check.log and parallel-a18-normal-sonic-dragon-check.log.
 - B14 original capture/bump lifecycle and C16 actor-backed turrets are received;
   joint canonical checks follow. No original-client or publication actions.
+
+
+### Canonical actor input verification checkpoint
+
+- Original composed-input turret/NPC/Damage checks23 pass, including owner
+  attribution, airborne deployment, death persistence, repair and passive
+  snapshots. The turret uses canonical base plus additive v4 inputs; only
+  unused fixture Molten imports use explicit frozen-source fallback.
+- Original ChargeMovement/Contact/runtime/epoch54 run52 pass with2 retained
+  old.controls observation errors. No new numeric expectation failures and
+  no original assertion weakened. Incomplete acceptance does not block merge.
+- Evidence: parallel-c16-composed-turret-check.log and
+  parallel-b14-integrated-check.log. All root test processes are terminal.
+  No original-client acceptance or network publication performed.
