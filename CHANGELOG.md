@@ -19,6 +19,57 @@ explicit0015 and automatic acquisition paths remain distinct. Recorded one
 unverified specials-without-acquire configuration boundary for parent review.
 Documentation only; no original assertion or production policy changed, no tests
 rerun, and no second host or legacy observer alias introduced.
+## A106 — restore original Sigma NPC static CLI on actual consumers
+
+Root assigned tools/verify_sigma_npc_static.py actual API reconciliation; no
+runtime Sniper/otherowner changes. Clean sync15cd92ae and7b6e38ba (local51b23dab,
+14b51d67) preserves root original Sniper142C/open/stop path and importalias.
+Root already mapped GRASP/SHIELD_TAG to absorption and FLUX constants to
+sigma_flux. Removed remaining obsolete sigma facade calls: actual barrier ray
+uses sigma_barrier, Grasp ray/amount uses absorption, absorbed spy wraps the sole
+fight.absorption.absorbed and derives nominal payload from actual direct/blast.
+Enforcer identity reads current enforcer.HERO, Heavy victim matching reads the
+same original1407 resource. No compatibility game aliases/managers added.
+
+Current temporary_shields is scalar; tool now observes actual tagged5847
+Vitals.extra pools, aggregates real pool.now values, no synthetic healthdict.
+Particle observer reads actual live nativeZarya Actor/Vitals/recipient priority,
+not legacy particle_barriers keys. Sigma barrier observer uses actual
+sigma_barriers. Original effect_mover was removed when landing; same current
+control/impulse mover is read only while actually airborne, not assumed absent
+just because its reusable solver persists. Original phase query uses current
+defenses.intangible. Tool capsule/barrier separation calls same actual ray service
+with original nearest-surface mathematics. All toolsniper_* observations use these
+same helpers after root clarified that runtime-only Sniper changes were excluded.
+Damage observers now return real _damage booleans; landed observer forwards actual
+keyword context. Observation no longer changes on-hit behavior.
+
+Actual full default CLI, full5 catalog and prepared mover/XML strict equality,
+v19+immutable combined inputs, completed90 scenarios and wrote
+parallel-merge/worker-a-sigma-npc-default-final-report.json. Counts:Trooper14/18,
+Enforcer14/18, Sniper14/18, Assassin13/18, Heavy16/18 (71/90). Exit1 correctly
+retains failed acceptance; report complete, no AttributeError/missingAPI errors.
+13 original AssertionErrors remain, including primarygate input release condition;
+6 other original numeric/behavior failures remain. Original30 asserts and every
+per-assert numeric constant exactly preserved. No startflag or tolerance changed.
+First report had10 unmapped enforcer.ENFORCER errors, now all removed.
+
+Actual optional consumer probe: TrooperBarrier passes20 damage to shield/no body
+loss; SniperGrasp passes2.499719m retreat/100 absorbed. ProjectedTroopermelee and
+Heavycharge execute/reportFalse under original default policy/standards, not
+forced melee/charge modes to hide defaults. Logs worker-a-sigma-npc-default-final-audit.log,
+worker-a-sigma-tool-default-consumer-check.log and
+worker-a-sigma-tool-flag-consumer-probe.log/json. Module API audit and actual
+Bot/Combat/Player-script attribute audit show no undefined fields in tool refs.
+
+Next A107: original opt-in run_audit contains some unguarded case calls/asserts
+that can abort report on a genuine failed original standard. Preserve all case
+criteria and selected flags, route only such existing failures to passedFalse
+rows rather than changing thresholds or silently skipping; validate selected
+original flag execution and retain any new actual API failures for correction.
+No new scenario/matrix/feature or game runtime changes. Reports outside repo,
+original external runtime/input files untouched; no Internet/client/push/Rust.
+
 ## A105 — signed original-language consumer handoff
 
 WorkerA signs the owned source reconciliation through A104 c905ea80 (A103
