@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original empty player controller VM lifecycle and exact stored state
+
+- Restore original0200 ControllerVM/ControllerWorld, explicit controller filter
+  inputs and source filter primitives. Create the actual independent000E VM on
+  player admission only when original metadata exists, preserve it across body
+  death/switch, advance on world ticks and retire it on leave/fault.
+- Reserve the existing controller encoder's exact instance IDs through extracted
+  controller_instances/controller_wire_ids; no body variables or another wire
+  encoder are substituted.16 existing menu/mode combinations are byte/bit equal.
+- Register exact empty/filter-bound controller storage in both exporters.28
+  original filter/namespace/lifetime checks pass4.941s. Actual controlled server
+  allocator mutation changes VM/server digests and restores both identically.
+- Original controller effect wire emission, manual Assassin recipient/coupling
+  and PinEffectServices stored callbacks remain the next root integration batch;
+  the independent empty VM core is mounted without claiming that scope complete.
+
+
 ### Select original Mine closure alongside the integrated Ball passive host
 
 - Select v17 with exactly one missing261E graph and2578 entity from the original

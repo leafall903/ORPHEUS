@@ -970,3 +970,32 @@ Root52988 terminal24pass33.215s with actual passive factors/owner/gap/death,
 spread/Mercy/entry/runtime. Three missing Mine manager checks remain B43 scope.
 All root sessions terminal. Workspace selection promotesv17 without waiting for
 full Mine acceptance; root must still integrate shared000E ControllerVM next.
+
+
+Root000E core now mounts actual original player_controller/controller_filter/
+filter_bits plus their filter_game/callback/condition dependencies. Match admits
+an independent strict ControllerVM before publishing the player (invalid metadata
+rejects partial admission), advances it on actual world ticks, preserves it over
+body death/switch and retires on leave/fault. Actual original empty000E metadata
+is already in base. No second controller wire encoder/body aliases are started.
+Original heroselect inner construction is extracted into controller_instances;
+16old/new PVP/Practice menu/skin/assemble combinations have identical bits/value.
+
+Both exporters register exact ControllerVM/ControllerWorld/filter input storage,
+including bound_host. Original independent namespace/filter/lifetime suites28pass
+4.941s. First run22pass with one missing filter_game import; original dependency
+primitives restored, no fake import. Actual controlled-server storage probe61944
+is terminal: controller allocator changes both component and whole-server digest,
+restoration identical. Root-player-controller-core-{first,second}.log and
+root-player-controller-server-storage.log retain evidence. No getters execute
+for export. Native unknown query poisons only this controller, body/client remains.
+
+This is the actual empty VM/lifetime/reserved namespace boundary, not full source
+controller integration. Next required root scope: source effect wire emission
+through existing statescript.owner_full_frame (original optional dynamic fields),
+controller delta-key refresh, manual Assassin recipient/coupling/linked-target
+clamp and PinEffectServices strict stored callback/context state. Current body
+1177 path remains until its original target ownership bridge is reconciled;
+do not install duplicate body/controller effects or another manager. Ready A57/
+A58 real Matrix/BOB-lock, C41 reapplication and B43 Mine factory await intake.
+C40 25431c27 already received580ad408, preserving actual recipient-frame latch.

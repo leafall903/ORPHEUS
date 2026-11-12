@@ -18,6 +18,8 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, sombra_charge, npc_controller_storage
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld
+from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
 from ow174.game import (
     assassin_controller,
@@ -119,6 +121,9 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    ControllerVM: _names("definition retired component reserved_wire_ids"),
+    ControllerFilterInputs: _names("owner component_masks current_bits replicated_bits primary_status health_status flags28 provenance revision retired bound_host"),
+    ControllerWorld: _names("hero mode readers filter_inputs pin_services linked_target_inputs numeric_modifiers"),
     sombra_charge.Charge: _names("combat data_path data data_digest paused retained"),
     translocators.Translocators: _names("combat entries recall_poses data_path data_record data_graphs data_digest"),
     mei_blizzard.Blizzard: _names("combat flights areas"),
@@ -147,7 +152,7 @@ FIELDS = {
     Player: _names("turret_cooldown_until overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script controlled_mech body_script_failed retained_ult_charge genji_mobility seen shown script mode_script "
-                   "next_countdown select_open controller_hero "
+                   "next_countdown select_open controller_hero controller_vm controller_effect_key "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),

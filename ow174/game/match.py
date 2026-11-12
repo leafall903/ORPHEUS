@@ -81,6 +81,7 @@ from ow174.game.genji import GENJI, Mobility
 from ow174.game.mover import MoverData, statescript_flight, statescript_mover_data
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
+from ow174.game.script.player_controller import ControllerVM
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import MAX_GAP, WHEEL_ACTION_CATEGORIES, WHEEL_ACTION_PREFIX, BodyScript, CommandEpochError
@@ -270,6 +271,8 @@ class Player:
         self.mode_script = Stream(GAME_MODE_ENTITY)  # the game mode entity's variables: the countdown
         self.next_countdown = 0.0
         self.select_open = True
+        self.controller_vm: ControllerVM | None = None
+        self.controller_effect_key = None
         self.controller_hero: int | None = None  # the hero (v940) the last controller frame named
         # The numbers his Tab board shows (stats.py); the combat code adds to them. His client gets them
         # in component 64 when they change.
@@ -867,6 +870,9 @@ class Match:
         hero = heroes().get(fixed or hero_guid) or heroes()[SOLDIER]
         quanta = TOURNAMENT_QUANTA if tournament else RETAIL_QUANTA
         player = Player(self, len(self.players), account_lo, name, hero, team, quanta, card)
+        if graph.entity_body(PLAYER_DEFINITION) is not None:
+            player.controller_vm = ControllerVM(
+                player.entity, player.hero.guid, self.game_map.mode_guid, self.tick)
         self.players.append(player)
         return player
 
@@ -1427,6 +1433,14 @@ class Match:
         if frames is None:
             frames = sends(tick)
         self.tick = tick
+        for player in self.players:
+            host = player.controller_vm
+            if host is not None and not player.gone and not host.retired:
+                try:
+                    host.advance(tick, player.hero.guid)
+                except Exception:
+                    log.exception("[game] %s: %s's controller VM failed", self.label(), player.name)
+                    host.retire()
         ready = self._refresh_collision()
         if self.collision_state.status == "unavailable":
             self._collision_failure(now)
@@ -2113,6 +2127,8 @@ class Match:
         player.client = None
         player.spawned = False
         self.stop_body_script(player)
+        if player.controller_vm is not None:
+            player.controller_vm.retire()
         if player.has_body:
             self.combat.retire_player_body(player)
             self.destroy_for_others(player, player.body)
