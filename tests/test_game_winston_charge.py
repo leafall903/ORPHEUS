@@ -154,7 +154,7 @@ class ChargeTests(unittest.TestCase):
                     case.enemy.mover.position = [0, 0, 6]
                     case.run.step({case.enemy: (0, 0, 16)})
                     self.idle(case, 4)
-                    self.assertIn(case.enemy.body, case.fight.barriers.actors)
+                    self.assertIsNotNone(fixtures.bubble_for(case.fight, case.enemy.body))
                 with patch.object(combat, 'ray_world', return_value=.01 if reason == 'wall' else None):
                     case.step(2 if reason == 'secondary' else 1)
                 self.assertEqual(self.charge(script), 0)
