@@ -10777,6 +10777,7 @@ class Combat:
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         self.hooks.retire(victim.body)
+        self.absorption.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)
