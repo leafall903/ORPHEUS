@@ -38,6 +38,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Record the joint26 failures and passing original2 IceSentry checks explicitly;
   workers continue actual owner/fixture reconciliation. Full integration remains
   in progress, with appearance migration excluded.
+### Restore ordinary NPC WholeHog motion on existing movers
+
+- Original selected world motion reuses each NPC's same registered mover and
+  explicit movement data, with one base/external step per tick and owned cleanup.
+- Five real bodies, explicit data, same-tick and actual coupled server storage
+  plus player/runtime17/17 pass. Keep standalone foreign-context export closed;
+  owned-mech epoch and cross-controller handoffs remain next. No client run.
+
 ### Restore original player WholeHog world damping
 
 - The sole Knockbacks host now applies original selected external motion through
@@ -46,6 +54,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original damage/runtime14 and motion/storage6 checks pass, plus lifecycle,
   Fortify/range/cap and same-tick command/world boundaries. Keep full original
   fixtures and numbers; NPC/owned-mech coupling remains next. No client run.
+### Preserve three original-language integration checkpoints
+
+- Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
+  unified Ice Wall actor/pool implementations without waiting for whole-owner
+  acceptance. Preserve source assertions, shared actors and existing budgets.
+- Record the joint26 failures and passing original2 IceSentry checks explicitly;
+  workers continue actual owner/fixture reconciliation. Full integration remains
+  in progress, with appearance migration excluded.
 
 ### Preserve chronological Roadhog healing in strict server storage
 

@@ -1605,3 +1605,46 @@ body/world epoch queue contract. Those still use B53's narrower ordinary queue o
 explicit owned-mech skip; player success is not whole-owner completion. Root
 owns Flux, A Zarya. Cross-owner victim credit, historical reduction offset0,
 Halt/native-vector overlap details and non-Flux Sigma remain. No client run.
+
+
+## B61 — actual ordinary NPC selected motion and coupled storage
+
+Ordinary NPC WholeHog now uses the original selected Motion ledger too. Reuse
+owner.impulse_mover first; when absent, the existing manual mover allocator or a
+single registered owner mover uses actual movement_data before the body table.
+Motion.npc_mover aliases that SAME object. The sole host runs its neutral base
+pose and original external displacement/damping once per world tick; Match skips
+its ordinary NPC movement path for this selected kind. Actual modifiers, ground
+and wall constraints remain in that same host. Cleanup removes only selected
+state and restores the same mover's native velocity, never replaces mover slots.
+Owned control_mover remains explicitly unsupported here pending B62 epoch audit.
+
+Actual original five prepared NPC factories each move forward/up and clean up,
+retaining the existing mover. Regression asserts same-tick Match/NPC/Combat calls
+do not repeat displacement, and explicit Definition gravity_scale3 remains the
+actual mover data and produces original-formula external lift1.32. An actual raw
+HeroPick/Q ServerSession with associated NPC body/controller pair proves active
+Motion aliases the same mover and full-server velocity mutation/restoration
+changes/restores its digest. Those three NPC regressions + player force + runtime13
+are17/17 pass39.844s; external five-body probe also passes. Logs:
+worker-b-hog-world-motion-{five-npc,npc-regression,npc-coupled}.log.
+
+Initial NPC storage probe incorrectly requested standalone Component export.
+It correctly refused the foreign NpcContext on all five actors. Existing full
+server exporter already validates and binds that exact body/controller pair as
+enclosing references. The corrected test keeps standalone rejection and proves
+the real enclosing ServerSession; no unknown context facade/serializer fallback
+or weakened original assertion was introduced. No client acceptance run.
+
+A82 independently fixes Graviton NPC aliases and release; B uses the same owner
+slot and does not touch that manager. Generic native queue, Hook, root/pin/Halt/
+Graviton priorities remain. Other active NPC movement owners and dormant navigation/
+wall mover handoffs still need full cross-owner source checks; the ordinary
+five-body proof does not establish every interaction. Original source NPC-specific
+knockback methods still require their complete original fixture/API integration.
+
+Next exact action B62: owned DVa actual control_mover/body-command epoch and
+world-only selected displacement, preserving the same sole mover and original
+queue semantics. Then remaining Hog control/vector/victim-credit checks and
+non-Flux Sigma. Do not duplicate root Flux or A Zarya, and do not let retained
+numeric/deadline checks prevent implemented batches from being submitted.

@@ -1455,6 +1455,8 @@ class Match:
             hooks = getattr(self.combat, "hooks", None)
             if hooks is not None and hooks.controlled(bot.entity):
                 continue  # the retained hook consumer owns this tick's shared body mover.
+            if bot.entity in self.combat.knockbacks.whole_hog_motion:
+                continue  # Sole selected source host advances this same NPC mover once.
             npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
             if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
                 continue
