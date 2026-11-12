@@ -771,6 +771,9 @@ class World:
     def position(self, entity: int):
         return expr.Vec3(0.0, 0.0, 0.0)
 
+    def state_clock(self, state):
+        return None
+
     def chase_clock(self, state):
         return NotImplemented
 
