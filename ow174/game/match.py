@@ -486,6 +486,8 @@ class Player:
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        if not stunned and not pulled and fight.air_steering_locked(self, command.frame):
+            command = replace(command, forward=0, right=0)
         from ow174.game import mccree, wall_ride
 
         mccree.apply_velocity(self, command.frame, controlled=stunned)

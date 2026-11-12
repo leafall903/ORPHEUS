@@ -117,6 +117,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
+from ow174.game import ball, ball_mines
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -2080,6 +2081,7 @@ class Combat:
         self.shatters: dict[int, earthshatter.Wave] = {}
         self.charges: dict[int, reinhardt_charge.Charge] = {}
         self.ball_grapples = {}
+        self.pile_air_locks = {}
         self.moira_orbs: list[moira.Orb] = []
         self.moira_clocks = {}
         self.moira_hots: dict[int, moira.SprayHeal] = {}
@@ -2277,6 +2279,7 @@ class Combat:
         """Discard body-local combat state when the player's current body retires."""
         from ow174.game import body_entities
 
+        self.pile_air_locks.pop(player.body, None)
         body_entities.retire_source(self.match, player.entity, player.body)
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
@@ -3049,6 +3052,76 @@ class Combat:
         if vitals.add_temporary_shields(gain, cap, rate, delay, self.now, count_intrinsic=True) > 0:
             self._sync_body_health(player, vitals)
 
+    def _piledriver(self, player, command) -> None:
+        """Consume one authored landing search; native target/impulse services are reconstructed.
+
+        Search uses live capsules and static LOS. Damage evaluates the actual 160A
+        distance expression; node 12 supplies inward speed and ModifyHealth supplies lift.
+        Barrier/invulnerability/filter and control-immunity policies remain open.
+        """
+        instance = ball.instance(player)
+        state = instance.states.get(7) if instance is not None else None
+        if state is None:
+            return
+        counters = self.melee_seen.setdefault(player.body, {})
+        key = instance.id, state.index
+        seen = counters.get(key, 0)
+        counters[key] = state.counter
+        if state.counter == seen or command is None:
+            return
+        if state.start // instance.component.frame_ms != command.frame:
+            return
+        origin = instance.vars.get(1175)
+        origin = origin.value() if origin is not None else None
+        if not isinstance(origin, expr.Vec3):
+            return
+        centre = tuple(origin)  # authored impact centre: feet + 0.6m
+        radius = _number(instance.vars[6252].value(), 0.0)
+        damage_node = next(n for n in instance.graph.nodes if n.pos == 11)
+        pull_node = instance.graph.node(12)
+        modify = instance.graph.states[5].field('m_modifyHealth')
+        loadout = instance.evaluate(modify['m_loadout'])
+        vertical = _number(instance.evaluate(modify['m_583C208B']), 0.0)
+        for target in self._enemies(player):
+            a, b = target.segment()
+            distance = max(0.0, segment_distance(centre, a, b) - target.radius)
+            if distance > radius:
+                continue
+            destination = (target.feet[0], max(a[1], min(b[1], centre[1])), target.feet[2])
+            delta = _sub(destination, centre)
+            length = math.sqrt(_dot(delta, delta))
+            if length > EPSILON:
+                obstruction = ray_world(self._collision(), centre, tuple(v / length for v in delta), length)
+                if obstruction is not None and obstruction < length - target.radius:
+                    continue
+            instance.write((expr.INSTANCE, 680), distance)
+            amount = _number(instance.evaluate(damage_node.field('m_value')), 0.0)
+            if self.barriers and barriers.protect_body(self, target, amount, attacker=player.body):
+                continue
+            self._damage(player, target, amount, False,
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+            if (not self.vitals_of(target).dead and vertical > 0
+                    and not self._has_protection(target, {barriers.MEI: (0x5FE, 35)})
+                    and not isinstance(target.owner, ball_mines.Mine)):
+                pull = _number(instance.evaluate(pull_node.field('m_value')), 0.0)
+                planar = math.hypot(delta[0], delta[2])
+                scale = -pull / planar if planar > EPSILON else 0
+                self._ball_launch(target, vertical, (scale * delta[0], scale * delta[2]), command.frame)
+                if target.owner in self.match.players:
+                    start = self.match.tick
+                    self.pile_air_locks[target.entity] = (start, start + math.ceil(0.5 / TICK))
+
+    def _ball_launch(self, target, speed, planar, frame):
+        # Original upward maximum, routed through the existing owned impulse host.
+        owner = target.owner
+        velocity = owner.velocity if isinstance(owner, bots.Bot) else owner.mover.velocity
+        self.knockbacks.apply(target, expr.Vec3(planar[0], max(0.0, speed - velocity[1]), planar[1]),
+                              impact_frame=frame)
+
+    def air_steering_locked(self, player, tick):
+        start, deadline = self.pile_air_locks.get(player.body, (0, 0))
+        return start <= tick < deadline and player.mover.airborne
+
     def _launch(self, entity: int, velocity: tuple) -> None:
         """Route delivered impulse vectors to the existing authoritative mover."""
         target = next((t for t in self._targets() if t.entity == entity), None)
@@ -3213,6 +3286,8 @@ class Combat:
         if self.meteors.protected(player.body):
             return
         self.primal_punches.command(player, command)
+        if script.hero == ball.HERO and not defer_effects:
+            self._piledriver(player, command)
         if not defer_effects:
             self._blossom(player, register=command is not None)
         if command is not None:
@@ -4414,6 +4489,11 @@ class Combat:
                       and self._personal_barrier_pet(p) is not None}
             for body in self.personal_barriers.keys() - active:
                 del self.personal_barriers[body]
+        for player in self.match.players:
+            lock = self.pile_air_locks.get(player.body)
+            last = player.mover.last_command
+            if lock is not None and last is not None and last.frame >= lock[1]:
+                del self.pile_air_locks[player.body]
         expired_viper_controls = {key for key, deadline in self.stuns.items() if deadline <= tick}
         expired_viper_controls.update(key for key, vitals in self.vitals.items()
                                       if vitals.sleep_until and vitals.sleep_until <= tick)
@@ -9724,6 +9804,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.pile_air_locks.pop(victim.body, None)
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities
 

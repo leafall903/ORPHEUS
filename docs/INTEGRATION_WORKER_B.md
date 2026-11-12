@@ -666,6 +666,39 @@ alone is not evidence that a line's consumers are actually mounted.
   Rein/Win/Orisa/Sigma only. Do not infer new Brig/Photon Shatter behavior or
   delete existing other-owner Photon implementation; parent owns that boundary.
 
+## B36 — Piledriver damage/impulse/air steering and active storage
+
+- Mount original _piledriver once-per-instance/state counter and authored-frame
+  gate, actual1175 origin, radius6252, distance680 damage expression, original
+  node12 pull and ModifyHealth vertical operands. Same real target Vitals and
+  active shield protection; source Cryo-state35 and Mine exclusions retained.
+- Existing Knockbacks.apply owns actual player/Bot impulses; preserve original
+  maximum-upward velocity via positive vertical delta and same planar operands.
+  No second NPC mover. Original0.5s32tick steering-only locks preserve rifle,
+  delayed command admission and cleanup on recovery/death/body retirement.
+- worker-b-ball-landing-focused.log23/23:6 complete original late-command lock,
+  retirement, ally/world cover, repeat cooldown, clearance and death cases plus
+  runtime17. Full worker-b-ball-landing-full.log29:10subfail,0errors. Actual
+  high landing origin produces38.474 damage versus100 and20.373versus55,
+  original pull/deadline-steer failures retained. Do not change original values
+  or force body to ground. These are unresolved gameplay consumers/boundaries.
+- Pile fixture references actual absorption.SIGMA and complete original Fireball
+  relocate fixture dependency. Pile76/Fireball44 assertion AST exactly unchanged.
+  Fireball/Grapple control are not mounted yet, no completion claim for copies.
+- Actual controlled server starts with Ball and original40 empty input warmup;
+  initial8-frame-only connected setup was too early for authored ability entry,
+  not a missing lease service. worker-b-ball-active-storage-probe.log confirms
+  raw Shift enters activeRoll; strict BodyVM+server capture, counter mutation
+  and exact restoration change/restore both digests. Later same script's pile
+  attempt using only oldMover.position failed and is retained in that log.
+- worker-b-ball-pile-active-storage-probe.log uses exact original lift fixture
+  replacementMover and raw crouch128: real160A Wait18 active atY7.97265/frame1047;
+  strict BodyVM+server causal start mutation16ms and restore both pass. No extra
+  whitelist/unknown-field suppression, fabricated controller or forced state.
+- NEXT B37: source Grapple update/retire/interrupt lifecycle on existing motion,
+  actual Sombra control-history adapter (old sombra_emp absent, do not duplicate
+  controller). Then source Fireball, form/critical/spread and passive owner audit.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue
