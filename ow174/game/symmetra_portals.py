@@ -10,6 +10,8 @@ from ow174.game.script.placement_geometry import static_surface_allowed
 from ow174.game.symmetra import HERO
 
 BODIES = (0x040000000000272D, 0x04000000000026F2)
+ENDPOINT_TAGS = (frozenset((0x417, 0x60A)), frozenset((0x417, 0x2EC)))
+ENDPOINT_SLOTS = (1624, 1625)
 INTERACT = 0x04
 ABILITY = 0x10
 
@@ -61,6 +63,26 @@ class Portals:
     def owner(self, body):
         return next((p for p in self.combat.match.players
                      if p.body == body and p.spawned and p.has_body and not p.gone), None)
+
+    def endpoint_pair(self, entity):
+        for pair in self.pairs:
+            for index, endpoint in enumerate(pair.endpoints):
+                if endpoint.entity == entity:
+                    return pair, index
+        return None, None
+
+    def endpoint_owner(self, entity):
+        pair, _ = self.endpoint_pair(entity)
+        if pair is None or pair.owner.gone or not pair.owner.has_body:
+            return None, None
+        script = pair.owner.body_script
+        if (script is None or script.retired or script.entity != pair.owner_body
+                or script.component.fault is not None):
+            return None, None
+        instance = script.component.instances.get(pair.instance_id)
+        if instance is None or instance.stopped:
+            return None, None
+        return pair, script.component
 
     def has_pair(self, body):
         return any(pair.owner.body == body for pair in self.pairs)
@@ -171,6 +193,8 @@ class Portals:
         nearest = None
         radius = graph.graph(0x157D).node(1).field('m_radius')['m_value']
         for pair in self.pairs:
+            if any(endpoint.entity in self.combat.sombra_controls.locks for endpoint in pair.endpoints):
+                continue
             if self.combat.now < pair.ready_at:
                 continue
             if player is not pair.owner and (match.game_map.free_for_all or player.team != pair.owner.team):

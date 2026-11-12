@@ -376,6 +376,12 @@ class BotWorld(runtime.World):
         super().send_message(target, message, params, sender)
 
     def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        if var in (1624, 1625) and self.match is not None and self.component is not None:
+            controls = getattr(getattr(self.match, "combat", None), "sombra_controls", None)
+            if controls is not None:
+                slot = controls.endpoint_slot(self.component.entity, entity, var)
+                if slot is not NotImplemented:
+                    return slot
         if entity == runtime.GAME_MODE_ENTITY and var in ARCHIVES_MODIFIER_FLAGS and self.match is not None:
             host = self.match.scene_host
             if host is not None:

@@ -70,6 +70,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Route original Sombra device effects into existing summoned actors
+
+- Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,
+  using original device tags and live endpoint owner slots. Same entities/Vitals;
+  Sentry locks stop beam/slow and endpoint locks block PortalPair interaction.
+- Real10-second Torb/Sentry Hack probes and near/remote PortalEMP relay pass;
+  original device/shared32 and control/charge43 all pass. No oldprototype manager
+  aliases or copied pools. Fulllegacy fixture/retirement boundaries remain recorded.
+
 ### Refresh original Hack receiver graph lifetimes on EMP
 
 - Apply the original recipient graph replacement before the existing PlayScript
