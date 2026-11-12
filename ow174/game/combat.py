@@ -2282,6 +2282,7 @@ class Combat:
         self.orisa.retire(player.body)
         self.echo_duplicates.retired(player)
         self.barriers.retire(player.body)
+        sigma_barrier.retire_owner(self, player)
         barriers.retire_owner(self, player)
         assassin_victim.retire_target(self, player.body)
         self.clear_pins(player.body)
@@ -3113,6 +3114,12 @@ class Combat:
         if command is not None:
             self.junkrat.tire.begin(player, command)
         self.barriers.sync(player)
+        if script.hero == sigma_barrier.HERO and not defer_effects:
+            # The authored owner mode changed on this posed frame. Reuse the
+            # existing world host (elapsed zero after its tick), not another drive.
+            for actor in tuple(self.sigma_barriers.values()):
+                if actor.owner is player:
+                    actor.update(self)
         reaper.advance_entry(player)
         self._shadow(player, command)
         self._winston_health(player, script)
@@ -7476,6 +7483,17 @@ class Combat:
             key = (-actor.body, None)
             if contact is not None and key not in rocket.penetrated and (contact[0] < limit or not stops):
                 contacts.append((contact[0], 0, actor.body, key, (contact[0], actor.owner, actor)))
+        for actor in self.orisa_barriers.opponents(rocket.shooter, rocket.team):
+            distance = self.orisa_barriers.geometry.cast(actor.position, actor.yaw, rocket.position,
+                                                         direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
+        for actor in sigma_barrier.enemies(self, rocket.shooter, team=rocket.team):
+            distance = actor.intersection(rocket.position, direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
