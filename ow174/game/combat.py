@@ -58,6 +58,7 @@ from ow174.game import (
     dragon,
     absorption,
     barrage_motion,
+    pharah,
     actors,
     assassin_victim,
     baptiste,
@@ -2268,6 +2269,7 @@ class Combat:
         self.zarya_gravitons = graviton.Gravitons(self)
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.early_projectile_respawns: set[int] = set()  # actual historical projectile deaths
+        self.pharah_airborne: set[int] = set()
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.next_barrier = barriers.FIRST_ENTITY
@@ -2607,6 +2609,7 @@ class Combat:
             ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
         self.early_projectile_respawns.discard(player.body)
+        self.pharah_airborne.discard(player.body)
 
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
@@ -3665,6 +3668,10 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif replay_aim is not None and script.hero == pharah.HERO:
+            for state, number, time, activation, *launch in shots:
+                if pharah.accepted_volley(state):
+                    self._shoot(player, replay_aim, state, number, time, activation=activation)
         elif replay_aim is not None and script.hero == sombra_camo.HERO:
             for state, number, time, activation, *launch in shots:
                 if translocators.accepted_volley(state):
@@ -4634,6 +4641,9 @@ class Combat:
 
         # Original0016 beam integration consumes cover that ended inside the
         # accepted gap, using the existing actors and their actual clock pairs.
+        previous = self.tick
+        if tick > previous:
+            pharah.replay(self, previous, TICK)
         allocation_clock = None
         if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
             allocation_clock = self.match.environment.monotonic(callsite="combat.respawn_clock")
@@ -4786,7 +4796,8 @@ class Combat:
         from itertools import chain
 
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
-                         sombra_replay.application_replay_until(self, self.tick))
+                         sombra_replay.application_replay_until(self, self.tick),
+                         pharah.replay_until(self, self.tick, TICK))
         early_end = min(first, replay_end + 1)
         normal_ticks = (set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
@@ -4964,6 +4975,7 @@ class Combat:
                     retained_owners, sentry_damage_starts, allocation_clock,
                     sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
             if at < tick:
+                pharah.replay(self, at, TICK)
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
@@ -5793,9 +5805,7 @@ class Combat:
                     self.timed_hits.remove(dose)
 
     def cleanse_ana_effects(self, entity):
-        self.healing.record_regeneration(entity)
-        self.healing.anti.pop(entity, None)
-        self.healing.record_regeneration(entity)
+        self.healing.cleanse(entity)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != entity or hit.healing]
 
     def body_clearance(self, player, point, *, radius=None):
@@ -5908,6 +5918,7 @@ class Combat:
         # Retained status intervals supply their exact boundaries even when body
         # samples arrive after expiry. Settle before a real status is replaced.
         points = {*vitals.healing_block, *vitals.healing_boost}
+        points.update(tick * TICK for tick, _ in self.healing.filter_history.get(target.entity, ()))
         for effect in (self.healing.anti.get(target.entity), self.healing.amp.get(target.entity)):
             if effect is not None:
                 points.update((effect.start * TICK, effect.end * TICK))
@@ -5970,7 +5981,7 @@ class Combat:
     def _heal_pools(self, owner, vitals, amount, *, maximum=None, tags=()):
         if vitals.dead:
             return 0.0
-        if vitals.entity in self.healing.anti or vitals.entity in self.healing.amp:
+        if self.healing.has_status(vitals.entity):
             target = next((target for target in self._targets()
                            if target.entity == vitals.entity and target.owner is owner), None)
             if target is not None:
@@ -6573,6 +6584,8 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
+                if number == 0 and shooter.mover.airborne:
+                    self.pharah_airborne.add(shooter.body)
             if reach and range_left is None and not field_canister and not barrage and junkrat_profile is None and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
@@ -6708,6 +6721,9 @@ class Combat:
                 if npc:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
                 elif junkrat_profile is not None:
+                    projectile_tick = self.tick
+                elif (shooter.hero.guid == pharah.HERO
+                      and state.instance.graph.index in (0x0023, 0x007B, 0x002B)):
                     projectile_tick = self.tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
@@ -10838,6 +10854,7 @@ class Combat:
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
         self.hooks.retire(bot.entity)
+        self.healing.retire(bot.entity)
         barriers.retire_owner(self, bot)
         hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
@@ -10930,7 +10947,9 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.pharah_airborne.discard(_source_entity(victim))
         self.hooks.retire(victim.body)
+        self.healing.retire(victim.body)
         self.absorption.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)

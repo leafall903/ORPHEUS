@@ -235,9 +235,16 @@ class NativePetApplicationTests(unittest.TestCase):
                 self.assertNotEqual(pet.source.frame, pet.application_tick)
                 self.assertFalse(pet.cleanse_applied)
                 self.assertEqual(fight.healing.factor(next(t for t in fight._targets() if t.owner is victim)), 0)
-                original_anti = fight.healing.anti[victim.body]
+                def negative_status():
+                    if not fight.healing.available():
+                        return fight.healing.anti.get(victim.body)
+                    return next((instance for item in fight.healing.applied.values()
+                                 if item.target == victim.body for instance in item.component.instances.values()
+                                 if instance.graph.index == 0x0C72 and not instance.stopped), None)
+                original_anti = negative_status()
+                self.assertIsNotNone(original_anti)
                 match.update((application - 1) * combat.TICK, application - 1, frames=False)
-                self.assertIs(fight.healing.anti.get(victim.body), original_anti)
+                self.assertIs(negative_status(), original_anti)
                 self.assertFalse(pet.cleanse_applied)
                 if changes_team:
                     victim.team = 1 - caster.team

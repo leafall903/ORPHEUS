@@ -191,6 +191,7 @@ def remove_body(match, bot) -> None:
     match.combat.knockbacks.retire(bot.entity)
     match.combat.slams.retire_target(bot.entity)
     match.combat.support_effects.retire(bot.entity)
+    match.combat.healing.retire(bot.entity)
     match.combat.sound_barriers.retire(bot.entity)
     match.combat.lucio_auras.retire(bot.entity)
     match.combat.sombra_controls.retire(bot.entity)

@@ -84,7 +84,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
+from ow174.game.script import healing_status, entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -174,7 +174,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "hooks zarya_charge_tick zarya_charge_ready zarya_melee_ready zarya_secondary_ready ball_mines sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns early_projectile_respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "hooks zarya_charge_tick zarya_charge_ready zarya_melee_ready zarya_secondary_ready ball_mines sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns early_projectile_respawns pharah_airborne next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -250,7 +250,8 @@ FIELDS = {
     baptiste.BaptisteEffects: _names(
         "combat seen regeneration protection_seen fields field_bindings matrices"
     ),
-    healing.HealingEffects: _names("combat spec anti amp"),
+    healing.HealingEffects: _names("match applied filter_history combat spec anti amp"),
+    healing_status.StatusWorld: _names("hero mode match source owner"),
     absorption.Grasp: _names("combat converted decay_clocks last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
     graviton.Gravitons: _names("fight fields pulled npc_movers"),
@@ -373,7 +374,7 @@ DATACLASSES = (
     genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
     earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
-    healing.Spec, healing.Modifier,
+    healing.Spec, healing.Modifier, healing_status.Applied,
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,

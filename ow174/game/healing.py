@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from ow174.game import actors, bots
-from ow174.game.script import expr, graph, runtime
+from ow174.game.script import expr, graph, healing_status, runtime
 
 GRENADE = 0x04A0000000000267
 TICK = 0.016
@@ -63,8 +63,9 @@ class Modifier:
     end: int
 
 
-class HealingEffects:
+class HealingEffects(healing_status.Statuses):
     def __init__(self, combat):
+        super().__init__(combat.match)
         self.combat = combat
         self.spec = None
         self.anti = {}
@@ -72,6 +73,7 @@ class HealingEffects:
 
     def retire(self, entity):
         self.combat.record_cryo_status(entity)
+        super().retire(entity)
         self.anti.pop(entity, None)
         self.amp.pop(entity, None)
         self.combat.record_cryo_status(entity)
@@ -112,6 +114,7 @@ class HealingEffects:
 
     def prepare(self):
         """Clean dead/retired recipients, retaining expired intervals for current HOT integration."""
+        self.update(self.combat.tick)
         targets = {t.entity: t for t in self.combat._targets()}
         for entity in set(self.anti) | set(self.amp):
             self.record_regeneration(entity)
@@ -125,6 +128,11 @@ class HealingEffects:
                 self.combat.record_cryo_status(entity)
 
     def prune(self):
+        # Settle the existing shield ledger while authored filter transitions
+        # still cover this sparse interval, before discarding old VM history.
+        for entity in tuple(self.filter_history):
+            self.record_regeneration(entity)
+        self.prune_filters(self.combat.tick)
         for entity in set(self.anti) | set(self.amp):
             self.record_regeneration(entity)
             self.combat.record_cryo_status(entity)
@@ -133,23 +141,48 @@ class HealingEffects:
                 if effect.end <= self.combat.tick:
                     del table[entity]
 
+    def has_status(self, entity):
+        return (entity in self.anti or entity in self.amp or entity in self.filter_history
+                or any(item.target == entity for item in self.applied.values()))
+
+    def cleanse(self, entity):
+        """Retire only actual negative child graphs at the accepted cleanse event."""
+        target = next((target for target in self.combat._targets() if target.entity == entity), None)
+        if target is None:
+            return
+        self.combat.record_cryo_status(entity)
+        self.record_regeneration(entity)
+        self.anti.pop(entity, None)
+        for item in self.applied.values():
+            if item.target == entity:
+                for instance in list(item.component.instances.values()):
+                    if instance.graph.index == 0x0C72:
+                        item.component.destroy(instance)
+        self._record_filters(target, self.combat.tick)
+        self.record_regeneration(entity)
+        self.combat.record_cryo_status(entity)
+
     def factor(self, target, *, tags=(), seconds=0.0, end_tick=None):
         anti, amp = self.anti.get(target.entity), self.amp.get(target.entity)
-        if self.spec is None or (anti is None and amp is None):
+        dynamic = target.entity in self.filter_history or any(
+            item.target == target.entity for item in self.applied.values())
+        if not dynamic and (self.spec is None or (anti is None and amp is None)):
             return 1.0
         if anti is not None and (self.immune(target) or set(tags).intersection(self.spec.excluded)):
             anti = None
 
         def at(tick):
-            if anti is not None and anti.start <= tick < anti.end:
-                return self.spec.anti
-            return self.spec.amp if amp is not None and amp.start <= tick < amp.end else 1.0
+            ordinary = (self.spec.anti if anti is not None and anti.start <= tick < anti.end else
+                        self.spec.amp if amp is not None and amp.start <= tick < amp.end else 1.0)
+            authored = self.scale(target.entity, tags, frame=tick) if dynamic else 1.0
+            return 0.0 if min(ordinary, authored) <= 0.0 else max(ordinary, authored)
 
         end = self.combat.tick if end_tick is None else end_tick
         if seconds <= 0:
             return at(end)
         start = end - seconds / TICK
         points = {start, float(end)}
+        points.update(tick for tick, _ in self.filter_history.get(target.entity, ()) if start < tick < end)
         for effect in (anti, amp):
             if effect is not None:
                 points.update(v for v in (effect.start, effect.end) if start < v < end)
@@ -205,6 +238,14 @@ class HealingEffects:
             end = fight.tick + math.ceil(self.spec.duration / TICK)
             # Same declared one-boost Matrix policy used by the weapon flight.
             strength = scalar * (2.0 if rocket.amplified else 1.0)
+            if self.available():
+                # Original0267 graphs replace the carrier's outer damage event.
+                # One existing victim/cover decision feeds one same-host VM impact.
+                damage_scale = strength * (rocket.boost_credit[1] if rocket.boost_credit else 1.0)
+                self.impact(rocket.shooter, target, damage_scale, boost_credit=rocket.boost_credit,
+                            source_entity=source, healing_scale=strength,
+                            broken_particle_barriers=broken_particle_barriers)
+                continue
             if allied:
                 fight._heal_target(rocket.shooter, target, self.spec.heal * strength, source_entity=source)
                 self._install(self.amp, target.entity, source,

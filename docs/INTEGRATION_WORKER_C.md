@@ -2974,3 +2974,67 @@ control_effect.apply_stun needs current protection/stun/actual224E mapping, not 
 copy with missing defenses.phase/_apply_stun names. Root explicitly took the real
 00DD Volskaya LiftHost/Match/Mei-wall production chain; C will not modify those
 physical/scene seams. No duplicate host or original input mutation.
+
+
+## C68 — original accepted Pharah world replay (real missing path)
+
+The root missing-path audit disproved an earlier bounded assumption: although
+current0008 live input/force/curve hosts were mounted, original012E pharah.py
+contained a real additional world-gap producer. Restored that original module's
+pure queries/public arithmetic plus accepted-owner replay. Existing current Jump
+Jet, Hover thrust, Barrage curve and impulse implementations remain their sole
+live consumers; the module does not install another projectile or Knockbacks host.
+
+Connected original replay budget (8s ability/air tail,4s fuel recovery, original
+256 impulse tail), same Player/Mover stepping, accepted Barrage/Concussive reports,
+and actual source world launch ticks to the existing Combat update loop. Primary
+input is not invented during accepted-volley replay. Added original pharah_airborne
+set, first airborne Barrage/active Hover producers, landing/death/body-retirement
+cleanup, and exactly that set to strict Combat snapshot fields. Restored original
+Mover.step optional drop_repeated_buttons with default0 and only Pharah16 applied
+to recovered poses. Existing default mover callers and Sigma retained buttons stay.
+
+Current integration uses the existing actual BodyScript world_frame_anchor birth
+pair for Pharah and existing pure clock translation, not equal body/world epochs.
+Replay restores Match/Combat tick/now and retains all recorded history tail fields.
+Actual newbody start_frame+1000 test runs real Hover then checks +3 body frames,
+unchanged outer clocks and real recorded shape. A first NEW fixture incorrectly
+assumed Pharah's default history had7 fields (it has4; Ball/Bastion can have7);
+corrected only that new fixture's shape assumption, preserving its failed receipt
+../worker-c-c68-pharah-history-fixture-check.log. The adapter uses *shape and does
+not truncate richer recorded layouts.
+
+New source-number evidence: actual air Barrage locks70 ticks, releases/falls by
+103 further ticks and lands60 later with exact stepped/gap pose/velocity equality;
+body replacement retires tracking. Accepted Barrage reports exactly61 at125 ticks
+and76 at240 ticks, with exact remaining rocket positions/flown/range and natural
+channel end. Final new4 +original primary7/BarrageMovement5/Damage8 =24/24pass
+29.115s, ../worker-c-c68-pharah-shared-final-check.log. Earlier actual air/newbody
++imported original primary group9/9pass10.246s and15/15pass21.763s retained too.
+No live handles. No original source assertion edited.
+
+Original test_pharah_movement two methods still have4 hover-wait subcase failures.
+Before treating these as a regression, frozen6d88b2f0 AST restores of original
+Combat/Player/Mover/BodyScript methods reproduce the identical4 failures3.417s,
+../parallel-merge/worker-c-c68-movement-baseline-check.py and
+../worker-c-c68-movement-baseline-check.log. Original tests remain unchanged.
+
+Precise remaining shared consumer: original012E knockback.Impulses world-gap
+movement of primary/Concussive recipients is not current generic Knockbacks;
+B confirmed only WholeHog has a player world-motion driver. Root has the handoff
+and should assign original general force replay to that sole Knockbacks host;
+C does not copy another Impulses pool. Thus C68 does not claim the complete old
+SombraPharahWorldGap primary/Concussive victim-displacement group accepted. All
+original source fixtures/assertions are preserved, not used as a submission gate.
+
+control_effect/combat_pose path resolution: source0008 control_effect has only
+brigitte_bash/sigma_accretion internal callers, not independent tool/test SDK
+callers. Current Brig.host_control and Combat._accretion_hit->1BBB message->
+BodyWorld play1BBB/node18->same Brig.host_control run actual224E's own Wait,
+priority/immunity and control state instead of the old local-stun approximation.
+Do not add a second224E stun host. Original0015 combat_pose has only Lucio/Zarya
+internal callers: current posed Combat.command invokes _soundwave/_weapon_beam
+with that same Command and current once-per-activation/sample guards. Do not also
+run the old VM ModifyHealth adapters and duplicate damage. Public independent
+SDK restoration applies to ai_behavior/target_search, not these replaced internal
+helper names. Volskaya actual scene/lift/attached-wall chain is explicitly root-owned.

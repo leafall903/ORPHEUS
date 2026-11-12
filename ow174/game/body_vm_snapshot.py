@@ -19,6 +19,7 @@ from ow174.game.script.player_controller import ControllerVM, ControllerWorld
 from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
+from ow174.game.script.healing_status import StatusWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.ball_mines import MineWorld
@@ -576,7 +577,7 @@ class _Export:
         if kind is graph.Node:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, MineWorld,
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
@@ -603,7 +604,7 @@ class _Export:
                 fields.add("barrier")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
-            if kind is SupportWorld:
+            if kind in (SupportWorld, StatusWorld):
                 fields.update(("match", "source", "owner"))
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
