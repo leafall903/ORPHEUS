@@ -7,6 +7,7 @@ from ow174.game.mover import Mover, mover_data
 from ow174.game.script import expr, runtime
 
 SNIPER = 0x02E00000000001B8
+GRAPH = 0x142C
 COOLDOWN_MS = 6000  # Static destination-selection policy.
 
 def visible(world, position, target):
@@ -53,7 +54,7 @@ def reposition_state(bot):
     if bot.hero != SNIPER or bot.body_script is None:
         return None
     for instance in bot.body_script.component.instances.values():
-        if instance.graph.index == 0x142C:
+        if instance.graph.index == GRAPH:
             node = instance.graph.node(16)
             if node is not None and node.cls == "STUStatescriptStateMoveTo":
                 return instance.node_state(node)
