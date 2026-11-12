@@ -13,12 +13,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from test_game_combat import Run, aim
-
 from ow174.dashboard.server import start_dashboard
 from ow174.game import npc
 from ow174.game.script import graph
 from ow174.game.server import GameServer
+from tests.runtime.test_game_combat import Run, aim
 
 
 class NpcConsoleHttpTests(unittest.TestCase):
@@ -139,5 +138,5 @@ class NpcConsoleHttpTests(unittest.TestCase):
         env = {**os.environ, 'ORPHEUS_GRAPH_BUNDLE': str(path)}
         result = subprocess.check_output([sys.executable, '-c',
             'from ow174.game.script import graph; print(graph.entity_body(0x0400000000001403)["name"])'],
-            cwd=Path(__file__).resolve().parents[1], env=env, text=True)
+            cwd=Path(__file__).resolve().parents[2], env=env, text=True)
         self.assertEqual(result.strip(), 'synthetic marker')

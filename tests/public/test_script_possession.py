@@ -3,10 +3,10 @@
 import unittest
 
 from ow174.game.script import expr, runtime, scene
-from tests.test_script_play_loaded import dynamic
-from tests.test_script_play_resource import EMPTY, array, integer
-from tests.test_script_runtime_budget import graph, node, plug, setter
-from tests.test_script_scene import ALPHA, reference
+from tests.public.test_script_play_loaded import dynamic
+from tests.public.test_script_play_resource import EMPTY, array, integer
+from tests.runtime.test_script_scene import ALPHA, reference
+from tests.script_fixtures import graph, node, plug, setter
 
 OWNER = {'$': 'STU_B5A0CAF0'}
 

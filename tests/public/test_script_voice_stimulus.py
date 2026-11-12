@@ -4,12 +4,12 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.junkenstein_dialogue import Line, Playback
 from ow174.game.script import expr, runtime, scene
 from ow174.game.script import voice_stimulus as voice
-from tests.test_script_play_loaded import dynamic
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_play_loaded import dynamic
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug, setter
 
 OWNER, OTHER, GUID = 0xA0000101, 0x80000002, 0x0EE000000000001F
 
@@ -76,33 +76,6 @@ class VoiceStimulusTests(unittest.TestCase):
         anchor, message, payload = viewer.client.queue_combat_notice.call_args.args
         self.assertEqual((anchor, message, payload['+0x78'], payload['+0x90']),
                          (None, 27500, {'+0x0': mode}, 0x0760000000008CE0))
-
-    def test_junkenstein_narration_uses_authored_hero_variants(self):
-        mode = runtime.GAME_MODE_ENTITY
-        world = scene.SceneWorld()
-        world.bind(mode)
-        world.bind(OWNER, hero=0x02E000000000006E)
-        world.bind_voice_set(mode, 0x07A000000000013B)
-        component = runtime.Component(mode, world=world, strict=True)
-        world.bind_script_component(mode, component)
-        root = scene.graph.graph(0x0C8C)
-        instance = component.create(root, init=False)
-        playback = Playback(SimpleNamespace(players=[]), {}, 0)
-
-        victory = playback.stimulus(0x0EE0000000000CB7)
-        state = instance.node_state(root.node(221))
-        component.set(8602, expr.Asset(0x02E0000000000016))
-        self.assertEqual(playback.submit(state, victory, (mode,)), 0xA3EE)
-        self.assertEqual(playback.duration(0xA3EE, victory.guid, True), 603456 / 48000)
-        component.set(8602, None)
-        self.assertEqual(playback.submit(state, victory, (mode,)), 0x8CF1)
-
-        casualty = playback.stimulus(0x0EE0000000000924)
-        state = instance.node_state(root.node(241))
-        component.set(8619, expr.Entity(OWNER))
-        self.assertEqual(playback.submit(state, casualty, (mode,)), 0xA3E6)
-        world.unbind(OWNER)
-        self.assertEqual(playback.submit(state, casualty, (mode,)), 0)
 
     def test_junkenstein_conversation_dispatches_ordered_speakers_at_line_deadlines(self):
         cue = 0x0EE000000000086B
@@ -423,9 +396,9 @@ class VoiceStimulusTests(unittest.TestCase):
         active = component.create(model(), init=False)
         state = active.state(0)
         with mock.patch.object(voice, 'update', side_effect=AssertionError('executed')):
-            before = snapshot_digest(export_component_vm(component))
+            before = snapshot_digest(export_synthetic_component_vm(component))
             state.voice_duration = 0.25
-            self.assertNotEqual(before, snapshot_digest(export_component_vm(component)))
+            self.assertNotEqual(before, snapshot_digest(export_synthetic_component_vm(component)))
 
 
 if __name__ == '__main__':

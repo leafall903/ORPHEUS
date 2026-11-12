@@ -6,9 +6,6 @@ from itertools import pairwise
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from test_game_combat import Run
-from test_game_graph_analysis import make_graph, node
-
 from ow174.game import (
     assassin,
     bots,
@@ -24,6 +21,8 @@ from ow174.game.collision import NOT_GROUND, World
 from ow174.game.mover import FELL, Mover, mover_data
 from ow174.game.script import graph, runtime, scene
 from ow174.game.script.bot import BotWorld
+from tests.runtime.test_game_combat import Run
+from tests.runtime.test_game_graph_analysis import make_graph, node
 
 
 def floor(y, lo=-50, hi=50, zlo=-50, zhi=50):
@@ -417,7 +416,9 @@ class NpcNavigationTests(unittest.TestCase):
                 # An overloaded host can advance by five ticks per update.
                 run.frame += 4
                 run.step({})
-                self.assertEqual(sum(call.args[4] for call in advance.call_args_list), npc_navigation.PLAN_SLICE)
+                self.assertEqual(
+                    sum(call.args[4] for call in advance.call_args_list), npc_navigation.PLAN_SLICE,
+                )
                 served.update(call.args[0].start for call in advance.call_args_list)
                 advance.reset_mock()
         self.assertEqual(served, {actor.position for actor in pursuers})
@@ -427,7 +428,7 @@ class NpcNavigationTests(unittest.TestCase):
             x, y, z = actor.position
             actor.navigation.search = None
             actor.navigation.path = ((x, y, z - 1),)
-        with patch.object(npc_navigation, 'advance', return_value=False) as advance:
+        with patch.object(npc_navigation, "advance", return_value=False) as advance:
             run.step({})
         advance.assert_called_once()
         self.assertIs(advance.call_args.args[0], first.navigation.search)
@@ -455,9 +456,11 @@ class NpcNavigationTests(unittest.TestCase):
             Mover(actor.position, 0, run.match.collision_world, mover_data(actor.body)),
         )
         state = SimpleNamespace(active=False, ended_at=100, now=6099)
-        with (patch.object(npc_navigation, 'RIALTO_MAP', run.match.game_map.map_guid),
-              patch.object(npc_navigation, 'reposition_state', return_value=state),
-              patch.object(npc_navigation, 'start_reposition', return_value=True) as retreat):
+        with (
+            patch.object(npc_navigation, "RIALTO_MAP", run.match.game_map.map_guid),
+            patch.object(npc_navigation, "reposition_state", return_value=state),
+            patch.object(npc_navigation, "start_reposition", return_value=True) as retreat,
+        ):
             run.step({})
             retreat.assert_not_called()
             state.now += 1
@@ -510,11 +513,12 @@ class NpcNavigationTests(unittest.TestCase):
         world = run.match.collision_world
         actor.navigation = npc_navigation.Navigator(
             Mover(actor.position, world=world, data=mover_data(actor.body)),
-            path=(npc_navigation.LedgeDrop(started=run.frame),), target=player.body,
+            path=(npc_navigation.LedgeDrop(started=run.frame),),
+            target=player.body,
             goal=npc_navigation.RIALTO_LANDING,
         )
         start = actor.position
-        with patch.object(npc_navigation, '_drop_step') as drop:
+        with patch.object(npc_navigation, "_drop_step") as drop:
             run.step({})
         drop.assert_not_called()
         self.assertEqual(actor.position, start)
@@ -527,7 +531,7 @@ class NpcNavigationTests(unittest.TestCase):
             Mover(actor.position, world=run.match.collision_world, data=mover_data(actor.body)),
             path=(npc_navigation.LedgeDrop(started=run.frame, released=True),),
         )
-        with patch.object(npc_navigation, '_drop_step') as drop:
+        with patch.object(npc_navigation, "_drop_step") as drop:
             npc_navigation.step(run.match, actor, run.frame + 1, combat.TICK)
         drop.assert_called_once_with(actor, actor.navigation, run.frame + 1, combat.TICK)
 
@@ -536,7 +540,10 @@ class NpcNavigationTests(unittest.TestCase):
         y = actor.position[1]
         actor.navigation = npc_navigation.Navigator(
             Mover(actor.position, world=run.match.collision_world, data=mover_data(actor.body)),
-            path=((0, y, 2.49),), target=player.body, goal=tuple(player.mover.position), next_plan=10000,
+            path=((0, y, 2.49),),
+            target=player.body,
+            goal=tuple(player.mover.position),
+            next_plan=10000,
         )
         for _ in range(20):
             run.step({})
@@ -556,11 +563,13 @@ class NpcNavigationTests(unittest.TestCase):
         self.assertTrue(any(abs(p[0]) > 2.5 for p in path))
 
     def test_disconnected_floor_and_low_headroom_do_not_supply_a_route(self):
-        for shape in ('gap', 'ceiling'):
+        for shape in ("gap", "ceiling"):
+
             def geometry(y, shape=shape):
-                if shape == 'gap':
+                if shape == "gap":
                     return floor(y, zlo=3, zhi=50) + floor(y, zlo=-50, zhi=1)
                 return floor(y) + floor(y + 1.2)
+
             with self.subTest(shape=shape):
                 run, actor, _ = self.arena(geometry=geometry)
                 start = actor.position
@@ -629,8 +638,9 @@ class NpcNavigationTests(unittest.TestCase):
         run, actor, _ = self.arena()
         run.step({})
         actor.hero = npc_context.ENFORCER
-        actor.body_script = SimpleNamespace(component=runtime.Component(
-            actor.entity, world=BotWorld(actor.hero, 0, {"0": 20})))
+        actor.body_script = SimpleNamespace(
+            component=runtime.Component(actor.entity, world=BotWorld(actor.hero, 0, {"0": 20}))
+        )
         self.assertTrue(npc_control.update_input(run.match.combat, actor))
         self.assertEqual(actor.movement(run.frame).throttles, (0, 127))
         self.assertEqual(actor.last_held, actor.held)

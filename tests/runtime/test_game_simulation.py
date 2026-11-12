@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.commands import Command
 from ow174.game.simulation import (
@@ -128,7 +128,7 @@ class ReplayTests(unittest.TestCase):
                 replay_document(document)
 
     def test_basic_fixture_keeps_its_pre_import_state_and_recording_hashes(self):
-        path = Path(__file__).resolve().parents[1] / "data" / "replays" / "basic.json"
+        path = Path(__file__).resolve().parents[2] / "data" / "replays" / "basic.json"
         result = replay_document(json.loads(path.read_text(encoding="utf-8-sig")))
         self.assertEqual(
             result["state_hash"], "4c2d8324e24235864e14428ea83122e899269a4a8e7a77f4077d376687a6ea04"
@@ -224,7 +224,7 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(result["state_hash"], replay_document(recording())["state_hash"])
 
     def test_offline_cli_writes_result_and_detects_hash_mismatch(self):
-        path = Path(__file__).resolve().parents[1] / "tools" / "replay_game_commands.py"
+        path = Path(__file__).resolve().parents[2] / "tools" / "replay_game_commands.py"
         spec = importlib.util.spec_from_file_location("replay_game_commands_test", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

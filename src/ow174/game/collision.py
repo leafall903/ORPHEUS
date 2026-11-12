@@ -85,6 +85,13 @@ class CollisionError(Exception):
     pass
 
 
+def mover_category(team: int, free_for_all: bool) -> int:
+    """The map geometry that stops a mover on this team or in free-for-all."""
+    if not free_for_all and team in (0, 1):
+        return (TEAM0, TEAM1)[team]
+    return MOVER
+
+
 def chunk_guid(map_guid: int) -> int:
     return 0x0DD0000000000000 | CHUNK_TYPE << 32 | (map_guid & 0xFFFFFFFF)
 
@@ -968,7 +975,7 @@ def installed_game() -> Path | None:
     if not GAME_PATH_FILE.is_file():
         return None
     try:
-        return game_root(GAME_PATH_FILE.read_text(encoding="utf-8").strip())
+        return game_root(GAME_PATH_FILE.read_text(encoding="utf-8-sig").strip())
     except CascError:
         return None
 
@@ -1128,6 +1135,9 @@ def _read_cache(map_guid: int, name: str, build_missing: bool, identifiers: froz
     except (OSError, CollisionError, lzma.LZMAError, ValueError, struct.error,
             KeyError, IndexError, TypeError) as error:
         log.warning("[game] no expanded ray geometry for %s: %s", name or hex(map_guid), error)
+    from ow174.game.bots import prepare_patrols
+
+    prepare_patrols(map_guid, world)
     return world
 
 

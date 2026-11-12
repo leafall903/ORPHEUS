@@ -2,7 +2,7 @@ name: Public source checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, leafall]
   pull_request:
   workflow_dispatch:
 
@@ -26,35 +26,16 @@ jobs:
           python-version: "3.12"
           architecture: x64
           cache: pip
+          cache-dependency-path: pyproject.toml
       - uses: actions/setup-node@v6.3.0
         with:
           node-version: "24"
       - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt ruff==0.17.3
+        run: python -m pip install -e ".[dev]"
       - name: Check Python lint
         run: python -B -m ruff check . --no-cache
       - name: Run Python tests with synthetic fixtures
         shell: pwsh
-        run: |
-          $patterns = @(
-            'test_game_commands.py',
-            'test_game_link.py',
-            'test_collision_ray.py',
-            'test_collision_ray_cache.py',
-            'test_static_ray_round.py',
-            'test_collision_prop_catalog.py',
-            'test_prop_entity_model_refs.py',
-            'test_replay_values.py',
-            'test_casc_bundle.py',
-            'test_script_expr_budget.py',
-            'test_script_membership.py',
-            'test_script_raycast.py',
-            'test_extract_game_graphs.py',
-            'test_extract_raycast_metadata.py'
-          )
-          foreach ($pattern in $patterns) {
-            python -B -m unittest discover -s tests -p $pattern
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
+        run: python -B -m unittest discover
       - name: Run dashboard JavaScript tests
-        run: node --test tests/test_dashboard_client.mjs
+        run: node --test tests/public/test_dashboard_client.mjs tests/public/test_npc_console_client.mjs

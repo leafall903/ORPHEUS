@@ -5,7 +5,7 @@ This repository builds on existing Overwatch preservation work. Its lobby improv
 ## Foundation
 
 - **[Boi-027](https://github.com/Boi-027/Overwatch-1-v1.74-Lobby-Research)** — the original Overwatch 1.74 Lobby Research repository on which this project is based, including its protocol research, implementation and reference material. Please check out the original project.
-- **Arlecchino** — the original copyright holder named in the upstream MIT license. The original notice is retained in [LICENSE](LICENSE).
+- **Arlecchino** — the original copyright holder named in the upstream MIT license. The original notice is retained in [LICENSE](../LICENSE).
 
 ## Protocol research and shared findings
 
@@ -39,6 +39,106 @@ This repository builds on existing Overwatch preservation work. Its lobby improv
   are not transplanted into the 1.74 server; it remains a separate project with its own license.
 - **The authors of the community TLS relay** — the foundation of the relay used for the local retail connection.
 
+## Rust migration and behavior references
+
+- **Boi-027, Arlecchino and the upstream 1.74 server contributors** supplied the existing lobby handshake,
+  JAM cipher and framing that serve as the Rust port's protocol reference. The original MIT notice is retained.
+- **LizRollin and the original game runtime contributors** supplied the inherited game transport,
+  float32 collision and character mover, statescript runtime and payload layouts, and the hitscan,
+  predicted projectile and combat notice behavior used as Rust references. The pinned runtime
+  source is listed above.
+- **[RustCrypto](https://github.com/RustCrypto)** maintains the AES-GCM, HMAC and SHA-256 crates used by the Rust
+  transport. **[The Rust Random Project](https://github.com/rust-random/getrandom)** supplies access to operating
+  system randomness for the lobby challenge.
+- **[Prost](https://github.com/tokio-rs/prost)** and **[prost-reflect](https://github.com/andrewhickman/prost-reflect)**
+  supply protobuf framing and reflection over the external Battle.net descriptors.
+- **[Tungstenite](https://github.com/snapview/tungstenite-rs)** supplies WebSocket framing for the local
+  Battle.net listener.
+- **[lzma-rust2](https://github.com/hasenbanck/lzma-rust2)** supplies XZ decoding for the movement
+  and expanded-ray collision caches.
+- **[Mio](https://github.com/tokio-rs/mio)** supplies portable UDP readiness polling and cross-thread
+  wakeups for the Rust game worker.
+- **[flate2](https://docs.rs/flate2/)** supplies gzip decoding for the external state graph bundle.
+- **roxmltree** parses the local DragonML entity definitions used by the runtime preparation tool. [Project source](https://github.com/RazrFalcon/roxmltree)
+- The statescript VM uses a deterministic SplitMix64 stream for local random expressions. The fixed-increment generator follows the public-domain implementation. [Sebastiano Vigna's SplitMix64](https://prng.di.unimi.it/splitmix.c)
+- **TripleFault and Gamayun contributors** supplied a same-build comparison for encrypted combat scenarios and
+  tick measurement design. The locally reviewed 104319 VM code in `internal/vm/natives.go` also corroborates
+  the separate possessed-body and current-possessor queries and the health pool type selectors.
+  Its `registry.go` and `states.go` provide behavior references for the synced game-code state,
+  the tips state and the input bridge. Its `switch.go` and `instance.go` corroborate delayed
+  branch timing and event ordering. Its `internal/world/health.go` provides an independent comparison
+  for the component 51 fields and the provisional pool ID order. Gamayun identifies its Go implementation
+  as AGPL-3.0-or-later and retains the MIT notice for inherited code.
+- The frozen Python `ow174/game/onfire.py` and Gamayun's `internal/vm/natives.go` document the
+  possessor's component 64 on-fire lookup. Gamayun's `internal/expr/value.go` provides a comparison
+  for ordered map values and first-match lookup.
+- The local build 104319 graphs exported with OWLib provide the single-tag grant and suppression
+  paths in `01C7`, `01CF` and `0251`. Locally reviewed build 104319 codec tables from Gamayun and
+  Boi-027's research corroborate the inherited empty payload for state `STU_E56BA8D8`.
+- The local build 104319 graph bundles from Gamayun and Boi-027 and the OWLib exports corroborate
+  the operands for the instance exit, absent AI state and zero-resource lookup. Local client
+  155284 inspection provides the queued exit, parent completion and typed zero return evidence.
+  The frozen 104319 state decoder and runtime provide finish-event and teardown comparisons.
+- The build 104319 graph and codec tables corroborate the movement sampler's authored fields
+  and 13-bit owner payload. Local 155284 client inspection identifies its movement-record inputs,
+  changed-output writes and embedded record at owner context construction. The frozen 104319 mover
+  provides a separate comparison for the airborne, crouch, ground-contact and jump flags.
+- The frozen `ow174/game/projectiles.py` and `ow174/game/combat.py` provide the owner projectile
+  lease, exact packet acknowledgement, release and swept flight references. The local build 104319
+  Soldier weapon graph supplies Helix's authored lifetime, direct damage and splash settings.
+- **The Claudewatch contributors** supplied the Beta 1.0.0.3 research lead for attacker-side hit-confirm effects
+  and separate entity and announcer voice messages. ORPHEUS checks these leads against 104319 client data before
+  implementing them. The reference is a locally reviewed binary distribution.
+
 Thank you as well to everyone who shared captures, tools, notes, testing, corrections and encouragement, including contributors whose names were not recorded in the materials available to us. If a credit is missing or needs correcting, please open an issue so it can be fixed.
 
 Original copyright and attribution notices are retained. References to related projects acknowledge their work; their code and materials retain their respective licenses.
+
+## Doomfist Hand Cannon
+
+The 104319 volley graph defines eleven projectiles in three rings. Blizzard's patch notes
+confirm eleven pellets at six damage and a 15-metre falloff start. The same launch class uses
+a value of five for Torbjörn's secondary spread in the 104319 data, consistent with Blizzard's
+description in degrees. The native azimuth and per-pellet angle variation still need a client
+comparison. [February 2018 notes](https://us.forums.blizzard.com/en/overwatch/t/all-overwatch-patch-notes-february-8-2018/20/3) · [October 2018 notes](https://overwatch.blizzard.com/en-gb/news/patch-notes/live/2018/10/) · [September 2020 notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2020/09/) · [July 2023 notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2023/07/)
+
+## Doomfist movement sampling
+
+The 104319 owner graph `01C7` writes the airborne variable read by Seismic Slam graph
+`0B27`. Python uses the regular owner-pose sampling and output order already implemented
+on ORPHEUS's Rust branch. [Movement sampler](https://github.com/leafall903/ORPHEUS/blob/13acf152e866bbea181074326551422ce9c86671/rust/src/mover.rs) ·
+[Statescript runtime](https://github.com/leafall903/ORPHEUS/blob/13acf152e866bbea181074326551422ce9c86671/rust/src/script_init.rs)
+
+## Rising Uppercut movement
+
+The local 104319 graph export supplies the three velocity actions in graph `0DD8`.
+The original client identifies their modifier dispatch at RVA `D2B643` and movement
+phase at `C31870`. The ordinary body direction queries use the mover pose through
+`C5E040` and `C62760`, and the direction limit evaluator is at `CEB820`.
+
+## Rising Uppercut targets and damage
+
+The local 104319 export supplies graph `0DD8`'s target filter, cast profile,
+damage amount and loadout. The original client supplies the target query and
+array update at RVA `CAE3B0`, capsule overlap at `C8E660` and sight query at
+`CA3570`. The server reuses the sight query from the integrated communication
+wheel work and the existing ORPHEUS combat pipeline.
+
+## Wrecking Ball
+
+The local 104319 statescript export supplies the authored Quad Cannons (`1514`),
+Roll (`1203`) and Adaptive Shield (`1566`) settings. Blizzard's retail notes
+describe the Roll speed increase, 100 base Adaptive Shield, 75 shield per nearby
+enemy and nine-second duration.
+[July 2018 notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2018/07/) ·
+[January 2021 notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2021/01/) ·
+[August 2021 notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2021/08/)
+
+## Python hero and PvE integration
+
+[zichao-zhou](https://github.com/zichao-zhou) submitted the Rialto PvE and McCree
+foundation together with scoped Ana, Mei, Winston, Pharah and shared Genji work.
+The contribution was imported from [PR #16](https://github.com/leafall903/ORPHEUS/pull/16)
+at `0b262c33844fd3263fa63dd81f0251b4a579f2be`. The import credits the PR contributor.
+The [candidate verification record](HERO_SERVER_ACCEPTANCE.md) documents the original
+coverage and the work still pending.

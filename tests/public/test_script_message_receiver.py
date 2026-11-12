@@ -9,9 +9,9 @@ from ow174.game import statescript
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.script import decode, expr, message_bindings, message_manager, message_receiver, runtime
 from ow174.game.script.driver import BodyScript
-from tests.test_script_message_state import OTHER, OWNER, begin, global_target, literal
-from tests.test_script_message_state import setup as sender_setup
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_message_state import OTHER, OWNER, begin, global_target, literal
+from tests.public.test_script_message_state import setup as sender_setup
+from tests.script_fixtures import graph, node, plug, setter
 
 KEY = 0x0A4000000000008D
 MESSAGE = 0x02400000000006FF
@@ -375,20 +375,6 @@ class MessageReceiverTests(unittest.TestCase):
         with self.assertRaises(runtime.UnsupportedScriptError):
             begin(receiver)
         self.assertEqual(var.base, (99,))
-
-    def test_wire_payload_encodes_sender_kind_and_stacked_flag(self):
-        for sender in (0, 0x10000101, 0x80000101, 0xA0000101, 0xFFFFFFFF):
-            for stacked in (False, True):
-                out = BitWriter()
-                statescript.write_payload(out, 'STUStatescriptStateGameMessageEntry',
-                    {'sender': sender, 'stacked': stacked}, 0, 16)
-                reader = BitReader(out.getvalue())
-                valid = expr.valid_entity(sender) and bool(sender & 0x80000000)
-                self.assertEqual(bool(reader.bit()), valid)
-                if valid:
-                    self.assertEqual(bool(reader.bit()), sender & 0xA0000000 == 0xA0000000)
-                    self.assertEqual(reader.var_b(), sender & 0x1FFFFFFF)
-                self.assertEqual(bool(reader.bit()), stacked)
 
 
 if __name__ == '__main__':

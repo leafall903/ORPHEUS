@@ -3,7 +3,7 @@
 The client closes the connection on a malformed or unexpected message, so a refactor must not change
 a single byte. The snapshot stores a hash per message for a few fixed profiles.
 
-Regenerate only after an intended change:  py -3 tests/test_content_golden.py --update
+Regenerate only after an intended change:  py -3 tests/runtime/test_content_golden.py --update
 """
 
 import hashlib
@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 GOLDEN = ROOT / "tests" / "golden" / "messages.json"
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[0]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from test_game_world import read_movement
 
@@ -22,6 +22,7 @@ from ow174.game.match import Match
 from ow174.game.mover import Mover, f32, mover_data
 from ow174.game.script.decode import read_chunk
 from ow174.game.world import NO_INPUT, OP_CREATE, EntityUpdate, Movement
+from tests.runtime.test_game_world import read_movement
 
 TICK = 0.016
 SOLDIER_BODY = 0x04000000000003CF

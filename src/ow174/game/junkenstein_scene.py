@@ -141,8 +141,10 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         fight.next_bot += 1
         ghost = VengefulGhost(entity, 1, 'Vengeful Ghost', tuple(position))
         world = self.world
-        binding = world.bind(entity, definition=definition, target_tags=resource['target_tags'],
-                             position_reader=lambda: ghost.position, rotation_reader=lambda: _rotation(ghost.yaw))
+        binding = world.bind(
+            entity, definition=definition, target_tags=resource['target_tags'],
+            position_reader=lambda: ghost.position, rotation_reader=lambda: _rotation(ghost.yaw),
+        )
         self.ghost = ghost
         try:
             world.set_entity_query_context(entity)
@@ -227,30 +229,34 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         instance, node = state.instance, state.node
         component = instance.component
         registration = self.combatants.get(component.entity)
-        definition = expr.guid_of(node.field('m_entityDefinition.m_entityDef'))
-        if (registration is None or registration[0].hero != junkenstein_ai.SYMMETRA
-                or self.combatant_component(registration[0]) is not component or definition != SUMMONER_BARRIER):
-            component.unsupported(instance, 'Summoner barrier owner', node.cls, node)
+        definition = expr.guid_of(node.field("m_entityDefinition.m_entityDef"))
+        if (
+            registration is None
+            or registration[0].hero != junkenstein_ai.SYMMETRA
+            or self.combatant_component(registration[0]) is not component
+            or definition != SUMMONER_BARRIER
+        ):
+            component.unsupported(instance, "Summoner barrier owner", node.cls, node)
         owner = registration[0]
         if owner.dead:
             state.request(runtime.ABORT)
             return None
-        controller = expr.to_entity(state.evaluate(node.field('m_D749D7D8'), watch=False))
+        controller = expr.to_entity(state.evaluate(node.field("m_D749D7D8"), watch=False))
         if self.world.current_possessions.get(controller) != component.entity:
-            component.unsupported(instance, 'Summoner barrier controller', node.cls, node)
+            component.unsupported(instance, "Summoner barrier controller", node.cls, node)
         values = []
-        for field in ('m_position', 'm_AD8E614B'):
+        for field in ("m_position", "m_AD8E614B"):
             value = state.evaluate(node.field(field), watch=False)
             if isinstance(value, tuple) and len(value) == 1:
                 value = value[0]
             if not isinstance(value, expr.Vec3) or not all(math.isfinite(axis) for axis in value):
-                component.unsupported(instance, 'Summoner barrier transform', node.cls, node)
+                component.unsupported(instance, "Summoner barrier transform", node.cls, node)
             values.append(value)
         position, axis = values
         resource = graph.junkenstein_entity(definition)
         sizes = pools.authored_pools(resource)
         if sizes is None or sizes[0] <= 0 or not math.hypot(axis.x, axis.z):
-            component.unsupported(instance, 'Summoner barrier resource', node.cls, node)
+            component.unsupported(instance, "Summoner barrier resource", node.cls, node)
         _summoner_barrier_mesh()
         health = sizes[0]
         fight = self.match.combat
@@ -259,12 +265,18 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         yaw = round(math.atan2(axis.x, axis.z) * 65536 / math.tau)
         barrier = PhotonBarrier(entity, state, controller, owner.team, tuple(position), yaw, health, health)
         world = self.world
-        world.bind(entity, definition=definition, position=barrier.position,
-                   target_tags=resource.get('target_tags'),
-                   rotation_reader=lambda: _rotation(yaw), health=lambda: barrier.health,
-                   maximum_health=lambda: health, normal_health=lambda maximum: health if maximum else barrier.health,
-                   health_pool=lambda kind: barrier.health if kind == 0 else 0.0,
-                   pool_capacity=lambda kind: health if kind == 0 else 0.0)
+        world.bind(
+            entity,
+            definition=definition,
+            position=barrier.position,
+            target_tags=resource.get("target_tags"),
+            rotation_reader=lambda: _rotation(yaw),
+            health=lambda: barrier.health,
+            maximum_health=lambda: health,
+            normal_health=lambda maximum: health if maximum else barrier.health,
+            health_pool=lambda kind: barrier.health if kind == 0 else 0.0,
+            pool_capacity=lambda kind: health if kind == 0 else 0.0,
+        )
         try:
             owned = tuple(item.entity for item in self.barriers.values() if item.controller == controller)
             world.set_owned_deployables(controller, (*owned, entity))
@@ -275,7 +287,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             self.retire_entity(entity)
             raise
         self.barriers[entity] = barrier
-        instance.write(expr.dynamic(node.field('m_B3019338')), expr.Entity(entity))
+        instance.write(expr.dynamic(node.field("m_B3019338")), expr.Entity(entity))
 
         def retire():
             if self.barriers.pop(entity, None) is barrier:
@@ -294,8 +306,17 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     @staticmethod
     def _barrier_create(barrier):
         components = wire.health(barrier.health, barrier.maximum)
-        return wire.EntityUpdate(barrier.entity, wire.OP_CREATE, lambda origin: wire.create(
-            origin, SUMMONER_BARRIER, components, position=barrier.position, rotation=_rotation(barrier.yaw)))
+        return wire.EntityUpdate(
+            barrier.entity,
+            wire.OP_CREATE,
+            lambda origin: wire.create(
+                origin,
+                SUMMONER_BARRIER,
+                components,
+                position=barrier.position,
+                rotation=_rotation(barrier.yaw),
+            ),
+        )
 
     @staticmethod
     def _ghost_create(ghost):
@@ -363,10 +384,14 @@ class JunkensteinSceneHost(scene_host.SceneHost):
 
     def _queue_mode_action(self, instance, node):
         component = instance.component
-        if (component.entity != runtime.GAME_MODE_ENTITY
-                or self.world.script_components.get(component.entity) is not component
-                or component.instances.get(instance.id) is not instance or instance.stopped
-                or not node.is_networked or node.remote < 0):
+        if (
+            component.entity != runtime.GAME_MODE_ENTITY
+            or self.world.script_components.get(component.entity) is not component
+            or component.instances.get(instance.id) is not instance
+            or instance.stopped
+            or not node.is_networked
+            or node.remote < 0
+        ):
             component.unsupported(instance, "mode action source lifecycle", node.cls, node)
         if self.replicate_mode:
             for player in self.match.players:
@@ -417,7 +442,10 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         for actor, _ in tuple(self.combatants.values()):
             component = self.combatant_component(actor)
             if component is not None:
-                if actor.hero in junkenstein_ai.BOSS_PRIMARY or actor.hero in (junkenstein_ai.MERCY, junkenstein_ai.SYMMETRA):
+                if actor.hero in junkenstein_ai.BOSS_PRIMARY or actor.hero in (
+                    junkenstein_ai.MERCY,
+                    junkenstein_ai.SYMMETRA,
+                ):
                     nodes.report_active_volleys(component)
                 if component.shots:
                     self.match.combat.consume_scene_boss_shots(actor, component, frame)
@@ -429,7 +457,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         if self.mode_projection is None:
             projection = observers.SceneBody(owner)
             if not any(item.graph.index == pve.MODE_UI for item in owner.instances.values()):
-                raise ValueError('Junkenstein mode has not started its authored common UI')
+                raise ValueError("Junkenstein mode has not started its authored common UI")
             observers.full_frame(projection, projection.latest_live)  # validate before opening the entrance
             gate = 0x80000000 | content.JUNKENSTEIN_GATE
             if gate in self.units and self.world.entities[gate].definition == 0x04000000000016F6:
@@ -437,8 +465,11 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 self.body_projections[gate] = gate_projection, partial(self._publish_spawned_script, gate)
             self.mode_projection = projection
 
-        clients = [player.client for player in self.match.players
-                   if player.spawned and not player.gone and player.client is not None]
+        clients = [
+            player.client
+            for player in self.match.players
+            if player.spawned and not player.gone and player.client is not None
+        ]
         active = set(clients)
         self.mode_views = {
             client: baseline for client, baseline in self.mode_views.items() if client in active
@@ -480,14 +511,17 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             binding = self.world.entities[entity]
             if binding.facing_writer is None:
                 continue
-            locks = component.state_registries.get('STU_9935FBC8', ())
+            locks = component.state_registries.get("STU_9935FBC8", ())
             if locks:
                 binding.aim_writer(*locks[-1].aim, frame)
                 continue
             winner = None
             for state, record in self.world.ai_facing_records[entity].items():
-                if state.active and (winner is None or record.priority > winner.priority
-                                     or (record.priority == winner.priority and record.prefer_later)):
+                if state.active and (
+                    winner is None
+                    or record.priority > winner.priority
+                    or (record.priority == winner.priority and record.prefer_later)
+                ):
                     winner = record
             if winner is not None:
                 binding.facing_writer(winner.direction, frame)
@@ -514,6 +548,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         gate = 0x80000000 | content.JUNKENSTEIN_GATE
         gate_binding = self.world.entities.get(gate)
         if gate_binding is not None and gate_binding.definition == 0x04000000000016F6:
+
             def set_gate_team(entity, team):
                 if entity != gate or self.world.entities.get(gate) is not gate_binding:
                     return NotImplemented
@@ -526,8 +561,11 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         def filters(entity):
             if (barrier := self.barriers.get(entity)) is not None:
                 return True, (TEAM_BIT << barrier.team) | 1 | (0x10 if barrier.health == 0 else 0)
-            if (entity == gate and self.world.entities.get(gate) is gate_binding
-                    and self.gate_team is not None):
+            if (
+                entity == gate
+                and self.world.entities.get(gate) is gate_binding
+                and self.gate_team is not None
+            ):
                 return True, TEAM_BIT << self.gate_team if self.gate_team >= 0 else 0
             binding = self.player_bindings.get(entity)
             if binding is not None and not binding.player.gone:
@@ -551,13 +589,15 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 if targets is not NotImplemented:
                     return targets
             live = (binding for binding in self.player_bindings.values() if not binding.player.gone)
-            if (message == 0x02400000000006DE
-                    and ((index, node) == (0x0C8C, 125) or (index == 0x0CE0 and node in (52, 53, 54)))):
+            if message == 0x02400000000006DE and (
+                (index, node) == (0x0C8C, 125) or (index == 0x0CE0 and node in (52, 53, 54))
+            ):
                 return tuple(expr.Entity(binding.body) for binding in live if binding.body is not None)
             if (index, node, message) == (0x0CE0, 2, 0x02400000000006AC):
                 return tuple(expr.Entity(binding.body) for binding in live if binding.body is not None)
-            if (message == 0x02400000000014D4
-                    and ((index == 0x0CB3 and 181 <= node <= 188) or (index, node) == (0x0CC0, 38))):
+            if message == 0x02400000000014D4 and (
+                (index == 0x0CB3 and 181 <= node <= 188) or (index, node) == (0x0CC0, 38)
+            ):
                 return tuple(expr.Entity(binding.controller.entity) for binding in live)
             return NotImplemented
 
@@ -567,24 +607,34 @@ class JunkensteinSceneHost(scene_host.SceneHost):
 
     def _project_mode_audio(self, instance, node):
         if (instance.graph.index, node.pos) == (0x0C8C, 227):
-            effect = node.field('m_AC2333F7') or {}
-            if (node.field('m_7A46FA0F') != 0 or effect.get('$') != 'STUConfigVarEffect'
-                    or effect.get('m_resourceKey') is not None
-                    or graph.guid(effect.get('m_effect')) != 0x0300000000002035):
+            effect = node.field("m_AC2333F7") or {}
+            if (
+                node.field("m_7A46FA0F") != 0
+                or effect.get("$") != "STUConfigVarEffect"
+                or effect.get("m_resourceKey") is not None
+                or graph.guid(effect.get("m_effect")) != 0x0300000000002035
+            ):
                 return NotImplemented
             # 2035.00D contains a single sound, 443A.02C, with no child effects.
             self._queue_mode_action(instance, node)
             return True
-        if (instance.graph.index != 0x0CB3 or node.pos not in (126, 127, 128, 129, 130, 165)
-                or node.field('m_7A46FA0F') != 0):
+        if (
+            instance.graph.index != 0x0CB3
+            or node.pos not in (126, 127, 128, 129, 130, 165)
+            or node.field("m_7A46FA0F") != 0
+        ):
             return NotImplemented
-        effect = node.field('m_AC2333F7') or {}
-        operands = effect.get('m_configVars') or ()
-        if (effect.get('$') != 'STU_919FD47C' or len(operands) != 2 or operands[0].get('$') != 'STU_7FC33EF6'
-                or (effect.get('m_expression') or {}).get('m_opcodes') != [14, 0, 4, 6, 14, 1, 0, 4, 6, 0, 0]
-                or operands[1].get('$') != 'STUConfigVarEffect'
-                or operands[1].get('m_resourceKey') is not None
-                or graph.guid(operands[1].get('m_effect')) != 0x0300000000001B29):
+        effect = node.field("m_AC2333F7") or {}
+        operands = effect.get("m_configVars") or ()
+        if (
+            effect.get("$") != "STU_919FD47C"
+            or len(operands) != 2
+            or operands[0].get("$") != "STU_7FC33EF6"
+            or (effect.get("m_expression") or {}).get("m_opcodes") != [14, 0, 4, 6, 14, 1, 0, 4, 6, 0, 0]
+            or operands[1].get("$") != "STUConfigVarEffect"
+            or operands[1].get("m_resourceKey") is not None
+            or graph.guid(operands[1].get("m_effect")) != 0x0300000000001B29
+        ):
             return NotImplemented
         # The remote action evaluates the authored presentation guard on each client.
         self._queue_mode_action(instance, node)
@@ -595,15 +645,25 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         actor = self.combatants.get(entity)
         if actor is None:
             return NotImplemented
-        explosion = ((instance.graph.index, state.node.pos) == (0x0C89, 49)
-                     and contact_set == 0x0120000000000015)
-        hook = (instance.graph.index == 0x01C8 and state.node.pos in (28, 78, 89, 97)
-                and contact_set == 0x012000000000017D and actor[0].hero == junkenstein_ai.ROADHOG)
+        explosion = (instance.graph.index, state.node.pos) == (
+            0x0C89,
+            49,
+        ) and contact_set == 0x0120000000000015
+        hook = (
+            instance.graph.index == 0x01C8
+            and state.node.pos in (28, 78, 89, 97)
+            and contact_set == 0x012000000000017D
+            and actor[0].hero == junkenstein_ai.ROADHOG
+        )
         if not (explosion or hook):
             return NotImplemented
         projection = self.combatant_projection(actor[0])
-        if (projection is None or projection.component is not instance.component
-                or not state.node.is_networked or state.node.remote < 0):
+        if (
+            projection is None
+            or projection.component is not instance.component
+            or not state.node.is_networked
+            or state.node.remote < 0
+        ):
             return NotImplemented
         # The body observer frame carries the contact state and its authored target array.
         slot = instance.find_var(runtime.INSTANCE, 375, create=False)
@@ -629,14 +689,29 @@ class JunkensteinSceneHost(scene_host.SceneHost):
 
         sender = message_state.Policy(False, False, False)
         receiver = message_receiver.Policy(
-            mode=False, instance_flag3=False, state_mode=False, local=False, world_a=False, world_b=False,
-            authoritative=True, instance_flag19=False, skip_application=False, deferred_begin=False,
+            mode=False,
+            instance_flag3=False,
+            state_mode=False,
+            local=False,
+            world_a=False,
+            world_b=False,
+            authoritative=True,
+            instance_flag19=False,
+            skip_application=False,
+            deferred_begin=False,
         )
-        self.world.set_message_state_context(component.entity, message_state.Context(
-            component, self.messages, policy=lambda _: sender, frame=lambda _: component.frame,
-            priority=priority, receiver_policy=lambda _: receiver,
-            receiver_generation=lambda _: component.frame + 1,
-        ))
+        self.world.set_message_state_context(
+            component.entity,
+            message_state.Context(
+                component,
+                self.messages,
+                policy=lambda _: sender,
+                frame=lambda _: component.frame,
+                priority=priority,
+                receiver_policy=lambda _: receiver,
+                receiver_generation=lambda _: component.frame + 1,
+            ),
+        )
 
     def _roadhog_hook_cast(self, component, request, *, walls_only):
         registration = self.combatants.get(component.entity)
@@ -656,8 +731,11 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         actor = registration[0]
         if actor.hero != 0x02E0000000000016:
             return None
-        targets = (target for target in self.match.combat._enemies(actor)
-                   if self.world._filter_entity(instance, target.entity, request.filter_config) is True)
+        targets = (
+            target
+            for target in self.match.combat._enemies(actor)
+            if self.world._filter_entity(instance, target.entity, request.filter_config) is True
+        )
         return self._combat_cast(request, targets)
 
     def _recharge_enemy_shields(self, state, elapsed_ms):
@@ -666,19 +744,23 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         if registration is None or self.combatant_component(registration[0]) is not component:
             return NotImplemented
         actor = registration[0]
-        config = node.field('m_modifyHealth') or {}
+        config = node.field("m_modifyHealth") or {}
         owner = expr.Entity(component.entity)
-        if (actor.hero not in junkenstein_ai.BOSSES or node.field('m_DD792FF0') != 3
-                or node.field('m_7B2B3F5C') != 1 or config.get('m_93CDFD2F') != 0
-                or state.evaluate(node.field('m_95F1FB0B'), watch=False) != 1
-                or state.evaluate(node.field('m_FA3ECC43'), watch=False) != owner
-                or state.evaluate(config.get('m_724CBA57'), watch=False) != owner):
+        if (
+            actor.hero not in junkenstein_ai.BOSSES
+            or node.field("m_DD792FF0") != 3
+            or node.field("m_7B2B3F5C") != 1
+            or config.get("m_93CDFD2F") != 0
+            or state.evaluate(node.field("m_95F1FB0B"), watch=False) != 1
+            or state.evaluate(node.field("m_FA3ECC43"), watch=False) != owner
+            or state.evaluate(config.get("m_724CBA57"), watch=False) != owner
+        ):
             return NotImplemented
         fight = self.match.combat
         vitals = fight.vitals[actor.entity]
         if not elapsed_ms or vitals.dead:
             return True
-        amount = state.evaluate(config.get('m_amount'), watch=False)
+        amount = state.evaluate(config.get("m_amount"), watch=False)
         if type(amount) not in (int, float) or not math.isfinite(amount) or amount < 0:
             return NotImplemented
         pool = combat.SHIELDS_POOL
@@ -713,17 +795,20 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             return ()
         # 006B/7 maintains the selected target from /6, which is slot 1 on the NPC.
         # The unconditional ally filter on /121 carries the same live-body masks.
-        config = instance.graph.node(121 if node.pos == 7 else node.pos).field('m_filter')
+        config = instance.graph.node(121 if node.pos == 7 else node.pos).field("m_filter")
         if world._filter_entity(instance, entity, config) is not True:
             return ()
-        radius = state.evaluate(node.field('m_radius'), watch=False)
+        radius = state.evaluate(node.field("m_radius"), watch=False)
         if type(radius) not in (int, float) or not math.isfinite(radius) or radius <= 0:
             return ()
         fight = self.match.combat
         origin = source[0].position
         target = next((row for row in fight._targets() if row.entity == entity), None)
-        if (target is not None and math.dist(origin, target.feet) <= radius
-                and npc_navigation.visible_aim(fight._collision(), origin, target) is not None):
+        if (
+            target is not None
+            and math.dist(origin, target.feet) <= radius
+            and npc_navigation.visible_aim(fight._collision(), origin, target) is not None
+        ):
             return (entity,)
         return ()
 
@@ -735,13 +820,18 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         if source is None or recipient is None:
             return True
         caster, target = source[0], recipient[0]
-        if (caster.hero != junkenstein_ai.MERCY or caster is target or caster.team != target.team
-                or self.combatant_component(caster) is None or self.combatant_component(target) is not component):
+        if (
+            caster.hero != junkenstein_ai.MERCY
+            or caster is target
+            or caster.team != target.team
+            or self.combatant_component(caster) is None
+            or self.combatant_component(target) is not component
+        ):
             return NotImplemented
         if not elapsed_ms or caster.dead or target.dead:
             return True
-        config = node.field('m_modifyHealth') or {}
-        amount = state.evaluate(config.get('m_amount'), watch=False)
+        config = node.field("m_modifyHealth") or {}
+        amount = state.evaluate(config.get("m_amount"), watch=False)
         if type(amount) not in (int, float) or not math.isfinite(amount) or amount < 0:
             return NotImplemented
         fight = self.match.combat
@@ -757,21 +847,32 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             return NotImplemented
         actor = registration[0]
         node = state.node
-        if (actor.hero != 0x02E0000000000016 or node.field('m_DD792FF0') != 3
-                or state.evaluate(node.field('m_95F1FB0B'), watch=False) != 1):
+        if (
+            actor.hero != 0x02E0000000000016
+            or node.field("m_DD792FF0") != 3
+            or state.evaluate(node.field("m_95F1FB0B"), watch=False) != 1
+        ):
             return NotImplemented
         if not elapsed_ms or actor.dead:
             return True
-        victim = state.evaluate(node.field('m_FA3ECC43'), watch=False)
+        victim = state.evaluate(node.field("m_FA3ECC43"), watch=False)
         if not isinstance(victim, expr.Entity):
             return True
         fight = self.match.combat
         target = next((target for target in fight._enemies(actor) if target.entity == victim.id), None)
         if target is not None:
-            hit = combat.hit_def(state, {'m_modifyHealth': node.field('m_modifyHealth')})
+            hit = combat.hit_def(state, {"m_modifyHealth": node.field("m_modifyHealth")})
             damage = expr.f32(hit.amount * (elapsed_ms / 1000.0))
-            fight._damage(actor, target, damage, False, hit.loadout, component.frame,
-                          world_tick=component.frame, hit_tags=hit.tags)
+            fight._damage(
+                actor,
+                target,
+                damage,
+                False,
+                hit.loadout,
+                component.frame,
+                world_tick=component.frame,
+                hit_tags=hit.tags,
+            )
         return True
 
     def _combat_cast(self, request, targets):
@@ -787,8 +888,11 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                 continue
             a, b = target.segment()
             distance = combat.ray_capsule(origin, direction, a, b, target.radius + request.radius)
-            if distance is not None and distance <= length and (distance < closest or (
-                    distance == closest and wall is None and victim is None)):
+            if (
+                distance is not None
+                and distance <= length
+                and (distance < closest or (distance == closest and wall is None and victim is None))
+            ):
                 closest, victim, segment = distance, target, (a, b)
         if victim is not None:
             point = expr.Vec3(*combat._along(origin, direction, closest))
@@ -808,8 +912,8 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             return NotImplemented
         actor = registration[0]
         collision = self.match.collision_world
-        tip = state.evaluate(state.node.field('m_05BE62DD'), watch=False)
-        radius = state.evaluate(state.node.field('m_radius'), watch=False)
+        tip = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        radius = state.evaluate(state.node.field("m_radius"), watch=False)
         if actor.hero != junkenstein_ai.ROADHOG or collision is None or not isinstance(tip, expr.Vec3):
             return NotImplemented
         if type(radius) not in (int, float) or not math.isfinite(radius) or radius <= 0:
@@ -817,7 +921,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         origin = combat._along(actor.position, (0, 1, 0), combat.EYE)
         closest = None
         for target in self.match.combat._enemies(actor):
-            component.consume_work('Junkenstein hook target')
+            component.consume_work("Junkenstein hook target")
             if target.team != 0 or target.entity not in self.world.entities:
                 continue
             if not junkenstein_ai.hook_target_allowed(self.world, target.entity):
@@ -825,8 +929,11 @@ class JunkensteinSceneHost(scene_host.SceneHost):
             a, b = target.segment()
             distance = combat.segment_distance(tuple(tip), a, b)
             candidate = (distance, target.entity)
-            if (distance <= radius + target.radius and (closest is None or candidate < closest)
-                    and combat.capsule_visible(collision, origin, a, b, target.radius)):
+            if (
+                distance <= radius + target.radius
+                and (closest is None or candidate < closest)
+                and combat.capsule_visible(collision, origin, a, b, target.radius)
+            ):
                 closest = candidate
         return () if closest is None else (closest[1],)
 
@@ -838,16 +945,24 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         actor = registration[0]
         if actor.hero != junkenstein_ai.ROADHOG:
             return NotImplemented
-        victim = state.evaluate(state.node.field('m_FA3ECC43'), watch=False)
+        victim = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
         if not isinstance(victim, expr.Entity):
             return NotImplemented
         fight = self.match.combat
         target = next((target for target in fight._enemies(actor) if target.entity == victim.id), None)
         if target is None:
             return True
-        hit = combat.hit_def(state, {'m_modifyHealth': state.node.field('m_modifyHealth')})
-        fight._damage(actor, target, hit.amount, False, hit.loadout, component.frame,
-                      world_tick=component.frame, hit_tags=hit.tags)
+        hit = combat.hit_def(state, {"m_modifyHealth": state.node.field("m_modifyHealth")})
+        fight._damage(
+            actor,
+            target,
+            hit.amount,
+            False,
+            hit.loadout,
+            component.frame,
+            world_tick=component.frame,
+            hit_tags=hit.tags,
+        )
         return True
 
     def _roadhog_hook_target(self, entity):
@@ -864,7 +979,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     def player_aim_lock(self, player):
         component = self._bound_player_body(player)
         if component is not None:
-            locks = component.state_registries.get('STU_9935FBC8')
+            locks = component.state_registries.get("STU_9935FBC8")
             if locks:
                 return locks[-1].aim
         return None
@@ -872,7 +987,7 @@ class JunkensteinSceneHost(scene_host.SceneHost):
     def hook_victim(self, player):
         component = self._bound_player_body(player)
         if component is not None:
-            states = component.state_registries.get('STU_4773DA56')
+            states = component.state_registries.get("STU_4773DA56")
             if states:
                 return states[-1]
         return None
@@ -884,17 +999,27 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         instance = registration.instance
         move = instance.states.get(0)
         neutral = replace(command, forward=0, right=0, buttons=0, action=0)
-        if move is not None and move.active and not any(
-            event.state is move and event.op in (runtime.FINISH, runtime.ABORT) for event in instance.queue
+        if (
+            move is not None
+            and move.active
+            and not any(
+                event.state is move and event.op in (runtime.FINISH, runtime.ABORT)
+                for event in instance.queue
+            )
         ):
-            entity = expr.to_entity(move.evaluate(move.node.field('m_destinationEntity'), watch=False))
+            entity = expr.to_entity(move.evaluate(move.node.field("m_destinationEntity"), watch=False))
             body = self.world.entities.get(entity)
             feet = self.world.position(entity)
             if body is not None and feet is not None and body.rotation_reader is not None:
-                offset = move.evaluate(move.node.field('m_865F3D01'), watch=False)
-                speed = move.evaluate(move.node.field('m_speed'), watch=False)
-                if (isinstance(offset, expr.Vec3) and all(map(math.isfinite, offset))
-                        and type(speed) in (float, int) and math.isfinite(speed) and speed > 0):
+                offset = move.evaluate(move.node.field("m_865F3D01"), watch=False)
+                speed = move.evaluate(move.node.field("m_speed"), watch=False)
+                if (
+                    isinstance(offset, expr.Vec3)
+                    and all(map(math.isfinite, offset))
+                    and type(speed) in (float, int)
+                    and math.isfinite(speed)
+                    and speed > 0
+                ):
                     destination = props.place(tuple(offset), tuple(feet), (1, 1, 1), body.rotation_reader())
                     outcome = player.mover.step_pose(neutral, seconds, tick, move_to=(destination, speed))
                     if outcome is not None:
@@ -929,24 +1054,30 @@ class JunkensteinSceneHost(scene_host.SceneHost):
         """Supply live defender bodies for authored encounter voice messages."""
         recipients = []
         for binding in self.player_bindings.values():
-            instance.component.consume_work('Junkenstein voice recipient')
+            instance.component.consume_work("Junkenstein voice recipient")
             player, body = binding.player, binding.body
             component = self.world.script_components.get(body)
-            if (not player.gone and player.team == 0 and player.has_body and body == player.body
-                    and component is not None and component.fault is None
-                    and not self.match.combat.is_dead(player)):
+            if (
+                not player.gone
+                and player.team == 0
+                and player.has_body
+                and body == player.body
+                and component is not None
+                and component.fault is None
+                and not self.match.combat.is_dead(player)
+            ):
                 recipients.append(expr.Entity(body))
         return tuple(recipients)
 
     def _player_component(self, entity):
-        component = self._start_live_component(entity, {'$': 'STUStatescriptComponent'})
+        component = self._start_live_component(entity, {"$": "STUStatescriptComponent"})
         self.configure_component(component)
         return component
 
     def _player_graph(self, component, index):
         model = self.graph_loader(index)
         if model is None:
-            raise ValueError(f'Junkenstein player graph {index:04X} is missing')
+            raise ValueError(f"Junkenstein player graph {index:04X} is missing")
         instance = component.create(model, init=False)
         instance.initialized = True
         return instance
@@ -991,14 +1122,20 @@ class JunkensteinSceneHost(scene_host.SceneHost):
                     wave.node_state(wave.graph.node(15)).request(runtime.BEGIN)
             if not player.has_body or binding.body == player.body:
                 continue
-            world.bind(player.body, definition=player.hero.body, hero=player.hero.guid,
-                       target_tags=graph.junkenstein_player_tags(player.hero.body),
-                       position_reader=lambda player=player: tuple(player.mover.position),
-                       velocity=lambda player=player: tuple(player.mover.velocity),
-                       health=lambda player=player, body=player.body: self.match.combat.body_vitals(body, player).total,
-                       scale_reader=lambda: 1.0,
-                       movement_reader=player.mover.snapshot,
-                       rotation_reader=lambda player=player: _rotation(player.mover.yaw))
+            world.bind(
+                player.body,
+                definition=player.hero.body,
+                hero=player.hero.guid,
+                target_tags=graph.junkenstein_player_tags(player.hero.body),
+                position_reader=lambda player=player: tuple(player.mover.position),
+                velocity=lambda player=player: tuple(player.mover.velocity),
+                health=lambda player=player, body=player.body: (
+                    self.match.combat.body_vitals(body, player).total
+                ),
+                scale_reader=lambda: 1.0,
+                movement_reader=player.mover.snapshot,
+                rotation_reader=lambda player=player: _rotation(player.mover.yaw),
+            )
             world.set_entity_query_context(player.body)
             body = self._player_component(player.body)
             if world.subgraph_scopes(body.entity) is NotImplemented:
@@ -1074,65 +1211,83 @@ class JunkensteinSceneHost(scene_host.SceneHost):
 def runtime_factory(game_map):
     if game_map.map_guid != content.JUNKENSTEIN_MAP or game_map.mode_guid not in content.JUNKENSTEIN_MODES:
         return None
-    directory = DATA_DIR / 'junkenstein'
+    directory = DATA_DIR / "junkenstein"
     if not directory.is_dir():
         return None
     return partial(_runtime_host, directory=directory)
 
 
 def _runtime_host(match, *, directory):
-    map_data = json.loads((directory / 'junkenstein-map-world.json').read_text(encoding='utf-8'))
-    definitions = tuple(npc.load_catalog(directory / 'junkenstein-npcs.json').values())
-    return create_host(match, map_data=map_data, definitions=definitions,
-                       conversation_path=directory / 'junkenstein-conversations-104319.json')
+    map_data = json.loads((directory / "junkenstein-map-world.json").read_text(encoding="utf-8"))
+    definitions = tuple(npc.load_catalog(directory / "junkenstein-npcs.json").values())
+    return create_host(
+        match,
+        map_data=map_data,
+        definitions=definitions,
+        conversation_path=directory / "junkenstein-conversations-104319.json",
+    )
 
 
-def create_host(match, *, map_data, definitions, configure_world=None, configure_component=None,
-                conversation_path=None):
+def create_host(
+    match, *, map_data, definitions, configure_world=None, configure_component=None, conversation_path=None
+):
     """Mount the authored encounter with optional overrides for isolated replays."""
     game_map = match.game_map
-    if (game_map.map_guid != content.JUNKENSTEIN_MAP or game_map.mode_guid not in content.JUNKENSTEIN_MODES
-            or not isinstance(map_data, dict) or graph.guid(map_data.get('map')) != game_map.map_guid):
-        raise ValueError('Junkenstein scene requires the matching encounter map and mode')
+    if (
+        game_map.map_guid != content.JUNKENSTEIN_MAP
+        or game_map.mode_guid not in content.JUNKENSTEIN_MODES
+        or not isinstance(map_data, dict)
+        or graph.guid(map_data.get("map")) != game_map.map_guid
+    ):
+        raise ValueError("Junkenstein scene requires the matching encounter map and mode")
     callbacks = (configure_world, configure_component)
     if any(callback is not None and not callable(callback) for callback in callbacks):
-        raise ValueError('Junkenstein scene overrides must be callable')
+        raise ValueError("Junkenstein scene overrides must be callable")
 
     mode = graph.mode_scripts(game_map.mode_guid)
     mode_definition = graph.entity_script_component(MODE_ENTITY, junkenstein=True)
-    if (mode is None or not mode.get('pve') or not isinstance(mode_definition, dict)
-            or mode_definition.get('m_B634821A')):
-        raise ValueError('Junkenstein scene requires the prepared mode entity and mode scripts')
-    team = mode.get('teams', {}).get('0', {})
-    team_scripts = tuple(graph.guid(team.get(key)) for key in ('controller', 'body'))
+    if (
+        mode is None
+        or not mode.get("pve")
+        or not isinstance(mode_definition, dict)
+        or mode_definition.get("m_B634821A")
+    ):
+        raise ValueError("Junkenstein scene requires the prepared mode entity and mode scripts")
+    team = mode.get("teams", {}).get("0", {})
+    team_scripts = tuple(graph.guid(team.get(key)) for key in ("controller", "body"))
     if team_scripts != (0x0580000000000CA2, 0x0580000000000CA5):
-        raise ValueError('Junkenstein scene requires the authored player team scripts')
+        raise ValueError("Junkenstein scene requires the authored player team scripts")
 
     def acquire(guid):
         definition = graph.graph(guid & 0xFFFFFFFFFFFF)
-        return play_queue.Load('ready', definition) if definition is not None else None
+        return play_queue.Load("ready", definition) if definition is not None else None
 
-    roots = [mode.get(key) for key in ('shared_graph', 'graph')]
+    roots = [mode.get(key) for key in ("shared_graph", "graph")]
     for root in roots:
         guid = graph.guid(root)
         if guid is None or guid >> 48 != graph.GRAPH_TYPE or acquire(guid) is None:
-            raise ValueError('Junkenstein mode root is missing or unavailable')
-    mode_definition = {**mode_definition, 'm_B634821A': [
-        {'$': 'STUStatescriptGraphWithOverrides', 'm_graph': root} for root in roots
-    ]}
+            raise ValueError("Junkenstein mode root is missing or unavailable")
+    mode_definition = {
+        **mode_definition,
+        "m_B634821A": [{"$": "STUStatescriptGraphWithOverrides", "m_graph": root} for root in roots],
+    }
 
     entry = content._map_entries()[game_map.map_guid]
     host = JunkensteinSceneHost.from_map(
-        map_data, entity_start=entry['first_entity'], server_placeables=game_map.placeables,
-        kept_identifiers=props.mode_identifiers(game_map.mode_guid), mode=game_map.mode_guid,
+        map_data,
+        entity_start=entry["first_entity"],
+        server_placeables=game_map.placeables,
+        kept_identifiers=props.mode_identifiers(game_map.mode_guid),
+        mode=game_map.mode_guid,
         graph_loader=graph.graph,
     )
     world = host.world
-    host.replicate_mode = mode.get('scripted_loading') is False
+    host.replicate_mode = mode.get("scripted_loading") is False
     try:
         world.bind(runtime.GAME_MODE_ENTITY, definition=MODE_ENTITY)
-        component = host.add(runtime.GAME_MODE_ENTITY, mode_definition,
-                             values=graph.mode_variables(game_map.mode_guid))
+        component = host.add(
+            runtime.GAME_MODE_ENTITY, mode_definition, values=graph.mode_variables(game_map.mode_guid)
+        )
         world.set_subgraph_scopes(component.entity, scopes.ForwardHost(component))
         world.set_possessions()
         world.outline_context_available = False
@@ -1167,14 +1322,23 @@ def create_host(match, *, map_data, definitions, configure_world=None, configure
         is_encounter_gate = gate_unit is not None and world.entities[gate].definition == 0x04000000000016F6
         if is_encounter_gate and world.voice_context(gate) is NotImplemented:
             junkenstein_dialogue.bind_gate_voice(
-                match, gate_unit.component, junkenstein_ai.ENCOUNTER_VOICE_SET)
+                match, gate_unit.component, junkenstein_ai.ENCOUNTER_VOICE_SET
+            )
         if is_encounter_gate and world.entity_control_context(gate) is NotImplemented:
             model = junkenstein_ai.EncounterModelControl((0x0CA7, 36))
-            world.set_entity_control_context(gate, entity_control.Context(
-                gate_unit.component, False, within_distance=model.within_distance,
-                write_entity=model.write, model_ready=lambda: True,
-                write_model=model.write_phase_flag, route=None, extra_test=None,
-            ))
+            world.set_entity_control_context(
+                gate,
+                entity_control.Context(
+                    gate_unit.component,
+                    False,
+                    within_distance=model.within_distance,
+                    write_entity=model.write,
+                    model_ready=lambda: True,
+                    write_model=model.write_phase_flag,
+                    route=None,
+                    extra_test=None,
+                ),
+            )
         host.configure_play_requests(acquire)
         junkenstein_ai.install_enemy_creator(match, host, definitions, host.configure_component)
     except Exception:

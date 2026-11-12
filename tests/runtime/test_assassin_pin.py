@@ -3,13 +3,12 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_combat import Run, aim
-from test_game_graph_analysis import make_graph, node, output
-
 from ow174.game import assassin, combat, npc, npc_control
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
 from ow174.game.content import heroes
 from ow174.game.script import expr, graph, nodes
+from tests.runtime.test_game_combat import Run, aim
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
 
 
 class AssassinPinTests(unittest.TestCase):

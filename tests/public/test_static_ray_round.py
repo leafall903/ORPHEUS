@@ -6,9 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from test_collision_ray_cache import EXTRA, FORWARD, IDENTIFIER, MAP, MODE, ORIGIN, map_chunk
-
 from ow174.game import collision, props, static_ray
+from tests.public.test_collision_ray_cache import EXTRA, FORWARD, IDENTIFIER, MAP, MODE, ORIGIN, map_chunk
 
 
 class RoundHitTests(unittest.TestCase):

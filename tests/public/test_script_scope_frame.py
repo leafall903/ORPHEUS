@@ -4,9 +4,9 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import effect_allocation, effect_routing, runtime, scene, scopes
-from tests.test_script_for_code import KEY, row
-from tests.test_script_runtime_budget import graph, node, plug, setter
-from tests.test_script_scopes import CLASS, OWNER
+from tests.public.test_script_for_code import KEY, row
+from tests.public.test_script_scopes import CLASS, OWNER
+from tests.script_fixtures import graph, node, plug, setter
 
 
 class FrameWorld(scene.SceneWorld):

@@ -120,14 +120,21 @@ class Playback:
 
     def stimulus(self, guid):
         cue = guid & 0xFFFFFFFFFFFF
-        if guid >> 48 == 0x0EE0 and (cue in self.conversations or cue in MODE_LINES or cue in MODE_HERO_LINES):
+        if guid >> 48 == 0x0EE0 and (
+            cue in self.conversations or cue in MODE_LINES or cue in MODE_HERO_LINES
+        ):
             return voice_stimulus.Stimulus(guid, playable=True, mode=True)
         return NotImplemented
 
     @staticmethod
     def _viewer(player):
-        return (player.spawned and not player.gone and player.has_body and player.team == 0
-                and player.client is not None)
+        return (
+            player.spawned
+            and not player.gone
+            and player.has_body
+            and player.team == 0
+            and player.client is not None
+        )
 
     def _ready(self, player):
         return self._viewer(player) and not self.match.combat.is_dead(player)
@@ -144,7 +151,7 @@ class Playback:
             if world.voice_set(mode) != 0x07A000000000013B:
                 return 0
             if by_hero:
-                selected = state.evaluate(state.node.field('m_8C8C5285'), watch=False)
+                selected = state.evaluate(state.node.field("m_8C8C5285"), watch=False)
                 if isinstance(selected, expr.Entity):
                     binding = world.entities.get(selected.id)
                     hero = binding.hero if binding is not None else None
@@ -161,8 +168,9 @@ class Playback:
                 line, _ = self.rng.choice(lines) if len(lines) > 1 else lines[0]
             for player in self.match.players:
                 if self._viewer(player) and player.mode_script.delivered:
-                    voicelines.queue_voice_notice(player, mode, stimulus.guid, 0x0760000000000000 | line,
-                                                  anchor=None)
+                    voicelines.queue_voice_notice(
+                        player, mode, stimulus.guid, 0x0760000000000000 | line, anchor=None
+                    )
             return line
         if state.instance.graph.index != 0x0CBD or state.node.pos != STIMULUS_NODES[cue] or targets:
             return NotImplemented
@@ -173,16 +181,20 @@ class Playback:
         eligible = []
         for parts, weight in self.conversations[cue]:
             # Conditional variants use a separate native hero criterion.
-            options = tuple(tuple(line for line in choices if line.hero in speakers and not line.conditional)
-                            for choices in parts)
+            options = tuple(
+                tuple(line for line in choices if line.hero in speakers and not line.conditional)
+                for choices in parts
+            )
             if all(options):
                 eligible.append((options, weight))
         if not eligible:
             return 0
         options, _ = self.rng.choices(eligible, weights=[weight for _, weight in eligible])[0]
         lines = tuple(self.rng.choice(choices) for choices in options)
-        self.active[state] = (stimulus.guid, tuple((line, speakers[line.hero], speakers[line.hero].body)
-                                                  for line in lines))
+        self.active[state] = (
+            stimulus.guid,
+            tuple((line, speakers[line.hero], speakers[line.hero].body) for line in lines),
+        )
         if not self.part(state, 1):
             return 0
         return lines[0].guid & 0xFFFFFFFF
@@ -228,19 +240,23 @@ def bind_gate_voice(match, component, encounter_voice_set):
         return NotImplemented
 
     def submit(state, stimulus, targets):
-        if (state.instance.graph.index != 0x0CA7 or state.node.pos != GATE_CUES[stimulus.guid]
-                or targets != (mode,)):
+        if (
+            state.instance.graph.index != 0x0CA7
+            or state.node.pos != GATE_CUES[stimulus.guid]
+            or targets != (mode,)
+        ):
             return NotImplemented
-        attacker_id = expr.to_entity(state.evaluate(state.node.field('m_8C8C5285'), watch=False))
+        attacker_id = expr.to_entity(state.evaluate(state.node.field("m_8C8C5285"), watch=False))
         attacker = world.entities.get(attacker_id)
         hero = attacker.hero if attacker is not None else None
         choices = [line for line, _, required in GATE_LINES[stimulus.guid] if required in (None, hero)]
         line = rng.choice(choices)
         for player in match.players:
-            component.consume_work('gate voice recipient')
+            component.consume_work("gate voice recipient")
             if player.spawned and not player.gone and player.has_body and player.team == 0:
-                voicelines.queue_voice_notice(player, mode, stimulus.guid, 0x0760000000000000 | line,
-                                              anchor=component.entity)
+                voicelines.queue_voice_notice(
+                    player, mode, stimulus.guid, 0x0760000000000000 | line, anchor=component.entity
+                )
         return line
 
     def duration(handle, guid, mode_voice):
@@ -250,7 +266,14 @@ def bind_gate_voice(match, component, encounter_voice_set):
                     return samples / 48000
         return NotImplemented
 
-    manager = voice_stimulus.Manager(load=load, allow=lambda _: world.voice_set(mode) == encounter_voice_set,
-                                    submit=submit, duration=duration, part=lambda *_: 0.0)
-    world.set_voice_context(component.entity, voice_stimulus.Context(
-        component, clock=lambda: component.now / 1000, lookup=lambda: manager))
+    manager = voice_stimulus.Manager(
+        load=load,
+        allow=lambda _: world.voice_set(mode) == encounter_voice_set,
+        submit=submit,
+        duration=duration,
+        part=lambda *_: 0.0,
+    )
+    world.set_voice_context(
+        component.entity,
+        voice_stimulus.Context(component, clock=lambda: component.now / 1000, lookup=lambda: manager),
+    )

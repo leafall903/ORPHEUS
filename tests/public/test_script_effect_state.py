@@ -3,11 +3,10 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm
 from ow174.game.script import effect_allocation, effect_routing, expr, runtime, scopes
-from tests.test_script_effect_parameters import ValuesWorld, dynamic
-from tests.test_script_play_resource import EMPTY, array, integer
-from tests.test_script_runtime_budget import graph, node, plug
+from tests.public.test_script_effect_parameters import ValuesWorld, dynamic
+from tests.public.test_script_play_resource import EMPTY, array, integer
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug
 
 OWNER, OTHER, THIRD = 0xA0000101, 0xA0000102, 0xA0000103
 CLASS = 'STU_582E0D5F'
@@ -281,7 +280,7 @@ class EffectStateTests(unittest.TestCase):
         # fields can still be observed with the supported legacy World.
         component.world = runtime.World()
         with mock.patch.object(type(state), 'scope_enter', side_effect=AssertionError('callback')):
-            export_component_vm(component)
+            export_synthetic_component_vm(component)
         self.assertIsNone(state.effect)
         self.assertEqual(list(instance.states), [0])
 

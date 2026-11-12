@@ -3,11 +3,10 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm
+from ow174.game import replay_values
 from ow174.game.script import controller_heroes, entity_queries, expr, message_scope, message_state, runtime
-from tests.test_body_vm_snapshot import raw
-from tests.test_script_message_state import OTHER, OWNER, begin, literal, setup
-from tests.test_script_runtime_budget import graph, node, plug
+from tests.public.test_script_message_state import OTHER, OWNER, begin, literal, setup
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug
 
 KEY = 0x0A4000000000008D
 
@@ -208,8 +207,8 @@ class MessageScopeTests(unittest.TestCase):
         scope = message_scope.ParamScope(instance.state(0), instance.state(1))
         component.parameter_scopes.append(scope)
         with mock.patch.object(message_scope, 'check', side_effect=AssertionError('getter called')):
-            stored = export_component_vm(component)
-        self.assertIn('parameter_scopes', dict(raw(stored)['component']))
+            stored = export_synthetic_component_vm(component)
+        self.assertIn('parameter_scopes', dict(replay_values.decode(stored["value"])['component']))
         self.assertEqual(component.parameter_scopes, [scope])
 
 

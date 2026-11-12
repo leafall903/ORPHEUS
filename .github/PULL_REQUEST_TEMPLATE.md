@@ -15,5 +15,6 @@
 ## Review
 
 - [ ] I reviewed the diff and kept it scoped to this change.
+- [ ] For Python behavior changes, I included a [shared contract](https://github.com/leafall903/ORPHEUS/blob/main/docs/BEHAVIOR_CONTRACTS.md) or documented the reproduction, evidence gap and follow-up, with client acceptance status.
 - [ ] I updated `CHANGELOG.md` and the relevant verification record when applicable.
 - [ ] I removed credentials, keys, account identifiers, IP addresses, and personal paths from any shared evidence. Game files, runtime data, and complete captures stay in local storage.

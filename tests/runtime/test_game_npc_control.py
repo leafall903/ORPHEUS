@@ -4,14 +4,13 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from test_game_combat import Run, aim, in_world
-from test_game_graph_analysis import make_graph, node, output
-
 from ow174.game import combat, heavy_assault, npc, npc_console, npc_context, npc_control
 from ow174.game.collision import World
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.mover import SPRING_STEPS, Mover, MoverData, mover_data
 from ow174.game.script import graph, runtime
+from tests.runtime.test_game_combat import Run, aim, in_world
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
 
 
 class InputWorld(runtime.World):

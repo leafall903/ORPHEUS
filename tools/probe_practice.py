@@ -17,7 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.jam.codec import Schemas  # noqa: E402
 
 SCOPE = "state ack only; no game handoff/playable claim"

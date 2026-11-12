@@ -3,11 +3,11 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import BodyVMSnapshotError, export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import BodyVMSnapshotError, snapshot_digest
 from ow174.game.script import expr, play, runtime, scene
-from tests.test_script_play_loaded import definition, dynamic
-from tests.test_script_play_request import requesting
-from tests.test_script_runtime_budget import graph, node
+from tests.public.test_script_play_loaded import definition, dynamic
+from tests.public.test_script_play_request import requesting
+from tests.script_fixtures import export_synthetic_component_vm, graph, node
 
 OWNER, CALLER, INSTIGATOR = 0x800001AE, 0xA0000101, 0xC0000101
 
@@ -67,12 +67,12 @@ class SourceEntityTests(unittest.TestCase):
         active.set_source_entity(OWNER)
         active.write((0, 0x1B), expr.Entity(CALLER))
         with mock.patch.object(runtime.Instance, 'source_entity', side_effect=AssertionError('executed')):
-            before = snapshot_digest(export_component_vm(active.component))
+            before = snapshot_digest(export_synthetic_component_vm(active.component))
             active.cached_source_entity = CALLER
-            self.assertNotEqual(snapshot_digest(export_component_vm(active.component)), before)
+            self.assertNotEqual(snapshot_digest(export_synthetic_component_vm(active.component)), before)
         active.cached_source_entity = True
         with self.assertRaisesRegex(BodyVMSnapshotError, 'source entity cache'):
-            export_component_vm(active.component)
+            export_synthetic_component_vm(active.component)
 
 
 class AllocationSourceTests(unittest.TestCase):

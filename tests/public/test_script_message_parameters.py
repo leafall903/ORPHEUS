@@ -4,8 +4,8 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import controller_heroes, expr, message_parameters, play, runtime
-from tests.test_script_message_scope import KEY, fixture, row
-from tests.test_script_message_state import literal
+from tests.public.test_script_message_scope import KEY, fixture, row
+from tests.public.test_script_message_state import literal
 
 
 def setup(rows=(), outputs=(KEY,), *, shared=True):

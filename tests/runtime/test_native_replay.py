@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.commands import FIRE, FRAME_MASK, Command
 from ow174.game.content import SOLDIER
@@ -21,6 +21,7 @@ from ow174.game.native_replay import (
     make_command_event,
     make_end_event,
     make_header,
+    model_hash,
     parse_trace,
     replay_document,
     snapshot_hash,
@@ -30,19 +31,20 @@ from ow174.game.script import graph, runtime
 from ow174.game.script.driver import BodyScript
 
 
-def body(frame=1000):
-    return BodyScript(SOLDIER, 0xA0000101, frame)
+def body(frame=1000, **kwargs):
+    return BodyScript(SOLDIER, 0xA0000101, frame, **kwargs)
 
 
 def header(script):
     return make_header(script, quanta_us=16000, command_epoch=0, body_epoch=1, server_tick=1000)
 
 
-def command_event(script, command, seq):
+def command_event(script, command, seq, *, grounded=None):
     before = snapshot_hash(script)
-    script.command(command.frame, command.buttons, command.action, command.forward, command.right)
+    script.command(command.frame, command.buttons, command.action, command.forward, command.right,
+                   grounded=grounded)
     event = make_command_event(script, command, seq=seq + 1, server_tick=1001 + seq,
-                               command_epoch=0, body_epoch=1, before_hash=before)
+                               command_epoch=0, body_epoch=1, before_hash=before, grounded=grounded)
     script.component.shots.clear()  # the live combat consumer runs after the observation
     return event
 
@@ -284,7 +286,15 @@ class NativeReplayTests(unittest.TestCase):
     def test_match_external_first_access_is_not_mistaken_for_a_constructor_only_trace(self):
         from test_game_combat import Run
 
-        run = Run()
+        constructor_snapshots = {}
+        construct = BodyScript.__init__
+
+        def observe_constructor(script, *args, **kwargs):
+            construct(script, *args, **kwargs)
+            constructor_snapshots[script] = (snapshot_hash(script), stored_snapshot(script))
+
+        with patch.object(BodyScript, "__init__", observe_constructor):
+            run = Run()
         player = run.players[0]
         document = {"header": header(player.body_script), "events": []}
         context = document["header"]
@@ -310,6 +320,7 @@ class NativeReplayTests(unittest.TestCase):
             document["events"].append(make_command_event(
                 current.body_script, command, seq=seq + 1, server_tick=run.match.tick,
                 before_hash=before, command_epoch=0, body_epoch=1,
+                grounded=not current.mover.airborne,
             ))
 
         with patch.object(run.match, "body_command", side_effect=observe):
@@ -324,9 +335,39 @@ class NativeReplayTests(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["validated_commands"], 0)
         self.assertEqual(result["diagnostics"], [{"kind": "initial_state_mismatch"}])
+        # The isolated replay also lacks the owner's pose during construction itself.
+        self.assertNotEqual(result["final_hash"], constructor_hash)
+
+    def test_isolated_wheel_trace_replays_equipment_and_grounded_input(self):
+        script = body(
+            communication_wheel=True,
+            emote_aliases=(0x0C80000000000476,),
+            emote_blend_trees=(0x00400000000006B2,),
+            spray_unlocks=(0x02500000000007F1,),
+            voice_effects=(0x0300000000001879,),
+        )
+        document = {"header": header(script), "events": []}
+        document["events"].append(command_event(script, Command(1001, forward=30), 0, grounded=True))
+        document["events"].append(command_event(script, Command(1002), 1, grounded=False))
+        document["events"].append(ending(script, 2))
+        result = replay_document(document)
+        self.assertEqual(result["status"], "matched_observed_body_trace")
+        self.assertEqual(result["validated_commands"], 2)
+        del document["events"][0]["grounded"]
+        self.assertEqual(replay_document(document)["diagnostics"][0]["kind"], "after_state_or_shots_mismatch")
+
+    def test_model_hash_follows_the_configured_graph_bundle(self):
+        original = model_hash()
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory) / "alternate-graphs.json.gz"
+            bundle.write_bytes(graph.GRAPHS_PATH.read_bytes())
+            with patch.object(graph, "GRAPHS_PATH", bundle):
+                self.assertEqual(model_hash.__wrapped__(), original)
+                bundle.write_bytes(bundle.read_bytes() + b"changed")
+                self.assertNotEqual(model_hash.__wrapped__(), original)
 
     def test_cli_accepts_jsonl_and_distinguishes_incomplete_and_hash_mismatch(self):
-        path = Path(__file__).resolve().parents[1] / "tools" / "replay_native_body.py"
+        path = Path(__file__).resolve().parents[2] / "tools" / "replay_native_body.py"
         spec = importlib.util.spec_from_file_location("test_replay_native_body_tool", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

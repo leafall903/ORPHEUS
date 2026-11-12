@@ -88,7 +88,7 @@ def folder(header: dict) -> str:
 
 
 class Queues:
-    def __init__(self, dump: Path) -> None:
+    def __init__(self, dump: Path, capture: Path | None = None) -> None:
         strings = json.loads((dump / "07C" / "strings_enUS.json").read_text(encoding="utf-8"))
         self.strings = {name: entry["Value"] for name, entry in strings.items()}
         self.cards = load(dump, "0C7")
@@ -98,7 +98,7 @@ class Queues:
         self.headers = load(dump, "09F")
         self.titles = load(dump, "0D9")
         self.menu_names, self.menu_tags = self._menu(load(dump, "0EE"), load(dump, "0CC"))
-        self.captured = self._captured()
+        self.captured = self._captured(capture or CAPTURE)
         self.variant_of = self._variants()
         # The map names each catalog's cards show in the Arcade ("MAPS: Hanamura, King's Row").
         self.tag_maps = {}
@@ -138,11 +138,13 @@ class Queues:
             names[card], card_tags[card] = title, found
         return names, card_tags
 
-    def _captured(self) -> dict[str, list[int]]:
+    def _captured(self, capture: Path) -> dict[str, list[int]]:
         """The maps of each catalog the retail capture shows: message 36300 lists the competitive cards
         (+0x98), each with its card (+0x18) and maps (+0xD8)."""
-        templates = json.loads(CAPTURE.read_text(encoding="utf-8"))
-        ranked = next(message for _, number, message in templates["server"] if number == 36300)
+        templates = json.loads(capture.read_text(encoding="utf-8"))
+        ranked = next((message for _, number, message in templates["server"] if number == 36300), None)
+        if ranked is None:
+            raise ValueError("Prepared retail templates are missing the ranked map table")
         maps = {}
         for entry in ranked["+0x98"]:
             card = self.cards.get(f"{entry['+0x18'] & INDEX:012X}.0C7")
@@ -301,11 +303,8 @@ class Queues:
         }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("dump", type=Path, help="the STU dump folder that holds 0C7, 0C0, 0C5, 039 and 07C")
-    args = parser.parse_args()
-    queues = Queues(args.dump)
+def collect(dump: Path, capture: Path | None = None) -> dict:
+    queues = Queues(dump, capture)
     cards, skipped = {}, {}
     for name, card in queues.cards.items():
         if not card.get("m_rulesets"):
@@ -321,9 +320,16 @@ def main() -> None:
             variants.setdefault(key(header["m_map"]), []).append(
                 {"celebration": key(override["m_celebrationType"]), "map": key(override["m_map"])}
             )
-    table = {"cards": cards, "skipped": skipped, "variants": variants}
+    return {"cards": cards, "skipped": skipped, "variants": variants}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("dump", type=Path, help="the STU dump folder that holds 0C7, 0C0, 0C5, 039 and 07C")
+    args = parser.parse_args()
+    table = collect(args.dump)
     OUT.write_text(json.dumps(table, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{len(cards)} cards, {len(skipped)} skipped -> {OUT}")
+    print(f"{len(table['cards'])} cards, {len(table['skipped'])} skipped -> {OUT}")
 
 
 if __name__ == "__main__":

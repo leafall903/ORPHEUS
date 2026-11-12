@@ -4,7 +4,7 @@ import unittest
 
 from ow174.game.body_vm_snapshot import export_component_vm
 from ow174.game.script import expr, runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 
 def dynamic(identifier):

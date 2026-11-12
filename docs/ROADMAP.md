@@ -1,5 +1,11 @@
 # Restoration roadmap
 
+- [x] Reconcile the full local Python delivery with public main package paths; preserve external data and existing implementation.
+- [ ] Close the preserved compatibility and original-client verification limits listed in [the integration record](PYTHON_UPSTREAM_INTEGRATION.md).
+
+- [x] Reconcile the full local Python delivery with public main package paths; preserve external data and existing implementation.
+- [ ] Close the preserved compatibility and original-client verification limits listed in [the integration record](PYTHON_UPSTREAM_INTEGRATION.md).
+
 Ana delivery scope and cross-hero interaction notes are in `docs/ANA_COMBAT.txt`.
 
 - [ ] Moira full combat acceptance (hero01A2): partial server repair preserves
@@ -104,15 +110,41 @@ Ana delivery scope and cross-hero interaction notes are in `docs/ANA_COMBAT.txt`
 
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
+The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range training bots form the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
+
+This branch starts from the community-maintained Python `main` and tracks Doomfist and Wrecking Ball restoration on `leafall`. The project-wide milestones below retain the shared requirements. Native server architecture and parity are tracked on the separate [Rust branch](https://github.com/leafall903/ORPHEUS/tree/rust).
+
+The [Python hero and PvE candidate record](HERO_SERVER_ACCEPTANCE.md) preserves the scope and
+verification reported by the contributor in PR #16. The changelog records integration checks on
+`leafall` separately from the candidate's original results.
+
+## Doomfist acceptance
+
+- [ ] Hand Cannon. Verify pellet count and spread, direct hits and critical hits, distance falloff, ammo recovery, and owner and observer feedback. The server fires eleven projectiles in the authored 1/4/6 groups and applies distance falloff to each direct impact. Regressions cover retiring the old body's pellets on hero switching or leaving and preserving flight after death until body retirement. The exact launch angles, critical hits and client feedback still need verification.
+- [ ] Rocket Punch. Verify charge, cancellation, release, movement, target and wall impacts, knockback, damage, and recovery. The underlying statescript stack already has a regression for the previous charge fault.
+- [ ] Rising Uppercut and Seismic Slam. Verify activation, cooldown, grounded and airborne behavior, movement through shared collision, and target damage and displacement. Server regressions cover Uppercut's timed movement and damage to ordinary targets, including ally, range and static occlusion checks. Slam dispatches its ground and air branches and clears the air selector on landing. Uppercut's dynamic visibility and target displacement, Slam's target and travel, and original-client acceptance remain open.
+- [ ] The Best Defense and Meteor Strike. Verify shield grants, limits and decay, ultimate targeting and landing, damage and interruption.
+- [ ] Presentation and lifecycle. Verify models, HUD, hit feedback, animations, sounds, death, respawn and hero switching. Confirm the listed behaviors with the original 104319 client in Practice Range and against a second player where applicable.
+
+## Wrecking Ball acceptance
+
+- [ ] Quad Cannons. Verify firing, spread, critical hits, falloff, magazine depletion, manual and automatic reload, and ammo while switching forms. Server regressions cover held fire, torso damage, release, manual reload and authored falloff. The owner reticle follows the authored spread ramp and decay. Projectile spread direction and critical hits remain open.
+- [ ] Roll. Verify transformation in both directions, form speed, collision, weapon lockout, movement over ground and in air, and the owner and observer models. The server applies the authored ground movement profile on entry and restores the gun profile on exit.
+- [ ] Grappling Claw. Verify valid and invalid anchors, attachment, swing, release, cooldown, high-speed impacts, damage and knockback. An unattached cast can currently remain active after release.
+- [ ] Piledriver. Verify altitude and ground checks, airborne activation, descent, landing, radial damage and displacement. Server tests cover near-ground rejection and a full windup, descent and landing on static collision. Impact damage, displacement and original-client acceptance remain open.
+- [ ] Adaptive Shield. Verify the base grant and the contribution from nearby opponents, damage absorption, expiry, cooldown and shield HUD. Server regressions cover 100 base shield, 75 per nearby opponent, absorption, expiry and body retirement. Filter edge cases and original-client presentation remain open.
+- [ ] Minefield. Verify deployment, mine positions, arming, proximity triggers, damage, destructibility and expiry. The authored ultimate spends charge and emits three volleys, but their mine bodies are not spawned.
+- [ ] Lifecycle and presentation. Verify death, respawn, hero switching, repeated matches, HUD, animation, audio, and owner and observer updates in the original 104319 client.
+
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |
-| M0 · Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
-| M1 · Body and weapon initialization | Soldier: 76 keeps the expected model, weapon and ammo HUD for 60 seconds, with ten successful switch-and-return cycles and ten exits and rejoins. | Automated body, weapon and lifecycle scenarios pass. Encrypted startup tests cover ownership and controller initialization under loss. Original-client stability and presentation still need acceptance. |
-| M2 · Rifle and prediction | Hold and release fire, empty the magazine and reload repeatedly. Client ammo and effects agree with the server, including with lost and repeated input. | Selected shot, ammo, reload and loss scenarios have automated evidence. Original-client prediction and recovery still need verification. |
-| M3 · Single-player combat | Repeatedly hit, miss, kill and reset a training target. Its visible health, identity and combat feedback agree with the server. | Headless Practice Range scenarios cover damage, health, death and respawn. Encrypted replay verifies per-viewer nameplate ordering. Original-client HUD, names, kill feed and sound remain pending. |
-| M4 · Movement and two-client combat | Two clients agree on movement, line of sight, combat and respawn. Loss, delay and reordering recover without extra damage. | Collision-backed movement and selected two-peer protocol checks exist. Two-original-client agreement is pending. |
-| M5 · Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. Native selection, timing and client acceptance remain open. |
-| M6 · Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
+| M0 路 Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
+| M1 路 Body and weapon initialization | Soldier: 76 keeps the expected model, weapon and ammo HUD for 60 seconds, with ten successful switch-and-return cycles and ten exits and rejoins. | Automated body, weapon and lifecycle scenarios pass. Encrypted startup tests cover ownership and controller initialization under loss. Original-client stability and presentation still need acceptance. |
+| M2 路 Rifle and prediction | Hold and release fire, empty the magazine and reload repeatedly. Client ammo and effects agree with the server, including with lost and repeated input. | Selected shot, ammo, reload and loss scenarios have automated evidence. Original-client prediction and recovery still need verification. |
+| M3 路 Single-player combat | Repeatedly hit, miss, kill and reset a training target. Its visible health, identity and combat feedback agree with the server. | Headless Practice Range scenarios cover damage, health, death and respawn. Encrypted replay verifies per-viewer nameplate ordering. Original-client HUD, names, kill feed and sound remain pending. |
+| M4 路 Movement and two-client combat | Two clients agree on movement, line of sight, combat and respawn. Loss, delay and reordering recover without extra damage. | Collision-backed movement and selected two-peer protocol checks exist. Two-original-client agreement is pending. |
+| M5 路 Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. Full ability target and speed resolution, timing and client acceptance remain open. |
+| M6 路 Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
 
 ## Project-wide checklist
 
@@ -210,6 +242,7 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   target response remain open.
   Details are in the [Baptiste combat lane](BAPTISTE_COMBAT.txt).
 
+
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
   ultimate, persistent corpses and requested console keys. Manual NPC lifetimes,
@@ -253,6 +286,7 @@ The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practi
   McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
   for the partial attack frontier and open Flashbang/Deadeye requirements.
 
+
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
 - [ ] **Research and replay.** Rebuild required data from documented sources, resolve protocol and graph semantics, and reproduce complete sessions from recorded inputs and events.
@@ -268,6 +302,7 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.
   - [x] Extract and integrity-check local collision caches for all 95 catalog maps and handle missing caches explicitly.
+  - [ ] Use the shared character collision system for player and bot bodies. Allies pass through each other and live opponents block movement. Verify player versus player, player versus bot and bot versus bot in both directions, including free-for-all, crouching, simultaneous movement, death and body replacement. Check the authored character-collision setting and its movement modifier separately from map barrier masks.
   - [ ] Verify placement, team permissions, transitions and visible effects in authored spawn rooms. Reproduce out-of-bounds death and respawn on each applicable map.
 - [ ] **Modes and match rules.** Verify objectives, scoring, timers, overtime, round transitions, victory conditions and results across supported modes.
   - [ ] Run Rialto Retribution story from start to extraction/results with authored cinematics and correct enemy AI. Placed mission graph roots/overrides enter isolated extraction. Native-backed ForCode, UUID/primary-possessor queries, PlayScript requests, type-list state lifecycle, numeric modifiers, auxiliary interfaces/effect routes and queued schema/start bindings have probes; original-client identities and possession updates agree. An explicit forward host records native scope history and runs the ordinary scope phase before deferred channel1. Actual0F45->0EC6 reaches frame500 with supplied services/clocks, including effect creation/retirement without injected callbacks. Full phase/clock mapping, rollback, orientation cleanup and engine consumers remain open. An explicit GameServer/Match factory now prepares 146 placed components plus mode100B in one shared research world, with live variables/messages and owned cleanup. It still stops strictly at D38D0035/node106 before later component execution. Native scene phases, full hosting/replication, cinematics and enemy AI remain unaccepted. See [Retribution restoration](RETRIBUTION_RESTORATION.txt).
@@ -439,6 +474,7 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Audio and dialogue.** Verify weapon, hit, critical-hit and death sounds, multikill and match announcements, ambient audio, music, contextual and randomized dialogue, and Easter eggs. Check listeners, timing and supported languages.
 - [ ] **Stability and delivery.** Verify tick and packet budgets, long-running matches, recovery, reproducible deployment, and final acceptance with the original client.
   - [x] Verify server-only startup of the audited public source checkout using separate runtime data.
+  - [ ] Validate the local play setup on a clean Windows machine. Document how each authorized runtime input is prepared and track the inputs that still require separate preparation before game-folder-only setup is possible.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
 

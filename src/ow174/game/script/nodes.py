@@ -12,9 +12,11 @@ DataFlowMapping, Effect, ...) do on a server.
 import math
 from dataclasses import dataclass
 from types import NotImplementedType
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from ow174.game.content import JUNKENSTEIN_MODES
+from ow174.game.mover import (ADD, FLT_MAX, MAXIMUM, MINIMUM, MULTIPLY, SET,
+    VELOCITY_WORLD_DELTA, movement_sample_flags)
 from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, STEP, Snapshot
 from ow174.game.script import (
     ai_behavior,
@@ -83,6 +85,10 @@ from ow174.game.script.runtime import (
     would_stack_to_top,
 )
 from ow174.game.world import MAX_MOVEMENT_AXIS
+
+
+if TYPE_CHECKING:
+    from ow174.game.mover import VelocityChange
 
 MS = f32(0.001)  # 0.0010000000475, the client's float constant
 REEVALUATE = 1  # BooleanSwitch / Switch / Watch timer param
@@ -476,7 +482,7 @@ class AuthoredBodyHealthPool(State):
 class EncounterTargetTag(State):
     """Publish a tag on the actor while the authored state is active."""
 
-    tags = {
+    tags: ClassVar[dict[tuple[int, int], int]] = {
         (0x0234, 53): 0x0D60000000000422,
         (0x01C7, 96): 0x0D60000000000422,
         (0x006B, 29): 0x0D60000000000039,
@@ -2314,14 +2320,15 @@ class DelayedBooleanSwitch(State):
         return {"a": self.current is True, "b": self.current is None}
 
 
+MOVEMENT_FLAG_OUTPUTS = (
+    "m_105DF1D6", "m_49F4B33C", "m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29",
+    "m_103A8581", "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27",
+)
+
+
 @state_class("STU_96F1DBCF", strict_only=True)
 class MovementFlags(State):
     """D3D420 publishes movement edges from the bound body's ordinary mover record."""
-
-    OUTPUTS = (
-        "m_105DF1D6", "m_49F4B33C", "m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29",
-        "m_103A8581", "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27",
-    )
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -2331,22 +2338,6 @@ class MovementFlags(State):
     def on_begin(self):
         self.tick()
         self.ticks()
-
-    @staticmethod
-    def ordinary_flags(sample):
-        if sample is None:
-            return 0
-        x, y, z = map(f32, sample.velocity)
-        speed_squared = f32(f32(f32(y * y) + f32(x * x)) + f32(z * z))
-        airborne = bool(sample.flags & IN_AIR)
-        return (int(airborne) | int(not airborne) << 1
-                | int(y > f32(1.1920928955078125e-5)) << 2
-                | int(y < f32(-1.1920928955078125e-5)) << 3
-                | int(speed_squared > f32(1.1920928955078125e-6)) << 4
-                | int(any(sample.throttles)) << 5
-                | int(bool(sample.flags & CROUCHED)) << 6
-                | int(bool(sample.flags & NOT_GROUND_UNDER)) << 9
-                | int(bool(sample.flags & JUMPED)) << 11)
 
     def tick(self):
         instance = self.instance
@@ -2359,13 +2350,17 @@ class MovementFlags(State):
         sample = component.world.movement_snapshot(instance)
         component.ensure_valid()
         # The host's ordinary mover has no timed event or the two extension records.
-        if sample is not None and (type(sample) is not Snapshot or sample.flags & 0xA0):
+        if sample is not None and type(sample) is not Snapshot:
             component.unsupported(instance, "movement flags snapshot", self.node.cls, self.node)
 
         previous = self.value
-        value = self.ordinary_flags(sample)
+        value = (
+            0 if sample is None else movement_sample_flags(sample.flags, sample.velocity, sample.throttles)
+        )
+        if value is None:
+            component.unsupported(instance, "movement flags snapshot", self.node.cls, self.node)
         changed = previous ^ value
-        for bit, key in enumerate(self.OUTPUTS):
+        for bit, key in enumerate(MOVEMENT_FLAG_OUTPUTS):
             if changed & (1 << bit):
                 target = _field(self, key)
                 slot = lvalue(target)
@@ -2387,6 +2382,23 @@ class MovementFlags(State):
 
     def payload(self):
         return {"value": self.value}
+
+    @staticmethod
+    def ordinary_flags(sample):
+        if sample is None:
+            return 0
+        x, y, z = map(f32, sample.velocity)
+        speed_squared = f32(f32(f32(y * y) + f32(x * x)) + f32(z * z))
+        airborne = bool(sample.flags & IN_AIR)
+        return (int(airborne) | int(not airborne) << 1
+                | int(y > f32(1.1920928955078125e-5)) << 2
+                | int(y < f32(-1.1920928955078125e-5)) << 3
+                | int(speed_squared > f32(1.1920928955078125e-6)) << 4
+                | int(any(sample.throttles)) << 5
+                | int(bool(sample.flags & CROUCHED)) << 6
+                | int(bool(sample.flags & NOT_GROUND_UNDER)) << 9
+                | int(bool(sample.flags & JUMPED)) << 11)
+
 
 
 @state_class("STUStatescriptStateStack", "STU_A97E6999")
@@ -3564,6 +3576,7 @@ class WeaponVolley(State):
             return self.rate
         return self.spread_at(self.now - self.start - self.offset)
 
+
     def spread_at(self, elapsed: int) -> float:
         """D80A50 ramp with Bastion Recon's authored between-shot decay."""
         index = self.shots_at(elapsed)
@@ -3601,12 +3614,69 @@ class WeaponVolley(State):
                 var.base = values.get(link.slot)
                 self.unlink(var)
                 self.instance.changed(var, before)
+        self.spread = values[2]
         self.links = []
         self.last_values = {}
 
     def payload(self) -> dict:
         return {"start": self.start, "offset": self.offset, "volleys": self.volleys, "counter": self.counter}
 
+
+@state_class("STU_96F1DBCF")
+class OwnerMovementSample(State):
+    """Publish changed booleans and the 13-bit payload from the current owner pose."""
+
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.sample = 0
+        self.outputs = self._authored_outputs()
+
+    def _authored_outputs(self) -> tuple[tuple[int, tuple[int, int]], ...] | None:
+        unsupported = (
+            "m_entity", "m_A10CC74B", "m_0B1AA8CA", "m_4F8F2F3F", "m_8BF03679", "m_BF5B22B7",
+        )
+        if (
+            not self.networked
+            or self.node.remote != -1
+            or any(_field(self, name) is not None for name in unsupported)
+            or any(self.node.links(path) for path in ("m_E37BC6C2", "m_2102C541"))
+        ):
+            return None
+        outputs = []
+        for bit, name in enumerate(MOVEMENT_FLAG_OUTPUTS):
+            cfg = _field(self, name)
+            if cfg is not None:
+                target = lvalue(cfg)
+                if target is None:
+                    return None
+                outputs.append((1 << bit, target))
+        return tuple(outputs)
+
+    def on_begin(self) -> None:
+        if self.outputs is not None:
+            self._sample_owner()
+            self.ticks()
+
+    def tick(self) -> None:
+        self._sample_owner()
+
+    def on_end(self, finished: bool) -> None:
+        self._sample_owner()
+
+    def _sample_owner(self) -> None:
+        if self.outputs is None:
+            return
+        sample = self.instance.component.world.movement_sample()
+        if sample is None or sample == self.sample:
+            return
+        changed = self.sample ^ sample
+        self.sample = sample
+        for bit, target in self.outputs:
+            if changed & bit:
+                self.instance.write(target, bool(sample & bit))
+
+    def payload(self) -> dict:
+        return {"value": self.sample}
 
 def report_active_volleys(component):
     """Report shots due now. Ending volleys report their last shots in on_end."""
@@ -4664,10 +4734,12 @@ class ModifyHealth(self_heal.TimedSelfHeal):
     def __init__(self, *args):
         super().__init__(*args)
         self.last_applied = 0
+        self.hit_entities = set()
         self.target_body = 0
 
     def on_enter(self):
         self.target_body = 0
+        self.hit_entities.clear()
         self.last_applied = self.now
         world = self.instance.component.world
         value = world.modify_health(self, 0)
@@ -4885,18 +4957,29 @@ class CreateEntity(State):
 
 @state_class("STUStatescriptStateTrackTargets")
 class TrackTargets(State):
-    """Target queries supplied by an explicit world bridge; other searches remain empty."""
+    """Bridge authored target searches and the owner-centred Adaptive Shield count."""
 
     family = "targets"
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         super().__init__(*args)
+        self.count_var: Var | None = None
         self.targets = ()
         self.managed = False
         self.target_var = None
         self.last_refresh = None
 
     def on_enter(self) -> None:
+        fields = self.node.fields
+        centre = fields.get("m_05BE62DD") or {}
+        owner = centre.get("m_entity") or {}
+        target_filter = fields.get("m_filter") or {}
+        target = lvalue(fields.get("m_1B89EA79"))
+        if (target is not None and centre.get("$") == "STU_21A13145" and owner.get("$") == "STU_B5A0CAF0"
+                and target_filter.get("m_4EA686DB") == 16 and target_filter.get("m_84065FD1") == 1
+                and target_filter.get("m_89831602") == 1):
+            self.count_var = self.link(target)
+            return
         targets = self.instance.component.world.linked_tracked_targets(self)
         if targets is not NotImplemented:
             if self.instance.graph.index == 0x0259 and self.node.field("m_DD792FF0") == 1:
@@ -4965,9 +5048,73 @@ class TrackTargets(State):
             self.try_complete()
 
     def output(self, slot):
+        if self.count_var is not None:
+            radius = to_float(self.evaluate(_field(self, "m_radius"), watch=False))
+            if not math.isfinite(radius) or radius <= 0.0:
+                return 0
+            return self.instance.component.world.nearby_enemy_count(
+                self.instance.component.entity, radius)
         return tuple(Entity(entity) for entity in self.targets)
 
+    def hostile_body_profile(self) -> int | None:
+        """Recognize the authored hostile capsule query with line-of-sight profile 002C."""
+        fields = self.node.fields
+        primary = fields.get("m_filter")
+        secondary = fields.get("m_3D667CE3")
+        if not (
+            isinstance(primary, dict) and primary.get("$") == "STUConfigVarFilter"
+            and isinstance(secondary, dict) and secondary.get("$") == "STUConfigVarFilter"
+        ):
+            return None
+        tag = primary.get("m_8B2A4DF3")
+        cast = secondary.get("m_C1903771")
+        if not (
+            isinstance(tag, dict) and tag.get("$") == "STU_357DABBB"
+            and guid(tag.get("m_7D7C86A1")) == 0x0D6000000000003A
+            and isinstance(cast, dict) and cast.get("$") == "STU_20DB8AB5"
+        ):
+            return None
+        profile = guid(cast.get("m_C1903771"))
+        if (
+            profile != 0x069000000000002C
+            or (primary.get("m_4EA686DB"), primary.get("m_84065FD1"),
+                primary.get("m_89831602")) != (20, 64, 1)
+            or any(value for key, value in primary.items() if key not in (
+                "$", "m_4EA686DB", "m_84065FD1", "m_89831602", "m_8B2A4DF3",
+            ))
+            or any(value for key, value in tag.items() if key not in ("$", "m_7D7C86A1"))
+            or any(value for key, value in secondary.items() if key not in ("$", "m_C1903771"))
+            or any(value for key, value in cast.items() if key not in ("$", "m_C1903771"))
+        ):
+            return None
+        option = fields.get("m_8CBE558B")
+        if option is not None and (
+            not isinstance(option, dict) or option.get("$") != "STUConfigVarBool"
+            or option.get("m_value") != 0
+        ):
+            return None
+        unsupported = (
+            "m_E46A19A3", "m_A30B383E", "m_3119AD61", "m_B9BEAC7F", "m_D45E22FA",
+            "m_2F88C5F2", "m_544C3E6F", "m_8DCA77B6", "m_762A56C0", "m_B3A77CD0",
+            "m_16BDE607", "m_8862A75D", "m_E474FFD6", "m_48837057", "m_294660A6",
+            "m_229DD034", "m_BA6C9F75", "m_9E1426F6", "m_E8474EE8", "m_C1B724B2",
+            "m_93AB8C13", "m_C39691D9", "m_CEE20F6F", "m_1B89EA79",
+        )
+        unsupported_flags = ("m_08285CD6", "m_0297060F", "m_8D13DD07", "m_2F5FAF65", "m_32AFE9AA")
+        if (
+            fields.get("m_DD792FF0") != 1 or fields.get("m_43478CAD", 0) != 0
+            or fields.get("m_95FFC3C5") != 1
+            or any(fields.get(name, 0) != 0 for name in unsupported_flags)
+            or any(fields.get(name) is not None for name in unsupported)
+            or lvalue(fields.get("m_8A2905A0")) is None
+        ):
+            return None
+        return profile
+
     def on_end(self, finished: bool) -> None:
+        if self.count_var is not None:
+            self.unlink(self.count_var)
+            self.count_var = None
         if self.target_var is not None:
             var, self.target_var = self.target_var, None
             self.unlink(var, bake=self.instance.graph.index != 0x0259)
@@ -4979,7 +5126,11 @@ class TrackTargets(State):
     def on_cleanup(self) -> None:
         self.instance.component.world.stop_tracking_targets(self)
 
+
     def payload(self) -> dict:
+        if self.hostile_body_profile() is not None:
+            # The wire list retains rejected targets when the node authors a retention interval.
+            return {"targets": ()}
         return {"targets": tuple((entity, 0) for entity in self.targets)}  # age policy unverified
 
 
@@ -5504,7 +5655,9 @@ class StaticTagTarget(State):
             excluded = self.evaluate(self.node.field('m_8B2A4DF3'), watch=False)
             targets = NotImplemented
             if all(isinstance(value, Asset) and value.guid >> 48 == 0x0D60 for value in (tag, excluded)):
-                targets = component.world.targets_with_tag(self.instance, tag.guid, excluded_tag=excluded.guid)
+                targets = component.world.targets_with_tag(
+                    self.instance, tag.guid, excluded_tag=excluded.guid,
+                )
         elif (self.instance.graph.index == 0x0C8F and filter_config is None
               and self.node.field('m_8B2A4DF3') is None):
             tag = self.evaluate(self.node.field('m_9C7BD8B8'), watch=False)
@@ -5746,6 +5899,59 @@ def _finite_vector(value) -> bool:
     return isinstance(value, Vec3) and all(_finite_number(axis) for axis in value)
 
 
+_SCALAR_VELOCITY_OPS = {
+    "STU_7104FC1F": ADD,
+    "STU_1308AA6A": MULTIPLY,
+    "STU_9AF0FA80": SET,
+    "STU_748FC65A": MINIMUM,
+    "STU_EC4841E7": MAXIMUM,
+}
+_VECTOR_VELOCITY_OPS = {"STU_4635C5E2": ADD, "STU_D93B3F5E": MULTIPLY, "STU_95A10547": SET}
+
+
+@handler("STU_FF3471E9")
+def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """Resolve a velocity action's scalar channels and world-space vector edits."""
+    component = instance.component
+    result = component.world.velocity_action(instance, node)
+    if result is not NotImplemented:
+        if result is True:
+            instance.follow(node, "m_outPlug", None)
+        return result
+    modifiers = node.field("m_BC5E91CF")
+    if not isinstance(modifiers, list):
+        return NotImplemented
+    changes: list[VelocityChange] = []
+    for slot, modifier in enumerate(modifiers):
+        if not isinstance(modifier, dict):
+            return NotImplemented
+        kind = modifier.get("$")
+        if not isinstance(kind, str):
+            return NotImplemented
+        priority_config = modifier.get("m_priority")
+        priority = 0.0 if priority_config is None else instance.evaluate(priority_config)
+        if not _finite_number(priority) or abs(priority) > FLT_MAX:
+            return NotImplemented
+        value = instance.evaluate(modifier.get("m_9B7A63EA"))
+        if kind in _SCALAR_VELOCITY_OPS:
+            channel = modifier.get("m_A9561CA0")
+            if type(channel) is not int or not 0 <= channel <= 3:
+                return NotImplemented
+            if not _finite_number(value) or abs(value) > FLT_MAX:
+                return NotImplemented
+            changes.append((slot, channel, _SCALAR_VELOCITY_OPS[kind], f32(value), f32(priority)))
+        elif kind in _VECTOR_VELOCITY_OPS and modifier.get("m_CFEC5F76") == 1:
+            if not _finite_vector(value) or any(abs(axis) > FLT_MAX for axis in value):
+                return NotImplemented
+            operation = _VECTOR_VELOCITY_OPS[kind]
+            changes.append((slot, VELOCITY_WORLD_DELTA, operation, tuple(value), f32(priority)))
+        else:
+            return NotImplemented
+    component.world.queue_velocity_changes(component.frame, (instance.id, node.rid), tuple(changes))
+    instance.follow(node, "m_outPlug", None)
+    return True
+
+
 def _ray_entity(value) -> bool:
     return isinstance(value, Entity) and type(value.id) is int and 0 <= value.id <= 0xFFFFFFFF
 
@@ -5827,14 +6033,6 @@ def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedTyp
     return True
 
 
-@handler("STU_FF3471E9")
-def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedType:
-    result = instance.component.world.velocity_action(instance, node)
-    if result is NotImplemented:
-        return NotImplemented
-    if result is True:
-        instance.follow(node, "m_outPlug", None)
-    return result
 
 
 def weighted_output(instance: Instance, node, caller) -> bool:
@@ -5907,6 +6105,10 @@ def respawn_body(instance, node, caller):
 
 def store(instance: Instance, out_cfg, value, index_cfg=None, key_cfg=None) -> None:
     target = lvalue(out_cfg)
+    if target is None and index_cfg is None and key_cfg is None:
+        indexed = expr.indexed_lvalue(out_cfg)
+        if indexed is not None:
+            target, index_cfg = indexed
     if target is None:
         #224E's pending records are explicitly hosted by the stun consumer.
         # General record storage/transport for other graphs remains open.
@@ -6727,3 +6929,85 @@ for _name in (
 
 
 __all__ = ["ABORT", "Asset"]
+
+
+def _raycast(instance: Instance, node) -> bool | NotImplementedType:
+    provider = instance.component.world.raycast_provider(instance, node)
+    if provider is None:
+        return NotImplemented
+    targets = []
+    for field in _RAYCAST_OUTPUTS:
+        config = node.field(field)
+        try:
+            target = lvalue(config)
+        except (IndexError, TypeError, ValueError):
+            return NotImplemented
+        if config is not None and (target is None or target in targets):
+            return NotImplemented
+        targets.append(target)
+    request = _raycast_request(instance, node)
+    if request is None:
+        return NotImplemented
+    result = provider(request)
+    if not isinstance(result, RaycastResult) or type(result.hit) is not bool:
+        return NotImplemented
+    if result.entity is not None and not _ray_entity(result.entity):
+        return NotImplemented
+    if any(value is not None and not _finite_vector(value) for value in (result.point, result.normal)):
+        return NotImplemented
+    for target, value in zip(targets, (result.hit, result.entity, result.point, result.normal), strict=True):
+        if target is not None:
+            instance.write(target, value)
+    return True
+
+
+@state_class("STUStatescriptStateRayCast")
+class RayCast(State):
+    """Refresh the authored query outputs while its subgraph is active."""
+
+    def on_enter(self) -> None:
+        self.tick()
+        self.ticks()
+
+    def tick(self) -> None:
+        component = self.instance.component
+        if _raycast(self.instance, self.node) is NotImplemented and component.strict:
+            component.unsupported(self.instance, "raycast options", self.node.cls, self.node)
+
+
+@state_class("STUStatescriptStateHealthPool")
+class HealthPool(AuthoredBodyHealthPool):
+    """Begin owner-only shields while preserving the existing base/wave pool host."""
+
+    def on_begin(self):
+        if self._shield_id() is not None:
+            self.on_enter()
+        else:
+            super().on_begin()
+
+    def _shield_id(self) -> int | None:
+        fields = self.node.fields
+        temporary = fields.get("m_0E8A5C8E") or {}
+        owner = fields.get("m_FA3ECC43") or {}
+        identifier = fields.get("m_7BE02F89") or {}
+        if (fields.get("m_7E8B666C") != 2 or temporary.get("m_value") != 1
+                or owner.get("$") != "STU_B5A0CAF0" or identifier.get("$") != "STUConfigVarIdentifier"):
+            return None
+        key = guid(identifier.get("m_identifier"))
+        return key & 0xFFFFFFFF if key is not None else None
+
+    def on_enter(self) -> None:
+        pool_id = self._shield_id()
+        if pool_id is not None:
+            amount = to_float(self.evaluate(_field(self, "m_amount"), watch=False))
+            if math.isfinite(amount) and amount > 0.0:
+                component = self.instance.component
+                component.world.set_temporary_shield(component.entity, pool_id, amount)
+
+    def on_end(self, finished: bool) -> None:
+        pool_id = self._shield_id()
+        if pool_id is not None:
+            component = self.instance.component
+            component.world.set_temporary_shield(component.entity, pool_id, 0.0)
+        else:
+            super().on_end(finished)

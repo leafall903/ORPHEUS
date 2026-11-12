@@ -8,9 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_game_combat import FakeClient
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import bots, collision, messages, props
 from ow174.game.bits import BitWriter
@@ -19,6 +17,7 @@ from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, Spawn, heroes
 from ow174.game.match import Match
 from ow174.game.server import Client
+from tests.runtime.test_game_combat import FakeClient
 
 MAP = dataclasses.replace(
     PRACTICE_RANGE,

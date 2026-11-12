@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates

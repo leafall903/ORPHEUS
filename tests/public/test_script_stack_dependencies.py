@@ -2,9 +2,8 @@
 
 import unittest
 
-from test_game_graph_analysis import make_graph, node
-
 from ow174.game.script import expr, runtime
+from tests.runtime.test_game_graph_analysis import make_graph, node
 
 
 class StackDependencyTests(unittest.TestCase):

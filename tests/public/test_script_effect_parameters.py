@@ -6,8 +6,8 @@ from unittest import mock
 
 from ow174.game.script import effect_parameters as effects
 from ow174.game.script import expr, runtime, scene
-from tests.test_script_play_resource import EMPTY, array, integer
-from tests.test_script_runtime_budget import graph, node
+from tests.public.test_script_play_resource import EMPTY, array, integer
+from tests.runtime.test_script_runtime_budget import graph, node
 
 OWNER = 0xA0000101
 OTHER = 0xA0000102

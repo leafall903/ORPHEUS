@@ -25,11 +25,8 @@ def guid(index: int, file_type: int) -> int:
     return reversed_type << 48 | index
 
 
-def main(argv: list[str]) -> None:
-    if len(argv) < 2:
-        raise SystemExit(__doc__)
-    folder = Path(argv[1])
-    heroes = json.loads((DATA_DIR / "extracted_heroes.json").read_text(encoding="utf-8"))
+def collect(folder: Path, catalog: Path) -> dict:
+    heroes = json.loads(catalog.read_text(encoding="utf-8-sig"))
     table = {}
     for key, hero in heroes.items():
         if not hero.get("IsHero"):
@@ -45,9 +42,16 @@ def main(argv: list[str]) -> None:
             "class": hero.get("Class", ""),
             "body": f"0x{guid(int(match.group(1), 16), 0x3):016X}",
         }
+    return dict(sorted(table.items()))
+
+
+def main(argv: list[str]) -> None:
+    if len(argv) < 2:
+        raise SystemExit(__doc__)
+    table = collect(Path(argv[1]), DATA_DIR / "extracted_heroes.json")
     out = DATA_DIR / "game_heroes_174.json"
     out.write_text(
-        json.dumps(dict(sorted(table.items())), indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps(table, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     print(f"{len(table)} heroes -> {out}")
 

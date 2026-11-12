@@ -583,14 +583,14 @@ def _step(match, bot, tick, seconds, search_budget):
         _settle_step(bot, nav, tick, seconds)
         return
     if (movement is None and reposition is not None and search_budget
-            and match.game_map.map_guid == RIALTO_MAP and start_reposition(match, reposition, world, bot, target, tick)):
+            and match.game_map.map_guid == RIALTO_MAP
+            and start_reposition(match, reposition, world, bot, target, tick)):
         stop(bot)
         return
-    if movement is None and math.dist(bot.position, target.feet) <= reach:
-        if (assassin.contact(match, bot, target) if contact
-                else visible(world, bot.position, target)):
-            stop(bot)
-            return
+    if (movement is None and math.dist(bot.position, target.feet) <= reach
+            and (assassin.contact(match, bot, target) if contact else visible(world, bot.position, target))):
+        stop(bot)
+        return
     if nav is None:
         nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body))))
     if nav.last_tick is not None and tick <= nav.last_tick:
@@ -605,8 +605,9 @@ def _step(match, bot, tick, seconds, search_budget):
         distance = math.dist(bot.position, destination)
         if distance > combat.EPSILON:
             fraction = min(1.0, speed * seconds / distance)
-            next_step = tuple(start + (end - start) * fraction
-                              for start, end in zip(bot.position, destination, strict=True))
+            next_step = tuple(
+                start + (end - start) * fraction for start, end in zip(bot.position, destination, strict=True)
+            )
             if not teammate_clear(match, bot, bot.position, next_step, nav.mover.data):
                 request_reposition(reposition, tick, runtime.ABORT)
                 stop(bot)
@@ -622,19 +623,33 @@ def _step(match, bot, tick, seconds, search_budget):
     if changed_body:
         nav.path, nav.search = (), None
     goal_delta = math.inf if nav.goal is None else math.dist(nav.goal, target.feet)
-    resample = (goal_delta >= 0.25 if nav.next_plan is None
-                else tick >= nav.next_plan and (not nav.path or goal_delta > 1))
-    if nav.search is None and (nav.goal is None or changed_body or nav.stuck >= 8
-            or resample):
+    resample = (
+        goal_delta >= 0.25
+        if nav.next_plan is None
+        else tick >= nav.next_plan and (not nav.path or goal_delta > 1)
+    )
+    if nav.search is None and (nav.goal is None or changed_body or nav.stuck >= 8 or resample):
         nav.path = ()
         nav.search = begin(bot.position, target, reach)
         nav.target, nav.goal, nav.stuck = target.entity, tuple(target.feet), 0
+
     def lane_clear(start, end):
         return teammate_clear(match, bot, start, end, nav.mover.data)
 
-    if (nav.search is not None and search_budget
-            and advance(nav.search, world, nav.mover.data, reach, search_budget,
-                        rialto=match.game_map.map_guid == RIALTO_MAP, contact=contact, lane_clear=lane_clear)):
+    if (
+        nav.search is not None
+        and search_budget
+        and advance(
+            nav.search,
+            world,
+            nav.mover.data,
+            reach,
+            search_budget,
+            rialto=match.game_map.map_guid == RIALTO_MAP,
+            contact=contact,
+            lane_clear=lane_clear,
+        )
+    ):
         nav.path = nav.search.path
         nav.next_plan = tick + PLAN_INTERVAL if nav.path or nav.search.blocked_by_teammate else None
         nav.search = None
@@ -679,8 +694,12 @@ def teammate_clear(match, bot, start, end, data):
         return True
     ux, uz = dx / length, dz / length
     for other in match.bots:
-        if (other is bot or other.dead or other.team != bot.team
-                or other.spawner.get("manual_spawn") is not True):
+        if (
+            other is bot
+            or other.dead
+            or other.team != bot.team
+            or other.spawner.get("manual_spawn") is not True
+        ):
             continue
         ox, oy, oz = other.position
         other_data = mover_data(other.body)
@@ -689,9 +708,9 @@ def teammate_clear(match, bot, start, end, data):
         bx, bz = ox - x, oz - z
         radius = data.stand_radius + other_data.stand_radius + 0.02
         along = min(length, max(0.0, bx * ux + bz * uz))
-        if math.hypot(bx - ux * along, bz - uz * along) < radius:
-            if along > 0.0 or math.hypot(bx - dx, bz - dz) <= math.hypot(bx, bz):
-                return False
+        if (math.hypot(bx - ux * along, bz - uz * along) < radius
+                and (along > 0.0 or math.hypot(bx - dx, bz - dz) <= math.hypot(bx, bz))):
+            return False
     return True
 
 
@@ -738,11 +757,14 @@ def _movement_speed(match, bot, nav, tick, speed):
 def _drive(match, bot, nav, tick, seconds, destination, speed):
     speed = _movement_speed(match, bot, nav, tick, speed)
     yaw = bots.turned(
-        bot.yaw, bots.heading(destination[0] - bot.position[0], destination[2] - bot.position[2]),
-        bots.TURN_RATE * seconds)
+        bot.yaw,
+        bots.heading(destination[0] - bot.position[0], destination[2] - bot.position[2]),
+        bots.TURN_RATE * seconds,
+    )
     before = bot.position
-    outcome = nav.mover.step_pose(Command(tick, yaw=round(yaw), pitch=round(bot.pitch)), seconds, tick,
-                                  move_to=(destination, speed))
+    outcome = nav.mover.step_pose(
+        Command(tick, yaw=round(yaw), pitch=round(bot.pitch)), seconds, tick, move_to=(destination, speed)
+    )
     bot.position, bot.velocity, bot.yaw = tuple(nav.mover.position), nav.mover.velocity, float(yaw)
     dx, dz = destination[0] - before[0], destination[2] - before[2]
     distance = math.hypot(dx, dz)
@@ -769,9 +791,12 @@ def _drop_step(bot, nav, tick, seconds):
     started = tick if drop.started is None else drop.started
     nav.last_tick = tick
     before = bot.position
-    landed = (drop.released and not nav.mover.airborne
-              and abs(before[1] - RIALTO_LANDING[1]) < 0.15
-              and math.dist(before, RIALTO_LANDING) < 1)
+    landed = (
+        drop.released
+        and not nav.mover.airborne
+        and abs(before[1] - RIALTO_LANDING[1]) < 0.15
+        and math.dist(before, RIALTO_LANDING) < 1
+    )
     if landed or tick - started >= 120 or before[1] < RIALTO_LANDING[1] - 0.4:
         stop(bot)
         return

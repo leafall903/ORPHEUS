@@ -5,11 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_game_combat import Run
-from test_game_entity_lifecycle import client, sent
-from test_server_journal import pick
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import bodytrace, match, messages, movelog
 from ow174.game.bits import BitWriter
@@ -17,6 +13,9 @@ from ow174.game.commands import FIRE, FRAME_MASK, Command
 from ow174.game.script import runtime
 from ow174.game.script.decode import read_chunk
 from ow174.game.world import OP_CREATE, OP_DESTROY
+from tests.runtime.test_game_combat import Run
+from tests.runtime.test_game_entity_lifecycle import client, sent
+from tests.runtime.test_server_journal import pick
 
 
 def attach_client(player):

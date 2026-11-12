@@ -2,13 +2,12 @@
 
 import unittest
 
-from test_game_graph_analysis import make_graph, node, output
-
 from ow174.game.script import (
     expr,
     nodes,  # noqa: F401 -- register executable state handlers
     runtime,
 )
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
 
 
 def integer(value):

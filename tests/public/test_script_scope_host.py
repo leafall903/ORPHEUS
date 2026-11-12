@@ -4,8 +4,8 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import nodes, runtime, scene, scopes
-from tests.test_script_runtime_budget import graph, node, plug
-from tests.test_script_scopes import CLASS, OWNER, definition
+from tests.public.test_script_scopes import CLASS, OWNER, definition
+from tests.runtime.test_script_runtime_budget import graph, node, plug
 
 
 def setup(model=None, *, frame=20):

@@ -10,7 +10,7 @@ import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from ow174.accounts.profile import Profile, load_or_create_profile, save_profile  # noqa: E402
 from ow174.accounts.registry import Accounts  # noqa: E402

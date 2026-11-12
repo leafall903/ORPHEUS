@@ -340,12 +340,14 @@ class Slams:
         if instance is None:
             return
         airborne = player.mover.airborne
-        instance.component.set(417, airborne)  # explicit host interpretation of the ground predicate
         feet = tuple(player.mover.position)
-        length = float(instance.graph.node(17).field('m_castLength.m_value'))
-        origin = (feet[0], feet[1] + .25, feet[2])
-        hit = ray_world(self.combat._collision(), origin, (0, -1, 0), length)
-        instance.write((0, 2413), hit is not None)
+        if not any(isinstance(state, nodes.OwnerMovementSample)
+                   for child in instance.component.instances.values() for state in child.states.values()):
+            instance.component.set(417, airborne)  # explicit host interpretation of the ground predicate
+            length = float(instance.graph.node(17).field('m_castLength.m_value'))
+            origin = (feet[0], feet[1] + .25, feet[2])
+            hit = ray_world(self.combat._collision(), origin, (0, -1, 0), length)
+            instance.write((0, 2413), hit is not None)
         cast = self.casts.get(player.body)
         if cast is None or cast.finished or cast.origin is not None:
             return

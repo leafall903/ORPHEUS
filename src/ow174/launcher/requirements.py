@@ -1,4 +1,4 @@
-"""The Python packages of the Battle.net emulator, pinned in requirements.txt and installed on demand."""
+"""The Python packages of the Battle.net emulator, pinned in project metadata and installed on demand."""
 
 import logging
 import subprocess
@@ -6,19 +6,25 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
+import tomllib
+
 from ow174.launcher import LaunchError
-from ow174.paths import REQUIREMENTS
+from ow174.paths import PROJECT_FILE
 
 log = logging.getLogger("ow174.launcher")
 
 
-def missing_requirements(requirements: Path = REQUIREMENTS) -> list[str]:
-    """Lines of requirements.txt that are not installed at exactly the pinned version."""
+def _dependency_pins(project: Path) -> list[str]:
+    if project.is_file():
+        with project.open("rb") as handle:
+            return tomllib.load(handle)["project"]["dependencies"]
+    return [line for line in metadata.requires("orpheus") or () if ";" not in line]
+
+
+def missing_requirements(project: Path = PROJECT_FILE) -> list[str]:
+    """Direct dependency pins that are absent or have a different installed version."""
     missing = []
-    for line in requirements.read_text(encoding="utf-8").splitlines():
-        line = line.split("#")[0].strip()
-        if not line:
-            continue
+    for line in _dependency_pins(project):
         name, pinned, version = line.partition("==")
         try:
             if not pinned or metadata.version(name.strip()) != version.strip():
@@ -28,9 +34,9 @@ def missing_requirements(requirements: Path = REQUIREMENTS) -> list[str]:
     return missing
 
 
-def ensure_requirements(requirements: Path = REQUIREMENTS) -> None:
+def ensure_requirements(project: Path = PROJECT_FILE) -> None:
     """Install what is missing with pip, so the network is only used on the first start."""
-    missing = missing_requirements(requirements)
+    missing = missing_requirements(project)
     if not missing:
         return
     log.info("Installing Python packages: %s", ", ".join(missing))
@@ -41,8 +47,7 @@ def ensure_requirements(requirements: Path = REQUIREMENTS) -> None:
         "install",
         "-q",
         "--disable-pip-version-check",
-        "-r",
-        str(requirements),
+        *missing,
     ]
     if subprocess.run(command).returncode != 0:
         raise LaunchError(

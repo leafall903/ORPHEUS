@@ -18,12 +18,14 @@ ULTIMATE, TARGET_EFFECT = 0x022F, 0x01EE
 REAPPLY = 0x024000000000000F
 
 
-def award_sandbox_charge(match, shooter, bot, damage):
+def award_sandbox_charge(match, shooter, bot, damage) -> bool:
     """Rialto sandbox policy: one point for each point of actual NPC damage."""
     if (match.game_map.map_guid == RIALTO
             and bot.spawner.get("manual_spawn") is True
             and shooter.hero.guid == HERO and shooter.body_script is not None):
         shooter.body_script.add_ult_charge(damage)
+        return True
+    return False
 
 
 def _owner(world, state):

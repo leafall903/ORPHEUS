@@ -4,8 +4,8 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import expr, play, play_queue, runtime, scene
-from tests.test_script_play_loaded import KEY, definition, dynamic, model_record
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_play_loaded import KEY, definition, dynamic, model_record
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 GUID = 0x0580000000000002
 IDENT = play.IDENTIFIER_TYPE

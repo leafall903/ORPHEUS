@@ -4,8 +4,6 @@ import math
 import unittest
 from unittest.mock import patch
 
-from test_game_combat import Run
-
 from ow174.game import combat, mccree, npc, npc_navigation
 from ow174.game.body_vm_snapshot import export_body_vm, snapshot_digest
 from ow174.game.collision import World, flat_world
@@ -13,6 +11,7 @@ from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import graph
+from tests.runtime.test_game_combat import Run
 
 
 class McCreeRollTests(unittest.TestCase):
@@ -125,9 +124,11 @@ class McCreeRollTests(unittest.TestCase):
         definition = npc.Definition(0x02E00000000001AC, 0x0400000000001D40, 'Trooper contact fixture', 200)
         with patch.object(graph, 'entity_body', return_value=None):
             bot = npc.spawn(match, definition, (-1.9, 0, 3), team=1 - player.team)
-        navigator = npc_navigation.Navigator(Mover(bot.position, 0, match.collision_world, mover_data(bot.body)))
+        navigator = npc_navigation.Navigator(
+            Mover(bot.position, 0, match.collision_world, mover_data(bot.body))
+        )
         closest = math.inf
-        with patch.object(mccree, 'RIALTO', match.game_map.map_guid):
+        with patch.object(mccree, "RIALTO", match.game_map.map_guid):
             for _ in range(75):
                 run.frame += 1
                 match.update(run.frame * combat.TICK, run.frame)
@@ -170,8 +171,9 @@ class McCreeRollTests(unittest.TestCase):
         for empty in (False, True):
             with self.subTest(empty=empty):
                 run, player = self.arena()
-                weapon = next(i for i in player.body_script.component.instances.values()
-                              if i.graph.index == 0x1D2)
+                weapon = next(
+                    i for i in player.body_script.component.instances.values() if i.graph.index == 0x1D2
+                )
                 self.step(run, player, 1)
                 if empty:
                     for _ in range(300):
@@ -186,7 +188,7 @@ class McCreeRollTests(unittest.TestCase):
                 self.step(run, player)
                 self.step(run, player, 8)
                 fight = run.match.combat
-                with patch.object(fight, '_shoot', wraps=fight._shoot) as shots:
+                with patch.object(fight, "_shoot", wraps=fight._shoot) as shots:
                     for _ in range(24):
                         self.step(run, player, 1)
                     self.assertEqual(shots.call_count, 0)
@@ -206,7 +208,7 @@ class McCreeRollTests(unittest.TestCase):
         self.assertEqual(weapon.vars[53].value(), 5)
         self.step(run, player, 8)
         fight = run.match.combat
-        with patch.object(fight, '_shoot', wraps=fight._shoot) as shots:
+        with patch.object(fight, "_shoot", wraps=fight._shoot) as shots:
             for _ in range(100):
                 self.step(run, player, 2)
                 if shots.call_count == 6:
@@ -260,7 +262,7 @@ class McCreeRollTests(unittest.TestCase):
         run, player = self.arena()
         script = player.body_script
         original = snapshot_digest(export_body_vm(script))
-        script.world.velocity_requests.append((run.frame + 1, 'delta', (0.0, 0.0, 15.0)))
+        script.world.velocity_requests.append((run.frame + 1, "delta", (0.0, 0.0, 15.0)))
         self.assertNotEqual(snapshot_digest(export_body_vm(script)), original)
         script.world.velocity_requests.clear()
         self.assertEqual(snapshot_digest(export_body_vm(script)), original)
@@ -272,8 +274,9 @@ class McCreeRollTests(unittest.TestCase):
                 self.step(run, player, 8)
                 for _ in range(40):
                     self.step(run, player)
-                instance = next(i for i in player.body_script.component.instances.values()
-                                if i.graph.index == 0x1F0)
+                instance = next(
+                    i for i in player.body_script.component.instances.values() if i.graph.index == 0x1F0
+                )
                 ability = next(s for s in instance.states.values() if s.node.pos == 2)
                 if not held:
                     while ability.remaining() > 0.08:

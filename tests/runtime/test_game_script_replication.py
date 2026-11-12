@@ -4,9 +4,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from test_game_repeated_lifecycles import ProtocolHarness
-from test_game_server import pick
-
 from ow174.game import bodytrace, movelog
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.script import expr
@@ -14,6 +11,8 @@ from ow174.game.script.graph import graph
 from ow174.game.script.replication import ReplicationError, from_runtime, wire_value
 from ow174.game.script.research_runtime import RuntimeValue
 from ow174.game.statescript import Asset, Bool, Entity, Float, Int
+from tests.runtime.test_game_repeated_lifecycles import ProtocolHarness
+from tests.runtime.test_game_server import pick
 
 
 def instance(index, metadata, *, variables=None, active=(), children=None, parent=None):

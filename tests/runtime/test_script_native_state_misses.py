@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import runtime, scene
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 MISSING = "STU_724DFBC6"
 

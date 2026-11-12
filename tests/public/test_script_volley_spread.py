@@ -2,9 +2,9 @@
 
 import unittest
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import expr, runtime
-from tests.test_script_runtime_budget import graph, node
+from tests.script_fixtures import export_synthetic_component_vm, graph, node
 
 
 def dynamic(number):
@@ -61,9 +61,9 @@ class VolleySpreadTests(unittest.TestCase):
 
     def test_baked_ramp_is_causal_snapshot_state(self):
         component, _, state = self.scene(ramp=2.0)
-        before = snapshot_digest(export_component_vm(component))
+        before = snapshot_digest(export_synthetic_component_vm(component))
         state.spread_ramp = 6.0
-        self.assertNotEqual(before, snapshot_digest(export_component_vm(component)))
+        self.assertNotEqual(before, snapshot_digest(export_synthetic_component_vm(component)))
 
     def test_optional_native_decay_does_not_use_the_no_decay_model(self):
         _, _, state = self.scene(ramp=9, initial=0.2,

@@ -93,8 +93,8 @@ never-activated and counter-zero states. Destroyed instances are stored in full,
 not reduced to their former runtime instance numbers. Variables retain their
 stored base values, links and watchers; no resolved variable value is substituted.
 Pending events, deferred work, ticking order, parameter stacks, held buttons,
-disabled-button registrations, undrained shots and terminal VM fault state are
-part of the representation.
+disabled-button registrations, undrained shots and damage reports, and terminal
+VM fault state are part of the representation.
 
 BodyScript fields covered by the VM adapter:
 
@@ -140,6 +140,8 @@ Component required fields:
 
   entity frame_ms world rng frame now instances vars held button disabled seq
   next_id destroyed shots owner_dead fault strict code_states code_pending code_observers
+
+  state_registries parameter_scopes startup_entity_values damage_reports
   _operation_depth _follow_depth _work_left
 
 The strict policy stops unsupported mission nodes, states and base-world native
@@ -217,7 +219,8 @@ present-with-None must remain distinct.
   CosmeticEntity           none
                            var
   GamePadVibration         none
-  TrackTargets             none
+  TrackTargets             count_var targets managed
+  ModifyHealth             last_applied hit_entities
   Effect                   none
   ClientOnlyPulser         pulses pulsed_at
   ActiveQuery              none
@@ -284,6 +287,8 @@ or observed output, rather than sorting it into a superficially stable shape:
   - disabled-button State lists, destroyed-instance order and extra-root order;
   - BodyScript.ultimates and the undrained Component.shots queue, including each
     referenced volley, shot number and stored shot time;
+  - the undrained Component.damage_reports queue and each ModifyHealth activation's
+    applied target set;
   - ordered arrays, expression Map pairs and nested stored mappings.
 
 Canonical attribute-name presentation does not authorize reordering the stored
@@ -322,8 +327,9 @@ State.payload, expression evaluation, BodyScript.snapshot or any other driver
 snapshot/frame/delta helper. Those paths can evaluate links, register watchers,
 read external state or perform work outside this inspection boundary. Export
 must not run commands, ticks, entries, plugs, completion checks or callbacks;
-draw RNG values; advance EventSequence; consume shots; alter caches or modify
-any live object. The standard RNG state accessor is an observation, not a draw.
+draw RNG values; advance EventSequence; consume shots or damage reports; alter
+caches or modify any live object. The standard RNG state accessor is an
+observation, not a draw.
 
 Callers must prevent concurrent VM mutation during export. This helper supplies
 neither a live mutation barrier nor an atomic server-wide snapshot. Python call

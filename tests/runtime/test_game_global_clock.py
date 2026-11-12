@@ -4,10 +4,6 @@ import dataclasses
 import unittest
 from unittest.mock import patch
 
-from test_game_command_handoff import input_window
-from test_game_repeated_lifecycles import wire_frame
-from test_server_journal import MAP, FixedSource, Peer, SchedulerSource, pick
-
 from ow174.game import bodytrace, messages, movelog, replay_values, world
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.collision import StaticCollisionProvider, flat_world
@@ -25,6 +21,9 @@ from ow174.game.server import (
     GameServer,
 )
 from ow174.game.server_journal import RecordingServerSession, _ReplaySession, replay_server_session
+from tests.runtime.test_game_command_handoff import input_window
+from tests.runtime.test_game_repeated_lifecycles import wire_frame
+from tests.runtime.test_server_journal import MAP, FixedSource, Peer, SchedulerSource, pick
 
 ROOM = dataclasses.replace(MAP, team_sizes=(2, 1))
 OWNER = (1, "Clock", SOLDIER, 0, False)

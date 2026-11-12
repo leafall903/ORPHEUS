@@ -13,7 +13,8 @@ from pathlib import Path
 from extract_game_movers import mover_of
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game.mover import MoverData  # noqa: E402
 from ow174.game.npc import load_catalog  # noqa: E402

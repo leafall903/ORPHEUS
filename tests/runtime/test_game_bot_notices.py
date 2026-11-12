@@ -15,7 +15,7 @@ from ow174.game.match import BOT_RECORD_DELAY, COUNTDOWN
 from ow174.game.script import decode, graph, scene, scene_host
 from ow174.game.script.driver import OWNER_HEALTH
 from ow174.game.server import SILENCE_SECONDS, TICK_SECONDS, Client
-from tests.test_script_startup import definition, spec
+from tests.public.test_script_startup import definition, spec
 
 
 class BotNoticeTests(unittest.TestCase):

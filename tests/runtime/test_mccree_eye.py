@@ -2,11 +2,10 @@
 
 import unittest
 
-from test_game_combat import Run
-
 from ow174.game import combat
 from ow174.game.collision import World, flat_world
 from ow174.game.content import heroes
+from tests.runtime.test_game_combat import Run
 
 
 class McCreeEyeTests(unittest.TestCase):

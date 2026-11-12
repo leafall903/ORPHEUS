@@ -30,7 +30,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from tools.extract_game_graphs import EnumTables, StuXml  # noqa: E402
 
@@ -142,10 +143,20 @@ def main(argv: list[str]) -> None:
         output.write_text(json.dumps(metadata, indent=1, allow_nan=False) + "\n", encoding="utf-8")
         print(f"{len(metadata['labels'])} labels, {len(metadata['scalers'])} scalers -> {output}")
         return
+    try:
+        table = collect(folder, DATA_DIR / "game_heroes_174.json")
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
+    out = DATA_DIR / "game_stats_174.json"
+    out.write_text(json.dumps(table, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"{len(table['heroes'])} heroes, {len(table['stats'])} stats -> {out}")
+
+
+def collect(folder: Path, hero_table: Path) -> dict:
     settings = (folder / "054" / PLAYER_STATS_ASSET).read_text(encoding="utf-8")
     if "<STU_13047F85 " not in settings:
-        raise SystemExit(f"{PLAYER_STATS_ASSET} is not the player stats settings (STU_13047F85)")
-    heroes = json.loads((DATA_DIR / "game_heroes_174.json").read_text(encoding="utf-8"))
+        raise ValueError(f"{PLAYER_STATS_ASSET} is not the player stats settings (STU_13047F85)")
+    heroes = json.loads(hero_table.read_text(encoding="utf-8"))
     table = {"player": lists(settings, "m_FC833C02", "m_A38A50B4"), "heroes": {}, "stats": {}}
     for hero in heroes:
         dump = folder / "075" / f"{int(hero, 16) & 0xFFFFFFFFFFFF:012X}.075.xml"
@@ -155,9 +166,7 @@ def main(argv: list[str]) -> None:
         for stats in [group["default"], *group["modes"].values()]:
             used.update(stat for stat, _ in stats)
     table["stats"] = {stat: display_type(folder, stat) for stat in sorted(used)}
-    out = DATA_DIR / "game_stats_174.json"
-    out.write_text(json.dumps(table, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{len(table['heroes'])} heroes, {len(table['stats'])} stats -> {out}")
+    return table
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from unittest import mock
 
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.script import controller_heroes, expr, play, runtime, scene
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import graph, node, plug, setter
 
 OWNER, OTHER = 0xA0000100, 0xA0000101
 MESSAGE = 0x02400000000006FF

@@ -3,13 +3,12 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_combat import Run
-
 from ow174.game import bodytrace, movelog
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, game_map, heroes
 from ow174.game.match import GAME_MODE_ENTITY
 from ow174.game.script import expr, graph, runtime
 from ow174.game.script.bot import DIED
+from tests.runtime.test_game_combat import Run
 
 ASSAULT = 0x0230000000000014
 ALT_ASSAULT = 0x0230000000000067

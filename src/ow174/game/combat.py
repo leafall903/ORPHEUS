@@ -1260,6 +1260,24 @@ class Vitals:
         return {51: parts}
 
 
+    @property
+    def capacity(self):
+        return self.maximum
+
+    def set_temporary_shield(self, pool_id, amount):
+        existing = self.tagged_shields.get(pool_id)
+        if amount <= 0:
+            if existing is not None:
+                self.decay_temporary_shields(pool_id, existing.now)
+            return
+        if existing is None and not self.dead:
+            self.grant_temporary_shields(pool_id, amount, amount)
+
+    def clear_temporary_shields(self):
+        for identifier, pool in tuple(self.tagged_shields.items()):
+            self.decay_temporary_shields(identifier, pool.now)
+
+
 @dataclass
 class HitDef:
     """A hit definition evaluated: ModifyHealth's amount and loadout, and the volley's own fields."""
@@ -3579,6 +3597,10 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         if self.junkrat.tire.busy(player.body):
             shots = [shot for shot in shots if shot[0].allows_dead()]
+        tracked_damage = tuple(script.component.damage_reports)
+        script.component.damage_reports.clear()
+        if command is not None and not self.is_dead(player) and not self.is_stunned(player):
+            self._apply_tracked_damage(player, command.frame, tracked_damage)
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
         if command is not None and reinhardt_charge.counter_frame(self, player):
@@ -11251,6 +11273,72 @@ class Combat:
                 client = viewer.client
                 if client is not None and viewer.spawned:
                     client.queue_body_health(entity, components)
+
+    def _apply_tracked_damage(self, player, frame: int, reports) -> None:
+        """Apply active state reports after the body VM has finished its frame."""
+        enemies = {target.entity: target for target in self._enemies(player)}
+        for state, activation, entities, amount, loadout, tags in reports:
+            if not state.active or state.counter != activation:
+                continue
+            for entity in entities:
+                target = enemies.get(entity)
+                if target is None or entity in state.hit_entities or self.vitals_of(target).dead:
+                    continue
+                state.hit_entities.add(entity)
+                self._damage(player, target, amount, False, loadout, frame, hit_tags=tags)
+
+    def track_hostile_bodies(
+        self, owner: int, centre, radius: float, origin, category: int, tracked: tuple[int, ...],
+    ) -> tuple[int, ...]:
+        """Resolve the supported authored filter against ordinary player and NPC capsules."""
+        collision = self.match.collision_world
+        source = self.match._message_player(owner)
+        if collision is None or source is None:
+            return ()
+        rays = collision.ray_geometry or collision
+        found = []
+        # The modeled player and bot bodies stand in for the native category and tag checks.
+        # CA7C4C/C8E660 compare the query sphere with the candidate's stance capsule.
+        for target in self._enemies(source):
+            if (target.entity in tracked
+                    or segment_distance(centre, *target.segment()) > radius + target.radius):
+                continue
+            pose = self.model_pose_for(target.entity)
+            if _communication_visible(rays, origin, target, category, pose):
+                found.append(target.entity)
+        return tuple(found)
+
+    def nearby_enemy_count(self, owner: int, radius: float) -> int:
+        targets = self._targets()
+        source = next((target for target in targets if target.entity == owner), None)
+        if source is None:
+            return 0
+        free_for_all = self.match.game_map.free_for_all
+        return sum(
+            target.entity != owner
+            and (free_for_all or target.team != source.team)
+            and not (target.entity in self.vitals and self.vitals[target.entity].dead)
+            and math.dist(source.feet, target.feet) <= radius
+            for target in targets
+        )
+
+    def set_temporary_shield(self, owner: int, pool_id: int, amount: float) -> None:
+        target = next((target for target in self._targets() if target.entity == owner), None)
+        if target is None:
+            return
+        vitals = self.vitals_of(target)
+        vitals.set_temporary_shield(pool_id, amount)
+        self._sync_body_health(target.owner, vitals)
+
+    def clear_temporary_shields(self, owner: int) -> None:
+        vitals = self.vitals.get(owner)
+        if vitals is not None:
+            vitals.clear_temporary_shields()
+
+
+
+
+
 
 
 def match_record_delay() -> int:

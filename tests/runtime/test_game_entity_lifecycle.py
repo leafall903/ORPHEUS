@@ -8,11 +8,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from test_game_packet_budget import connection, decoded
-from test_game_repeated_lifecycles import wire_frame
-from test_game_server import REAPER, pick
+from tests.runtime.test_game_packet_budget import connection, decoded
+from tests.runtime.test_game_repeated_lifecycles import wire_frame
+from tests.runtime.test_game_server import REAPER, pick
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import heroselect, messages, world
 from ow174.game.bits import BitWriter

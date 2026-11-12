@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import expr, runtime
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 
 def dynamic(scope, identifier):

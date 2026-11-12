@@ -3,10 +3,9 @@
 import unittest
 from unittest.mock import patch
 
-from test_script_runtime_budget import graph, node, plug
-
 from ow174.game.script import runtime
 from ow174.game.script.expr import INSTANCE, Entity, Vec3
+from tests.script_fixtures import graph, node, plug
 
 OWNER = 0x80000101
 OTHER = 0x80000201

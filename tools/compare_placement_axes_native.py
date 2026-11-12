@@ -29,7 +29,8 @@ from unicorn.x86_const import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game import symmetra  # noqa: E402
 from ow174.game.script import expr  # noqa: E402

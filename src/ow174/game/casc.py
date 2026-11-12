@@ -72,13 +72,13 @@ def _record_layout(record: dict) -> tuple:
 
 @dataclass(frozen=True)
 class RecordCatalog:
-    """Local build-specific definition and model records for the offline geometry builder."""
+    """Local build-specific records for the offline geometry builder."""
 
     records: dict[int, dict]
     sha256: str
 
     @classmethod
-    def load(cls, path: str | Path) -> "RecordCatalog":
+    def load(cls, path: str | Path, *, collision_chunks: bool = False) -> "RecordCatalog":
         raw = Path(path).read_bytes()
         try:
             data = json.loads(raw, object_pairs_hook=_unique_object)
@@ -93,9 +93,11 @@ class RecordCatalog:
         ):
             raise CascError("record catalog must describe build 1.74.0.0.104319")
         records = {}
+        pattern = r"0x0DD000(?:0B|11)[0-9A-F]{8}" if collision_chunks else r"0x(?:0400|0D00)[0-9A-F]{12}"
+        kind = "map chunk" if collision_chunks else "definition or model"
         for text, record in data["records"].items():
-            if not re.fullmatch(r"0x(?:0400|0D00)[0-9A-F]{12}", text):
-                raise CascError(f"invalid definition or model GUID {text}")
+            if not re.fullmatch(pattern, text):
+                raise CascError(f"invalid {kind} GUID {text}")
             if type(record) is not dict or "size" not in record:
                 raise CascError(f"invalid storage record for {text}")
             if "bundle" in record:
@@ -114,10 +116,10 @@ class RecordCatalog:
         return cls(records, hashlib.sha256(raw).hexdigest())
 
 
-def game_root(executable: str | Path) -> Path:
-    """The install folder of an Overwatch.exe (it sits in _retail_)."""
-    path = Path(executable)
-    for folder in (path.parent, *path.parents):
+def game_root(location: str | Path) -> Path:
+    """Find the installation containing the supplied folder or Overwatch.exe."""
+    path = Path(location)
+    for folder in (path, *path.parents):
         if (folder / "data" / "casc" / "data").is_dir():
             return folder
     raise CascError(f"no game data next to {path}")

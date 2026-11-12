@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "jam-framing.synthetic-stream.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "fc347fc4c2140a698d1cb2be84b0d81c8665d801",
+    "paths": [
+      "src/ow174/jam/cipher.py",
+      "src/ow174/jam/framing.py"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "payloads_hex": ["0002", "010774657374", "", "0003"]
+  },
+  "expected": {
+    "wire_hex": "f07e5ff1cad51c0b744ad2b8ad40cca01db0ed24334d",
+    "payloads_hex": ["0002", "010774657374", "", "0003"]
+  }
+}

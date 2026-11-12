@@ -4,7 +4,7 @@ import unittest
 
 from ow174.game.script import entity_queries as query
 from ow174.game.script import expr, play, runtime, scene
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 from ow174.game.script import controller_queries
 
 OWNER, BODY = 0xA0000100, 0xA0000101

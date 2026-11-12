@@ -11,7 +11,7 @@ from threading import RLock
 from types import SimpleNamespace
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import combat, messages, npc, replay_values, stats, world
 from ow174.game.bits import BitReader, BitWriter

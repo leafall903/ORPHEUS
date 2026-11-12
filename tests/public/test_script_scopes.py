@@ -3,9 +3,8 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm
 from ow174.game.script import runtime, scene, scopes
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug, setter
 
 CLASS = 'STU_BD02E168'
 OWNER = 0xA0000101
@@ -183,7 +182,7 @@ class ScopeInterfaceTests(unittest.TestCase):
         active = component.create(definition(), init=False)
         state = active.state(0)
         self.assertIsNone(state.scope_registry)
-        export_component_vm(component)
+        export_synthetic_component_vm(component)
 
 
 if __name__ == '__main__':

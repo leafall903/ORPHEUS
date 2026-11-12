@@ -2,7 +2,7 @@ Local game/jam replay model manifest v1 (M0.8/M0.9 building block)
 
 Purpose and API
 
-ow174/game/replay_manifest.py gives a journal a strict local model identity to put
+src/ow174/game/replay_manifest.py gives a journal a strict local model identity to put
 in a header. It fingerprints bytes, interpreter identity, dependency versions and
 explicit configuration. It does not load a recording, restore state, open a socket,
 start the game, read collision cache content or turn a partial journal into a full
@@ -57,10 +57,10 @@ against the earlier manifest; adding a .py produces an added diagnostic.
 
 Source coverage
 
-Each capture recursively enumerates every *.py under ow174/game and ow174/jam.
+Each capture recursively enumerates every *.py under src/ow174/game and src/ow174/jam.
 This deliberately includes research/offline modules, replay modules and any new
 source file, rather than maintaining a fixed list that misses future additions.
-Also required: ow174/__init__.py, ow174/paths.py and requirements.txt.
+Also required: src/ow174/__init__.py, src/ow174/paths.py and pyproject.toml.
 
 Both package roots and their __init__.py must exist. Symlinked package roots and
 symlinked files/paths escaping the declared source root fail. File identity uses
@@ -136,7 +136,7 @@ version tuple, cache_tag, pointer width, machine architecture label, byte order 
 OS family. No executable path, hostname, environment dump, process id or timestamp
 is included.
 Critical direct dependency versions: cryptography, protobuf, websockets. Missing
-distribution metadata is fatal. requirements.txt's own bytes are also fingerprinted.
+distribution metadata is fatal. pyproject.toml's own bytes are also fingerprinted.
 These are version identities, not hashes of installed wheels, transitive libraries,
 OpenSSL binaries, OS/kernel files, CPU microcode or a complete environment image.
 
@@ -190,7 +190,7 @@ capture and state validation.
 Verification
 
   .venv/Scripts/python.exe -B -m unittest discover -s tests -p test_game_replay_manifest.py
-  .venv/Scripts/python.exe -m ruff check ow174/game/replay_manifest.py tests/test_game_replay_manifest.py
+  .venv/Scripts/python.exe -m ruff check src/ow174/game/replay_manifest.py tests/public/test_game_replay_manifest.py
 
 Fourteen dedicated tests use explicit temporary roots/data/runtime/dependencies for
 byte changes, new/deleted source files, missing required tables, relocation/mtime,

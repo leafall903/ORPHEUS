@@ -5,7 +5,7 @@ from unittest import mock
 
 from ow174.game.script import entity_queries as query
 from ow174.game.script import expr, health_queries, runtime, scene
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 OWNER, BODY = 0xA0000100, 0xA0000101
 ABSENT = object()

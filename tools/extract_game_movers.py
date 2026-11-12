@@ -29,48 +29,16 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
+
+from ow174.game.mover import STU_MOVER_FIELDS  # noqa: E402
+
 DATA_DIR = ROOT / "data"
 COMPONENT = re.compile(r"<STUCharacterMoverComponent dragon:id=\"\d+\" dragon:name=\"dragon:value\"([^>]*)/>")
 ATTRIBUTE = re.compile(r'm_([0-9A-F]{8})="([^"]*)"')
 FIRST_PERSON = re.compile(r'<STUFirstPersonComponent\b([^>]*)>')
 
-# Field hash -> name, in the component's order (STU offset 0x18 = mover +0x430 ... 0xB1 = +0x4C9).
-FIELDS = {
-    "1972C687": "stand_height",
-    "7A70E3E3": "stand_radius",
-    "4A576BC2": "stand_pogo",
-    "03E04168": "crouch_height",
-    "915FF368": "crouch_radius",
-    "D97B3735": "crouch_pogo",
-    "D4AE9D05": "ground_circle_radius",
-    "5C6B4602": "ground_circle_rays",
-    "6B7FDB90": "pogo_frequency",
-    "E54438F7": "pogo_damping",
-    "AEBAD1B0": "max_slope",
-    "08FFAA0A": "step_down",
-    "CFD3E635": "run_forward",
-    "61D6B4E9": "run_backward",
-    "19452F15": "run_strafe",
-    "B470B8DA": "crouch_forward",
-    "AA6F4CE1": "crouch_backward",
-    "0DDD18C3": "crouch_strafe",
-    "DAA0618B": "accel_ground",
-    "E631BA84": "accel_air",
-    "D24BF4E6": "accel_air_touching",
-    "E0A0FE25": "decel_ground_base",
-    "6F25AA23": "decel_ground_base_speed",
-    "4E03E892": "decel_ground_per_speed",
-    "142DA8D4": "decel_air_base",
-    "031FE7EE": "decel_air_base_speed",
-    "8895A9C8": "decel_air_per_speed",
-    "EC289987": "jump_speed",
-    "C2C40969": "gravity_scale",
-    "B74245E8": "terminal_velocity",
-    "975F21A5": "terminal_velocity_up",
-    "B99EC983": "ground_gravity_accel",
-    "CEF4898C": "ground_gravity_decel",
-    "D4A3C694": "character_collision",
-}
 # TankLib's defaults for fields a dump may leave out.
 DEFAULTS = {
     "ground_circle_radius": 0.25,
@@ -104,11 +72,11 @@ def mover_of(text: str) -> dict | None:
         return None
     values = dict(DEFAULTS)
     for field, value in ATTRIBUTE.findall(match.group(1)):
-        if field in FIELDS:
-            values[FIELDS[field]] = float(value.replace(",", "."))
+        if field in STU_MOVER_FIELDS:
+            values[STU_MOVER_FIELDS[field]] = float(value.replace(",", "."))
     values["ground_circle_rays"] = int(values["ground_circle_rays"])
     values["character_collision"] = int(values["character_collision"])
-    missing = [name for name in FIELDS.values() if name not in values]
+    missing = [name for name in STU_MOVER_FIELDS.values() if name not in values]
     if missing:
         raise ValueError(f"missing {missing}")
     values.update(first_person_of(text))
@@ -157,7 +125,7 @@ def main(argv: list[str]) -> None:
     if args.base is not None and out.resolve() == args.base.resolve():
         raise ValueError("output must not overwrite the prepared base catalog")
     out.write_text(
-        json.dumps(dict(sorted(table.items())), indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps(table, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     print(f"{len(table)} bodies -> {out}")
 

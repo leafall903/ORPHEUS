@@ -3,8 +3,8 @@
 import unittest
 
 from ow174.game.script import expr, runtime
-from tests.test_script_array_insert import setup
-from tests.test_script_play_loaded import dynamic
+from tests.public.test_script_array_insert import setup
+from tests.public.test_script_play_loaded import dynamic
 
 
 def execute(**kwargs):

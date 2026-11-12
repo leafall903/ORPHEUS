@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import expr, model_look, nodes, runtime, scene, scopes
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 OWNER, SELECTED, PREVIOUS = 0x80000A14, 0x80000020, 0x80000021
 

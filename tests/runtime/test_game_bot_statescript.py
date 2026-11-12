@@ -19,6 +19,11 @@ from ow174.game.script import decode, expr, graph, runtime
 from ow174.game.script.bot import DIED, FIRING_GRAPH, RESET, BotScript, BotWorld
 from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS, BodyStream, Snapshot
 from ow174.game.server import BOT_DESTROY_GRACE_TICKS, LEAVE_GAME, Client
+from tests.runtime.test_game_combat import Run
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
+from tests.runtime.test_game_packet_budget import connection, decoded
+from tests.runtime.test_game_projectiles import ABILITY_2
+from tests.runtime.test_game_repeated_lifecycles import wire_frame
 
 GRAPH = 0xF0FE
 PULSER = "STU_B9898052"

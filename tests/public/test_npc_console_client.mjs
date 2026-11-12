@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {NpcConsoleClient} from '../ow174/dashboard/web/npc-console.mjs';
+import {NpcConsoleClient} from '../../src/ow174/dashboard/web/npc-console.mjs';
 
 test('fast menu then numeric key waits for the acknowledged menu state', async () => {
   const requests = [];

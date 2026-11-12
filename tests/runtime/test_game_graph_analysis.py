@@ -5,7 +5,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.content import SOLDIER, heroes
 from ow174.game.script.analysis import analyze_body, analyze_graph, reference_closure, render_text

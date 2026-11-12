@@ -2,11 +2,10 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_combat import Run
-
 from ow174.game import combat
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import heroes
+from tests.runtime.test_game_combat import Run
 
 WINSTON = 0x02E0000000000009
 

@@ -7,8 +7,8 @@ from unittest import mock
 from ow174.game import collision, contacts, mover
 from ow174.game.combat import Vitals
 from ow174.game.script import expr, play, play_queue, runtime, scene, scene_host, scopes
-from tests.test_script_runtime_budget import graph, node, plug, setter
-from tests.test_script_startup import definition, row, schema, spec
+from tests.public.test_script_startup import definition, row, schema, spec
+from tests.script_fixtures import graph, node, plug, setter
 
 A, B = 0x80000001, 0x80000002
 MESSAGE = 0x0240000000000001
@@ -302,26 +302,6 @@ class SharedSceneTests(unittest.TestCase):
                 else:
                     with self.assertRaisesRegex(runtime.UnsupportedScriptError, 'wave health modifier'):
                         state.begin()
-
-    def test_reaper_wave_health_uses_the_authored_difficulty_amount(self):
-        for difficulty, amount in enumerate((750, 1000, 1350, 1750)):
-            with self.subTest(difficulty=difficulty):
-                world = ValueWorld()
-                owner = runtime.GAME_MODE_ENTITY
-                world.bind(owner)
-                mode_vm, _ = component(world, owner)
-                mode_vm.set(9948, difficulty)
-                vitals = Vitals(A, 250)
-                world.bind(A, pool_capacity=vitals.most.get)
-                world.wave_health = lambda _, value, body=vitals: body.add_wave_health(value)
-                model = scene.graph.graph(0x0CBC)
-                _, instance = component(world, A, model)
-                instance.write((expr.INSTANCE, 9948), difficulty)
-                state = instance.state(model.node(1).state)
-                state.begin()
-                self.assertEqual(vitals.total, 250 + amount)
-                state.end(False)
-                self.assertEqual(vitals.total, 250)
 
     def test_ai_control_setting_clamps_refreshes_and_resets(self):
         world = make_world()

@@ -8,12 +8,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[0]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_script_driver import ClientModel, server_on
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.script.driver import ULT_SECONDS, BodyScript
 from ow174.game.script.expr import f32
+from tests.runtime.test_script_driver import ClientModel, server_on
 
 SOLDIER = 0x02E000000000006E
 START = 1000

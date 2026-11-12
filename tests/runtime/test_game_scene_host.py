@@ -15,11 +15,11 @@ from ow174.game.script.bot import DIED
 from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS, BodyScript
 from ow174.game.server import GameServer
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state
-from tests.test_game_server import REAPER, pick
-from tests.test_script_runtime_budget import graph, node, plug, setter
-from tests.test_script_scene import manifest, placement
-from tests.test_script_scene_host import A, ValueWorld, literal
-from tests.test_script_startup import definition, spec
+from tests.public.test_script_scene_host import A, ValueWorld, literal
+from tests.public.test_script_startup import definition, spec
+from tests.runtime.test_game_server import REAPER, pick
+from tests.runtime.test_script_scene import manifest, placement
+from tests.script_fixtures import graph, node, plug, setter
 
 MAP = dataclasses.replace(PRACTICE_RANGE, name='shared script fixture',
                           map_guid=0x0800000000FFCC01, placeables=())
@@ -574,7 +574,7 @@ class MatchSceneHostTests(unittest.TestCase):
         instance.initialized = True
         instance.write((runtime.ENTITY, 21869), 1)
         pools = combat.HEALTH_POOL, combat.ARMOUR_POOL, combat.SHIELDS_POOL
-        vitals.now.update(zip(pools, (80, 10, 90)))
+        vitals.now.update(zip(pools, (80, 10, 90), strict=True))
         recharge = instance.state(0)
         recharge.begin()
         self.assertTrue(world.modify_health(recharge, 1000))

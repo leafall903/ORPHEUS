@@ -18,8 +18,8 @@ from ow174.paths import ROOT
 
 SCHEMA = "ow174.collision-world.v1"
 MODEL_FILES = (
-    "ow174/game/collision.py", "ow174/game/contacts.py", "ow174/game/props.py",
-    "ow174/game/collision_fingerprint.py", "ow174/game/static_ray.py",
+    "src/ow174/game/collision.py", "src/ow174/game/contacts.py", "src/ow174/game/props.py",
+    "src/ow174/game/collision_fingerprint.py", "src/ow174/game/static_ray.py",
 )
 TRIANGLE_SCENE_FIELDS = frozenset({
     "name", "data", "masks", "surfaces", "grid", "columns", "large", "lock", "lowest", "large_tuples",

@@ -11,7 +11,7 @@
 
     py tools/export_item_previews.py <out>
 
-It writes one small WebP per item, named by its GUID, to ow174/dashboard/web/assets/previews/.
+It writes one small WebP per item, named by its GUID, to src/ow174/dashboard/web/assets/previews/.
 DataTool names the files after the item, so they are matched to the catalog by hero, type and name.
 Portrait frames are drawn from two layers: the tier's border for the level step, and the star
 strip on its lower half.
@@ -26,12 +26,13 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.catalog.items import ItemDB  # noqa: E402
 from ow174.catalog.templates import RetailTemplates  # noqa: E402
 from ow174.content.collection import Collection, frame_parts  # noqa: E402
 
-OUT_DIR = ROOT / "ow174" / "dashboard" / "web" / "assets" / "previews"
+OUT_DIR = ROOT / "src" / "ow174" / "dashboard" / "web" / "assets" / "previews"
 TYPES = ("Icon", "Spray")
 SIZE = 128
 QUALITY = 80

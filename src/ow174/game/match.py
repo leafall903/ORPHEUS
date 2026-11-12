@@ -57,13 +57,11 @@ from ow174.game import (
     wraith,
 )
 from ow174.game.collision import (
-    MOVER,
-    TEAM0,
-    TEAM1,
     CollisionProvider,
     LoadState,
     World,
     default_collision_provider,
+    mover_category,
 )
 from ow174.game.commands import CROUCH, JUMP, Command, CommandQueue, InputError
 from ow174.game.content import (
@@ -80,7 +78,7 @@ from ow174.game.content import (
 from ow174.game.dynamic_spheres import DynamicSpheres
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.genji import GENJI, Mobility
-from ow174.game.mover import MoverData, clamp_linked_target_command, statescript_flight, statescript_mover_data
+from ow174.game.mover import VelocityChange, MoverData, clamp_linked_target_command, statescript_flight, statescript_mover_data
 from ow174.game.mover import CROUCHED, GRAVITY_SCALE, Mover, defined_mover_data, mover_data, statescript_mods
 from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script.player_controller import ControllerVM
@@ -535,7 +533,6 @@ class Player:
             command = replace(command, forward=0, right=0)
         from ow174.game import mccree, wall_ride
 
-        mccree.apply_velocity(self, command.frame, controlled=stunned)
         script = self.body_script
         forced = self.match.combat.orisa.movement(self)
         if forced is not None:
@@ -805,9 +802,7 @@ class Player:
         proxy (some props stop one team only, as on Blizzard World), both in a free-for-all."""
         game_map = self.match.game_map
         world = self.match.collision_world
-        category = MOVER
-        if not game_map.free_for_all and self.team in (0, 1):
-            category = (TEAM0, TEAM1)[self.team]
+        category = mover_category(self.team, game_map.free_for_all)
         return Mover(
             self.spawn[0], _yaw_units(self.spawn[1]), world, mover_data(self.hero.body), category=category
         )
@@ -876,7 +871,7 @@ class Match:
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
-        self.bots = bots.make(game_map.map_guid)  # the map's training bots (bots.py)
+        self.bots = bots.make(game_map.map_guid, free_for_all=game_map.free_for_all)
         self._pending_bot_scripts = deque(bot for bot in self.bots if graph.entity_body(bot.body) is not None)
         self.bots_shown: dict[int, int] = {}  # player slot -> the tick the bots' creates went to its queue
         self.notices = notices.Notices(self)  # joined / left / hero switch lines in the clients' chat
@@ -1608,7 +1603,8 @@ class Match:
             player.spawned = True
             self.notices.entered_world(player)
             log.info("[game] %s: %s spawned", self.label(), player.describe())
-            if not scene_ready and self.controller.graph == heroselect.PVP.graph and self.assemble_ends is None:
+            if (not scene_ready and self.controller.graph == heroselect.PVP.graph
+                    and self.assemble_ends is None):
                 self.assemble_ends = now + ASSEMBLE_SECONDS
                 log.info("[game] %s: assemble your team, %d s", self.label(), ASSEMBLE_SECONDS)
         if player.steps_done == 3 and waited >= SEND_CONTROLLER:
@@ -1751,6 +1747,10 @@ class Match:
             return expr.Vec3(*position)
         return None
 
+    def script_owner_movement_sample(self, owner: int) -> int | None:
+        mover = self._script_body_mover(owner, owner)
+        return mover.movement_sample() if mover is not None else None
+
     def resolve_body_spray(self, entity: int, length: float) -> dict | None:
         collision = self.collision_world
         player = next((player for player in self.players if player.body == entity and player.has_body), None)
@@ -1765,6 +1765,19 @@ class Match:
         if hit is None:
             return None
         return spray_placement.from_hit(direction, hit)
+
+    def script_body_facing(self, entity: int, owner: int, *, pitched: bool) -> expr.Vec3 | None:
+        mover = self._script_body_mover(entity, owner)
+        if mover is None:
+            return None
+        return expr.Vec3(*(expr.f32(axis) for axis in combat.aim(mover.yaw, mover.pitch if pitched else 0)))
+
+    def queue_body_velocity_changes(
+        self, owner: int, frame: int, source: tuple[int, int], changes: tuple["VelocityChange", ...],
+    ) -> None:
+        mover = self._script_body_mover(owner, owner)
+        if mover is not None:
+            mover.queue_velocity_changes(frame, source, changes)
 
     def _message_player(self, entity: int) -> Player | None:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
@@ -2063,7 +2076,9 @@ class Match:
         else:
             return
         if accepted:
-            runtime.send_instance_message(instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body)
+            runtime.send_instance_message(
+                instance, 0x0240000000001313, {0x53B: expr.Asset(reported)}, player.body,
+            )
 
     def game_message(self, player: Player, value: dict, now: float) -> None:
         """21616: a game message a statescript action sends to the server, such as a hero pick."""
@@ -2311,6 +2326,15 @@ class Match:
                 'host': None if self.scene_host is None else self.scene_host.snapshot(),
             }
         return result
+
+    def _script_body_mover(self, entity: int, owner: int) -> Mover | None:
+        """Resolve a live player body, including the owner during its own create."""
+        for player in self.players:
+            if (player.body == entity and player.has_body and player.client is not None
+                    and (player.spawned or entity == owner)):
+                return player.mover
+        return None
+
 
 
 def pong(ping: dict, received_ns: int, *, environment: ExecutionEnvironment | None = None) -> dict:

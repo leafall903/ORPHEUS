@@ -3,10 +3,9 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_graph_analysis import make_graph, node
-
 from ow174.game import combat, content, pve, statescript
 from ow174.game.script import decode, graph
+from tests.runtime.test_game_graph_analysis import make_graph, node
 
 MODE, MAP = 0x023000000000FFFE, 0x080000000000FFFE
 ROOT, MISSION = 0xFFEE, 0xFFED

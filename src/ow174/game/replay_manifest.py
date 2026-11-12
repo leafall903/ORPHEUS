@@ -19,8 +19,8 @@ from pathlib import Path
 SCHEMA = "ow174.local-game-model-manifest.v1"
 BUILD = "1.74.0.0.104319"
 SCOPE = "game-jam-source-tables-runtime-config-without-collision-content"
-SOURCE_PACKAGES = ("ow174/game", "ow174/jam")
-SOURCE_FILES = ("ow174/__init__.py", "ow174/paths.py", "requirements.txt")
+SOURCE_PACKAGES = ("src/ow174/game", "src/ow174/jam")
+SOURCE_FILES = ("src/ow174/__init__.py", "src/ow174/paths.py", "pyproject.toml")
 DATA_FILES = (
     "ai_spawners_174.json", "collision_keys_174.json", "collision_props_174.json",
     "game_graphs_174.json.gz", "game_heroes_174.json", "game_maps_174.json",
@@ -178,7 +178,7 @@ def runtime_identity() -> dict:
 
 
 def dependency_versions() -> dict[str, str]:
-    """Require installed metadata for every direct requirements.txt dependency."""
+    """Require installed metadata for every direct server dependency."""
     values = {}
     for name in DEPENDENCIES:
         try:

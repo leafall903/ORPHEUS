@@ -7,9 +7,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_game_team_list import PVP, card
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.match import CARD_RANK, CARD_ROLE
 from ow174.game.server import GameServer
@@ -19,6 +17,7 @@ from ow174.jam.values import id16
 from ow174.lobby import lineup
 from ow174.lobby.matchmaker import QUICK_PLAY, Matchmaker
 from ow174.lobby.server import LobbyServer
+from tests.runtime.test_game_team_list import PVP, card
 
 KEY = {"+0x0": {"+0x0": QUICK_PLAY, "+0x8": 0, "+0x10": 0, "+0x18": 0}, "+0x20": 0, "+0x24": 1, "+0x28": 2}
 MATCH_ID = (7, 8)

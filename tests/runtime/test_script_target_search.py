@@ -4,7 +4,7 @@ import math
 import unittest
 
 from ow174.game.script import expr, runtime, target_search
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 
 def config(first=0, second=0):

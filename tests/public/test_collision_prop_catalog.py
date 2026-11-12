@@ -8,7 +8,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from test_collision_ray_cache import (
+from ow174.game import casc, collision, props
+from tests.public.test_collision_ray_cache import (
     EXTRA,
     FORWARD,
     IDENTIFIER,
@@ -20,8 +21,6 @@ from test_collision_ray_cache import (
     map_chunk,
     placeable_chunk,
 )
-
-from ow174.game import casc, collision, props
 
 EXTRA_DEF = 0x0400000000000013
 BASE_MODEL = 0x0D00000000000022

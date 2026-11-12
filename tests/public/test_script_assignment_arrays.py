@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import expr, runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import graph, node, plug, setter
 
 
 def array(*configs):

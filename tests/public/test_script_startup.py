@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import expr, runtime, startup
-from tests.test_script_runtime_budget import graph, node, plug
+from tests.runtime.test_script_runtime_budget import graph, node, plug
 
 
 def value(number):

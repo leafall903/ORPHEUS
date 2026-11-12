@@ -9,9 +9,7 @@ from collections import deque
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_game_mover import FLOOR, wall
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import collision, contacts, replay_values
 from ow174.game.collision import MOVER, World
@@ -27,6 +25,7 @@ from ow174.game.physics_snapshot import (
     snapshot_mover,
     snapshot_mover_with_identities,
 )
+from tests.runtime.test_game_mover import FLOOR, wall
 
 
 def scene(walk=True):

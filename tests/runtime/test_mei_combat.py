@@ -6,14 +6,13 @@ from dataclasses import replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from test_game_combat import KANEZAKA_DM, Run, aim
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import combat
 from ow174.game.combat import HitDef, Rocket, Vitals
 from ow174.game.commands import FIRE
 from ow174.game.content import heroes
+from tests.runtime.test_game_combat import KANEZAKA_DM, Run, aim
 
 MEI = 0x02E00000000000DD
 

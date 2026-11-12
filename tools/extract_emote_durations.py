@@ -1,4 +1,4 @@
-"""Extract deterministic animation durations, primary clip GUIDs and movement scalar tracks from 104319 .021 XML."""
+"""Extract animation durations, primary clip GUIDs and scalar tracks from 104319 .021 XML."""
 
 import argparse
 import json
@@ -6,11 +6,13 @@ import math
 import sys
 from dataclasses import dataclass
 from functools import partial
+from itertools import pairwise
 from pathlib import Path
 
 from extract_game_graphs import StuXml, guid_text
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.paths import EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_CLIP_DATA, GREETING_DURATION_DATA
 
 CATEGORY_TYPE = 0x0280000000000000
@@ -99,7 +101,7 @@ def scalar_track(xml, _game_data, leaf):
         return None
     times = tuple(float(xml.resolve(item).text) for item in times)
     values = tuple(float(xml.resolve(item).text) for item in values)
-    if not all(map(math.isfinite, times + values)) or any(a > b for a, b in zip(times, times[1:])):
+    if not all(map(math.isfinite, times + values)) or any(a > b for a, b in pairwise(times)):
         return None
     return ScalarTrack(times, values)
 
@@ -118,11 +120,16 @@ def primary_tree(xml, data, node, keys, read_record, depth=0):
         indexes = xml.field(node, "m_540E2FC8")
         thresholds = xml.field(node, "m_0EC67F50")
         nodes = xml.field(data, "m_nodes")
-        if (nodes is None or indexes is None or thresholds is None or not len(indexes)
-                or len(indexes) != len(thresholds)):
+        if (
+            nodes is None
+            or indexes is None
+            or thresholds is None
+            or not len(indexes)
+            or len(indexes) != len(thresholds)
+        ):
             return None
         stops = [float(item.text) for item in thresholds]
-        if not all(math.isfinite(stop) for stop in stops) or any(a >= b for a, b in zip(stops, stops[1:])):
+        if not all(math.isfinite(stop) for stop in stops) or any(a >= b for a, b in pairwise(stops)):
             return None
         children = [int(item.text) for item in indexes]
         if any(not 0 < index < len(nodes) for index in children):
@@ -135,8 +142,14 @@ def primary_tree(xml, data, node, keys, read_record, depth=0):
     selectors = xml.field(node, "m_9F7CA0BB")
     indexes = xml.field(node, "m_540E2FC8")
     nodes = xml.field(data, "m_nodes")
-    if (selectors is None or indexes is None or not len(selectors) or len(selectors) != len(indexes)
-            or xml.field(node, "m_4D532CFC") is not None or xml.field(node, "m_53D9C839") is not None):
+    if (
+        selectors is None
+        or indexes is None
+        or not len(selectors)
+        or len(selectors) != len(indexes)
+        or xml.field(node, "m_4D532CFC") is not None
+        or xml.field(node, "m_53D9C839") is not None
+    ):
         return None
     selectors = [int(key.text) for key in selectors]
     if selectors[-1] != 0 or any(not 0 < key <= 0xFFFFFFFF or not key & 0x7FFFFFFF for key in selectors[:-1]):
@@ -145,8 +158,10 @@ def primary_tree(xml, data, node, keys, read_record, depth=0):
     if any(not 0 < index < len(nodes) for index in indexes):
         return None
     keys.update(selectors[:-1])
-    return tuple((key, primary_tree(xml, data, xml.resolve(nodes[index]), keys, read_record, depth + 1))
-                 for key, index in zip(selectors, indexes))
+    return tuple(
+        (key, primary_tree(xml, data, xml.resolve(nodes[index]), keys, read_record, depth + 1))
+        for key, index in zip(selectors, indexes, strict=False)
+    )
 
 
 def select_primary(tree, category, parents):
@@ -219,7 +234,7 @@ def extract_records(source, category_source, read_record):
         if aliases is None or items is None or len(aliases) != len(items):
             continue
         durations = {}
-        for alias, item in zip(aliases, items):
+        for alias, item in zip(aliases, items, strict=True):
             key = int(alias.text)
             if key >> 48 != 0x0C80 or key & 0xFFFFFFFF == 0:
                 continue
@@ -235,8 +250,11 @@ def greeting_records(tables, body_definitions, *, clips=False):
     bodies = {}
     for path in sorted(body_definitions):
         xml = StuXml(path, None)
-        refs = [ref.get("GUID") for node in xml.root.iter("STUModelComponent")
-                if (ref := xml.field(node, "m_animBlendTreeSet")) is not None]
+        refs = [
+            ref.get("GUID")
+            for node in xml.root.iter("STUModelComponent")
+            if (ref := xml.field(node, "m_animBlendTreeSet")) is not None
+        ]
         if len(refs) != 1 or not refs[0] or not refs[0].endswith(".021"):
             raise ValueError(f"{path.name}: expected one model blend tree set")
         aliases = tables.get(guid_text(refs[0]), {})
@@ -255,8 +273,13 @@ def main():
     parser.add_argument("--clips-output", type=Path, help="optional primary .006 selections")
     parser.add_argument("--scalar-output", type=Path, help="optional movement scalar tracks")
     parser.add_argument("--categories", type=Path, help="directory containing *.015.xml")
-    parser.add_argument("--body-definitions", nargs="+", type=Path, default=[],
-                        help="entity definition .003 XML files for greeting gestures")
+    parser.add_argument(
+        "--body-definitions",
+        nargs="+",
+        type=Path,
+        default=[],
+        help="entity definition .003 XML files for greeting gestures",
+    )
     args = parser.parse_args()
     outputs = [args.output.resolve()]
     if args.body_definitions:
@@ -287,7 +310,8 @@ def main():
     if args.scalar_output is not None:
         tracks = extract_records(args.source, args.categories, scalar_track)
         args.scalar_output.write_text(
-            json.dumps(tracks, indent=2, default=vars) + "\n", encoding="utf-8",
+            json.dumps(tracks, indent=2, default=vars) + "\n",
+            encoding="utf-8",
         )
         print(f"Wrote movement scalar tracks from {len(tracks)} blend tree sets")
     if greetings:

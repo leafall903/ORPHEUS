@@ -12,10 +12,10 @@ from ow174.game.combat import Vitals
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.match import _rotation
 from ow174.game.script import distance_constraints, entity_team, expr, modifiers, npc_queries, play, possession_requests, runtime, scene
-from tests.test_script_for_code import KEY, make, row
-from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
-from tests.test_script_play_resource import row as schema_row
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_for_code import KEY, make, row
+from tests.public.test_script_play_resource import array, inline, integer, requesting, with_schema
+from tests.public.test_script_play_resource import row as schema_row
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 ALPHA = '12345678-1234-4321-9876-112233445566'
 BETA = '87654321-1234-4321-9876-112233445566'

@@ -5,12 +5,12 @@ import unittest
 from unittest.mock import patch
 
 import test_mccree_combat as melee_tests
-from test_bots import make_bot
-from test_game_combat import aim
 
 from ow174.game import combat, npc
 from ow174.game.commands import Command
 from ow174.game.script import graph, nodes
+from tests.runtime.test_bots import make_bot
+from tests.runtime.test_game_combat import aim
 
 
 class FlashbangTests(unittest.TestCase):

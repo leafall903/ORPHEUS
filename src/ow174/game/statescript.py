@@ -339,7 +339,7 @@ class Stream:
 
 # What the client reads for each state class comes from its codec table (ow174/game/script/codecs.py,
 # data/statescript_codecs_174.json, read in the client code): whether it is an StEC class and its codec. The
-# writers below cover these codecs; tests/test_statescript_codecs.py reads every writer back with the table.
+# writers below cover these codecs. tests/runtime/test_statescript_codecs.py reads each back with the table.
 WRITERS = {
     spray_placement.CODEC,
     "linked_target",

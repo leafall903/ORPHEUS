@@ -7,10 +7,10 @@ import unittest
 from unittest.mock import patch
 
 import test_mccree_combat as scenes
-from test_game_combat import aim
 
 from ow174.game import combat, mccree, weapon_spread
 from ow174.game.commands import Command
+from tests.runtime.test_game_combat import aim
 
 
 class McCreeSpreadTests(unittest.TestCase):

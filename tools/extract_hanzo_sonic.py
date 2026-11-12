@@ -7,7 +7,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from tools.extract_game_graphs import EnumTables, GraphXml, StuXml, full_guid  # noqa: E402
 from tools.extract_hanzo_dragon import constant  # noqa: E402

@@ -28,8 +28,7 @@ POLL_SECONDS = 0.05
 
 
 def find_game(explicit: Path | None = None, saved: Path = GAME_PATH_FILE) -> Path:
-    """The game to start: the given path, the one picked last time, an unpacked copy in game/, or one
-    the player picks now (remembered for next time)."""
+    """Find the client and remember new selections for startup and collision preparation."""
     if explicit is not None:
         resolved = resolve_game(explicit)
         if resolved is None:
@@ -37,6 +36,7 @@ def find_game(explicit: Path | None = None, saved: Path = GAME_PATH_FILE) -> Pat
                 f"Cannot find {GAME_EXE} at {explicit}. Select the installation folder or "
                 f"_retail_\\{GAME_EXE}; {OFFICIAL_LAUNCHER} opens Battle.net."
             )
+        saved.write_text(str(resolved), encoding="utf-8")
         return resolved
     if saved.is_file():
         # utf-8-sig: older launchers saved the path with a BOM
@@ -46,8 +46,10 @@ def find_game(explicit: Path | None = None, saved: Path = GAME_PATH_FILE) -> Pat
             return resolved
     for candidate in UNPACKED_GAME_PATHS:
         if is_game(candidate):
-            return candidate.resolve()
-    picked = pick_game()
+            picked = candidate.resolve()
+            break
+    else:
+        picked = pick_game()
     saved.write_text(str(picked), encoding="utf-8")
     return picked
 

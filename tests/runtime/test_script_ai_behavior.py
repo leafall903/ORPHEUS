@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
 from ow174.game.script import ai_behavior, runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 
 class BehaviorWorld(runtime.World):

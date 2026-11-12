@@ -9,7 +9,7 @@ from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tools import extract_game_graphs as extractor
 from tools.extract_game_graphs import EnumTables, GraphXml, scalar

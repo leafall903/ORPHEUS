@@ -2,10 +2,10 @@
 
 import unittest
 
-from ow174.game import body_vm_snapshot, replay_values
+from ow174.game import replay_values
 from ow174.game.script import animation_alias as aliases
 from ow174.game.script import expr, nodes, runtime, scene
-from tests.test_script_runtime_budget import graph, node
+from tests.script_fixtures import export_synthetic_component_vm, graph, node
 
 OWNER = 0x800001C6
 
@@ -235,7 +235,7 @@ class AnimationAliasTests(unittest.TestCase):
         self.assertIsInstance(state, nodes.AnimationAlias)
         state.alias_handle = 17
         component.world = runtime.World()  # External SceneWorld is outside this observation format.
-        exported = body_vm_snapshot.export_component_vm(component)
+        exported = export_synthetic_component_vm(component)
         raw = replay_values.decode(exported["value"])
         stored = next(item for item in raw["objects"]
                       if item.get("class") == "ow174.game.script.nodes.AnimationAlias")

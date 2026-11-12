@@ -28,11 +28,15 @@ import logging
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from ow174.game.script import expr
 from ow174.game.script.expr import ENTITY, INSTANCE, Context, Entity
 from ow174.game.script.graph import Graph, Node, is_plug, mode_variables
 from ow174.game.world import GAME_MODE_ENTITY
+
+if TYPE_CHECKING:
+    from ow174.game.mover import VelocityChange
 
 log = logging.getLogger("ow174.script")
 
@@ -1436,6 +1440,26 @@ class World:
             component.unsupported(instance, "native code observer", str(token))
         raise NotImplementedError(f"no native code observer backend for token {token}")
 
+    def movement_sample(self) -> int | None:
+        """The owner's current movement sample, if this world supplies a pose."""
+        return None
+
+    def queue_velocity_changes(
+        self, frame: int, source: tuple[int, int], changes: tuple["VelocityChange", ...],
+    ) -> None:
+        """Schedule authored velocity changes for the owner's next movement frame."""
+        pass
+
+    def nearby_enemy_count(self, owner: int, radius: float) -> int:
+        return 0
+
+    def set_temporary_shield(self, owner: int, pool_id: int, amount: float) -> None:
+        pass
+
+
+
+
+
 
 class Component:
     """The statescript component of one entity: its clock, its instances (in creation order) and its
@@ -1472,6 +1496,7 @@ class Component:
         self.destroyed: list[Instance] = []
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
+        self.damage_reports = []
         self.health_reports: list[tuple[tuple[int, ...], float, int | None, int, tuple | None]] = []
         self.motion_reports: list[tuple[tuple[int, ...], tuple, int]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
@@ -1500,6 +1525,7 @@ class Component:
             self.fault = error
             self.world.script_failed(self)
             self.shots.clear()
+            self.damage_reports.clear()
             self.health_reports.clear()
             self.motion_reports.clear()
             self.held.clear()
@@ -1792,7 +1818,9 @@ class Component:
     def discard_button_presses(self) -> None:
         """Discard queued down edges before a host interrupts an NPC."""
         for instance in self.instances.values():
-            instance.queue[:] = [event for event in instance.queue if event.kind != BUTTON or not event.pressed]
+            instance.queue[:] = [
+                event for event in instance.queue if event.kind != BUTTON or not event.pressed
+            ]
 
     def run_frame(self, frame: int, buttons: list[tuple[int, bool]] = (), *, end_phase=None) -> None:
         """Advance from the frame start or an already established cursor in that frame.
@@ -1931,7 +1959,7 @@ class Instance:
     def set_source_entity(self, entity: int) -> None:
         """1B94B10: write the typed builtin synchronously, then commit its cache."""
         if type(entity) is not int or not 0 <= entity <= 0xFFFFFFFF:
-            raise ValueError('script source must be a 32-bit entity identifier')
+            raise ValueError("script source must be a 32-bit entity identifier")
         with self.component.operation():
             self.write((INSTANCE, 0x1B), Entity(entity))
             self.component.ensure_valid()
@@ -2043,11 +2071,16 @@ class Instance:
         with self.component.operation():
             schema = self.graph.fields.get("m_publicSchema")
             if schema is not None:
-                if (not isinstance(schema, dict)
-                        or schema.get("$") not in ("STUStatescriptSchema", "STU_77990ED7")
-                        or schema.get("m_89EAAC40") is not None):
-                    self.component.unsupported(self, "played graph schema", str(schema.get("$")
-                                               if isinstance(schema, dict) else type(schema)))
+                if (
+                    not isinstance(schema, dict)
+                    or schema.get("$") not in ("STUStatescriptSchema", "STU_77990ED7")
+                    or schema.get("m_89EAAC40") is not None
+                ):
+                    self.component.unsupported(
+                        self,
+                        "played graph schema",
+                        str(schema.get("$") if isinstance(schema, dict) else type(schema)),
+                    )
                 for row in schema.get("m_entries") or ():
                     self.component.consume_work("played graph schema evaluation")
                     if not isinstance(row, dict):
@@ -2061,8 +2094,9 @@ class Instance:
                         if value is failed:
                             continue
                         identifier = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
-                        self.post(Event(self.component.now, 0, ASSIGN,
-                                        assignment=(INSTANCE, identifier, value)))
+                        self.post(
+                            Event(self.component.now, 0, ASSIGN, assignment=(INSTANCE, identifier, value))
+                        )
             for key, value in overrides:
                 self.component.consume_work("played graph override assignment")
                 self.post(Event(self.component.now, 0, ASSIGN, assignment=(INSTANCE, key & 0xFFFF, value)))
@@ -2085,8 +2119,12 @@ class Instance:
             if self.stopped:
                 return count
             for node in self.graph.entries:
-                if (node is None or node.client_only or node.cls != "STU_BB4AC733"
-                        or node.pos in self.disabled_start_entries):
+                if (
+                    node is None
+                    or node.client_only
+                    or node.cls != "STU_BB4AC733"
+                    or node.pos in self.disabled_start_entries
+                ):
                     continue
                 self.component.consume_work("script start entry")
                 if node.field("m_5AEA0A51"):
@@ -2097,8 +2135,9 @@ class Instance:
                         self.component.consume_work("script start parameter binding")
                         if row is None:
                             continue
-                        match = (expr.guid_of(row.get("m_B5051BCE")) == key
-                                 if key else row_position == position)
+                        match = (
+                            expr.guid_of(row.get("m_B5051BCE")) == key if key else row_position == position
+                        )
                         if not match or row.get("m_out_Var") is None:
                             continue
                         target = expr.dynamic(row["m_out_Var"])
@@ -2147,11 +2186,14 @@ class Instance:
         if not self.auto_retire or self.queue or self.stopped or not self.initialized:
             return
         for node in self.graph.entries:
-            self.component.consume_work('automatic script lifetime entry')
-            if (node is not None and node.pos not in self.disabled_start_entries
-                    and node.cls not in ('STU_BB4AC733', 'STU_8A7E9DA8', *MESSAGE_ENTRIES)):
+            self.component.consume_work("automatic script lifetime entry")
+            if (
+                node is not None
+                and node.pos not in self.disabled_start_entries
+                and node.cls not in ("STU_BB4AC733", "STU_8A7E9DA8", *MESSAGE_ENTRIES)
+            ):
                 return
-        if (self.initialized_frame+1) & 0xFFFFFFFF >= self.component.frame & 0xFFFFFFFF:
+        if (self.initialized_frame + 1) & 0xFFFFFFFF >= self.component.frame & 0xFFFFFFFF:
             self.retirement_pending = True
             return
         if any(state.active for state in self.states.values()):
@@ -2267,6 +2309,21 @@ class Instance:
                     state.flags_check = True
                     self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
+        if pressed and self.graph.index == 0x023A:
+            # 023A's held-button transition conditions name the states to recheck.
+            for condition in self.graph.nodes:
+                if (
+                    condition is None
+                    or condition.cls != "STU_7DEB522D"
+                    or not condition.field("m_00994FF0")
+                    or expr.to_int(self.evaluate(condition.field("m_logicalButton"))) != button
+                ):
+                    continue
+                for index in condition.field("m_122DF0CA") or ():
+                    state = self.states.get(index)
+                    if state is not None and state.active and not state.flags_check:
+                        state.flags_check = True
+                        self.post(Event(component.now, 0, CHECK, state=state))
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""

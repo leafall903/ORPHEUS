@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ow174.accounts.profile import Profile
 from ow174.jam.groups import CHAT_IN, FRIENDS
 from ow174.lobby.handlers import chat

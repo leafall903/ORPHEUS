@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from ow174.game.script import entity_filter, expr, runtime
 from ow174.game.script import graph as native_graph
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 
 class InputWorld(runtime.World):

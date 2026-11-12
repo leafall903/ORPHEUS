@@ -10,7 +10,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import replay_values
 from ow174.game.body_vm_snapshot import (
@@ -609,9 +609,12 @@ class BodyVMSnapshotTests(unittest.TestCase):
         variant["unknown"] = 1
         bad.append(variant)
         for name, value in (
-            ("schema", "unknown"), ("scope", "body-vm-storage-excludes-transport"),
-            ("graph_data_sha256", "A" * 64), ("graph_data_sha256", "0" * 63),
-            ("value", ["int", "0x01"]), ("value", ["float", "7ff0000000000000"]),
+            ("schema", "unknown"),
+            ("scope", "body-vm-storage-excludes-transport"),
+            ("graph_data_sha256", "A" * 64),
+            ("graph_data_sha256", "0" * 63),
+            ("value", ["int", "0x01"]),
+            ("value", ["float", "7ff0000000000000"]),
         ):
             variant = copy.deepcopy(baseline)
             variant[name] = value

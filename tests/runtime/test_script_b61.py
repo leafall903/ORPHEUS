@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import b61, runtime, scene
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 
 CLASS = "STU_B61E6681"
 PRIORITY = 0x0C40000000000003

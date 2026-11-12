@@ -1172,6 +1172,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Reconcile the full local Python hero server with public main
+
+- Adopt the public package, launcher and test paths while retaining the existing 32 hero deliveries and shared implementation.
+- Integrate upstream Uppercut movement/damage, Piledriver velocity, reticle notifications, runtime preparation and shared behavior contracts. Resolve the internal vector-delta/typed-profile discriminator collision and preserve both health-pool state consumers.
+- CLI/contracts: 36 passes; dashboard: six passes. Public discovery executes 953 methods with six failing subcases and three errors retained. The 28-method movement/force joint retains two Slam selector subcase failures. Server-only startup passes on disposable ports with external data. No new original-client acceptance is claimed.
+- Detailed resolutions, preserved limits and the Python 3.12 verification prerequisite are in docs/PYTHON_UPSTREAM_INTEGRATION.md. Full static acceptance is not a submission gate.
+
+
+### 2026-11-13
+
 #### Align the full local Python integration layout
 
 - Move the existing Python package, launchers, documentation and tests to the current public source layout before reconciling upstream changes. No gameplay implementation is changed by these moves.
@@ -6006,6 +6016,291 @@ This log records tested changes and their acceptance status. Entries are grouped
   with the server snapshot exporter. The combined runtime passed 119 targeted
   combat, scene, entrance, NPC, and Arcade tests. Full hero and original-client acceptance remain open.
 
+
+### 2026-11-12
+
+#### Strict World query behavior contract
+
+- Added eleven synthetic World query cases with fixed expected values and diagnostic categories, covering known positions and foreign variables, unavailable services and null entity reads.
+- Added a Python consumer using the production strict component and expression evaluator, with a data-only World adapter and external fixture-directory support. It verifies result types, diagnostic entity and variable identifiers, and Python component failure after a strict error.
+- Documented that the contract compares query outcomes; Python component failure and Rust expression diagnostics have different lifecycles. Original-client acceptance remains pending.
+- Passed Ruff, 921 public Python tests, six dashboard and NPC-console JavaScript tests, five local documentation link and anchor checks, and the focused contract without site packages using both local and external fixture directories. The isolated headless startup probe passed lobby, RPC, dashboard and UDP checks and prepared Practice Range collision with 15 bots. No game client was launched.
+
+#### Shared Python and Rust behavior contracts
+
+- Added the contribution workflow for language-neutral behavior fixtures, including reference provenance, explicit expected results, gradual backfill and pending original-client acceptance. Linked it from the contributor guide, agent instructions and pull request checklist.
+- Clarified that general Python work uses topic branches and pull requests to `main`, while `leafall` remains the designated hero-development branch with the same pull-request integration requirement.
+- Added a public synthetic JAM framing contract and Python tests using the normal framing sender and receiver, including every two-part split and one-byte delivery. The test accepts an external fixture directory so Python and Rust can consume the same file.
+- Passed Ruff, 920 public Python tests, six dashboard and NPC-console JavaScript tests, 12 local documentation link checks and the focused contract test with the external-directory setting. Original-client acceptance for this synthetic contract is pending.
+
+### 2026-11-11
+
+#### Wine and Proton plaintext relay hook compatibility
+
+- Lower the `inHeap()` address floor to `0x10000`, accepting Wine and Proton
+  socket and byte-stream structures allocated in the lower 4 GB virtual address
+  space (`0x1DD10000`–`0x25000000`).
+- Replace raw pointer dereferencing in `scan()` with chunked 64 KB `ReadProcessMemory`
+  calls. Recover from Wine partial-read copy errors (`ERROR_PARTIAL_COPY` with
+  `nread = 0`) via a 4 KB page fallback, preserving adjacent valid pages.
+- Advance the scan offset by `off` instead of the chunk length to preserve candidate
+  byte-stream structures that span across 64 KB chunk boundaries.
+- Log first-fault memory attributes (`VirtualQuery` region base, size, state, protection
+  and `GetLastError`) directly to `wfd.log`.
+- Use safe memory wrappers (`ReadProcessMemory` / `WriteProcessMemory`) on non-MSVC
+  builds while preserving native zero-overhead `__try / __except` paths for MSVC on Windows.
+- Export `worker()` with `__declspec(dllexport)` and an atomic `InterlockedCompareExchange`
+  guard preventing duplicate thread execution when invoked via `CreateRemoteThread`.
+- Add an adaptive polling throttle (125 Hz during startup and for 4 seconds after any swap,
+  relaxing to 20 Hz upon quiescence).
+- Passed clean cross-compilation with `x86_64-w64-mingw32-g++` and 4-suite synthetic memory
+  fault testing under Proton 11.0. Manual acceptance confirmed with original client 104319
+  connecting to Battle.net relay (`21119`) and lobby (`3724`) without timeouts or access violations.
+
+#### Wrecking Ball reticle and Piledriver movement
+
+- Notify linked graph variables as Quad Cannons spread grows during sustained fire.
+  The owner receives 0.4 degrees at four shots and 2 degrees at twenty. Release
+  and renewed fire use the authored decay and the remaining spread.
+- Run the authored downward clearance query against static map collision.
+  Piledriver rejects activation near the floor and completes its windup, descent
+  and collision landing from sufficient height. Seismic Slam uses the same query
+  with its own authored distance.
+- Passed 918 public Python tests, six dashboard tests, Ruff and 66 targeted
+  checks covering 104319 movement, reticle spread and VM snapshots.
+- Original-client acceptance, projectile spread direction, Piledriver impact
+  damage and displacement remain open.
+
+#### Rising Uppercut target damage
+
+- Resolve the authored Uppercut sphere against live opposing player and NPC
+  capsules. Reuse the shared sight query with the cast profile's static mask.
+  Retain selected target IDs for the activation.
+- Apply the authored damage and loadout through shared combat after the body VM
+  finishes its command. Each eligible body takes damage once per cast. Combat
+  emits its regular hit notice and updates health and damage credit.
+- Passed Ruff, 916 source tests, six dashboard tests, 44 communication-wheel
+  checks and both focused Uppercut regressions. The Uppercut checks cover target
+  retention, a second cast after cooldown and ally, range and wall rejection.
+  Three Deadeye test errors also reproduce on baseline commit `c239a84`.
+- Native sampling cadence, dynamic ray receivers, the secondary target output,
+  target displacement and original-client acceptance remain open.
+
+#### Python hero and PvE integration
+
+- Import the partial hero and PvE contribution from [PR #16](https://github.com/leafall903/ORPHEUS/pull/16)
+  and credit its submitter, `zichao-zhou`. Keep the original candidate's evidence and scope in
+  the [hero verification record](docs/HERO_SERVER_ACCEPTANCE.md).
+- Integrate the Rialto sandbox and McCree foundation, selected Ana, Mei, Winston and Pharah combat,
+  and shared statescript and communication work into the current Python package layout. Preserve
+  the Doomfist projectile and movement regressions and the Wrecking Ball Roll and shield behavior.
+- Run synthetic tests without game data and keep target-build graph and wire regressions in the
+  prepared-runtime suite. Passed 916 source tests, six dashboard tests, Ruff and the x64 relay build.
+  The server-only startup probe loaded Practice Range collision and 15 training bots.
+- With local 104319 runtime data, the integration passed 94 graph and codec checks, 59 scene and
+  McCree checks, 113 hero combat and projectile checks, 19 body replay checks and 15 server snapshot
+  checks. The graph and scene runs used a separate pack with additional local PvE exports.
+- The movement and physics snapshot suite passed 30 checks after including the latest Uppercut fix.
+- Original-client acceptance of this integration and the full hero and PvE playthroughs remain open.
+
+#### Rising Uppercut movement
+
+- Apply authored scalar velocity edits and world-space vector changes on the next
+  command frame, after gravity and before the capsule sweep.
+- Resolve regular player facing and the authored direction limits. The 104319
+  Uppercut graph now drives Doomfist's approach, lift and vertical slowdown
+  through shared collision. The same facing query resolves Genji's miss endpoint.
+- Regressions cover ground and air activation, queued physics state, duplicate
+  input, ceiling contact and landing. Target damage, knockback and original-client
+  acceptance remain open.
+- Passed Ruff, 170 public Python tests, two dashboard tests and 169 prepared-runtime
+  tests. One mover test skipped for a missing map fixture. A headless run on the
+  Practice Range collision data reached 40 m/s at lift and 7.66 m/s after slowdown.
+
+#### Hand Cannon projectile retirement
+
+- Retire all of a player's projectile flight when its body is replaced or leaves the
+  match. Hand Cannon pellets can no longer damage targets through a replacement hero.
+- Preserve other shooters' projectiles and the existing flight of a dead body until
+  it retires. The prepared-runtime regressions cover hero switching, leaving and
+  posthumous damage.
+- Passed Ruff, 170 public Python tests, two dashboard tests and 41 prepared-runtime
+  projectile tests. Original-client verification remains open.
+
+#### Owner movement in Doomfist's ability graph
+
+- Sample the live owner's regular movement pose and publish the authored flags and
+  changed boolean outputs. A grounded or jumping Doomfist now takes the corresponding
+  Seismic Slam path, and landing clears the airborne selector.
+- Store the movement sample in the body VM for replay verification. The selector's
+  target, Slam travel, damage and original-client acceptance remain open.
+- Passed Ruff, 170 public Python tests, two dashboard tests, 71 prepared-runtime
+  movement, projectile, Wrecking Ball and statescript tests, and two encrypted
+  movement replay tests with stored-state verification.
+
+#### Wrecking Ball movement and Adaptive Shield
+
+- Apply the authored Roll movement component on the next command frame. The flat-ground
+  regression reaches 10 m/s with the 0.5 m ball capsule and restores the 5.5 m/s gun profile
+  and 0.7 m capsule when Roll ends.
+- Grant Adaptive Shield from its 104319 graph. The temporary pool starts with 100 shields
+  and adds 75 per eligible nearby enemy. Damage consumes it before the base pools, healing
+  leaves it alone, and expiry or body retirement clears the pool. Casting preserves Roll.
+- Cover held fire, release, damage, manual reload and falloff for Quad Cannons. Allow the
+  existing ultimate meter diagnostic fields in body and server replay snapshots.
+- Passed source, dashboard and prepared-runtime regressions. Original-client acceptance,
+  Quad Cannons spread and critical hits, Grappling Claw, Piledriver and Minefield remain open.
+
+#### Doomfist Hand Cannon pellet groups
+
+- Resolve supported authored projectile rings for volleys that synchronize shots
+  without projectile leases. One Hand Cannon shot creates eleven separate collision
+  sweeps in its 1/4/6 pattern and deals 66 damage if all pellets hit at close range.
+- The server uses fixed spacing within each ring. The original per-pellet variation,
+  exact azimuth, critical hits and client feedback still need verification.
+- Passed Ruff, 170 public Python tests, two dashboard tests and 63 prepared-runtime
+  projectile, statescript and movement tests.
+
+#### Doomfist projectile damage
+
+- Apply authored distance falloff to direct projectile hits using distance travelled to
+  the collision point. The Hand Cannon centre pellet now deals about 6.0, 3.9 and 1.8
+  damage against targets placed at 5, 23 and 35 metres in the server regression.
+- Record the Doomfist acceptance checklist and enable the public workflow on `leafall`.
+  Pellet pattern, critical hits and original-client acceptance remain open.
+- Passed Ruff, 170 public Python tests, two dashboard tests, and 51 prepared-runtime
+  projectile and statescript tests.
+
+### 2026-11-10
+
+#### Python project layout and verification
+
+- Moved Windows launchers to `scripts/` and the upstream work log, credits and
+  contributor list to `docs/`. Updated both READMEs and the runtime and contribution guides.
+- Added the installable `orpheus` entry point and moved Python packages under `src/`.
+  The build-specific `ow174` module remains available, including the original
+  `python -m ow174` command. The Windows launchers use Python 3.12.
+- Made `pyproject.toml` the source of runtime and development dependency pins.
+  Updated the dashboard asset paths and the source inventory for replay and collision
+  fingerprints. Replay fingerprints from the previous layout remain tied to their source revisions.
+- Separated the public and prepared-runtime tests. Default unittest discovery passed
+  170 public tests with no runtime and no skips. The dashboard suite, Ruff and documentation
+  links passed. A fresh editable install exposed both CLI entry points. A prepared
+  104319 pack passed 63 selected runtime tests and the launcher preflight. Original-client
+  acceptance was not run.
+
+#### Local Practice Range prop index
+
+- Generate a missing `collision_props_174.json` for Practice Range from the target client's
+  map placements and root model collision records. Rebuild the base collision cache
+  with the generated index and omit any earlier optional ray cache.
+- A retained 104319 placement chunk and model XML confirmed 508 placements and all 33
+  reference definition-to-model mappings. A hybrid check reproduced the reference
+  index using those exports and the reference movement-model classification.
+- Passed 156 Python source tests, 2 dashboard tests and Ruff, with 6 fixture skips.
+  Fresh 104319 extraction and original-client play remain open. The seven remaining
+  prepared inputs have no verified public distribution route.
+
+#### Selected map and bot data generation
+
+- Generate a missing `game_maps_174.json` from the built-in scene when the requested pack
+  contains only Practice Range. Preserve the full prepared map table when supplied.
+- Reuse the pinned local manifest exporter to prepare core collision indexes for selected
+  maps. Reuse the bot spawner and queue extractors during packing. The prepared prop
+  index and retail templates remain inputs for those extractors.
+- Verified a reassembled 104319 pack using the generated Practice Range map table in
+  the headless lobby and match probe. Its collision loaded and 15 bots initialized.
+  Synthetic regressions cover the index, spawner and queue generation handoffs.
+  Source checks passed with 154 Python tests, 6 fixture skips and 2 dashboard tests.
+  Fresh game extraction and original-client acceptance remain open.
+
+#### Local generation during runtime packing
+
+- Documented the source and preparation route for every required Python runtime input.
+  Kept extracted data and signing inputs local. The public source already includes the
+  project-authored ultimate charge estimates.
+- Added optional generation of missing catalogs, five gameplay datasets and the selected
+  map cache during packing. The packer checks remaining prepared inputs before export
+  and preserves existing prepared data. It can reuse local 104319 XML exports.
+- Rebuilt 32 hero mappings, 38 movers and 373 graphs from retained 104319 XML.
+  The hero mappings matched the reference and the generated graphs reported one unresolved
+  reference. The reassembled runtime passed headless Practice Range startup.
+- The public source checks passed with 153 Python tests, 6 fixture skips and 2 dashboard
+  tests. Synthetic checks cover the DataTool and collision generation handoffs. Fresh
+  104319 export, original-client play and game-folder-only deployment remain open.
+
+#### Local Practice Range setup
+
+- Made self-hosted Practice Range the first setup path in the English and Simplified Chinese
+  READMEs. Documented which inputs the packer assembles and the four catalogs the game folder
+  can supply. Complete runtime generation from the game folder remains open.
+- Detect an existing pack under the checkout's ignored `runtime-data/` directory. An explicit
+  `ORPHEUS_RUNTIME_DIR` takes precedence, and the legacy checkout layout remains available.
+- Added tests for local pack discovery, explicit path precedence and legacy lookup.
+  A clean source ZIP with an authorized local pack passed preflight and the server-only
+  Practice Range startup check. Original-client play remains to be verified.
+
+#### Player join and client catalog preparation
+
+- Added `JOIN_SERVER.cmd` for joining a compatible running server in tournament mode with the target
+  client. The player uses a host address and game folder. The host keeps the server runtime.
+- Added a local generator for the hero, map and unlock catalogs using the pinned OWLib DataTool.
+  It writes outside the checkout. The Python packer accepts the generated files through `--catalogs`.
+  Corrected collision tooling's game folder resolution.
+- Documented the player and host paths in both READMEs and listed the remaining host prerequisites.
+  Self-hosting from the game folder alone still needs additional runtime sources.
+- Passed 148 Python source tests, 2 dashboard tests and Ruff, with 6 fixture skips. A loopback
+  test verified the join path without a local runtime or relay. A pack assembled with the catalog
+  input option passed the server-only Practice Range startup probe. Catalog generation used
+  simulated DataTool output in tests. Original-client join and extraction remain to be verified
+  against a local 104319 installation.
+
+#### Python maintenance branch and startup checks
+
+- Made `main` the community-maintained Python branch. Preserved the native server, Cargo checks,
+  migration guide and existing history on the separate `rust` branch.
+- Added `--check-runtime` to list missing host inputs in both checkout and runtime-pack layouts.
+  The check runs before the launcher touches the game and works without third-party Python packages.
+- Built the existing placeholder ultimate charge estimates into Python so older packs can still boot.
+  The Python packer copies and hashes a local charge table when one is supplied.
+- Removed the unavailable Windows relay download. Retail play uses a locally built relay, and
+  startup reports the build command when it is missing. Server-only startup skips the relay.
+- Updated the English and Simplified Chinese setup instructions and documented the remaining
+  game-folder-only setup gap.
+- Remembered the resolved game installation for both the launcher and collision cache preparation.
+  Added coverage for explicit folder selection, auto-detection and older UTF-8 BOM path files.
+  The Windows regression compares directory identity so short-path aliases resolve to the same install.
+- Source checks passed with 145 Python tests, 6 fixture skips, 2 dashboard tests and Ruff.
+  An authorized Practice Range pack passed 112 focused Python tests and the server-only startup probe.
+  The x64 relay built from source. Original-client startup and gameplay remain to be verified.
+
+### 2026-11-06
+
+#### Ultimate charge from combat
+
+- Credited the ultimate's charge for the damage a body dealt, the healing it did, and its eliminations
+  (combat.py through the new ult_charge.py). The rates are a data table, `game_ult_charge_174.json`: a
+  hero fills the meter with its `damage_to_full` / `heal_to_full` of HP and gets `kill_bonus_percent` of
+  a full meter per elimination, converted against the cost #338e its own Entries carry, so the meter is
+  right in whatever scale a hero's graphs use.
+- OW1 computed these rates in its server code rather than in data: the hero's entity definition has no
+  charge component (its components are health, weapon, mover, model, first-person, statescript, target
+  tags and voice) and the generic settings carry no charge keys. The shipped table is therefore marked
+  `placeholder` and holds community-measured values (380 damage for Soldier: 76's full meter, a 20 %
+  elimination bonus); replace them from the original server before trusting the balance.
+- Added the generating tool `tools/extract_game_ult_charge.py`; the table joins `MATCH_RUNTIME_DATA`, so
+  the runtime pack has to carry it (the loader keeps the fallback and says so if the file is absent).
+- Added 12 tests: the rule's arithmetic, its defaults and fallback, the shipped table's shape, and the
+  credit at the damage, elimination and healing sites. The full suite (1347) passed, Ruff and Git diff
+  checks passed. Client acceptance for the charge climbing under fire is pending.
+- Logs report when a body's passive charge rule blocks, and when the meter stops moving although the
+  rule runs, with what the client acknowledged (frames, ack, pending). On the target client this told a
+  blocked rule from a stalled owner stream: the meter froze on the client while every owner frame was
+  acknowledged and the server meter reached its cost; suppressing the combat notices (25001, 25005)
+  behind the new `OW174_NO_COMBAT_NOTICES=1` lever makes the same scenario run correctly, which pins
+  the stall to the notice records sent while the victim's body is retired.
+### Combined hero server
+
 - Port the Genji lane's structural state-stack dependency and verify Pharah rocket combat.
   The state-script, snapshot and selected hero regression group passed 69 tests.
   Seven Pharah tests and one Practice Range ownership and world startup test passed.
@@ -6030,6 +6325,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   removal by instance ID. All 11 Deadeye target tests passed with the Rialto
   runtime. This changes the tests only. Full original-client combat acceptance
   remains open.
+
 
 #### Communication wheel
 
@@ -6584,6 +6880,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Skip the wave health bonus when its owner has already died. A rapid-kill
   replay reached the delayed 0CBC initialization at frame 9614 and continued
   without restoring health to the corpse. Passed 280 focused tests.
+
 
 - Accept the authored 0045 pose-rate cue on living linked Junkenstein
   enemies during the phase exit. A replay with a surviving Summoner
@@ -8775,6 +9072,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   protection/healing modifiers and full static/client acceptance remain open.
 
 
+
 #### Native state-input joins and Deadeye timing
 
 - Implement1113EBD5 distinct-input joins from the104319 input handler rather
@@ -9039,6 +9337,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   snapshot/replay tests pass414.482s (458 total), including90 Brigitte methods.
   Ruff/diff pass. Complete static matrix and original-client acceptance remain
   open; no hero commit/merge/push.
+
 #### Resource-backed Flashbang control reconstruction
 
 - Preserve authored hit-effect IDs and route Flashbang's053/0079 effect to an
@@ -9089,6 +9388,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   452.654s (356 total), including74 Brigitte methods. Ruff/diff pass. Full
   hero static matrix and original-client acceptance remain open. No hero commit
   or push.
+
 
 
 
@@ -9213,6 +9513,7 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Deflect, Swift Strike targeting/damage, Dragonblade, five mission NPCs and
   cross-hero status/defense interactions remain open. See docs/GENJI_COMBAT.txt.
   This lane delivers a reviewed patch; it does not publish or merge root main.
+
 
 #### Native array selection for PvE difficulty configs
 
@@ -9384,6 +9685,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   Full static matrix, enemy AI/specials, bash, native Rally charge/pools, cross-hero defenses
   and original-client combat remain open.
   See docs/BRIGITTE_COMBAT.txt. No deployment or GitHub sync is claimed.
+
 
 #### Optional persistent NPC corpses
 
@@ -13272,3 +13574,228 @@ Next exact action: deliver this commit to root and A for the common radial-host
 signature, then follow any concrete original-caller integration findings. The
 prior six-owner mapping remains as recorded, but the latest confirmed extra
 012E caller gap is closed by this implementation rather than by ancestry alone.
+
+#### Rust transport foundation
+
+- Ported the game bit stream, encrypted UDP datagrams and ACK window, plus the lobby JAM cipher, encrypted TCP framing and address-bound handshake. The handshake takes its signing input from the caller and the tests use synthetic keys.
+- Added Windows Cargo checks and documented the migration and its behavior references in both README entry points and the credits.
+- Passed 16 Rust tests, including exact Python wire vectors and an encrypted loopback lobby handshake. Cargo formatting and Clippy passed. Passed 19 focused Python regressions with the prepared Practice Range runtime, plus Ruff and Git diff checks.
+- The Python entry point continues to serve the lobby and matches while their behavior is ported. Original-client acceptance of the Rust implementation is pending.
+
+#### Rust message and input processing
+
+- Ported the JAM schema codec, game message channel, client command parser and queue, plus lobby announcement, keepalive and BattleTag query handling.
+- Ported Battle.net protobuf framing and local account-name session keys. The descriptor set is loaded from the separately prepared runtime.
+- Decoded an encrypted datagram generated by Python with both message lanes and a command record. Verified the message boundary, command values and duplicate rejection in Rust.
+- Passed 37 public Rust tests and three optional runtime checks for the 104319 schemas and Battle.net descriptors. Cargo formatting and Clippy passed. The frozen Python reference at `795d56d` passed 1,335 tests. The Rust lobby service and match simulation still need implementation and original-client acceptance.
+
+#### Rust accounts, runtime preparation and world frames
+
+- Ported account storage and identity selection, regional catalog lookup, and the local Battle.net TCP and WebSocket listener. Checked Connect, Logon and Referral responses against the Python implementation using the 104319 descriptors. Exercised shutdown with stalled connections on Windows.
+- Ported the deployment data preparation command. For the authorized Practice Range runtime, all 23 copied files match the Python tool by SHA-256 and both manifests describe the same files and hashes.
+- Ported world-frame encoding and fixed-step scheduling primitives. A mixed 452-byte world payload matches the Python output. The lobby and game entry points still use Python while the Rust modules are integrated.
+- Passed 64 public Rust tests, five optional runtime checks, Cargo formatting, Clippy and Git diff checks. Original-client acceptance remains pending.
+
+#### Rust match admission and map cache loading
+
+- Ported the lobby match ticket, queue-pop and delayed seat delivery messages, and the UDP connection lifecycle. A tampered, stale or expired datagram cannot rebind an existing peer. An expired ticket releases its seat on the timeout sweep.
+- Used the prepared 104319 schema to encode and decode a 20600 ticket, then used its directional keys to complete an authenticated SYN exchange over loopback UDP.
+- Ported retail lobby template loading, personalization and the account's initial settings and endorsement messages. Compared encoded message digests against the Python reference with the prepared schemas.
+- Added a bounded XZ and geometry reader for version 5 movement and expanded-ray collision caches. A local release build decoded all 190 prepared caches across 95 maps. Every decoded field of the two Practice Range caches matched the Python uncompressed byte stream.
+- Passed 86 public Rust tests, eight optional runtime checks, 39 Python matchmaker tests, Cargo formatting, Clippy and Git diff checks. The normal lobby and match entry points still use Python. Collision queries, full lobby and match integration, and original-client acceptance remain pending.
+
+#### Rust login session, game ingress and combat primitives
+
+- Connected the lobby transport to BattleTag lookup and login preparation. Checked a 43-message initial login subset against the Python wire order. Dynamic collections, queue content and other post-login handlers still need integration.
+- Ported reliable message dispatch before input parsing, Pong and the four map-entry milestones. A mixed frame and its Pong match the Python bytes with the 104319 game schema.
+- Added static ray primitives and an indexed core triangle scene. Compared 2,720 ray, ground and ordered nearby queries on both prepared Practice Range caches. Hit results, floating-point fields and ordering matched the Python reference in this comparison. Prop placement and character contacts are separate.
+- Ported the body health pools and their dirty updates, including shield and armour order and lethal attribution. Full and partial pool updates use the same world component encoder. Original-client validation of health presentation and combat behavior remains pending.
+- Passed 107 public Rust tests, ten optional runtime checks, 27 Python combat tests, Cargo formatting, Clippy and Git diff checks. The normal server entry point still runs the Python implementation.
+
+#### Rust match loading worker and lobby collections
+
+- Added a native UDP worker that reserves match seats, authenticates tickets and schedules frames on the fixed game clock. It serves instance and roster messages, ownership and Pong. The worker keeps one owner for connection state and uses readiness polling with bounded receive batches so datagrams cannot delay the tick indefinitely.
+- Ported the reliable outgoing queue and ACK handling. A failed send leaves the queue intact, and a reported loss requeues the original reliable ordinal. In an encrypted loopback with the 104319 schemas, deliberately dropping the first instance frame triggers a retry before the ownership and roster messages. Also checked canceled handoffs, FIN and socket shutdown.
+- Added collection, loadout and portrait handling to Rust. The initial login subset now includes progression and hero ownership. Its 45 encoded messages match Python for both the default profile and the level-3000 full-unlock fixture.
+- Added collision scene assembly for placed static triangles and round shapes. Compared 2,079 queries across three prepared Practice Range views, including authenticated root placements. The selected hits, ground and nearby outputs matched Python bit for bit.
+- Passed 124 public Rust tests and 13 optional runtime checks, plus 67 focused Python reference tests covering ownership, shop behavior, frame delivery and UDP match loading. Cargo formatting, Clippy and Git diff checks passed. World creation, character contact and original-client acceptance are pending. The usual launch commands still use Python.
+
+#### Rust map catalog, graph metadata and round contacts
+
+- Added the shared map and mode catalog, ordered placeables and spawn selection. The UDP worker now uses the same map type as catalog lookup. Checked 95 map listings and all 698 candidate map and mode combinations against Python, including the 551 supported results and their placement and spawn order.
+- Loaded the authorized state graph bundle and built the owner, remote and variable-slot indexes from its records. All graph layouts in the 373-graph and enriched 405-graph bundles matched the Python reference. The enriched bundle also loaded eight non-player definitions and 25 mode records.
+- Ported float32 sphere and capsule contacts with ordered features and cache placement. A local differential run matched Python bit for bit across 12,288 cases and 7,611 contact points. These primitives await the character solver and do not change the active Python server.
+- Added own presence to the Rust login subset. The 46-message subset matches Python for both the default and level-3000 full-unlock profiles, and seven additional presence packets match the reference.
+- Passed 140 public Rust tests and 16 optional checks with the prepared Practice Range pack, plus the enriched graph bundle check and 21 Python presence reference tests. Cargo formatting, Clippy and Git diff checks passed. Original-client acceptance remains pending.
+
+#### Rust world bootstrap and lobby roster messages
+
+- Ported the initial world records for map placeables, the player controller, the mode entity and training bots. The 21-record Practice Range baseline matches the Python wire payload. The packet budget splits it into ordered datagrams.
+- Added shared statescript value, chunk and full-frame writers. Verified Practice Range and PvP controller frames, team entries and the mode UI frame against Python. The controller and mode frames are ready for the worker's entity delivery path.
+- Ported training bot route state and shared mover settings. Compared the 15-bot Practice Range roster, 19,560 movement records, and all 34 fields for each of 38 prepared mover bodies. Ported scoreboard and on-fire fields and matched 462 scoreboard wire cases. Combat events still need to drive the on-fire values.
+- Ported the float32 GJK distance solver and one-sided capsule contacts against mesh triangles. The Python comparisons matched on 12,000 synthetic distance queries, 2,048 prepared mesh distance queries and 6,144 prepared capsule contact queries. Mesh candidate traversal, sweeps and character integration are pending.
+- Added the lobby clock, party payload and ranked rating projection. Verified the 50- and 51-message login subsets when the required ranked and solo party inputs were available.
+- Passed 169 public Rust tests, 24 optional runtime checks on each of two prepared packs, Cargo formatting, Clippy and Git diff checks. The native UDP worker still serves the loading phase. World delivery, hero selection and original-client acceptance are pending. The normal launch scripts still use Python.
+
+#### Rust headless Practice Range world delivery
+
+- Connected the decoded lobby Practice Range request to an account-backed world card and the native UDP worker. The headless test covers the encoded handoff, authenticated UDP, withheld ownership ACK, dropped entity creates, and the controller and mode scripts after their own create ACKs. The supported bootstrap uses the base graph bundle. The enriched bundle's authored bot graphs are detected before opening a seat and await the bot VM.
+- Loaded the scene outside the game tick and ran the bots against its prepared collision ground. Both runtime packs matched Python for 7,500 serialized movement records per pack. The world sender borrows queued entities and retains their shared records for retry.
+- Shared the collision grid between the float64 ray view and the float32 mesh candidate index. Matched 5,000 triangle-box checks and 4,400 ordered mesh queries against Python. All 4,799 earlier ray and scene query comparisons still matched.
+- Ported the hero catalog, graph-derived health pools and owner and observer body creates. The 64 body create vectors cover all 32 heroes. Decoded the original hero pick and open, close and toggle messages. Live hero selection, movement sweeps and original-client acceptance remain pending.
+- Passed 183 public Rust tests, 31 optional runtime checks on each prepared pack, Cargo formatting, Clippy and Git diff checks. The usual launch scripts still use Python.
+
+#### Rust hero selection and body delivery
+
+- Connected original hero-pick and screen messages to body creation, controller possession, old-body retirement and the owner hero-select frame in the solo Practice Range worker. Creation uses the shared hero and health data and the account's equipped skin and golden weapon at handoff.
+- Kept create, possession and retirement in dependency order. A frame can carry adjacent steps when they fit. A split waits for the required ACK. Lost records retry with the same generation and an old body's ID stays reserved for 30 seconds after destroy acknowledgement. Tested the loss of a complete hero selection batch, reopening the screen, and switching heroes on the encrypted worker.
+- Ported controller and body statescript stream sequencing and retry state, plus the scoped expression evaluator. Exact checks cover owner full and cumulative delta frames and 11 expression results from target graphs. Live body and bot script execution still need the VM.
+- Ported float32 shape casts and mesh sweeps. The local differential comparisons match Python on 9,108 shape casts and 3,530 mesh sweeps, including scaled props and tightened hit limits. Static-world dispatch and character movement are pending.
+- Passed 201 public Rust tests, 32 optional runtime checks on each of two prepared packs, seven Python repeated-lifecycle tests, Cargo formatting, Clippy and Git diff checks. Original-client acceptance remains pending. The usual launch scripts still use Python.
+
+#### Rust character movement and statescript foundations
+
+- Ported command gap recovery, frame-scoped movement modifiers, steering, air control and gravity. Compared 7,296 velocity cases across all 38 prepared mover settings at a precision finer than the movement wire grid.
+- Added ordered static-world queries, capsule-to-hull contacts, mesh contact clustering and the movement ground probe. All 95 local movement caches built successfully. Two prepared maps matched the Python reference on 2,800 ordered queries, 2,800 sweeps and 11,396 capsule-to-hull queries. The Practice Range probe matched in 1,536 cases, including 37 ground hits recovered by a sweep.
+- Ported supported same-time graph initialization with a work budget and diagnostics for unported actions. Checked actual controller child order and bot startup states. Added the 598-class state layout table, 1,824 reference payload comparisons, and owner and observer full frames for supported initialized graphs.
+- Passed 223 public Rust tests, 37 optional runtime checks on each of two prepared packs, and 124 Python movement, contact and script reference tests. Cargo formatting, Clippy and Git diff checks passed. The regular launch scripts still use Python. Per-body movement integration, timed and input-driven bot behavior, and original-client acceptance remain pending.
+
+#### Rust player movement and timed statescript
+
+- Connected ordinary player commands to the native solo Practice Range worker with the base graph bundle. The worker prepares static collision before taking a seat, applies body-specific settings, acknowledges fresh commands and preserves the command clock through hero switches. The encrypted loopback checks acknowledgements, the 96-frame input lead bound and the existing ordered body retries.
+- Added per-body contact caches, capsule fit checks, bounded contact projection, stance, jump, landing and spring state. The Python reference matched 8,968 serialized movement records across all 38 prepared mover profiles on Practice Range, plus the wall and ceiling fixture and 2,304 per-proxy movement steps on two maps.
+- Advanced supported graphs on a bounded timer queue and added scoped game-message entries and owner and observer cumulative frames. The enriched pack verified the two timer boundaries for a training bot's firing eligibility. Actual bot firing, weapon and ability input, and body script delivery in matches still require their runtime behavior.
+- Passed 238 public Rust tests, 39 applicable runtime checks on each of two prepared packs, and 154 Python reference tests. Cargo formatting, Clippy, documentation links and Git diff checks passed. Owner corrections, sustained worker load measurements and original-client acceptance are pending. The regular launch scripts still use Python.
+
+#### Rust input scheduling and login content
+
+- Split command catch-up across worker turns with a shared resumable pose iterator, round-robin peers and a bounded queue. The worker allows 16 work units per peer and 64 per turn. Commands advance the acknowledgement after simulation. Queued hero switches and lease boundaries retain order with earlier poses. Tests cover a 64-pose gap, five busy peers and encrypted recovery under duplicate datagrams.
+- Added a 64-pose owner correction history with a creation acknowledgement gate and body generation checks. The correction frame advances after its selected datagram is sent. Exact wire tests cover three input history encodings and the replay acknowledgement window. Owner correction delivery still awaits hero movement scripts.
+- Added shared command-to-logical-button mapping, press buffering and timed releases in statescript. The prepared Soldier: 76 Sprint graph matched the reference button-entry behavior. Ability start and stop conditions, variable stacks and weapon input remain open.
+- Added dated Arcade cards, priority pass pools and career mode rules to the verified Rust login subset. Matched 720 Arcade and pass messages across 180 profile and date combinations, and three mode-rules messages against the Python wire data. Competitive event cards come from the same Arcade state as the menu.
+- Passed 252 public Rust tests, 43 applicable runtime checks on each of two prepared packs, and 155 Python reference tests. Cargo formatting, Clippy, documentation links and Git diff checks passed. Sustained worker load and original-client acceptance remain pending. The regular launch scripts still use Python.
+
+#### Experimental Rust lobby and Practice Range server
+
+- Added a loopback server entry point for local Battle.net, encrypted lobby and UDP Practice Range. It reuses existing account storage, tracks the active login and match seat, and stops partial handshakes and active peers on shutdown. An encrypted socket test reads a saved full-unlock profile and joins the map using the lobby's UDP handoff.
+- Added main-menu hero resolution, celebration content, and General and Match channel transfer to the native lobby. Celebration payloads match the Python reference across three prepared profiles. Celebration rewards and broader social and matchmaking behavior remain pending.
+- Ported variable stack polling and the supported ability activation and cancellation paths. The isolated Soldier: 76 Sprint graph matches the Python reference for the HUD variable and raw movement modifier across a 12-frame input trace.
+- Connected the body script stream and movement corrections to the worker's send path for eligible body components. Tests cover exact retries, delivery gates, body replacement and state after a failed send. The base world has no eligible live hero component yet. The enriched world still requires more bot graph support.
+- Passed 260 public Rust tests, 48 prepared base runtime checks, 47 enriched runtime checks and 90 focused Python tests. Cargo formatting, Clippy, an isolated CLI startup and shutdown, documentation links and Git diff checks passed. The regular launch scripts still use Python. Original-client acceptance remains pending.
+
+#### Rust player body preparation and hitscan
+
+- Added the prepared player body factory with authored body, weapon manager and equipped weapon roots. The Soldier: 76 startup matches all 19 reference instance IDs, graphs and parent states. The factory checks readiness once per Practice Range asset set and creates fresh runtime state per body.
+- Ported supported animation, effect and scoped message states and owner stack bindings. The initial owner tree carries the effective values. The next frame introduces the bindings. Three independent Python wire vectors and an encrypted fixture-body replay verify the baseline, exact retransmission and cumulative recovery.
+- Reused the static ray and capsule kernels for direct hits, with click aim, bounded target rewind, critical hits and falloff. A prepared Practice Range test matches the Python geometry and damage through the existing health pools. The four combat notice vectors match the reference bytes.
+- Passed 267 public Rust tests, 53 prepared base checks, 50 enriched checks and 156 focused Python tests. Cargo formatting, Clippy, documentation links and Git diff checks passed. The stock body still requires native graph behavior, sparse input catch-up and weapon volley scheduling. Original-client gameplay and presentation remain pending.
+
+#### Rust weapon timing and bot combat delivery
+
+- Added shared volley scheduling, timed variable outputs and variable watches. The authored Soldier: 76 rifle matches eight reference shot times, held-fire ammo, release, the refill and animation-completion frames, and firing after reload.
+- Seeded a newly introduced owner volley with its pre-shot ammo. After acknowledgement, the stream sends live ammo. Wire regressions cover a lost stop and lost activation, and preserve the reference observer values.
+- Resumed long unposed command gaps within the worker input budget. A 400-frame gap runs the same 258 retained script frames as Python, with input release, bounded timer work and no synthetic hits during the gap.
+- Routed posed direct shots through the prepared Practice Range worker. The encrypted fixture verifies a dropped hit's retry, terminal pool delivery, elimination notice and a fresh bot after respawn. A newer full pool update supersedes the old packet, and the old bot retires before the new entity becomes visible.
+- Passed 272 public Rust tests, 56 base runtime checks, 52 enriched runtime checks and 172 focused Python tests. Cargo formatting, Clippy, documentation links and Git diff checks passed. The full stock Soldier body remains gated on unsupported graph behavior. Projectiles, bot weapon scripts and original-client acceptance remain pending.
+
+#### Rust Helix cooldown and projectile prediction
+
+- Added the supported ability cooldown, priority push, state query and branch paths. The authored Helix replay matches the reference shot times, six-second cooldown and damage configuration. Guarded human body queries and typed ChaseVar, Watch and Ability payloads match their reference cases.
+- Derived Soldier's three predicted projectile definitions from the authored graph. Added scoped lease allocation, confirmation after an individually delivered owner report, and release after confirmed creation. The observer launch and owner confirmation and explosion records match Python bytes.
+- Added shared swept projectile flight with wall and capsule collision, direct damage and capsule-distance splash. The projectile modules still need live-worker integration.
+- Set Doomfist as the next hero after Soldier: 76 and the Practice Range training bots pass their acceptance checks.
+- Passed 284 public Rust tests, 58 base runtime checks, 54 enriched runtime checks and 172 focused Python tests. Cargo formatting, Clippy, documentation links and Git diff checks passed. Stock owner startup still reports unsupported graph queries. Original-client gameplay acceptance remains pending.
+
+#### Rust gallery equip and match appearance
+
+- Processed retail gallery equip requests after login. The native lobby saves the loadout before confirming it and refreshes the local player card when an icon changes.
+- Applied new skin and weapon themes to the reserved match. Equipping a different theme for the active hero uses the existing ordered body replacement. Other heroes retain the change for their next selection.
+- Passed 84 focused Python reference tests and two prepared-base encrypted Rust loopback regressions covering gallery confirmation, persistence, a subsequent map load and the new skin theme on the replacement entity. The preceding original-client Rust session reached Practice Range, where the user reported missing weapons, unusable abilities and failed skin selection. The gallery repair awaits a client retest. The stock Soldier owner script still needs additional graph behavior.
+
+#### Rust Soldier owner script startup
+
+- Added current and maximum health queries backed by the existing owner variables, with a regression for the authored Soldier full-health branch. Added bounded random expressions and verified base presentation-state lifecycles. The deterministic random sequence remains a local implementation.
+- Activated seven authored Soldier client-subgraph controllers on the server and left their client-only branches to the client. These include rifle and weapon manager states. Logged the first preflight failure once per prepared asset set.
+- Compared the same 19-instance stock startup state with the Rust and Python encoders. The owner and observer frames matched byte for byte in this offline comparison.
+- Validated authored mode tables in the external base bundle. Together with the VM changes they reduced the stock preflight from 35 diagnostics to 22. The first remaining query is the entity relation at graph `0033`, node `51`. The stock Soldier body still stops before attaching its weapon. No new original-client session was run.
+- Passed 287 public Rust tests, 58 base-runtime checks and 54 enriched-runtime checks. Cargo formatting, Clippy, documentation links and Git diff checks passed.
+
+#### Practice Range patrol collision
+
+- Reproduced two elevated patrols crossing solid geometry in build 104319. Python and Rust now move patrolling bots through the same standing capsule and static map contact solver used by player movement, with the same map barrier masks.
+- Kept the authored spawns, hint order and destinations. Blocked legs can use a clear authored hint or a short lateral detour that passes capsule clearance and floor support checks. This is a local reconstruction of patrol navigation. The original navigation implementation remains unverified.
+- Prepared the detours outside the live tick loop and retained the bot's contact state in Python stored-state replay. Recorded allied pass-through and opposing-body blocking in the roadmap. Actor-to-actor movement collision remains open.
+- Verified both elevated patrols over the real 104319 map, including the enemy bot's return leg. In an isolated optimized Rust run of 1,900 patrol updates, the patrol step took 47 µs at p95 and 143 µs at maximum. This measurement covers patrol updates only. Client acceptance is pending.
+- Passed 288 public Rust tests, 58 base-runtime checks, 54 enriched-runtime checks and 148 focused Python tests. The Python run skipped one King's Row check because the base pack lacks that map's cache. Cargo formatting, Clippy, Ruff, relative documentation links and Git diff checks passed. The optimized Rust server started and stopped on isolated ports.
+
+#### Rust development policy
+
+- Moved new implementation and fixes to Rust. Froze the Python server as the transition entry point and behavioral reference. The cutover criteria now require broader verified Rust coverage, original-client checks for the replacement workflows, and a server-only deployment smoke test.
+
+#### Rust owner relationships and startup states
+
+- Bound the stock human owner VM to the authenticated controller and the fresh body allocated at each switch. Added distinct queries for the owning controller, current possessor and possessed body. Regressions verify typed operands, body replacement, and the authored Soldier startup and HUD lookups.
+- Ported the input bridge's explicit activation and abort behavior. It forwards repeated inputs while active and consumes inactive inputs without starting the bridge.
+- Enabled the normal graph lifecycle and variable synchronization for the verified networked ForCode state. The Soldier regression covers all six active states, their empty state payloads, and the linked body and weapon-manager states. Native game-code consumers and the server-only form remain open.
+- Verified that two config classes share the retail native evaluator that returns a typed false, and added their exact operand-free forms.
+- Reduced the stock Soldier preflight from 22 diagnostics to 13 in the same prepared base runtime. The first remaining blocker is the delayed conditional state at graph `0033`, node `66`. Stock weapon attachment and original-client acceptance remain pending.
+- Passed 292 public Rust tests, 58 base-runtime checks and 54 enriched-runtime checks. Cargo formatting, Clippy, documentation links and Git diff checks passed.
+
+#### Rust delayed branches and typed health queries
+
+- Added the delayed conditional state's initial override, interruptible per-branch timers, and subgraph teardown to the shared VM. Its branch flags match the build 104319 payload vectors, and only the owner receives pending timers.
+- Resolved authored health, armor and shield queries from the body pool catalog and the existing owner health totals. Current values are returned when the pool distribution is determined by those totals. Named and dynamic pools, and damaged mixed pools without per-type values, still require native state.
+- Enabled the graph lifecycle and verified empty payload for the authored tips state. The native tips registry and original-client presentation remain open.
+- Reduced stock Soldier startup diagnostics from 13 to 11 in the same base runtime. The first blocker is now the dynamic health pool state at graph `0033`, node `1`. Stock weapon attachment and original-client acceptance remain pending.
+- Passed 296 public Rust tests, 58 base-runtime checks and 54 enriched-runtime checks. The codec comparison matched 1,833 owner and observer samples. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust body health pool lifecycle
+
+- Added the authored base health pool shape to the shared VM. It registers capacity and initial current health separately, publishes remaining health before the end plug, and retires the pool when its state or instance ends. The initial and live output timing follows an inference from the authored graphs. Named pools, other flag combinations and capacity changes after activation still need validation.
+- Made the same `Vitals` data drive health queries, damage, healing and component 51. Player and bot updates share the reliable delivery path, including creation acknowledgement, stale revision rejection and slot clears retained in replacement updates.
+- The stock Soldier graph creates 200/200 health. An injected offline hit updates its health output and owner variables to 125/200. The stock startup now has 10 diagnostics, down from 11. The first is the entity filter at graph `004B`, node `21`. Weapon attachment, player damage in a live match and original-client acceptance remain pending.
+- Passed 302 public Rust tests, 59 base-runtime checks and 55 enriched-runtime checks. The shared graph reproduces the reference armour and shield components for Reinhardt and Zarya, and the 32-hero initial component corpus remains byte-identical to the reference. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust authored target tags and entity filters
+
+- Added optional import of target tags from local build 104319 entity definitions in the Rust runtime preparation command. The manifest hashes the resulting graph bundle. Older bundles without tag records still load and report unknown tag data.
+- Shared the owner's tag facts between direct tag queries and filters. The supported filter form applies any, all and exclusion tag predicates, and can use an exclusion mask when the world provides authoritative flags.
+- Verified the authored tag branches at graph `004B`, node `21` and graph `0043`, node `45` with the tagged Practice Range runtime. Stock Soldier startup reports 8 diagnostics, down from 10. The first remaining condition at `004B`, node `20` needs the entity's runtime exclusion flags. Tag mutations, instance overrides, weapon attachment and original-client acceptance remain open.
+- Passed 307 public Rust tests, 59 tagged base-runtime checks and 55 tagged enriched-runtime checks. The earlier untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust owner startup facts and message tables
+
+- Shared the body creation mask with the entity filter query. The same 104319 weapon-manager graph now starts seven additional subgraphs. A frozen reference replay with the corresponding mask matches the order and parents of all 26 instances. Runtime changes to the original server's exclusion flags still need verification.
+- Read the initial on-fire flag from the current possessor's component 64 baseline. Resolved the authenticated human body's absent AI relation as an invalid entity ID. The original 104319 graph and reference data establish the operand shapes. Later client disassembly corroborates the typed absence results. Fire score, decay and active AI relations remain open.
+- Added ordered VM maps for authored local message tables and their typed key lookup. The 20-entry table in the Soldier startup graph is local to the VM. Map wire encoding still needs verification.
+- Used the inherited state lifecycle and empty payload for the verified zero-valued state on the human owner branch. Other values remain unverified.
+- Reduced tagged 104319 Soldier startup diagnostics from 8 to 5. The first remaining operation is `STU_22926252` at `08B6`, node `11`. Stock weapon attachment and original-client acceptance remain pending.
+- Passed 308 public Rust tests, 59 tagged base-runtime checks and 55 tagged enriched-runtime checks. The untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust target tag state lifetimes
+
+- Applied the single literal target-tag grant and suppression states from build 104319 to the owner body's shared tag lookup. State end and instance teardown release the effect. Overlapping supported effects preserve the authored base tags, and body replacement starts with fresh effects. A grant during an active suppression and changes to a foreign entity remain unverified.
+- Verified the stock Soldier graph grants tag `0422` at `01C7`, node `96` with or without a base tag list. Its state uses the inherited empty payload. The tagged 104319 preflight drops from 5 diagnostics to 4. The first remains `STU_22926252` at `08B6`, node `11`. Stock weapon attachment and original-client acceptance remain pending.
+- Clarified that the Python server stays frozen and is retired when Rust exceeds its verified coverage and passes cutover acceptance.
+- Passed 311 public Rust tests, 59 tagged base-runtime checks and 55 tagged enriched-runtime checks. The untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust script instance exit and owner startup transitions
+
+- Queued the operand-free instance exit after earlier same-time events. The normal action output still runs, and the instance teardown cancels later work and releases its descendants. A child exit completes the still-linked parent state when the authored flag permits it. Dynamic targets, named exits and active descendant ordering remain unverified in build 104319.
+- Completed the direct-owner AI state through the same-time finish queue when the world confirms no AI control entity. Added the typed zero asset returned by the fieldless resource lookup. The 104319 graph shapes match the local archive references, and later client inspection corroborates the execution paths.
+- The tagged Soldier startup retires instances 9 and 25 while retaining the allocated ID 26. Its preflight goes from 4 diagnostics to 1, the movement-record sampler at `01C7`, node `7`. Stock weapon attachment and original-client acceptance remain pending.
+- Passed 314 public Rust tests, 59 tagged base-runtime checks and 55 tagged enriched-runtime checks. The untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust owner movement sampling
+
+- Started the authored movement sampler from the same mover used for the selected body's spawn, then fed it actual posed input and collision results. Unposed script time retains the latest movement record.
+- Reused the 104319 owner flags codec and updated only changed authored outputs. The regular mover provides stance, velocity, throttle, ground contact and jump facts. Scripted movement, foreign targets and linked sampler events still need support.
+- Used the embedded standing record at fresh owner construction based on the later client's constructor. The exact 104319 startup context still needs original-client evidence. Tagged Soldier startup reaches the crouch effect action at `01C7`, node `74`. Stock weapon attachment and client acceptance remain pending.
+- Passed 317 public Rust tests, 59 tagged base-runtime checks and 55 tagged enriched-runtime checks. The untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.
+
+#### Rust owner projectile flight
+
+- Routed authored predicted straight projectiles from the same posed shot stream as hitscan. Body creation advertises the authored lease blocks, and the worker sweeps each flight against the current opposing bot capsules and map geometry. Direct and splash impacts use the same health, notice and respawn logic as hitscan.
+- Used the exact owner report carrying the matching volley state to confirm projectile aliases. Confirmations, including the no-report fallback, wait for the acknowledged body and possession. Explosion release waits for the projectile create acknowledgement. Body replacement stops the old flight and reliably retires its aliases without an explosion.
+- The encrypted Practice Range fixture covers Helix's 40 direct and 80 splash damage, an unaffected ally in the flight path, duplicate input and lost confirmation recovery. The stock Soldier body still stops at the authored effect action at `01C7`, node `74`. Observer launch, scripted movement, healing fields and original-client presentation remain open.
+- Passed 320 public Rust tests, 60 tagged base-runtime checks and 55 tagged enriched-runtime checks. The untagged bundle also passed the owner startup regression. Cargo formatting, Clippy, documentation links, Git diff checks and isolated release server startup and shutdown passed.

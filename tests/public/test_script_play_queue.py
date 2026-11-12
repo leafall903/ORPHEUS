@@ -3,13 +3,13 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import expr, modifiers, play, play_queue, runtime, scene, scene_host
-from tests.test_script_play_loaded import KEY, definition
-from tests.test_script_play_request import requesting
-from tests.test_script_runtime_budget import graph, node
-from tests.test_script_startup import definition as component_definition
-from tests.test_script_startup import spec
+from tests.public.test_script_play_loaded import KEY, definition
+from tests.public.test_script_play_request import requesting
+from tests.public.test_script_startup import definition as component_definition
+from tests.public.test_script_startup import spec
+from tests.script_fixtures import export_synthetic_component_vm, graph, node
 
 A, B = 123, 456
 GUID = (0x0580 << 48) | 2
@@ -203,9 +203,9 @@ class AutomaticLifetimeTests(unittest.TestCase):
         component, active = self.active()
         with mock.patch.object(runtime.Instance, 'check_auto_retirement',
                                side_effect=AssertionError('executed')):
-            before = snapshot_digest(export_component_vm(component))
+            before = snapshot_digest(export_synthetic_component_vm(component))
             active.retirement_pending = True
-            self.assertNotEqual(before, snapshot_digest(export_component_vm(component)))
+            self.assertNotEqual(before, snapshot_digest(export_synthetic_component_vm(component)))
 
 
 class SceneQueueTests(unittest.TestCase):

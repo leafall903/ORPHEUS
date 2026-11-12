@@ -7,9 +7,9 @@ from unittest import mock
 
 from ow174.game.script import graph as scripts
 from ow174.game.script import scene_host
-from tests.test_script_runtime_budget import graph, node, plug
-from tests.test_script_scene_host import A, B, make_world
-from tests.test_script_startup import definition, placed, row, schema, spec, value
+from tests.public.test_script_scene_host import A, B, make_world
+from tests.public.test_script_startup import definition, placed, row, schema, spec, value
+from tests.runtime.test_script_runtime_budget import graph, node, plug
 from tools import extract_game_graphs as extractor
 
 RESOURCE = 0x040000000000000E

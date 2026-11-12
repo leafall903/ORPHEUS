@@ -5,15 +5,15 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import test_game_combat as combat_tests
-import test_game_commands as command_tests
 
 from ow174.game.bits import BitReader
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, CommandQueue, InputError, read_commands
 from ow174.game.content import SOLDIER
 from ow174.game.script.driver import BodyScript, CommandEpochError
+from tests.public import test_game_commands as command_tests
 
 
 class QueueEpochTests(unittest.TestCase):

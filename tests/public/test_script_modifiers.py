@@ -4,8 +4,8 @@ import math
 import unittest
 
 from ow174.game.script import expr, modifiers, runtime, scene
-from tests.test_script_play_resource import EMPTY, array, integer
-from tests.test_script_runtime_budget import graph, node
+from tests.public.test_script_play_resource import EMPTY, array, integer
+from tests.runtime.test_script_runtime_budget import graph, node
 
 CLASS = 'STU_316CFEF2'
 OWNER = 0xA0000101

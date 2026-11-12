@@ -1,4 +1,35 @@
-# Tool settings. The Python packages are pinned in requirements.txt (START.bat installs them).
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orpheus"
+version = "0.0.0"
+description = "ORPHEUS server for Overwatch 1.74"
+requires-python = ">=3.12"
+readme = "README.md"
+license-files = ["LICENSE"]
+dependencies = [
+    "protobuf==6.33.6",
+    "websockets==17.0.1",
+    "cryptography==50.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff==0.17.3"]
+
+[project.scripts]
+orpheus = "orpheus:main"
+
+[tool.setuptools]
+include-package-data = false
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"ow174.dashboard" = ["web/*"]
 
 [tool.ruff]
 line-length = 110
@@ -9,7 +40,7 @@ extend-exclude = ["research"]
 select = ["E", "W", "F", "I", "B", "BLE", "UP", "SIM", "C4", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ow174"]
+known-first-party = ["orpheus", "ow174"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/public"]

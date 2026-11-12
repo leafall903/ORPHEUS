@@ -10,18 +10,31 @@ This reads assets in memory and verifies content keys and sizes before writing a
 Full 16-digit 0x IDs for 003 entity definitions and 00C models.
 .PARAMETER IncludeRootModels
 Include the direct root model references from the selected entity definitions.
+.PARAMETER AssetGuidList
+Comma-separated full GUIDs for 003 definitions and 00C models.
+.PARAMETER MapChunks
+Comma-separated full GUIDs for selected map collision and entity chunks.
 .EXAMPLE
 & ./tools/export_casc_records.ps1 -GameRoot $game -DataToolDir $tool -AssetGuid @('0x0400000000000225') -IncludeRootModels
 #>
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Assets')]
 param(
     [Parameter(Mandatory)] [string] $GameRoot,
     [Parameter(Mandatory)] [string] $DataToolDir,
-    [Parameter(Mandatory, HelpMessage = 'Full 0x GUIDs for 003 definitions or 00C models.')]
+    [Parameter(Mandatory, ParameterSetName = 'Assets', HelpMessage = 'Full 0x GUIDs for 003 definitions or 00C models.')]
     [ValidateNotNullOrEmpty()] [ValidatePattern('^0x(?:0400|0D00)[0-9a-fA-F]{12}$')]
     [string[]] $AssetGuid,
-    [switch] $IncludeRootModels
+    [Parameter(Mandatory, ParameterSetName = 'AssetsList')]
+    [ValidatePattern('^0x(?:0400|0D00)[0-9a-fA-F]{12}(,0x(?:0400|0D00)[0-9a-fA-F]{12})*$')]
+    [string] $AssetGuidList,
+    [Parameter(ParameterSetName = 'Assets')]
+    [Parameter(ParameterSetName = 'AssetsList')]
+    [switch] $IncludeRootModels,
+    [Parameter(Mandatory, ParameterSetName = 'Chunks')]
+    [Alias('CollisionChunks')]
+    [ValidatePattern('^0x0DD000(?:0B|11)[0-9a-fA-F]{8}(,0x0DD000(?:0B|11)[0-9a-fA-F]{8})*$')]
+    [string] $MapChunks
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,6 +53,7 @@ $flags = [DataTool.ToolFlags]::new()
 $flags.OverwatchDirectory = (Resolve-Path -LiteralPath $GameRoot).Path
 $flags.Language = $flags.SpeechLanguage = 'zhCN'
 $flags.NoLanguageRegistry = $true
+$flags.SkipKeys = $true
 $flags.UseCache = $flags.CacheCDNData = $flags.TryManifestFallback = $flags.Online = $false
 [DataTool.Program]::Flags = $flags
 $consoleOut = [Console]::Out
@@ -146,7 +160,12 @@ function Open-AssetRecord([uint64] $id) {
 }
 
 $pending = [Collections.Generic.SortedSet[uint64]]::new()
-foreach ($text in $AssetGuid) {
+$requested = switch ($PSCmdlet.ParameterSetName) {
+    'Chunks' { $MapChunks.Split(',') }
+    'AssetsList' { $AssetGuidList.Split(',') }
+    default { $AssetGuid }
+}
+foreach ($text in $requested) {
     [void] $pending.Add([Convert]::ToUInt64($text.Substring(2), 16))
 }
 $records = [ordered] @{}

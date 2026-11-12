@@ -1,17 +1,49 @@
-"""Stored server replay of a fixed world MoveTo through encrypted commands."""
+"""Stored server replay of movement states through encrypted commands."""
 
 import unittest
 from unittest.mock import patch
 
 import test_server_journal as journal_tests
-from test_game_graph_analysis import make_graph, node, output
 
+from ow174.game.commands import JUMP
 from ow174.game.content import SOLDIER
-from ow174.game.script import graph
+from ow174.game.script import graph, nodes
 from ow174.game.server_journal import _ReplaySession
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
 
 
 class MoveToReplayTests(unittest.TestCase):
+    def test_doomfist_airborne_slam_replays_owner_movement_sample(self):
+        doomfist = 0x02E000000000012F
+        fixture = journal_tests.ServerJournalTests()
+        session, sent = fixture.make(verify_stored_state=True)
+        (peer,), (player,) = fixture.connected(session, sent, two=False)
+        peer.message(21616, journal_tests.pick(player.entity, doomfist), now=101.0)
+        first = player.body_script.frame + 1
+        peer.commands(first, 1, JUMP, now=101.016)
+        peer.commands(first + 1, 1, 0x10, now=101.032)  # E / Ability 2
+
+        def observe(player):
+            component = player.body_script.component
+            common = next(inst for inst in component.instances.values() if inst.graph.index == 0x01C7)
+            slam = next(inst for inst in component.instances.values() if inst.graph.index == 0x0B27)
+            return (
+                player.hero.guid,
+                common.states[4].sample,
+                component.entity_var(417, create=False).value(),
+                slam.states[6].active,
+                bool(slam.states[0].flags & nodes.Ability.RUNNING),
+            )
+
+        # The pose is airborne, rising, moving, and started with a jump.
+        expected = (doomfist, 0x815, True, True, True)
+        self.assertEqual(observe(player), expected)
+        replay = _ReplaySession(session.finish(), session.registry.resolve)
+        result = replay.run()
+        self.assertTrue(result["stored_state_verified"])
+        (replayed,) = replay.server.matches[0].players
+        self.assertEqual(observe(replayed), expected)
+
     def test_fixed_world_move_replays_active_state_and_arrival(self):
         shift = 0x08  # Command bit for logical button 35.
         target = (0.0, 0.0, 1.5)

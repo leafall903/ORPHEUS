@@ -8,7 +8,8 @@ from pathlib import Path
 
 from extract_game_graphs import guid_text
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.paths import EMOTE_BLEND_TREE_DATA, EMOTE_TAGGED_DATA
 
@@ -32,7 +33,9 @@ def extract_body_tags(paths: list[Path]) -> dict[str, list[str] | None]:
         if root.tag != "STUEntityDefinition" or not path.stem.endswith(".003"):
             raise ValueError(f"{path.name}: expected a .003 entity definition")
         components = list(root.iter("STUTargetTagComponent"))
-        arrays = [field for component in components for field in component if field.get(NAME) == "m_targetTags"]
+        arrays = [
+            field for component in components for field in component if field.get(NAME) == "m_targetTags"
+        ]
         if len(arrays) > 1:
             raise ValueError(f"{path.name}: ambiguous target tag component")
         tags = None
@@ -63,7 +66,9 @@ def extract(source: Path) -> tuple[dict[str, str], dict[str, str], dict]:
         blend_guid = guid_text(guid) if guid and int(guid.partition(".")[0], 16) else None
         if tags is not None and len(tags):
             tagged[unlock] = {
-                "alias": guid_text(alias), "blend": blend_guid or "0x0", "tags": target_tags(tags, path),
+                "alias": guid_text(alias),
+                "blend": blend_guid or "0x0",
+                "tags": target_tags(tags, path),
             }
             continue
         aliases[unlock] = guid_text(alias)
@@ -78,8 +83,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="directory containing *.0A5.xml")
     parser.add_argument("output", type=Path, help="runtime data/emote_aliases_174.json")
-    parser.add_argument("--body-definitions", nargs="+", type=Path, default=[],
-                        help="entity definition .003 XML files for tagged emote targets")
+    parser.add_argument(
+        "--body-definitions",
+        nargs="+",
+        type=Path,
+        default=[],
+        help="entity definition .003 XML files for tagged emote targets",
+    )
     args = parser.parse_args()
     aliases, blend_trees, tagged = extract(args.source)
     bodies = extract_body_tags(args.body_definitions)
@@ -87,8 +97,13 @@ def main() -> None:
     blend_output = args.output.with_name(EMOTE_BLEND_TREE_DATA)
     blend_output.write_text(json.dumps(blend_trees, indent=2) + "\n", encoding="utf-8")
     tagged_output = args.output.with_name(EMOTE_TAGGED_DATA)
-    tagged_output.write_text(json.dumps({"unlocks": tagged, "bodies": bodies}, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {len(aliases)} untagged aliases, {len(blend_trees)} blend trees and {len(tagged)} tagged unlocks.")
+    tagged_output.write_text(
+        json.dumps({"unlocks": tagged, "bodies": bodies}, indent=2) + "\n", encoding="utf-8"
+    )
+    print(
+        f"Wrote {len(aliases)} untagged aliases, {len(blend_trees)} blend trees "
+        f"and {len(tagged)} tagged unlocks."
+    )
 
 
 if __name__ == "__main__":

@@ -3,9 +3,9 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import expr, runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug, setter
 
 KEY = 0x0A4000000000000A
 
@@ -139,10 +139,10 @@ class PlayLoadedTests(unittest.TestCase):
             mock.patch.object(runtime.Instance, 'start_entries', side_effect=AssertionError('executed')),
             mock.patch.object(runtime.Instance, 'dispatch', side_effect=AssertionError('executed')),
         ):
-            before = snapshot_digest(export_component_vm(component))
+            before = snapshot_digest(export_synthetic_component_vm(component))
         self.assertEqual(instance.queue, queued)
         instance.queue[0].assignment = (0, 41, 6)
-        self.assertNotEqual(snapshot_digest(export_component_vm(component)), before)
+        self.assertNotEqual(snapshot_digest(export_synthetic_component_vm(component)), before)
 
     def test_strict_play_action_requires_world_backend_and_legacy_action_keeps_compatibility(self):
         for strict in (True, False):

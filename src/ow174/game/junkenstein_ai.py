@@ -261,26 +261,30 @@ def bind_boss_voice(match, component, hero, skin_theme):
         placement_line = SUMMONER_BARRIER_LINES.get(stimulus.guid)
         if placement_line is not None:
             position, line, _ = placement_line
-            if hero != SYMMETRA or (instance.graph.index, node.pos) != (0x156B, position) or targets != (body,):
-                component.unsupported(instance, 'Summoner barrier voice targets', node.cls, node)
+            if (hero != SYMMETRA or (instance.graph.index, node.pos) != (0x156B, position)
+                    or targets != (body,)):
+                component.unsupported(instance, "Summoner barrier voice targets", node.cls, node)
             if position == 66:
                 return line & 0xFFFFFFFF  # The enemy team has no human listeners.
         elif stimulus.guid in BOSS_DEFEAT_LINES:
             if instance.graph.index != 0x0CCD or not 6 <= node.pos <= 15 or targets != (mode,):
-                component.unsupported(instance, 'boss defeat voice targets', node.cls, node)
-            killer = world.entities.get(expr.to_entity(state.evaluate(node.field('m_8C8C5285'), watch=False)))
+                component.unsupported(instance, "boss defeat voice targets", node.cls, node)
+            killer = world.entities.get(expr.to_entity(state.evaluate(node.field("m_8C8C5285"), watch=False)))
             killer_hero = killer.hero if killer is not None else None
             eligible = [row for row in BOSS_DEFEAT_LINES[stimulus.guid] if row[2] in (None, killer_hero)]
             line, _, _, _ = rng.choices(eligible, weights=[row[3] for row in eligible])[0]
         else:
             expected_node = 61 <= node.pos <= 70 if stimulus.mode else node.pos == 77
             if instance.graph.index != 0x0CE0 or not expected_node or targets != (speaker,):
-                component.unsupported(instance, 'boss spawn voice targets', node.cls, node)
-            choices = (BOSS_MODE_SPAWN_LINES[stimulus.guid] if stimulus.mode
-                       else BOSS_BODY_LINES[world.voice_set(body)])
+                component.unsupported(instance, "boss spawn voice targets", node.cls, node)
+            choices = (
+                BOSS_MODE_SPAWN_LINES[stimulus.guid]
+                if stimulus.mode
+                else BOSS_BODY_LINES[world.voice_set(body)]
+            )
             line, _ = rng.choice(choices) if len(choices) > 1 else choices[0]
         for player in match.players:
-            component.consume_work('boss voice recipient')
+            component.consume_work("boss voice recipient")
             if player.spawned and not player.gone and player.has_body and player.team == 0:
                 voicelines.queue_voice_notice(player, speaker, stimulus.guid, line, anchor=body)
         return line & 0xFFFFFFFF
@@ -290,20 +294,31 @@ def bind_boss_voice(match, component, hero, skin_theme):
             _, line, samples = SUMMONER_BARRIER_LINES[guid]
             return samples / 48000 if handle == (line & 0xFFFFFFFF) else NotImplemented
         if mode_voice == (guid != BOSS_BODY_CUE):
-            rows = (BOSS_DEFEAT_LINES.get(guid, BOSS_MODE_SPAWN_LINES.get(guid, ())) if mode_voice
-                    else (row for choices in BOSS_BODY_LINES.values() for row in choices))
+            rows = (
+                BOSS_DEFEAT_LINES.get(guid, BOSS_MODE_SPAWN_LINES.get(guid, ()))
+                if mode_voice
+                else (row for choices in BOSS_BODY_LINES.values() for row in choices)
+            )
             for line, samples, *_ in rows:
                 if handle == (line & 0xFFFFFFFF):
                     return samples / 48000
         return NotImplemented
 
     manager = voice_stimulus.Manager(
-        load=load, allow=allow,
-        submit=submit, duration=duration, part=lambda *_: 0.0,
+        load=load,
+        allow=allow,
+        submit=submit,
+        duration=duration,
+        part=lambda *_: 0.0,
     )
-    world.set_voice_context(component.entity, voice_stimulus.Context(
-        component, clock=lambda: component.now / 1000, lookup=lambda: manager,
-    ))
+    world.set_voice_context(
+        component.entity,
+        voice_stimulus.Context(
+            component,
+            clock=lambda: component.now / 1000,
+            lookup=lambda: manager,
+        ),
+    )
 
 
 class EncounterModelControl:
@@ -325,13 +340,16 @@ class EncounterModelControl:
     def within_distance(self, state):
         instance, node = state.instance, state.node
         if (instance.graph.index, node.pos) not in self.placements or state.control_radius != -1.0:
-            instance.component.unsupported(instance, 'encounter model rule', node.cls, node)
+            instance.component.unsupported(instance, "encounter model rule", node.cls, node)
         return False
 
     def write_phase_flag(self, state, enabled, recursive):
         if recursive:
             state.instance.component.unsupported(
-                state.instance, 'recursive encounter model update', state.node.cls, state.node,
+                state.instance,
+                "recursive encounter model update",
+                state.node.cls,
+                state.node,
             )
         self.phase_flag = enabled
 
@@ -355,26 +373,38 @@ class BossPursuit(npc_navigation.Navigator):
         if throttle:
             actor.last_held, actor.input_tick = actor.held, frame
         actor.moved_tick = frame
-        if not mover.airborne and (actor.position[1] < REAPER_BALCONY_SPAWN[1] - 3.0
-                                   or frame - self.drop_started >= 100):
+        if not mover.airborne and (
+            actor.position[1] < REAPER_BALCONY_SPAWN[1] - 3.0 or frame - self.drop_started >= 100
+        ):
             self.drop_started = None
 
     def pursue(self, actor, target, frame, seconds, reach, *, firing_position=None):
-        if (actor.hero == REAPER and not self.drop_used
-                and math.dist(actor.position, REAPER_BALCONY_SPAWN) < 0.25):
+        if (
+            actor.hero == REAPER
+            and not self.drop_used
+            and math.dist(actor.position, REAPER_BALCONY_SPAWN) < 0.25
+        ):
             self.drop_used, self.drop_started = True, frame
             self.drop(actor, frame, seconds, True)
             return
         changed = self.target != target.entity
-        if changed or (frame >= self.next_plan and self.search is None
-                       and (not self.path or math.dist(self.goal, target.feet) > 1.0)):
+        if changed or (
+            frame >= self.next_plan
+            and self.search is None
+            and (not self.path or math.dist(self.goal, target.feet) > 1.0)
+        ):
             self.path, self.search = (), npc_navigation.begin(actor.position, target, reach)
             self.target, self.goal = target.entity, target.feet
             self.stuck = 0
         mover = self.mover
         if self.search is not None and npc_navigation.advance(
-                self.search, mover.world, mover.data, reach, npc_navigation.PLAN_SLICE,
-                firing_position=firing_position):
+            self.search,
+            mover.world,
+            mover.data,
+            reach,
+            npc_navigation.PLAN_SLICE,
+            firing_position=firing_position,
+        ):
             self.path, self.search = self.search.path, None
             self.next_plan = frame + npc_navigation.PLAN_INTERVAL
         while self.path and math.dist(actor.position, self.path[0]) < (0.02 if len(self.path) == 1 else 0.15):
@@ -383,7 +413,12 @@ class BossPursuit(npc_navigation.Navigator):
             destination = self.path[0]
             if npc_navigation.edge(mover.world, actor.position, destination[0], destination[2], mover.data):
                 outcome = npc_navigation._drive(
-                    actor, self, frame, seconds, destination, mover.data.run_forward,
+                    actor,
+                    self,
+                    frame,
+                    seconds,
+                    destination,
+                    mover.data.run_forward,
                 )
                 if outcome is True:
                     self.path = self.path[1:]
@@ -395,10 +430,16 @@ class BossPursuit(npc_navigation.Navigator):
 
 
 def _roadhog_hook_state(component):
-    return next((state for script in component.instances.values()
-                 if script.graph.index == 0x01C8 and script.initialized and not script.stopped
-                 for state in script.states.values()
-                 if state.node.pos == 11 and state.active and isinstance(state, nodes.Ability)), None)
+    return next(
+        (
+            state
+            for script in component.instances.values()
+            if script.graph.index == 0x01C8 and script.initialized and not script.stopped
+            for state in script.states.values()
+            if state.node.pos == 11 and state.active and isinstance(state, nodes.Ability)
+        ),
+        None,
+    )
 
 
 def hook_target_allowed(world, entity):
@@ -407,16 +448,25 @@ def hook_target_allowed(world, entity):
 
 
 def _junkrat_ballistics(component, controller):
-    if not any(state.node.pos == 20 and state.active for script in controller.instances.values()
-               if script.graph.index == 0x0CB5 and script.initialized and not script.stopped
-               for state in script.states.values()):
+    if not any(
+        state.node.pos == 20 and state.active
+        for script in controller.instances.values()
+        if script.graph.index == 0x0CB5 and script.initialized and not script.stopped
+        for state in script.states.values()
+    ):
         return None
-    weapon = next((script for script in component.instances.values()
-                   if script.graph.index == 0x022B and script.initialized and not script.stopped), None)
+    weapon = next(
+        (
+            script
+            for script in component.instances.values()
+            if script.graph.index == 0x022B and script.initialized and not script.stopped
+        ),
+        None,
+    )
     if weapon is None:
         return None
     volley = weapon.node_state(weapon.graph.node(31))
-    speed = expr.to_float(volley.evaluate(volley.node.field('m_projectileSpeed'), watch=False))
+    speed = expr.to_float(volley.evaluate(volley.node.field("m_projectileSpeed"), watch=False))
     gravity = projectiles.unconditional_gravity(volley)
     return (speed, gravity) if speed > 0 and gravity is not None and gravity > 0 else None
 
@@ -453,9 +503,11 @@ def update_boss_combat(host, actor, component):
     controller = world.linked_controllers.get(actor.entity)
     controller_vm = world.script_components.get(controller)
     nav = actor.navigation
-    overrides = [(state.instance.graph.index, state.node.pos, record.identifier, record.flag)
-                 for state, record in world.ai_weapon_records[actor.entity].items()
-                 if state.active and record.slot == 0]
+    overrides = [
+        (state.instance.graph.index, state.node.pos, record.identifier, record.flag)
+        for state, record in world.ai_weapon_records[actor.entity].items()
+        if state.active and record.slot == 0
+    ]
     # Use the ordinary living-body record. Defer to any additional authored override.
     normal_overrides = [(0x08B6, 3, BOSS_PRIMARY_IDENTIFIER, False)]
     if junkrat:
@@ -463,31 +515,47 @@ def update_boss_combat(host, actor, component):
     ordinary_fire = sorted(overrides) == normal_overrides
     hook = _roadhog_hook_state(component) if roadhog else None
     hook_running = hook is not None and hook.flags & (nodes.Ability.RUNNING | nodes.Ability.PUSHED)
-    hook_ready = (hook is not None and not hook_running and ordinary_fire and controller_vm is not None
-                  and hook.remaining() <= 0 and not component.disabled.get(ROADHOG_HOOK_FIRE)
-                  and expr.truthy(hook.evaluate(hook.node.field('m_150F0D92'), watch=False))
-                  and any(state.node.pos == 25 and state.active for script in controller_vm.instances.values()
-                          if script.graph.index == 0x0BC6 and script.initialized and not script.stopped
-                          for state in script.states.values()))
+    hook_ready = (
+        hook is not None
+        and not hook_running
+        and ordinary_fire
+        and controller_vm is not None
+        and hook.remaining() <= 0
+        and not component.disabled.get(ROADHOG_HOOK_FIRE)
+        and expr.truthy(hook.evaluate(hook.node.field("m_150F0D92"), watch=False))
+        and any(
+            state.node.pos == 25 and state.active
+            for script in controller_vm.instances.values()
+            if script.graph.index == 0x0BC6 and script.initialized and not script.stopped
+            for state in script.states.values()
+        )
+    )
     if controller_vm is not None and not nav.handoff_complete:
         # 0CE0/4 sends 06AC on exit. Its receiver can remove 0C95 and its facing state
         # together before the next host update, so an inactive 0C95/5 alone misses that handoff.
         nav.handoff_complete = any(
             state.counter and not state.active
             for owner, graph_index, position in ((component, 0x0CE0, 4), (controller_vm, 0x0C95, 5))
-            for script in owner.instances.values() if script.graph.index == graph_index and not script.stopped
-            for state in script.states.values() if state.node.pos == position
+            for script in owner.instances.values()
+            if script.graph.index == graph_index and not script.stopped
+            for state in script.states.values()
+            if state.node.pos == position
         )
         if not nav.handoff_complete:
             nav.handoff_complete = returning_boss_ready(world, actor.hero, component)
     target_id = None
     selected_button = None
-    ready = (controller_vm is not None and controller_vm.fault is None
-            and controller in world.ai_behavior_requests
-            and world.current_possessions.get(controller) == actor.entity
-            and not actor.dead and not host.match.combat.is_stunned(actor, tick=host.frame)
-            and not component.state_registries.get('STU_9935FBC8')
-            and not world.ai_facing_records[actor.entity] and nav.handoff_complete)
+    ready = (
+        controller_vm is not None
+        and controller_vm.fault is None
+        and controller in world.ai_behavior_requests
+        and world.current_possessions.get(controller) == actor.entity
+        and not actor.dead
+        and not host.match.combat.is_stunned(actor, tick=host.frame)
+        and not component.state_registries.get("STU_9935FBC8")
+        and not world.ai_facing_records[actor.entity]
+        and nav.handoff_complete
+    )
     seconds = host.frame_ms / 1000
     pursuing = actor.keys or bool(nav.path) or nav.search is not None
     if nav.drop_started is not None and not actor.dead:
@@ -498,13 +566,23 @@ def update_boss_combat(host, actor, component):
             npc_navigation.stop(actor)
     elif ready:
         fight = host.match.combat
-        enemies = sorted(((math.dist(actor.position, target.feet), target.entity, target)
-                          for target in fight._enemies(actor)
-                          if target.team == 0 and target.entity in world.entities), key=lambda item: item[:2])
+        enemies = sorted(
+            (
+                (math.dist(actor.position, target.feet), target.entity, target)
+                for target in fight._enemies(actor)
+                if target.team == 0 and target.entity in world.entities
+            ),
+            key=lambda item: item[:2],
+        )
         selection_reach = ROADHOG_HOOK_RANGE if hook_ready else weapon_reach
         ballistics = _junkrat_ballistics(component, controller_vm) if junkrat and ordinary_fire else None
-        aim_arc = partial(npc_navigation.ballistic_aim, fight._collision(),
-                          speed=ballistics[0], gravity=ballistics[1]) if ballistics is not None else None
+        aim_arc = (
+            partial(
+                npc_navigation.ballistic_aim, fight._collision(), speed=ballistics[0], gravity=ballistics[1]
+            )
+            if ballistics is not None
+            else None
+        )
         for distance, _, target in enemies:
             if distance > selection_reach:
                 break
@@ -548,11 +626,19 @@ def update_boss_combat(host, actor, component):
     edges = []
     for button, position in controls:
         held = button in component.held
-        fire = selected_button == button and ordinary_fire and (held or any(
-            isinstance(state, nodes.LogicalButton) and state.active and state.node.pos == position
-            for script in component.instances.values() if script.graph.index == weapon_graph
-            and script.initialized and not script.stopped for state in script.states.values()
-        ))
+        fire = (
+            selected_button == button
+            and ordinary_fire
+            and (
+                held
+                or any(
+                    isinstance(state, nodes.LogicalButton) and state.active and state.node.pos == position
+                    for script in component.instances.values()
+                    if script.graph.index == weapon_graph and script.initialized and not script.stopped
+                    for state in script.states.values()
+                )
+            )
+        )
         if fire != held:
             edges.append((button, fire))
     if roadhog and (selected_button == ROADHOG_HOOK_FIRE) != (ROADHOG_HOOK_FIRE in component.held):
@@ -566,8 +652,9 @@ def _publish_weapon_target(world, control, sender, slot, variable, entity):
     saved = control.find_var(runtime.INSTANCE, variable, create=False)
     previous = expr.to_entity(saved.value()) if saved is not None else expr.INVALID_ENTITY
     if previous != (entity or expr.INVALID_ENTITY):
-        runtime.send_instance_message(control, 0x0240000000000079,
-                                      {0x57: slot, 0x59: expr.Entity(entity or 0)}, sender)
+        runtime.send_instance_message(
+            control, 0x0240000000000079, {0x57: slot, 0x59: expr.Entity(entity or 0)}, sender
+        )
 
 
 def update_witch_combat(host, actor, component):
@@ -577,20 +664,35 @@ def update_witch_combat(host, actor, component):
     controller_vm = world.script_components.get(controller)
     if controller_vm is None or controller_vm.fault is not None:
         return
-    control = next((script for script in controller_vm.instances.values()
-                    if script.graph.index == 0x0CD2 and script.initialized and not script.stopped), None)
+    control = next(
+        (
+            script
+            for script in controller_vm.instances.values()
+            if script.graph.index == 0x0CD2 and script.initialized and not script.stopped
+        ),
+        None,
+    )
     if control is None:
         return
-    ready = (not actor.dead and not fight.is_stunned(actor, tick=host.frame)
-             and bool(world.ai_behavior_requests.get(controller))
-             and world.current_possessions.get(controller) == actor.entity
-             and not component.state_registries.get('STU_9935FBC8')
-             and not world.ai_facing_records[actor.entity])
+    ready = (
+        not actor.dead
+        and not fight.is_stunned(actor, tick=host.frame)
+        and bool(world.ai_behavior_requests.get(controller))
+        and world.current_possessions.get(controller) == actor.entity
+        and not component.state_registries.get("STU_9935FBC8")
+        and not world.ai_facing_records[actor.entity]
+    )
     allies, enemies = [], []
     if ready:
-        staff = next((script for script in component.instances.values()
-                      if script.graph.index == 0x006B and script.initialized and not script.stopped), None)
-        ally_filter = staff.graph.node(121).field('m_filter') if staff is not None else None
+        staff = next(
+            (
+                script
+                for script in component.instances.values()
+                if script.graph.index == 0x006B and script.initialized and not script.stopped
+            ),
+            None,
+        )
+        ally_filter = staff.graph.node(121).field("m_filter") if staff is not None else None
         for target in fight._targets():
             binding = world.entities.get(target.entity)
             if binding is None or target.entity == actor.entity:
@@ -612,8 +714,9 @@ def update_witch_combat(host, actor, component):
     ally = min(allies)[-1] if allies else None
     enemy = min(enemies)[-1] if enemies else None
     for slot, variable, target in ((0, 2299, enemy), (1, 7126, ally)):
-        _publish_weapon_target(world, control, actor.entity, slot, variable,
-                               target.entity if target is not None else None)
+        _publish_weapon_target(
+            world, control, actor.entity, slot, variable, target.entity if target is not None else None
+        )
 
     nav = actor.navigation
     target = ally or enemy
@@ -632,8 +735,9 @@ def update_witch_combat(host, actor, component):
         npc_navigation.stop(actor)
 
     switch_node, switch_button = (44, 15) if ally is not None else (49, 16)
-    switch = next((state for state in control.states.values()
-                   if state.node.pos == switch_node and state.active), None)
+    switch = next(
+        (state for state in control.states.values() if state.node.pos == switch_node and state.active), None
+    )
     edges = [(button, False) for button in (15, 16) if button in component.held]
     if ready and switch is not None:
         request = (switch_node, switch.counter)
@@ -641,12 +745,20 @@ def update_witch_combat(host, actor, component):
             nav.witch_switch_request = request
             edges.append((switch_button, True))
     weapon_graph, trigger, override = (0x006B, 118, 9) if ally is not None else (0x006D, 7, 12)
-    fire = (direction is not None and not any(pressed for _, pressed in edges)
-            and any(state.instance is control and state.node.pos == override and state.active
-                    for state in world.ai_weapon_records[actor.entity])
-            and any(state.active and state.node.pos == trigger for script in component.instances.values()
-                    if script.graph.index == weapon_graph and script.initialized and not script.stopped
-                    for state in script.states.values()))
+    fire = (
+        direction is not None
+        and not any(pressed for _, pressed in edges)
+        and any(
+            state.instance is control and state.node.pos == override and state.active
+            for state in world.ai_weapon_records[actor.entity]
+        )
+        and any(
+            state.active and state.node.pos == trigger
+            for script in component.instances.values()
+            if script.graph.index == weapon_graph and script.initialized and not script.stopped
+            for state in script.states.values()
+        )
+    )
     if fire != (BOSS_PRIMARY_FIRE in component.held):
         edges.append((BOSS_PRIMARY_FIRE, fire))
     if edges:
@@ -660,20 +772,38 @@ def update_symmetra_combat(host, actor, component):
     controller_vm = world.script_components.get(controller)
     if controller_vm is None or controller_vm.fault is not None:
         return
-    control = next((script for script in controller_vm.instances.values()
-                    if script.graph.index == 0x185D and script.initialized and not script.stopped), None)
+    control = next(
+        (
+            script
+            for script in controller_vm.instances.values()
+            if script.graph.index == 0x185D and script.initialized and not script.stopped
+        ),
+        None,
+    )
     if control is None:
         return
-    ready = (not actor.dead and not fight.is_stunned(actor, tick=host.frame)
-             and bool(world.ai_behavior_requests.get(controller))
-             and world.current_possessions.get(controller) == actor.entity
-             and not component.state_registries.get('STU_9935FBC8')
-             and not world.ai_facing_records[actor.entity])
+    ready = (
+        not actor.dead
+        and not fight.is_stunned(actor, tick=host.frame)
+        and bool(world.ai_behavior_requests.get(controller))
+        and world.current_possessions.get(controller) == actor.entity
+        and not component.state_registries.get("STU_9935FBC8")
+        and not world.ai_facing_records[actor.entity]
+    )
     primary_range = expr.to_float(control.find_var(runtime.INSTANCE, 7198).value())
     secondary_range = expr.to_float(control.find_var(runtime.INSTANCE, 4074).value())
-    nearest = min(((math.dist(actor.position, target.feet), target.entity, target)
-                   for target in fight._enemies(actor) if target.team == 0 and target.entity in world.entities),
-                  default=None) if ready else None
+    nearest = (
+        min(
+            (
+                (math.dist(actor.position, target.feet), target.entity, target)
+                for target in fight._enemies(actor)
+                if target.team == 0 and target.entity in world.entities
+            ),
+            default=None,
+        )
+        if ready
+        else None
+    )
     for slot, variable, radius in ((0, 8066, primary_range * 1.25), (1, 11652, secondary_range)):
         entity = nearest[1] if nearest is not None and nearest[0] <= radius else None
         _publish_weapon_target(world, control, actor.entity, slot, variable, entity)
@@ -693,16 +823,20 @@ def update_symmetra_combat(host, actor, component):
             pitch = round(-math.atan2(y, math.hypot(x, z)) * bots.YAW_UNITS / math.tau)
             world.entities[actor.entity].aim_writer(yaw, pitch, host.frame)
             override = 18 if primary else 21
-            if any(state.instance is control and state.node.pos == override and state.active
-                   for state in world.ai_weapon_records[actor.entity]):
+            if any(
+                state.instance is control and state.node.pos == override and state.active
+                for state in world.ai_weapon_records[actor.entity]
+            ):
                 chosen = 20 if primary else 29
         else:
             actor.navigation.pursue(actor, target, host.frame, host.frame_ms / 1000, primary_range)
     if (nearest is None or direction is not None) and (
-            actor.keys or actor.navigation.path or actor.navigation.search is not None):
+        actor.keys or actor.navigation.path or actor.navigation.search is not None
+    ):
         npc_navigation.stop(actor)
-    edges = [(button, chosen == button) for button in (20, 29)
-             if (chosen == button) != (button in component.held)]
+    edges = [
+        (button, chosen == button) for button in (20, 29) if (chosen == button) != (button in component.held)
+    ]
     if edges:
         component.edges(sorted(edges, key=lambda edge: edge[1]))
 
@@ -712,15 +846,26 @@ def summoner_damage_event(component, target, damage, tags):
     gate = component.entity_var(2426, create=False)
     if component.owner_dead or gate is None or gate.value() is not True:
         return
-    charge = next((script for script in component.instances.values()
-                   if script.graph.index == 0x0B8B and script.initialized and not script.stopped), None)
+    charge = next(
+        (
+            script
+            for script in component.instances.values()
+            if script.graph.index == 0x0B8B and script.initialized and not script.stopped
+        ),
+        None,
+    )
     if charge is not None:
-        runtime.send_instance_message(charge, 0x0240000000000012, {
-            0x13: damage,
-            0x15: expr.Entity(target),
-            0x3D: tuple(expr.Asset(tag) for tag in tags),
-            0x624: (),
-        }, component.entity)
+        runtime.send_instance_message(
+            charge,
+            0x0240000000000012,
+            {
+                0x13: damage,
+                0x15: expr.Entity(target),
+                0x3D: tuple(expr.Asset(tag) for tag in tags),
+                0x624: (),
+            },
+            component.entity,
+        )
 
 
 def bind_body_team(host, match, body):
@@ -744,24 +889,33 @@ def bind_body_team(host, match, body):
 
     def watch(watcher, _):
         # Match teams come from live actors. Recheck through the VM's normal native polling.
-        watcher.instance.context(watcher).poll_native({'$': entity_team.CLASS})
+        watcher.instance.context(watcher).poll_native({"$": entity_team.CLASS})
 
-    world.set_entity_team_context(body, entity_team.Context(
-        body, True, True, True, lookup=lookup, watch_filter=watch, watch_environment=watch))
+    world.set_entity_team_context(
+        body,
+        entity_team.Context(
+            body, True, True, True, lookup=lookup, watch_filter=watch, watch_environment=watch
+        ),
+    )
 
 
 def install_enemy_creator(match, host, definitions, configure_component):
     """Mount the prepared enemy allocator on a match's Junkenstein scene."""
     world = host.world
-    if (match.game_map.map_guid != content.JUNKENSTEIN_MAP or world.map_guid != match.game_map.map_guid
-            or world.mode != match.game_map.mode_guid or world.mode not in content.JUNKENSTEIN_MODES
-            or world.hero_creator is not None or world.possessors is None
-            or not callable(configure_component)):
-        raise ValueError('enemy creation requires a configured Junkenstein scene')
+    if (
+        match.game_map.map_guid != content.JUNKENSTEIN_MAP
+        or world.map_guid != match.game_map.map_guid
+        or world.mode != match.game_map.mode_guid
+        or world.mode not in content.JUNKENSTEIN_MODES
+        or world.hero_creator is not None
+        or world.possessors is None
+        or not callable(configure_component)
+    ):
+        raise ValueError("enemy creation requires a configured Junkenstein scene")
     catalog = {}
     for definition in definitions:
         if not isinstance(definition, npc.Definition) or definition.hero in catalog:
-            raise ValueError('enemy creation requires unique validated NPC definitions')
+            raise ValueError("enemy creation requires unique validated NPC definitions")
         catalog[definition.hero] = definition
 
     fight = match.combat
@@ -810,13 +964,19 @@ def install_enemy_creator(match, host, definitions, configure_component):
         return cleanup
 
     def search_spawns(state, request, complete):
-        if (state.instance.graph.index != 0x0CBA or request.flag or request.extra != -1
-                or request.search_scale != 0.5 or not 0 < request.radius <= 70
-                or not 1 <= request.min_candidates <= request.max_candidates <= 300):
+        if (
+            state.instance.graph.index != 0x0CBA
+            or request.flag
+            or request.extra != -1
+            or request.search_scale != 0.5
+            or not 0 < request.radius <= 70
+            or not 1 <= request.min_candidates <= request.max_candidates <= 300
+        ):
             return NotImplemented
         probes = npc_navigation.spawn_candidate_probes(fight._collision(), request, mover_data(ZOMNIC_BODY))
-        return host.queue_spawn_search(state.instance.component, probes, math.ceil(request.radius * 4),
-                                       request.min_candidates, complete)
+        return host.queue_spawn_search(
+            state.instance.component, probes, math.ceil(request.radius * 4), request.min_candidates, complete
+        )
 
     def route_active(entity):
         approach = host.objective_approaches.get(entity)
@@ -829,16 +989,19 @@ def install_enemy_creator(match, host, definitions, configure_component):
         component = instance.component
         registration = host.combatants.get(component.entity)
         location = (instance.graph.index, node.pos)
-        if (location not in ((0x0C89, 47), (0x0C89, 52), (0x2B33, 14)) or registration is None
-                or host.combatant_component(registration[0]) is not component):
+        if (
+            location not in ((0x0C89, 47), (0x0C89, 52), (0x2B33, 14))
+            or registration is None
+            or host.combatant_component(registration[0]) is not component
+        ):
             return previous_search(state)
         if node.pos == 47:
             # The encounter gate has its own damage message and no health pool.
             targets = previous_search(state)
             return () if targets is NotImplemented else targets
-        origin = state.evaluate(node.field('m_8DCA77B6'), watch=False)
-        offset = state.evaluate(node.field('m_05BE62DD'), watch=False)
-        radius = state.evaluate(node.field('m_radius'), watch=False)
+        origin = state.evaluate(node.field("m_8DCA77B6"), watch=False)
+        offset = state.evaluate(node.field("m_05BE62DD"), watch=False)
+        radius = state.evaluate(node.field("m_radius"), watch=False)
         if origin != expr.Entity(component.entity) or not isinstance(offset, expr.Vec3):
             return NotImplemented
         position = world.position(origin.id)
@@ -851,24 +1014,33 @@ def install_enemy_creator(match, host, definitions, configure_component):
                 return ()
             closest = None
             for target in fight._enemies(actor):
-                component.consume_work('Volatile Zomnic proximity target')
+                component.consume_work("Volatile Zomnic proximity target")
                 binding = world.entities.get(target.entity)
-                if binding is None or (isinstance(target.owner, bots.Bot)
-                        and world._has_target_tag(binding, 0x0D60000000000664) is not True):
+                if binding is None or (
+                    isinstance(target.owner, bots.Bot)
+                    and world._has_target_tag(binding, 0x0D60000000000664) is not True
+                ):
                     continue
                 start, end = target.segment()
                 distance = combat.segment_distance(center, start, end)
                 candidate = (distance, target.entity)
-                if (distance <= radius + target.radius and (closest is None or candidate < closest)
-                        and combat.capsule_visible(fight._collision(), center, start, end, target.radius)):
+                if (
+                    distance <= radius + target.radius
+                    and (closest is None or candidate < closest)
+                    and combat.capsule_visible(fight._collision(), center, start, end, target.radius)
+                ):
                     closest = candidate
             return () if closest is None else (closest[1],)
-        condition = node.field('m_filter')['m_condition']
+        condition = node.field("m_filter")["m_condition"]
         victims = []
         # This scoped search uses the bound combat roster and each body's feet position.
         for target in fight._targets():
-            if (target.entity == origin.id or target.entity not in world.entities
-                    or math.dist(center, target.feet) > radius or fight.vitals_of(target).dead):
+            if (
+                target.entity == origin.id
+                or target.entity not in world.entities
+                or math.dist(center, target.feet) > radius
+                or fight.vitals_of(target).dead
+            ):
                 continue
             with component.parameter_scope({8: expr.Entity(target.entity)}):
                 if expr.truthy(state.evaluate(condition, watch=False)):
@@ -889,33 +1061,43 @@ def install_enemy_creator(match, host, definitions, configure_component):
         profile = catalog.get(hero)
         pair = graph.junkenstein_enemy(hero)
         if pair is None:
-            raise ValueError('no prepared Junkenstein body for this hero')
-        body_definition = int(pair['body'], 16)
-        expected_controller = int(pair['controller'], 16)
+            raise ValueError("no prepared Junkenstein body for this hero")
+        body_definition = int(pair["body"], 16)
+        expected_controller = int(pair["controller"], 16)
         boss = hero in BOSSES
         if (boss or controller_definition is not None) and controller_definition != expected_controller:
-            raise ValueError('Junkenstein controller differs from the authored pair')
+            raise ValueError("Junkenstein controller differs from the authored pair")
         body_record = graph.junkenstein_entity(body_definition)
         control_record = graph.junkenstein_entity(expected_controller)
         if not body_record or not control_record:
-            raise ValueError('Junkenstein pair needs both prepared entity records')
+            raise ValueError("Junkenstein pair needs both prepared entity records")
         if profile is None and boss:
             hero_data = content.heroes().get(hero)
             capacity = pools.authored_pools(body_record)
             if hero_data is not None and hero_data.body == body_definition and capacity is not None:
                 profile = npc.Definition(hero, body_definition, hero_data.name, *capacity)
         if profile is None or profile.body != body_definition:
-            raise ValueError('no prepared Junkenstein body for this hero')
+            raise ValueError("no prepared Junkenstein body for this hero")
 
         body = fight.next_bot
         controller = body + 1
-        if (match.ended or not bots.BOT_ENTITY <= body < controller < 0xD0000000
-                or any(entity in world.entities for entity in (body, controller))
-                or any(bot.entity in (body, controller) for bot in match.bots)):
-            raise ValueError('Junkenstein enemy allocator exhausted or collided')
-        spawner = {'hero': f'{hero:016X}', 'team': team, 'position': tuple(position),
-                   'rotation': (0, 0, 0, 1), 'graphs': (), 'create_flags': flags, 'skin_theme': skin_theme}
-        data = {'name': profile.name, 'body': f'{profile.body:016X}', 'health': profile.health}
+        if (
+            match.ended
+            or not bots.BOT_ENTITY <= body < controller < 0xD0000000
+            or any(entity in world.entities for entity in (body, controller))
+            or any(bot.entity in (body, controller) for bot in match.bots)
+        ):
+            raise ValueError("Junkenstein enemy allocator exhausted or collided")
+        spawner = {
+            "hero": f"{hero:016X}",
+            "team": team,
+            "position": tuple(position),
+            "rotation": (0, 0, 0, 1),
+            "graphs": (),
+            "create_flags": flags,
+            "skin_theme": skin_theme,
+        }
+        data = {"name": profile.name, "body": f"{profile.body:016X}", "health": profile.health}
         bot = bots.Bot(body, spawner, data, {})
         bot.yaw = bots.s16(round(yaw * bots.YAW_UNITS / 360))
         vitals = combat.Vitals(body, profile.health, profile.armour, profile.shields)
@@ -953,25 +1135,36 @@ def install_enemy_creator(match, host, definitions, configure_component):
 
         try:
             binding = world.bind(
-                body, hero=hero, definition=profile.body, target_tags=body_record['target_tags'],
-                health=partial(vitals.normal_health, False), health_pool=vitals.pool_current,
-                pool_capacity=vitals.most.get, normal_health=vitals.normal_health,
+                body,
+                hero=hero,
+                definition=profile.body,
+                target_tags=body_record["target_tags"],
+                health=partial(vitals.normal_health, False),
+                health_pool=vitals.pool_current,
+                pool_capacity=vitals.most.get,
+                normal_health=vitals.normal_health,
                 # The wave host currently models only normal pools.
                 maximum_health=partial(vitals.normal_health, True),
-                self_damage=self_damage, position_reader=lambda: bot.position,
+                self_damage=self_damage,
+                position_reader=lambda: bot.position,
                 rotation_reader=lambda: _rotation(bot.yaw),
                 facing_writer=face if boss else None,
                 aim_writer=set_aim if boss else None,
-                velocity=lambda: bot.velocity, scale_reader=scale,
+                velocity=lambda: bot.velocity,
+                scale_reader=scale,
                 movement_reader=movement.snapshot if movement is not None else None,
                 same_team_contact=(
                     partial(movement.set_same_team_contact, team) if movement is not None else None
                 ),
-                pet_component_absent=body_record.get('pet_component_absent', False),
+                pet_component_absent=body_record.get("pet_component_absent", False),
             )
             # All authored wave controllers declare 76AF64F0, the native component 92 schema.
-            world.bind(controller, definition=expected_controller, component92_present=True,
-                       on_fire_reader=lambda: None)
+            world.bind(
+                controller,
+                definition=expected_controller,
+                component92_present=True,
+                on_fire_reader=lambda: None,
+            )
             if boss:
                 world.set_owned_deployables(controller, ())
             world.set_possessor(controller, True)
@@ -980,7 +1173,7 @@ def install_enemy_creator(match, host, definitions, configure_component):
             world.set_linked_controller(body, controller)
             world.bind_ai_behavior(controller)
             world.bind_ai_control(body)
-            identifiers = control_record['ai_weapon_identifiers']
+            identifiers = control_record["ai_weapon_identifiers"]
             world.ai_weapon_slots[controller] = {
                 int(slot): frozenset(values) for slot, values in identifiers.items()
             }
@@ -988,7 +1181,7 @@ def install_enemy_creator(match, host, definitions, configure_component):
             for entity in (body, controller):
                 vm = host.add_spawned_entity_scripts(entity, junkenstein=True)
                 if vm is None:
-                    raise ValueError('Junkenstein body and controller both require a script component')
+                    raise ValueError("Junkenstein body and controller both require a script component")
                 if boss and entity == body:
                     world.bind_data_flow_providers(body)
                     world.set_subgraph_scopes(body, scopes.ForwardHost(vm))
@@ -1008,10 +1201,18 @@ def install_enemy_creator(match, host, definitions, configure_component):
                         bind_boss_voice(match, vm, hero, skin_theme)
                     if world.entity_control_context(body) is NotImplemented:
                         model = EncounterModelControl((0x01CB, 20), (0x0CE0, 17), (0x0D03, 2))
-                        world.set_entity_control_context(body, entity_control.Context(
-                            vm, False, within_distance=model.within_distance, write_entity=model.write,
-                            model_ready=lambda: False, route=None, extra_test=None,
-                        ))
+                        world.set_entity_control_context(
+                            body,
+                            entity_control.Context(
+                                vm,
+                                False,
+                                within_distance=model.within_distance,
+                                write_entity=model.write,
+                                model_ready=lambda: False,
+                                route=None,
+                                extra_test=None,
+                            ),
+                        )
             bind_body_team(host, match, body)
             match.bots.append(bot)
             fight.vitals[body] = vitals
@@ -1019,7 +1220,7 @@ def install_enemy_creator(match, host, definitions, configure_component):
             if approach is not None:
                 host.objective_approaches[controller] = approach
             if hero == ZOMBARDIER:
-                button = body_record['ai_weapon_buttons']['0']
+                button = body_record["ai_weapon_buttons"]["0"]
                 control = ZombardierControl(controller, bot, host.combatant_component(bot), button)
                 fight.bind_scene_zombardier(host, control)
             fight.record_replacement(body)
@@ -1060,13 +1261,20 @@ class GateApproach:
         if actor.dead:
             return
         world = controller.world
-        if (world.entities.get(self.gate.id) is not self.gate
-                or world.script_components.get(controller.entity) is not controller
-                or world.current_possessions.get(controller.entity) != actor.entity):
+        if (
+            world.entities.get(self.gate.id) is not self.gate
+            or world.script_components.get(controller.entity) is not controller
+            or world.current_possessions.get(controller.entity) != actor.entity
+        ):
             route.failed = True
         script = next((item for item in controller.instances.values() if item.graph.index == 0x0C87), None)
-        if (script is None or not script.initialized or script.stopped or route.failed
-                or self.match.combat.is_stunned(actor, tick=frame)):
+        if (
+            script is None
+            or not script.initialized
+            or script.stopped
+            or route.failed
+            or self.match.combat.is_stunned(actor, tick=frame)
+        ):
             actor.velocity, actor.held = (0.0, 0.0, 0.0), (0, 0)
             route.mover.velocity = actor.velocity
             return
@@ -1107,11 +1315,12 @@ class ZombardierControl:
         if instance is not None and instance.initialized and not body.owner_dead:
             volley = instance.node_state(instance.graph.node(14))
             gravity = projectiles.unconditional_gravity(volley)
-            speed = expr.to_float(volley.evaluate(volley.node.field('m_projectileSpeed'), watch=False))
+            speed = expr.to_float(volley.evaluate(volley.node.field("m_projectileSpeed"), watch=False))
             if gravity is not None and speed > 0:
                 enemies = (target for target in targets if target.team != shooter.team)
                 ranked = sorted(
-                    enemies, key=lambda target: (math.dist(shooter.position, target.feet), target.entity),
+                    enemies,
+                    key=lambda target: (math.dist(shooter.position, target.feet), target.entity),
                 )
                 for target in ranked:
                     aim = npc_navigation.ballistic_aim(collision, shooter.position, target, speed, gravity)
@@ -1120,8 +1329,11 @@ class ZombardierControl:
                         target_id = target.entity
                         break
         world.set_ai_linked_target(self.controller, 0, target_id)
-        ready = target_id is not None and (held or any(
-            isinstance(state, nodes.LogicalButton) and state.active and state.button_id() == self.button
-            for state in instance.states.values()
-        ))
+        ready = target_id is not None and (
+            held
+            or any(
+                isinstance(state, nodes.LogicalButton) and state.active and state.button_id() == self.button
+                for state in instance.states.values()
+            )
+        )
         return [(self.button, ready)] if ready != held else []

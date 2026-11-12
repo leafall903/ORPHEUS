@@ -32,7 +32,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game.casc import CascError, Storage, game_root  # noqa: E402
 from ow174.paths import GAME_PATH_FILE  # noqa: E402
@@ -147,17 +148,17 @@ def body_values(text: str) -> dict:
     return out
 
 
-def hero_bodies(stu: Path, heroes: set[int]) -> dict:
+def hero_bodies(stu: Path, heroes: set[int], names_path: Path | None = None) -> dict:
     """Hero GUID -> {name, body, health, armor, shields, speed} from the 075 and 003 dump and
     data/extracted_heroes.json."""
-    names = json.loads(NAMES.read_text(encoding="utf-8"))
+    names = json.loads((names_path or NAMES).read_text(encoding="utf-8-sig"))
     out = {}
     for hero in sorted(heroes):
         key = f"{hero & 0xFFFFFFFFFFFF:012X}.075"
         text = (stu / "075" / f"{key}.xml").read_text(encoding="utf-8")
         body = re.search(r'hml:name="m_gameplayEntity" GUID="([0-9A-F]{12})\.003"', text)
         if body is None:
-            raise SystemExit(f"no m_gameplayEntity in {key}")
+            raise ValueError(f"no m_gameplayEntity in {key}")
         body_text = (stu / "003" / f"{body.group(1)}.003.xml").read_text(encoding="utf-8")
         out[f"0x{hero:016X}"] = {
             "name": (names.get(key) or {}).get("Name", ""),
@@ -183,37 +184,45 @@ def dump(table: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--stu", type=Path, required=True, help="DataTool XML dump with 075")
-    parser.add_argument("--game", type=Path, help="Overwatch.exe or its folder (default: game_path.txt)")
-    args = parser.parse_args()
-    try:
-        root = game_root(args.game or GAME_PATH_FILE.read_text(encoding="utf-8").strip())
-    except (CascError, OSError) as error:
-        raise SystemExit(f"no game install: {error}") from None
-    storage = Storage(root)
-    chunks = json.loads(PROPS.read_text(encoding="utf-8"))["maps"]
-    maps, heroes = {}, set()
+def collect(
+    stu: Path, storage: Storage, prop_index: Path, names: Path, *, maps: set[int] | None = None,
+) -> dict:
+    chunks = json.loads(prop_index.read_text(encoding="utf-8"))["maps"]
+    selected, heroes = {}, set()
     for key, item in chunks.items():
-        found, hints = spawners(storage.read(bytes.fromhex(item["ekey"]), bytes.fromhex(item["ckey"])))
+        if maps is not None and int(key, 16) not in maps:
+            continue
+        found, hints = spawners(storage.read_record(item))
         if found:
-            maps[key] = {"hints": hints, "spawners": found}
+            selected[key] = {"hints": hints, "spawners": found}
             heroes |= {int(spawner["hero"], 16) for spawner in found}
     bad = [h for h in heroes if h >> 48 != HERO_TYPE]
     if bad:
-        raise SystemExit(f"not heroes: {bad}")
-    table = {
+        raise ValueError(f"not heroes: {bad}")
+    return {
         "_source": "Build 1.74.0.0.104319: each map's ENTITY chunk (0x0DD0000B << 32 | map index), its "
         "STUECAISpawnerInstanceData and STUECHintPointInstanceData instances (tools/extract_ai_spawners.py); "
         "hero bodies from the heroes' m_gameplayEntity, their health, armor and shields from the body's "
         "overrides of 0033's vars 199, 221, 1736, speed = the mover's run_forward. team: TeamIndex (0 blue, "
         "1 red). identifier: the mode identifier the spawner needs (null: every mode). vars: the graphs' "
         "variable overrides.",
-        "heroes": hero_bodies(args.stu, heroes),
-        "maps": maps,
+        "heroes": hero_bodies(stu, heroes, names),
+        "maps": selected,
     }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--stu", type=Path, required=True, help="DataTool XML dump with 075 and 003")
+    parser.add_argument("--game", type=Path, help="Overwatch.exe or its folder (default: game_path.txt)")
+    args = parser.parse_args()
+    try:
+        root = game_root(args.game or GAME_PATH_FILE.read_text(encoding="utf-8").strip())
+        table = collect(args.stu, Storage(root), PROPS, NAMES)
+    except (CascError, OSError, ValueError) as error:
+        parser.error(str(error))
     OUT.write_text(dump(table), encoding="utf-8")
+    maps, heroes = table["maps"], table["heroes"]
     total = sum(len(entry["spawners"]) for entry in maps.values())
     print(f"{total} spawners on {len(maps)} maps, {len(heroes)} heroes -> {OUT}")
 

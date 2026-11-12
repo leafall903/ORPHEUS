@@ -5,13 +5,13 @@ includes historical checkpoints. See the [changelog](../CHANGELOG.md) for
 subsequent repairs and the [roadmap](ROADMAP.md) for current acceptance goals.
 The gameplay integration uses LizRollin's wip revision
 `9f8f3bcb5eccab6fb7738bee3c2371fcf0623f29`, on top of the Boi baseline and the
-local startup/research work. [WIP.md](../WIP.md) retains the upstream author's
+local startup/research work. [WIP.md](WIP.md) retains the upstream author's
 test claims and known issues. Those claims are separate from the observations below.
 
 Maintainer automation runs server work and offline checks. Volunteer client
 playtests are a separate, manual verification lane described in
 [CONTRIBUTING.md](../CONTRIBUTING.md#original-client-verification).
-The local server-only entry is `START_SERVER_LOCAL.cmd` / `--mode retail
+The local server-only entry is `scripts/START_SERVER_LOCAL.cmd` / `--mode retail
 --no-launch`; it retains the Battle.net/RPC/lobby/game services without a game
 path, relay preparation or client-launch manager.
 
@@ -175,7 +175,7 @@ acceptance; the user's real-client lifecycle/HUD checks remain separate.
 
 ## Local startup
 
-`START_LOCAL.cmd` uses `.venv`, `--test-players 1` and `--bnet-port 1118`.
+`scripts/START_LOCAL.cmd` uses `.venv`, `--test-players 1` and `--bnet-port 1118`.
 The relay RPC port is 21119. Passing an install folder or `Overwatch Launcher.exe` resolves to the
 actual game executable. The original client files and launcher are retained.
 

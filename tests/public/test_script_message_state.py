@@ -2,11 +2,9 @@
 
 import unittest
 
-from ow174.game import statescript
-from ow174.game.bits import BitReader, BitWriter
-from ow174.game.body_vm_snapshot import BodyVMSnapshotError, export_component_vm
-from ow174.game.script import decode, expr, message_state, runtime, scene
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from ow174.game.body_vm_snapshot import BodyVMSnapshotError
+from ow174.game.script import expr, message_state, runtime, scene
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug, setter
 
 OWNER, OTHER = 0xA0000100, 0xA0000101
 MESSAGE = 0x02400000000006FF
@@ -280,7 +278,7 @@ class MessageStateTests(unittest.TestCase):
 
         context.policy = context.frame = context.priority = fail
         with self.assertRaises(BodyVMSnapshotError):
-            export_component_vm(component)
+            export_synthetic_component_vm(component)
 
     def test_reply_sequence_survives_cleanup_and_uses_low_word(self):
         _, component, _, state, _, _, _ = setup()
@@ -290,15 +288,6 @@ class MessageStateTests(unittest.TestCase):
         with component.operation():
             state.end(False)
         self.assertEqual(state.payload(), {'reply': 0x2345})
-
-    def test_reply_payload_round_trips_variable_width_unsigned16_values(self):
-        for value in (0, 1, 63, 64, 255, 256, 65535, 0x10000):
-            out = BitWriter()
-            statescript.write_payload(out, 'STU_38EE1100', {'reply': value}, 0, 16)
-            reader = BitReader(out.getvalue())
-            result = decode.read_payload(reader, 'STU_38EE1100', 0, 16, owner=True, full=False)
-            self.assertEqual(result, {'reply': value & 0xFFFF} if value & 0xFFFF else {})
-            self.assertEqual(reader.pos, out.count)
 
     def test_shared_host_uses_each_components_budget_and_detaches_only_its_senders(self):
         world, component, instance, state, context, _, events = setup()

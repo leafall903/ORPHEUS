@@ -7,59 +7,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.content import SOLDIER
 from ow174.game.script import runtime
 from ow174.game.script.driver import BodyScript
-from ow174.game.script.graph import Graph
 from ow174.game.script.runtime import ScriptBudgetError
-
-
-def node(position, cls, *, state=None, **fields):
-    return {
-        "pos": position,
-        "class": cls,
-        "uid": position,
-        "rid": position,
-        "remote": -1,
-        "state": state,
-        "client_only": False,
-        "server_only": False,
-        "fields": {"m_2BBEEAB8": state is not None, "m_ADEB6E05": state is None, **fields},
-    }
-
-
-def plug(*links):
-    return {"$": "STUStatescriptOutputPlug", "links": [list(item) for item in links]}
-
-
-def setter(position, value, *links):
-    return node(
-        position,
-        "STUStatescriptActionSetVar",
-        m_out_Var={"$": "STUConfigVarDynamic", "m_identifier": 7, "m_60DB8F99": 0},
-        m_value={"$": "STUConfigVarInt", "m_value": value},
-        m_outPlug=plug(*links),
-    )
-
-
-def graph(nodes=(), entries=()):
-    return Graph(
-        {
-            "index": 1,
-            "header": {},
-            "fields": {},
-            "items": len(nodes),
-            "containers": {},
-            "nodes": list(nodes),
-            "unknown_nodes": [],
-            "states": [item["pos"] for item in nodes if item["state"] is not None],
-            "entries": list(entries),
-            "remote": [],
-            "sync_vars": [],
-        }
-    )
+from tests.script_fixtures import graph, node, plug, setter
 
 
 def cross_events():

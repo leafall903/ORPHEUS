@@ -196,17 +196,10 @@ def motion(player, dt, command=None):
         ) > player.mover.data.run_forward:
             return _swing(player, dt, command, None)
         return None
-    rows = descending.node.field('m_BC5E91CF') or []
-    acceleration = next((abs(expr.to_float(descending.evaluate(row.get('m_9B7A63EA'), watch=False)))
-                         for row in rows if row.get('m_A9561CA0') == 34), 0.0)
-    cap = expr.to_float(graph.evaluate(graph.graph.states[25].field('m_answer')))
-    if acceleration <= 0 or cap <= 0:
-        return None
-    velocity = max(-cap, min(-5.0, player.mover.velocity[1]) - acceleration * dt)
-    x, y, z = player.mover.position
-    # An ahead-of-tick target keeps the mover sweeping until collision, rather than
-    # reporting an artificial destination arrival and zeroing velocity each tick.
-    return (x, y + 2 * velocity * dt, z), abs(velocity)
+    # Upstream consumes authored numeric channel 34 as vertical velocity, not
+    # the older reconstructed acceleration/cap bridge. Keep windup and grapple
+    # hosting above; the ordinary mover now owns the descending collision sweep.
+    return None
 
 
 def update_grapple(fight, player, command, direction):

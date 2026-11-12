@@ -6,7 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import world
 from ow174.game.bits import BitReader, BitWriter
@@ -303,7 +303,7 @@ class MovementStateTests(unittest.TestCase):
 
 
 class MoverTests(unittest.TestCase):
-    """The movement fields the records carry (tests/test_game_mover.py has the mover itself)."""
+    """The movement fields the records carry (tests/runtime/test_game_mover.py has the mover itself)."""
 
     def test_it_keeps_the_last_command_with_throttles(self):
         mover = Mover((0.0, 1.0, 0.0))

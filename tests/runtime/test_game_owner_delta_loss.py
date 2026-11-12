@@ -4,9 +4,6 @@ import unittest
 from unittest.mock import patch
 
 import test_server_journal as journal_tests
-from test_game_packet_budget import connection, prepare_corrections
-from test_game_repeated_lifecycles import wire_frame
-from test_script_driver import ClientModel
 
 from ow174.game import bodytrace, movelog
 from ow174.game.bits import BitWriter
@@ -15,6 +12,9 @@ from ow174.game.content import SOLDIER
 from ow174.game.link import KIND_FRAME, SYN
 from ow174.game.match import SEND_EVERY
 from ow174.game.script.driver import SETTLE_FRAMES, BodyStream, Snapshot
+from tests.runtime.test_game_packet_budget import connection, prepare_corrections
+from tests.runtime.test_game_repeated_lifecycles import wire_frame
+from tests.runtime.test_script_driver import ClientModel
 
 
 class OwnerDeltaLossTests(unittest.TestCase):

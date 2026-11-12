@@ -8,8 +8,8 @@ from unittest import mock
 from ow174.game.script import effect_allocation as allocation
 from ow174.game.script import effect_parameters as parameters
 from ow174.game.script import expr, runtime
-from tests.test_script_effect_parameters import ValuesWorld, refresh, setup
-from tests.test_script_play_resource import EMPTY, integer
+from tests.public.test_script_effect_parameters import ValuesWorld, refresh, setup
+from tests.public.test_script_play_resource import EMPTY, integer
 
 
 class EffectAllocationTests(unittest.TestCase):

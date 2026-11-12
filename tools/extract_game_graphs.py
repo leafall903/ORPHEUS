@@ -37,9 +37,13 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.paths import DATA_DIR
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 OUT = ROOT / "data" / "game_graphs_174.json.gz"
 HEROES = DATA_DIR / "game_heroes_174.json"
@@ -854,6 +858,16 @@ def collect(
         record, used = body_record(xml_dir / "003" / f"{index:012X}.003.xml", enums, None, name)
         entities[key] = record
         queue.extend((graph, name) for graph in sorted(used))
+    associations = sorted({row["ai_association"] for row in entities.values() if "ai_association" in row})
+    for definition in associations:
+        key = f"0x{definition:016X}"
+        if key in entities:
+            continue
+        index = definition & 0xFFFFFFFFFFFF
+        name = f"AI entity {index:04X}"
+        record, used = body_record(xml_dir / "003" / f"{index:012X}.003.xml", enums, None, name)
+        entities[key] = record
+        queue.extend((graph, name) for graph in sorted(used))
     queue += list(ROOT_GRAPHS.items())
     queue.extend((index, "map AI spawners") for index in sorted(ai_roots))
     queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
@@ -953,6 +967,12 @@ def entity_index(text: str) -> int:
     return int(text, 16)
 
 
+def write_bundle(output: Path, data: dict) -> None:
+    content = {key: value for key, value in data.items() if key != "_reason"}
+    text = json.dumps(content, separators=(",", ":"), ensure_ascii=False)
+    output.write_bytes(gzip.compress(text.encode("utf-8"), compresslevel=9, mtime=0))
+
+
 def map_source(text: str) -> tuple[int, Path]:
     index, separator, path = text.partition("=")
     if not separator or not path:
@@ -1023,7 +1043,7 @@ def main() -> None:
     nodes = sum(len(graph["nodes"]) for graph in data["graphs"])
     print(f"{len(data['graphs'])} graphs, {nodes} nodes, {len(data.get('bodies', {}))} hero bodies, "
           f"{len(data.get('entities', {}))} additional entity definitions -> {output}")
-    print(f"{output.stat().st_size / 1e6:.2f} MB ({len(text) / 1e6:.1f} MB of JSON)")
+    print(f"{output.stat().st_size / 1e6:.2f} MB compressed")
 
 
 if __name__ == "__main__":

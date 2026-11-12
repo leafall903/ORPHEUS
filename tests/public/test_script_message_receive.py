@@ -3,10 +3,10 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import entity_queries, expr, runtime, scene
 from ow174.game.script import message_receive as receive
-from tests.test_script_runtime_budget import graph, node, plug
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug
 
 OWNER, CALLER, INSTIGATOR, SUBJECT = 0xA0000100, 0xA0000101, 0xA0000102, 0xA0000103
 MESSAGE, KEY = 0x02400000000006FF, 0x0A400000000003BE
@@ -323,9 +323,9 @@ class MessageReceiveTests(unittest.TestCase):
         queued = list(instance.queue)
         with (mock.patch.object(receive.ParamScope, 'get', side_effect=AssertionError('resolved')),
               mock.patch.object(runtime.Instance, 'dispatch', side_effect=AssertionError('executed'))):
-            before = snapshot_digest(export_component_vm(component))
+            before = snapshot_digest(export_synthetic_component_vm(component))
             instance.disabled_message_entries.clear()
-            self.assertNotEqual(before, snapshot_digest(export_component_vm(component)))
+            self.assertNotEqual(before, snapshot_digest(export_synthetic_component_vm(component)))
         self.assertEqual(instance.queue, queued)
 
     def test_actual_message_entry_class_does_not_keep_an_idle_transient_script_alive(self):

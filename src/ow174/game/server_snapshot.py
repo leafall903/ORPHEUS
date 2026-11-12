@@ -48,6 +48,7 @@ from ow174.game import (
     bots,
     brigitte,
     combat,
+    contacts,
     correction,
     dynamic_spheres,
     echo_duplicate,
@@ -166,7 +167,7 @@ FIELDS = {
                        "_sent_home running"),
     Client: _names("server address conn cipher player window seq open closed heard next_reliable "
                    "_ownership_ordinal reliable "
-                   "unreliable entities in_flight _combat_notices _body_health _combat_notice_tail "
+                   "unreliable entities in_flight _npc_idle _combat_notices _body_health _combat_notice_tail "
                    "_body_destroy_wait _player_body_reuse_after _bot_scripts expected_in parked_in "
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
                    "_mode_fragments _display_notices _pending_possessions _confirmed_possessions _npc_idle"),
@@ -323,9 +324,8 @@ FIELDS = {
         "combat_owner combat_geometry entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
         "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode reposition_body pitch navigation impulse_mover "
-        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb movement_data"
+        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb movement_data free_for_all category radius capsule_top pogo physics physics_world waypoints"
     ),
-    npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
     npc_navigation.LedgeDrop: _names("started released"),
 }
@@ -419,6 +419,7 @@ class _Graph:
         self.vm_nodes = []
         self.vm_extra = {}
         self.physics_owners = {}
+        self.bot_physics_worlds = {}
         self.values = 0
 
     def value(self, obj):
@@ -485,7 +486,7 @@ class _Graph:
             relative = path.relative_to(ROOT.resolve()).as_posix()
         except ValueError:
             _fail("builder function is outside the pinned source model")
-        if not relative.startswith("ow174/game/"):
+        if not relative.startswith("src/ow174/game/"):
             _fail("unregistered builder code source")
         constants = []
         for value in code.co_consts:
@@ -534,6 +535,18 @@ class _Graph:
             "closure": free,
         }
 
+    def _register_physics(self, owner, identities):
+        from ow174.game.commands import Command
+        from ow174.game.mover import Snapshot
+
+        for _, owned in identities:
+            if owned is owner or type(owned) in (tuple, MoverData, Command, Snapshot):
+                continue
+            previous = self.physics_owners.get(id(owned))
+            if previous is not None and previous[0] is owned and previous[1] is not owner:
+                _fail("mutable physics state shared across physics artifacts is unsupported")
+            self.physics_owners[id(owned)] = (owned, owner)
+
     def build(self, number):
         obj, kind = self.objects[number], type(self.objects[number])
         label = f"{kind.__module__}.{kind.__qualname__}"
@@ -570,25 +583,34 @@ class _Graph:
         elif kind in (World, LayeredWorld):
             data = {"asset": self._asset(obj)}
         elif kind is Mover:
-            from ow174.game.commands import Command
-            from ow174.game.mover import Snapshot
             from ow174.game.physics_snapshot import snapshot_mover_with_identities
 
             physics, identities = snapshot_mover_with_identities(
                 obj, world_descriptor=self._asset(obj.world)
             )
-            for _, owned in identities:
-                if owned is obj or type(owned) in (tuple, MoverData, Command, Snapshot):
-                    continue
-                previous = self.physics_owners.get(id(owned))
-                if previous is not None and previous[0] is owned and previous[1] is not obj:
-                    _fail("mutable physics state shared across Mover artifacts is unsupported")
-                self.physics_owners[id(owned)] = (owned, obj)
+            self._register_physics(obj, identities)
 
             data = {
                 "world": self.value(obj.world), "data": self.value(obj.data),
                 "values": self.value(obj.values), "physics": physics,
             }
+        elif kind is bots.Bot:
+            data = self._fields(obj, FIELDS[kind])
+            if obj.physics is not None:
+                if type(obj.physics_world) is not World or id(obj.physics) in self.bot_physics_worlds:
+                    _fail("invalid bot contact world or shared bot capsule")
+                self.bot_physics_worlds[id(obj.physics)] = obj.physics_world
+        elif kind is contacts.CharacterBody:
+            from ow174.game.physics_snapshot import snapshot_character_body_with_identities
+
+            contact_world = self.bot_physics_worlds.get(id(obj))
+            if contact_world is None:
+                _fail("unregistered character capsule owner")
+            physics, identities = snapshot_character_body_with_identities(
+                obj, contact_world, world_descriptor=self._asset(contact_world),
+            )
+            self._register_physics(obj, identities)
+            data = {"world": self.value(contact_world), "physics": physics}
         elif kind is runtime.Component:
             # Extra refs may be discovered later through callbacks/voice pending work.
             self.vm_nodes.append(number)
@@ -739,7 +761,8 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
             _fail("match has an unregistered external collision provider")
     boundaries = {
         "environment": server.environment, "socket": server.sock, "domain_lock": server.lock,
-        "emotes": server.emote_aliases_of, "emote_blend_trees": server.emote_blend_trees_of, "wheel_cosmetics": server.wheel_cosmetics_of,
+        "emotes": server.emote_aliases_of, "emote_blend_trees": server.emote_blend_trees_of,
+        "wheel_cosmetics": server.wheel_cosmetics_of,
         "skin": server.skin_of, "joined_callback": server.on_join, "left_callback": server.on_leave,
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,

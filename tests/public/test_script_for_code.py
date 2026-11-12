@@ -3,9 +3,9 @@
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug, setter
 
 KEY = 0x0D80000000002D19
 
@@ -174,10 +174,10 @@ class ForCodeTests(unittest.TestCase):
         component.code_pending[1].append(KEY)
         component.code_observers.append((7, KEY))
         with mock.patch.object(runtime.Component, 'code_value', side_effect=AssertionError('resolved value')):
-            before = snapshot_digest(export_component_vm(component))
-            self.assertEqual(snapshot_digest(export_component_vm(component)), before)
+            before = snapshot_digest(export_synthetic_component_vm(component))
+            self.assertEqual(snapshot_digest(export_synthetic_component_vm(component)), before)
         component.code_observers[0] = (8, KEY)
-        self.assertNotEqual(snapshot_digest(export_component_vm(component)), before)
+        self.assertNotEqual(snapshot_digest(export_synthetic_component_vm(component)), before)
 
 
 if __name__ == '__main__':

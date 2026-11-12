@@ -3,8 +3,8 @@
 import unittest
 
 from ow174.game.script import expr, runtime
-from tests.test_script_for_code import KEY, make, row
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_for_code import KEY, make, row
+from tests.script_fixtures import graph, node, plug, setter
 
 EMPTY = {'$': 'STU_7BD2CA19', 'm_resourceKey': None, 'm_EE729DCB': 0}
 

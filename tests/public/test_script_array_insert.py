@@ -5,8 +5,8 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import expr, runtime
-from tests.test_script_play_loaded import dynamic
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_play_loaded import dynamic
+from tests.script_fixtures import graph, node, plug, setter
 
 ABSENT = object()
 

@@ -4,7 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ow174.accounts.profile import Profile
 from ow174.catalog.templates import RetailTemplates
 from ow174.content.clock import from_stu_datetime, server_time, stu_datetime

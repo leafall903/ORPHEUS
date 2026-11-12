@@ -8,10 +8,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ow174 import cli
-from ow174.accounts.registry import account_id_for
-from ow174.bnet.service import RPC_PORT
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from ow174 import cli, paths
+from ow174.jam import handshake
 from ow174.launcher import LaunchError
 
 
@@ -53,13 +52,6 @@ class BnetPortTests(unittest.TestCase):
             with self.subTest(port=port), patch("sys.stderr"), self.assertRaises(SystemExit):
                 cli.parse_args(["--bnet-port", port])
 
-    def test_the_retail_bnet_service_uses_the_configured_stall_port_and_fixed_rpc_port(self):
-        server = SimpleNamespace(settings=SimpleNamespace(port=3724))
-        for port in (1119, 1118):
-            with self.subTest(port=port), patch("ow174.bnet.service.start_bnet") as start_bnet:
-                cli._start_bnet(server, port)
-                self.assertEqual(start_bnet.call_args.args[1], "127.0.0.1:3724")
-                self.assertEqual(start_bnet.call_args.kwargs, {"ports": (port, RPC_PORT)})
 
 
 class NoLaunchTests(unittest.TestCase):
@@ -72,7 +64,7 @@ class NoLaunchTests(unittest.TestCase):
         names = (
             "find_game", "close_running_copy", "start_game", "ensure_requirements", "ensure_relay_dll",
             "load_or_create_profile", "LobbyServer", "_bind", "_start_game_server", "start_dashboard",
-            "RetailGames", "_start_bnet", "_log_banner",
+            "RetailGames", "_start_bnet", "_log_banner", "_require_runtime",
         )
         with ExitStack() as stack:
             mocks = {name: stack.enter_context(patch.object(cli, name)) for name in names}
@@ -160,12 +152,126 @@ class NoLaunchTests(unittest.TestCase):
             self.assertIs(server.games, mocks["RetailGames"].return_value)
             server.games.start.assert_called_once()
 
+    def test_missing_retail_relay_does_not_close_a_running_game_or_start_services(self):
+        with self.host_services("retail", no_launch=False) as (args, mocks, _server):
+            mocks["ensure_relay_dll"].side_effect = LaunchError("Missing Windows retail relay")
+            with self.assertRaisesRegex(LaunchError, "Missing Windows retail relay"):
+                cli.run(args)
+            mocks["close_running_copy"].assert_not_called()
+            mocks["LobbyServer"].assert_not_called()
+            mocks["RetailGames"].assert_not_called()
+
     def test_normal_tournament_still_starts_the_requested_client(self):
         with self.host_services("tournament", no_launch=False) as (args, mocks, _server):
             cli.run(args)
             mocks["start_game"].assert_called_once_with(
                 Path("Overwatch.exe"), ["--tank_TournamentMode", "--lobbyServer=127.0.0.1:3724"], "auto",
             )
+
+
+class RuntimeDirectoryTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        self.local = self.root / "runtime-data"
+        self.local.mkdir()
+
+    def test_empty_runtime_directory_preserves_legacy_lookup(self):
+        self.assertIsNone(paths._runtime_directory(self.root, ""))
+
+    def test_local_pack_is_discovered_with_a_manifest_or_data_directory(self):
+        marker = self.local / "manifest.json"
+        marker.write_text("{}", encoding="utf-8")
+        self.assertEqual(paths._runtime_directory(self.root, None), self.local)
+        marker.unlink()
+        (self.local / "data").mkdir()
+        self.assertEqual(paths._runtime_directory(self.root, None), self.local)
+
+    def test_explicit_path_takes_precedence_even_if_it_is_missing(self):
+        (self.local / "data").mkdir()
+        override = self.root / "other-runtime"
+        self.assertEqual(paths._runtime_directory(self.root, str(override)), override)
+        self.assertFalse(override.exists())
+
+
+class RuntimeCheckTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.setup_logging = self.enterContext(patch.object(cli, "setup_logging"))
+        self.enterContext(patch.object(cli.sys.stdin, "isatty", return_value=True))
+        for name in (
+            "ask_mode", "find_game", "close_running_copy", "start_game", "ensure_requirements",
+            "ensure_relay_dll", "load_or_create_profile", "LobbyServer", "_bind", "_start_bnet",
+            "_start_game_server", "start_dashboard", "RetailGames", "join", "join_tournament",
+        ):
+            error = AssertionError(f"Runtime check called {name}")
+            self.enterContext(patch.object(cli, name, side_effect=error))
+        handshake.lobby_state_blob_key.cache_clear()
+        self.addCleanup(handshake.lobby_state_blob_key.cache_clear)
+
+    @contextmanager
+    def runtime_layout(self, *, external):
+        root = self.folder / ("runtime" if external else "checkout")
+        data = root / "data"
+        data.mkdir(parents=True, exist_ok=True)
+        runtime = root if external else None
+        bnet = root if external else root / "ow174"
+        with (
+            patch.object(cli, "RUNTIME_DIR", runtime),
+            patch.object(paths, "ROOT", root),
+            patch.object(paths, "RUNTIME_DIR", runtime),
+            patch.object(paths, "DATA_DIR", data),
+            patch.object(paths, "BNET_DESCRIPTORS", bnet / "bnet" / "descriptors.pb"),
+            patch.object(handshake, "LOBBY_STATE_BLOB_KEY", data / "lobby_state_blob.key"),
+        ):
+            yield data
+
+    def test_incomplete_runtime_lists_missing_inputs_before_game_lookup_or_services(self):
+        for external in (False, True):
+            for checking in (False, True):
+                with (
+                    self.subTest(external=external, checking=checking),
+                    self.runtime_layout(external=external),
+                ):
+                    args = ["--check-runtime"] if checking else [
+                        "--mode", "retail", "--game-exe", "Overwatch",
+                    ]
+                    with self.assertLogs("ow174", level="ERROR") as messages:
+                        self.assertEqual(cli.main(args), 1)
+                    error = "\n".join(messages.output)
+                    source = "the configured runtime directory" if external else "the source checkout"
+                    self.assertIn(f"Missing runtime files in {source}", error)
+                    self.assertIn("data/retail_templates.json", error)
+                    self.assertIn("data/game_graphs_174.json.gz", error)
+                    self.assertIn("data/lobby_state_blob.key", error)
+                    descriptor = "bnet/descriptors.pb" if external else "ow174/bnet/descriptors.pb"
+                    self.assertIn(descriptor, error)
+                    if external:
+                        self.assertNotIn("ow174/bnet/descriptors.pb", error)
+                    self.assertNotIn(paths.ULT_CHARGE_OVERRIDE, error)
+
+    def test_lobby_only_runtime_check_does_not_require_match_data_or_descriptors(self):
+        with self.runtime_layout(external=True) as data:
+            for name in paths.LOBBY_RUNTIME_DATA:
+                (data / name).write_bytes(bytes(64))
+            args = ["--mode", "server", "--game-port", "0", "--check-runtime"]
+            with self.assertLogs("ow174", level="INFO") as messages:
+                self.assertEqual(cli.main(args), 0)
+        self.assertIn("signing input has the expected length", "\n".join(messages.output))
+        self.setup_logging.assert_called_once_with(None)
+
+    def test_runtime_check_refuses_a_wrong_length_signing_input(self):
+        with self.runtime_layout(external=True) as data:
+            for name in paths.LOBBY_RUNTIME_DATA:
+                (data / name).write_bytes(b"synthetic fixture")
+            args = ["--mode", "server", "--game-port", "0", "--check-runtime"]
+            with self.assertLogs("ow174", level="ERROR") as messages:
+                self.assertEqual(cli.main(args), 1)
+        self.assertIn("signing key must be 64 bytes", "\n".join(messages.output))
+
+    def test_runtime_check_rejects_join_modes_without_contacting_the_host(self):
+        for mode in ("join", "join-tournament"):
+            with self.subTest(mode=mode), self.assertRaisesRegex(LaunchError, "checks host modes"):
+                cli.run(cli.parse_args(["--mode", mode, "--check-runtime"]))
 
 
 class JoinTests(unittest.TestCase):
@@ -189,19 +295,30 @@ class JoinTests(unittest.TestCase):
         self.assertEqual(self.ask(""), "1.2.3.4:12357")
 
     def test_a_tournament_join_starts_only_the_game_on_that_server(self):
-        args = SimpleNamespace(server="1.2.3.4:12357", game_exe=None, locale="auto")
-        with (
-            patch.object(cli.socket, "create_connection"),
-            patch.object(cli, "find_game", return_value=Path("Overwatch.exe")),
-            patch.object(cli, "close_running_copy"),
-            patch.object(cli, "start_game") as start_game,
-            patch.object(cli, "LobbyServer") as lobby,
-        ):
-            cli.join_tournament(args)
+        game = Path("Overwatch")
+        with ExitStack() as stack:
+            listener = stack.enter_context(cli.socket.socket())
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            listener.settimeout(1.0)
+            address = f"127.0.0.1:{listener.getsockname()[1]}"
+            stack.enter_context(patch.object(cli, "setup_logging"))
+            find = stack.enter_context(patch.object(cli, "find_game", return_value=game / "Overwatch.exe"))
+            stack.enter_context(patch.object(cli, "close_running_copy"))
+            start_game = stack.enter_context(patch.object(cli, "start_game"))
+            skipped = [
+                stack.enter_context(patch.object(cli, name))
+                for name in ("_require_runtime", "LobbyServer", "ensure_requirements", "ensure_relay_dll")
+            ]
+            result = cli.main(["--mode", "join-tournament", "--server", address, "--game-exe", str(game)])
+            listener.accept()[0].close()
+        self.assertEqual(result, 0)
+        find.assert_called_once_with(game)
         start_game.assert_called_once_with(
-            Path("Overwatch.exe"), ["--tank_TournamentMode", "--lobbyServer=1.2.3.4:12357"], "auto"
+            game / "Overwatch.exe", ["--tank_TournamentMode", f"--lobbyServer={address}"], "auto"
         )
-        lobby.assert_not_called()
+        for operation in skipped:
+            operation.assert_not_called()
 
     def test_a_bad_address_on_the_command_line_is_refused(self):
         args = SimpleNamespace(server="1.2.3.4", name="Jinxzi", game_exe=None, locale="auto")
@@ -260,39 +377,22 @@ class JoinTests(unittest.TestCase):
             self.assertEqual(cli.ask_name(saved), "Jinxzi")
             self.assertEqual(cli.ask_name(saved), "Jinxzi")
 
-    def test_a_join_logs_in_with_the_name_and_goes_to_that_server(self):
-        # The game gets the full menu from a Battle.net emulator of its own, which puts the name in
-        # the session key and sends the game on to the server's lobby.
-        self.check_join(1119)
-
-    def test_a_join_uses_the_custom_local_bnet_port_for_the_service_and_game(self):
-        self.check_join(1118)
-
-    def check_join(self, port):
-        args = cli.parse_args([
-            "--mode", "join", "--server", "lobby.example.org:12357", "--name", "Jinxzi",
-            "--bnet-port", str(port),
-        ])
+    def test_missing_join_relay_does_not_close_a_running_game(self):
+        args = cli.parse_args(["--mode", "join", "--server", "127.0.0.1:12357", "--name", "Jinxzi"])
         with (
+            patch.object(cli.socket, "gethostbyname", return_value="127.0.0.1"),
+            patch.object(cli, "ask_battle_tag", return_value="XQC#6691"),
             patch.object(cli, "find_game", return_value=Path("Overwatch.exe")),
-            patch.object(cli, "close_running_copy"),
             patch.object(cli, "ensure_requirements"),
-            patch.object(cli, "ensure_relay_dll", return_value=Path("relay.dll")),
-            patch.object(cli.socket, "gethostbyname", return_value="1.2.3.4"),
-            patch.object(cli, "ask_battle_tag", return_value="XQC#6691") as ask,
-            patch("ow174.bnet.service.start_bnet") as start_bnet,
+            patch.object(cli, "ensure_relay_dll", side_effect=LaunchError("Missing Windows retail relay")),
+            patch.object(cli, "close_running_copy") as close,
             patch.object(cli, "RetailGames") as games,
+            self.assertRaisesRegex(LaunchError, "Missing Windows retail relay"),
         ):
             cli.join(args)
-        player, lobby = start_bnet.call_args.args
-        self.assertEqual(start_bnet.call_args.kwargs, {"ports": (port, RPC_PORT)})
-        self.assertEqual(lobby, "1.2.3.4:12357")
-        account = player(("127.0.0.1", 50000))
-        self.assertEqual((account.account, account.name), (account_id_for("Jinxzi"), "Jinxzi"))
-        ask.assert_called_once_with("1.2.3.4", 12357, "Jinxzi")
-        self.assertEqual(account.battle_tag, "XQC#6691")  # the nickname the host shows
-        games.assert_called_once_with(Path("Overwatch.exe"), Path("relay.dll"), "auto", 30.0, bnet_port=port)
-        games.return_value.start.return_value.wait.assert_called_once()
+        close.assert_not_called()
+        games.assert_not_called()
+
 
 
 if __name__ == "__main__":

@@ -8,12 +8,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from test_game_combat import Run
-
 from ow174.game import npc, projectiles, world
 from ow174.game.commands import FIRE
 from ow174.game.mover import MoverData
 from ow174.game.script import graph
+from tests.runtime.test_game_combat import Run
 
 
 class ManualNpcTests(unittest.TestCase):

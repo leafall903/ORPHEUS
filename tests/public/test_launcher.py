@@ -1,7 +1,5 @@
 """The launcher: finding the game, its language, closing a leftover copy, the relay DLL and packages."""
 
-import hashlib
-import io
 import subprocess
 import sys
 import tempfile
@@ -9,7 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from ow174.game import collision
 from ow174.launcher import LaunchError, game, relay, requirements
 
 
@@ -36,18 +35,27 @@ class FindGameTests(TempDirTest):
         folder = exe.parent.parent
         launcher = folder / "Overwatch Launcher.exe"
         launcher.write_bytes(b"official launcher")
+        (folder / "data" / "casc" / "data").mkdir(parents=True)
+        saved = self.root / "saved.txt"
         for selected in (folder, exe.parent, launcher):
-            with self.subTest(selected=selected):
-                self.assertEqual(game.find_game(selected), exe.resolve())
+            with self.subTest(selected=selected), patch.object(collision, "GAME_PATH_FILE", saved):
+                self.assertEqual(game.find_game(selected, saved=saved), exe.resolve())
+                self.assertEqual(saved.read_text(encoding="utf-8"), str(exe.resolve()))
+                root = collision.installed_game()
+                self.assertTrue(root is not None and root.samefile(folder))
 
-    def test_an_unpacked_folder_resolves_to_its_game(self):
+    def test_an_unpacked_game_is_found_and_remembered(self):
         exe = self.make_game()
-        self.assertEqual(game.find_game(exe.parent), exe.resolve())
+        saved = self.root / "saved.txt"
+        with patch.object(game, "UNPACKED_GAME_PATHS", (exe,)):
+            self.assertEqual(game.find_game(saved=saved), exe.resolve())
+        self.assertEqual(saved.read_text(encoding="utf-8"), str(exe.resolve()))
 
     def test_the_retail_game_is_preferred_when_an_installation_also_has_a_root_exe(self):
         retail = self.make_game("Overwatch/_retail_")
         self.make_game("Overwatch")
-        self.assertEqual(game.find_game(retail.parent.parent), retail.resolve())
+        saved = self.root / "saved.txt"
+        self.assertEqual(game.find_game(retail.parent.parent, saved=saved), retail.resolve())
 
     def test_an_unrelated_executable_does_not_resolve_to_a_nearby_game(self):
         exe = self.make_game()
@@ -64,12 +72,16 @@ class FindGameTests(TempDirTest):
 
     def test_a_remembered_launcher_is_resolved_without_asking(self):
         exe = self.make_game("Overwatch/_retail_")
-        launcher = exe.parent.parent / "Overwatch Launcher.exe"
+        folder = exe.parent.parent
+        launcher = folder / "Overwatch Launcher.exe"
         launcher.write_bytes(b"official launcher")
+        (folder / "data" / "casc" / "data").mkdir(parents=True)
         saved = self.root / "saved.txt"
         saved.write_text(str(launcher), encoding="utf-8-sig")
-        with patch.object(game, "pick_game") as pick:
+        with patch.object(game, "pick_game") as pick, patch.object(collision, "GAME_PATH_FILE", saved):
             self.assertEqual(game.find_game(saved=saved), exe.resolve())
+            root = collision.installed_game()
+            self.assertTrue(root is not None and root.samefile(folder))
         pick.assert_not_called()
 
     def test_an_explicit_path_that_is_not_the_game_does_not_fall_back(self):
@@ -274,54 +286,32 @@ class InjectRelayTests(unittest.TestCase):
 
 
 class RelayDllTests(TempDirTest):
-    OFFICIAL = b"official relay build"
-
     def setUp(self):
         super().setUp()
         self.dll = self.root / "relay" / "owwfd_relay.dll"
-        official_sha = hashlib.sha256(self.OFFICIAL).hexdigest()
-        patcher = patch.object(relay, "RELEASE_SHA256", official_sha)
-        patcher.start()
-        self.addCleanup(patcher.stop)
 
-    def test_a_self_built_dll_is_kept_and_nothing_is_downloaded(self):
+    def test_a_local_dll_is_kept(self):
         self.dll.parent.mkdir()
         self.dll.write_bytes(b"built from source")
-        with patch.object(relay.urllib.request, "urlopen") as urlopen:
-            self.assertEqual(relay.ensure_relay_dll(self.dll), self.dll)
-        urlopen.assert_not_called()
+        self.assertEqual(relay.ensure_relay_dll(self.dll), self.dll)
         self.assertEqual(self.dll.read_bytes(), b"built from source")
 
-    def test_a_missing_dll_is_downloaded(self):
-        with patch.object(relay.urllib.request, "urlopen", return_value=io.BytesIO(self.OFFICIAL)):
+    def test_a_missing_dll_reports_the_local_build_command(self):
+        with self.assertRaisesRegex(LaunchError, r"relay\\build\.bat"):
             relay.ensure_relay_dll(self.dll)
-        self.assertEqual(self.dll.read_bytes(), self.OFFICIAL)
-
-    def test_a_download_that_is_not_the_official_build_is_not_saved(self):
-        with (
-            patch.object(relay.urllib.request, "urlopen", return_value=io.BytesIO(b"tampered")),
-            self.assertRaisesRegex(LaunchError, "not the official build"),
-        ):
-            relay.ensure_relay_dll(self.dll)
-        self.assertFalse(self.dll.exists())
-
-    def test_a_failed_download_says_where_to_put_the_dll(self):
-        with (
-            patch.object(relay.urllib.request, "urlopen", side_effect=OSError("offline")),
-            self.assertRaisesRegex(LaunchError, "Releases page"),
-        ):
-            relay.ensure_relay_dll(self.dll)
+        self.assertFalse(self.dll.parent.exists())
 
 
 class RequirementsTests(TempDirTest):
     def requirements(self, text):
-        path = self.root / "requirements.txt"
-        path.write_text(text, encoding="utf-8")
+        path = self.root / "pyproject.toml"
+        dependencies = ", ".join(f'"{line}"' for line in text.splitlines() if line)
+        path.write_text(f"[project]\ndependencies = [{dependencies}]\n", encoding="utf-8")
         return path
 
     def test_pinned_and_installed_packages_are_satisfied(self):
         versions = {"protobuf": "6.33.6", "websockets": "17.0.1"}
-        path = self.requirements("protobuf==6.33.6  # comment\n\nwebsockets==17.0.1\n")
+        path = self.requirements("protobuf==6.33.6\n\nwebsockets==17.0.1\n")
         with patch.object(requirements.metadata, "version", side_effect=versions.get):
             self.assertEqual(requirements.missing_requirements(path), [])
 

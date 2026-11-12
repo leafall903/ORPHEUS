@@ -3,7 +3,7 @@
 import unittest
 
 from ow174.game.script import entity_filter, expr, runtime
-from tests.test_script_runtime_budget import graph, node
+from tests.runtime.test_script_runtime_budget import graph, node
 from test_game_graph_analysis import make_graph
 from ow174.game.content import PRACTICE_RANGE_MODE, TUTORIAL_MODE
 from ow174.game.script import scene

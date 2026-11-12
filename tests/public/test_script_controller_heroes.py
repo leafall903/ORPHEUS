@@ -5,7 +5,7 @@ from unittest import mock
 
 from ow174.game.script import controller_heroes as heroes
 from ow174.game.script import expr, play, runtime, scene
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import graph, node, plug, setter
 
 OWNER, OTHER = 0xA0000100, 0xA0000101
 A, B, C = 0x02E000000000006E, 0x02E0000000000002, 0x02E0000000000042

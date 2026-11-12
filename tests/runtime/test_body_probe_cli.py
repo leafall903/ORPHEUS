@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("body_probe", ROOT / "tools" / "probe_body_script.py")
 probe = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(probe)

@@ -1,5 +1,8 @@
 # PVE entrance acceptance
 
+> This is the original candidate's verification record imported with PR #16. See the
+> [changelog](../CHANGELOG.md) for checks run after integration into `leafall`.
+
 Original retail build **1.74.0.0.104319** passed native menu selection, scene load,
 hero selection where applicable, actual-world/HUD entry and settled-menu return
 for all 47 Archives/Junkenstein cards on 2026-11-07.

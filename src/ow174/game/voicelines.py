@@ -19,7 +19,8 @@ How a bark reaches the client:
   nodes), so they are already live instances of the body's statescript component at the spawn. We pick a
   networked stimulus among them and begin it.
 
-What is verified (tests/test_game_voicelines.py, with the client model of tests/test_script_driver.py):
+Verification uses tests/runtime/test_game_voicelines.py and the client model in
+tests/runtime/test_script_driver.py.
 - Beginning a networked voice stimulus on a spawned body gets it into the owner frame; the client model
   reads the frame whole (no crash) and ends with the state on, then off once we end it, staying in step
   with the server throughout. Checked for every hero that has such a stimulus.

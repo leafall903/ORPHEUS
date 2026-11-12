@@ -487,6 +487,9 @@ def evaluate(cfg, ctx: Context, *, initial=None):
         return ""  # 930A00 writes a typed empty string for the authored empty teString.
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
+    if cls == "STU_0762B33A":
+        special = ctx.native(cfg)
+        return special if isinstance(special, Vec3) else _clamp_direction(cfg, ctx)
     if cls == "STU_6DF07EE5":
         definition = cfg.get("m_36F7B64C")
         if (isinstance(definition, dict) and not definition.get("m_17BB822A")
@@ -584,6 +587,32 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     return initial if result is EVALUATION_FAILED else result
 
 
+def _clamp_direction(cfg: dict, ctx: Context) -> Vec3 | None:
+    """Limit the first direction's yaw and pitch around the second direction (104319 RVA CEB820)."""
+    angles = []
+    for field in ("m_32B00625", "m_3661BC45"):
+        vector = evaluate(cfg.get(field), ctx)
+        if not isinstance(vector, Vec3) or not all(math.isfinite(axis) for axis in vector):
+            return None
+        squared = vector.x * vector.x + vector.y * vector.y + vector.z * vector.z
+        if squared <= 1.1754943508222875e-36:
+            return None
+        y = f32(vector.y / math.sqrt(squared)) if abs(squared - 1.0) > 0.008 else vector.y
+        angles.append((f32(math.atan2(vector.x, vector.z)), f32(math.asin(max(-1.0, min(1.0, -y))))))
+
+    limits = [evaluate(cfg.get(field), ctx) for field in ("m_5023B9B0", "m_E26E5E09")]
+    if any(type(limit) not in (int, float) or not math.isfinite(limit) or limit < 0 for limit in limits):
+        return None
+    result = []
+    for angle, reference, degrees in zip(*angles, limits, strict=True):
+        delta = math.remainder(angle - reference, math.tau)
+        limit = math.radians(degrees)
+        result.append(f32(reference + math.copysign(limit, delta)) if abs(delta) > limit else angle)
+    yaw, pitch = result
+    horizontal = math.cos(pitch)
+    return Vec3(f32(math.sin(yaw) * horizontal), f32(-math.sin(pitch)), f32(math.cos(yaw) * horizontal))
+
+
 def cooldown_duration(cfg: dict, ctx: Context) -> float:
     """AbilityCooldownDuration (evaluator 0x7FF789BE2E80, field offsets from its type's field list):
     max(base * scalar, least); the scalar defaults to 1 (a cooldown rule of the mode or hero)."""
@@ -627,18 +656,24 @@ def lvalue(cfg) -> tuple[int, int] | None:
     return None
 
 
-def indexed_lvalue(cfg) -> tuple[tuple[int, int], float] | None:
-    """1B81210's direct variable followed by a literal numeric subscript."""
+def indexed_lvalue(cfg) -> tuple[tuple[int, int], int] | None:
+    """Resolve an authored variable followed by a constant MEMBER_BY_INDEX."""
     if not isinstance(cfg, dict) or cfg.get("$") not in EXPRESSIONS:
         return None
     code, dynamics, floats = _parts(cfg)
-    if len(code) != 6 or code[0] != 8 or code[2] != 6 or code[4:] != [17, 0]:
+    if len(code) != 6 or code[0] not in (8, 9) or code[2] != 6 or code[4:] != [17, 0]:
         return None
-    variable, subscript = code[1], code[3]
-    if not 0 <= variable < len(dynamics) or not 0 <= subscript < len(floats):
+    slot, literal = code[1], code[3]
+    if type(slot) is not int or not 0 <= slot < len(dynamics):
         return None
-    target = dynamic(dynamics[variable])
-    return (target, f32(float(floats[subscript]))) if target is not None else None
+    if type(literal) is not int or not 0 <= literal < len(floats):
+        return None
+    target = dynamic(dynamics[slot])
+    index = floats[literal]
+    if target is None or type(index) not in (int, float) or not math.isfinite(index):
+        return None
+    index = to_int(index)
+    return (target, index) if index >= 0 else None
 
 
 # --- the bytecode --------------------------------------------------------------------------------

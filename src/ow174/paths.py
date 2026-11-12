@@ -4,9 +4,19 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-_runtime_directory = os.environ.get("ORPHEUS_RUNTIME_DIR")
-RUNTIME_DIR = Path(_runtime_directory).resolve() if _runtime_directory else None
+
+def _runtime_directory(root: Path, override: str | None) -> Path | None:
+    if override:
+        return Path(override).resolve()
+    local = root / "runtime-data"
+    if (local / "manifest.json").is_file() or (local / "data").is_dir():
+        return local.resolve()
+    return None
+
+
+SOURCE_CHECKOUT = Path(__file__).resolve().parents[2]
+ROOT = SOURCE_CHECKOUT if (SOURCE_CHECKOUT / "pyproject.toml").is_file() else Path.cwd()
+RUNTIME_DIR = _runtime_directory(ROOT, os.environ.get("ORPHEUS_RUNTIME_DIR"))
 DATA_DIR = (RUNTIME_DIR or ROOT) / "data"
 COLLISION_CACHE_DIR = RUNTIME_DIR / "collision" if RUNTIME_DIR is not None else ROOT / "cache" / "collision"
 BNET_DESCRIPTORS = (RUNTIME_DIR or ROOT / "ow174") / "bnet" / "descriptors.pb"
@@ -20,7 +30,22 @@ GAME_PATH_FILE = ROOT / "game_path.txt"  # the Overwatch.exe picked on the first
 SERVER_ADDRESS_FILE = ROOT / "server_address.txt"  # the server joined last time
 PLAYER_NAME_FILE = ROOT / "player_name.txt"  # the name used to join last time
 PUBLIC_ADDRESS_FILE = ROOT / "public_address.txt"  # the host's public address, asked when hosting
-REQUIREMENTS = ROOT / "requirements.txt"
+PROJECT_FILE = SOURCE_CHECKOUT / "pyproject.toml"
+
+CLIENT_CATALOGS = (
+    "extracted_items.json", "extracted_general_unlocks.json", "extracted_heroes.json", "extracted_maps.json",
+)
+EMOTE_ALIAS_DATA = "emote_aliases_174.json"
+EMOTE_BLEND_TREE_DATA = "emote_blend_trees_174.json"
+EMOTE_TAGGED_DATA = "emote_tagged_174.json"
+EMOTE_DURATION_DATA = "emote_durations_174.json"
+EMOTE_SCALAR_DATA = "emote_scalar_tracks_174.json"
+EMOTE_CLIP_DATA = "emote_clips_174.json"
+WHEEL_POSE_DATA = "wheel_pose_174"
+GREETING_DURATION_DATA = "greeting_durations_174.json"
+GREETING_CLIP_DATA = "greeting_clips_174.json"
+EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved default lookup key
+VOICE_EFFECT_DATA = "voice_effects_174.json"
 
 EMOTE_ALIAS_DATA = "emote_aliases_174.json"
 EMOTE_BLEND_TREE_DATA = "emote_blend_trees_174.json"
@@ -35,27 +60,26 @@ EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved default lookup key
 VOICE_EFFECT_DATA = "voice_effects_174.json"
 
 LOBBY_RUNTIME_DATA = (
-    "schemas_174.json", "retail_templates.json", "extracted_items.json", "extracted_general_unlocks.json",
-    "extracted_heroes.json", "extracted_maps.json", "resource_keys_174.json", "arcade_cards_174.json",
-    "game_queues_174.json", "lobby_state_blob.key",
+    "schemas_174.json", "retail_templates.json", *CLIENT_CATALOGS,
+    "resource_keys_174.json", "arcade_cards_174.json", "game_queues_174.json", "lobby_state_blob.key",
 )
 MATCH_RUNTIME_DATA = (
     "ai_spawners_174.json", "collision_keys_174.json", "collision_props_174.json", "game_graphs_174.json.gz",
     "game_heroes_174.json", "game_maps_174.json", "game_movers_174.json", "game_schemas_174.json",
     "game_stats_174.json", "statescript_codecs_174.json",
 )
+ULT_CHARGE_OVERRIDE = "game_ult_charge_174.json"
 
 
 def missing_runtime_files(*, matches: bool, bnet: bool) -> list[str]:
-    """Report missing external pack members before the service binds its ports."""
-    if RUNTIME_DIR is None:
-        return []
+    """Report missing inputs before the service binds its ports."""
     files = [DATA_DIR / name for name in LOBBY_RUNTIME_DATA]
     if matches:
         files.extend(DATA_DIR / name for name in MATCH_RUNTIME_DATA)
     if bnet:
         files.append(BNET_DESCRIPTORS)
-    return [path.relative_to(RUNTIME_DIR).as_posix() for path in files if not path.is_file()]
+    root = RUNTIME_DIR or ROOT
+    return [path.relative_to(root).as_posix() for path in files if not path.is_file()]
 
 
 @dataclass(frozen=True)

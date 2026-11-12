@@ -3,15 +3,14 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_repeated_lifecycles import REAPER, ProtocolHarness
-from test_server_journal import pick
-
 from ow174.game import bodytrace, messages, movelog
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.commands import FIRE, FRAME_HALF
 from ow174.game.content import PRACTICE_RANGE, SOLDIER
 from ow174.game.link import ACK, FIN, KIND_FRAME
 from ow174.game.server import LEAVE_GAME
+from tests.runtime.test_game_repeated_lifecycles import REAPER, ProtocolHarness
+from tests.runtime.test_server_journal import pick
 
 LAST_VALID = 0xFF7FFFFF
 FIRST_UNSAFE = LAST_VALID + 1

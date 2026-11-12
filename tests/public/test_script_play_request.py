@@ -4,9 +4,9 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import expr, play, runtime, scene
-from tests.test_script_play_loaded import KEY, definition, dynamic
-from tests.test_script_play_resource import EMPTY, array, inline, integer, resource, row
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.public.test_script_play_loaded import KEY, definition, dynamic
+from tests.public.test_script_play_resource import EMPTY, array, inline, integer, resource, row
+from tests.script_fixtures import graph, node, plug, setter
 
 CONTEXT = play.InvocationContext(caller=123, owner=456, instigator=789)
 OWNER = {'$': 'STU_B5A0CAF0'}

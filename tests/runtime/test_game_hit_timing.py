@@ -5,10 +5,9 @@ import unittest
 from collections import deque
 from unittest.mock import patch
 
-from test_game_combat import Run, aim
-
 from ow174.game import bodytrace, combat, movelog
 from ow174.game.commands import FIRE, SUBFRAME, Command
+from tests.runtime.test_game_combat import Run, aim
 
 
 class HitTimingTests(unittest.TestCase):

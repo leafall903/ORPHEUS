@@ -15,7 +15,8 @@ from unicorn import UC_ARCH_X86, UC_HOOK_CODE, UC_MODE_64, Uc
 from unicorn.x86_const import UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSP
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game.script.nodes import FinishOnSignal  # noqa: E402
 

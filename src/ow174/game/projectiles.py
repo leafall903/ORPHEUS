@@ -116,6 +116,8 @@ KEEP_ROTATION = 0x01000000  # movement state +0 bit 24: the block's own rotation
 # --- the server's part ------------------------------------------------------------------------------------
 
 PREDICTED = 1  # a volley's sync after LET_GAME_DECIDE: SHOTS_AND_PROJECTILES, the lease's kind
+SHOTS_ONLY = 2
+MAX_PELLETS = 64  # limit the server's collision work for one authored shot
 FRAME_MS = 16
 LEASE_FIRST = 0x00100000  # the first lease id; the server's own ids stay below
 LEASE_SPAN = 1 << 21  # frames (= ids) of one window: 9.3 hours
@@ -167,9 +169,10 @@ def _sync(state) -> int:
         cfg = node.field(name)
         value = state.evaluate(cfg, watch=False) if cfg is not None else None
         try:
-            return float(value) if value is not None else default
-        except (TypeError, ValueError):
+            number = float(value) if value is not None else default
+        except (TypeError, ValueError, OverflowError):
             return default
+        return number if math.isfinite(number) else default
 
     sync = int(number("m_5E4A4E85"))
     if sync:
@@ -177,8 +180,70 @@ def _sync(state) -> int:
     if number("m_A17BE89B", 1) >= 2 and number("m_numShotsPerSecond") >= 5.5:
         return 3
     if number("m_projectileLifetime") < 1.19e-5 or number("m_numProjectilesPerShot", 1) > 7:
-        return 2
-    return 1
+        return SHOTS_ONLY
+    return PREDICTED
+
+
+def launch_directions(
+    state, direction: tuple[float, float, float],
+) -> tuple[tuple[float, float, float], ...]:
+    """Resolve the authored pellet rings for a shot without allocating projectile entities.
+
+    The spread is in degrees. Use fixed, evenly spaced directions within each ring;
+    the native azimuth and the variation of individual pellet angles remain unverified.
+    Projectile sync modes with entity leases still use the existing single direction.
+    """
+    single = (direction,)
+    launch = state.node.field("m_5EC1EB38")
+    if not isinstance(launch, dict) or launch.get("$") != "STU_613BDDB0":
+        return single
+
+    def number(config):
+        value = state.evaluate(config, watch=False) if config is not None else None
+        return value if type(value) in (int, float) else None
+
+    count = number(state.node.field("m_numProjectilesPerShot"))
+    rings = launch.get("m_0D30E40C")
+    if count is None or not 2 <= count <= MAX_PELLETS or not isinstance(rings, list) or len(rings) > count:
+        return single
+    spread = number(launch.get("m_spread"))
+    if spread is None or not 0 <= spread <= 180 or _sync(state) != SHOTS_ONLY:
+        return single
+
+    layout = []
+    for ring in rings:
+        if not isinstance(ring, dict) or ring.get("$") != "STU_B101467F":
+            return single
+        radius = number(ring.get("m_6425FFB9"))
+        pellets = number(ring.get("m_B19BD35D"))
+        if radius is None or not 0 <= radius <= 1 or pellets is None or not 1 <= pellets <= count:
+            return single
+        if int(pellets) != pellets:
+            return single
+        layout.append((math.radians(radius * spread), int(pellets)))
+    if sum(pellets for _, pellets in layout) != count:
+        return single
+
+    x, y, z = direction
+    horizontal = math.hypot(x, z)
+    right = (z / horizontal, 0.0, -x / horizontal) if horizontal else (1.0, 0.0, 0.0)
+    up = (y * right[2], horizontal, -y * right[0])
+    basis = tuple(zip(direction, right, up, strict=True))
+    directions = []
+    for tilt, pellets in layout:
+        if tilt == 0:
+            directions.extend((direction,) * pellets)
+            continue
+        forward_scale, radial_scale = math.cos(tilt), math.sin(tilt)
+        for index in range(pellets):
+            phase = math.tau * index / pellets
+            right_scale = radial_scale * math.cos(phase)
+            up_scale = radial_scale * math.sin(phase)
+            directions.append(tuple(
+                forward_scale * forward + right_scale * across + up_scale * vertical
+                for forward, across, vertical in basis
+            ))
+    return tuple(directions)
 
 
 def _defs(cfg) -> list[int]:

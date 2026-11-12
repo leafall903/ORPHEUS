@@ -4,9 +4,9 @@ import unittest
 from unittest.mock import patch
 
 import test_mccree_combat as melee_cases
-from test_game_combat import aim
 
 from ow174.game import combat
+from tests.runtime.test_game_combat import aim
 
 
 class McCreeGunTests(unittest.TestCase):

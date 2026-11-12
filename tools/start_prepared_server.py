@@ -30,7 +30,7 @@ def main(arguments=None):
     if not arguments:
         raise SystemExit("Usage: start_prepared_server.py ENVIRONMENT.json [existing server options]")
     prepared = prepare_arguments(arguments[0], arguments[1:])
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(ROOT / "src"))
     os.chdir(ROOT)
     # The existing modules select immutable runtime inputs during import.
     from ow174.cli import main as server_main

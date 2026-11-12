@@ -57,14 +57,19 @@ def card(xml: str) -> dict:
     }
 
 
+def collect(dump: Path) -> dict:
+    cards = {}
+    for path in sorted((dump / "0C7").glob("*.0C7.xml")):
+        index = int(path.name.split(".")[0], 16)
+        cards[f"0x{index:X}"] = card(path.read_text(encoding="utf-8"))
+    return cards
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("dump", type=Path, help="the STU dump folder that holds 0C7")
     args = parser.parse_args()
-    cards = {}
-    for path in sorted((args.dump / "0C7").glob("*.0C7.xml")):
-        index = int(path.name.split(".")[0], 16)
-        cards[f"0x{index:X}"] = card(path.read_text(encoding="utf-8"))
+    cards = collect(args.dump)
     OUT.write_text(json.dumps(cards, indent=1) + "\n", encoding="utf-8")
     print(f"{len(cards)} cards -> {OUT}")
 

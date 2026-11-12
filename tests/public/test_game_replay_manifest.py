@@ -8,16 +8,18 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from ow174.paths import DATA_DIR
+
 import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import absorption, baptiste, barrier, combat, correction, deflection, genji, healing, interception, match
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
-from ow174.paths import DATA_DIR, ROOT
+from ow174.paths import ROOT
 
 RUNTIME = {
     "implementation": "cpython", "version": (3, 12, 6, "final", 0),
@@ -35,8 +37,8 @@ class ReplayManifestTests(unittest.TestCase):
         self.root = self.base / "checkout"
         self.data = self.base / "tables"
         self.data.mkdir()
-        for name in (*manifest.SOURCE_FILES, "ow174/game/__init__.py", "ow174/jam/__init__.py",
-                     "ow174/game/model.py", "ow174/jam/model.py"):
+        for name in (*manifest.SOURCE_FILES, "src/ow174/game/__init__.py", "src/ow174/jam/__init__.py",
+                     "src/ow174/game/model.py", "src/ow174/jam/model.py"):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(f"# fixture {name}\n".encode())
@@ -79,29 +81,29 @@ class ReplayManifestTests(unittest.TestCase):
 
     def test_changes_to_same_length_source_and_data_bytes_are_diagnosed(self):
         first = self.capture()
-        source = self.root / "ow174/game/model.py"
+        source = self.root / "src/ow174/game/model.py"
         source.write_bytes(source.read_bytes().replace(b"fixture", b"changed"))
         graph = self.data / "game_graphs_174.json.gz"
         graph.write_bytes(graph.read_bytes().replace(b"fixture", b"changed"))
         expected = [
             {"path": "files/data/game_graphs_174.json.gz", "kind": "changed"},
-            {"path": "files/ow174/game/model.py", "kind": "changed"},
+            {"path": "files/src/ow174/game/model.py", "kind": "changed"},
         ]
         self.assertEqual(manifest.compare_manifests(first, self.capture()), expected)
         with self.assertRaises(manifest.ManifestMismatch) as caught:
             manifest.assert_compatible(first, self.capture())
         self.assertEqual(caught.exception.differences, expected)
-        self.assertIn("ow174/game/model.py", str(caught.exception))
+        self.assertIn("src/ow174/game/model.py", str(caught.exception))
 
     def test_added_and_deleted_source_files_are_not_hidden_by_a_fixed_filename_list(self):
         first = self.capture()
-        (self.root / "ow174/game/model.py").unlink()
-        new = self.root / "ow174/jam/new_package/new_model.py"
+        (self.root / "src/ow174/game/model.py").unlink()
+        new = self.root / "src/ow174/jam/new_package/new_model.py"
         new.parent.mkdir()
         new.write_bytes(b"# new source\n")
         self.assertEqual(manifest.compare_manifests(first, self.capture()), [
-            {"path": "files/ow174/game/model.py", "kind": "missing"},
-            {"path": "files/ow174/jam/new_package/new_model.py", "kind": "added"},
+            {"path": "files/src/ow174/game/model.py", "kind": "missing"},
+            {"path": "files/src/ow174/jam/new_package/new_model.py", "kind": "added"},
         ])
 
     def test_optional_barrier_geometry_presence_and_content_are_causal_inputs(self):
@@ -134,14 +136,14 @@ class ReplayManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(manifest.ManifestError, name):
                     self.capture()
                 path.write_bytes(content)
-        (self.root / "ow174/jam/__init__.py").unlink()
-        with self.assertRaisesRegex(manifest.ManifestError, "source package missing: ow174/jam"):
+        (self.root / "src/ow174/jam/__init__.py").unlink()
+        with self.assertRaisesRegex(manifest.ManifestError, "source package missing: src/ow174/jam"):
             self.capture()
 
     def test_logs_profiles_secrets_collision_bytes_and_unrelated_data_are_excluded(self):
         first = self.capture()
         for name in ("logs/private.log", "profiles/1.json", "secrets.txt", "cache/collision/0688.col",
-                     "ow174/game/__pycache__/model.pyc", "ow174/lobby/unrelated.py"):
+                     "src/ow174/game/__pycache__/model.pyc", "ow174/lobby/unrelated.py"):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"private not part of the local game model")
@@ -317,13 +319,15 @@ class ReplayManifestTests(unittest.TestCase):
 
     def test_current_repository_coverage_includes_actual_helpers_without_reading_collision_contents(self):
         captured = manifest.capture_manifest(
-            root=ROOT, data_dir=DATA_DIR, configuration=self.configuration,
+            root=ROOT, data_dir=self.data, configuration=self.configuration,
             runtime=RUNTIME, dependencies=DEPENDENCIES,
         )
         files = {row["path"] for row in captured["files"]}
-        for name in ("ow174/game/match.py", "ow174/game/projectiles.py", "ow174/game/replay_manifest.py",
-                     "ow174/jam/codec.py", "data/game_graphs_174.json.gz", "data/game_heroes_174.json",
-                     "data/collision_keys_174.json", "data/collision_props_174.json"):
+        for name in (
+            "src/ow174/game/match.py", "src/ow174/game/projectiles.py", "src/ow174/game/replay_manifest.py",
+            "src/ow174/jam/codec.py", "data/game_graphs_174.json.gz", "data/game_heroes_174.json",
+            "data/collision_keys_174.json", "data/collision_props_174.json",
+        ):
             self.assertIn(name, files)
         expected = set(manifest.DATA_FILES) | {
             name for name in manifest.OPTIONAL_DATA_FILES if (DATA_DIR / name).exists()}

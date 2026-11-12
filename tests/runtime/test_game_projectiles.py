@@ -2,6 +2,7 @@
 the other clients get, and the Biotic Field's entity, frame and heal; the other bodies' statescript
 (observers.py)."""
 
+import math
 import struct
 import sys
 import unittest
@@ -10,12 +11,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from test_game_combat import KANEZAKA_DM, Run
-from test_game_packet_budget import MemorySocket, decoded
-from test_game_world import read_movement
 
 from ow174.game import bodytrace, bots, combat, movelog, observers, projectiles, world
 from ow174.game.bits import BitReader
@@ -27,6 +24,9 @@ from ow174.game.script.decode import ClientBody, read_chunk
 from ow174.game.script.driver import Snapshot
 from ow174.game.server import Client, GameServer
 from ow174.game.world import HEALTH_POOL, OP_CREATE, OP_DESTROY
+from tests.runtime.test_game_combat import KANEZAKA_DM, Run
+from tests.runtime.test_game_packet_budget import MemorySocket, decoded
+from tests.runtime.test_game_world import read_movement
 
 HELIX, HELIX_VISOR, CANISTER = 0x040000000000072C, 0x0400000000001C86, 0x040000000000072D
 SECONDARY, ABILITY_1, ABILITY_2, ULTIMATE = 0x02, 0x08, 0x10, 0x20
@@ -163,8 +163,6 @@ class HelixTests(unittest.TestCase):
     def test_the_direction_reads_back(self):
         for direction in ((0.0, 0.0, 1.0), (0.6, 0.0, 0.8), (0.0, -1.0, 0.0), (-0.48, 0.6, -0.64)):
             yaw16, pitch16 = projectiles.direction16(direction)
-            import math
-
             a = (yaw16 - 32768) * math.pi / 32768
             b = (pitch16 - 32768) * math.pi / 65536
             back = (math.sin(a) * math.cos(b), math.sin(b), math.cos(a) * math.cos(b))
@@ -173,6 +171,113 @@ class HelixTests(unittest.TestCase):
 
 
 class ProjectileRangeTests(unittest.TestCase):
+    def fire_hand_cannon(self, distance):
+        run = Run(KANEZAKA_DM, ("Shooter", "Target"))
+        shooter, victim = run.players
+        match = run.match
+        fight = match.combat
+        match.bots.clear()
+        self.assertTrue(match.switch_hero(shooter, find_hero("Doomfist")))
+        y = match.game_map.spawns[0].position[1]
+        shooter.mover.position[:] = (0.0, y, 0.0)
+        victim.mover.position[:] = (0.0, y, distance)
+        target = next(target for target in fight._targets() if target.owner is victim)
+
+        frame = shooter.body_script.frame + 1
+        shooter.body_script.command(frame, FIRE)
+        self.assertEqual(len(shooter.body_script.component.shots), 1)
+        fight.command(shooter, Command(frame, buttons=FIRE))
+        return fight, fight.vitals_of(target), frame
+
+    def test_hand_cannon_direct_damage_uses_the_authored_falloff(self):
+        for distance, damage in ((5.0, 6.0), (23.0, 3.9), (35.0, 1.8)):
+            with self.subTest(distance=distance):
+                fight, vitals, frame = self.fire_hand_cannon(distance)
+                before = vitals.total
+                # Isolate the centre pellet so this test covers its damage independently of spread.
+                centre = next(rocket for rocket in fight.rockets if rocket.direction == (0.0, 0.0, 1.0))
+                fight.rockets[:] = [centre]
+                for tick in range(30):
+                    fight.update(20.0 + tick * combat.TICK, frame + tick, frames=False)
+
+                self.assertFalse(fight.rockets)
+                self.assertAlmostEqual(before - vitals.total, damage, delta=0.02)
+
+    def test_hand_cannon_sweeps_all_eleven_pellets_from_one_shot(self):
+        fight, vitals, frame = self.fire_hand_cannon(2.0)
+        directions = [rocket.direction for rocket in fight.rockets]
+        angles = sorted(round(math.degrees(math.atan2(math.hypot(x, y), z)), 4) for x, y, z in directions)
+        self.assertEqual(angles, [0.0] + [1.25] * 4 + [2.5] * 6)
+        self.assertEqual(len(set(directions)), 11)
+        self.assertTrue(all(math.isclose(math.hypot(*direction), 1.0) for direction in directions))
+        self.assertFalse(fight.projectiles.shots)  # the graph uses shot synchronization without leases
+        before = vitals.total
+        for tick in range(8):
+            fight.update(20.0 + tick * combat.TICK, frame + tick, frames=False)
+        self.assertFalse(fight.rockets)
+        self.assertAlmostEqual(before - vitals.total, 66.0)
+
+    def test_hand_cannon_flight_retires_on_hero_switch_or_leave(self):
+        for retirement in ("switch", "leave"):
+            with self.subTest(retirement=retirement):
+                run = Run(KANEZAKA_DM, ("Shooter", "Target"))
+                shooter, victim = run.players
+                match, fight = run.match, run.match.combat
+                bot = match.bots[0]
+                match.bots.clear()
+                match._pending_bot_scripts.clear()
+                self.assertTrue(match.switch_hero(shooter, find_hero("Doomfist")))
+                self.assertTrue(match.switch_hero(victim, find_hero("Doomfist")))
+                y = match.game_map.spawns[0].position[1]
+                shooter.mover.position[:] = (0.0, y, 0.0)
+                victim.mover.position[:] = (0.0, y, 8.0)
+                target = next(target for target in fight._targets() if target.owner is victim)
+                vitals = fight.vitals_of(target)
+                run.step({shooter: (0, 0, FIRE), victim: (0, 0, FIRE)})
+                self.assertEqual(sum(rocket.shooter is shooter for rocket in fight.rockets), 11)
+                other_rockets = [rocket for rocket in fight.rockets if rocket.shooter is victim]
+                self.assertEqual(len(other_rockets), 11)
+                npc_rocket = combat.Rocket(
+                    bot, bot.team, (0.0, y, 20.0), (0.0, 0.0, 1.0), 80.0, 1.0, None, None,
+                )
+                fight.rockets.append(npc_rocket)
+
+                if retirement == "switch":
+                    self.assertTrue(match.switch_hero(shooter, find_hero("Reaper")))
+                else:
+                    match.leave(shooter)
+
+                self.assertFalse(any(rocket.shooter is shooter for rocket in fight.rockets))
+                self.assertEqual(fight.rockets, [*other_rockets, npc_rocket])
+                before = vitals.total
+                for step in range(1, 9):
+                    fight.update((run.frame + step) * combat.TICK, run.frame + step, frames=False)
+                self.assertEqual(vitals.total, before)
+
+    def test_hand_cannon_flight_survives_death_until_body_retirement(self):
+        run = Run(KANEZAKA_DM, ("Shooter", "Target"))
+        shooter, victim = run.players
+        match, fight = run.match, run.match.combat
+        match.bots.clear()
+        match._pending_bot_scripts.clear()
+        self.assertTrue(match.switch_hero(shooter, find_hero("Doomfist")))
+        y = match.game_map.spawns[0].position[1]
+        shooter.mover.position[:] = (0.0, y, 0.0)
+        victim.mover.position[:] = (0.0, y, 8.0)
+        target = next(target for target in fight._targets() if target.owner is victim)
+        vitals = fight.vitals_of(target)
+        run.step({shooter: (0, 0, FIRE)})
+        body = shooter.body
+        shooter_target = next(target for target in fight._targets() if target.owner is shooter)
+        fight._damage(victim, shooter_target, 300.0, False, None, run.frame)
+        self.assertTrue(fight.is_dead(shooter))
+        self.assertEqual(sum(rocket.shooter is shooter for rocket in fight.rockets), 11)
+        before = vitals.total
+        for _ in range(8):
+            run.step({})
+        self.assertEqual(shooter.body, body)
+        self.assertAlmostEqual(before - vitals.total, 66.0)
+
     def test_replacing_the_shooter_retires_the_projectiles_damage(self):
         for replace_body, expected_health in ((False, 80.0), (True, 200.0)):
             with self.subTest(replace_body=replace_body):
@@ -1328,6 +1433,48 @@ class BioticFieldTests(unittest.TestCase):
         self.assertFalse(fights.shots)
         destroyed = {item.entity for item in a.client.entities if item.op == OP_DESTROY}
         self.assertTrue({item.entity for item in field_creates} <= destroyed)
+
+    def test_gap_across_field_opening_keeps_only_retained_healing(self):
+        def launch():
+            run = Run(KANEZAKA_DM)
+            player, = run.players
+            fight = run.match.combat
+            target = next(target for target in fight._targets() if target.owner is player)
+            vitals = fight.vitals_of(target)
+            vitals.damage(199.0)
+            run.step({player: (0, 0, ABILITY_2)})
+            for _ in range(80):
+                if fight.projectiles.shots:
+                    break
+                run.step({})
+            field, = fight.projectiles.shots
+            run.step({})  # admit the canister on the world clock before the gap
+            self.assertIsNone(field.field_tick)
+            return run, field, vitals
+
+        normal, field, vitals = launch()
+        for _ in range(80):
+            if field.field_tick is not None:
+                break
+            normal.step({})
+        start = normal.frame
+        self.assertEqual(field.field_tick, start)
+        self.assertEqual(vitals.total, 1.0)  # no healing on the opening tick
+        health = [vitals.total]
+        for _ in range(combat.COMBAT_CATCH_UP + 5):
+            normal.step({})
+            health.append(vitals.total)
+
+        for elapsed in (5, combat.COMBAT_CATCH_UP + 5):
+            with self.subTest(elapsed=elapsed):
+                skipped, field, vitals = launch()
+                self.assertLess(skipped.frame, start)
+                endpoint = start + elapsed
+                skipped.match.update(endpoint * combat.TICK, endpoint)
+                self.assertEqual(field.field_tick, start)
+                retained = min(elapsed, combat.COMBAT_CATCH_UP)
+                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+
 
 
 class ObserverTests(unittest.TestCase):

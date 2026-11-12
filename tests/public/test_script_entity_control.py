@@ -2,10 +2,9 @@
 import unittest
 from unittest import mock
 
-from ow174.game import body_vm_snapshot
 from ow174.game.script import entity_control as control
 from ow174.game.script import expr, runtime, scene
-from tests.test_script_runtime_budget import graph, node
+from tests.script_fixtures import export_synthetic_component_vm, graph, node
 
 
 def literal(value):
@@ -285,7 +284,7 @@ class EntityControlTests(unittest.TestCase):
         with mock.patch.object(runtime.World, 'entity_control_context', return_value=None):
             state.begin()
         with mock.patch.object(type(state), 'dependency_changed', side_effect=AssertionError('executed')):
-            document = body_vm_snapshot.export_component_vm(component)
+            document = export_synthetic_component_vm(component)
         self.assertIn('control_generation', str(document))
 
 

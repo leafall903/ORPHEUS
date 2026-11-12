@@ -6,7 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ow174.bnet import protocol as P
 from ow174.bnet.rpc_server import BNetRpcServer, Player
 from ow174.bnet.session_key import name_in_key, session_key

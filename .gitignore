@@ -32,6 +32,13 @@ matchmaking.json
 # Map collision built from the player's own game (tools/build_collision.py)
 /cache/
 
+# Generated local runtime inputs
+/data/*.json
+/data/*.json.gz
+/data/game_schemas_174.txt
+/ow174/bnet/descriptors.pb
+/src/ow174/bnet/descriptors.pb
+
 # Logs and research output
 logs/
 relay/log/
@@ -44,7 +51,7 @@ diagnostics.txt
 backups/
 work/
 
-# Relay build output (the release DLL is downloaded by START.bat)
+# Relay build output
 *.dll
 *.exe
 *.obj
@@ -71,6 +78,7 @@ data/srv_dec.bin
 # Archives, secrets, temporary files
 *.zip
 *.7z
+*.rar
 *.tmp
 .env
 .env.*
@@ -86,8 +94,8 @@ secrets.json
 /secrets/
 /local-data/
 /runtime-data/
+.orpheus-setup-*/
 /game-client/
 /captures/
-/data/resource_keys_174.json
 Thumbs.db
 desktop.ini

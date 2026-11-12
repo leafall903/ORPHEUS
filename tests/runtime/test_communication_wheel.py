@@ -8,9 +8,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from test_game_combat import KANEZAKA_DM, Run, in_world
-from test_game_entity_lifecycle import client as game_client
-
 from ow174.accounts.profile import Profile
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
@@ -22,10 +19,20 @@ from ow174.game.collision import RayAttachment, RayHit, RayWorld, StaticCollisio
 from ow174.game.commands import FIRE, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.match import Match
-from ow174.game.world import OP_CREATE, EntityUpdate
 from ow174.game.script import decode, expr, graph, runtime, spray_placement
-from ow174.game.script.driver import BodyScript, BodyStream, ULT_COST
-from ow174.paths import EMOTE_ALIAS_DATA, EMOTE_ANY_CATEGORY, EMOTE_BLEND_TREE_DATA, EMOTE_DURATION_DATA, EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, VOICE_EFFECT_DATA
+from ow174.game.script.driver import ULT_COST, BodyScript, BodyStream
+from ow174.game.world import OP_CREATE, EntityUpdate
+from ow174.paths import (
+    EMOTE_ALIAS_DATA,
+    EMOTE_ANY_CATEGORY,
+    EMOTE_BLEND_TREE_DATA,
+    EMOTE_DURATION_DATA,
+    EMOTE_TAGGED_DATA,
+    GREETING_DURATION_DATA,
+    VOICE_EFFECT_DATA,
+)
+from tests.runtime.test_game_combat import KANEZAKA_DM, Run, in_world
+from tests.runtime.test_game_entity_lifecycle import client as game_client
 
 
 class CommunicationWheelTests(unittest.TestCase):
@@ -87,7 +94,9 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertIs(wheel.vars[9253].value(), True)
         [callout] = [i for i in source.component.instances.values() if i.graph.index == 0x0686]
         self.assertEqual(callout.vars[3793].value(), expr.Asset(0x0C00000000005A0B))
-        self.assertFalse(any(i.graph.index == 0x0686 for i in observer.body_script.component.instances.values()))
+        self.assertFalse(
+            any(i.graph.index == 0x0686 for i in observer.body_script.component.instances.values())
+        )
 
         receive(connection, 3, selected, False)
         run.step({})
@@ -111,7 +120,9 @@ class CommunicationWheelTests(unittest.TestCase):
 
         def target_branch(instance, node, caller):
             selected.append((instance.id, node.pos, instance.evaluate(node.field("m_4A5CA514"))))
-            with patch.object(instance, "evaluate", side_effect=AssertionError("base Action read marker data")):
+            with patch.object(
+                instance, "evaluate", side_effect=AssertionError("base Action read marker data")
+            ):
                 self.assertIs(native_action(instance, node, caller), True)
             return True
 
@@ -163,8 +174,7 @@ class CommunicationWheelTests(unittest.TestCase):
 
         self.assertEqual(select(), (expr.Entity(aligned.body),))
 
-        wall = ((-0.4, 0, 5, 0.4, 0, 5, -0.4, 4, 5),
-                (0.4, 0, 5, 0.4, 4, 5, -0.4, 4, 5))
+        wall = ((-0.4, 0, 5, 0.4, 0, 5, -0.4, 4, 5), (0.4, 0, 5, 0.4, 4, 5, -0.4, 4, 5))
         match.collision_world = World(wall)
         self.assertEqual(select(), (expr.Entity(nearer.body),))
         match.collision_world = World(())
@@ -304,9 +314,9 @@ class CommunicationWheelTests(unittest.TestCase):
         poses = {}
         for player, depth in ((blocker, 5.0), (target, 14.0)):
             matrix = (0, 0, -1, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 1, depth, 1)
-            poses[player.body] = props.ModelPose({}, {5: matrix}.get, (
-                (5, 0x0100, ("sphere", 0x17DF, (0, 0, 0), 0.5)),
-            ))
+            poses[player.body] = props.ModelPose(
+                {}, {5: matrix}.get, ((5, 0x0100, ("sphere", 0x17DF, (0, 0, 0), 0.5)),)
+            )
         run.match.combat.model_pose_for = poses.get
         run.match.collision_world = World(())
         blocker.team = speaker.team
@@ -314,15 +324,16 @@ class CommunicationWheelTests(unittest.TestCase):
         for profile in (0x0690000000000079, 0x0690000000000111):
             with self.subTest(default_profile=profile):
                 with patch.dict(poses, {blocker.body: None}):
-                    self.assertEqual(run.match.combat.communication_target(*args, profile=profile), target.body)
+                    self.assertEqual(
+                        run.match.combat.communication_target(*args, profile=profile), target.body
+                    )
                 self.assertIsNone(run.match.combat.communication_target(*args, profile=profile))
         script.command(script.frame + 150, 0)
         run.match.communication_action(speaker, {"+0x78": 0x0A900000000001E5, "+0x80": True})
         run.match.deliver_body_messages()
         self.assertEqual(wheel.vars[375].value(), ())
 
-        wall = World(((-2, 0, 14.8, 2, 0, 14.8, -2, 3, 14.8),
-                      (2, 0, 14.8, 2, 3, 14.8, -2, 3, 14.8)))
+        wall = World(((-2, 0, 14.8, 2, 0, 14.8, -2, 3, 14.8), (2, 0, 14.8, 2, 3, 14.8, -2, 3, 14.8)))
         for admission, world, expected in (
             (blocker.body, World(()), ()),
             (None, World(()), (expr.Entity(target.body),)),
@@ -332,9 +343,10 @@ class CommunicationWheelTests(unittest.TestCase):
             with self.subTest(admission=admission, wall=bool(world)):
                 run.match.collision_world = world
 
-                def admits(profile, source, actor, category, mask):
-                    self.assertEqual((profile, source, category, mask),
-                                     (0x0690000000000079, speaker.body, 0x0100, 0x17DF))
+                def admits(profile, source, actor, category, mask, admission=admission):
+                    self.assertEqual(
+                        (profile, source, category, mask), (0x0690000000000079, speaker.body, 0x0100, 0x17DF)
+                    )
                     return actor == admission
 
                 run.match.combat.wheel_actor_admits = admits
@@ -354,8 +366,7 @@ class CommunicationWheelTests(unittest.TestCase):
         wheel = next(i for i in script.component.instances.values() if i.graph.index == 0x05AD)
         for cutoff, expected in ((0.5 + 0.225 * height, (expr.Entity(target.body),)), (2.0, ())):
             with self.subTest(cutoff=cutoff):
-                wall = ((-1, 0, 6, 1, 0, 6, -1, cutoff, 6),
-                        (1, 0, 6, 1, cutoff, 6, -1, cutoff, 6))
+                wall = ((-1, 0, 6, 1, 0, 6, -1, cutoff, 6), (1, 0, 6, 1, cutoff, 6, -1, cutoff, 6))
                 world = run.match.collision_world = World(wall)
                 script.command(script.frame + 150, 0)
                 with patch.object(world, "cast_ray", wraps=world.cast_ray) as ray:
@@ -410,7 +421,7 @@ class CommunicationWheelTests(unittest.TestCase):
         speaker.mover.yaw = 16384
         speaker.mover.pitch = 8192
         pivot = combat.eye_height(speaker.hero.body)
-        rotated = (1.0 - pivot) * (0.5 ** 0.5)
+        rotated = (1.0 - pivot) * (0.5**0.5)
         expected = (2.0 + rotated, 3.0 + pivot + rotated, 4.0)
 
         script = speaker.body_script
@@ -463,18 +474,22 @@ class CommunicationWheelTests(unittest.TestCase):
                     self.assertEqual(message, 0x0240000000000000 | target_message)
                 else:
                     self.assertEqual(queued, [])
-                    self.assertTrue(any(i.graph.index == 0x0686
-                                        for i in speaker.body_script.component.instances.values()))
+                    self.assertTrue(
+                        any(i.graph.index == 0x0686 for i in speaker.body_script.component.instances.values())
+                    )
                 run.match.deliver_body_messages()
                 for player in (target, other):
-                    wheel = next(i for i in player.body_script.component.instances.values()
-                                 if i.graph.index == 0x05AD)
+                    wheel = next(
+                        i for i in player.body_script.component.instances.values() if i.graph.index == 0x05AD
+                    )
                     caller = expr.Entity(speaker.body) if directed and player is target else None
                     self.assertEqual(wheel.vars[40].value() if 40 in wheel.vars else None, caller)
                     self.assertEqual(wheel.vars[41].value() if 41 in wheel.vars else None, caller)
                 if action == 0x16C:
                     nodes = (94, 14) if target_message == 0x0689 else (166,)
-                    self.assertEqual(tuple(event.node for event in target.body_script.world.wheel_callouts), nodes)
+                    self.assertEqual(
+                        tuple(event.node for event in target.body_script.world.wheel_callouts), nodes
+                    )
                     self.assertEqual(other.body_script.world.wheel_callouts, [])
 
     def test_selection_message_takes_the_authored_category_branches(self):
@@ -490,8 +505,8 @@ class CommunicationWheelTests(unittest.TestCase):
             (0x1E5, (0x05AD, 140)),  # configurable communication
             (0x172, (0x05AD, 107)),  # default emote is also in the main wheel
             (0x19F, (0x05AD, 107)),  # alternate emote
-            (0x173, (0x02CF, 33)),   # default spray slot
-            (0x1A5, (0x02CF, 33)),   # alternate spray slot
+            (0x173, (0x02CF, 33)),  # default spray slot
+            (0x1A5, (0x02CF, 33)),  # alternate spray slot
         )
         branches = {branch for _, branch in cases}
         with patch.object(runtime.Instance, "run_node", record):
@@ -500,15 +515,19 @@ class CommunicationWheelTests(unittest.TestCase):
                     body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
                     visited.clear()
                     runtime.send_message(
-                        body.component, 0x02400000000002A3,
-                        {0x8FC: expr.Asset(0x0A90000000000000 | choice), 0x3E1: True}, body.entity,
+                        body.component,
+                        0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A90000000000000 | choice), 0x3E1: True},
+                        body.entity,
                     )
                     body.component.run_now()
                     self.assertEqual(visited & branches, {expected})
 
     def test_category_query_requires_the_full_action_guid(self):
         body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
-        main = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD)
+        main = next(
+            instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD
+        )
         condition = main.graph.node(182).field("m_condition")
         for value, expected in (
             (expr.Asset(0x0A90000000000170), True),
@@ -538,8 +557,10 @@ class CommunicationWheelTests(unittest.TestCase):
             self.assertEqual(instance.evaluate(config), -1)
 
         runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A900000000001A4)}, body.entity,
+            body.component,
+            0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001A4)},
+            body.entity,
         )
         body.component.run_now()
         self.assertEqual(spray.vars[9259].value(), 2)
@@ -552,10 +573,12 @@ class CommunicationWheelTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             data = Path(directory)
             (data / EMOTE_ALIAS_DATA).write_text(
-                json.dumps({heroic: hex(default_alias), kneel: hex(chosen_alias)}), encoding="utf-8",
+                json.dumps({heroic: hex(default_alias), kneel: hex(chosen_alias)}),
+                encoding="utf-8",
             )
             (data / EMOTE_BLEND_TREE_DATA).write_text(
-                json.dumps({heroic: hex(default_blend), kneel: hex(chosen_blend)}), encoding="utf-8",
+                json.dumps({heroic: hex(default_blend), kneel: hex(chosen_blend)}),
+                encoding="utf-8",
             )
             items = ItemDB(data)
         collection = Collection(RetailTemplates(), items)
@@ -563,9 +586,14 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(collection.emote_aliases(profile, SOLDIER), (default_alias,))
         profile.loadouts[f"0x{SOLDIER:016X}"] = {"+0x88": [heroic, kneel, "0x0"]}
         match = Match(
-            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
-            emote_aliases_of=lambda account, hero: collection.emote_aliases(profile, hero) if account == 1 else (),
-            emote_blend_trees_of=lambda account, hero: collection.emote_blend_trees(profile, hero) if account == 1 else (),
+            PRACTICE_RANGE,
+            collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            emote_aliases_of=lambda account, hero: (
+                collection.emote_aliases(profile, hero) if account == 1 else ()
+            ),
+            emote_blend_trees_of=lambda account, hero: (
+                collection.emote_blend_trees(profile, hero) if account == 1 else ()
+            ),
         )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         [create] = match.own_body_updates(player)
@@ -581,16 +609,26 @@ class CommunicationWheelTests(unittest.TestCase):
         replicate()
         self.assertEqual(body.world.emote_aliases, (default_alias, chosen_alias, 0))
         self.assertEqual(body.world.emote_blend_trees, (default_blend, chosen_blend, 0))
-        wheel = next(instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD)
+        wheel = next(
+            instance for instance in body.component.instances.values() if instance.graph.index == 0x05AD
+        )
         query = wheel.graph.node(107).field("m_condition")["m_configVars"][0]
-        for choice, expected in ((0x172, default_alias), (0x1A1, chosen_alias), (0x1A0, 0), (0x19F, 0), (0x1A2, 0)):
+        for choice, expected in (
+            (0x172, default_alias),
+            (0x1A1, chosen_alias),
+            (0x1A0, 0),
+            (0x19F, 0),
+            (0x1A2, 0),
+        ):
             with self.subTest(choice=hex(choice)):
                 wheel.write((expr.INSTANCE, 29699), expr.Asset(0x0A90000000000000 | choice))
                 self.assertEqual(wheel.evaluate(query), expr.Asset(expected))
 
         runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A900000000001A1), 0x3E1: True}, body.entity,
+            body.component,
+            0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001A1), 0x3E1: True},
+            body.entity,
         )
         body.command(body.frame + 1, 0)
         replicate()
@@ -620,8 +658,10 @@ class CommunicationWheelTests(unittest.TestCase):
 
         def select(action):
             runtime.send_message(
-                body.component, 0x02400000000002A3,
-                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True}, body.entity,
+                body.component,
+                0x02400000000002A3,
+                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True},
+                body.entity,
             )
             body.command(body.frame + 1, 0)
             replicate()
@@ -664,38 +704,58 @@ class CommunicationWheelTests(unittest.TestCase):
             (SOLDIER, 0x00400000000006AD, 0x00400000000006AD),
             (0x02E000000000007A, 0, 0x004000000000048A),
         ):
-            with self.subTest(hero=hero):
-                with TemporaryDirectory() as directory:
-                    data = Path(directory)
-                    (data / EMOTE_DURATION_DATA).write_text(json.dumps({
-                        hex(model_blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 5.0000005}},
-                    }), encoding="utf-8")
-                    with patch("ow174.game.script.driver.DATA_DIR", data):
-                        body = BodyScript(hero, 0xA0000101, 1000, communication_wheel=True,
-                                          emote_aliases=(alias,), emote_blend_trees=(blend,))
-                        runtime.send_message(
-                            body.component, 0x02400000000002A3,
-                            {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
-                        )
-                        body.command(1001, 0, grounded=True)
-                        animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
-                        state = animation.node_state(animation.graph.node(0))
-                        for frame in range(1002, 1120):
-                            if state.active:
-                                break
-                            body.command(frame, 0, grounded=True)
-                        self.assertTrue(state.active)
-                        self.assertEqual(animation.vars[8908].value(), expr.Asset(blend))
-                        self.assertEqual([event.time - state.start for event in animation.queue if event.state is state],
-                                         [5000, 5000])
-                        self.assertEqual(body.world.animation_duration(animation, animation.graph.node(19)),
-                                         expr.f32(5.0000005))
-                        end_frame = (state.start + 5000) // body.frame_ms
-                        body.command(end_frame - 1, 0, grounded=True)
-                        self.assertTrue(state.active)
-                        body.command(end_frame, 0, grounded=True)
-                        self.assertTrue(animation.stopped)
-                        self.assertFalse({0x069A, 0x1040} & {i.graph.index for i in body.component.instances.values()})
+            with self.subTest(hero=hero), TemporaryDirectory() as directory:
+                data = Path(directory)
+                (data / EMOTE_DURATION_DATA).write_text(
+                    json.dumps(
+                        {
+                            hex(model_blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 5.0000005}},
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                with patch("ow174.game.script.driver.DATA_DIR", data):
+                    body = BodyScript(
+                        hero,
+                        0xA0000101,
+                        1000,
+                        communication_wheel=True,
+                        emote_aliases=(alias,),
+                        emote_blend_trees=(blend,),
+                    )
+                    runtime.send_message(
+                        body.component,
+                        0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True},
+                        body.entity,
+                    )
+                    body.command(1001, 0, grounded=True)
+                    animation = next(
+                        i for i in body.component.instances.values() if i.graph.index == 0x023A
+                    )
+                    state = animation.node_state(animation.graph.node(0))
+                    for frame in range(1002, 1120):
+                        if state.active:
+                            break
+                        body.command(frame, 0, grounded=True)
+                    self.assertTrue(state.active)
+                    self.assertEqual(animation.vars[8908].value(), expr.Asset(blend))
+                    self.assertEqual(
+                        [event.time - state.start for event in animation.queue if event.state is state],
+                        [5000, 5000],
+                    )
+                    self.assertEqual(
+                        body.world.animation_duration(animation, animation.graph.node(19)),
+                        expr.f32(5.0000005),
+                    )
+                    end_frame = (state.start + 5000) // body.frame_ms
+                    body.command(end_frame - 1, 0, grounded=True)
+                    self.assertTrue(state.active)
+                    body.command(end_frame, 0, grounded=True)
+                    self.assertTrue(animation.stopped)
+                    self.assertFalse(
+                        {0x069A, 0x1040} & {i.graph.index for i in body.component.instances.values()}
+                    )
 
     def test_tagged_dva_unlock_uses_body_tags_and_pilot_fallback(self):
         dva, mech, pilot = 0x02E000000000007A, 0x0400000000000407, 0x040000000000040A
@@ -703,10 +763,21 @@ class CommunicationWheelTests(unittest.TestCase):
         fallback = 0x0C8000000000045C
         with TemporaryDirectory() as directory:
             data = Path(directory)
-            (data / EMOTE_TAGGED_DATA).write_text(json.dumps({
-                "unlocks": {hex(unlock): {"alias": hex(alias), "blend": hex(blend), "tags": ["0x0D60000000000069"]}},
-                "bodies": {hex(mech): ["0x0D60000000000069"], hex(pilot): ["0x0D60000000000121"]},
-            }), encoding="utf-8")
+            (data / EMOTE_TAGGED_DATA).write_text(
+                json.dumps(
+                    {
+                        "unlocks": {
+                            hex(unlock): {
+                                "alias": hex(alias),
+                                "blend": hex(blend),
+                                "tags": ["0x0D60000000000069"],
+                            }
+                        },
+                        "bodies": {hex(mech): ["0x0D60000000000069"], hex(pilot): ["0x0D60000000000121"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
             collection = Collection(RetailTemplates(), ItemDB(data))
         profile = Profile()
         profile.loadouts[f"0x{dva:016X}"] = {"+0x88": [hex(unlock), "0x0"]}
@@ -718,7 +789,8 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertEqual(collection.emote_blend_trees(profile, dva, body_definition=mech), (blend, 0))
 
         match = Match(
-            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            PRACTICE_RANGE,
+            collision_provider=StaticCollisionProvider(flat_world(1.0)),
             emote_aliases_of=lambda _, hero, **form: collection.emote_aliases(profile, hero, **form),
             emote_blend_trees_of=lambda _, hero, **form: collection.emote_blend_trees(profile, hero, **form),
         )
@@ -726,8 +798,10 @@ class CommunicationWheelTests(unittest.TestCase):
         match.own_body_updates(player)
         body = player.body_script
         runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
+            body.component,
+            0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True},
+            body.entity,
         )
         body.command(body.frame + 1, 0)
         animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
@@ -738,7 +812,9 @@ class CommunicationWheelTests(unittest.TestCase):
         # the common wheel roots to isolate Match's body and loadout selection.
         form_record = dict(graph.bodies()[pilot], hero=None)
         in_world(match, player)
-        with patch.object(graph, "entity_body", side_effect=lambda body: form_record if body == mech else None):
+        with patch.object(
+            graph, "entity_body", side_effect=lambda body: form_record if body == mech else None
+        ):
             self.assertTrue(match.switch_hero(player, mech_hero))
         mech_script = player.body_script
         self.assertIs(mech_script.record, form_record)
@@ -758,13 +834,20 @@ class CommunicationWheelTests(unittest.TestCase):
         alias, blend = 0x0C80000000000477, 0x0040000000000649
         with TemporaryDirectory() as directory:
             data = Path(directory)
-            (data / "emote_scalar_tracks_174.json").write_text(json.dumps({
-                hex(blend): {hex(alias): {
-                    hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
-                    "0x028000000000006E": {"times": [0, 1], "values": [0, 1]},
-                    "0x0280000000000082": {"times": [], "values": []},
-                }},
-            }), encoding="utf-8")
+            (data / "emote_scalar_tracks_174.json").write_text(
+                json.dumps(
+                    {
+                        hex(blend): {
+                            hex(alias): {
+                                hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
+                                "0x028000000000006E": {"times": [0, 1], "values": [0, 1]},
+                                "0x0280000000000082": {"times": [], "values": []},
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
             with patch("ow174.game.script.driver.DATA_DIR", data):
                 body = BodyScript(SOLDIER, 0xA0000101, 1000, communication_wheel=True)
                 component = body.component
@@ -803,18 +886,28 @@ class CommunicationWheelTests(unittest.TestCase):
         alias, blend = 0x0C80000000000476, 0x00400000000006B2
         with TemporaryDirectory() as directory:
             data = Path(directory)
-            (data / "emote_durations_174.json").write_text(json.dumps({
-                hex(blend): {hex(alias): {
-                    "0x028000000000006E": 1.0666667,
-                    "0x0280000000000082": 0.36666667,
-                    "0x0": 8.933333,
-                }},
-            }), encoding="utf-8")
+            (data / "emote_durations_174.json").write_text(
+                json.dumps(
+                    {
+                        hex(blend): {
+                            hex(alias): {
+                                "0x028000000000006E": 1.0666667,
+                                "0x0280000000000082": 0.36666667,
+                                "0x0": 8.933333,
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
             with patch("ow174.game.script.driver.DATA_DIR", data):
                 match = Match(
                     PRACTICE_RANGE,
-                    collision_provider=StaticCollisionProvider(flat_world(PRACTICE_RANGE.spawns[0].position[1])),
-                    emote_aliases_of=lambda *_: (alias,), emote_blend_trees_of=lambda *_: (blend,),
+                    collision_provider=StaticCollisionProvider(
+                        flat_world(PRACTICE_RANGE.spawns[0].position[1])
+                    ),
+                    emote_aliases_of=lambda *_: (alias,),
+                    emote_blend_trees_of=lambda *_: (blend,),
                 )
                 player = match.add_player(1, "Soldier", SOLDIER, 0, False)
                 in_world(match, player)
@@ -823,8 +916,10 @@ class CommunicationWheelTests(unittest.TestCase):
                 body = player.body_script
                 player.take_commands([Command(body.frame + 1)])
                 runtime.send_message(
-                    body.component, 0x02400000000002A3,
-                    {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity,
+                    body.component,
+                    0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True},
+                    body.entity,
                 )
                 player.take_commands([Command(body.frame + 1)])
                 animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
@@ -834,8 +929,10 @@ class CommunicationWheelTests(unittest.TestCase):
                     if intro.active:
                         break
                 self.assertTrue(intro.active)
-                self.assertEqual([event.time - intro.start for event in animation.queue if event.state is intro],
-                                 [1067, 1067])
+                self.assertEqual(
+                    [event.time - intro.start for event in animation.queue if event.state is intro],
+                    [1067, 1067],
+                )
                 # Stay idle until 023A:50 has chased the exit gate to zero.
                 while body.component.now < intro.start + 2400:
                     player.take_commands([Command(body.frame + 1)])
@@ -868,8 +965,10 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertFalse(loop.active)
                 exit_anim = animation.node_state(animation.graph.node(52))
                 self.assertTrue(exit_anim.active)
-                self.assertEqual([event.time - exit_anim.start for event in animation.queue
-                                  if event.state is exit_anim], [367, 367])
+                self.assertEqual(
+                    [event.time - exit_anim.start for event in animation.queue if event.state is exit_anim],
+                    [367, 367],
+                )
                 while body.component.now < exit_anim.start + 1000:
                     player.take_commands([Command(body.frame + 1)])
                 self.assertTrue(animation.stopped)
@@ -880,27 +979,48 @@ class CommunicationWheelTests(unittest.TestCase):
         alias, blend = 0x0C80000000000477, 0x0040000000000649
         with TemporaryDirectory() as directory:
             data = Path(directory)
-            (data / "emote_scalar_tracks_174.json").write_text(json.dumps({
-                hex(blend): {hex(alias): {
-                    hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
-                    "0x0280000000000082": {"times": [], "values": []},
-                }},
-            }), encoding="utf-8")
-            (data / EMOTE_DURATION_DATA).write_text(json.dumps({
-                hex(blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 0.5}},
-            }), encoding="utf-8")
+            (data / "emote_scalar_tracks_174.json").write_text(
+                json.dumps(
+                    {
+                        hex(blend): {
+                            hex(alias): {
+                                hex(EMOTE_ANY_CATEGORY): {"times": [0], "values": [0.03487373]},
+                                "0x0280000000000082": {"times": [], "values": []},
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (data / EMOTE_DURATION_DATA).write_text(
+                json.dumps(
+                    {
+                        hex(blend): {hex(alias): {hex(EMOTE_ANY_CATEGORY): 0.5}},
+                    }
+                ),
+                encoding="utf-8",
+            )
             with patch("ow174.game.script.driver.DATA_DIR", data):
-                match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(
-                    flat_world(PRACTICE_RANGE.spawns[0].position[1]),
-                ), emote_aliases_of=lambda *_: (alias,), emote_blend_trees_of=lambda *_: (blend,))
+                match = Match(
+                    PRACTICE_RANGE,
+                    collision_provider=StaticCollisionProvider(
+                        flat_world(PRACTICE_RANGE.spawns[0].position[1]),
+                    ),
+                    emote_aliases_of=lambda *_: (alias,),
+                    emote_blend_trees_of=lambda *_: (blend,),
+                )
                 player = match.add_player(1, "Soldier", SOLDIER, 0, False)
                 in_world(match, player)
                 match.tick = 1000
                 match.switch_hero(player, player.hero)
                 body = player.body_script
                 player.take_commands([Command(body.frame + 1)])
-                runtime.send_message(body.component, 0x02400000000002A3,
-                                     {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True}, body.entity)
+                runtime.send_message(
+                    body.component,
+                    0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000172), 0x3E1: True},
+                    body.entity,
+                )
                 player.take_commands([Command(body.frame + 1)])
                 animation = next(i for i in body.component.instances.values() if i.graph.index == 0x023A)
                 loop = animation.node_state(animation.graph.node(18))
@@ -928,9 +1048,12 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertGreater(player.mover.position[2], z)
 
     def test_emote_cancel_detects_a_fall_without_buttons_or_axes(self):
-        match = Match(PRACTICE_RANGE, collision_provider=StaticCollisionProvider(
-            flat_world(PRACTICE_RANGE.spawns[0].position[1]),
-        ))
+        match = Match(
+            PRACTICE_RANGE,
+            collision_provider=StaticCollisionProvider(
+                flat_world(PRACTICE_RANGE.spawns[0].position[1]),
+            ),
+        )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
         in_world(match, player)
         match.switch_hero(player, player.hero)
@@ -1034,7 +1157,8 @@ class CommunicationWheelTests(unittest.TestCase):
             "+0x70": [hex(default_voice), hex(chosen_voice), "0x0"],
         }
         match = Match(
-            PRACTICE_RANGE, collision_provider=StaticCollisionProvider(flat_world(1.0)),
+            PRACTICE_RANGE,
+            collision_provider=StaticCollisionProvider(flat_world(1.0)),
             wheel_cosmetics_of=lambda _, hero: collection.wheel_cosmetics(profile, hero),
         )
         player = match.add_player(1, "Soldier", SOLDIER, 0, False)
@@ -1043,8 +1167,10 @@ class CommunicationWheelTests(unittest.TestCase):
         body = player.body_script
         for action in (0x1A5, 0x19D):
             runtime.send_message(
-                body.component, 0x02400000000002A3,
-                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True}, body.entity,
+                body.component,
+                0x02400000000002A3,
+                {0x8FC: expr.Asset(0x0A90000000000000 | action), 0x3E1: True},
+                body.entity,
             )
             body.command(body.frame + 1, 0)
         instances = {instance.graph.index: instance for instance in body.component.instances.values()}
@@ -1080,8 +1206,9 @@ class CommunicationWheelTests(unittest.TestCase):
                 world = World(wall(1.0), masks=(0x18, 0x18))
                 world.ray_geometry = RayWorld(wall(distance), masks=(0x40, 0x40))
                 match = Match(
-                    PRACTICE_RANGE, collision_provider=StaticCollisionProvider(world),
-                    wheel_cosmetics_of=lambda *_: (unlocks, ()),
+                    PRACTICE_RANGE,
+                    collision_provider=StaticCollisionProvider(world),
+                    wheel_cosmetics_of=lambda *_, unlocks=unlocks: (unlocks, ()),
                 )
                 self.assertTrue(match._refresh_collision())
                 player = match.add_player(1, "Soldier", SOLDIER, 0, False)
@@ -1097,8 +1224,10 @@ class CommunicationWheelTests(unittest.TestCase):
                 owner.apply(tree)
                 body.stream.arrived(tree.chunk_last)
                 runtime.send_message(
-                    body.component, 0x02400000000002A3,
-                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                    body.component,
+                    0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True},
+                    body.entity,
                 )
                 body.command(body.frame + 1, 0)
                 spray = next(i for i in body.component.instances.values() if i.graph.index == 0x02CF)
@@ -1119,17 +1248,25 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertEqual(owner.states.get((spray.id, 1), False), expected)
                 self.assertEqual(watched.states.get(1, (False, {}))[0], expected)
                 if expected:
-                    self.assertEqual(state.payload(), {
-                        "direction": (0.0, 0.0, 1.0),
-                        "point": (0.0, combat.eye_height(player.hero.body), distance),
-                        "normal": (0.0, 0.0, -1.0),
-                        "unlock": pixel,
-                    })
+                    self.assertEqual(
+                        state.payload(),
+                        {
+                            "direction": (0.0, 0.0, 1.0),
+                            "point": (0.0, combat.eye_height(player.hero.body), distance),
+                            "normal": (0.0, 0.0, -1.0),
+                            "unlock": pixel,
+                        },
+                    )
                     result = (True, spray_placement.wire_fields(state.payload()))
                     self.assertEqual(watched.states[1], result)
-                    self.assertIn(result, [
-                        frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
-                    ])
+                    self.assertIn(
+                        result,
+                        [
+                            frame.instances[spray.id].states.get(1)
+                            for frame in owner_frames
+                            if spray.id in frame.instances
+                        ],
+                    )
                     self.assertTrue(spray.state(14).active)
                     self.assertEqual(spray.state(14).pulses, 1)
                     for update in owner_updates:
@@ -1137,16 +1274,23 @@ class CommunicationWheelTests(unittest.TestCase):
                     # A new look at the identical point must make both clients read placement again.
                     body.command(body.frame + 300, 0)
                     runtime.send_message(
-                        body.component, 0x02400000000002A3,
-                        {0x8FC: expr.Asset(0x0A900000000001A5), 0x3E1: True}, body.entity,
+                        body.component,
+                        0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A900000000001A5), 0x3E1: True},
+                        body.entity,
                     )
                     body.command(body.frame + 1, 0)
                     self.assertEqual(state.payload()["unlock"], alternate)
                     self.assertEqual(spray_placement.wire_fields(state.payload()), result[1])
                     owner_frames = [owner.apply(update) for update in body.frames()]
-                    self.assertIn(result, [
-                        frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
-                    ])
+                    self.assertIn(
+                        result,
+                        [
+                            frame.instances[spray.id].states.get(1)
+                            for frame in owner_frames
+                            if spray.id in frame.instances
+                        ],
+                    )
                     snap = observers.snapshot(body)
                     delta, keys = observers.delta(body, stream, snap)
                     observed = watcher.apply(stream.delta(delta, snap, keys, 0))
@@ -1157,8 +1301,10 @@ class CommunicationWheelTests(unittest.TestCase):
                     player.mover.yaw = 32768
                     body.command(body.frame + 300, 0)
                     runtime.send_message(
-                        body.component, 0x02400000000002A3,
-                        {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                        body.component,
+                        0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True},
+                        body.entity,
                     )
                     body.command(body.frame + 1, 0)
                     self.assertFalse(state.active)
@@ -1185,7 +1331,8 @@ class CommunicationWheelTests(unittest.TestCase):
             with self.subTest(key=key):
                 surface = AttachedSurface(key)
                 match = Match(
-                    PRACTICE_RANGE, collision_provider=StaticCollisionProvider(surface),
+                    PRACTICE_RANGE,
+                    collision_provider=StaticCollisionProvider(surface),
                     wheel_cosmetics_of=lambda *_: ((0x02500000000007F1,), ()),
                 )
                 self.assertTrue(match._refresh_collision())
@@ -1202,19 +1349,34 @@ class CommunicationWheelTests(unittest.TestCase):
                 body.stream.arrived(tree.chunk_last)
 
                 runtime.send_message(
-                    body.component, 0x02400000000002A3,
-                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True}, body.entity,
+                    body.component,
+                    0x02400000000002A3,
+                    {0x8FC: expr.Asset(0x0A90000000000173), 0x3E1: True},
+                    body.entity,
                 )
                 body.command(body.frame + 1, 0)
                 spray = next(i for i in body.component.instances.values() if i.graph.index == 0x02CF)
-                self.assertEqual(surface.request, (
-                    (0.0, combat.eye_height(player.hero.body), 0.0), (0.0, 0.0, 1.0), 4.5, 0x40,
-                ))
+                self.assertEqual(
+                    surface.request,
+                    (
+                        (0.0, combat.eye_height(player.hero.body), 0.0),
+                        (0.0, 0.0, 1.0),
+                        4.5,
+                        0x40,
+                    ),
+                )
                 payload = spray.state(1).payload()
-                self.assertEqual(payload, {
-                    "direction": (0.0, 0.0, 1.0), "point": (2.0, 0.0, 0.0), "normal": (0.0, 0.0, 1.0),
-                    "entity": 0x8000022E, "extra": key, "unlock": 0x02500000000007F1,
-                })
+                self.assertEqual(
+                    payload,
+                    {
+                        "direction": (0.0, 0.0, 1.0),
+                        "point": (2.0, 0.0, 0.0),
+                        "normal": (0.0, 0.0, 1.0),
+                        "entity": 0x8000022E,
+                        "extra": key,
+                        "unlock": 0x02500000000007F1,
+                    },
+                )
                 wire = spray_placement.wire_fields(payload)
                 self.assertEqual(wire["entity"], 0x8000022E)
                 self.assertEqual(wire["has_extra"], bool(key))
@@ -1224,13 +1386,18 @@ class CommunicationWheelTests(unittest.TestCase):
                 remote = statescript.chunk(observers.full_frame(body, observers.snapshot(body)), 0, 1)
                 watched = decode.read_chunk(remote.getvalue(), remote.count).instances[spray.id]
                 self.assertEqual(watched.states[1], expected)
-                self.assertIn(expected, [
-                    frame.instances[spray.id].states.get(1) for frame in owner_frames if spray.id in frame.instances
-                ])
+                self.assertIn(
+                    expected,
+                    [
+                        frame.instances[spray.id].states.get(1)
+                        for frame in owner_frames
+                        if spray.id in frame.instances
+                    ],
+                )
 
     def test_client_unlock_use_report_reaches_only_the_current_wheel_instance(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         match = run.match
         script = player.body_script
         connection = game_client()
@@ -1251,10 +1418,15 @@ class CommunicationWheelTests(unittest.TestCase):
         def report(sequence, target, instance, asset, tag=4):
             blob = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A") + bytes((tag,))
             blob += struct.pack("<QII", asset, 0, 0)
-            record = messages.encode(21616, {
-                "+0x78": {"+0x0": target}, "+0x80": blob,
-                "+0xA8": 0x0240000000001313, "+0xB0": instance.id,
-            })
+            record = messages.encode(
+                21616,
+                {
+                    "+0x78": {"+0x0": target},
+                    "+0x80": blob,
+                    "+0xA8": 0x0240000000001313,
+                    "+0xB0": instance.id,
+                },
+            )
             packet = BitWriter()
             messages.write_channel(packet, [(sequence, record)])
             packet.bit(0)
@@ -1280,7 +1452,9 @@ class CommunicationWheelTests(unittest.TestCase):
 
         def use_branch(instance, node, caller):
             reported_nodes.append((instance.graph.index, node.pos))
-            with patch.object(instance, "evaluate", side_effect=AssertionError("base Action read unlock data")):
+            with patch.object(
+                instance, "evaluate", side_effect=AssertionError("base Action read unlock data")
+            ):
                 self.assertIs(native_action(instance, node, caller), True)
             return True
 
@@ -1296,10 +1470,14 @@ class CommunicationWheelTests(unittest.TestCase):
         self.assertTrue(voice.node_state(voice.graph.node(71)).active)
 
     def test_spray_retry_keeps_the_placement_and_slot_until_ack(self):
-        for action, miss, x, slot in ((0x1A5, False, -1.0, 1), (0x1A5, True, -1.0, 1), (0x173, False, 0.0, 0)):
+        for action, miss, x, slot in (
+            (0x1A5, False, -1.0, 1),
+            (0x1A5, True, -1.0, 1),
+            (0x173, False, 0.0, 0),
+        ):
             with self.subTest(action=hex(action), miss=miss):
                 run = Run(names=("Speaker",))
-                player, = run.players
+                (player,) = run.players
                 body = player.body_script
                 body.world.spray_unlocks = (0x02500000000007F1, 0x0250000000000004)
                 player.mover.position = (0.0, 0.0, 0.0)
@@ -1321,18 +1499,20 @@ class CommunicationWheelTests(unittest.TestCase):
                 watcher.apply(tree)
                 stream.arrived(tree.chunk_last)
 
-                def select(choice):
-                    run.match.communication_action(player, {"+0x78": 0x0A90000000000000 | choice, "+0x80": True})
+                def select(choice, run=run, player=player, body=body):
+                    run.match.communication_action(
+                        player, {"+0x78": 0x0A90000000000000 | choice, "+0x80": True}
+                    )
                     run.match.deliver_body_messages()
                     body.command(body.frame + 1, 0)
 
-                def updates():
+                def updates(body=body, stream=stream):
                     [local] = body.frames()
                     snap = observers.snapshot(body)
                     frame, keys = observers.delta(body, stream, snap)
                     return local, stream.delta(frame, snap, keys, 0)
 
-                def check(sent, stamps, selected, node, geometry, pulse):
+                def check(sent, stamps, selected, node, geometry, pulse, spray, owner=owner, watcher=watcher):
                     for client, update, stamp in zip((owner, watcher), sent, stamps, strict=True):
                         frame = client.apply(update)
                         self.assertEqual(frame.actions, [(stamp, spray.id, node)])
@@ -1348,7 +1528,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 first = updates()
                 stamps = tuple(update.chunk_last for update in first)
                 pulse = (True, {"fresh": True, "count": 1})
-                check(first, stamps, 0, 8, original, pulse)
+                check(first, stamps, 0, 8, original, pulse, spray)
                 for update in first:
                     update.stream.lost(update.chunk_last)
 
@@ -1358,7 +1538,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 select(action)
                 export_body_vm(body)
                 retry = updates()
-                check(retry, stamps, 0, 8, original, pulse)
+                check(retry, stamps, 0, 8, original, pulse, spray)
                 for update in retry:
                     update.stream.arrived(update.chunk_last)
 
@@ -1370,11 +1550,12 @@ class CommunicationWheelTests(unittest.TestCase):
                     geometry = (True, spray_placement.wire_fields(spray.state(1).payload()))
                     self.assertEqual(geometry == original, x == 0.0)
                     feedback, pulse = 8, (True, {"fresh": True, "count": 2})
-                check(later, tuple(update.chunk_last for update in later), slot, feedback, geometry, pulse)
+                stamps = tuple(update.chunk_last for update in later)
+                check(later, stamps, slot, feedback, geometry, pulse, spray)
 
     def test_delayed_spray_use_report_matches_a_recently_sent_placement(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         script = player.body_script
         first, second = 0x02500000000007F1, 0x0250000000000004
         script.world.spray_unlocks = (first, second)
@@ -1394,12 +1575,20 @@ class CommunicationWheelTests(unittest.TestCase):
         def report(unlock, accepted):
             payload = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A 04") + struct.pack("<QII", unlock, 0, 0)
             with patch.object(runtime, "send_instance_message", wraps=runtime.send_instance_message) as send:
-                run.match.game_message(player, {
-                    "+0x78": {"+0x0": player.body}, "+0x80": payload,
-                    "+0xA8": 0x0240000000001313, "+0xB0": spray.id,
-                }, 17.0)
+                run.match.game_message(
+                    player,
+                    {
+                        "+0x78": {"+0x0": player.body},
+                        "+0x80": payload,
+                        "+0xA8": 0x0240000000001313,
+                        "+0xB0": spray.id,
+                    },
+                    17.0,
+                )
             if accepted:
-                send.assert_called_once_with(spray, 0x0240000000001313, {0x53B: expr.Asset(unlock)}, player.body)
+                send.assert_called_once_with(
+                    spray, 0x0240000000001313, {0x53B: expr.Asset(unlock)}, player.body
+                )
             else:
                 send.assert_not_called()
 
@@ -1436,10 +1625,17 @@ class CommunicationWheelTests(unittest.TestCase):
     def test_callout_and_voice_selections_replicate_the_shared_graph(self):
         cases = (
             (0x16B, 3793, expr.Asset(0x0C00000000005A0B), 27),
-            (0x1E5, 29862, expr.Map((
-                (2464, expr.Asset(0x0DE0000000010AF3)),
-                (1384, expr.Asset(0x0D800000000074BD)),
-            )), 59),
+            (
+                0x1E5,
+                29862,
+                expr.Map(
+                    (
+                        (2464, expr.Asset(0x0DE0000000010AF3)),
+                        (1384, expr.Asset(0x0D800000000074BD)),
+                    )
+                ),
+                59,
+            ),
             (0x19D, 3793, expr.Asset(0x0C00000000007114), None),
         )
         for action, variable, value, node in cases:
@@ -1456,8 +1652,10 @@ class CommunicationWheelTests(unittest.TestCase):
 
                 choice = expr.Asset(0x0A90000000000000 | action)
                 runtime.send_message(
-                    body.component, 0x02400000000002A3,
-                    {0x8FC: choice, 0x3E1: True}, body.entity,
+                    body.component,
+                    0x02400000000002A3,
+                    {0x8FC: choice, 0x3E1: True},
+                    body.entity,
                 )
                 body.command(body.frame + 1, 0)
                 frames = [client.apply(update) for update in body.frames()]
@@ -1473,7 +1671,8 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertEqual(client.states.get((callout, 13), False), action == 0x19D)
                 if action == 0x19D:
                     [pulse] = [
-                        frame.instances[callout].states[13] for frame in frames
+                        frame.instances[callout].states[13]
+                        for frame in frames
                         if callout in frame.instances and 13 in frame.instances[callout].states
                     ]
                     self.assertEqual(pulse, (True, {"fresh": True, "count": 1}))
@@ -1481,9 +1680,13 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_voice_pulse_retries_with_its_slot_until_each_stream_acknowledges(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         body = player.body_script
-        older_effect, newer_effect, unused_effect = (0x0300000000001879, 0x03000000000018C4, 0x03000000000018C5)
+        older_effect, newer_effect, unused_effect = (
+            0x0300000000001879,
+            0x03000000000018C4,
+            0x03000000000018C5,
+        )
         body.world.voice_effects = (older_effect, newer_effect, unused_effect)
         owner = decode.ClientBody.for_hero(SOLDIER)
         [tree] = body.frames()
@@ -1520,12 +1723,20 @@ class CommunicationWheelTests(unittest.TestCase):
         def report(effect, accepted):
             payload = bytes.fromhex("00 00 00 00 01 C3 3B 05 40 0A 04") + struct.pack("<QII", effect, 0, 0)
             with patch.object(runtime, "send_instance_message", wraps=runtime.send_instance_message) as send:
-                run.match.game_message(player, {
-                    "+0x78": {"+0x0": player.body}, "+0x80": payload,
-                    "+0xA8": 0x0240000000001313, "+0xB0": voice.id,
-                }, 17.0)
+                run.match.game_message(
+                    player,
+                    {
+                        "+0x78": {"+0x0": player.body},
+                        "+0x80": payload,
+                        "+0xA8": 0x0240000000001313,
+                        "+0xB0": voice.id,
+                    },
+                    17.0,
+                )
             if accepted:
-                send.assert_called_once_with(voice, 0x0240000000001313, {0x53B: expr.Asset(effect)}, player.body)
+                send.assert_called_once_with(
+                    voice, 0x0240000000001313, {0x53B: expr.Asset(effect)}, player.body
+                )
             else:
                 send.assert_not_called()
 
@@ -1572,7 +1783,7 @@ class CommunicationWheelTests(unittest.TestCase):
         for action, nodes in ((0x16C, (40,)), (0x16D, (6, 41))):
             with self.subTest(action=hex(action)):
                 run = Run(names=("Speaker",))
-                player, = run.players
+                (player,) = run.players
                 body = player.body_script
                 connection = game_client()
                 connection.player = player
@@ -1603,7 +1814,7 @@ class CommunicationWheelTests(unittest.TestCase):
                 body.command(body.frame + 16, 0)
                 [callout] = [i for i in body.component.instances.values() if i.graph.index == 0x0686]
 
-                def updates():
+                def updates(body=body, stream=stream):
                     [local] = body.frames()
                     snapshot = observers.snapshot(body)
                     frame, keys = observers.delta(body, stream, snapshot)
@@ -1632,7 +1843,7 @@ class CommunicationWheelTests(unittest.TestCase):
         for action, texture in ((0x1E5, 0x2A9FB), (0x1F7, 0x2A9FE), (0x1F9, 0x3A73)):
             with self.subTest(action=hex(action)):
                 run = Run(names=("Speaker",))
-                player, = run.players
+                (player,) = run.players
                 body = player.body_script
                 connection = game_client()
                 connection.player = player
@@ -1661,7 +1872,11 @@ class CommunicationWheelTests(unittest.TestCase):
                 self.assertEqual(observed.vars[3793][0], expected)
 
                 config = callout.graph.node(58).field("m_value")
-                for invalid in (action, expr.Asset(0x0A90000100000000 | action), expr.Asset(0x0A9000000000019E)):
+                for invalid in (
+                    action,
+                    expr.Asset(0x0A90000100000000 | action),
+                    expr.Asset(0x0A9000000000019E),
+                ):
                     callout.write((expr.INSTANCE, 29699), invalid)
                     self.assertEqual(callout.evaluate(config), expr.Asset(0))
 
@@ -1673,7 +1888,7 @@ class CommunicationWheelTests(unittest.TestCase):
         ):
             with self.subTest(mode=game_map.mode_guid, hero=hero_name):
                 run = Run(game_map, names=("Speaker",))
-                player, = run.players
+                (player,) = run.players
                 if hero_name != "Soldier: 76":
                     hero = next(hero for hero in heroes().values() if hero.name == hero_name)
                     run.match.switch_hero(player, hero)
@@ -1687,31 +1902,41 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_greeting_finishes_at_the_first_authored_model_animation_end(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         body = player.body_script
         category = 0x0280000000000004
         with TemporaryDirectory() as directory:
             data = Path(directory)
-            (data / GREETING_DURATION_DATA).write_text(json.dumps({
-                hex(body.world.body_definition): {
-                    "0x0C800000000002DE": {hex(EMOTE_ANY_CATEGORY): 1.5},
-                    "0x0C800000000001EE": {hex(category): 0.75, hex(EMOTE_ANY_CATEGORY): 1.75},
-                },
-            }), encoding="utf-8")
+            (data / GREETING_DURATION_DATA).write_text(
+                json.dumps(
+                    {
+                        hex(body.world.body_definition): {
+                            "0x0C800000000002DE": {hex(EMOTE_ANY_CATEGORY): 1.5},
+                            "0x0C800000000001EE": {hex(category): 0.75, hex(EMOTE_ANY_CATEGORY): 1.75},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
             with patch("ow174.game.script.driver.DATA_DIR", data):
-                self.assertTrue(run.match.queue_body_message(
-                    player.body, 0x02400000000002A3,
-                    {0x8FC: expr.Asset(0x0A9000000000016B), 0x3E1: True, 0x5FE: expr.Asset(category)},
-                    player.body,
-                ))
+                self.assertTrue(
+                    run.match.queue_body_message(
+                        player.body,
+                        0x02400000000002A3,
+                        {0x8FC: expr.Asset(0x0A9000000000016B), 0x3E1: True, 0x5FE: expr.Asset(category)},
+                        player.body,
+                    )
+                )
                 run.match.deliver_body_messages()
                 body.command(body.frame + 10, 0)
                 [gesture] = [i for i in body.component.instances.values() if i.graph.index == 0x0341]
                 for index, duration in ((5, 1500), (6, 750)):
                     state = gesture.state(index)
                     self.assertTrue(state.active)
-                    self.assertEqual([event.time - state.start for event in gesture.queue if event.state is state],
-                                     [duration, duration])
+                    self.assertEqual(
+                        [event.time - state.start for event in gesture.queue if event.state is state],
+                        [duration, duration],
+                    )
                 ending_frame = (gesture.state(6).start + 750) // body.frame_ms
                 body.command(ending_frame - 1, 0)
                 self.assertIn(gesture.id, body.component.instances)
@@ -1721,7 +1946,7 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_greeting_category_replicates_and_expired_callout_can_restart(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         body = player.body_script
         owner = decode.ClientBody.for_hero(SOLDIER)
 
@@ -1733,10 +1958,14 @@ class CommunicationWheelTests(unittest.TestCase):
         apply_owner_updates()
         action = 0x0A9000000000016B
         category = expr.Asset(0x0280000000000004)
-        self.assertTrue(run.match.queue_body_message(
-            player.body, 0x02400000000002A3,
-            {0x8FC: expr.Asset(action), 0x3E1: True, 0x5FE: category}, player.body,
-        ))
+        self.assertTrue(
+            run.match.queue_body_message(
+                player.body,
+                0x02400000000002A3,
+                {0x8FC: expr.Asset(action), 0x3E1: True, 0x5FE: category},
+                player.body,
+            )
+        )
         wheel = next(i for i in body.component.instances.values() if i.graph.index == 0x05AD)
         first = None
         for expected in (category, None):
@@ -1804,22 +2033,28 @@ class CommunicationWheelTests(unittest.TestCase):
             return stream.delta(frame, snap, keys, 0) if frame is not None else None
 
         runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A900000000001E5), 0x3E1: True}, body.entity,
+            body.component,
+            0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001E5), 0x3E1: True},
+            body.entity,
         )
         body.command(body.frame + 16, 0)
         [owner_first] = body.frames()
         viewer_first = observer_update()
         first_seen = watcher.apply(viewer_first).actions
-        [callout] = [instance for instance in body.component.instances.values() if instance.graph.index == 0x0686]
+        [callout] = [
+            instance for instance in body.component.instances.values() if instance.graph.index == 0x0686
+        ]
         first_text = watcher.vars[callout.id, 29862]
         body.stream.lost(owner_first.chunk_last)
         stream.lost(viewer_first.chunk_last)
 
         body.command(body.frame + 32, 0)
         runtime.send_message(
-            body.component, 0x02400000000002A3,
-            {0x8FC: expr.Asset(0x0A900000000001E6), 0x3E1: True}, body.entity,
+            body.component,
+            0x02400000000002A3,
+            {0x8FC: expr.Asset(0x0A900000000001E6), 0x3E1: True},
+            body.entity,
         )
         body.command(body.frame + 1, 0)
         second_text = callout.vars[29862].value()
@@ -1853,7 +2088,7 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_repeated_ultimate_status_replicates_after_the_voice_stack_expires(self):
         run = Run(names=("Speaker",))
-        player, = run.players
+        (player,) = run.players
         body = player.body_script
         owner = decode.ClientBody.for_hero(SOLDIER)
         [tree] = body.frames()
@@ -1918,12 +2153,15 @@ class CommunicationWheelTests(unittest.TestCase):
 
     def test_targeted_wheel_message_table_routes_to_the_selected_body(self):
         run = Run(names=("Speaker", "Target", "Bystander"))
-        speaker, target, bystander = run.players
+        speaker, target, _bystander = run.players
         run.step({})
 
         def wheel(player):
-            return next(instance for instance in player.body_script.component.instances.values()
-                        if instance.graph.index == 0x05AD)
+            return next(
+                instance
+                for instance in player.body_script.component.instances.values()
+                if instance.graph.index == 0x05AD
+            )
 
         source, receiver, other = (wheel(player) for player in run.players)
         source.write((expr.INSTANCE, 375), (expr.Entity(target.body),))
@@ -1971,8 +2209,11 @@ class CommunicationWheelTests(unittest.TestCase):
         watch.stream.arrived(update.chunk_last)
 
         def wheel(player):
-            return next(instance for instance in player.body_script.component.instances.values()
-                        if instance.graph.index == 0x05AD)
+            return next(
+                instance
+                for instance in player.body_script.component.instances.values()
+                if instance.graph.index == 0x05AD
+            )
 
         for speaker, action in ((first, 0x1E5), (second, 0x1E6)):
             source = wheel(speaker)

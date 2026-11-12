@@ -601,6 +601,8 @@ def actor_model_shapes(data: bytes) -> list[tuple[int, int, tuple]]:
     return out
 
 
+
+
 def _motion4_category(stu: Structured, wrapper: int, holder: int | None) -> int | None:
     holder_class, selector_field, flag_default = BUILDERS[4]
     if holder is None or _byte(stu, stu.fields[wrapper], MOTION, 0) != 4 or stu.hashes[holder] != holder_class:
@@ -849,7 +851,11 @@ def _map_dynamic_spheres(map_guid: int, read, identifiers: frozenset[int] | None
 
 
 def map_shapes(
-    map_guid: int, read, category: int = MOVER, *, records: dict[int, dict] | None = None,
+    map_guid: int,
+    read,
+    category: int = MOVER,
+    *,
+    records: dict[int, dict] | None = None,
 ) -> tuple[list, list]:
     """A map's props: (models: each model's shapes (model_shapes), placements: [(model index, identifier
     (0 or the one the game mode must list), translation, scale, rotation)] in placeable order).

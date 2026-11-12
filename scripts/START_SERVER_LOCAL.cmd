@@ -1,20 +1,21 @@
 @echo off
 setlocal
 title Overwatch 1.74 - Local Server
-cd /d "%~dp0"
+cd /d "%~dp0.."
+set "PYTHONPATH=%CD%\src"
 set PYTHONUTF8=1
 chcp 65001 >nul
 if defined ORPHEUS_SERVER_PROFILE goto prepared
 if not exist ".venv\Scripts\python.exe" (
-  py -3 -m venv .venv
+  py -3.12 -m venv .venv
   if errorlevel 1 goto failed
-  ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+  ".venv\Scripts\python.exe" -m pip install -e .
   if errorlevel 1 goto failed
 )
-set "ORPHEUS_PYTHON=%~dp0.venv\Scripts\python.exe"
+set "ORPHEUS_PYTHON=%CD%\.venv\Scripts\python.exe"
 goto checkports
 :prepared
-if not defined ORPHEUS_PYTHON set "ORPHEUS_PYTHON=%~dp0.venv\Scripts\python.exe"
+if not defined ORPHEUS_PYTHON set "ORPHEUS_PYTHON=%CD%\.venv\Scripts\python.exe"
 if not exist "%ORPHEUS_PYTHON%" goto failed
 :checkports
 for %%P in (1118 21119 3724 3725) do (

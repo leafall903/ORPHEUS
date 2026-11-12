@@ -1,4 +1,8 @@
+> This file retains historical acceptance snapshots. Current upstream reconciliation and its known limits are recorded in [PYTHON_UPSTREAM_INTEGRATION.md](PYTHON_UPSTREAM_INTEGRATION.md). Earlier pending-merge labels do not describe the current commit state.
+
 # 合版服务器验收记录
+
+> This is the contributor's candidate verification record at PR #16 commit `0b262c33844fd3263fa63dd81f0251b4a579f2be`. Its historical test results describe that candidate. The current Python `main` and `leafall` integration have their own verification in [CHANGELOG.md](../CHANGELOG.md).
 
 目标客户端为 Overwatch **1.74.0.0.104319**。本候选版使用各线共同开发的 Python 运行时。GitHub `main` 的 Rust 迁移有独立的覆盖范围。
 
@@ -60,6 +64,8 @@
 
 用 `python -B tools/prepare_combined_runtime.py --junkenstein <Junkenstein 运行时> --rialto <里阿尔托运行时> --output <外部新目录>` 合成外部 104319 运行时。设置 `ORPHEUS_RUNTIME_DIR` 指向输出目录，并将 `ORPHEUS_NPC_CATALOG` 指向其中的 `data/pve_npcs_174.json`。默认端口空闲时可从该工作树运行 `START_SERVER_LOCAL.cmd`。原版客户端复测单独使用 1280×720 窗口模式。
 
+设置 `ORPHEUS_RUNTIME_DIR` 指向已授权并准备好的 104319 服务器运行时，再从该工作树运行 `scripts/START_SERVER_LOCAL.cmd`。它提供仅服务器入口。原版客户端复测单独使用 1280×720 窗口模式。
+
 早期使用里阿尔托运行时执行 196 项测试，193 项通过。3 项 Junkenstein 测试缺少场景图。合成运行时补齐了所需场景图，含这 3 项的 52 项场景、入口、NPC 和街机回归全部通过。独立端口的服务器启动检查确认 Battle.net 和大厅可连接、游戏 UDP 已绑定、仪表盘返回 HTTP 200。
 
 后续增量通过 69 项状态脚本、快照、麦克雷及战斗回归，另有 7 项 Pharah 测试和 1 项 Practice Range 连接、世界创建与 Soldier 输入用例通过。
@@ -67,5 +73,7 @@
 合入 Mercy 和 Lúcio 后，使用合成运行时重跑的 119 项战斗、场景、入口、NPC、快捷键及街机回归全部通过。
 
 合版测试包括 `test_game_ana`、`test_mei_combat`、`test_game_winston`、`test_game_combat`、`test_game_npc`、`test_npc_navigation`、`test_game_npc_control`、`test_npc_hotkeys`、`test_mccree_gun`、`test_mccree_roll`、`test_mccree_eye`、`test_pve_entrance`、`test_game_scene_host` 和 `test_arcade`。运行 `unittest` 时将工作树的 `tests` 目录加入 `PYTHONPATH`。
+
+合版测试包括 `test_game_ana`、`test_mei_combat`、`test_game_winston`、`test_game_combat`、`test_game_npc`、`test_npc_navigation`、`test_game_npc_control`、`test_npc_hotkeys`、`test_mccree_gun`、`test_mccree_roll`、`test_mccree_eye`、`test_pve_entrance`、`test_game_scene_host` 和 `test_arcade`。运行 `unittest` 时将工作树的 `src` 目录加入 `PYTHONPATH`，并从 `tests/runtime` 选择相应测试。
 
 原版呈现的既有证据与未验收范围见 [PvE combat sandbox](PVE_COMBAT_SANDBOX.txt) 和 [McCree combat](MCCREE_COMBAT.txt)。

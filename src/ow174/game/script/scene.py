@@ -1065,13 +1065,17 @@ class SceneWorld(runtime.World):
                 and self.mode in JUNKENSTEIN_MODES and candidate.id in self.entities):
             revision = self._array_filter_revisions.get(candidate.id)
             if revision is None:
-                revision = self._array_filter_revisions[candidate.id] = runtime.Var(('array filter', candidate.id))
+                revision = runtime.Var(('array filter', candidate.id))
+                self._array_filter_revisions[candidate.id] = revision
             state.watch(revision)
         return self._filter_entity(state.instance, candidate.id, config)
 
     def notify_entity_filter_change(self, entity: int, *, retired=False) -> None:
-        revision = (self._array_filter_revisions.pop(entity, None) if retired
-                    else self._array_filter_revisions.get(entity))
+        revision = (
+            self._array_filter_revisions.pop(entity, None)
+            if retired
+            else self._array_filter_revisions.get(entity)
+        )
         if revision is not None:
             self._notify_query_change(revision)
             if retired:
@@ -1095,7 +1099,7 @@ class SceneWorld(runtime.World):
         ghost_filter = (self.mode in JUNKENSTEIN_MODES and instance.graph.index == 0x2B72
                         and config == instance.graph.node(34).field('m_filter'))
         death_predicate = killer_filter and instance.graph.index == 0x01A3 and predicate is not None
-        allowed = (*fields, *tag_fields, 'm_66747E7D') if killer_filter else (*fields, *tag_fields)
+        allowed = (*fields, *tag_fields, "m_66747E7D") if killer_filter else (*fields, *tag_fields)
         if witch_ally_filter:
             allowed += ('m_66747E7D', 'm_89831602')
         if beam_filter or death_predicate or witch_ally_filter or ghost_filter:
@@ -1106,27 +1110,36 @@ class SceneWorld(runtime.World):
                        if key != '$' and key not in allowed)):
             return NotImplemented
         any_bits, all_bits, excluded = (0 if config.get(key) is None else config[key] for key in fields)
-        if any(type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF
-               for bits in (any_bits, all_bits, excluded)):
+        if any(
+            type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF
+            for bits in (any_bits, all_bits, excluded)
+        ):
             return NotImplemented
         binding = self.entities.get(entity)
         if binding is None:
             return False
         inputs = self.array_filter_inputs(entity)
-        if (self.script_components.get(component.entity) is not component
-                or self.entities.get(entity) is not binding
-                or type(inputs) is not tuple or len(inputs) != 2):
+        if (
+            self.script_components.get(component.entity) is not component
+            or self.entities.get(entity) is not binding
+            or type(inputs) is not tuple
+            or len(inputs) != 2
+        ):
             return NotImplemented
         component_present, bits = inputs
-        if (type(component_present) is not bool or (bits is not None and
-                (type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF))):
+        if type(component_present) is not bool or (
+            bits is not None and (type(bits) is not int or not 0 <= bits <= 0xFFFFFFFFFFFFFFFF)
+        ):
             return NotImplemented
         if any_bits | all_bits | excluded:
             if not component_present and any_bits != 0x3FFFFFFF:
                 return False
             bits = bits or 0
-            if not ((any_bits == 0x3FFFFFFF or bits & any_bits)
-                    and bits & all_bits == all_bits and not bits & excluded):
+            if not (
+                (any_bits == 0x3FFFFFFF or bits & any_bits)
+                and bits & all_bits == all_bits
+                and not bits & excluded
+            ):
                 return False
         if killer_filter or witch_ally_filter:
             # BCAAE0 uses the +0x40 relation mask as an additional required predicate.
@@ -1142,7 +1155,9 @@ class SceneWorld(runtime.World):
             if min(source_team, target_team) < 0:
                 return False
             friendly = source_team == target_team
-            if (killer_filter and friendly) or (witch_ally_filter and (not friendly or entity == component.entity)):
+            if (killer_filter and friendly) or (
+                witch_ally_filter and (not friendly or entity == component.entity)
+            ):
                 return False
 
         # DB2C10 omits null tokens. DB2FD0 tests any, all and excluded lists in that order.
@@ -1150,14 +1165,22 @@ class SceneWorld(runtime.World):
             tag_cfg = config.get(key)
             if tag_cfg is None:
                 continue
-            if (beam_filter and not required and isinstance(tag_cfg, dict)
-                    and tag_cfg.get('$') == 'STU_06610EBC'):
-                tag_configs = tag_cfg.get('m_configVars') or ()
+            if (
+                beam_filter
+                and not required
+                and isinstance(tag_cfg, dict)
+                and tag_cfg.get("$") == "STU_06610EBC"
+            ):
+                tag_configs = tag_cfg.get("m_configVars") or ()
             else:
                 tag_configs = (tag_cfg,)
             for item in tag_configs:
-                if (self.mode in JUNKENSTEIN_MODES and instance.graph.index == 0x0CBC
-                        and key == 'm_B486603E' and expr.dynamic(item) == (runtime.INSTANCE, 6299)):
+                if (
+                    self.mode in JUNKENSTEIN_MODES
+                    and instance.graph.index == 0x0CBC
+                    and key == "m_B486603E"
+                    and expr.dynamic(item) == (runtime.INSTANCE, 6299)
+                ):
                     # 0CBC/95 stores the target tag delivered by the mode's 06D3 broadcast.
                     value = instance.evaluate(item)
                     values = value if isinstance(value, tuple) else (value,)
@@ -1171,10 +1194,13 @@ class SceneWorld(runtime.World):
                             return present
                     continue
                 else:
-                    if (not isinstance(item, dict) or item.get('$') != 'STU_357DABBB'
-                            or item.get('m_resourceKey')):
+                    if (
+                        not isinstance(item, dict)
+                        or item.get("$") != "STU_357DABBB"
+                        or item.get("m_resourceKey")
+                    ):
                         return NotImplemented
-                    resource = item.get('m_7D7C86A1')
+                    resource = item.get("m_7D7C86A1")
                     tag = graph.guid(resource) if resource is not None else 0
                 if tag == 0:
                     continue
@@ -1264,9 +1290,11 @@ class SceneWorld(runtime.World):
         records = catalog.get(target)
         if records is None:
             return NotImplemented if target in self.entities else None
-        following = [(owner, other) for owner, other in records.items()
-                     if record.priority > other.priority
-                     or (record.prefer_later and record.priority == other.priority)]
+        following = [
+            (owner, other)
+            for owner, other in records.items()
+            if record.priority > other.priority or (record.prefer_later and record.priority == other.priority)
+        ]
         for owner, _ in following:
             del records[owner]
         records[state] = record
@@ -1275,8 +1303,9 @@ class SceneWorld(runtime.World):
 
     def session_script_entities(self, instance):
         component = instance.component
-        if (self.script_components.get(component.entity) is not component
-                or not callable(self.session_entity_roster)):
+        if self.script_components.get(component.entity) is not component or not callable(
+            self.session_entity_roster
+        ):
             return NotImplemented
         result = []
         for entity in self.session_entity_roster():
@@ -1289,16 +1318,20 @@ class SceneWorld(runtime.World):
 
     def query_participants(self, instance, filter_config, *, required_tag=None):
         component = instance.component
-        if (self.script_components.get(component.entity) is not component
-                or (filter_config.get('m_B486603E') is not None) != (required_tag is not None)):
+        if self.script_components.get(component.entity) is not component or (
+            filter_config.get("m_B486603E") is not None
+        ) != (required_tag is not None):
             return NotImplemented
-        mask_fields = ('m_84065FD1', 'm_1E14CCA8', 'm_4EA686DB')
+        mask_fields = ("m_84065FD1", "m_1E14CCA8", "m_4EA686DB")
         required, team, excluded = (filter_config.get(key) for key in mask_fields)
         player_query = (required, team, excluded) == (0x40000, 0x800000, 0x10)
         if not player_query and (required, team, excluded) != (1, 0x1000000, 0x10):
             return NotImplemented
-        if any(value is not None and value != 0 for key, value in filter_config.items()
-               if key not in ('$', 'm_B486603E', *mask_fields)):
+        if any(
+            value is not None and value != 0
+            for key, value in filter_config.items()
+            if key not in ("$", "m_B486603E", *mask_fields)
+        ):
             return NotImplemented
         roster = self.participant_roster
         if roster is None:
@@ -1310,10 +1343,15 @@ class SceneWorld(runtime.World):
             return NotImplemented
         result = []
         for entity, bits, flags in roster():
-            component.consume_work('participant query')
+            component.consume_work("participant query")
             binding = self.entities.get(entity)
-            if (binding is not None and not flags & 4 and bits & required
-                    and bits & team and not bits & excluded):
+            if (
+                binding is not None
+                and not flags & 4
+                and bits & required
+                and bits & team
+                and not bits & excluded
+            ):
                 if required_tag is not None:
                     present = self._has_target_tag(binding, required_tag.guid)
                     if present is NotImplemented:
@@ -1325,9 +1363,12 @@ class SceneWorld(runtime.World):
 
     def submit_script_request(self, instance, node, request):
         source = instance.component
-        if (self.script_components.get(source.entity) is not source
-                or source.instances.get(instance.id) is not instance or instance.stopped):
-            source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
+        if (
+            self.script_components.get(source.entity) is not source
+            or source.instances.get(instance.id) is not instance
+            or instance.stopped
+        ):
+            source.unsupported(instance, "scene PlayScript source lifecycle", node.cls, node)
         source.ensure_valid()
         for entity in request.targets:
             if entity not in self.entities:
@@ -1336,23 +1377,32 @@ class SceneWorld(runtime.World):
             if receiver is None:
                 continue
             if receiver is NotImplemented or receiver.fault is not None:
-                source.unsupported(instance, 'scene PlayScript target component', node.cls, node)
-            if (request.policy == 3 and receiver is source
-                    and request.resource.guid == (graph.GRAPH_TYPE << 48) | instance.graph.index):
-                source.unsupported(instance, 'scene PlayScript active self replacement', node.cls, node)
+                source.unsupported(instance, "scene PlayScript target component", node.cls, node)
+            if (
+                request.policy == 3
+                and receiver is source
+                and request.resource.guid == (graph.GRAPH_TYPE << 48) | instance.graph.index
+            ):
+                source.unsupported(instance, "scene PlayScript active self replacement", node.cls, node)
             queue = self.play_queues.get(entity)
             if queue is None:
-                source.unsupported(instance, 'scene PlayScript queue', node.cls, node)
+                source.unsupported(instance, "scene PlayScript queue", node.cls, node)
             try:
                 queue.submit(request)
             except ValueError as error:
-                source.unsupported(instance, 'scene PlayScript queue', str(error), node)
-            if (self.script_components.get(entity) is not receiver
-                    or self.play_queues.get(entity) is not queue or receiver.fault is not None):
-                source.unsupported(instance, 'scene PlayScript target lifecycle', node.cls, node)
-            if (self.script_components.get(source.entity) is not source
-                    or source.instances.get(instance.id) is not instance or instance.stopped):
-                source.unsupported(instance, 'scene PlayScript source lifecycle', node.cls, node)
+                source.unsupported(instance, "scene PlayScript queue", str(error), node)
+            if (
+                self.script_components.get(entity) is not receiver
+                or self.play_queues.get(entity) is not queue
+                or receiver.fault is not None
+            ):
+                source.unsupported(instance, "scene PlayScript target lifecycle", node.cls, node)
+            if (
+                self.script_components.get(source.entity) is not source
+                or source.instances.get(instance.id) is not instance
+                or instance.stopped
+            ):
+                source.unsupported(instance, "scene PlayScript source lifecycle", node.cls, node)
 
     def set_property_modifiers(self, entity: int, component: modifiers.NumericModifiers | None) -> None:
         """Declare component 31 and its clock; UUID bindings do not imply it."""
@@ -1371,8 +1421,9 @@ class SceneWorld(runtime.World):
         self._bound_entity(entity)
         if registry is not None and type(registry) not in (scopes.Registry, scopes.ForwardHost):
             raise ValueError("expected subgraph scope registry or known no service")
-        if (type(registry) is scopes.ForwardHost
-                and (registry.component.entity != entity or registry.component.world is not self)):
+        if type(registry) is scopes.ForwardHost and (
+            registry.component.entity != entity or registry.component.world is not self
+        ):
             raise ValueError("scope host belongs to another world or entity")
         if entity in self.scope_components and self.scope_components[entity] is not registry:
             raise ValueError("retire the entity before replacing its subgraph scope service")
@@ -1454,16 +1505,16 @@ class SceneWorld(runtime.World):
     def set_data_flow_context(self, entity: int, context: data_flow.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not data_flow.Context or context.owner != entity or context.retired:
-            raise ValueError('expected live data-flow context for this entity')
+            raise ValueError("expected live data-flow context for this entity")
         if entity in self.data_flow_contexts and self.data_flow_contexts[entity] is not context:
-            raise ValueError('retire the entity before replacing its data-flow context')
+            raise ValueError("retire the entity before replacing its data-flow context")
         self.data_flow_contexts[entity] = context
 
     def bind_data_flow_providers(self, entity: int) -> data_flow.Context:
         """Register providers for a declared live component without choosing a renderer consumer."""
         component = self.script_components.get(entity)
         if component is None:
-            raise ValueError('data-flow providers require a bound script component')
+            raise ValueError("data-flow providers require a bound script component")
         component.ensure_valid()
         context = data_flow.Context.managed(component, self.position)
         self.set_data_flow_context(entity, context)
@@ -1475,23 +1526,31 @@ class SceneWorld(runtime.World):
     def model_look_context(self, entity: int):
         return self.look_contexts.get(entity, NotImplemented)
 
-    def set_entity_query_context(self, entity: int, context: entity_queries.Context | None = None,
-                                 *, ai_links: bool = False) -> None:
+    def set_entity_query_context(
+        self, entity: int, context: entity_queries.Context | None = None, *, ai_links: bool = False
+    ) -> None:
         self._bound_entity(entity)
         if context is None:
             if self.possessors is None:
-                raise ValueError('scene query context needs a declared possession catalog')
-            context = entity_queries.Context(entity, True, True, True, lookup=self._scene_query_target,
-                                             watch_possession=self._watch_possession, watch_environment=None)
+                raise ValueError("scene query context needs a declared possession catalog")
+            context = entity_queries.Context(
+                entity,
+                True,
+                True,
+                True,
+                lookup=self._scene_query_target,
+                watch_possession=self._watch_possession,
+                watch_environment=None,
+            )
             if ai_links:
                 context.lookup_linked = self._lookup_ai_linked_target
                 context.watch_environment = self._watch_ai_link_change
         elif ai_links:
-            raise ValueError('choose a scene AI link service or a supplied query context')
+            raise ValueError("choose a scene AI link service or a supplied query context")
         if type(context) is not entity_queries.Context or context.owner != entity or context.retired:
-            raise ValueError('expected live entity-query context for this entity')
+            raise ValueError("expected live entity-query context for this entity")
         if entity in self.query_contexts and self.query_contexts[entity] is not context:
-            raise ValueError('detach the existing query context before replacement')
+            raise ValueError("detach the existing query context before replacement")
         self.query_contexts[entity] = context
 
     def entity_query_context(self, entity: int):
@@ -1499,9 +1558,12 @@ class SceneWorld(runtime.World):
 
     def set_ai_linked_target(self, controller: int, slot: int, target: int | None) -> None:
         """Publish one host-selected target, retaining its entity binding identity."""
-        if (controller not in self.ai_behavior_requests
-                or type(slot) is not int or not 0 <= slot <= 0xFFFFFFFF):
-            raise ValueError('linked target requires a bound AI controller and a uint32 slot')
+        if (
+            controller not in self.ai_behavior_requests
+            or type(slot) is not int
+            or not 0 <= slot <= 0xFFFFFFFF
+        ):
+            raise ValueError("linked target requires a bound AI controller and a uint32 slot")
         binding = None
         if target is not None:
             self._bound_entity(target)
@@ -1529,12 +1591,13 @@ class SceneWorld(runtime.World):
     def _watch_possession(self, state, target):
         revision = self._possession_revisions.get(target.entity)
         if revision is None:
-            revision = self._possession_revisions[target.entity] = runtime.Var(('possession', target.entity))
+            revision = self._possession_revisions[target.entity] = runtime.Var(("possession", target.entity))
         state.watch(revision)
 
     def _notify_possession_change(self, owner, *, retired=False):
-        revision = (self._possession_revisions.pop(owner, None) if retired
-                    else self._possession_revisions.get(owner))
+        revision = (
+            self._possession_revisions.pop(owner, None) if retired else self._possession_revisions.get(owner)
+        )
         if revision is not None:
             self._notify_query_change(revision)
             if retired:
@@ -1640,9 +1703,9 @@ class SceneWorld(runtime.World):
     def set_controller_hero_context(self, entity: int, context: controller_heroes.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not controller_heroes.Context or context.owner != entity or context.retired:
-            raise ValueError('expected live controller-hero context for this entity')
+            raise ValueError("expected live controller-hero context for this entity")
         if entity in self.hero_contexts and self.hero_contexts[entity] is not context:
-            raise ValueError('detach the existing controller-hero context before replacement')
+            raise ValueError("detach the existing controller-hero context before replacement")
         self.hero_contexts[entity] = context
 
     def controller_hero_context(self, entity: int, *, component: runtime.Component | None = None):
@@ -1653,9 +1716,9 @@ class SceneWorld(runtime.World):
     def set_entity_team_context(self, entity: int, context: entity_team.Context) -> None:
         self._bound_entity(entity)
         if type(context) is not entity_team.Context or context.owner != entity or context.retired:
-            raise ValueError('expected live entity-team context for this entity')
+            raise ValueError("expected live entity-team context for this entity")
         if entity in self.team_contexts and self.team_contexts[entity] is not context:
-            raise ValueError('detach the existing entity-team context before replacement')
+            raise ValueError("detach the existing entity-team context before replacement")
         self.team_contexts[entity] = context
 
     def entity_team_context(self, entity: int, *, component: runtime.Component | None = None):
@@ -1666,19 +1729,32 @@ class SceneWorld(runtime.World):
     def _retire_control_contexts(self, *, entity=None, component=None):
         for source, context in list(self.control_contexts.items()):
             target = context.component if type(context) is entity_control.Context else None
-            if (source == entity or (component is not None and source == component.entity)
-                    or (isinstance(target, runtime.Component)
-                        and (target.entity == entity or target is component))):
+            if (
+                source == entity
+                or (component is not None and source == component.entity)
+                or (
+                    isinstance(target, runtime.Component) and (target.entity == entity or target is component)
+                )
+            ):
                 self.control_contexts.pop(source, None)
 
     def _retire_effect_bindings(self, entity: int) -> None:
-        sources = {entity} | {source for source, context in self.effect_contexts.items()
-                              if context is not None and context.owner == entity}
-        retiring = {target.entries for key, target in self.effect_targets.items()
-                    if target is not None and (key == entity or target.owner == entity)}
+        sources = {entity} | {
+            source
+            for source, context in self.effect_contexts.items()
+            if context is not None and context.owner == entity
+        }
+        retiring = {
+            target.entries
+            for key, target in self.effect_targets.items()
+            if target is not None and (key == entity or target.owner == entity)
+        }
         owners = retiring | {target.entries for target in self.effect_targets.values() if target is not None}
-        owners.update(context.fallback for context in self.effect_contexts.values()
-                      if context is not None and type(context.fallback) is EffectList)
+        owners.update(
+            context.fallback
+            for context in self.effect_contexts.values()
+            if context is not None and type(context.fallback) is EffectList
+        )
         for owner in owners:
             for entry in owner.entries:
                 effect, observer = entry.effect, entry.effect.observer
@@ -1688,10 +1764,14 @@ class SceneWorld(runtime.World):
                     owner.retire(effect)
                     if isinstance(observer, runtime.State):
                         observer.on_effect_abandoned(effect)
-        self.effect_contexts = {key: context for key, context in self.effect_contexts.items()
-                                if key not in sources}
-        self.effect_targets = {key: target for key, target in self.effect_targets.items()
-                               if key != entity and (target is None or target.owner != entity)}
+        self.effect_contexts = {
+            key: context for key, context in self.effect_contexts.items() if key not in sources
+        }
+        self.effect_targets = {
+            key: target
+            for key, target in self.effect_targets.items()
+            if key != entity and (target is None or target.owner != entity)
+        }
 
     def script_failed(self, component: runtime.Component) -> None:
         actual = self.script_components.get(component.entity, NotImplemented)
@@ -1868,9 +1948,12 @@ class SceneWorld(runtime.World):
             return NotImplemented
         active = controller.on_fire_reader()
         instance.component.ensure_valid()
-        if (self.entities.get(body_id) is body and self.entities.get(controller_id) is controller
-                and self.linked_controllers.get(body_id) == controller_id
-                and (active is None or type(active) is bool)):
+        if (
+            self.entities.get(body_id) is body
+            and self.entities.get(controller_id) is controller
+            and self.linked_controllers.get(body_id) == controller_id
+            and (active is None or type(active) is bool)
+        ):
             return active
         return NotImplemented
 
@@ -1883,12 +1966,17 @@ class SceneWorld(runtime.World):
     def movement_snapshot(self, instance):
         component = instance.component
         record = self.entities.get(component.entity)
-        if (record is None or record.movement_reader is None
-                or self.script_components.get(component.entity) is not component):
+        if (
+            record is None
+            or record.movement_reader is None
+            or self.script_components.get(component.entity) is not component
+        ):
             return NotImplemented
         sample = record.movement_reader(component.frame)
-        if (self.entities.get(component.entity) is not record
-                or self.script_components.get(component.entity) is not component):
+        if (
+            self.entities.get(component.entity) is not record
+            or self.script_components.get(component.entity) is not component
+        ):
             return NotImplemented
         return sample
 
@@ -1896,8 +1984,11 @@ class SceneWorld(runtime.World):
         component = state.instance.component
         entity = component.entity
         binding = self.entities.get(entity)
-        if (self.script_components.get(entity) is not component
-                or binding is None or binding.target_tags is None):
+        if (
+            self.script_components.get(entity) is not component
+            or binding is None
+            or binding.target_tags is None
+        ):
             return NotImplemented
         self.target_tag_grants.setdefault(entity, {})[state] = tag
         return True
@@ -1927,8 +2018,8 @@ class SceneWorld(runtime.World):
         excluded_ids = {entity.id for entity in excluded}
         result = []
         for target in self.entities.values():
-            component.consume_work('target tag traversal')
-            if (target.id in placed_ids or self._has_target_tag(target, tag) is True):
+            component.consume_work("target tag traversal")
+            if target.id in placed_ids or self._has_target_tag(target, tag) is True:
                 if target.id in excluded_ids:
                     continue
                 if excluded_tag is None or self._has_target_tag(target, excluded_tag) is not True:
@@ -1971,8 +2062,11 @@ class SceneWorld(runtime.World):
         slot = self.entity_var_slot(entity, var)
         if slot is not NotImplemented:
             return slot.value() if slot is not None else None
-        if (entity == runtime.GAME_MODE_ENTITY and entity not in self.script_components
-                and runtime.mode_variables(self.mode) is not None):
+        if (
+            entity == runtime.GAME_MODE_ENTITY
+            and entity not in self.script_components
+            and runtime.mode_variables(self.mode) is not None
+        ):
             return super().entity_var(entity, var)
         # Catalog bindings do not activate the entity's script component.
         return NotImplemented
@@ -1993,16 +2087,22 @@ class SceneWorld(runtime.World):
     def suppress_same_team_contact(self, state, entity):
         component = state.instance.component
         binding = self.entities.get(entity)
-        if (self.script_components.get(component.entity) is not component
-                or binding is None or binding.same_team_contact is None):
+        if (
+            self.script_components.get(component.entity) is not component
+            or binding is None
+            or binding.same_team_contact is None
+        ):
             return NotImplemented
         binding.same_team_contact(False)
         return lambda: binding.same_team_contact(True)
 
     def emit_contact_effect(self, state, entity, contact_set, targets):
         component = state.instance.component
-        if (self.script_components.get(entity) is not component or entity not in self.entities
-                or not callable(self.contact_effect)):
+        if (
+            self.script_components.get(entity) is not component
+            or entity not in self.entities
+            or not callable(self.contact_effect)
+        ):
             return NotImplemented
         return self.contact_effect(state, entity, contact_set, targets)
 
@@ -2013,10 +2113,13 @@ class SceneWorld(runtime.World):
 
         def require_bound_source():
             component.ensure_valid()
-            if (self.script_components.get(component.entity) is not component
-                    or component.instances.get(instance.id) is not instance
-                    or instance.stopped or instance.teardown):
-                component.unsupported(instance, 'effect entity action source lifecycle', node.cls, node)
+            if (
+                self.script_components.get(component.entity) is not component
+                or component.instances.get(instance.id) is not instance
+                or instance.stopped
+                or instance.teardown
+            ):
+                component.unsupported(instance, "effect entity action source lifecycle", node.cls, node)
 
         require_bound_source()
         accepted = self.effect_entity_action(instance, node)
@@ -2029,11 +2132,16 @@ class SceneWorld(runtime.World):
     def queue_enemy_retirement(self, component, entity, *, phase_exit=False):
         body = self.entities.get(component.entity)
         controller = self.entities.get(self.linked_controllers.get(component.entity))
-        if (not (component.owner_dead or phase_exit) or body is None or controller is None
-                or controller is body or entity not in (body.id, controller.id)
-                or controller.id not in self.ai_behavior_requests
-                or self.script_components.get(body.id) is not component
-                or self.current_possessions.get(controller.id) != body.id):
+        if (
+            not (component.owner_dead or phase_exit)
+            or body is None
+            or controller is None
+            or controller is body
+            or entity not in (body.id, controller.id)
+            or controller.id not in self.ai_behavior_requests
+            or self.script_components.get(body.id) is not component
+            or self.current_possessions.get(controller.id) != body.id
+        ):
             return NotImplemented
         self.corpse_retirements[body.id] = (body, controller, component, phase_exit)
         return True
@@ -2043,27 +2151,40 @@ class SceneWorld(runtime.World):
         component = instance.component
         entity = component.entity
         body = self.entities.get(entity)
-        if (self.mode not in JUNKENSTEIN_MODES or body is None
-                or self.script_components.get(entity) is not component):
+        if (
+            self.mode not in JUNKENSTEIN_MODES
+            or body is None
+            or self.script_components.get(entity) is not component
+        ):
             return NotImplemented
-        if ((instance.graph.index, node.pos) == (0x156C, 9) and body.definition == 0x04000000000026B0
-                and expr.guid_of(node.field('m_60703B1E')) == 0x0D80000000000318
-                and node.field('m_41B10FF2') == 1):
-            tags = frozenset(expr.guid_of(tag) for tag in node.field('m_F60AA143') or ())
-            scalar = state.evaluate(node.field('m_50530EAB'), watch=False)
+        if (
+            (instance.graph.index, node.pos) == (0x156C, 9)
+            and body.definition == 0x04000000000026B0
+            and expr.guid_of(node.field("m_60703B1E")) == 0x0D80000000000318
+            and node.field("m_41B10FF2") == 1
+        ):
+            tags = frozenset(expr.guid_of(tag) for tag in node.field("m_F60AA143") or ())
+            scalar = state.evaluate(node.field("m_50530EAB"), watch=False)
             if tags != {0x0D800000000006F9} or scalar != 0.5:
                 return NotImplemented
             self.combat_damage_filters.setdefault(entity, {})[state] = (scalar, tags)
             return True
-        if ((instance.graph.index, node.pos) != (0x0CBC, 141) or body.hero != 0x02E0000000000040
-                or expr.guid_of(node.field('m_60703B1E')) != 0x0D80000000000317
-                or node.field('m_41B10FF2') != 0):
+        if (
+            (instance.graph.index, node.pos) != (0x0CBC, 141)
+            or body.hero != 0x02E0000000000040
+            or expr.guid_of(node.field("m_60703B1E")) != 0x0D80000000000317
+            or node.field("m_41B10FF2") != 0
+        ):
             return NotImplemented
         # D275A0 rejects hits containing any tag in the second identifier array.
-        excluded = frozenset(expr.guid_of(tag) for tag in node.field('m_5CFFCBAE') or ())
-        adjustment = state.evaluate(node.field('m_50530EAB'), watch=False)
-        if (not excluded or 0 in excluded
-                or type(adjustment) not in (int, float) or not math.isfinite(adjustment)):
+        excluded = frozenset(expr.guid_of(tag) for tag in node.field("m_5CFFCBAE") or ())
+        adjustment = state.evaluate(node.field("m_50530EAB"), watch=False)
+        if (
+            not excluded
+            or 0 in excluded
+            or type(adjustment) not in (int, float)
+            or not math.isfinite(adjustment)
+        ):
             return NotImplemented
         self.combat_damage_filters.setdefault(entity, {})[state] = (adjustment, excluded)
         return True
@@ -2085,13 +2206,15 @@ class SceneWorld(runtime.World):
 
     def incoming_barrier_damage(self, entity, amount, hit_tags):
         filters = self.combat_damage_filters.get(entity, {})
-        return amount * math.prod(scale for scale, required in filters.values()
-                                  if not required.isdisjoint(hit_tags))
+        return amount * math.prod(
+            scale for scale, required in filters.values() if not required.isdisjoint(hit_tags)
+        )
 
     def objective_route_active(self, instance):
         component = instance.component
-        if (self.script_components.get(component.entity) is not component
-                or not callable(self.objective_route)):
+        if self.script_components.get(component.entity) is not component or not callable(
+            self.objective_route
+        ):
             return NotImplemented
         result = self.objective_route(component.entity)
         component.ensure_valid()
@@ -2104,34 +2227,49 @@ class SceneWorld(runtime.World):
             if self.entities.get(body.id) is not body or self.script_components.get(body.id) is not component:
                 continue
             owns_body = self.current_possessions.get(controller.id) == body.id
-            if not component.owner_dead and not (phase_exit and owns_body
-                                                 and self.entities.get(controller.id) is controller):
+            if not component.owner_dead and not (
+                phase_exit and owns_body and self.entities.get(controller.id) is controller
+            ):
                 continue
             retire(body.id)
-            if (owns_body and self.entities.get(controller.id) is controller
-                    and self.current_possessions.get(controller.id) is None):
+            if (
+                owns_body
+                and self.entities.get(controller.id) is controller
+                and self.current_possessions.get(controller.id) is None
+            ):
                 retire(controller.id)
 
     def target_effects(self, state):
         instance, node = state.instance, state.node
         component = instance.component
-        if ((instance.graph.index, node.pos) == (0x006B, 62)
-                and self.mode in JUNKENSTEIN_MODES and self.witch_staff_heal is not None):
+        if (
+            (instance.graph.index, node.pos) == (0x006B, 62)
+            and self.mode in JUNKENSTEIN_MODES
+            and self.witch_staff_heal is not None
+        ):
             return self._witch_staff_effect(state)
-        if ((instance.graph.index, node.pos) != (0x157C, 200) or not node.server_only
-                or self.mode not in JUNKENSTEIN_MODES
-                or self.script_components.get(component.entity) is not component):
+        if (
+            (instance.graph.index, node.pos) != (0x157C, 200)
+            or not node.server_only
+            or self.mode not in JUNKENSTEIN_MODES
+            or self.script_components.get(component.entity) is not component
+        ):
             return NotImplemented
         body = self.entities.get(component.entity)
-        resource = node.field('m_A76A8CF6') or {}
-        params = node.field('m_params') or ()
-        if (body is not None and body.definition == 0x04000000000026F0
-                and resource.get('$') == 'STU_0E766B33' and resource.get('m_resourceKey') is None
-                and expr.guid_of(resource.get('m_A76A8CF6')) == 0x04A000000000026E
-                and len(params) == 1 and expr.guid_of(params[0].get('m_B5051BCE')) == 0x0A40000000000009
-                and (params[0].get('m_value') or {}).get('$') == 'STU_B5A0CAF0'
-                and expr.dynamic(node.field('m_targets')) == (expr.INSTANCE, 536)
-                and self.player_stats_available(instance) is False):
+        resource = node.field("m_A76A8CF6") or {}
+        params = node.field("m_params") or ()
+        if (
+            body is not None
+            and body.definition == 0x04000000000026F0
+            and resource.get("$") == "STU_0E766B33"
+            and resource.get("m_resourceKey") is None
+            and expr.guid_of(resource.get("m_A76A8CF6")) == 0x04A000000000026E
+            and len(params) == 1
+            and expr.guid_of(params[0].get("m_B5051BCE")) == 0x0A40000000000009
+            and (params[0].get("m_value") or {}).get("$") == "STU_B5A0CAF0"
+            and expr.dynamic(node.field("m_targets")) == (expr.INSTANCE, 536)
+            and self.player_stats_available(instance) is False
+        ):
             # 026E runs 0BD9's per-caster count, whose only output is 05FE to the caster.
             # 01A3/17 records a player criterion. Its 7059 gate can be set on this
             # NPC even though its controller has no player stats record.
@@ -2142,15 +2280,18 @@ class SceneWorld(runtime.World):
         instance, node = state.instance, state.node
         component = instance.component
         source = self.entities.get(component.entity)
-        if (source is None or source.definition != 0x04000000000000E4
-                or self.script_components.get(source.id) is not component):
+        if (
+            source is None
+            or source.definition != 0x04000000000000E4
+            or self.script_components.get(source.id) is not component
+        ):
             return NotImplemented
-        resource = node.field('m_A76A8CF6') or {}
-        if expr.guid_of(resource.get('m_A76A8CF6')) != 0x04A0000000000019:
+        resource = node.field("m_A76A8CF6") or {}
+        if expr.guid_of(resource.get("m_A76A8CF6")) != 0x04A0000000000019:
             return NotImplemented
-        entity = expr.to_entity(state.evaluate(node.field('m_targets'), watch=False))
+        entity = expr.to_entity(state.evaluate(node.field("m_targets"), watch=False))
         recipient = self.script_components.get(entity)
-        filter_config = instance.graph.node(121).field('m_filter')
+        filter_config = instance.graph.node(121).field("m_filter")
         if component.owner_dead or recipient is None or recipient.fault is not None:
             state.clear_children()
             return True
@@ -2169,10 +2310,10 @@ class SceneWorld(runtime.World):
         definition = graph.graph(0x0079)
         if definition is None:
             return NotImplemented
-        params = node.field('m_params') or ()
-        if len(params) != 1 or expr.guid_of(params[0].get('m_B5051BCE')) != 0x0A4000000000002A:
+        params = node.field("m_params") or ()
+        if len(params) != 1 or expr.guid_of(params[0].get("m_B5051BCE")) != 0x0A4000000000002A:
             return NotImplemented
-        amount = state.evaluate(params[0].get('m_value'), watch=False)
+        amount = state.evaluate(params[0].get("m_value"), watch=False)
         child = recipient.create(definition, init=False)
         state.children[entity] = child
         child.set_source_entity(source.id)
@@ -2189,33 +2330,46 @@ class SceneWorld(runtime.World):
         if ((instance.graph.index, node.pos) == (0x0033, 5)
                 and self.mode in JUNKENSTEIN_MODES and self.shield_recharge is not None):
             return self.shield_recharge(state, elapsed_ms)
-        if ((instance.graph.index, node.pos) == (0x0079, 0)
-                and self.mode in JUNKENSTEIN_MODES and self.witch_staff_heal is not None):
+        if (
+            (instance.graph.index, node.pos) == (0x0079, 0)
+            and self.mode in JUNKENSTEIN_MODES
+            and self.witch_staff_heal is not None
+        ):
             return self.witch_staff_heal(state, elapsed_ms)
         if (instance.graph.index, node.pos) == (0x0CBC, 69) and self.mode in JUNKENSTEIN_MODES:
             component = instance.component
             body = self.entities.get(component.entity)
-            config = node.field('m_modifyHealth') or {}
-            if (body is None or body.self_damage is None
-                    or self.script_components.get(body.id) is not component
-                    or config.get('m_93CDFD2F') != 1 or config.get('m_instigator') is not None
-                    or node.field('m_8B707686') != 1):
+            config = node.field("m_modifyHealth") or {}
+            if (
+                body is None
+                or body.self_damage is None
+                or self.script_components.get(body.id) is not component
+                or config.get("m_93CDFD2F") != 1
+                or config.get("m_instigator") is not None
+                or node.field("m_8B707686") != 1
+            ):
                 return NotImplemented
             if not elapsed_ms:
                 entity = expr.Entity(body.id)
-                if (state.evaluate(node.field('m_FA3ECC43'), watch=False) != entity
-                        or state.evaluate(config.get('m_724CBA57'), watch=False) != entity
-                        or state.evaluate(config.get('m_amount'), watch=False) != 10000):
+                if (
+                    state.evaluate(node.field("m_FA3ECC43"), watch=False) != entity
+                    or state.evaluate(config.get("m_724CBA57"), watch=False) != entity
+                    or state.evaluate(config.get("m_amount"), watch=False) != 10000
+                ):
                     return NotImplemented
                 if not component.owner_dead:
                     body.self_damage(10000.0)
             return True
-        if ((instance.graph.index, node.pos) == (0x157C, 170) and node.server_only
-                and self.mode in JUNKENSTEIN_MODES and self.symmetra_beam_hit is not None):
+        if (
+            (instance.graph.index, node.pos) == (0x157C, 170)
+            and node.server_only
+            and self.mode in JUNKENSTEIN_MODES
+            and self.symmetra_beam_hit is not None
+        ):
             return self.symmetra_beam_hit(state, elapsed_ms)
         if (instance.graph.index, node.pos) == (0x01C9, 38) and self.roadhog_hook_target is not None:
             # Node 37 searches for filter bit 0x80, which no damageable scene body carries.
-            targets = play.evaluate_scalar(instance, node.field('m_FA3ECC43'))
+            targets = play.evaluate_scalar(instance, node.field("m_FA3ECC43"))
             return True if targets == () else NotImplemented
         if (instance.graph.index, node.pos) == (0x01C8, 19) and self.roadhog_hook_hit is not None:
             if elapsed_ms:
@@ -2232,34 +2386,44 @@ class SceneWorld(runtime.World):
             return NotImplemented
         if node.pos == 48:
             # A completed search can produce an explicitly empty victim list.
-            targets = play.evaluate_scalar(instance, node.field('m_FA3ECC43'))
+            targets = play.evaluate_scalar(instance, node.field("m_FA3ECC43"))
             return True if targets == () else NotImplemented
         if node.pos not in (38, 46):
             return NotImplemented
         if elapsed_ms:
             return True
-        config = node.field('m_modifyHealth') or {}
+        config = node.field("m_modifyHealth") or {}
         source = expr.Entity(body.id)
-        if (config.get('m_93CDFD2F') != 1 or node.field('m_95F1FB0B') is not None
-                or play.evaluate_scalar(instance, config.get('m_instigator')) != source
-                or play.evaluate_scalar(instance, config.get('m_724CBA57')) != source):
+        if (
+            config.get("m_93CDFD2F") != 1
+            or node.field("m_95F1FB0B") is not None
+            or play.evaluate_scalar(instance, config.get("m_instigator")) != source
+            or play.evaluate_scalar(instance, config.get("m_724CBA57")) != source
+        ):
             return NotImplemented
-        target = play.evaluate_scalar(instance, node.field('m_FA3ECC43'))
+        target = play.evaluate_scalar(instance, node.field("m_FA3ECC43"))
         if not isinstance(target, expr.Entity):
             return NotImplemented
         victim = self.entities.get(target.id)
-        amount = play.evaluate_scalar(instance, config.get('m_amount'))
-        if (type(amount) not in (int, float) or not 0 <= amount <= 3.402823466e38
-                or self.entities.get(body.id) is not body
-                or victim is None or self.entities.get(target.id) is not victim):
+        amount = play.evaluate_scalar(instance, config.get("m_amount"))
+        if (
+            type(amount) not in (int, float)
+            or not 0 <= amount <= 3.402823466e38
+            or self.entities.get(body.id) is not body
+            or victim is None
+            or self.entities.get(target.id) is not victim
+        ):
             return NotImplemented
         if node.pos == 46:
             if victim is not body or body.self_damage is None or amount <= 0:
                 return NotImplemented
             body.self_damage(expr.f32(amount))
         # Node 37 already scales damage by distance; finishing 38 advances the victim loop.
-        elif (victim is body or not callable(self.explosion_damage)
-                or self.explosion_damage(body.id, target.id, expr.f32(amount)) is not True):
+        elif (
+            victim is body
+            or not callable(self.explosion_damage)
+            or self.explosion_damage(body.id, target.id, expr.f32(amount)) is not True
+        ):
             return NotImplemented
         else:
             state.request_finish()
@@ -2268,21 +2432,26 @@ class SceneWorld(runtime.World):
 
     def _health_value(self, instance, cfg, target, total):
         instance.component.ensure_valid()
-        if (self.entities.get(target.id) is not target
-                or type(total) not in (int, float) or not 0 <= total <= 3.402823466e38):
+        if (
+            self.entities.get(target.id) is not target
+            or type(total) not in (int, float)
+            or not 0 <= total <= 3.402823466e38
+        ):
             instance.component.unsupported(instance, "live health value", cfg["$"])
         return expr.f32(total)
 
     def raycast_provider(self, instance, node):
-        if (instance.graph.index == 0x157C and node.pos in (202, 203)
-                and self.symmetra_beam_cast is not None):
+        if instance.graph.index == 0x157C and node.pos in (202, 203) and self.symmetra_beam_cast is not None:
             return lambda request: self.symmetra_beam_cast(instance, request)
-        if (instance.graph.index == 0x01C8 and node.pos in (100, 137)
-                and self.roadhog_hook_cast is not None):
+        if instance.graph.index == 0x01C8 and node.pos in (100, 137) and self.roadhog_hook_cast is not None:
             walls_only = node.pos == 137
             return lambda request: self.roadhog_hook_cast(instance.component, request, walls_only=walls_only)
-        if (instance.graph.index == 0x01C9 and node.pos in (47, 55, 62, 63)
-                and node.server_only and self.roadhog_hook_cast is not None):
+        if (
+            instance.graph.index == 0x01C9
+            and node.pos in (47, 55, 62, 63)
+            and node.server_only
+            and self.roadhog_hook_cast is not None
+        ):
             slot = instance.find_var(runtime.INSTANCE, 40, create=False)
             caster = expr.to_entity(slot.value()) if slot is not None else 0
             source = self.script_components.get(caster)
@@ -2294,12 +2463,17 @@ class SceneWorld(runtime.World):
         instance, node = state.instance, state.node
         component = instance.component
         body = self.entities.get(component.entity)
-        if (self.mode not in JUNKENSTEIN_MODES or body is None
-                or self.script_components.get(body.id) is not component or self.roadhog_hook_cast is None):
+        if (
+            self.mode not in JUNKENSTEIN_MODES
+            or body is None
+            or self.script_components.get(body.id) is not component
+            or self.roadhog_hook_cast is None
+        ):
             return NotImplemented
         source = (instance.graph.index, node.pos)
-        if ((source == (0x01C8, 146) and node.server_only and body.hero == 0x02E0000000000040)
-                or (source == (0x01C9, 85) and component.state_registries.get('STU_4773DA56'))):
+        if (source == (0x01C8, 146) and node.server_only and body.hero == 0x02E0000000000040) or (
+            source == (0x01C9, 85) and component.state_registries.get("STU_4773DA56")
+        ):
             # This host has static map collision and no dynamic map rigid bodies to receive the impulse.
             return True
         return NotImplemented
@@ -2311,12 +2485,17 @@ class SceneWorld(runtime.World):
         if (state.instance.graph.index == 0x006B and state.node.pos in (6, 7, 121)
                 and self.mode in JUNKENSTEIN_MODES and self.witch_staff_targets is not None):
             return self.witch_staff_targets(state)
-        if ((state.instance.graph.index, state.node.pos) == (0x01C8, 17)
-                and self.roadhog_hook_targets is not None):
+        if (state.instance.graph.index, state.node.pos) == (
+            0x01C8,
+            17,
+        ) and self.roadhog_hook_targets is not None:
             return self.roadhog_hook_targets(state)
-        if ((state.instance.graph.index, state.node.pos) == (0x01C9, 37)
-                and self.roadhog_hook_target is not None and state.node.server_only
-                and state.node.field('m_filter.m_84065FD1') == 0x80):
+        if (
+            (state.instance.graph.index, state.node.pos) == (0x01C9, 37)
+            and self.roadhog_hook_target is not None
+            and state.node.server_only
+            and state.node.field("m_filter.m_84065FD1") == 0x80
+        ):
             return ()
         return super().tracked_targets(state)
 
@@ -2350,14 +2529,14 @@ class SceneWorld(runtime.World):
         if self.mode not in JUNKENSTEIN_MODES or (instance.graph.index, node.pos) != (0x01C9, 60):
             return NotImplemented
         backend = self.property_modifiers(instance.component.entity)
-        rows = node.field('m_BC5E91CF') or []
+        rows = node.field("m_BC5E91CF") or []
         if type(backend) is not modifiers.NumericModifiers or len(rows) != 1:
             return NotImplemented
         row = rows[0]
-        if row.get('$') != 'STU_20E18047' or row.get('m_A9561CA0') != 0 or row.get('m_priority') is not None:
+        if row.get("$") != "STU_20E18047" or row.get("m_A9561CA0") != 0 or row.get("m_priority") is not None:
             return NotImplemented
-        low = instance.evaluate(row.get('m_8AD739CE'))
-        high = instance.evaluate(row.get('m_8213EB22'))
+        low = instance.evaluate(row.get("m_8AD739CE"))
+        high = instance.evaluate(row.get("m_8213EB22"))
         if low != 0 or high != 1:
             return NotImplemented
         # D35310 recognizes this clamp row. C32860 maps velocity slot 0 to property 32 for one frame.
@@ -2370,14 +2549,14 @@ class SceneWorld(runtime.World):
     def _roadhog_hook_anchor(self, cfg, instance):
         from ow174.game import props
 
-        hardpoint = expr.guid_of((cfg.get('m_hardPoint') or {}).get('m_hardPoint'))
-        source = cfg.get('m_entity')
+        hardpoint = expr.guid_of((cfg.get("m_hardPoint") or {}).get("m_hardPoint"))
+        source = cfg.get("m_entity")
         component = instance.component
-        if hardpoint == 0x0DC000000000012D and cfg['$'] == 'STU_C1F83245':
+        if hardpoint == 0x0DC000000000012D and cfg["$"] == "STU_C1F83245":
             # The return stacks select the ordinary Roadhog body on the server.
             # The other branch uses the local view entity and has no server pose.
-            branches = (source or {}).get('m_configVars') or []
-            if [branch.get('$') for branch in branches] != ['STU_9D240539', 'STU_9521A27E', 'STU_B5A0CAF0']:
+            branches = (source or {}).get("m_configVars") or []
+            if [branch.get("$") for branch in branches] != ["STU_9D240539", "STU_9521A27E", "STU_B5A0CAF0"]:
                 return NotImplemented
             entity = component.entity
             offset = (1.1662592, 0.99586946, -0.016212437)  # 03A21 and 0928, bone 0781
@@ -2389,9 +2568,9 @@ class SceneWorld(runtime.World):
             # The four defenders' hardpoint 0014 is at the bind transform of bone 0053.
             offset = {
                 0x0400000000001424: (0, 1.0662696, -0.0033355807),  # Ana, model 3686
-                0x0400000000000141: (0, 1.0401409, -0.002852149),   # Hanzo, model 0A17
-                0x04000000000003CF: (0, 1.1146115, -0.002852149),   # Soldier, model 1137
-                0x04000000000002A3: (0, 1.1146115, -0.002852149),   # Cassidy, model 093F
+                0x0400000000000141: (0, 1.0401409, -0.002852149),  # Hanzo, model 0A17
+                0x04000000000003CF: (0, 1.1146115, -0.002852149),  # Soldier, model 1137
+                0x04000000000002A3: (0, 1.1146115, -0.002852149),  # Cassidy, model 093F
             }.get(body.definition)
             if offset is None:
                 return NotImplemented
@@ -2415,20 +2594,27 @@ class SceneWorld(runtime.World):
     def _roadhog_pull_basis(self, cfg, instance):
         from ow174.game import props
 
-        basis = cfg.get('m_64E06CA4') or {}
-        if (basis.get('$') != 'STU_0762B33A' or basis.get('m_E26E5E09') is not None
-                or cfg.get('m_AEE599AA') != 0 or cfg.get('m_1FDD7084') is not None
-                or cfg.get('m_hardPoint') is not None):
+        basis = cfg.get("m_64E06CA4") or {}
+        if (
+            basis.get("$") != "STU_0762B33A"
+            or basis.get("m_E26E5E09") is not None
+            or cfg.get("m_AEE599AA") != 0
+            or cfg.get("m_1FDD7084") is not None
+            or cfg.get("m_hardPoint") is not None
+        ):
             return NotImplemented
-        entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+        entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
         body = self.entities.get(entity)
         if body is None or body.rotation_reader is None:
             return expr.EVALUATION_FAILED
-        forward = play.evaluate_scalar(instance, basis['m_32B00625'])
-        aim = expr._index(play.evaluate_scalar(instance, basis['m_3661BC45']), 0)
-        limit = play.evaluate_scalar(instance, basis['m_5023B9B0'])
-        if (not isinstance(forward, expr.Vec3) or not isinstance(aim, expr.Vec3)
-                or type(limit) not in (int, float)):
+        forward = play.evaluate_scalar(instance, basis["m_32B00625"])
+        aim = expr._index(play.evaluate_scalar(instance, basis["m_3661BC45"]), 0)
+        limit = play.evaluate_scalar(instance, basis["m_5023B9B0"])
+        if (
+            not isinstance(forward, expr.Vec3)
+            or not isinstance(aim, expr.Vec3)
+            or type(limit) not in (int, float)
+        ):
             return expr.EVALUATION_FAILED
         # CEB820 takes the captured heading and bounds pitch relative to the caster's forward basis.
         yaw = math.atan2(aim.x, aim.z)
@@ -2444,19 +2630,27 @@ class SceneWorld(runtime.World):
     def summoner_cast_button(self, state):
         instance, node = state.instance, state.node
         controller = instance.component
-        entity = expr.to_entity(state.evaluate(node.field('m_14EDDDA7'), watch=False))
-        button = state.evaluate(node.field('m_7E2A700B'), watch=False)
-        pressed = state.evaluate(node.field('m_5E1D2E9C'), watch=False)
-        if (self.mode not in JUNKENSTEIN_MODES or instance.graph.index != 0x185D
-                or button != {59: 37, 61: 20}.get(node.pos) or pressed is not True
-                or self.script_components.get(controller.entity) is not controller):
+        entity = expr.to_entity(state.evaluate(node.field("m_14EDDDA7"), watch=False))
+        button = state.evaluate(node.field("m_7E2A700B"), watch=False)
+        pressed = state.evaluate(node.field("m_5E1D2E9C"), watch=False)
+        if (
+            self.mode not in JUNKENSTEIN_MODES
+            or instance.graph.index != 0x185D
+            or button != {59: 37, 61: 20}.get(node.pos)
+            or pressed is not True
+            or self.script_components.get(controller.entity) is not controller
+        ):
             return NotImplemented
         if entity != self.current_possessions.get(controller.entity) or not expr.valid_entity(entity):
             return True
         body = self.entities.get(entity)
         component = self.script_components.get(entity)
-        if (body is None or body.definition != 0x04000000000026F0 or component is None
-                or self.linked_controllers.get(entity) != controller.entity):
+        if (
+            body is None
+            or body.definition != 0x04000000000026F0
+            or component is None
+            or self.linked_controllers.get(entity) != controller.entity
+        ):
             return NotImplemented
         if not component.owner_dead and component.fault is None and button not in component.held:
             component.edges([(button, True), (button, False)])
@@ -2465,13 +2659,20 @@ class SceneWorld(runtime.World):
     def summoner_placement(self, instance):
         component = instance.component
         body = self.entities.get(component.entity)
-        if (instance.graph.index != 0x156B or self.mode not in JUNKENSTEIN_MODES
-                or body is None or body.definition != 0x04000000000026F0
-                or self.script_components.get(body.id) is not component):
+        if (
+            instance.graph.index != 0x156B
+            or self.mode not in JUNKENSTEIN_MODES
+            or body is None
+            or body.definition != 0x04000000000026F0
+            or self.script_components.get(body.id) is not component
+        ):
             return NotImplemented
         controller = self.linked_controllers.get(body.id)
-        if (component.owner_dead or controller not in self.ai_behavior_requests
-                or self.current_possessions.get(controller) != body.id):
+        if (
+            component.owner_dead
+            or controller not in self.ai_behavior_requests
+            or self.current_possessions.get(controller) != body.id
+        ):
             return None
         enabled = instance.find_var(runtime.INSTANCE, 17098).value()
         # GameMessage parameters retain the single-item value arrays.
@@ -2481,8 +2682,13 @@ class SceneWorld(runtime.World):
             point = point[0]
         if isinstance(axis, tuple) and len(axis) == 1:
             axis = axis[0]
-        if (enabled is True and isinstance(point, expr.Vec3) and isinstance(axis, expr.Vec3)
-                and all(math.isfinite(value) for value in (*point, *axis)) and math.hypot(axis.x, axis.z)):
+        if (
+            enabled is True
+            and isinstance(point, expr.Vec3)
+            and isinstance(axis, expr.Vec3)
+            and all(math.isfinite(value) for value in (*point, *axis))
+            and math.hypot(axis.x, axis.z)
+        ):
             return point
         return None
 
@@ -2531,17 +2737,21 @@ class SceneWorld(runtime.World):
                 and self.mode in JUNKENSTEIN_MODES
                 and expr.guid_of((cfg.get('m_displayText') or {}).get('m_displayText')) == 0x0DE0000000012294):
             # 12294.07C is the enUS name authored on the ghost's 2FCD code value.
-            return 'Vengeful Ghost'
-        if (kind == 'STU_A58C1E63' and instance is not None and instance.graph.index == 0x0B8B
-                and self.mode in JUNKENSTEIN_MODES):
+            return "Vengeful Ghost"
+        if (
+            kind == "STU_A58C1E63"
+            and instance is not None
+            and instance.graph.index == 0x0B8B
+            and self.mode in JUNKENSTEIN_MODES
+        ):
             component = instance.component
             body = self.entities.get(component.entity)
             if body is not None and body.definition == 0x04000000000026F0:
                 context = self.entity_team_context(body.id, component=component)
                 if context is not NotImplemented:
-                    target = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_target')))
-                    source = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_source')))
-                    option = expr.truthy(play.evaluate_scalar(instance, cfg.get('m_AFBBE9C3'), initial=False))
+                    target = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_target")))
+                    source = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_source")))
+                    option = expr.truthy(play.evaluate_scalar(instance, cfg.get("m_AFBBE9C3"), initial=False))
                     source_actor = context.lookup(source)
                     target_actor = context.lookup(target)
                     if source == body.id and not option:
@@ -2555,38 +2765,56 @@ class SceneWorld(runtime.World):
                         if source_team in (0, 1) and target_team in (0, 1):
                             spectator = bool((source_bits | target_bits) & (1 << 28))
                             return source_team != target_team and not spectator
-        if (kind == 'STU_295F1CDE' and instance is not None and instance.graph.index == 0x156C
-                and self.mode in JUNKENSTEIN_MODES):
+        if (
+            kind == "STU_295F1CDE"
+            and instance is not None
+            and instance.graph.index == 0x156C
+            and self.mode in JUNKENSTEIN_MODES
+        ):
             # CC9A80/C1BBB0 reads the barrier health scale, with a default of one.
             scale = self.ruleset_for(instance.component.entity, 0x254B)
             return 1.0 if scale is None else scale
-        if (kind == 'STU_C5148EFE' and instance is not None and instance.graph.index == 0x156B
-                and self.mode in JUNKENSTEIN_MODES and cfg == instance.graph.node(89).field('m_value')):
+        if (
+            kind == "STU_C5148EFE"
+            and instance is not None
+            and instance.graph.index == 0x156B
+            and self.mode in JUNKENSTEIN_MODES
+            and cfg == instance.graph.node(89).field("m_value")
+            and instance.evaluate(cfg.get("m_entity")) == expr.Entity(0)
+        ):
             # The confirmed NPC placement has no attachment entity.
-            if instance.evaluate(cfg.get('m_entity')) == expr.Entity(0):
-                return instance.evaluate(cfg.get('m_BD631144'))
-        if (kind == 'STU_CD7F3617' and instance is not None and instance.graph.index == 0x01CF
-                and self.mode in JUNKENSTEIN_MODES and self.junkenstein_body_name is not None
-                and instance.evaluate(cfg.get('m_B350E4FD')) is False):
+            return instance.evaluate(cfg.get("m_BD631144"))
+        if (
+            kind == "STU_CD7F3617"
+            and instance is not None
+            and instance.graph.index == 0x01CF
+            and self.mode in JUNKENSTEIN_MODES
+            and self.junkenstein_body_name is not None
+            and instance.evaluate(cfg.get("m_B350E4FD")) is False
+        ):
             # CD27C0 resolves the supplied entity and emits a tag-5 display string.
-            entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
             name = self.junkenstein_body_name(entity)
             return name if name is not None else expr.EVALUATION_FAILED
-        if (kind in ('STU_F1C45C59', 'STU_005D99E6') and instance is not None
-                and instance.graph.index == 0x01CF and self.mode in JUNKENSTEIN_MODES
-                and cfg.get('m_7BE02F89') is None):
+        if (
+            kind in ("STU_F1C45C59", "STU_005D99E6")
+            and instance is not None
+            and instance.graph.index == 0x01CF
+            and self.mode in JUNKENSTEIN_MODES
+            and cfg.get("m_7BE02F89") is None
+        ):
             # CF55D0 and CCBD10 pass the pool selector to component 51.
-            selector = cfg.get('m_7E8B666C') or {}
-            pool = selector.get('m_7E8B666C')
-            if selector.get('$') == 'STU_297E1A30' and pool in (0, 1):
-                entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
+            selector = cfg.get("m_7E8B666C") or {}
+            pool = selector.get("m_7E8B666C")
+            if selector.get("$") == "STU_297E1A30" and pool in (0, 1):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
                 if not expr.valid_entity(entity):
                     return 0.0
                 target = self.entities.get(entity)
                 if target is None:
                     return expr.EVALUATION_FAILED
                 if target.definition == 0x04000000000000E4:
-                    read = target.health_pool if kind == 'STU_F1C45C59' else target.pool_capacity
+                    read = target.health_pool if kind == "STU_F1C45C59" else target.pool_capacity
                     if read is not None:
                         return self._health_value(instance, cfg, target, read(pool))
         if (kind == 'STU_6EA8533F' and instance is not None and self.mode in JUNKENSTEIN_MODES
@@ -2627,27 +2855,43 @@ class SceneWorld(runtime.World):
             # CE5450 reads bit 15 of the local command. The headless
             # encounter has no local command and takes the false path.
             return False
-        if (kind == "STU_BEDA850F" and instance is not None and instance.graph.index == 0x180A
-                and self.mode in JUNKENSTEIN_MODES):
+        if (
+            kind == "STU_BEDA850F"
+            and instance is not None
+            and instance.graph.index == 0x180A
+            and self.mode in JUNKENSTEIN_MODES
+        ):
             from ow174.game.script import rulesets
 
             # CDD1D0 succeeds when D9D2C0 finds 2548, regardless of its value.
             return rulesets.default(0x2548, 0, self.mode) is not None
-        if (kind in ('STU_21A13145', 'STU_F7FD94F9') and self.roadhog_hook_target is not None
-                and instance is not None and instance.graph.index == 0x01C9):
-            entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+        if (
+            kind in ("STU_21A13145", "STU_F7FD94F9")
+            and self.roadhog_hook_target is not None
+            and instance is not None
+            and instance.graph.index == 0x01C9
+        ):
+            entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
             target = self.roadhog_hook_target(entity)
             if target is None:
                 return expr.EVALUATION_FAILED
-            if kind == 'STU_F7FD94F9':
+            if kind == "STU_F7FD94F9":
                 return expr.f32(target.radius)
             x, y, z = target.feet
             return expr.Vec3(x, expr.f32(y + target.eye), z)
-        if (kind == 'STU_588FF314' and instance is not None and instance.graph.index == 0x01C9
-                and self.roadhog_hook_target is not None):
+        if (
+            kind == "STU_588FF314"
+            and instance is not None
+            and instance.graph.index == 0x01C9
+            and self.roadhog_hook_target is not None
+        ):
             return self._roadhog_pull_basis(cfg, instance)
-        if (kind in ('STU_FC99C77E', 'STU_C1F83245') and self.roadhog_hook_cast is not None
-                and instance is not None and instance.graph.index == 0x01C8):
+        if (
+            kind in ("STU_FC99C77E", "STU_C1F83245")
+            and self.roadhog_hook_cast is not None
+            and instance is not None
+            and instance.graph.index == 0x01C8
+        ):
             return self._roadhog_hook_anchor(cfg, instance)
         if (kind == 'STU_FC99C77E' and instance is not None and instance.graph.index == 0x2B72
                 and self.mode in JUNKENSTEIN_MODES
@@ -2679,10 +2923,15 @@ class SceneWorld(runtime.World):
             from ow174.game import combat
 
             component = instance.component
-            entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get('m_entity')))
+            entity = expr.to_entity(play.evaluate_scalar(instance, cfg.get("m_entity")))
             body = self.entities.get(entity)
-            if (entity == component.entity and body is not None and body.hero == source_hero
-                    and body.movement_reader is not None and self.script_components.get(entity) is component):
+            if (
+                entity == component.entity
+                and body is not None
+                and body.hero == source_hero
+                and body.movement_reader is not None
+                and self.script_components.get(entity) is component
+            ):
                 if kind != "STU_21A13145":
                     pose = body.movement_reader(component.frame)
                     if kind == "STU_2200A66D":
@@ -2690,8 +2939,11 @@ class SceneWorld(runtime.World):
                     return expr.Vec3(*combat.aim(pose.yaw + 16384, 0))
                 x, y, z = self.position(entity)
                 return expr.Vec3(x, y + combat.EYE, z)
-        if (kind in {"STU_7BE6D76D", "STU_CC53F52B", "STU_40AC5AE4"} and instance is not None
-                and self.mode in JUNKENSTEIN_MODES):
+        if (
+            kind in {"STU_7BE6D76D", "STU_CC53F52B", "STU_40AC5AE4"}
+            and instance is not None
+            and self.mode in JUNKENSTEIN_MODES
+        ):
             value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.Entity(0))
             target = self.entities.get(expr.to_entity(value) & 0xFFFFFFFF)
             if target is None:
@@ -2701,33 +2953,50 @@ class SceneWorld(runtime.World):
                 instance.component.ensure_valid()
                 axis = "yaw" if kind == "STU_CC53F52B" else "pitch"
                 units = getattr(pose, axis, None)
-                if (self.entities.get(target.id) is target
-                        and type(units) is int and -32768 <= units <= 32767):
+                if self.entities.get(target.id) is target and type(units) is int and -32768 <= units <= 32767:
                     radians = expr.f32(units * expr.f32(math.tau / 65536))
                     return expr.f32(radians * expr.f32(180 / math.pi))
-        if (cfg.get("$") == "STU_ED45C5E8" and instance is not None
-                and instance.graph.index in (0x00CB, 0x14B1) and self.mode in JUNKENSTEIN_MODES
-                and callable(self.junkenstein_voice_recipients)):
+        if (
+            cfg.get("$") == "STU_ED45C5E8"
+            and instance is not None
+            and instance.graph.index in (0x00CB, 0x14B1)
+            and self.mode in JUNKENSTEIN_MODES
+            and callable(self.junkenstein_voice_recipients)
+        ):
             source = play.evaluate_scalar(instance, cfg.get("m_B2ABF4FF"))
-            flags = tuple(play.evaluate_scalar(instance, cfg.get(key))
-                          for key in ("m_5912C8DF", "m_C9E6F46B", "m_5A72EEF5"))
+            flags = tuple(
+                play.evaluate_scalar(instance, cfg.get(key))
+                for key in ("m_5912C8DF", "m_C9E6F46B", "m_5A72EEF5")
+            )
             radius = play.evaluate_scalar(instance, cfg.get("m_2BA6230F"))
             component = instance.component
-            if (source == expr.Entity(component.entity) and all(flag is False for flag in flags)
-                    and radius == 0.0 and self.script_components.get(source.id) is component):
+            if (
+                source == expr.Entity(component.entity)
+                and all(flag is False for flag in flags)
+                and radius == 0.0
+                and self.script_components.get(source.id) is component
+            ):
                 return self.junkenstein_voice_recipients(instance)
-        if (cfg.get("$") == "STU_4049CF77" and cfg.get("m_C5D0FA56") is None
-                and instance is not None and self.mode in JUNKENSTEIN_MODES
-                and self.junkenstein_difficulty is not None):
+        if (
+            cfg.get("$") == "STU_4049CF77"
+            and cfg.get("m_C5D0FA56") is None
+            and instance is not None
+            and self.mode in JUNKENSTEIN_MODES
+            and self.junkenstein_difficulty is not None
+        ):
             component = instance.component
             body = self.entities.get(component.entity)
             controller = self.entities.get(self.linked_controllers.get(component.entity))
             selector = cfg.get("m_F00C2F3D")
-            if (body is not None and controller is not None
-                    and self.script_components.get(body.id) is component
-                    and self.current_possessions.get(controller.id) == body.id
-                    and isinstance(selector, dict) and selector.get("$") == "STUConfigVarIdentifier"
-                    and selector.get("m_resourceKey") is None):
+            if (
+                body is not None
+                and controller is not None
+                and self.script_components.get(body.id) is component
+                and self.current_possessions.get(controller.id) == body.id
+                and isinstance(selector, dict)
+                and selector.get("$") == "STUConfigVarIdentifier"
+                and selector.get("m_resourceKey") is None
+            ):
                 weapon = (instance.graph.index, body.definition, controller.definition)
                 profile = JUNKENSTEIN_WEAPON_DAMAGE.get(weapon)
                 tier = JUNKENSTEIN_DIFFICULTY_INDEX.get(self.junkenstein_difficulty.guid)
@@ -2735,20 +3004,35 @@ class SceneWorld(runtime.World):
                     damage = profile.get(expr.guid_of(selector.get("m_identifier")))
                     if damage is not None:
                         return damage[tier]
-        if (kind == "STU_4049CF77" and instance is not None and instance.graph.index == 0x0079
-                and self.mode in JUNKENSTEIN_MODES and self.junkenstein_difficulty is not None):
-            source = play.evaluate_scalar(instance, cfg.get('m_C5D0FA56'))
-            selector = cfg.get('m_F00C2F3D') or {}
-            if (source == expr.Entity(instance.source_entity())
-                    and expr.guid_of(selector.get('m_identifier')) == 0x0D80000000002162):
+        if (
+            kind == "STU_4049CF77"
+            and instance is not None
+            and instance.graph.index == 0x0079
+            and self.mode in JUNKENSTEIN_MODES
+            and self.junkenstein_difficulty is not None
+        ):
+            source = play.evaluate_scalar(instance, cfg.get("m_C5D0FA56"))
+            selector = cfg.get("m_F00C2F3D") or {}
+            if (
+                source == expr.Entity(instance.source_entity())
+                and expr.guid_of(selector.get("m_identifier")) == 0x0D80000000002162
+            ):
                 controller = self.entities.get(self.linked_controllers.get(source.id))
                 tier = JUNKENSTEIN_DIFFICULTY_INDEX.get(self.junkenstein_difficulty.guid)
-                if (controller is not None and controller.definition == 0x040000000000172E
-                        and self.current_possessions.get(controller.id) == source.id and tier is not None):
+                if (
+                    controller is not None
+                    and controller.definition == 0x040000000000172E
+                    and self.current_possessions.get(controller.id) == source.id
+                    and tier is not None
+                ):
                     return (1.0, 2.0, 3.0, 4.0)[tier]
-        if (cfg.get("$") == "STU_4049CF77" and cfg.get("m_C5D0FA56") is None
-                and instance is not None and instance.graph.index == 0x157C
-                and self.mode in JUNKENSTEIN_MODES):
+        if (
+            cfg.get("$") == "STU_4049CF77"
+            and cfg.get("m_C5D0FA56") is None
+            and instance is not None
+            and instance.graph.index == 0x157C
+            and self.mode in JUNKENSTEIN_MODES
+        ):
             # The PC registry uses base ConfigVar 155. Its +20 returns false without a write.
             return expr.EVALUATION_FAILED
         if cfg.get("$") == "STU_967463AB" and instance is not None:
@@ -2761,21 +3045,27 @@ class SceneWorld(runtime.World):
             if owner not in self.entities:
                 return 0
             if owner in self._owned_deployables:
-                return sum(self.entities[child].definition == definition.guid
-                           for child in self._owned_deployables[owner])
-        if cfg.get('$') == 'STU_F76C486C' and instance is not None:
+                return sum(
+                    self.entities[child].definition == definition.guid
+                    for child in self._owned_deployables[owner]
+                )
+        if cfg.get("$") == "STU_F76C486C" and instance is not None:
             # CE2CF0/D1BEE0 returns a typed zero for a bound entity without component 72.
             context = self.entity_query_context(instance.component.entity)
             if context is not NotImplemented and context.namespace_present and not context.retired:
-                value = play.evaluate_scalar(instance, cfg.get('m_D63CBEC2'), initial=expr.Entity(0))
+                value = play.evaluate_scalar(instance, cfg.get("m_D63CBEC2"), initial=expr.Entity(0))
                 instance.component.ensure_valid()
                 target = self.entities.get(expr.to_entity(value) & 0xFFFFFFFF)
                 if target is not None and target.pet_component_absent:
                     return expr.Entity(0)
-                if (target is not None and target.definition == 0x04000000000026B0
-                        and self.mode in JUNKENSTEIN_MODES):
-                    owner = next((entity for entity, pets in self._owned_deployables.items()
-                                  if target.id in pets), 0)
+                if (
+                    target is not None
+                    and target.definition == 0x04000000000026B0
+                    and self.mode in JUNKENSTEIN_MODES
+                ):
+                    owner = next(
+                        (entity for entity, pets in self._owned_deployables.items() if target.id in pets), 0
+                    )
                     return expr.Entity(owner)
         if cfg.get("$") == "STU_A77AC2AC" and self.mode:
             # CE8580 compares the scene's mode resource with Tutorial.
@@ -2783,17 +3073,26 @@ class SceneWorld(runtime.World):
         if cfg.get("$") == "STU_37F20D24" and self.mode:
             # CE1400 returns the active mode resource, as in BodyWorld.
             return expr.Asset(self.mode)
-        if (cfg.get("$") in ("STU_4FC9D3E1", "STU_7DCA538E")
-                and instance is not None and instance.graph.index == 0x0C83
-                and self.mode in JUNKENSTEIN_MODES and cfg.get("m_resourceKey") is None):
+        if (
+            cfg.get("$") in ("STU_4FC9D3E1", "STU_7DCA538E")
+            and instance is not None
+            and instance.graph.index == 0x0C83
+            and self.mode in JUNKENSTEIN_MODES
+            and cfg.get("m_resourceKey") is None
+        ):
             target = cfg.get("m_00903303")
             if isinstance(target, dict) and target.get("$") == "STU_B5A0CAF0":
                 # The captured PC registry resolves these operands to base ConfigVar.
                 # Its failed evaluation leaves the authored expression to handle the empty value.
                 return expr.EVALUATION_FAILED
-        if (cfg.get("$") == "STU_ABB6C23E" and cfg.get("m_resourceKey") is None
-                and instance is not None and instance.graph.index == 0x0BA4
-                and self.mode in JUNKENSTEIN_MODES and self.player_stats_available(instance) is False):
+        if (
+            cfg.get("$") == "STU_ABB6C23E"
+            and cfg.get("m_resourceKey") is None
+            and instance is not None
+            and instance.graph.index == 0x0BA4
+            and self.mode in JUNKENSTEIN_MODES
+            and self.player_stats_available(instance) is False
+        ):
             # The 0BA4 objective-stat gate has no player record for this NPC.
             # Match the typed empty identifier from 104319's CEB0E0 evaluator in this branch.
             return expr.Asset(0)
@@ -2806,8 +3105,11 @@ class SceneWorld(runtime.World):
             if target.scale_reader is not None:
                 scale = target.scale_reader()
                 instance.component.ensure_valid()
-                if (self.entities.get(target.id) is target and type(scale) in (int, float)
-                        and 0 < scale <= 3.402823466e38):
+                if (
+                    self.entities.get(target.id) is target
+                    and type(scale) in (int, float)
+                    and 0 < scale <= 3.402823466e38
+                ):
                     return expr.f32(scale)
         if cfg.get("$") == "STU_D3EB8D87" and instance is not None:
             # CDB700 tests for the selected entity's component 92, not its movement state.
@@ -2824,13 +3126,13 @@ class SceneWorld(runtime.World):
             result = self._filter_entity(instance, expr.to_entity(value) & 0xFFFFFFFF, cfg["m_filter"])
             if result is not NotImplemented:
                 return result
-        if cfg.get('$') == 'STU_A753DC79' and self.engine_settings is not None:
+        if cfg.get("$") == "STU_A753DC79" and self.engine_settings is not None:
             # CF4A60 dispatches the authored hash as uint32 to a typed getter.
-            key = cfg.get('m_74A2248F')
+            key = cfg.get("m_74A2248F")
             if type(key) is int:
                 return self.engine_settings.get(key & 0xFFFFFFFF, expr.EVALUATION_FAILED)
-        if cfg.get('$') == 'STU_D289FA32' and self.team_member_count is not None:
-            team = instance.evaluate(cfg.get('m_team'))
+        if cfg.get("$") == "STU_D289FA32" and self.team_member_count is not None:
+            team = instance.evaluate(cfg.get("m_team"))
             if type(team) is int and 0 <= team < 5:
                 return self.team_member_count(team)
         if cfg.get("$") in ("STU_783B4CF0", "STU_68883EAC") and cfg.get("m_7BE02F89") is None:
@@ -2874,9 +3176,11 @@ class SceneWorld(runtime.World):
                 rotation = target.placement.source.get("rotation")
             else:
                 return super().native(cfg, instance)
-            if (not isinstance(rotation, (list, tuple)) or len(rotation) != 4
-                    or any(type(axis) not in (int, float) or not -1.0001 <= axis <= 1.0001
-                           for axis in rotation)):
+            if (
+                not isinstance(rotation, (list, tuple))
+                or len(rotation) != 4
+                or any(type(axis) not in (int, float) or not -1.0001 <= axis <= 1.0001 for axis in rotation)
+            ):
                 return super().native(cfg, instance)
             x, y, z, w = rotation
             forward_x = expr.f32(2 * (x * z + w * y))
@@ -2968,25 +3272,35 @@ class SceneWorld(runtime.World):
                     and all(cfg.get(key) is None for key in ('m_filter', 'm_9C7BD8B8', 'm_8B2A4DF3'))):
                 tag = play.evaluate_scalar(instance, cfg.get('m_B486603E'))
                 if isinstance(tag, expr.Asset) and tag.guid in (
-                    0x0D600000000000FA, 0x0D600000000000FF, 0x0D6000000000011E, 0x0D60000000000120,
+                    0x0D600000000000FA,
+                    0x0D600000000000FF,
+                    0x0D6000000000011E,
+                    0x0D60000000000120,
                 ):
                     targets = self.targets_with_tag(instance, tag.guid)
                     if targets is not NotImplemented:
                         return targets[0] if targets else expr.Entity(0)
             if instance.graph.index == 0x0071 and self.mode in JUNKENSTEIN_MODES:
                 filter_config = cfg.get("m_filter")
-                if (isinstance(filter_config, dict) and filter_config.get('m_66747E7D') == 1
-                        and filter_config.get('m_89831602') == 4
-                        and all(cfg.get(key) is None for key in ('m_9C7BD8B8', 'm_B486603E', 'm_8B2A4DF3'))):
+                if (
+                    isinstance(filter_config, dict)
+                    and filter_config.get("m_66747E7D") == 1
+                    and filter_config.get("m_89831602") == 4
+                    and all(cfg.get(key) is None for key in ("m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3"))
+                ):
                     target = self._first_bound_combat_target(instance, filter_config)
                     if target is not NotImplemented:
                         return target
             if instance.graph.index == 0x0CCD and self.mode in JUNKENSTEIN_MODES:
                 filter_config = cfg.get("m_filter")
                 tag = cfg.get("m_9C7BD8B8")
-                if (isinstance(filter_config, dict) and isinstance(tag, dict)
-                        and cfg.get("m_B486603E") is None and cfg.get("m_8B2A4DF3") is None
-                        and filter_config.get("m_9C7BD8B8") is None):
+                if (
+                    isinstance(filter_config, dict)
+                    and isinstance(tag, dict)
+                    and cfg.get("m_B486603E") is None
+                    and cfg.get("m_8B2A4DF3") is None
+                    and filter_config.get("m_9C7BD8B8") is None
+                ):
                     # The authored branch only tests whether a live tagged combat body exists.
                     target = self._first_bound_combat_target(instance, {**filter_config, "m_9C7BD8B8": tag})
                     if target is not NotImplemented:
@@ -3023,9 +3337,18 @@ class SceneWorld(runtime.World):
         return super().native(cfg, instance)
 
     @classmethod
-    def from_map(cls, data: dict, *, entity_start: int, kept_identifiers=(),
-                 server_placeables=(), hero: int = 0, mode: int = 0, entity_creator=None,
-                 hero_creator=None) -> "SceneWorld":
+    def from_map(
+        cls,
+        data: dict,
+        *,
+        entity_start: int,
+        kept_identifiers=(),
+        server_placeables=(),
+        hero: int = 0,
+        mode: int = 0,
+        entity_creator=None,
+        hero_creator=None,
+    ) -> "SceneWorld":
         """Bind mode-selected client placements and already-created server ones.
 
         entity_start is the independently recovered count of preceding flat
@@ -3052,9 +3375,9 @@ class SceneWorld(runtime.World):
             raise ValueError("invalid map-world entity list")
         creators = {}
         if entity_creator is not None:
-            creators['entity_creator'] = entity_creator
+            creators["entity_creator"] = entity_creator
         if hero_creator is not None:
-            creators['hero_creator'] = hero_creator
+            creators["hero_creator"] = hero_creator
         world = cls(hero, mode, **creators)
         world.map_guid, world.entity_start = map_guid, entity_start
         world.definitions = {
@@ -3078,17 +3401,31 @@ class SceneWorld(runtime.World):
             seen_references.add(reference)
             client_id = struct.unpack_from("<H", metadata, 36)[0]  # original body +104
             definition = graph.guid(item.get("definition"))
-            if (definition is None or definition >> 48 != 0x0400
-                    or not isinstance(world.definitions.get(definition), dict)):
+            if (
+                definition is None
+                or definition >> 48 != 0x0400
+                or not isinstance(world.definitions.get(definition), dict)
+            ):
                 raise ValueError("map-world entity definition is missing")
             identifiers = item.get("identifiers")
-            if (type(identifiers) is not list or len(identifiers) != 2
-                    or any(graph.guid(value) is None for value in identifiers)):
+            if (
+                type(identifiers) is not list
+                or len(identifiers) != 2
+                or any(graph.guid(value) is None for value in identifiers)
+            ):
                 raise ValueError("invalid map-world placeable identifiers")
             identifier = graph.guid(identifiers[0])
             flat = entity_start + index
-            placement = Placement(index, flat, client_id, reference, definition, identifier,
-                                  _position(item.get("position")), item)
+            placement = Placement(
+                index,
+                flat,
+                client_id,
+                reference,
+                definition,
+                identifier,
+                _position(item.get("position")),
+                item,
+            )
             world.placements[index] = placement
             selected = not identifier or identifier in kept
             if flat in server_placeables:

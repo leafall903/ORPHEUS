@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game.script.graph import ENTITY, INSTANCE, Graph
 from ow174.game.script.research_runtime import BodyRuntime, RuntimeValue, Unsupported, Variables

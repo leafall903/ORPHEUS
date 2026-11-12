@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-with patch.object(sys, "path", [*sys.path, str(Path(__file__).resolve().parents[1] / "tools")]):
+with patch.object(sys, "path", [*sys.path, str(Path(__file__).resolve().parents[2] / "tools")]):
     from tools import verify_sigma_npc_static as scenes
 from ow174.game import npc, npc_control, sniper_reposition, sniper_retreat
 

@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from ow174.game.script import runtime
-from tests.test_script_runtime_budget import graph, node, plug, setter
+from tests.script_fixtures import graph, node, plug, setter
 
 
 def mission(*items, strict=True, graph_index=1):

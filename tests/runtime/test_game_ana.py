@@ -13,6 +13,7 @@ from ow174.game import combat, projectiles, stats
 from ow174.game.collision import World
 from ow174.game.commands import FIRE, SECONDARY
 from ow174.game.content import PRACTICE_RANGE, heroes
+from tests.runtime.test_game_combat import KANEZAKA_DM, Run, aim
 
 ANA = 0x02E000000000013B
 TEAM_MAP = replace(PRACTICE_RANGE, team_sizes=(6, 6))

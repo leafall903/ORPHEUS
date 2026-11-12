@@ -1,12 +1,13 @@
 """Actual McCree commands against player and training-NPC collision fixtures."""
 
 import unittest
+from unittest.mock import patch
 
-from test_game_combat import Run, aim
-
-from ow174.game import combat
+from ow174.game import combat, mccree, world
 from ow174.game.collision import World, flat_world
 from ow174.game.content import heroes
+from ow174.game.script.driver import ULT_CHARGE
+from tests.runtime.test_game_combat import Run, aim
 
 
 class McCreeMeleeTests(unittest.TestCase):
@@ -89,3 +90,19 @@ class McCreeMeleeTests(unittest.TestCase):
                     self.strike(run, attacker, target)
                     self.assertEqual(self.health(run, target), before)
                     self.assertFalse(attacker.client.messages(combat.HIT))
+
+    def test_rialto_manual_npc_damage_charges_once_with_no_extra_kill_bonus(self):
+        run, attacker, victim = self.arena(npc=True)
+        victim.spawner = {**victim.spawner, "manual_spawn": True}
+        fight = run.match.combat
+        target = next(item for item in fight._targets() if item.owner is victim)
+        fight.vitals_of(target).now[world.HEALTH_POOL] = 35.0
+        script = attacker.body_script
+        script.set_ult_charge(0.0)
+        meter = script.component.entity_var(ULT_CHARGE)
+        with patch.object(mccree, "RIALTO", run.match.game_map.map_guid):
+            fight._damage(attacker, target, 30.0, False, None, run.frame)
+            self.assertEqual(meter.value(), 30.0)
+            fight._damage(attacker, target, 30.0, False, None, run.frame)
+            self.assertEqual(meter.value(), 35.0)
+        self.assertTrue(victim.dead)

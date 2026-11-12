@@ -1,6 +1,93 @@
 # Runtime data
 
-The server and its tests use the following data sets. The public source checkout uses separately prepared runtime data. See [separate deployment data](../README.md#separate-deployment-data).
+The Python server targets Overwatch retail **1.74.0.0.104319**. A clean checkout supports the public source checks. Serving the original client requires a local runtime assembled from authorized inputs. See [separate deployment data](../README.md#separate-deployment-data).
+
+## Generate client catalogs
+
+The four catalog files can be generated from your authorized 104319 installation. Use the [pinned OWLib source](https://github.com/overtools/OWLib/tree/7afe5f52706e7002ed8c2717299cd60846f3fa3a) with its submodules and the x64 .NET 6 SDK.
+
+```powershell
+git clone --branch overwatch/1.74 https://github.com/overtools/OWLib.git owlib-174
+git -C owlib-174 switch --detach 7afe5f52706e7002ed8c2717299cd60846f3fa3a
+git -C owlib-174 submodule update --init --recursive
+dotnet build .\owlib-174\DataTool\DataTool.csproj -c Release
+```
+
+From the ORPHEUS checkout, pass the built executable, the game folder and a new catalog directory outside both checkouts. The game folder must contain the active `1.74.0.0.104319` retail entry in `.build.info`.
+
+```powershell
+$game = 'C:\path\to\Overwatch'
+$dataTool = 'C:\path\to\owlib-174\DataTool\bin\Release\net6.0\DataTool.exe'
+$catalogs = 'C:\path\to\local\orpheus-catalogs'
+py -3.12 -B tools\prepare_client_catalogs.py --game $game --data-tool $dataTool --destination $catalogs
+```
+
+The command runs OWLib's hero, map and unlock list modes and writes `extracted_heroes.json`, `extracted_maps.json`, `extracted_items.json` and `extracted_general_unlocks.json`. It checks the four JSON outputs before making the catalog directory available. The other runtime inputs still come from the prepared source described below.
+
+## Check or prepare a local runtime
+
+With Python 3.12 installed, unpack your authorized pack so that `runtime-data/data/`,
+`runtime-data/bnet/` and `runtime-data/collision/` are directly under the checkout. ORPHEUS
+discovers `runtime-data/` when it contains `manifest.json` or `data/`. An explicit
+`ORPHEUS_RUNTIME_DIR` takes precedence. Without either, ORPHEUS uses the legacy checkout layout.
+
+Run the preflight from the repository root.
+
+```powershell
+.\scripts\START.bat --check-runtime
+```
+
+The default check covers the retail lobby, Battle.net descriptor set and match data. It reports missing paths and validates the signing input's length. Practice Range also needs build 104319 collision data. For a server-only session, supply `collision/0688.col` in the pack. An enabled local client launch can build the cache using the installation and the prepared collision indexes.
+
+If you already have a prepared local research checkout, assemble a new pack with the Python tool. It copies the required files and selected map cache into a new directory and writes a SHA-256 inventory. From a separate prepared source, you can target `runtime-data` directly.
+
+```powershell
+py -3.12 -B tools\prepare_server_runtime.py --source 'C:\path\to\prepared-checkout' --destination .\runtime-data --map 0688
+```
+
+Add `--catalogs $catalogs` to use the four locally generated catalogs in place of the source checkout's copies.
+
+### Generate missing client data while packing
+
+Use `--game` with `--data-tool` to generate missing hero, map and unlock catalogs. Add `--owlib` to also generate missing Arcade cards, hero body mappings, movers, graph bundles, stat tables, bot spawners and queue rules. Bot spawners use local game storage and a generated or prepared collision prop index. Queue rules use local game exports and prepared retail templates. The packer uses only the XML types needed by the missing files and keeps existing prepared files.
+
+With `--map 0688`, the packer can supply a missing map table using the server's built-in Practice Range definition. With the pinned DataTool and PowerShell 7 it can read the selected collision chunk indexes from the local manifests. For `0688` it can also generate a missing prop index from client map placements and root model collision shapes. When it generates the prop index, it rebuilds the base cache and omits any older optional ray cache.
+
+```powershell
+$source = 'C:\path\to\authorized-prepared-checkout'
+$game = 'C:\path\to\Overwatch'
+$owlib = 'C:\path\to\owlib-174'
+$dataTool = Join-Path $owlib 'DataTool\bin\Release\net6.0\DataTool.exe'
+py -3.12 -B tools\prepare_server_runtime.py --source $source --destination .\runtime-data --map 0688 `
+    --game $game --data-tool $dataTool --owlib $owlib
+```
+
+To reuse local 104319 XML exports, supply their parent directory with `--client-xml`. A missing graph bundle also needs the pinned OWLib source for its enum definitions. The packer checks the remaining authorized inputs before starting export. See the table below for inputs the generation step cannot supply.
+
+## Input provenance and current limits
+
+The pinned upstream runtime inventory and the extraction tools identify the sources of these files. The upstream MIT notice applies to its software and documentation. Separate redistribution permission for the game exports, capture contents and signing material remains unverified. Runtime preparation uses local inputs. The repository publishes the tools and the project-authored ultimate charge estimates. [Upstream inventory](https://github.com/LizRollin/overwatch-1.74-lobby-server/blob/9f8f3bcb5eccab6fb7738bee3c2371fcf0623f29/data/README.md) · [Ultimate charge estimates](../src/ow174/game/ult_charge.py)
+
+| Runtime input | Source and current preparation route |
+| --- | --- |
+| `extracted_heroes.json`, `extracted_maps.json`, `extracted_items.json`, `extracted_general_unlocks.json` | Generated locally from the game by the packer or the standalone [catalog generator](#generate-client-catalogs). |
+| `arcade_cards_174.json`, `game_heroes_174.json` | Generated from `0C7` and `075` XML. Hero body mapping also uses the hero catalog. [Arcade extractor](../tools/extract_arcade_cards.py) · [Hero extractor](../tools/extract_game_heroes.py) |
+| `game_movers_174.json`, `game_graphs_174.json.gz`, `game_stats_174.json` | Generated from local gameplay XML and hero body mappings. The graph bundle also needs the OWLib enum definitions. [Mover extractor](../tools/extract_game_movers.py) · [Graph extractor](../tools/extract_game_graphs.py) · [Statistics extractor](../tools/extract_game_stats.py) |
+| `collision/0688.col` | Generated from local game storage and generated or prepared collision indexes. [Collision builder](../tools/build_collision.py) |
+| `ai_spawners_174.json` | Generated for selected maps from local game storage, a generated or prepared collision prop index, and `075` and `003` XML. [Spawner extractor](../tools/extract_ai_spawners.py) |
+| `game_maps_174.json` | For a pack explicitly limited to `0688`, the packer can use the server's built-in Practice Range definition. The full map table needs local XML, raw map chunks and an additional map entity export. [Map extractor](../tools/extract_game_maps.py) |
+| `game_queues_174.json` | Generated from local game exports and the prepared retail templates. [Queue extractor](../tools/extract_game_queues.py) |
+| `collision_keys_174.json` | The packer can generate the selected maps' core collision chunk indexes from local manifests using PowerShell 7 and the pinned DataTool. [Record exporter](../tools/export_casc_records.ps1) |
+| `collision_props_174.json` | For `--map 0688`, generated from local manifests and storage with the pinned DataTool. Other maps and expanded ray geometry still need prepared inputs. [Record exporter](../tools/export_casc_records.ps1) |
+| `schemas_174.json`, `game_schemas_174.json`, `statescript_codecs_174.json` | Research-derived protocol layouts. The existing tools need prepared analysis inputs beyond the game folder. [Schema tool](../tools/dump_schemas.py) · [Codec tool](../tools/extract_statescript_codecs.py) |
+| `retail_templates.json` | Derived from a reference server session. The public setup still needs an authorized input or a separately implemented replacement. |
+| `bnet/descriptors.pb` | Battle.net protobuf descriptors derived from the 1.74 client. A complete publicly reproducible source and build path remain unverified. |
+| `resource_keys_174.json`, `lobby_state_blob.key` | Content access and lobby signing material retained locally. The deployment flow requires the authorized prepared inputs. |
+| `game_ult_charge_174.json` | Optional local override. The project-authored estimates are already in the public server source. |
+
+The Practice Range path still requires prepared `retail_templates.json`, `schemas_174.json`, `game_schemas_174.json`, `statescript_codecs_174.json`, `bnet/descriptors.pb`, `resource_keys_174.json` and `lobby_state_blob.key`. Full self-hosting from the game folder alone remains open.
+
+Keep game files, dumps, raw captures, signing input and generated runtime files in local storage. Share missing file names or a redacted error when reporting a setup failure.
 
 | File | Purpose |
 | --- | --- |
@@ -21,6 +108,8 @@ The server and its tests use the following data sets. The public source checkout
 | `game_queues_174.json` | The queue cards: modes, maps and team sizes (`tools/extract_game_queues.py`). |
 | `game_graphs_174.json.gz` | The statescript graphs the game server runs (`tools/extract_game_graphs.py`). |
 | `game_stats_174.json` | The stats the Tab board lists for each hero and mode (`tools/extract_game_stats.py`). |
+| `game_ult_charge_174.json` | Optional local override for the community estimates built into the Python server. |
+| `bnet/descriptors.pb` | Protocol descriptors for the local Battle.net service. In the legacy layout this is `ow174/bnet/descriptors.pb`. |
 | `game_movers_174.json` | Each hero body's character mover values (speeds, jump, gravity, capsule), from `tools/extract_game_movers.py`. |
 | `collision_keys_174.json` | Storage keys of each map's collision chunk in build 104319, so the server can read the collision from your own game (`tools/build_collision.py`, cache in `cache/collision`). |
 | `collision_props_174.json` | Storage keys of each map's props (fences, crates) and of their models, and which game modes keep which props; added to the same collision cache. |

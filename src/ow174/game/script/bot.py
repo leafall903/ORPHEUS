@@ -782,7 +782,10 @@ class BotWorld(runtime.World):
                 return 0.0
         if (
             cfg.get("$") == "STU_AC829876"
-            and (self.manual_nameplate or self.mode == PRACTICE_RANGE_MODE and self.hero in PRACTICE_BOT_HEROES)
+            and (
+                self.manual_nameplate
+                or (self.mode == PRACTICE_RANGE_MODE and self.hero in PRACTICE_BOT_HEROES)
+            )
             and instance.graph.index == PRACTICE_NAMEPLATE_PARENT
         ):
             owner, target_filter = cfg.get("m_entity"), cfg.get("m_filter")

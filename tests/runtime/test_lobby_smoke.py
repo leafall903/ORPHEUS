@@ -10,7 +10,7 @@ import unittest
 import uuid
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SERVER = [sys.executable, "-B", "-u", "-m", "ow174", "--mode", "server"]
 CLIENT = [sys.executable, "-B", str(ROOT / "tools" / "fake_client.py")]
 

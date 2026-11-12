@@ -4,11 +4,11 @@ import copy
 import unittest
 from unittest import mock
 
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
+from ow174.game.body_vm_snapshot import snapshot_digest
 from ow174.game.script import graph as graphs
 from ow174.game.script import nodes, runtime
-from tests.test_script_play_loaded import dynamic
-from tests.test_script_runtime_budget import graph, node, plug
+from tests.public.test_script_play_loaded import dynamic
+from tests.script_fixtures import export_synthetic_component_vm, graph, node, plug
 
 
 def metadata(keys):
@@ -143,9 +143,9 @@ class SharedVariablesTests(unittest.TestCase):
     def test_storage_snapshot_is_passive_and_has_no_class_specific_cache(self):
         component, instance = setup()
         instance.state(0).begin()
-        before = snapshot_digest(export_component_vm(component))
+        before = snapshot_digest(export_synthetic_component_vm(component))
         with mock.patch.object(runtime.Instance, 'evaluate', side_effect=AssertionError('evaluated')):
-            self.assertEqual(snapshot_digest(export_component_vm(component)), before)
+            self.assertEqual(snapshot_digest(export_synthetic_component_vm(component)), before)
         state = instance.state(0)
         common = runtime.State(instance, state.node, state.index)
         self.assertEqual(set(vars(state)), set(vars(common)))

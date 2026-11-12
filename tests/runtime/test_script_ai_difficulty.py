@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from ow174.game.script import expr, graph, runtime, scene
-from tests.test_script_runtime_budget import graph as fixture_graph
+from tests.runtime.test_script_runtime_budget import graph as fixture_graph
 
 DEFINITION = 0x0400000000001D41
 NORMAL = 0x0D8000000000195F

@@ -56,7 +56,9 @@ def emit_charge_voice(world, voice):
             or voice.instance.graph.index != CHARGE_GRAPH or voice.node.pos != CHARGE_VOICE):
         return
     entity = voice.instance.component.entity
-    bot = next((bot for bot in world.match.bots if bot.entity == entity and bot.firing and not bot.dead), None)
+    bot = next(
+        (bot for bot in world.match.bots if bot.entity == entity and bot.firing and not bot.dead), None
+    )
     if bot is None:
         return
     for viewer in world.match.players:
@@ -67,8 +69,14 @@ def emit_charge_voice(world, voice):
 def _target(bot, state, query_position):
     world = state.instance.component.world
     match = world.match
-    if (match is None or match.ended or match.collision_world is None
-            or not bot.firing or bot.dead or match.combat.is_stunned(bot)):
+    if (
+        match is None
+        or match.ended
+        or match.collision_world is None
+        or not bot.firing
+        or bot.dead
+        or match.combat.is_stunned(bot)
+    ):
         return None
     if query_position == CHARGE_QUERY and match.combat.junkrat.rooted(bot.entity, match.tick):
         return None
@@ -90,10 +98,14 @@ def _target(bot, state, query_position):
     origin = (x + dz * offset.x + dx * offset.z, eye[1], z - dx * offset.x + dz * offset.z)
     a, b = target.segment()
     # The swept mover can touch the victim before the scripted sphere overlaps.
-    contact = (query_position == CHARGE_QUERY and bot.navigation is not None
-               and getattr(bot.navigation, 'charge_contact', None) == (match.tick, target.entity))
-    if ((contact or combat.segment_distance(origin, a, b) <= radius + target.radius)
-            and combat.capsule_visible(match.collision_world, eye, a, b, target.radius)):
+    contact = (
+        query_position == CHARGE_QUERY
+        and bot.navigation is not None
+        and getattr(bot.navigation, "charge_contact", None) == (match.tick, target.entity)
+    )
+    if (
+        contact or combat.segment_distance(origin, a, b) <= radius + target.radius
+    ) and combat.capsule_visible(match.collision_world, eye, a, b, target.radius):
         return target
     return None
 
@@ -168,8 +180,9 @@ def stop_miniguns(component):
             continue
         # The button's release ends its callback (54). Its callback started
         # the sibling stack (28), which owns both windup and the live volley.
-        states = [instance.states.get(instance.graph.node(pos).state)
-                  for pos in (MINIGUN_PRESS, MINIGUN_SCOPE)]
+        states = [
+            instance.states.get(instance.graph.node(pos).state) for pos in (MINIGUN_PRESS, MINIGUN_SCOPE)
+        ]
         pending = [state for state in states if state is not None]
         instance.drop_begins(pending)
         for state in pending:
@@ -253,9 +266,17 @@ def _source(world, state, position):
     if world.match is None:
         return NotImplemented
     component = state.instance.component
-    return next((bot for bot in world.match.bots if bot.entity == component.entity
-                 and bot.spawner.get("manual_spawn") is True and bot.body_script is not None
-                 and bot.body_script.component is component), None)
+    return next(
+        (
+            bot
+            for bot in world.match.bots
+            if bot.entity == component.entity
+            and bot.spawner.get("manual_spawn") is True
+            and bot.body_script is not None
+            and bot.body_script.component is component
+        ),
+        None,
+    )
 
 
 def _attack_nodes(world, state):

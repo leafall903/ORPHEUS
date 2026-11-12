@@ -4,15 +4,14 @@ import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
-from test_game_combat import Run
-from test_game_graph_analysis import make_graph
-
 from ow174.game import combat, mccree
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
 from ow174.game.content import heroes
 from ow174.game.script import decode, expr, graph
 from ow174.game.statescript import write_payload
+from tests.runtime.test_game_combat import Run
+from tests.runtime.test_game_graph_analysis import make_graph
 
 
 class DeadeyeTargetsTests(unittest.TestCase):

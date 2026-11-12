@@ -7,8 +7,13 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from functools import lru_cache
 
-from ow174.game.props import BoneTransform, ModelPose, actor_model_shapes, model_hardpoints, model_reference_bones
-
+from ow174.game.props import (
+    BoneTransform,
+    ModelPose,
+    actor_model_shapes,
+    model_hardpoints,
+    model_reference_bones,
+)
 
 _TRACK_HEADER = struct.Struct("<4H6i")
 _CHANNEL_FORMATS = (struct.Struct("<3H"), struct.Struct("<3f"), struct.Struct("<3H"))
@@ -117,12 +122,15 @@ class AnimationClip:
                 raise ValueError("duplicate animation bone")
             tracks[bone] = tuple(
                 _read_track(data, row, channel, number, indices, values, frame_count)
-                for channel, (number, indices, values) in enumerate(zip(counts, (si, pi, ri), (sv, pv, rv), strict=True))
+                for channel, (number, indices, values) in enumerate(
+                    zip(counts, (si, pi, ri), (sv, pv, rv), strict=True)
+                )
             )
         return cls(duration, fps, tracks)
 
-    def sample_absolute(self, seconds: float,
-                        reference: dict[int, tuple[int | None, BoneTransform]]) -> dict[int, BoneTransform]:
+    def sample_absolute(
+        self, seconds: float, reference: dict[int, tuple[int | None, BoneTransform]]
+    ) -> dict[int, BoneTransform]:
         """Sample an absolute clip at local time, keeping reference values for unkeyed channels."""
         if not math.isfinite(seconds):
             raise ValueError("animation sample time must be finite")
@@ -171,8 +179,9 @@ def _wheel_model(path):
     return model_hardpoints(data), model_reference_bones(data), tuple(actor_model_shapes(data))
 
 
-def wheel_clip_pose(directory, body: int, clip: int, seconds: float,
-                    looping: bool, transform: tuple[float, ...]) -> ModelPose | None:
+def wheel_clip_pose(
+    directory, body: int, clip: int, seconds: float, looping: bool, transform: tuple[float, ...]
+) -> ModelPose | None:
     model = _wheel_model(directory / "models" / f"{body & 0xFFFFFFFFFFFF:012X}.00C")
     if model is None:
         return None

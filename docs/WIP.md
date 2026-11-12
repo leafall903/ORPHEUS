@@ -3,7 +3,7 @@
 This document is the imported upstream author's gameplay status at LizRollin
 revision `9f8f3bcb5eccab6fb7738bee3c2371fcf0623f29`. Its "checked in the game"
 claims are the author's, not independent acceptance of this local integration.
-See [docs/STATE.md](docs/STATE.md) for local observations, user-reported defects
+See [STATE.md](STATE.md) for local observations, user-reported defects
 and the remaining acceptance work.
 
 This branch adds our own game server and real matchmaking. It works in the game, but a lot is missing.
@@ -60,4 +60,4 @@ Soldier: 76 and the others whose spawn chatter is purely client-side get none).
 
 `data/game_*.json` come from the scripts in `tools/` (`extract_game_*.py`, `dump_schemas.py`), which read a
 DataTool dump of the 1.74 client. Map collision is read from the player's own game install and cached in
-`cache/collision` (`tools/build_collision.py`). The game server needs `cryptography` (in `requirements.txt`).
+`cache/collision` (`tools/build_collision.py`). The game server needs `cryptography` (in `pyproject.toml`).

@@ -3,10 +3,10 @@
 import unittest
 from unittest.mock import patch
 
-from test_game_graph_analysis import make_graph, node, output
-
-from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
-from ow174.game.script import nodes, runtime
+from ow174.game.body_vm_snapshot import snapshot_digest
+from ow174.game.script import runtime
+from tests.runtime.test_game_graph_analysis import make_graph, node, output
+from tests.script_fixtures import export_synthetic_component_vm
 
 
 class JoinTests(unittest.TestCase):
@@ -104,10 +104,10 @@ class JoinTests(unittest.TestCase):
 
     def test_pending_arrivals_are_causal_snapshot_state_and_retire_with_instance(self):
         component, instance = self.setup_join()
-        before = snapshot_digest(export_component_vm(component))
+        before = snapshot_digest(export_synthetic_component_vm(component))
         self.arrive(instance, 4)
         component.run_now()
-        self.assertNotEqual(snapshot_digest(export_component_vm(component)), before)
+        self.assertNotEqual(snapshot_digest(export_synthetic_component_vm(component)), before)
         component.destroy(instance)
         self.assertFalse(instance.join_inputs)
 
@@ -115,58 +115,3 @@ class JoinTests(unittest.TestCase):
         _, instance = self.setup_join()
         with self.assertRaises(runtime.UnsupportedScriptError):
             instance.run_node(instance.graph.node(2), None)
-
-
-class DeadeyeJoinTests(unittest.TestCase):
-    def arena(self):
-        from test_game_combat import Run
-
-        from ow174.game.content import heroes
-
-        run = Run()
-        player = run.players[0]
-        run.match.bots.clear()
-        self.assertTrue(run.match.switch_hero(player, heroes()[0x02E0000000000042]))
-        script = player.body_script
-        script.ult_seconds = 0
-        script.set_ult_charge(script.component.vars[338].value())
-        instance = next(i for i in script.component.instances.values() if i.graph.index == 0x22F)
-        ability = instance.state(instance.graph.node(1).state)
-        return run, player, instance, ability
-
-    def test_actual_deadeye_survives_warmup_and_expires_after_authored_six_seconds(self):
-        run, player, instance, ability = self.arena()
-        run.step({player: (0, 0, 32)})
-        self.assertTrue(ability.flags & nodes.Ability.RUNNING)
-        for _ in range(300):
-            run.step({})
-            self.assertTrue(ability.flags & nodes.Ability.RUNNING)
-        self.assertEqual(instance.vars[567].value(), 6)
-        self.assertEqual(player.body_script.component.vars[342].value(), 0)
-        for _ in range(120):
-            run.step({})
-        self.assertFalse(ability.flags & nodes.Ability.RUNNING)
-
-    def test_actual_secondary_cancel_leaves_normal_ammo_untouched(self):
-        run, player, _, ability = self.arena()
-        run.step({player: (0, 0, 32)})
-        for _ in range(30):
-            run.step({})
-        self.assertTrue(ability.flags & nodes.Ability.RUNNING)
-        run.step({player: (0, 0, 2)})
-        for _ in range(30):
-            run.step({})
-        self.assertFalse(ability.flags & nodes.Ability.RUNNING)
-        weapon = next(i for i in player.body_script.component.instances.values() if i.graph.index == 0x1D2)
-        self.assertEqual(weapon.vars[53].value(), 6)
-        script = player.body_script
-        script.set_ult_charge(script.component.vars[338].value())
-        run.step({player: (0, 0, 32)})
-        for _ in range(30):
-            run.step({})
-        self.assertTrue(ability.flags & nodes.Ability.RUNNING)
-        run.step({player: (0, 0, 2)})
-        for _ in range(30):
-            run.step({})
-        self.assertFalse(ability.flags & nodes.Ability.RUNNING)
-        self.assertEqual(weapon.vars[53].value(), 6)
