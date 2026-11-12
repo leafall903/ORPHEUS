@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore both CombatModFilter consumers through one state registration
+
+- Remove the duplicate strict registration that overwrote the original tag-only
+  callback. The single registered CombatDamageFilter now derives CombatModFilter:
+  accepted host contracts bind and register, NotImplemented falls through full
+  tag-profile validation, and explicit refusal/unknown schemas stay strict.
+  Both forms share the native ordered registry and independent cleanup. Preserve
+  permissive body/DVa consumers and the richer Roadhog/Photon damage host.
+- Store the explicit combat_filter profile (or host-owned None) in getter-free
+  VM snapshots. Actual host plus tag callback coexist, retire independently and
+  export stable/read-only/sensitive state; no fixture graph special case added.
+- Original NPC6 baseline1fail/1error now all pass. Final12 original NPC/Roadhog/
+  DVa plus coexistence/incoming-barrier/storage checks pass. Broader snapshot4
+  old expectation failures and tire-wave2fail/1error reproduce identically on
+  the clean baseline; every original assertion remains unchanged.
+
+### Synchronize worker A for strict NPC filter registry restoration
+
+- Absorb committed intake d3801262 at a clean boundary; reproduce the original
+  strict NPC tag-filter failures before resolving duplicate state registration.
+
 ### Verify positive Adaptive Shield expiry preserves charge ownership
 
 - Extend the real cast regression to retain30 shields after a70-damage hit, then

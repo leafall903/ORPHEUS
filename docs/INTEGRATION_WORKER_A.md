@@ -822,3 +822,48 @@ Allfour actual cast/expiry subcases pass in1 method12.004s, no skips
 Root handoff's grant/damage/mixed loss/positive expiry/single-host/current-source
 conditions now have actual Vitals.extra evidence. No further identified gap in
 this scoped handoff; remain available for concrete cross-owner conflicts/gaps.
+
+### New root-directed strict NPC filter registry handoff
+
+Clean sync from committed intake d3801262 after8313e46e; canonical remains root's
+frozen replay worktree and was not touched. Baseline original normal module
+ test_script_npc_combat_states:6 methods,1 failure/1 error. Earlier registered
+CombatModFilter(RegisteredState) is overwritten by later CombatDamageFilter(State)
+for identical STUStatescriptStateCombatModFilter. Original tag-only profile cannot
+reach its callback/registry; richer SceneWorld host accepts only actual contracts.
+Next: one registered derived state retaining both providers/lifecycles and strict
+unknown rejection; preserve snapshots and DVa direct filter consumer.
+
+### A32 strict CombatModFilter registry coexistence (this commit)
+
+Sync4dc9e115 absorbed intake d3801262; canonical6ef42b61 frozen replay untouched.
+Baseline normal test_script_npc_combat_states6:1fail/1error reproduced because
+later CombatDamageFilter(State) overwrote strict registration of original
+CombatModFilter(RegisteredState), from original NPC/source013B. Rich original
+source0042/current SceneWorld host handles actual0CBC/141 outgoing damage and
+156C/9 incoming barrier damage. Preserve both, not graphF110 testspecialcases.
+One strict registration now selects CombatDamageFilter(CombatModFilter). Accepted
+host binding registers directly; NotImplemented validates original complete tag
+schema then registers; explicit provider refusal and unknown schema remain strict.
+Single native ordered registry/payload/cleanup shared by both providers; failed
+pre-registration cleanup cannot remove nonexistent entries. Host-only callback
+returns no tag-only result, and tag-only cleanup does not unbind another host.
+Explicit combat_filter=None/profile stored field registered for both API classes;
+constructor initialization permits getter-free before/after activation export.
+No damage-filter scalar/schema changes, DVa consumer changes or new matrix.
+New normal test_script_combat_filter_registry3 uses actual0CBC/141 and156C/9
+resource fields with real SceneWorld, plus tag callback coexistence and snapshot
+stability/sensitivity with bind/profile calls forbidden during export.
+Final12: originalNPC6 + actualRoadhog1 + originalDVa entry immunity2 + new3 all
+pass, no skips (worker-a-combat-filter-12-final.log). OriginalNPC assertions and
+constants untouched. Baseline worker-a-combat-filter-baseline.log retains1fail/1error.
+Broader body_vm29 has4 old expectation failures (report/input fields, Soldier
+world fields, Assassin allocation/movement type); identical normal-module clean
+HEAD baseline confirmed in worker-a-combat-filter-storage-baseline.log. Broader
+strict16 also retains tire-wave scope registration2fail/1error in one method;
+identical clean HEAD baseline confirmed in worker-a-combat-filter-strict-baseline.log.
+Only own WIP source bytes were temporarily restored from committed HEAD for
+those normal-module baselines then restored byte-for-byte in try/finally; no
+other worktree touched, no AST/assertion bypass and no original check weakened.
+Next exact action: root receive independent A32 and its sync; remain available
+for concrete cross-owner registry/consumer gaps rather than changing old checks.
