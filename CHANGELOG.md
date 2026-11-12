@@ -1,5 +1,17 @@
 # Changelog
 
+## C68 — original accepted Pharah world-gap producer
+
+Restored original012E Pharah queries/replay and connected accepted Barrage/Concussive,
+airborne/fuel history to the existing Player/Mover/Combat loop. Uses actual birth
+epoch pair, existing projectiles and original256 tail; landing/death/replace clears
+the strict-stored original body set. Default Mover repeat behavior is preserved;
+only Pharah recovered Concussive16 uses original drop mask.24/24 actual/shared
+checks pass29.115s, including original61/76 reports and exact gap/contiguous flight.
+Four old hover-wait subcases also reproduce on frozen pre-C68 methods and remain
+unchanged. General recipient impulse world replay remains a separate shared host
+handoff; no second force/health host, client or network action.
+
 ## C67 — original explicit AI callback and search APIs
 
 Restored original0008 component87 AI timer/cleanup callbacks through the existing

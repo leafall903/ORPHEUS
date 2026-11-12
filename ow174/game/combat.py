@@ -58,6 +58,7 @@ from ow174.game import (
     dragon,
     absorption,
     barrage_motion,
+    pharah,
     actors,
     assassin_victim,
     baptiste,
@@ -2268,6 +2269,7 @@ class Combat:
         self.zarya_gravitons = graviton.Gravitons(self)
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.early_projectile_respawns: set[int] = set()  # actual historical projectile deaths
+        self.pharah_airborne: set[int] = set()
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.next_barrier = barriers.FIRST_ENTITY
@@ -2606,6 +2608,7 @@ class Combat:
             ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
         self.early_projectile_respawns.discard(player.body)
+        self.pharah_airborne.discard(player.body)
 
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
@@ -3642,6 +3645,10 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif replay_aim is not None and script.hero == pharah.HERO:
+            for state, number, time, activation, *launch in shots:
+                if pharah.accepted_volley(state):
+                    self._shoot(player, replay_aim, state, number, time, activation=activation)
         elif replay_aim is not None and script.hero == sombra_camo.HERO:
             for state, number, time, activation, *launch in shots:
                 if translocators.accepted_volley(state):
@@ -4611,6 +4618,9 @@ class Combat:
 
         # Original0016 beam integration consumes cover that ended inside the
         # accepted gap, using the existing actors and their actual clock pairs.
+        previous = self.tick
+        if tick > previous:
+            pharah.replay(self, previous, TICK)
         allocation_clock = None
         if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
             allocation_clock = self.match.environment.monotonic(callsite="combat.respawn_clock")
@@ -4763,7 +4773,8 @@ class Combat:
         from itertools import chain
 
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
-                         sombra_replay.application_replay_until(self, self.tick))
+                         sombra_replay.application_replay_until(self, self.tick),
+                         pharah.replay_until(self, self.tick, TICK))
         early_end = min(first, replay_end + 1)
         normal_ticks = (set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
@@ -4941,6 +4952,7 @@ class Combat:
                     retained_owners, sentry_damage_starts, allocation_clock,
                     sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
             if at < tick:
+                pharah.replay(self, at, TICK)
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
@@ -6534,6 +6546,8 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
+                if number == 0 and shooter.mover.airborne:
+                    self.pharah_airborne.add(shooter.body)
             if reach and range_left is None and not field_canister and not barrage and junkrat_profile is None and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
@@ -6669,6 +6683,9 @@ class Combat:
                 if npc:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
                 elif junkrat_profile is not None:
+                    projectile_tick = self.tick
+                elif (shooter.hero.guid == pharah.HERO
+                      and state.instance.graph.index in (0x0023, 0x007B, 0x002B)):
                     projectile_tick = self.tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
@@ -10875,6 +10892,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.pharah_airborne.discard(_source_entity(victim))
         self.hooks.retire(victim.body)
         self.absorption.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
