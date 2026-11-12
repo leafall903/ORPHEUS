@@ -2220,6 +2220,8 @@ class Combat:
         self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
+        self.beam_seen: dict[int, tuple] = {}
+        self.zarya_beam_world_ms: dict[int, int] = {}
         self.reaper_blossoms: dict[int, dict] = {}
         self.reaper_shadows: dict[int, dict] = {}
         self.echo_duplicates = echo_duplicate.Duplicates(self)
@@ -2447,6 +2449,8 @@ class Combat:
         self.companions.retire(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
+        self.beam_seen.pop(player.body, None)
+        self.zarya_beam_world_ms.pop(player.body, None)
         self.shatters.pop(player.body, None)
         self.charges.pop(player.body, None)
         for charge in self.charges.values():
@@ -3758,6 +3762,31 @@ class Combat:
         ray = instance.states.get(ray_index)
         if ray is None:
             return
+        sample_seconds = script.component.frame_ms / 1000
+        zarya = player.hero.guid == 0x02E0000000000068
+        if zarya:
+            if command is None:
+                return
+            state = instance.states.get(health_index)
+            if state is None or not state.active:
+                return
+            now = command.frame * script.component.frame_ms
+            activation = instance.id, state.counter, state.start
+            previous = self.beam_seen.get(player.body)
+            world_now = self.match.tick * round(TICK * 1000)
+            if previous is None or previous[0] != activation:
+                self.beam_seen[player.body] = activation, now
+                self.zarya_beam_world_ms[player.body] = world_now
+                return
+            if now <= previous[1]:
+                return
+            self.beam_seen[player.body] = activation, now
+            world_used = self.zarya_beam_world_ms.get(player.body, world_now)
+            elapsed = min(now - previous[1], world_now - world_used)
+            if elapsed <= 0:
+                return
+            self.zarya_beam_world_ms[player.body] = world_used + elapsed
+            sample_seconds = elapsed / 1000
         # Moira's damage state consumes TrackTargets' selection. The separate
         # TrackRay in that graph does not supply the damage target.
         body_only = ray.node.cls == "STUStatescriptStateTrackTargets"
@@ -3796,14 +3825,13 @@ class Combat:
             return
         modify = health.node.field("m_modifyHealth")
         rate = expr.to_float(health.evaluate(modify.get("m_amount"), watch=False))
-        sample_seconds = script.component.frame_ms / 1000
         amount = rate * sample_seconds
         if shield is not None:
             barriers.damage(self, shield, amount, attacker=player.body)
         elif body is not None:
             loadout = health.evaluate(modify.get("m_loadout"), watch=False)
             self._damage(player, body, amount, False,
-                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame, beam=zarya)
 
     def _winston_tesla(self, player, command, script):
         """Feed 00FE's multi-target damage state with a reconstructed visible cone."""

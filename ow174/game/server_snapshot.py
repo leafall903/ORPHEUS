@@ -173,7 +173,7 @@ FIELDS = {
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
-        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen beam_seen zarya_beam_world_ms reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples grapple_seen ball_contacts pile_air_locks orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     hook.Hooks: _names("combat flights seen player_pose_ticks player_command_cutoffs command_clocks"),

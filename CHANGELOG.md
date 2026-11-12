@@ -10636,3 +10636,38 @@ Next: original barrier start/expiry/cooldown/energy and current Graviton missing
 consumers, plus the now-evidenced actual beam damage path. All within0068 source
 scope and current single actors/pools; existing projected-history ownership and
 original nine-owner residual records remain in force.
+
+## A78 — source Zarya beam activation and elapsed-world accounting
+
+Clean sync3c17892c absorbs root6946e560, preserving B force/primary/secondary and
+NPC per-definition mover metadata. Actual beam discrepancy was two calls to the
+same generic _weapon_beam per command, each fixed-frame damage including initial
+activation:51*2*1.2=122.4 instead of original50*1.2=60. Existing beam service now
+uses original beam_seen activation and zarya_beam_world_ms elapsed cap for0068;
+repeated calls/commands are idempotent and future command time cannot spend
+unelapsed world time. Original beam=True armour0.7 policy restored. Both original
+clock maps registered exactly in snapshot and cleared on body retirement; no
+second ray driver or charge/heal/actor manager. Other hero beam behavior retained.
+
+Original test_game_zarya.py and test_game_zarya_armour.py preserved byte-exact.
+Focused source primary75/170 DPS, repeated consumption, release, retirement5/5
+pass (6run7.946s; sixth future case passes its no-damage assertion then fails on
+still-unmounted original ammo clock:83.6988 vs99.6999). Original three armour
+42/68.6/95.2 assertions all pass. Original friendly-grenade recovery/boost whole
+method now passes both paced/sparse original36.8/136.8/expiry assertions (the beam
+fix retired its previous early discrepancy). Combined original armour+boost group
+ran5methods19.536s with only two old private-ledger observation errors inside the
+projectile recovery method. Its observation now reads real existing Vitals
+last_damage_at/TICK, preserving every original number; original projected-flight
+impact assert still fails actual paced1244 vs1245 and sparse1262 vs1245. These
+are actual remaining temporal consumers, not observer excuses or changed asserts.
+Logs worker-a-zarya-beam-{clock-source-first,armour-recovery-joint,
+projectile-recovery-actual-ledger}.log. No full acceptance/client/network run.
+
+Next exact action: original0241 node22/30/93 and0242 node7/12 state_clock/
+world_deadline/world_used consumers on existing Wait/ChaseVar, then actual native
+Pet start/expiry/cooldown and existing Graviton/projectile clock edges. Preserve
+newer core chase_clock (Winston), Wait external/passive services, exact metadata,
+C47/C49 projected history and all current single actors/Vitals. Future ammo and
+sparse projectile failures remain explicitly open; do not wait to commit this
+independent actual beam fix. Remaining0068 scope still low-confidence6-12h.

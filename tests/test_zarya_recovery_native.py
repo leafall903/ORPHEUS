@@ -197,7 +197,7 @@ class ZaryaRecoveryTests(unittest.TestCase):
                     self.run.match.update(tick * combat.TICK, tick, frames=False)
                 self.run.frame = end
                 self.assertFalse(self.fight.rockets)
-                impact = self.fight.zarya_recovery.bodies[self.a.body].damaged_tick
+                impact = round(self.fight.vitals[self.a.body].last_damage_at / combat.TICK)
                 self.assertEqual(impact, damaged + 193)
                 shields = 140 + 2.16 - 47
                 self.assertAlmostEqual(self.shields(), shields, places=4)
