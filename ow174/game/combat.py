@@ -1261,7 +1261,13 @@ def health_tags(state, modify) -> tuple[int, ...]:
     """Authored health-operation tags; no generic native filter interpretation."""
     found = []
     for row in modify.get("m_148F3152") or ():
-        tag = state.evaluate(row.get("m_EE3055BD"), watch=False)
+        config = row.get("m_EE3055BD")
+        if state is None:
+            if not isinstance(config, dict) or config.get("$") != "STUConfigVarIdentifier":
+                raise ValueError("dynamic health tags require their original State")
+            tag = expr.evaluate(config, expr.Context())
+        else:
+            tag = state.evaluate(config, watch=False)
         if isinstance(tag, expr.Asset):
             found.append(tag.guid)
     return tuple(found)
@@ -2051,6 +2057,9 @@ class Combat:
         from ow174.game import junkrat
 
         self.junkrat = junkrat.Junkrat(self)
+        from ow174.game import ashe
+
+        self.dynamite = ashe.Dynamite(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2318,6 +2327,7 @@ class Combat:
         self.walls.retire(player.body)
         self.venom.retire(player.body)
         self.junkrat.retire_body(player.body)
+        self.dynamite.retire(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -4208,6 +4218,7 @@ class Combat:
             self.walls.update(at)
             self.blizzard.update(at)
             self.venom.update(at)
+            self.dynamite.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
@@ -5614,6 +5625,15 @@ class Combat:
 
         pulse = not npc and pulse_bomb.is_pulse(shooter, state)
         speed = field("m_projectileSpeed")
+        if not npc and shooter.hero.guid == 0x02E0000000000200 and (state.instance.graph.index, state.index) == (0x14FD, 12):
+            from ow174.game import ashe
+
+            fuse = ashe.dynamite_fuse_seconds(state)
+            delivery = self.projectiles.fired(shooter, state, shot_frame, definition, fuse,
+                                               origin, direction, activation=activation, snapshot=snapshot) if definition else None
+            self.dynamite.fired(shooter, origin, direction, speed or 25.0, delivery,
+                                fuse_seconds=fuse, absorb_damage=direct.amount if direct is not None else 0.0)
+            return
         explicit_directions = None
         actor_hero = getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None))
         if self.reconstructed_volley_patterns and actor_hero != dva.HERO:
@@ -6035,6 +6055,9 @@ class Combat:
         mine_hit = self.venom.intersect(shooter, origin, direction, limit)
         if mine_hit is not None:
             limit = mine_hit[0]
+        grenade_hit = self.dynamite.ray_hit(shooter, origin, direction, limit)
+        if grenade_hit is not None:
+            limit = grenade_hit[0]
         redirect = None
         tagged = state.instance.graph.index == 0x1932 and self.projectile_tags.blob is not None
         tagged_contact = (self._deflector(shooter, definition, origin, direction, limit, view_tick=view_tick)
@@ -6172,6 +6195,9 @@ class Combat:
                     definition=definition, travelled=travelled + distance,
                     matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
                 )
+            return
+        if grenade_hit is not None and (wall is None or grenade_hit[0] < wall):
+            self.dynamite.detonate(grenade_hit[1])
             return
         if mine_hit is not None and (wall is None or mine_hit[0] < wall):
             distance, mine = mine_hit
@@ -7565,7 +7591,7 @@ class Combat:
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
                  struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
                  damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0),
-                 native_impact_body=None, protected_out=None):
+                 native_impact_body=None, protected_out=None, victims_out=None):
         damage_point = point if damage_point is None else damage_point
         incident_direction = rocket.direction if incident_direction is None else incident_direction
         blast = rocket.blast
@@ -7597,6 +7623,7 @@ class Combat:
         pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
+                or blast.loadout == 0x0B9000000000020B
                 or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
                 and blast.self_scale > 0
                 and rocket.source_entity == _source_entity(rocket.shooter)):
@@ -7726,6 +7753,8 @@ class Combat:
                         and not immunity.fortified(target.owner, target.entity)):
                     self._tank_impulse(target, damage_point, blast)
                 if landed:
+                    if victims_out is not None:
+                        victims_out.add(target.entity)
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None and (
                         target is not struck or rocket.direct is None or rocket.direct.knockback is None
