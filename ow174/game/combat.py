@@ -2504,8 +2504,14 @@ class Combat:
         vitals = self.vitals.get(player.body)
         if vitals is None or not self.is_asleep(player) or vitals.sleep_view is not None:
             return
-        start = vitals.sleep_until - SLEEP_TICKS
-        if self.tick < start + math.ceil(0.15 / TICK) or player.body_script is None:
+        definition = graph.graph(0x224E)
+        if definition is None or player.body_script is None:
+            return
+        # Wake recovery can shorten sleep_until; the stored floor retains the
+        # actual hit tick. Wait29 still schedules this same authored view branch.
+        start = vitals.sleep_wake_floor - SLEEP_WAKE_FLOOR_TICKS
+        delay = math.ceil(definition.node(29).field("m_timeout.m_value") / TICK)
+        if self.tick < start + delay:
             return
         vitals.sleep_view = player.body_script.world.sample_sleep_view()
 
