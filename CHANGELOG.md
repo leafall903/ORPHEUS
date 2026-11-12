@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve the original standalone graph-extension reader
+
+- Restore original0200 load_bundle byte for byte for explicit fingerprint-bound
+  read-only consumers, including existing NPC metadata verification. The live
+  server continues using its sole reconciled additive graph provider.
+- Original three extension checks retain all assertions and use the explicit
+  reader at their fixture boundary; those plus six additive supplement checks
+  pass9/9. Source inputs remain unchanged; no client acceptance was run.
+
 ### Retain admitted NPC associations when recomposing runtime inputs
 
 - The existing hero-input composer preserves validated original association

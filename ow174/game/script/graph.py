@@ -40,6 +40,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -294,6 +295,55 @@ def _data() -> dict:
     if GRAPH_SUPPLEMENT_PATH is not None:
         extra = json.loads(gzip.decompress(GRAPH_SUPPLEMENT_PATH.read_bytes()))
         data = add_supplement(data, extra)
+    return data
+
+
+def load_bundle(path: Path, extension=None) -> dict:
+    """Read one explicit base plus an optional non-replacing fingerprint-bound extension."""
+    raw = path.read_bytes()
+    data = json.loads(gzip.decompress(raw))
+    if extension:
+        extra = json.loads(gzip.decompress(Path(extension).read_bytes()))
+        if (extra.get("format_version") != 1
+                or extra.get("base_sha256") != hashlib.sha256(raw).hexdigest()):
+            raise ValueError("graph extension does not match the selected base bundle")
+        present = {record["index"] for record in data["graphs"]}
+        additions = extra.get("graphs")
+        entities = extra.get("entities")
+        if not isinstance(additions, list) or not isinstance(entities, dict):
+            raise ValueError("invalid graph extension tables")
+        for record in additions:
+            index = record["index"]
+            if type(index) is not int or not 0 <= index <= 0xFFFF or index in present:
+                raise ValueError("graph extension repeats or replaces a graph")
+            present.add(index)
+        current = data.setdefault("entities", {})
+        if any(key in current for key in entities):
+            raise ValueError("graph extension replaces an entity definition")
+        references = set()
+        _collect_graphs([additions, entities], references)
+        for entity in entities.values():
+            references.update(row["graph"] for row in entity.get("graphs", ()))
+        if not references <= present:
+            raise ValueError("graph extension has unresolved graph references")
+        data["graphs"].extend(additions)
+        current.update(entities)
+        controllers = data.setdefault("npc_controllers", {})
+        additions = extra.get("npc_controllers", {})
+        if (not isinstance(controllers, dict) or not isinstance(additions, dict)
+                or any(key in controllers for key in additions)):
+            raise ValueError("graph extension replaces NPC controller associations")
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not GUID_TEXT.fullmatch(body)
+                    or int(body, 16) >> 48 != 0x0400 or not int(body, 16) & 0xFFFFFFFFFFFF
+                    or body not in (data.get("bodies", {}) | current)
+                    or not isinstance(definition, str) or not GUID_TEXT.fullmatch(definition)
+                    or int(definition, 16) >> 48 != 0x0400 or definition == body
+                    or definition not in current):
+                raise ValueError("unresolved NPC controller definition")
+        controllers.update(additions)
+        data["missing"] = [index for index in data.get("missing", ()) if index not in present]
     return data
 
 
