@@ -4916,6 +4916,13 @@ class TrackTargets(State):
     def refresh(self) -> None:
         values = self.instance.component.world.tracked_targets(self)
         if values is NotImplemented:
+            component = self.instance.component
+            if (component.strict and isinstance(component.world.ai_behavior_context(
+                    component.entity, component=component), ai_behavior.Context)):
+                # Explicit native component87 selection cannot turn an absent
+                # native search provider into successful empty acquisition.
+                ai_behavior.context(self, required=True)
+                component.unsupported(self.instance, "native target search", self.node.cls, self.node)
             return
         self.managed = True
         self.targets = tuple(values)

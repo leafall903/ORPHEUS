@@ -3038,3 +3038,82 @@ with that same Command and current once-per-activation/sample guards. Do not als
 run the old VM ModifyHealth adapters and duplicate damage. Public independent
 SDK restoration applies to ai_behavior/target_search, not these replaced internal
 helper names. Volskaya actual scene/lift/attached-wall chain is explicitly root-owned.
+
+
+## C69 — real 13C2 typed producer contract and explicit AI unknown-search error
+
+Current native Assassin already executes the original14695 condition under
+builtin8 at13C2/node10. Bounded real two-player tests and a pre-filter select
+function probe (including invalid preference over20 ticks) showed it still picks
+the legal second target and clears invalid preference. An initial C-side inference
+that it might repeatedly select the excluded first body was NOT established.
+Removed the provisional duplicate upfront radial/mask/condition filter before
+commit. The newly written private world.candidates assertions only demanded an
+internal cache shape, not an original gameplay contract, so they were removed;
+no original assertion changed. Retained actual target/foreign-member outcomes.
+
+Exact source0008 initial-search mapping: node4 radius9999 contains the current
+explicit human/contact candidate cohort; declared human tag0x40000 passes its
+any mask0x40000/excluded312; current _enemies supplies the enemy/nonself relation.
+The same original negated14695 expression is actually evaluated by13C2/node10
+using TargetWorld.native parameter_scope({8: value}) and real foreign body member
+lookup. Current ordered input remains under its existing physical controller
+policy. This is an actual classID/condition/cohort mapping, not a restored second
+search/AI host. The complete general native enumeration service is not inferred.
+
+A real producer contract break DID occur on that path: TargetWorld.tracked_targets
+returned Entity objects, while current TrackTargets.refresh wraps each supplied
+ID in Entity exactly once. Two actual13C2 fixtures hit Entity(Entity(...)) and
+entity_filter's Entity & int TypeError. Fixed this provider to return its declared
+raw candidate IDs, retaining the one existing typed writer. Current selection and
+foreign-member changes now pass through the real resource/controller without
+any fake Entity coercion, new target cache or module alias.
+
+The original C67 strict unknown-search assertion is now restored for an explicitly
+supplied native component87 Context: a strict callback cannot silently turn a
+missing target-search service into empty success. Existing default manual/strict
+controller policies remain unchanged when no explicit native AI context exists;
+linked/tracked provider results still take precedence. Native context lifetime
+validation and the original diagnostic/failure cleanup run on the same state.
+
+Final command: unittest test_delivered_assassin_search test_script_ai_behavior
+ test_script_target_search test_npc_controller_associations test_game_npc_control
+ test_npc_context -v =71/71pass7.688s,
+../worker-c-c69-assassin-ai-final-check.log. This includes all35 unchanged original
+AI/search SDK methods (C67's retained failure now passes),2 real13C2 tests and
+current NPC/context/manual checks. Earlier receipts preserve the typed producer
+errors and the disproved duplicate-filter/private-cache expectations:
+worker-c-c69-assassin-ai-shared-check.log, assassin-prefilter-probe.log and
+preference-probe.log. No new acceptance matrix/client/network action.
+
+### Bounded missing-path map for C's original producer scope
+
+| Original path | Actual current producer/API | Boundary |
+| --- | --- | --- |
+| 012E pharah.py | restored pharah.py replay/queries; existing Mover.pharah_thrust, BodyWorld JumpJet, Combat Barrage/projectiles | C68 real world-gap consumer mounted; generic recipient force assignedB |
+| 0016 pharah_concussion.py | Combat hit_def/rings, _pharah_impulses and _apply_pharah_impulses | same original shot/protection math plus frozen contact plan, not another force host |
+| 00DD symmetra_beam.py | symmetra.primary/target_query/_cover_ray/_trace_barrier/_damage_barrier | actual157C rays100/101, health86, charge25/tag94; current single pool |
+| 0016 symmetra_barriers.py | photon_barrier.Barriers with original156B placement/Pet, plane or configured Geometry | C29 original unbounded plane plus real mesh path, one cast/health/lifetime |
+| 0008 script/ai_behavior.py | restored same public module and existing91EF node | C67/C69 explicit callback context; default manual host retained |
+| 0008 script/target_search.py | restored same public pure module; current13C2 resource condition described above | no synthesized general enumerator or second target host |
+| 0008 script/control_effect.py | Brig.host_control; Sigma _accretion_hit ->1BBB message ->BodyWorld play1BBB/node18 ->same224E child | original internal helper's two callers replaced by actual VM gates/Wait, not an independent public SDK |
+| 0015 script/combat_pose.py | posed Combat.command -> _soundwave and _weapon_beam | original two internal callers Lucio/Zarya now receive actual Command directly; duplicating old ModifyHealth adapters would double damage |
+| 00DD volskaya.py | root-owned actual LiftHost/Match/attached-wall integration | root owns this real missing producer; C does not edit its seams |
+| 0008 script/controller_query.py | current controller_queries strong Record/F726/B96D/D3EB actual service | original standalone matches(frozenset) and controller_components override SDK still need API preservation; sentroot forsharedSDK owner |
+
+The six source-tree audit lists also contain foreign inherited gameplay modules
+(DVa/Genji/Sigma/Winston/Ana/Brig/Zarya/Tracer/etc.). Their absence by old filename
+is not an additional C hero manager. Shared phase_defenses has current C-owned
+Mei/cryo/sample/frost consumers and existing defenses/immunity gates; other hero
+phases/force replay remain with their actual owners. Shared barrier_mesh/
+defense_geometry geometry consumers use actual barrier managers/root pure query
+readers. Shared hero_charge uses mounted owner-specific charge services and
+current ultimate metadata; do not install the obsolete generic host. Root's
+whole-source audit still controls exact foreign SDK/API preservation; this table
+does not claim every foreign inherited helper or old source assertion accepted.
+
+Next concrete owner query from root: original0004 projectile_defense row
+Mei22F0/node14/state6 and body08BA, absent by literal in current runtime. Audit
+its original actual caller before adding any current interception/deflection
+contact; do not instantiate a second defense manager. Other known C64/C65 scopes
+are already implemented; root/B own Volskaya and shared generic force respectively.

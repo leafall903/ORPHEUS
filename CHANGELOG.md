@@ -317,6 +317,17 @@ already-consumed recipient excluded, same Rocket/one explosion/one damage servic
 A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
+## C69 — original AI search contract and actual Assassin target IDs
+
+Corrected the existing13C2 provider to return raw IDs to its one typed TrackTargets
+writer, eliminating real nested-Entity failures. Explicit native component87 AI
+callbacks now preserve the original strict missing-search error. Actual native
+13C2 already implements the original candidate condition; disproved duplicate
+filter/private-cache assumptions were removed, original assertions untouched.
+71/71 actual/shared checks pass7.688s, including all35 original AI/search SDK checks.
+Recorded bounded original-path mappings and concrete root/B handoffs. No second
+AI/target producer, client or network action.
+
 ## C68 — original accepted Pharah world-gap producer
 
 Restored original012E Pharah queries/replay and connected accepted Barrage/Concussive,
