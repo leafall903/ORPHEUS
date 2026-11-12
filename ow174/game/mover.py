@@ -997,12 +997,13 @@ class Mover:
     def step(
         self, command: Command, seconds: float, tick: int = 0,
         *, simulate_pose: Callable[[Command, float, int], None] | None = None,
-        retained_buttons: int = 0,
+        retained_buttons: int = 0, drop_repeated_buttons: int = 0,
     ) -> None:
         """One tick per command frame. Frames that never arrived are run first: the client ran them, most
         likely with the same keys (the last command again, and from the 33rd
         missing one without throttles and buttons). A player with a body script can drive each pose and
-        run its graph on the same frame, including recovered input."""
+        run its graph on the same frame, including recovered input. Explicit
+        drop_repeated_buttons require real input and do not repeat into missing poses."""
         pose = self.step_pose if simulate_pose is None else simulate_pose
         last = self.last_command
         if last is not None:
@@ -1010,7 +1011,7 @@ class Mover:
                 if frame - last.frame > REPEAT:
                     last = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
                 missing = replace(
-                    last, frame=frame, buttons=(last.buttons & ~SUBFRAME) | retained_buttons, action=0,
+                    last, frame=frame, buttons=(last.buttons & ~(SUBFRAME | drop_repeated_buttons)) | retained_buttons, action=0,
                     subframe=0xFF, click_yaw=None, click_pitch=None,
                 )
                 pose(missing, seconds, tick)

@@ -414,6 +414,7 @@ class Player:
                                 healing_tick=tick - (endpoint - posed.frame)))
                             if self.hero.guid == 0x02E0000000000040 else self._step_body_pose,
                         retained_buttons=retained,
+                        drop_repeated_buttons=0x10 if script is not None and script.hero == 0x02E0000000000008 else 0,
                     )
                 else:
                     if not dead:  # a dead body lies where it fell
@@ -665,6 +666,10 @@ class Player:
         )
         if not self.mover.airborne and not self.mover.landed:
             fight.translocators.recall_poses.discard(self.body)
+            fight.pharah_airborne.discard(self.body)
+        from ow174.game import pharah
+        if pharah.hover_force(self.body_script) is not None:
+            fight.pharah_airborne.add(self.body)
 
     def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None, flight=None):
         fight = self.match.combat

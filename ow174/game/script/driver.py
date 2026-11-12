@@ -2363,7 +2363,7 @@ class BodyScript(ReplicatedBody):
             self.cryo_birth = (match.tick, start_frame)  # immutable body epoch; no input lease
         if hero == 0x02E00000000001CA and match is not None:
             self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
-        if hero in (0x02E0000000000002, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
+        if hero in (0x02E0000000000002, 0x02E0000000000008, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero == 0x02E000000000023B and match is not None:
             from ow174.game import sigma_charge
