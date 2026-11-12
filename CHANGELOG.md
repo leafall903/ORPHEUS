@@ -1170,6 +1170,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-13
+
+#### Align the full local Python integration layout
+
+- Move the existing Python package, launchers, documentation and tests to the current public source layout before reconciling upstream changes. No gameplay implementation is changed by these moves.
+- Preserve the complete original-language hero integration and its existing acceptance limits. Runtime inputs remain external.
+- Verification: relocation map preserves every moved file byte-for-byte; upstream reconciliation and post-merge tests follow separately. Original-client acceptance remains pending.
+
+
 ### Restore original body-size and Mei combat consumers
 
 - Merge original size modifier12 and the same mover-derived scale into actual
