@@ -16,6 +16,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   excluded by its real state/control owners. Original31 shared methods pass.
 
 
+### Restore original Roadhog primary pellet geometry and falloff
+
+- Selected Scrap Gun fire now launches the original25 directions with one ammo
+  spend; captured primary pellets retain original headshot and full-distance
+  falloff. Restore original selected critical fallback without changing others.
+- Original projectile/runtime22 checks have only two retained secondary-burst
+  subcase failures; all primary geometry, damage, critical/range/falloff and
+  runtime checks pass. Secondary expiry fragments remain next; no client run.
+
 ### Restore actual Whole Hog force capture on the shared mover
 
 - Capture original force/rings and volley identity through hitscan/deflection;

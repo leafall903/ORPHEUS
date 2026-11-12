@@ -119,7 +119,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
-from ow174.game import ball, ball_mines, hook, whole_hog
+from ow174.game import ball, ball_mines, hook, whole_hog, spread
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -1247,6 +1247,7 @@ class HitDef:
     source_impulse_scale: float = 0.0
     source_impulse_ignores_los: bool = False
     whole_hog_spec: object = None
+    roadhog_pellet: bool = False
 
     @property
     def damage_tags(self):
@@ -1375,6 +1376,8 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if graph_index == 0x01C6 and state.node.pos in (26, 33):
+        critical_default = 2.0  # Original Scrap Gun primary and Whole Hog fallback.
     if graph_index == 0x1514 and isinstance(loadout, expr.Asset) and loadout.guid == 0x0B90000000000189:
         critical_default = 2.0  # Delivered Ball omitted native bullet scalar; explicit value still wins.
     if (state.instance.component.world.hero == 0x02E000000000000A
@@ -1431,7 +1434,8 @@ def hit_def(state, cfg) -> HitDef | None:
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
+        roadhog_pellet=graph_index == 0x01C6 and state.node.pos == 26,
+        projectile_headshot=(graph_index == 0x01C6 and state.node.pos == 26) or icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
         whole_hog_spec=whole_hog.evaluate(state, modify),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5, 0x16DA) or (
@@ -1766,6 +1770,8 @@ class Rocket:
         return self.direct.projectile_extent if self.direct is not None else 0.0
 
     def __post_init__(self):
+        if self.direct is not None and self.direct.roadhog_pellet:
+            self.scale_direct = True  # Original primary pellet consumes full flown distance.
         if self.source_entity is None:
             self.source_entity = getattr(self.shooter, "entity", None) if isinstance(
                 self.shooter, (bots.Bot, actors.Deployable)
@@ -6327,6 +6333,9 @@ class Combat:
                         directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
                     else:
                         split = self._split_volley(state, direction, seed, number)
+                elif (not npc and shooter.hero.guid == 0x02E0000000000040
+                      and (source_graph, node.pos) == (0x01C6, 26)):
+                    directions = spread.directions(state, direction)
                 elif npc and shooter.hero != dva.HERO:
                     from ow174.game import npc_context
 
@@ -6426,6 +6435,9 @@ class Combat:
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
+        if (not npc and shooter.hero.guid == 0x02E0000000000040
+                and (state.instance.graph.index, node.pos) == (0x01C6, 33)):
+            directions = spread.directions(state, direction)
         if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
             directions = reaper.shotgun_directions(shooter, state, direction)
         if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:

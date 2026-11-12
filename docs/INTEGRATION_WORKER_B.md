@@ -1385,3 +1385,32 @@ spread.directions/reorient; these are not established by the narrower current
 NPC-only source-ring path. Keep fullsource test_game_roadhog assertions. Then
 complete original force damping/world-gap priority via the same movement host,
 followed by non-Flux Sigma audit. Root owns Flux and A owns Zarya.
+
+
+## B54 — original Scrap Gun primary pellet geometry and damage consumers
+
+The full frozen28 original weapon/secondary/reload baseline completed102.703s
+with32 subcase failures and8errors, preserved at worker-b-hog-weapons-original.log.
+Confirmed actual primary gap: one projectile instead of the authored25. Restored
+original spread.py unchanged (full AST), mounted only selected player Hog01C6
+node26/33; other heroes/NPC patterns retain their existing paths. Primary launches
+25 authored frozen directions with one ammo spend. Original primary/WholeHog2x
+fallback uses actual node.pos (not the distinct state.index). Primary HitDef
+captures its exact pellet scope, enabling original headshot and full flown-distance
+falloff even when that captured pellet is later constructed/replayed separately.
+No other projectile's default falloff or critical policy changes.
+
+Original nine Projectile methods plus runtime13:22run, only two secondary-button
+subcase failures in the mixed primary/secondary range method; all primary
+subcases and the other21 methods pass18.333s. Primary25/165/singleammo,
+miss/ally/wall, actual primary range boundary, falloff8/22/35, critical notices,
+continuous/skipped distance, melee timing/range all retain original assertions.
+Alternating primary/secondary shared-magazine original method also passes in the
+first focused run. Remaining original secondary burst is genuinely absent;
+these failures are not reclassified as mere old observers. No client acceptance.
+
+Next exact action: B55 restore source01C6/node29 expiry fragment volley through
+the existing SplitVolley/Rocket path, with source critical/default definition and
+same-step expiry remainder/reflection reorientation. Then run original secondary
+and remaining reload/lifecycle checks, retaining all failed expectations. Whole
+Hog independent external damping/world-only motion remains explicitly open.
