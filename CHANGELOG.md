@@ -4,6 +4,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Record nine-owner source reconciliation boundary
+
+- Worker A records actual original-language consumers for seven initial heroes,
+  Junkrat and Ashe, including shared PlayerController received from root. Formal
+  whole-ref cross-owner admission remains with root; old failing checks stay visible.
+- Latest composed v17 controller/EMP refresh/BOB clocks/real hard controls/Matrix
+  boundary16/16 passed. No additional production changes or client acceptance.
+
+### Reconcile delivered Recall protection contracts
+
+- Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
+- Current original both-phase immunity and actual Dart playback/expiry checks pass; full AnaRecall group7pass/2known conflicting failures. No runtime or client behavior changed in this audit.
+
+### Bind original BOB no-launch checks to the real force host
+
+- Original corpse/head-on no-force assertions now inspect the existing Knockbacks active host, retaining assertion intent and original numerical checks without a compatibility queue.
+- Selected lifecycle/cooldown10 methods reached8 passes and old-observer errors in two methods; the two corrected entry methods now pass both cast orders. No production behavior or client acceptance changed.
+
+### Retain original BOB control expectations on the sole Frost host
+
+- Save real-host spray/Blizzard checks alongside the original table-based fixtures, reading actual Frost deadlines without compatibility state. Preserve original damage, exact thaw resume and fixed lifetime assertions.
+- Native-host sleep/spray/Blizzard methods all pass (3 methods, including both contiguous/skipped sleep paths). No production behavior changed; original observer differences remain recorded, client acceptance not run.
 ### Retain original Mine arithmetic identity with the actual controller and factory
 
 - Merge original Minefield factory, real MineScript/transport and f32 flight on
