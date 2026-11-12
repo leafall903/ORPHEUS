@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original body silence state across Hack lifetimes
+
+- Existing Sombra Controls now saves/restores the original body888 base for
+  overlapping actual effects, expiry and body retirement, with causal snapshot
+  storage. Device and character pools remain unchanged.
+- Original Helix lock/release, held Sprint interruption and death/replacement
+  checks pass. Selected21:13pass,5failedmethods,2erroredmethods,1originalskip;
+  remaining expiry, refresh and observer differences are retained. ActualFalse
+  base restores after expiry. No client acceptance or assertion changes.
+
+### Start original Hack and EMP recipient graph entries
+
+- Route the existing Sombra receiver through original PlayScript requests and
+  exact authored body predicates. Real Hack/EMP now start their original 5-second
+  Wait state; original Ashe lock queries read that actual state directly.
+- Joint129:123casepass,5failedmethods with8subcase failure records and one missing
+  original test dependency. All15 charge and76shared VM/filter checks pass;
+  source constants/assertions retained. Recipient-clock/retirement and existing888
+  modifier gaps remain; no original-client acceptance performed.
+
+
 ### Retain current pose clocks and target history during original Sombra replay
 
 - Receive original accepted owner replay, retaining separate body/world epochs.

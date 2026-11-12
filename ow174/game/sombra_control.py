@@ -76,6 +76,19 @@ class Controls:
         self.held = {}
         self.device_receivers = {}
         self.lock_history = {}  # body -> (actual recipient component, component-ms windows)
+        self.body_bases = {}  # original888 base on the actual recipient component
+
+    def silence_body(self, component):
+        entity = component.entity
+        if entity not in self.body_bases:
+            self.body_bases[entity] = component, component.entity_var(888).base
+        component.set(888, True)
+
+    def restore_body(self, entity):
+        previous = self.body_bases.pop(entity, None)
+        if previous is not None:
+            component, base = previous
+            component.set(888, base)
 
     def remember_lock(self, application, duration):
         """Retain the original skill-lock window on its actual recipient clock."""
@@ -153,6 +166,7 @@ class Controls:
         self.device_receivers.pop(entity, None)
         for lock in self.locks.pop(entity, ()):
             self.destroy(lock)
+        self.restore_body(entity)
 
     @staticmethod
     def destroy(lock):
@@ -189,6 +203,7 @@ class Controls:
             else:
                 del self.locks[entity]
                 self.device_receivers.pop(entity, None)
+                self.restore_body(entity)
 
     def enemies(self, player):
         return (target for target in self.fight._enemies(player)
@@ -476,6 +491,7 @@ class Controls:
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
                     locks.append(Lock(application, fight.now + duration, pulse))
+                    self.silence_body(script.component)
                     self.remember_lock(application, duration)
                     held = getattr(script, "buttons", 0) & SKILL_INPUT
                     if held:
