@@ -4437,15 +4437,15 @@ class Combat:
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
             return ()
         if (self.respawns or self.photon_barriers.actors or self.barriers.world.actors
-                or self.blizzard.areas or self.walls.pieces
+                or self.blizzard.areas
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Ice-support/projected-impact proofs remain in the delivered owner
-        # module; admit them only after their original service consumers map.
-        return self.sentries.frozen_history_candidates(tick)
+        # Natural/cancelled allied support uses this same real world loop.
+        # Impact/projected retarget proofs await their actual service adapters.
+        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
