@@ -500,11 +500,21 @@ class Player:
         charge_start = tuple(self.mover.position) if self.hero.guid == 0x02E0000000000007 else None
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
+        from ow174.game import hanzo_movement
+
+        climb = hanzo_movement.climb_request(
+            self, command, seconds,
+            superseded=bool(requests) or self.mover.external_impulse or stunned or pulled or punch is not None,
+        )
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
             fight.punches.movement_result(self, outcome)
+        elif climb is not None:
+            start_y = self.mover.position[1]
+            outcome = self._move_pose(command, seconds, tick, move_to=climb, flight_profile=flight_profile)
+            hanzo_movement.climbed(self, start_y, outcome, command.frame)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(
@@ -1691,6 +1701,9 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            from ow174.game import hanzo_movement
+
+            hanzo_movement.sync(player)
             if posed and script.hero == 0x02E0000000000079:
                 from ow174.game import wall_ride
 

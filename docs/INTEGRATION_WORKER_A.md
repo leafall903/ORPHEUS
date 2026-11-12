@@ -251,3 +251,20 @@ velocity/pose services; its sole Sigma dependency is the original
 controls_target_pose predicate over the target effect. Then mount original
 sonic.py/dragon.py and their actual shoot/update/cleanup consumers. Do not mark
 0005 complete just because its core modules or delivery ref are retained.
+
+
+A12 committed `cf1a7bb6`. A13 mounts original010C movement code (one dependency
+adapter preserves exact1DBC/node12 active semantics locally because no complete
+Sigma Flux owner exists here). Body native/velocity, posed climb/mantle, command
+sync and death/retirement cleanup are live; both storage serializers retain all
+five Climb fields. Original movement/climb files retained unchanged. Seven Lunge
+checks passed via normal module loading; eight climb checks plus strict/storage
+sensitivity passed by isolated AST loading only to omit unrelated missing
+Sonic/Dragon/ExperimentalBarrier imports. Logs:
+`worker-a-hanzo-movement-first.log`, `worker-a-hanzo-climb-focused.log`,
+`worker-a-hanzo-movement-snapshot.log`. Original damage expectations from A12
+are preserved. Next exact action is mount original sonic.py, profile config,
+per-arrow sonar metadata, impact beacon creation, tick refresh and viewer
+projection, then original dragon.py with launch/expiry/update consumers. No
+runtime inputs are generated or altered in this worker.
+A13 shared regression: test_script_runtime test_script_button_transitions test_reaper_shadow:31/31 passed under the root runtime-inputs-v1 profile.

@@ -17,6 +17,7 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    hanzo_movement,
     absorption,
     actors,
     baptiste,
@@ -267,6 +268,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,
     doomfist.Dash, doomfist.Impact, doomfist.Slam,
