@@ -6866,7 +6866,7 @@ class Combat:
                 # independently from the source collision-descriptor entry point.
                 protected = set()
                 origin = _along(point, heading, -0.0001)
-                for target in self._enemies(rocket.shooter, damageable=True):
+                for target in self._enemies(rocket.shooter, damageable=True, team=rocket.team):
                     a, b = target.segment()
                     axis = _sub(b, a)
                     squared = _dot(axis, axis)
@@ -7327,6 +7327,12 @@ class Combat:
             if (distance is not None and key not in rocket.penetrated
                     and (distance < limit or not stops)):
                 contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for actor in self.barriers.world.enemies(rocket.shooter, team=rocket.team):
+            contact = self.barriers.world.trace(rocket.shooter, rocket.position, direction, limit,
+                                               rocket.penetration_radius, team=rocket.team, bubbles=(actor,))
+            key = (-actor.body, None)
+            if contact is not None and key not in rocket.penetrated and (contact[0] < limit or not stops):
+                contacts.append((contact[0], 0, actor.body, key, (contact[0], actor.owner, actor)))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
