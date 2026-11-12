@@ -250,6 +250,26 @@ def charge_ultimate(component, seconds, running):
         component.set(ULT_CHARGE, min(cost, f32(charge + step)))
 
 
+def project_movement_flags(world, instance, node):
+    """Delivered two-predicate query on an actual known physical flag source."""
+    from ow174.game.mover import IN_AIR
+
+    if node.cls != "STU_96F1DBCF" or node.field("m_entity") is None:
+        return None
+    other_outputs = ("m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29", "m_103A8581",
+                     "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27", "m_A10CC74B")
+    if (any(node.field(name) is not None for name in other_outputs)
+            or any((node.field(name) or {}).get("links") for name in ("m_2102C541", "m_E37BC6C2"))):
+        return None
+    if not any(node.field(name) is not None for name in ("m_105DF1D6", "m_49F4B33C")):
+        return None
+    entity = expr.to_entity(instance.evaluate(node.field("m_entity")))
+    flags = world.movement_flags(entity) if entity else None
+    if flags is NotImplemented:
+        return None
+    return 3, 0 if flags is None else (1 if flags & IN_AIR else 2)
+
+
 def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int, bool]]:
     """The logical-button edges of one command (0x7FF789C66AA0): one per changed bit, pressed = the bit is
     now set; an action byte presses and releases its button."""
@@ -835,15 +855,21 @@ class BodyWorld(runtime.World):
 
             barriers.retire(self.match.combat, entity)
 
+    def movement_flags(self, entity):
+        resolver = getattr(self.match, "script_movement_flags", None)
+        return resolver(entity, getattr(self, "body", 0)) if callable(resolver) else NotImplemented
+
     def movement_flag_projection(self, instance, node):
-        # Reconstructed only for Baptiste1983's single crouch output. The other
-        # 96F1DBCF projections remain unknown; do not synthesize their flags.
+        # Keep the existing scoped crouch consumer; delivered known-bit flags
+        # below read actual physics and leave other projections unsupported.
         if (self.match is not None and self.hero == 0x02E0000000000221
                 and instance.graph.index == 0x1983 and node.state == 8):
             for player in self.match.players:
                 if player.has_body and player.body == self.body:
                     crouched = player.mover.crouched and not instance.component.owner_dead
                     return 0x40, 0x40 if crouched else 0
+        if self.hero == barrier.REINHARDT:
+            return project_movement_flags(self, instance, node)
         return None
 
     def linked_target_sample(self, entity: int):
@@ -876,7 +902,16 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn, torbjorn_charge
+        from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
+
+        if self.hero == symmetra_charge.HERO:
+            value = symmetra_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero == symmetra.HERO:
+            value = symmetra.pool_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         if self.hero == torbjorn_charge.HERO and instance is not None:
             value = torbjorn_charge.native(self, cfg, instance)
@@ -1043,6 +1078,14 @@ class BodyWorld(runtime.World):
         if charge is not NotImplemented:
             return charge
         cls = cfg.get("$")
+        if (self.hero == barrier.REINHARDT and instance is not None
+                and instance.graph.index == ULT_GAIN_GRAPH
+                and cls in ("STU_AC829876", "STU_A58C1E63")):
+            from ow174.game.ultimate_charge import match_admission
+
+            value = match_admission(instance, cfg)
+            if value is not NotImplemented:
+                return value
         if instance is not None and instance.graph.index == 0x156B:
             from ow174.game import photon_barrier
 
@@ -2050,6 +2093,8 @@ class BodyScript(ReplicatedBody):
             self.component.disconnect_foreign_watchers()
             self.world.match = None
             raise
+        if hero == 0x02E0000000000016 and match is not None:
+            self.charge_clock = match.tick, self.component.now
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2186,8 +2231,19 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import torbjorn_charge
+        from ow174.game import symmetra_charge, torbjorn_charge
 
+        authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+            if enabled is None or enabled.value() is None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None:
+                    # Original completed-body capability binding, not a forced gate.
+                    common.run_node(common.graph.node(39), None)
         if self.hero == torbjorn_charge.HERO:
             torbjorn_charge.prepare(self)
         ultimate.sync_practice_timer(self)
@@ -2218,7 +2274,10 @@ class BodyScript(ReplicatedBody):
         self.support_healing.extend(support.healing_reports(self, frame))
         immunity.advance_startup(self.component)
         self._report_shots()
-        self._charge_ult()
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+        else:
+            self._charge_ult()
 
     def apply_control(self, start: int, end: int, *, sleep: bool = False) -> None:
         """Keep control intervals until delayed simulation has passed them.
@@ -2569,6 +2628,8 @@ class BodyScript(ReplicatedBody):
             return
         if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
             return
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            return  # delivered0B8B owns cadence; no diagnostic cost/60 fill
         # A supplied shared-graph gate owns passive charge, even when disabled.
         # The fallback only covers hosts that have not supplied that gate.
         enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)

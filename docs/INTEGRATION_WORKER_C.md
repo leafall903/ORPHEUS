@@ -476,3 +476,67 @@ and retained scheduling/respawn bridges require separate source comparison;
 constants or source files alone are not completion. Source symmetra placement/
 transit/teleport entry consumers have not yet been copied/mounted. Remaining
 other owners0065/00DD/012E/0200 still require full reconciliation.
+
+C20 SHA cc349c0f delivered. Clean boundary synchronizes root7ba03d3c, preserving
+4999fd44 actual Vitals clock/tag dispatch and numeric/tagged API split, Genji/
+Torb direct native routing, health lifetime and Venom source consumers. Verify
+no duplicate non-property methods remain in touched classes; no whole-file
+replacement or rollback of other owners. This coordination merge is not a new
+delivery. C19's shared regression is fixed and retained by this synchronization.
+
+
+## C21 original Symmetra recovery checkpoint
+
+Original0033 recovery consumes existing Vitals shields. last_damage_at and
+shield_accounted_at reset only for Symm after actual positive damage; recover
+through now-TICK before damage. Read authored delay/rate and modifiers.
+Runtime/BodyWorld native own-kind current/maximum queries are narrowly Symm0033
+nonstrict; unsupported queries preserve typed fallthrough. Root4999fd44 shield
+numeric/tagged APIs and clock/tag decay dispatch are preserved.
+
+Original test_symmetra_combat21/21 pass21.061s; log
+worker-c-symmetra-recovery-final-check.log. With v4/PYTHONPATH tests:
+python -B -m unittest test_game_combat.DamageTests test_game_npc test_doomfist_resources -v
+20/20 pass10.484s; worker-c-symmetra-recovery-shared-check.log.
+Actual ServerSnapshotTests.scene/capture digest independently changes for
+last_damage_at=1.25 and shield_accounted_at=2.5. First probe found C20's actual
+beam_barrier field absent from server registry (VM-only registered); repaired
+here and second actual probe passes. No original assertions changed.
+
+Next: commit recovery and mount original Symm charge, then actual sentry and
+portal/placement managers. Sentry source has substantial retained-history
+replay/defense adapters; copying alone cannot count it integrated. Source25s
+orb and retained flight remain unfinished. Other C20 owner boundaries persist.
+
+
+C21 SHA ce7f0a78 delivered; root notes C20 receiver already repaired its server
+beam field and C19 passive_charge_due, so retain their receiver registrations.
+
+## C22 original Symmetra charge checkpoint
+
+Source symmetra_charge.py actual0B8B queries, mode gate, command synchronization,
+world idle deadlines and012 pool loss are connected for Symm only. Original
+module's shared Genji constants/helpers remain present; canonical Genji's own
+single host remains authoritative and is not routed through this new host.
+Photon wall suppression reads existing photon_barriers.actors, no second pool.
+Generic combat award excludes Symm so actual damage is not counted twice.
+Same-hero respawn restores meter and resets the real charge_clock; selection
+still resets normally. VM/server optional registries include this actual tuple.
+
+First7 core run: sixpass/onecase with2 offset failures; clock initialized before
+_spawn was wrong (time0 vs initialized16015). Match source placement after
+successful_spawn; all7 then pass4.259s. Full original unchanged
+ test_symmetra_charge + test_symmetra_combat =30pass28.268s, including the
+25second orb lifetime and real pre/post-respawn hits (no claim that all source
+retained scheduler branches are integrated). Log worker-c-symmetra-charge-full-check.log.
+OriginalGenji passive+Damage21pass10.319s, worker-c-symmetra-charge-shared-check.log.
+Actual ServerSnapshotTests scene, session.apply switch_hero Symm, capture and
+export_body_vm: changing charge_clock tick+1/time+16 changes both digests.
+First ad-hoc probe tried direct switch outside controlled journal root and
+correctly rejected; repeat uses existing session.apply, no guard weakened.
+
+Remaining: original source Photon-expiry/omitted-history clocks need comparison
+against canonical actor scheduler; unmounted sentry/portal/placement services
+and their retained-history interactions remain. Core9 charge passing does not
+prove those cross-owner branches. Continue actual sentry deployment/beam/slow
+and preserved original source checks next; no full-journal gate or client use.

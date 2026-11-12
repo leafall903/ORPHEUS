@@ -312,6 +312,48 @@ alone is not evidence that a line's consumers are actually mounted.
   the existing combined Sombra module name; unrelated fixture cases still need
   their shared-service API reconciliation.
 
+## B19 delivered physical movement predicates
+
+- Read actual existing physical flags through Match and BodyWorld/BotWorld;
+  retain Graviton/Halt/Knockback precedence and decline DVa controlled movers.
+  Source two-predicate mask3 projection rejects unknown outputs/flows. Existing
+  Baptiste crouch and Assassin controller projections stay scoped and unchanged.
+- `worker-b-movement-flags-second.log`:32 checks,30 pass,2 original NPC health
+  assertion failures (340.56/490.56 versus300/450). All missing movement_flags
+  errors and Assassin initialization errors are resolved. No assertion edits.
+- Next: source0007 authored0B8B charge admission and passive cadence; investigate
+  health differences via actual source consumers. Do not change tolerances or
+  create a competing mover. Synchronize canonical after this clean commit.
+
+## B20 original Reinhardt0B8B economy
+
+- Port original ultimate_charge.py and mount its scoped admission on real
+  Combat damage. Bind actual01C7/node39 only when the source2426 slot is unset.
+  Keep current Genji path and other heroes untouched; avoid duplicate fallback
+  fill/direct damage credits for Reinhardt.
+- `worker-b-rein-economy-shared.log`:43/43 pass (original six economy cases,
+  ChargeMovement and runtime). `worker-b-rein-passive-first.log`: full9 retains
+  respawn reset0vs60 and missing retained_ult_charge/entity_possessor_context.
+  Full Talon run `worker-b-rein-charge-second.log` is still in progress.
+- Exact next action: audit source Match retained charge capture/consume paths
+  and canonical existing Torbjorn retention; extend the existing lifecycle,
+  preserve same-hero pending creation and hero-switch reset. Then original
+  possessor context read-through, source NPC health and Earthshatter consumers.
+
+## B21 retained Reinhardt charge lifecycle
+
+- Original same-hero capture/consume/hero-switch reset now uses existing Match
+  replacement, start_body_script and leave paths. Secure body ID before capture;
+  pending creation preserves the value and retires the old script. Schema field
+  registered in server_snapshot.Player. No other hero retention policy replaced.
+- `worker-b-rein-retained-focused.log`: both original respawn and delayed creation
+  cases pass. Full Passive9 plus server_snapshot ongoing in
+  `worker-b-rein-retained-first.log`; original possessor-context error remains
+  B22 scope. FullTalon17 previous run retained14 subfails/52 old-observer errors
+  (Knockbacks dict membership etc.), not a passing acceptance claim.
+- Next B22: append original POSSESSOR/BODY dataclass/context inputs while retaining
+  existing linked/participant/Component76 queries and DVa dedicated projection.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

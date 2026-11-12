@@ -71,6 +71,7 @@ from ow174.game import (
     molten_core,
     torbjorn_mark,
     torbjorn_charge,
+    symmetra_charge,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -669,6 +670,8 @@ class Vitals:
         self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
         self.died_at: float | None = None
+        self.last_damage_at: float | None = None
+        self.shield_accounted_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
         self.ult_healing_deficit = 0.0
@@ -3954,6 +3957,9 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        for player in self.match.players:
+            if player.hero.guid == symmetra_charge.HERO:
+                symmetra_charge.advance_idle(player, first - 1, round(TICK * 1000), before_combat=True)
         bubble_releases = {}
         for player in self.match.players:
             release = winston.HostedBarriers(self).pending_release(player, round(TICK * 1000))
@@ -4045,6 +4051,9 @@ class Combat:
             reinhardt_charge.sync(self)
             self.photon_barriers.update(at)
             for player in self.match.players:
+                if player.hero.guid == symmetra_charge.HERO:
+                    symmetra_charge.advance_idle(player, at, round(TICK * 1000))
+            for player in self.match.players:
                 self._update_sleep_view(player)
                 self._sync_adaptive_shield(player)
             moira.advance_clocks(self)
@@ -4130,6 +4139,7 @@ class Combat:
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
+        self._regenerate_shields()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
         self._send_health()
         for bot in self.match.bots:
@@ -4320,6 +4330,48 @@ class Combat:
                     target, feet=sample.position, height=height, eye=eye_height(body, crouched))
         return poses
 
+
+    def _regenerate_shields(self) -> None:
+        for target in self._targets():
+            vitals = self.vitals.get(target.entity)
+            if vitals is not None and symmetra.owns_shield_recovery(target.owner):
+                self._recover_shields(target.owner, vitals, self.now)
+
+    def _recover_shields(self, owner, vitals: Vitals, through: float) -> None:
+        """Integrate 0033's authored shield recovery after its damage-free delay.
+
+        The data supplies the 3 s delay, 30 DPS and their modifiers. Scheduling
+        damage-free world time here reconstructs the server's missing health
+        service; it does not implement the unknown B591EBFE native State.
+        """
+        if not symmetra.owns_shield_recovery(owner):
+            return
+        if vitals.dead or vitals.last_damage_at is None or vitals.most[SHIELDS_POOL] <= 0:
+            return
+        previous = vitals.shield_accounted_at
+        if previous is not None and through <= previous + EPSILON:
+            return
+        script = getattr(owner, "body_script", None)
+        if script is None:
+            return
+        instance = next((i for i in script.component.instances.values()
+                         if i.graph.index == pools.BODY_GRAPH), None)
+        if instance is None:
+            return
+        wait, heal = instance.state(27), instance.state(2)
+        delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
+        start = max(previous if previous is not None else through, vitals.last_damage_at + delay)
+        vitals.shield_accounted_at = through
+        if through <= start or vitals.now[SHIELDS_POOL] >= vitals.most[SHIELDS_POOL]:
+            return
+        modify = heal.node.field("m_modifyHealth")
+        rate = _number(heal.evaluate(modify.get("m_amount"), watch=False), 0.0)
+        given = min(max(0.0, rate) * (through - start),
+                    vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+        if given > 0:
+            vitals.now[SHIELDS_POOL] += given
+            vitals.changed.add(SHIELDS_POOL)
+            self._sync_body_health(owner, vitals)
 
     def _targets(self) -> list[Target]:
         found = []
@@ -8497,6 +8549,7 @@ class Combat:
             return False
         self.zenyatta.regenerate_before_damage(target, vitals)
         amount *= self.zenyatta.boost(target)
+        self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
@@ -8514,6 +8567,8 @@ class Combat:
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
+        if symmetra.owns_shield_recovery(target.owner):
+            vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
@@ -8551,6 +8606,8 @@ class Combat:
         charge_owner = self._credit_player(shooter)
         if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
             torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == symmetra_charge.HERO):
+            symmetra_charge.damage(charge_owner, target, dealt)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8614,11 +8671,16 @@ class Combat:
                 charge.damaged(script, target.entity, dealt, damage_charge, frame=frame,
                                extra=max(0.0, dealt - base) if boost_credit is not None else 0.0)
 
+            if award_ult and enemy and current_source and hero == 0x02E0000000000007:
+                from ow174.game import ultimate_charge
+
+                ultimate_charge.damage(shooter, target, dealt, hit_tags)
+
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
-                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
@@ -9208,7 +9270,7 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid in (regeneration.MERCY, 0x02E000000000013B):
+        if old_script is not None and player.hero.guid in (symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
@@ -9220,6 +9282,8 @@ class Combat:
 
             script = player.body_script
             script.set_ult_charge(points)
+            if player.hero.guid == symmetra_charge.HERO:
+                script.charge_clock = self.tick, script.component.now
             if player.hero.guid == regeneration.MERCY:
                 charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                               if credit[0] > script.component.now))

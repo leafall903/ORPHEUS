@@ -822,3 +822,14 @@ Allfour actual cast/expiry subcases pass in1 method12.004s, no skips
 Root handoff's grant/damage/mixed loss/positive expiry/single-host/current-source
 conditions now have actual Vitals.extra evidence. No further identified gap in
 this scoped handoff; remain available for concrete cross-owner conflicts/gaps.
+
+### New root-directed strict NPC filter registry handoff
+
+Clean sync from committed intake d3801262 after8313e46e; canonical remains root's
+frozen replay worktree and was not touched. Baseline original normal module
+ test_script_npc_combat_states:6 methods,1 failure/1 error. Earlier registered
+CombatModFilter(RegisteredState) is overwritten by later CombatDamageFilter(State)
+for identical STUStatescriptStateCombatModFilter. Original tag-only profile cannot
+reach its callback/registry; richer SceneWorld host accepts only actual contracts.
+Next: one registered derived state retaining both providers/lifecycles and strict
+unknown rejection; preserve snapshots and DVa direct filter consumer.

@@ -129,7 +129,7 @@ FIELDS = {
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
     Player: _names("turret_cooldown_until overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script controlled_mech body_script_failed genji_mobility seen shown script mode_script "
+                   "body_script controlled_mech body_script_failed retained_ult_charge genji_mobility seen shown script mode_script "
                    "next_countdown select_open controller_hero "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
@@ -167,7 +167,7 @@ FIELDS = {
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs anchors"),
     combat.Vitals: _names(
-        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
+        "last_damage_at shield_accounted_at entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
@@ -267,7 +267,7 @@ OPTIONAL_FIELDS = {
     venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
     driver.BodyWorld: _names("passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
-    driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
+    driver.BodyScript: _names("charge_clock passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction valkyrie_pose"),

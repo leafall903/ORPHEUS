@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Synchronize worker A for strict NPC filter registry restoration
+
+- Absorb committed intake d3801262 at a clean boundary; reproduce the original
+  strict NPC tag-filter failures before resolving duplicate state registration.
+
 ### Verify positive Adaptive Shield expiry preserves charge ownership
 
 - Extend the real cast regression to retain30 shields after a70-damage hit, then
@@ -42,6 +47,113 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Absorb canonical a7728f76 at a clean boundary before restoring the original
   Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
 
+### Record worker A seven-owner reconciliation boundaries
+### Preserve delivered Reinhardt charge across body replacement
+
+- Capture source0007's earned charge only after securing a replacement ID,
+  retain it through delayed same-hero creation, consume once when the actual
+  new script exists, and clear it on hero changes or leave. Retire the outgoing
+  Reinhardt script in the existing body lifecycle. Other hero policies remain.
+- Register the retained field in the server snapshot schema. Both original
+  respawn/switch and deferred creation tests pass without expectation edits;
+  full Passive and server snapshot checks continue in the external log.
+- Original-client acceptance remains open.
+
+### Mount delivered Reinhardt authored charge admission and cadence
+
+- Connect source0007's scoped resolved-damage admission to the actual0B8B graph,
+  and run the original01C7/node39 capability binding rather than forcing its
+ 2426 gate. Reinhardt's real Match body bypasses diagnostic cost/60 fill and
+  the generic direct damage-credit route; other heroes keep existing paths.
+- All43 original six economy, Charge movement and runtime checks pass: five
+  points per second, modifiers/suppression/cap, Hammer cap, Earthshatter spending
+  and authored post-channel lock. Full original Passive9 retains one respawn
+  charge-loss failure and two retained-charge/possessor interface errors for
+  the next source-consumer batch. Full Talon checks continue externally.
+- Original expectations remain intact; client acceptance remains open.
+
+### Mount delivered Widowmaker weapon launch cone policy
+
+- Connect source000A weapon_launch.directions at actual001B/node9/19 weapon
+  emission, scoped to Widowmaker. Retain current McCree and optional Enforcer
+  geometry consumers. Preserve recovered native emitted-index sampling instead
+  of the source's older post-count spread view; scoped zero cone stays exact.
+- Actual20-frame launch trace emits indexes0/1/2/3 with authored0/1/2/3-degree
+  cones and one ammo per ray. Original scoped-zero-angle test passes. Three
+  original spread checks retain first-shot/old eye-cover expectations and fail;
+  assertions preserved. Original rifle12 plus Damage/runtime21 all33 pass.
+- Preserve complete original spread and actual-NPC fixtures with only current
+  body/hero identity imports; no NPC acceptance claim or source asset copy.
+
+### Restore delivered world-clock guard queries and Widow reveal filtering
+
+- Port source000A pure countdown/state/world-active/Matrix-deadline queries.
+  Selected-player0407 Matrix now reads its retained native budget on world time,
+  including the existing absorption trace route; preserve owned-mech clock logic.
+  Gate Genji fallback body/trace/melee queries through the existing authored Wait
+  window, so future or stalled expired native states do not keep intercepting.
+- Preserve Infra's original living-target observation search across phase/Recall,
+  retaining current owned-pet exclusions instead of changing shared damage filters.
+- Original Infra clock/buffer12 pass. Original MatrixClock6 pass; DeflectClock2
+  pass and2 retain cadence expectations (current26 versus old13 damage after the
+  guard ends). Broader original edge23 audit preserves residual ammo and authored
+  eye-offset differences. Existing Genji/Blade/TracerMatrix/Damage/runtime56 has
+  6fail/2error; AnaDeflect/Damage/runtime34 has2fail/3error, including old health
+  field/catalog APIs and old damage expectations. No assertions changed.
+- Preserve original replay fixture. Its first run was invalidated by source edits
+  during manifest verification; rerun only at a frozen committed boundary.
+
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
+### Read delivered physical movement predicates from existing owners
+
+- Restore Reinhardt/NPC known-mask3 movement queries using existing player,
+  Graviton, Halt, Knockback and ordinary Bot movement output. Preserve scoped
+  Baptiste/Assassin projections and DVa's separate controlled-mover contract;
+  unsupported bits and flows remain unsupported. No new movement driver.
+- The32 original NPC contact/team-change and runtime checks now run without
+  movement API errors or Assassin initialization failures. Two original side
+  contact health assertions remain (340.56/490.56 versus300/450); retain them
+  for the source health/charge audit. No original expectations were edited.
+- Original-client acceptance remains open.
+
+### Restore delivered Charge immovable receiver contacts
+
+- Restore source9161/6601 receiver handling before capture or side damage,
+  including Heavy Assault, Fortify and Cryo. Feed the existing authored impact
+  flags and ordinary phase exit; windup exits also work before a drive record
+  exists. Reuse existing NPC movement and native1408 counter hosts.
+- Read the shared interruption guard from component.world.hero so BotScript
+  targets use their existing interface without a swallowed area exception.
+- All45 original Fortify/Cryo/expiry-to-capture, mutual, runtime/input/epoch
+  checks pass. Original NPC3 suites retain5 passive-charge subfailures and5
+  movement_flags host-interface errors; their original expectations remain.
+  Heavy side contact no longer removes health, and team-change release passes.
+- Keep the pending source movement-flags consumer and Reinhardt0B8B cadence
+  explicit: the legacy cost/60 debug fill produces22.997 instead of source0/5
+  over this fixture window. No numerical assertion change or extra NPC driver.
+  Client acceptance remains open; logs remain external.
+
+
+### Restore delivered Rocket Punch collision completion
+
+- Apply source0007's actual-progress obstruction test to the existing Punch
+  collision host. A capsule still creeping along contact skin is reported as
+  blocked when progress is below half the requested step, without changing the
+  collision engine or its tolerances.
+- Feed arrival/obstruction into authored0D06 lifetime Wait5 as ordinary FINISH;
+  its existing branches retire movement/forced modifiers and retain recovery
+  and cooldown. The pose callback accepts an actual runtime State. Keep012F's
+  completed Dash history and expose active native drives in0007 fixtures.
+- All23 original Punch/wall/ordinary-hit checks pass, including four ordinary
+  hit scenarios, unchanged heading, inactive VM movement and an exactly stable
+  stopped pose ten ticks later. Original012F's21 history/cooldown checks remain.
+- Combined Cross17/Mutual10/shared98 run125: remaining8 subfailures and9 errors
+  all belong to existing Brigitte scenarios; no other failures occur. Preserve
+  all1399 original assertions and unchanged Constants; raw getter AST adapts to
+  actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
 
 - Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
@@ -84,7 +196,57 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Absorb canonical d594849c at a clean committed boundary, preserving root
   Sniper and shared native fixes together with the new Venom consumers.
+### Mount delivered Symmetra ultimate charge owner
 
+- Connect original0B8B ownership/tag/relation native queries, actual012 resolved
+  pool-loss messages, authored idle deadlines and real same-hero respawn charge.
+  Preserve the existing Genji host and remove Symmetra's duplicate generic award.
+- Synchronize commands on both sides of authored execution and store the real
+  charge_clock in VM/server passive state. Photon suppression reads existing
+  canonical actors; no second wall manager or timer is introduced.
+- Original charge9 plus combat21 all pass28.268s, including actual25s orb expiry
+  and pre/post-respawn hits. Genji passive/Damage21 pass10.319s. A controlled
+  real server scene confirms the charge clock changes VM and server digests.
+  Source cross-wall omitted-history/actor interaction paths still need comparison
+  with canonical scheduling. Client acceptance remains unexecuted.
+
+### Restore delivered Symmetra shield recovery
+
+- Mount original0033 authored delay/rate and own-body current/maximum kind
+  queries for Symmetra, using existing Vitals shields and real recovery clocks.
+  Other owners and unsupported typed queries retain their existing dispatch.
+- Register both clocks and C20 beam_barrier in server passive storage; the
+  latter previously had only VM storage registration.
+- Original Symmetra combat21/21 pass21.061s; Damage/NPC/Doom resources20/20
+  pass10.484s. Real server digest probe passes for both clocks after fixing the
+  initially exposed C20 registry omission. No original assertions changed.
+  Client acceptance unexecuted; sentry/portal/charge/placement and retained orb
+  scheduling integrations remain unfinished.
+
+### Mount delivered Symmetra dual TrackRay primary consumers
+
+- Replace Symmetra's single-ray prototype consumer with original157C primary
+  feedback for both100/101 rays, hit/miss targets,0.2m fallback, live damage
+  rate and shield-ammo/charge target queries. Use existing world/ice/Cryo cover
+  and existing native/held/spherical/deployed barrier actors and health owners;
+  derive tag membership from actual prepared definitions, not inferred health.
+- The command pipeline already called the generic beam helper twice. Invoke
+  this delivered Symmetra consumer once per posed frame; retain other heroes'
+  received paths. Add original has_tag lookup without changing absorbable
+  policy, and register the real beam_barrier world field in passive storage.
+- All original PhotonProjector/utility/melee core cases pass; the complete
+  retained21-case file has17 pass/four shield-recovery failures. Recovery is
+  the next missing owner consumer, not a reason to drop or delay this primary.
+- Actual native Winston shell probe: ten frames reduce700 to690.3997802734375
+  (native float32 health updates), leave the distant body500, and feed its real
+  tagged shell ID back to the authored graph. The old Zenyatta dome fixture
+  still reads absent Barriers.domes; retain that observation/error rather than
+  inventing a second manager or fake alias to satisfy it.
+- Sentries, portals/placement, original charge, shield recovery and long-lived
+  orb/scheduler bridges still need reconciliation. No whole0016, new matrix
+  or original-client acceptance is claimed.
+
+### Mount delivered Torbjorn original charge and owner gates
 ### Integrate delivered Widowmaker Venom Mine and poison consumers
 
 - Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
@@ -143,6 +305,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   or original-client acceptance is claimed.
 
 ### Mount delivered Torbjorn original charge and owner gates
+
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
 
