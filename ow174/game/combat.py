@@ -71,6 +71,8 @@ from ow174.game import (
     hero_torbjorn,
     molten_core,
     mei_blizzard,
+    sombra_camo,
+    sombra_spread,
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
@@ -2078,6 +2080,7 @@ class Combat:
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
         self.shatters: dict[int, earthshatter.Wave] = {}
         self.charges: dict[int, reinhardt_charge.Charge] = {}
+        self.ball_grapples = {}
         self.moira_orbs: list[moira.Orb] = []
         self.moira_clocks = {}
         self.moira_hots: dict[int, moira.SprayHeal] = {}
@@ -2125,6 +2128,7 @@ class Combat:
         self.brigitte = BrigitteCombat(self)
         self.frost_hits: dict[int, Frost] = {}
         self.frost_sources: dict[int, dict[tuple[int, int], tuple]] = {}
+        self.cryo_samples: dict[int, mei.CryoHealing] = {}
         self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
@@ -2275,6 +2279,7 @@ class Combat:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
         self.blizzard.retire(player.body)
+        self.cryo_samples.pop(player.body, None)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -3126,7 +3131,7 @@ class Combat:
         script = player.body_script
         if script is None:
             return
-        if ((reaper.is_reaper(player) or script.hero == winston.HERO)
+        if ((reaper.is_reaper(player) or script.hero in (winston.HERO, sombra_camo.HERO))
                 and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
@@ -3167,6 +3172,7 @@ class Combat:
                     if state.instance.graph.index == 0x022A and state.allows_dead():
                         self._shoot(player, terminal, state, number, time, activation=activation)
             return
+        self._cryo_healing(player)
         if mei.protected(player):
             self._clear_frost(player)
         if (repairs and not self.is_stunned(player)
@@ -4077,6 +4083,20 @@ class Combat:
             target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed_ms // script.frame_ms - 1)
             if target > script.frame:
                 player._advance_body_gap(target + 1, world_idle=True)
+            return
+        if (script is not None and script.hero == sombra_camo.HERO
+                and script.world_frame_anchor is not None and not script.retired
+                and not script.component.owner_dead and player.spawned and player.has_body):
+            anchor_tick, anchor_frame = script.world_frame_anchor
+            elapsed = max(0, self.tick-anchor_tick) * round(TICK*1000)
+            target = min(projectiles.MAX_LEASE_FRAME-1, anchor_frame+elapsed//script.frame_ms-1)
+            for _ in range(480):  # original bounded accepted-reaction replay budget
+                frame = sombra_camo.next_frame(script)
+                if frame is None or frame > target:
+                    break
+                player._advance_body_gap(frame+1, world_idle=True)
+                if player.body_script is not script:
+                    break
             return
         if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
                 or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
@@ -5132,17 +5152,59 @@ class Combat:
         if script is not None:
             script.gain_ult_charge(amount)
 
+    def _cryo_healing(self, player) -> None:
+        sample = mei.healing_sample(player)
+        if sample is None:
+            return
+        key, cumulative, rate = sample
+        target = next((t for t in self._targets() if t.owner is player), None)
+        if target is None:
+            return
+        vitals = self.vitals_of(target)
+        if vitals.dead:
+            return
+        history = self.cryo_samples.get(player.body)
+        def note(at):
+            blocked = vitals.healing_block[1] if vitals.healing_block[0] <= at else 0.
+            boosted = vitals.healing_boost[1] if vitals.healing_boost[0] <= at else 0.
+            received = self.healing.factor(target, end_tick=at / TICK)
+            history.note(at, blocked, boosted, received)
+
+        if history is None or history.activation != key:
+            start = self.now - cumulative / rate
+            history = self.cryo_samples[player.body] = mei.CryoHealing(key, start)
+            note(start)
+        # Retained status intervals supply their exact boundaries even when body
+        # samples arrive after expiry. Settle before a real status is replaced.
+        points = {*vitals.healing_block, *vitals.healing_boost}
+        for effect in (self.healing.anti.get(target.entity), self.healing.amp.get(target.entity)):
+            if effect is not None:
+                points.update((effect.start * TICK, effect.end * TICK))
+        for at in sorted(point for point in points if history.at < point <= self.now):
+            note(at)
+        note(self.now)
+        due = history.sample(cumulative, rate, player.body_script.component.frame_ms / 1000,
+                             BIOTIC_HEAL_BOOST)
+        if due > 0.:
+            self._heal_target(player, target, due, healing_scaled=True)
+
+    def record_cryo_status(self, entity) -> None:
+        player = next((p for p in self.match.players if p.body == entity), None)
+        if player is not None:
+            self._cryo_healing(player)
+
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
-                     end_tick=None):
+                     end_tick=None, healing_scaled=False):
         vitals = self.vitals_of(target)
         if vitals.dead:
             return 0.0
-        amount *= self.healing.factor(target, tags=tags, seconds=seconds, end_tick=end_tick)
-        if seconds > 0.0:
-            end = (self.tick if end_tick is None else end_tick) * TICK
-            amount *= vitals.healing_time(end - seconds, end) / seconds
-        else:
-            amount *= vitals.healing_factor(self.now)
+        if not healing_scaled:
+            amount *= self.healing.factor(target, tags=tags, seconds=seconds, end_tick=end_tick)
+            if seconds > 0.0:
+                end = (self.tick if end_tick is None else end_tick) * TICK
+                amount *= vitals.healing_time(end - seconds, end) / seconds
+            else:
+                amount *= vitals.healing_factor(self.now)
         eligible = vitals.ult_healing_deficit
         given = vitals.heal(amount)
         if given > 0.0:
@@ -5544,6 +5606,7 @@ class Combat:
             from ow174.game import mccree
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
+            direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
             if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
                     and state.instance.component is shooter.body_script.component):
                 direction = ashe.viper_direction(direction, number, viper_launch)
@@ -7579,6 +7642,25 @@ class Combat:
             key = (-actor.entity, None)
             if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
                 contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
+        for actor in self.photon_barriers.opponents(rocket.shooter, team=rocket.team):
+            distance = self.photon_barriers.contact(actor, rocket.position, direction, limit, rocket.penetration_radius)
+            key = (-actor.body, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for distance, owner, shield in self.brigitte.barrier_contacts(
+                rocket.shooter, rocket.position, direction, limit,
+                radius=rocket.penetration_radius, team=rocket.team):
+            key = (-owner.body, (self.replacement_ticks.get(owner.body), shield.instance.states[30].counter))
+            if key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 3, owner.body, key, shield))
+        devices = self.orisa.superchargers
+        if devices.geometry is not None:
+            for actor in devices.opponents(rocket.shooter, rocket.team):
+                distance = devices.geometry.cast(actor.position, actor.yaw, rocket.position,
+                                                 direction, limit, rocket.penetration_radius)
+                key = (actor.entity, None)
+                if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                    contacts.append((distance, 2, actor.entity, key, actor))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
@@ -7602,6 +7684,12 @@ class Combat:
                     continue  # a nearer body hit can retire its carried shield
                 rocket.penetrated.add(key)
                 self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
+            elif kind == 3:
+                rocket.penetrated.add(key)
+                self.brigitte.damage_barrier(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
+            elif kind == 2:
+                rocket.penetrated.add(key)
+                self.orisa.superchargers.damage(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
             else:
                 rocket.penetrated.add(key)
                 self._apply_hit(
@@ -9146,6 +9234,19 @@ class Combat:
         if killed:
             self._retire_source_controls(target.entity)
             self._genji_eliminations(target, shooter, vitals.death_tick)
+        script = getattr(victim, "body_script", None)
+        if (not killed and script is not None and script.hero == sombra_camo.HERO
+                and isinstance(script.component, runtime.Component)):
+            impact = self.tick if world_tick is None else world_tick
+            if script.world_frame_anchor is not None:
+                anchor_tick, anchor_frame = script.world_frame_anchor
+                impact = anchor_frame + (impact-anchor_tick)*round(TICK*1000)//script.frame_ms
+            params = {0x003D: tuple(expr.Asset(tag) for tag in hit_tags)}
+            # Original012E dates Pharah impact messages for the other receivers too.
+            at = (impact * script.frame_ms if world_tick is not None
+                  and loadout in (0x0B9000000000000F, 0x0B9000000000000B) else None)
+            if not sombra_camo.queue_damage(script, params, attacker, impact=impact, default_time=at):
+                runtime.send_message(script.component, sombra_camo.RECEIVED_DAMAGE, params, attacker, at=at)
         if killed and isinstance(victim, bots.Bot):
             # The NPC death script owns its terminal health change and death event ordering.
             self._bot_died(shooter, victim, critical, loadout, vitals.death_tick, deadeye=deadeye, source=attacker)

@@ -495,6 +495,19 @@ class InstanceContext(Context):
             # retain the unavailable body-owner guard above and every other
             # host's existing controller/body-owner precedence below.
             return entity_queries.evaluate(self, cfg)
+        if (not component.strict and component.world.hero == 0x02E0000000000195
+                and getattr(component.world, "body_definition", None) is not None
+                and getattr(component.world, "match", None) is not None
+                and component.entity == getattr(component.world, "body", None)
+                and self.instance.graph.index == 0x0EE3 and cls == health_queries.CURRENT
+                and (cfg.get("m_entity") or {}).get("$") == "STUConfigVarDynamic"
+                and cfg["m_entity"].get("m_identifier") == 13214
+                and cfg["m_entity"].get("m_60DB8F99") == 1):
+            # Preserve the delivered owner's exact reconstructed Pet health
+            # binding before the generic invalid-entity query returns zero.
+            result = component.world.native(cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
@@ -2578,18 +2591,19 @@ def message_entries(instance: Instance, message: int) -> list[Node]:
     return found
 
 
-def send_message(component: Component, message: int, params: dict, sender: int) -> int:
-    """Deliver a game message to every instance of the component (at now). Returns how many nodes get it."""
-    return sum(send_instance_message(instance, message, params, sender)
+def send_message(component: Component, message: int, params: dict, sender: int, *, at: int | None = None) -> int:
+    """Queue matching message entries at the supplied time or component clock."""
+    return sum(send_instance_message(instance, message, params, sender, at=at)
                for instance in list(component.instances.values()))
 
 
-def send_instance_message(instance: Instance, message: int, params: dict, sender: int) -> int:
-    """Queue a message at the component clock for only this graph instance."""
+def send_instance_message(instance: Instance, message: int, params: dict, sender: int, *, at: int | None = None) -> int:
+    """Queue a message for only this graph instance."""
     entries = message_entries(instance, message)
+    when = instance.component.now if at is None else at
     for node in entries:
         delivery = (message, dict(params), sender)
-        instance.post(Event(instance.component.now, 0, MESSAGE, node=node, message=delivery))
+        instance.post(Event(when, 0, MESSAGE, node=node, message=delivery))
     return len(entries)
 
 

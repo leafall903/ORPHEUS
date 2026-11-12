@@ -101,6 +101,34 @@ class Superchargers(Barriers):
             source.component.run_now()
         self.refresh()
 
+    def charge_contact(self, shooter, tracker, start, end, forward):
+        from ow174.game.combat import _along, _dot, _sub, capsule_visible
+
+        if not self.active or tracker is None or not tracker.active:
+            return None
+        offset = tracker.evaluate(tracker.node.field("m_05BE62DD"), watch=False)
+        radius = expr.to_float(tracker.evaluate(tracker.node.field("m_radius"), watch=False))
+        if radius == 0 and tracker.instance.graph.index == 0x007D and tracker.index == 56:
+            # The ordinary body uses the authored 0.5 m factor at unit scale.
+            # The native 9339 scale evaluator is unavailable in the static host.
+            radius, = tracker.node.field("m_radius.m_expression.m_D99EF254")
+        if not isinstance(offset, expr.Vec3) or radius <= 0:
+            return None
+        a, b = (_along((x + offset.x * forward[2], y + offset.y, z - offset.x * forward[0]),
+                       forward, offset.z) for x, y, z in (start, end))
+
+        def visible(point):
+            return (_dot(_sub(point, a), forward) >= 0
+                    and not self.fight.walls.blocked(a, point)
+                    and capsule_visible(self.fight._collision(), a, point, point, 0))
+
+        for device in sorted(self.opponents(shooter, shooter.team), key=lambda item: math.dist(a, item.position)):
+            flag = device.component.entity_var(961, create=False)
+            if flag is not None and expr.truthy(flag.value()) and self.geometry.overlaps(
+                    device.position, device.yaw, a, b, radius, visible):
+                return device
+        return None
+
     def bind_owner(self, owner, script):
         """Reconstruct the retained device's callback on its owner's new body."""
         devices = [d for d in self.active.values() if d.owner is owner]

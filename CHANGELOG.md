@@ -4,6 +4,101 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Sombra pistol spread and Camo damage timing
+
+- Connect original cone/ramp/seed policy to real pistol shots. Mount original
+  Camo received-damage dating and bounded exit/cooldown replay on the existing
+  owner frame anchor, retaining authored exclusion tags and neutral gap input.
+- Merge original optional message-time arguments into the two existing runtime
+  send functions; default callers retain the component clock and same queue.
+- Original spread9:7pass,2critical/timing differences. Original Sombra combat38:
+  29pass,3fail,6cases with old hack/fixture observer errors; preserve all original
+  expectations. Camo damage, exclusions, movement, cancellation and world-gap
+  cooldown pass. Shared runtime/budget/Damage46 pass2.613s.
+- Sombra application replay, translocator and actual Portal device consumers
+  remain separate pending integration work; this does not declare the line done.
+
+### Connect original sampled Cryo healing to the existing health service
+
+- Consume original VM cumulative healing and CryoHealing history through one
+  _heal_target writer; recognize the native report without a second heal. Keep
+  existing health pools, charge, stats, death and body-retirement rules.
+- Settle at existing HealingEffects installation, cleanse and expiry boundaries;
+  carry its received scalar in the original per-activation history, preserving
+  existing legacy status intervals and the original three-field sample API.
+- Cryo/Baptiste status28:25cases pass,7failed subcases across3cases retained;
+  original Cryo200/cancel/retire/storage checks pass. Separate charge/Damage/
+  runtime27 all pass. Actual typed amp gives24HP over20Cryo ticks once.
+- Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
+  expectations; preserve that cross-owner gap and the known NPC shield-total,
+  held-secondary and flight observer differences without changing assertions.
+### Mount delivered Ball movement and Piledriver feedback
+
+- Restore original ball.py and mount its feedback and motion through the same
+  authoritative Mover, after existing control/world requests. Restore its own
+  body-position/default-velocity query bindings; missing position previously
+  made the clearance ray origin scalar0 and prevented real activation.
+- Actual original10s cooldown/40tick hover and authored landing scope7 start
+  once. The scope uses the original3.5m ground ray: at90ticks bodyY4.9668 is
+  still airborne, so this is not completed ground-contact acceptance.
+- Ground/low-clearance rejection and Roll toggle pass; runtime17 and existing
+  wave/charge stored-state check pass. Full Ball/Roll/runtime35 retains7fails
+  and5errors: missing damage/airlock, original critical/form policy and fixtures.
+- Preserve full original source test assertions:combat110,grapple99,pile76,
+  roll17 AST unchanged. Grapple/control helpers are retained but not yet routed;
+  full Ball line completion and client acceptance remain open.
+
+### Mount delivered Fire Strike contacts on the existing Brigitte shield
+
+- Expose all contacts from the existing shield-face query and let its original
+  nearest-ray interface delegate to the same geometry. Preserve default team
+  behavior and permit captured projectile affiliation explicitly.
+- Fire Strike uses those actual owner shields, original replacement/phase
+  ledger, same pool damage and existing Supercharger scale. Bodies behind the
+  shield still receive their own single penetrating hit; no extra shield host.
+- Original shield/body/downstream and hammer/replacement3 checks pass. Actual
+  owner team-change probe preserves captured-team shield250->150/body105 and
+  downstream100. Full65 retains7subfail6old cache errors1skip: flank bash one
+  tick48vs47, existing Helix pool/spill and Rein whip contacts remain open.
+- Preserve all original numerical assertions; client acceptance remains open.
+
+### Restore the existing Brigitte shield health binding
+
+- Evaluate the exact non-strict0195/0EE3 dynamicPet13214 current-health query
+  through its existing Brigitte owner host before typed health returns zero
+  for an unavailable Pet identity. Require actual body definition, bound match
+  and component/body identity. Other queries retain strict typed contracts.
+- Original hammer/replacement shield cases now pass; typed health/runtime25
+  pass. Full shield/shared61 retains3 failures,6 old Winston cache errors and
+  1skip. Fire Strike now reaches the original250-versus150 pool assertion;
+  its missing explicit shield contact consumer is the next batch.
+- No second shield manager or native Pet creation claim. Client check open.
+
+### Restore delivered Charge impacts on Superchargers
+
+- Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
+  visibility query on the existing Charge. Feed the real device entity into
+  the authored end output and007D125 health node, retaining native damage175.
+- Use the same actual Device pool and original GJK mesh helper. No second
+  charge driver/actor or Brigitte1408 takeover. Preserve team and world cover.
+- Three original device cases pass: enemy200->25 once and authored termination,
+  allied skip/capture beyond it, and static cover. Existing Charge movement,
+  contacts, mutual counters and runtime55/55 pass. Client acceptance open.
+
+### Restore delivered Fire Strike deployment object contacts
+
+- Route existing Photon plane/mesh actors and Orisa Superchargers through the
+  same ordered Fire Strike contacts, captured affiliation and one-hit ledger.
+  Damage the actual owner pool; retain penetrating body hits and aura teardown.
+- Actual Photon Q plane probe: shield100/body100 damage once. Actual deployed
+  device probe:200->100->0 before expiry, actor/buff removal and scale reset.
+  Allied Fire Strike150 damage/charge, allied Charge and runtime19 checks pass.
+- Retain complete original Fusion/Supercharger suites:69 assertions each, order
+  and Constants unchanged. Full25 retains9 failures/1 obsolete getter error;
+  final getter mapped to actual charges passes focused check. Known gaps include
+  Charge device175 damage, native Fusion critical17 versus original ordinary6,
+  shield-break contact and reflected projectile metadata. Client acceptance open.
+
 ### Mount delivered Mei Blizzard flight and area consumers
 
 - Connect original064A release, ballistic terrain/Ice Wall contact,0946 area,
@@ -58,6 +153,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   unchanged apart from frost fixture import naming; no client check implied.
 - Autonomous navigator partial slow still needs its authorized narrow bridge;
   Blizzard, sampled Cryo history and full pending fixture imports remain open.
+### Restore delivered Charge impacts on Superchargers
+
+- Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
+  visibility query on the existing Charge. Feed the real device entity into
+  the authored end output and007D125 health node, retaining native damage175.
+- Use the same actual Device pool and original GJK mesh helper. No second
+  charge driver/actor or Brigitte1408 takeover. Preserve team and world cover.
+- Three original device cases pass: enemy200->25 once and authored termination,
+  allied skip/capture beyond it, and static cover. Existing Charge movement,
+  contacts, mutual counters and runtime55/55 pass. Client acceptance open.
+
+### Restore delivered Fire Strike deployment object contacts
+
+- Route existing Photon plane/mesh actors and Orisa Superchargers through the
+  same ordered Fire Strike contacts, captured affiliation and one-hit ledger.
+  Damage the actual owner pool; retain penetrating body hits and aura teardown.
+- Actual Photon Q plane probe: shield100/body100 damage once. Actual deployed
+  device probe:200->100->0 before expiry, actor/buff removal and scale reset.
+  Allied Fire Strike150 damage/charge, allied Charge and runtime19 checks pass.
+- Retain complete original Fusion/Supercharger suites:69 assertions each, order
+  and Constants unchanged. Full25 retains9 failures/1 obsolete getter error;
+  final getter mapped to actual charges passes focused check. Known gaps include
+  Charge device175 damage, native Fusion critical17 versus original ordinary6,
+  shield-break contact and reflected projectile metadata. Client acceptance open.
+
 ### Restore delivered Orisa and Sigma barrier attack consumers
 
 - Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
@@ -9225,3 +9345,7 @@ existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/char
 
 - Mount original 15-ray Coach geometry, recoil, distance rings/limits, reflected source aggregation and modifier26 resistance on current single Knockbacks/player/NPC movement hosts. Register only the shared-host reference in stored state.
 - Original physical Coach checks and current shared checks passed as recorded; preserve old private pending-queue errors and approx0.002506m outer-boundary expectations. Actual five NPC and reflected15-pellet single-host probes passed. BOB remains next.
+
+### Worker A synchronization after A46
+
+Absorb committed intake afcec3b8 at a clean boundary before BOB integration; retain all parallel source consumers.

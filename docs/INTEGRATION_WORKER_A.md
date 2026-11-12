@@ -1248,3 +1248,7 @@ existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/char
 - Original 15-hit transport/spread/Cryo + shared Damage/Timing/runtime: initial33 methods all functionality passed except two missing original Fortify query subcases and private pending observer. Restored actual query then Fortify plus strict stored snapshot and Damage/Timing: 17 passed. Logs: worker-a-ashe-coach-{first,second,third,shared,final}.log.
 - Actual five current catalog NPCs all take damage and use the single impulse mover; Heavy receives90 without movement (zero modifier26), Trooper84/Enforcer90/Sniper90/Assassin24 with movement (current geometry retained). Actual Genji reflection probe confirms15 credited pellets, 200/110 health, both owner recoil/reflected shove on Ashe, defender unmoved. Logs worker-a-ashe-coach-npc-probe.log and -reflection-probe.log.
 - BOB original Companions/victim/charge phases remain unmounted next; no Ashe whole-line claim. Low-confidence remaining actual Ashe work: roughly 6-12 worker-hours, dominated by reconciling BOB actual single NPC/driver/mover profiles and source victim control with current snapshot/charge/defense consumers. Parent owns prepared-input admission; old private observer differences are not a merge blocker.
+
+## Clean synchronization after A46
+
+Absorbed committed intake afcec3b8 after A46. Automatic source merges retain Coach/Dynamite/reload and new Ball/Sombra/root shared consumers; no conflicts, no runtime/base mutation. Continue BOB original lifecycle on this combined boundary.
