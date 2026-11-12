@@ -119,7 +119,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
-from ow174.game import ball, ball_mines, hook
+from ow174.game import ball, ball_mines, hook, whole_hog, spread
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -1246,6 +1246,8 @@ class HitDef:
     vertical_impulse_minimum: float | None = None
     source_impulse_scale: float = 0.0
     source_impulse_ignores_los: bool = False
+    whole_hog_spec: object = None
+    roadhog_pellet: bool = False
 
     @property
     def damage_tags(self):
@@ -1374,6 +1376,8 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if graph_index == 0x01C6 and state.node.pos in (26, 33):
+        critical_default = 2.0  # Original Scrap Gun primary and Whole Hog fallback.
     if graph_index == 0x1514 and isinstance(loadout, expr.Asset) and loadout.guid == 0x0B90000000000189:
         critical_default = 2.0  # Delivered Ball omitted native bullet scalar; explicit value still wins.
     if (state.instance.component.world.hero == 0x02E000000000000A
@@ -1430,7 +1434,9 @@ def hit_def(state, cfg) -> HitDef | None:
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
+        roadhog_pellet=graph_index == 0x01C6 and state.node.pos == 26,
+        projectile_headshot=(graph_index == 0x01C6 and state.node.pos == 26) or icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
+        whole_hog_spec=whole_hog.evaluate(state, modify),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5, 0x16DA) or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
@@ -1613,6 +1619,9 @@ class SplitVolley:
     speed: float
     lifetime: float
     direct: HitDef
+    blast: HitDef | None = None
+    definition: int | None = None
+    authored_roadhog: bool = False
 
 
 @dataclass
@@ -1764,6 +1773,8 @@ class Rocket:
         return self.direct.projectile_extent if self.direct is not None else 0.0
 
     def __post_init__(self):
+        if self.direct is not None and self.direct.roadhog_pellet:
+            self.scale_direct = True  # Original primary pellet consumes full flown distance.
         if self.source_entity is None:
             self.source_entity = getattr(self.shooter, "entity", None) if isinstance(
                 self.shooter, (bots.Bot, actors.Deployable)
@@ -1895,6 +1906,7 @@ class RangedContact:
     world_tick: int | None = None
     reaper_shell: dict | None = None
     coach_rays: tuple | None = None
+    impulse_packet: tuple | None = None
 
 @dataclass(frozen=True)
 class MeleeContact:
@@ -4407,6 +4419,7 @@ class Combat:
     def frozen_sentry_replay(self, tick):
         """Admit the delivered bounded frozen lock through the existing NPC driver."""
         from ow174.game import cryo
+        from ow174.game.symmetra_turrets import _external_motion
 
         freeze_ticks = math.ceil(mei.FREEZE_MS / round(TICK * 1000))
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
@@ -4416,7 +4429,7 @@ class Combat:
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
-                or any(bot.firing or bot.impulse_mover is not None for bot in self.match.bots)):
+                or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
         # Ice-support/projected-impact proofs remain in the delivered owner
         # module; admit them only after their original service consumers map.
@@ -4463,6 +4476,11 @@ class Combat:
         self.pulse_bombs.prepare_gap(tick, self._targets())
         for player in self.match.players:
             self.barriers.sync(player)
+        replay_ice_sentries = bool(self.walls.pieces) and any(
+            sentry.support_pillar is not None
+            or (sentry.attached_at is None and sentry.bot.moved_tick is not None)
+            for sentry in self.sentries.sentries
+        )
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
         if self.tick and tick > self.tick + 1 and (
@@ -4473,7 +4491,7 @@ class Combat:
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
             or self.barriers.world.actors
-            or self.lucio_auras.healing or self.soundwaves
+            or self.lucio_auras.healing or self.soundwaves or replay_ice_sentries
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
                    and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
@@ -4663,6 +4681,9 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             observe_sentry_cover_ends()
+            if at < tick and replay_ice_sentries:
+                self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends,
+                                     replay_ice=True)
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -5029,7 +5050,7 @@ class Combat:
         for bot in self.match.bots:
             if bot.detached_bomb:
                 continue
-            data = mover_data(bot.body)
+            data = bot.movement_data or mover_data(bot.body)
             controlled = bot.control_mover
             crouched = controlled is not None and controlled.crouched
             height, radius, eye, critical = (getattr(bot, "combat_geometry", None) or (
@@ -5973,7 +5994,8 @@ class Combat:
             for direction in payload.coach_rays or (payload.direction,):
                 resolved = self._hitscan(shooter, payload.state, payload.origin, direction, payload.reach,
                                         targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
-                                        definition=payload.definition, reaper_shell=payload.reaper_shell)
+                                        definition=payload.definition, reaper_shell=payload.reaper_shell,
+                                        impulse_packet=payload.impulse_packet)
                 if payload.coach_rays is not None and resolved is not None:
                     source, target, distance = resolved
                     source_hits = hits.setdefault(_source_entity(source), (source, {}))[1]
@@ -6327,6 +6349,9 @@ class Combat:
                               and blast is not None and bool(blast.impulse_rings))
             if damaging or shot is not None or deployment or server_ability or field_spec is not None or spawn is not None or pharah_impulse:
                 split = None
+                if (not npc and shooter.hero.guid == 0x02E0000000000040
+                        and (source_graph, node.pos) == (0x01C6, 29)):
+                    split = self._roadhog_split(state, direction)
                 if (npc and shooter.hero == 0x02E0000000000040 and state.instance.graph.index == 0x01C6
                         and node.pos in (26, 29) and self._scene_component(shooter) is state.instance.component):
                     from ow174.game import weapon_spread
@@ -6336,6 +6361,9 @@ class Combat:
                         directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
                     else:
                         split = self._split_volley(state, direction, seed, number)
+                elif (not npc and shooter.hero.guid == 0x02E0000000000040
+                      and (source_graph, node.pos) == (0x01C6, 26)):
+                    directions = spread.directions(state, direction)
                 elif npc and shooter.hero != dva.HERO:
                     from ow174.game import npc_context
 
@@ -6435,6 +6463,9 @@ class Combat:
             if not npc and shooter.hero.guid == 0x02E000000000006E:
                 direction = self._soldier_visor_direction(shooter, state, origin, direction, view_tick)
         directions = ring_directions(state, direction) or (direction,)
+        if (not npc and shooter.hero.guid == 0x02E0000000000040
+                and (state.instance.graph.index, node.pos) == (0x01C6, 33)):
+            directions = spread.directions(state, direction)
         if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
             directions = reaper.shotgun_directions(shooter, state, direction)
         if getattr(getattr(shooter, "hero", None), "guid", getattr(shooter, "hero", None)) == dva.HERO:
@@ -6471,6 +6502,7 @@ class Combat:
             self._submit_attack(shooter, shot_frame, RangedContact(
                 direct, origin, pellet, reach, view_tick, charge_context, definition, state,
                 view_tick if npc else None, reaper_shell,
+                impulse_packet=(state.instance.component.entity, activation, time),
             ))
 
     @staticmethod
@@ -6552,7 +6584,7 @@ class Combat:
 
     def _hitscan(self, shooter, state, origin, direction, reach, targets, direct, shot_frame, world_tick,
                  *, view_tick=None, reflected=frozenset(), definition=None, travelled=0.0, matrix_factor=1.0, bounces=0,
-                 reaper_shell=None):
+                 reaper_shell=None, impulse_packet=None):
         best = None
         for target, shown in targets:
             if self._has_protection(target, PHASE_STATES) or immunity.wraith_active(target.owner, target.entity):
@@ -6715,6 +6747,7 @@ class Combat:
                     shot_frame, self.tick, view_tick=self.tick, reflected=reflected | {target.entity},
                     definition=definition, travelled=travelled + distance,
                     matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
+                    impulse_packet=impulse_packet,
                 )
             return
         if grenade_hit is not None and (wall is None or grenade_hit[0] < wall):
@@ -6762,6 +6795,8 @@ class Combat:
             reflected_reaper_shell=reaper_shell is not None and bounces > 0,
         )
         if landed:
+            self.knockbacks.whole_hog_hit(target, direction, travelled + t,
+                                         direct.whole_hog_spec, impulse_packet)
             self._hit_effect(target, direct.effect, shooter=shooter)
             return shooter, target, travelled + t
 
@@ -7051,7 +7086,10 @@ class Combat:
                     break
                 self._fly_step(rocket, min(TICK, rocket.left))
             return
-        self._fly_step(rocket, min(elapsed * TICK, rocket.left))
+        seconds = elapsed * TICK
+        remaining = (max(0.0, seconds - rocket.left)
+                     if rocket.split_on_expiry is not None and rocket.split_on_expiry.authored_roadhog else 0.0)
+        self._fly_step(rocket, min(seconds, rocket.left), expiry_remaining=remaining)
 
     def _fly_field_canister(self, rocket, remaining):
         """Delivered 0257 gravity/rebound clock, using the combined collision services."""
@@ -7125,6 +7163,31 @@ class Combat:
             return
         self._landed(rocket)
 
+    @staticmethod
+    def _roadhog_split(state, direction):
+        """Original01C6/node29 expiry-only child volley, frozen at launch."""
+        callback = state.node.field("m_747ECB51") or {}
+        child = callback.get("m_volley")
+        if callback.get("$") != "STU_DB5FDC79" or not isinstance(child, dict):
+            return None
+        def field(name, default):
+            value = child.get(name)
+            return default if value is None else _number(state.evaluate(value, watch=False), default)
+        speed = field("m_projectileSpeed", 0.0)
+        if speed <= 0:
+            return None
+        direct = hit_def(state, child.get("m_6396149F"))
+        if direct is not None:
+            direct = replace(direct, critical=(direct.critical if
+                (child.get("m_6396149F") or {}).get("m_A872C70E") is not None else 2.0),
+                projectile_headshot=True, roadhog_pellet=True)
+        config = (child.get("m_projectileEntity") or {}).get("m_entityDef")
+        asset = state.evaluate(config, watch=False) if config is not None else None
+        return SplitVolley(spread.directions(state, direction, fields=child), speed,
+                           min(field("m_projectileLifetime", 5.0), field("m_FEC435C6", RANGE) / speed),
+                           direct, hit_def(state, child.get("m_D2D11CE9")),
+                           asset.guid if isinstance(asset, expr.Asset) else None, True)
+
     def _split_volley(self, state, direction, seed, number):
         from ow174.game import weapon_spread
 
@@ -7141,7 +7204,7 @@ class Combat:
             return None
         return SplitVolley(directions, speed, min(lifetime, reach / speed), direct)
 
-    def _expire(self, rocket: Rocket) -> None:
+    def _expire(self, rocket: Rocket, remaining=0.0) -> None:
         if rocket.mine is not None:
             if rocket.detonate_on_expiry:
                 self.junkrat.detonate(rocket.mine)
@@ -7153,16 +7216,23 @@ class Combat:
         if rocket.detonate_on_expiry:
             self._explode(rocket, rocket.position)
         if (split := rocket.split_on_expiry) is not None:
-            self.rockets.extend(
-                Rocket(rocket.shooter, rocket.team, rocket.position, direction, split.speed, split.lifetime,
-                       split.direct, None, last_tick=self.tick, scale_direct=True)
-                for direction in split.directions
-            )
+            children = [Rocket(rocket.shooter, rocket.team, rocket.position, direction,
+                               split.speed, split.lifetime, split.direct, split.blast,
+                               last_tick=self.tick, scale_direct=True,
+                               definition=split.definition,
+                               reflected=rocket.reflected if split.authored_roadhog else False,
+                               source_body=rocket.source_body if split.authored_roadhog else None,
+                               source_graph=rocket.source_graph if split.authored_roadhog else None)
+                        for direction in split.directions]
+            self.rockets.extend(children)
+            if split.authored_roadhog and remaining > 0:
+                for child in children:
+                    self._fly_step(child, min(remaining, child.left))
 
-    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None) -> None:
+    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None, expiry_remaining=0.0) -> None:
         """One linear sweep after any authored acceleration update."""
         if duration <= 0.0:
-            self._expire(rocket)
+            self._expire(rocket, remaining=expiry_remaining)
             return
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
@@ -7188,7 +7258,7 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick, reflected=reflected)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining)
         if rocket.mine is not None:
             self.junkrat.sync_pose(rocket.mine)
         if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
@@ -7199,7 +7269,7 @@ class Combat:
                 rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
 
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -7216,13 +7286,13 @@ class Combat:
             rocket.travelled += step
             rocket.left -= duration
             if rocket.left <= EPSILON:
-                self._expire(rocket)
+                self._expire(rocket, remaining=expiry_remaining)
             return
         # Re-sweep the unspent slice after redirects. Bound overlapping
         # deflectors that could repeatedly collide at distance zero.
         reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
-            continuation = self._sweep_rocket(rocket, duration, reflected)
+            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining)
             if isinstance(continuation, Rocket):
                 return continuation
             duration = continuation
@@ -7231,7 +7301,7 @@ class Combat:
         rocket.flown += duration
         rocket.left -= duration
         if rocket.left <= EPSILON:
-            self._expire(rocket)
+            self._expire(rocket, remaining=expiry_remaining)
 
     def _orisa_deployable_hit(self, shooter, origin, direction, length, *, radius=0.0):
         nearest = None
@@ -7269,7 +7339,7 @@ class Combat:
         elif duration - consumed > EPSILON:
             self._fly_step(rocket, duration - consumed, reflected=reflected)
 
-    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float | Rocket:
+    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
         integrated_duration = duration
         step = rocket.speed * duration
@@ -7519,7 +7589,7 @@ class Combat:
             rocket.flown += duration
             rocket.left -= duration
             if range_ends or rocket.left <= 0.0:
-                self._expire(rocket)
+                self._expire(rocket, remaining=expiry_remaining)
             return 0.0
         t, struck = best
         contact_time = duration * t / step if step > EPSILON else 0.0
@@ -7568,6 +7638,10 @@ class Combat:
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
             rocket.direction = (pulse_facing if pulse_facing is not None else defense[2]
                                 if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch))
+            if rocket.split_on_expiry is not None and rocket.split_on_expiry.authored_roadhog:
+                split = rocket.split_on_expiry
+                rocket.split_on_expiry = replace(split, directions=spread.reorient(
+                    split.directions, heading, rocket.direction))
             separation = min(1e-4, max(0.0, duration - contact_time) * rocket.speed)
             rocket.position = _along(point, rocket.direction, separation)
             if rocket.velocity is not None:
@@ -8618,6 +8692,13 @@ class Combat:
             self._heal_target(healer, target, amount, source_entity=source_body,
                               seconds=seconds, end_tick=None if ticks is None else ticks[1])
 
+    def heal_self(self, entity, amount):
+        """Apply an owned self heal through the existing live target/pool path."""
+        for target in self._targets():
+            if target.entity == entity:
+                self._heal(target.owner, target, amount)
+                return
+
     def _heal(self, healer, target: Target, amount: float, *, source_body=None) -> float:
         return self._heal_target(healer, target, amount, source_entity=source_body)
 
@@ -9020,23 +9101,31 @@ class Combat:
             self._barrier_energy(caster, loss, attacker)
         return barrier.health
 
-    @staticmethod
-    def _incoming_damage(target: Target, amount: float, *, tick=None) -> float:
+    def incoming_damage_scale(self, owner) -> float:
+        """Original live8243 query, sharing the actual incoming-damage consumer."""
+        component = getattr(getattr(owner, 'body_script', None), 'component', None)
+        entity = _source_entity(owner)
+        fallback = immunity.damage_scale(owner, entity)
+        if fallback == 0.0:
+            return 0.0
+        slot = component.entity_var(8243, create=False) if isinstance(component, runtime.Component) else None
+        scalar = _number(slot.value() if isinstance(slot, runtime.Var) else None, fallback)
+        if not math.isfinite(scalar):
+            scalar = fallback
+        channel = self.breathers.channels.get(entity)
+        if (scalar == 0.5 and channel is not None and self.now > channel.until
+                and getattr(getattr(owner, 'hero', None), 'guid', None) == breather.HERO):
+            return 1.0
+        return max(0.0, scalar)
+
+    def _incoming_damage(self, target: Target, amount: float, *, tick=None) -> float:
         """Host live incoming-damage8243, including actual0CF4 Fortify's0.6 stack.
 
         Applying it before the shared armor consumer is server reconstruction;
         native combat-mod/armor ordering has not been recovered. Read without
         creating an absent entity variable or changing its authored lifetime.
         """
-        script = getattr(target.owner, 'body_script', None)
-        component = getattr(script, 'component', None)
-        slot = component.entity_var(8243, create=False) if isinstance(component, runtime.Component) else None
-        fallback = immunity.damage_scale(target.owner, target.entity)
-        if fallback == 0.0:
-            return 0.0
-        scalar = _number(slot.value() if isinstance(slot, runtime.Var) else None, fallback)
-        if not math.isfinite(scalar):
-            scalar = fallback
+        scalar = self.incoming_damage_scale(target.owner)
         if orisa_fortify.historical_pending(target.owner, tick):
             # Remove only this endpoint's new Fortify multiplier. Keep other
             # authored incoming8243 factors in the combined consumer.

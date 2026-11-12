@@ -4,6 +4,81 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore retained ice-supported sentry damage
+
+- Original eligible ice-supported/airborne Sentries settle on each retained world
+  tick using the existing wall/Sentry hosts. Unit acquisition excludes only solid
+  Ice Wall pillars; existing other Deployable consumers remain.
+- Original expiry check passes contiguous/gap and59 retained beam ticks; cancel
+  and natural-expiry attachment subcases pass. Preserve one actual wall-pool
+  identity break difference for the next owner integration batch.
+- Actual settled mover remains eligible for frozen proof; active displacement is
+  excluded by its real state/control owners. Original31 shared methods pass.
+
+
+### Restore original Roadhog secondary expiry fragments
+
+- The existing SplitVolley/Rocket host freezes and emits original25 fragments
+  only at slug expiry, retains the same-step flight remainder, and reorients
+  their captured cone on Deflect. Existing non-source split defaults remain.
+- Original secondary/projectile/Damage/runtime36/36 pass; actual raw active
+  cone storage and expiry damage pass. Fixture edits only map real field/callback
+  names with normalized original AST unchanged. Lifecycle and WholeHog motion
+  audits continue; no client acceptance run.
+
+### Restore original Roadhog primary pellet geometry and falloff
+
+- Selected Scrap Gun fire now launches the original25 directions with one ammo
+  spend; captured primary pellets retain original headshot and full-distance
+  falloff. Restore original selected critical fallback without changing others.
+- Original projectile/runtime22 checks have only two retained secondary-burst
+  subcase failures; all primary geometry, damage, critical/range/falloff and
+  runtime checks pass. Secondary expiry fragments remain next; no client run.
+
+### Restore actual Whole Hog force capture on the shared mover
+
+- Capture original force/rings and volley identity through hitscan/deflection;
+  one deduplicated force submission uses the existing Knockbacks mover queue.
+  Preserve current control priorities and exact force-ledger server storage.
+- Actual volley/rings/VM plus Damage/runtime22/22 pass; raw two-client causal
+  server storage passes. Original separate external damping/world-gap behavior
+  and resulting damage/HIT difference remain open with assertions preserved.
+  No client acceptance run.
+
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
+
+### Restore original per-definition NPC movement inputs
+
+- Restore original0016 optional Definition.mover/controller catalog fields and
+  finite complete34-field mover validation. Spawn retains the original controller
+  hint without overriding the composed controller association or adding a host.
+- Actual capsule selection, route/manual/impulse/navigation movers and wire spring
+  data use the same explicit movement_data; absent input retains the global table.
+  Respawn retains the definition input and strict server storage includes it.
+- Four original metadata tests and existing NPC/input/navigation checks73/73 pass.
+  Actual spawned NPC has the same provided data and physical mover; whole-server
+  mutation/restoration changes/restores the digest and unknown fields still fail.
+  Source inputs remain unchanged; no client acceptance run.
+
 ### Reuse the NPC driver for proven frozen sentry history
 
 - Mount original bounded no-support frozen-lock proof through the existing
@@ -27,6 +102,28 @@ This log records tested changes and their acceptance status. Entries are grouped
   early exit; four other bodies lift and land but retain their existing shared
   impulse mover, conflicting with old dedicated-mover None assertions. Those
   assertions and the dependent final count remain unchanged. No client run.
+
+
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 
 ### Preserve Flux fixture geometry and explicit source contract differences
 
@@ -234,6 +331,8 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
+
 
 ### Preserve controller Pin services in causal server storage
 
@@ -10366,6 +10465,8 @@ blocking delivery on these preserved old boundary assertions.
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
 
+
+
 ## A72 — Tracer authored damage-tag and charge entry reconciliation
 
 Restored original0003 damage credit through the existing sole `ultimate_charge`
@@ -10387,6 +10488,8 @@ sigma_accretion dependency; root reports its current fixture is already adapted.
 Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
+
+
 ### Tank owner consumer convergence audit
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
@@ -10399,6 +10502,7 @@ unchanged original airborne Flux/Pulse whole method passes6.827s with355 damage
 and0 Tracer charge. No additional production change, broad suite, source-assert
 edit, client session or publication. Next delegated owner is0068 Zarya after
 root confirms the handoff; existing single barrier/Graviton pools are required.
+
 
 ## A74 — Zarya native-pet attachment releases incoming Hook
 

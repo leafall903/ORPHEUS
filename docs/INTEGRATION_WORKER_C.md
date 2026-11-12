@@ -2136,3 +2136,56 @@ not copy the old Match.step_bot_pose over the real NPC driver. Then lift the
 partial admission exclusions and exercise the corresponding original cases.
 Generic phase transition/respawn history, wall support expiry/replay families
 remain real gaps, not acceptance-only labels. No client/full replay claim.
+
+
+## C50 — retained ice-supported sentry pulses and settled mover proof (2026-11-12)
+
+C49 saved6ff487df6de0c2e92d14734cbb25019e4f3fd345. Existing Combat retained
+loop now admits moved/ice-supported Sentries and calls original
+sentries.update(...,replay_ice=True) on its intermediate ticks. Original eligible
+selection preserves endpoint-only new launches; existing Walls expiry/break
+callback retires the same Sentry/aura, no second driver. Only actual IceWall
+PILLAR Deployables are excluded from unit acquisition (original0016 units were
+separate from solid wall objects); all other existing Deployable types retained.
+
+Root Flux evidence corrected the frozen proof's old field-existence assumption:
+a grounded manual NPC may keep its sole impulse_mover after movement settles.
+_private _external_motion reads actual airborne/velocity/non-neutral command,
+existing Knockback pending/active, Hook control, Orisa control. Both general
+frozen proof and recorded frozen-pose proof use it; never clear or replace mover.
+Actual Trooper producer: ensure_manual_mover yields sameobject,grounded,velocity0
+and nonempty frozen proof. Actual Bot.apply_impulse(1,0,0), at supported no-route
+admission boundary, retains that sameobject,velocity(1,0,0),proofempty. Initial
+attempt withroute present correctly returnedFalse and was not counted as an
+active-impulse test. Corrected log
+../worker-c-symm-frozen-settled-mover-corrected-probe.log; initial retained too.
+
+Exact original0016 IceSentry AST selection uses original duel/deploy/scene/launch/
+assertions, only fight.ice_wall query mapped to actual fight.walls. Reproducer
+../parallel-merge/worker-c-ice-sentry-source-check.py, with v18 env+testenv.
+Initial2 methods18.706s/5failrecords: Sentry selected actual wire Pillar instead
+of victim, source contiguousdamage0. Actual probe identified distinct targets:
+physics-support3221229590,wirePillar3221229583(definition0932),Sentry3221229593,
+victim2684355329. See ../worker-c-symm-ice-target-probe.log.
+After precise Pillar acquisition exclusion:2methods22.330s/1pass/1failedmethod,
+1remaining breaksubcase. Entire original
+ test_sentry_damage_until_pillar_expires_inside_retained_gap passes: active and
+in-flight branches, contiguous-vs-gap damage/tick equality, original80gap leaves
+exactly64-5=59beam ticks, repeated update inert. Attachment/cancel/natural-expiry
+subcases also pass; break still5piecesvs4 after original physics piece.health=.5
+seed. No assertions/literals/skip conditions altered; selected actual input opted
+in. Log ../worker-c-symm-ice-sentry-corrected-check.log.
+
+Stable final shared `python -B -m unittest test_mei_frost test_symmetra_turrets
+ test_game_combat.DamageTests`:31/31pass67.001s; code unchanged throughout group.
+Log ../worker-c-symm-ice-sentry-shared-check.log; diff whitespace clean.
+
+Remaining real gap exposed: existing Walls geometry still allocates a separate
+internalpiece ID/health timer from the original graph-backed wire Pillar actor.
+Originalbreak seed reaches physics health but direct attack debits actualactor
+pool, so expected retirement does not follow. This is not merely old observer
+API: reconcile same actor identity/Vitals/lifetime for geometry rather than
+add another pool or fake a mirrored view. C51 prioritises this owner boundary,
+then full frozen ice-support/projected-impact helper mapping/phase/respawn
+consumers. Parent root owns optional NPC mover/controller metadata merge.
+All original source/failed checks retained; no full0016 or client claim.

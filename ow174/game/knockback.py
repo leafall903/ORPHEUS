@@ -60,6 +60,7 @@ class Knockbacks:
         self.combat = combat
         self.serial = 0
         self.active: dict[int, Mover] = {}
+        self.whole_hog_seen = {}
 
     def apply(self, target, impulse, *, impact_frame: int | None = None):
         from ow174.game import bots
@@ -101,6 +102,55 @@ class Knockbacks:
         else:
             self._enqueue(target.entity, mover, frame, key, impulse)
         self.serial += 1
+        return True
+
+    def whole_hog_hit(self, target, direction, distance, spec, packet):
+        """Original per-volley force, sharing the sole velocity/mover queue."""
+        from ow174.game import bots, reinhardt_charge
+
+        fight = self.combat
+        entity = target.entity
+        if (spec is None or packet is None or fight.vitals_of(target).dead
+                or fight._control_immune(target) or fight.hooks.controlled(entity)
+                or fight.junkrat.rooted(entity, fight.tick)
+                or entity in fight.pins.values() or reinhardt_charge.pinned(fight, entity)
+                or fight.orisa.controls(entity) or entity in fight.zarya_gravitons.pulled):
+            return False
+        key = (*packet, entity)
+        if key in self.whole_hog_seen:
+            return False
+        size = math.hypot(direction[0], direction[2])
+        if size <= 1e-9:
+            return False
+        horizontal, vertical, cap = spec.scale(distance)
+        owner = target.owner
+        if isinstance(owner, bots.Bot):
+            # This source scope is the ordinary NPC impulse channel. Owned
+            # mechs retain their distinct body-clock movement path.
+            if owner.control_mover is not None:
+                return False
+            mover = owner.impulse_mover
+            frame = max(fight.match.tick, fight.tick) + 1
+        else:
+            mover = owner.mover
+            frame = max(owner.body_script.component.frame + 1, fight.match.tick, fight.tick)
+        current = (0.0, 0.0, 0.0) if mover is None else tuple(mover.velocity)
+        if mover is not None:
+            current = velocity.consume(current, mover.values.jump_speed,
+                                       mover.velocity_changes, frame)
+        x, y, z = current
+        x += direction[0] / size * spec.force * horizontal
+        z += direction[2] / size * spec.force * horizontal
+        flat = math.hypot(x, z)
+        limit = spec.cap * cap
+        if flat > limit:
+            x, z = x / flat * limit, z / flat * limit
+        y = min(spec.lift_cap * cap, y + spec.lift * vertical)
+        delta = expr.Vec3(*(expr.f32(after - before)
+                           for before, after in zip(current, (x, y, z))))
+        if not self.apply(target, delta, impact_frame=fight.tick):
+            return False
+        self.whole_hog_seen[key] = fight.tick
         return True
 
     def schedule_victim(self, target, source, instigator):
@@ -214,7 +264,10 @@ class Knockbacks:
     def affecting(self, entity):
         return entity in self.active
 
-    def retire(self, entity):
+    def retire(self, entity, *, forget=True):
+        if forget:
+            self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
+                                   if key[-1] != entity}
         pending = getattr(self, "pending_victims", None)
         if pending is not None:
             pending.pop(entity, None)
@@ -227,6 +280,8 @@ class Knockbacks:
                                          if row.key is None or row.key & HOST_PREFIX != HOST_PREFIX]
 
     def update(self):
+        self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
+                               if self.combat.tick - tick <= 128}
         match = self.combat.match
         live = {player.body: player.mover for player in match.players
                 if player.has_body and not self.combat.is_dead(player)}
@@ -236,4 +291,4 @@ class Knockbacks:
             if (live.get(entity) is not mover or (not mover.velocity_changes
                     and ((entity not in npc_movers and mover.landed)
                          or (not mover.airborne and not any(mover.velocity))))):
-                self.retire(entity)
+                self.retire(entity, forget=live.get(entity) is not mover)

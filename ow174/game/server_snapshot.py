@@ -39,6 +39,7 @@ from ow174.game import (
     ball,
     ball_mines,
     hook,
+    whole_hog,
     barrier,
     assassin_victim,
     ashe,
@@ -200,7 +201,7 @@ FIELDS = {
     sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
-    knockback.Knockbacks: _names("combat serial active"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen"),
     support_effects.Effects: _names("match attachments boost_frames"),
     support_effects.EffectWorld: _names("hero mode match source owner"),
     sombra_control.DeviceWorld: _names("hero mode fight body tags"),
@@ -306,7 +307,7 @@ FIELDS = {
         "combat_owner combat_geometry entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
         "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode reposition_body pitch navigation impulse_mover "
-        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
+        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb movement_data"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
@@ -326,7 +327,7 @@ OPTIONAL_FIELDS = {
 }
 DATACLASSES = (
     message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
-    hook.Flight,
+    hook.Flight, whole_hog.Spec,
     ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,

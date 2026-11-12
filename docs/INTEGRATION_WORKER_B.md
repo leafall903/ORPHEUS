@@ -1302,3 +1302,149 @@ Zarya. Do not duplicate those hosts. Remaining B effort after those handoffs is
 approximately14–28 active hours, low confidence: Hog remainder2–5, non-Flux
 Sigma6–12, Rein/Winston/Doom/Ball caller/expiry audit6–11. This is code/audit work,
 not a wall-clock acceptance promise. No completed whole-owner claim is made.
+
+
+## B52 — original0240 body-node timed self heal and live8243 query
+
+Restored original script/self_heal.TimedSelfHeal on existing ModifyHealth for
+0240/node18 only. Its four original budget fields are exact strict VM storage
+fields; keep existing target_body/manual1157 and all other health dispatchers.
+Only a bound world heal_self consumer can activate this scope; empty/unknown
+strict worlds retain failure. BodyWorld applies healing to its own live target
+through the existing Vitals/_heal path. The original body-node budget replaces
+the redundant world-clock dose for this same active node; no second health pool.
+Existing Breathers channel/reduction lifetime remains. Source public
+incoming_damage_scale(owner) now shares actual8243/fallback logic with the real
+incoming damage consumer, preserving historical Fortify adjustment and Breather
+world deadline. Full original test_game_roadhog.py is restored unchanged (AST).
+
+Original RoadhogSelfHeal8/8 pass, including no-world-only-dose followed by body
+catchup, no duplicate healing, windup, cap, cooldown and death. Actual original
+Hook Breather interruption now passes exact15 net hit, fixing B51's10.2 result.
+Actual raw HeroPick/commands start original heal; active strict BodyVM/server
+exports pass, and heal_elapsed mutation/restoration changes/restores the server
+digest. That raw proof + Hook + runtime13 is15/15 pass67.875s. Logs:
+worker-b-hog-selfheal-{wholehog-baseline,mount,storage-core}.log (external).
+
+Conflicting ORIGINAL owner contracts are retained explicitly: Roadhog's
+SelfHeal.test_breather_catches_up_once_across_command_gap_without_replay requires
+no healing for world-only gap until a body callback. Ana's
+AnaBreather.test_started_heal_runs_once_without_owner_commands_and_retires_on_death_or_replacement
+requires300 healing with that body frame frozen. Current implementation follows
+the original0040 body-node ledger; Ana no-command branch fails103.3vs400. Both
+original assertions remain unchanged; no per-fixture mode or extra driver.
+Ana suite also retains three pre-existing getter errors (healing_block_until,
+healing_boost_until, body_barriers); other two cases pass. An initial focused
+invocation used nonexistent RoadhogHookTests loader; correct HookTests rerun is
+included in the15-pass result, not counted as a runtime failure.
+
+Original WholeHog6 baseline has5pass and one test's two subcases error on old
+impulses.hit instrumentation; charge/repeated pellet/end/death/wall/team behavior
+already runs in the current actual projectile/impulse path. Next exact action:
+audit this impulse contract and remaining original Hog projectile/reload/control
+consumers, adapting observers to the actual sole service without weakening
+assertions. Root owns Sigma Flux and A owns Zarya; preserve those boundaries.
+No client acceptance run; no completed whole-Hog owner claim.
+
+
+## B53 — actual Whole Hog force capture and sole-mover submission
+
+Correction to B52's preliminary classification: old impulses.hit instrumentation
+was not merely an observer difference. The source Whole Hog Spec/evaluate and
+per-volley force consumer were unmounted; existing damage/ult tests alone did
+not prove force. Restored original Spec/evaluate unchanged (AST) in whole_hog.py,
+append captured spec/packet fields to existing HitDef/RangedContact, preserve
+packet on deflection, and call the actual sole Knockbacks host after damage.
+Original per-volley/recipient dedup, force/rings/flat and lift caps are applied
+before one queued vector delta. Exact seen ledger and Spec participate in server
+storage. Existing Hook/Trap/Pin/Halt/Graviton/immunity priorities are checked;
+ordinary NPC reuses the existing impulse channel. Owned DVa's separate body-clock
+channel is explicitly not guessed or cloned in this force scope.
+
+Actual Q proof:16-pellet volley produces one accepted force submission/seen key,
+flat10 and lift1.8 from original14/10/14 data, same target mover, real damage and
+subsequent displacement. Original ring samples5/20/60/101 and strict owner/victim
+VM pass. That regression + Damage8 + runtime13 =22/22 pass31.345s.
+Actual two-client raw HeroPick/Q verifies same sole mover, actual queued velocity
+(0,1.7998046875,10), strict twoBodyVM/whole-server storage, and seen timestamp
+mutation/restoration changes/restores digest. Logs worker-b-hog-force-{mount,
+core,raw-storage}.log in external storage. No client acceptance run.
+
+This is NOT full original Whole Hog motion equivalence: source separate external
+velocity damping/world-only integration remains to reconcile through this same
+host. With actual force now active, original WholeHog total/HIT relation fails
+329.0097175396113vs336 as movement changes falloff; original assertion retained.
+The old impulses.hit instrumentation is retained pending real callback mapping,
+not supplied by a fake alias. No new motion actor or duplicate mover was added.
+
+Next exact action: finish frozen original projectile/secondary/reload baseline
+(worker-b-hog-weapons-original.log, process78178), then restore the original
+0040 spread/fragment critical/resource consumers against the current actual
+launch path. Source has explicit primary/WholeHog2x critical default and full
+spread.directions/reorient; these are not established by the narrower current
+NPC-only source-ring path. Keep fullsource test_game_roadhog assertions. Then
+complete original force damping/world-gap priority via the same movement host,
+followed by non-Flux Sigma audit. Root owns Flux and A owns Zarya.
+
+
+## B54 — original Scrap Gun primary pellet geometry and damage consumers
+
+The full frozen28 original weapon/secondary/reload baseline completed102.703s
+with32 subcase failures and8errors, preserved at worker-b-hog-weapons-original.log.
+Confirmed actual primary gap: one projectile instead of the authored25. Restored
+original spread.py unchanged (full AST), mounted only selected player Hog01C6
+node26/33; other heroes/NPC patterns retain their existing paths. Primary launches
+25 authored frozen directions with one ammo spend. Original primary/WholeHog2x
+fallback uses actual node.pos (not the distinct state.index). Primary HitDef
+captures its exact pellet scope, enabling original headshot and full flown-distance
+falloff even when that captured pellet is later constructed/replayed separately.
+No other projectile's default falloff or critical policy changes.
+
+Original nine Projectile methods plus runtime13:22run, only two secondary-button
+subcase failures in the mixed primary/secondary range method; all primary
+subcases and the other21 methods pass18.333s. Primary25/165/singleammo,
+miss/ally/wall, actual primary range boundary, falloff8/22/35, critical notices,
+continuous/skipped distance, melee timing/range all retain original assertions.
+Alternating primary/secondary shared-magazine original method also passes in the
+first focused run. Remaining original secondary burst is genuinely absent;
+these failures are not reclassified as mere old observers. No client acceptance.
+
+Next exact action: B55 restore source01C6/node29 expiry fragment volley through
+the existing SplitVolley/Rocket path, with source critical/default definition and
+same-step expiry remainder/reflection reorientation. Then run original secondary
+and remaining reload/lifecycle checks, retaining all failed expectations. Whole
+Hog independent external damping/world-only motion remains explicitly open.
+
+
+## B55 — original secondary slug expiry fragments and remaining slice
+
+Source01C6/node29 now freezes original25-child directions, speed/lifetime,
+critical/headshot/falloff and projectile definition through the existing
+SplitVolley/Rocket path. Expiry emits those children, body/wall contact does not.
+Thread the original unspent flight slice as optional call arguments only, so
+children advance inside that same source world gap; no persistent clock field or
+second projectile manager. Original frozen cone reorients on actual Deflect.
+New SplitVolley fields are appended, preserving existing four-position callers;
+non-source NPC split metadata/default behavior is retained.
+
+Original Secondary6 + Projectile9 + Damage8 + runtime13 =36/36 pass26.234s.
+This includes close slug50 vs burst165/25 hit reports/singleammo, ally/miss,
+body/wall contact on either side of9m expiry, no burst through prior wall,
+continuous/skipped world-gap equality, primary100m range and all original
+falloff/critical/melee assertions. Actual raw HeroPick/secondary verifies active
+frozen25-child cone, strict owner/victim VM and whole-server storage; cone
+mutation/restoration changes/restores digest. Real expiry children damage the
+actual target. Log worker-b-hog-fragments-{mount,restored,raw-storage}.log.
+
+Fixture changes are ONLY actual interface mapping: .burst→.split_on_expiry and
+mocked _expired→_expire. Normalizing those attributes/string names yields exactly
+the full original test_game_roadhog AST, including every original assertion and
+expected value; no fake production aliases added. The initial eight attribute
+errors are retained in mount log and eliminated by actual interface mapping.
+
+Next exact action: finish frozen resource/WholeHog test process92742 at
+worker-b-hog-weapons-restored.log, then actual released projectile death/switch/
+reentry consumer audit. Intermediate output now confirms fresh post-Q
+full/partial/empty magazine behavior passes; released projectile lifecycle
+expectations still fail and must be traced. WholeHog source external damping and
+world-only motion remain open; root owns Flux and A owns Zarya. No client run.
