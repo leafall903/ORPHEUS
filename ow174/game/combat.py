@@ -9478,6 +9478,8 @@ class Combat:
             if isinstance(script, BotScript):
                 tick = max(tick + bot.clock_offset, script.frame)
             event = script.die(tick, params, source)
+            if isinstance(script, BotScript):
+                self._consume_bot_death_volleys(bot, script)
             if bot.owner:
                 from ow174.game import body_entities
 
@@ -9491,6 +9493,15 @@ class Combat:
             if viewer.client is not None:
                 viewer.client.queue_bot_death(bot.entity, event)
 
+    def _consume_bot_death_volleys(self, bot, script):
+        from ow174.game.script.bot import DEATH_VOLLEY_GRAPH
+
+        shots, script.component.shots[:] = list(script.component.shots), []
+        for state, number, time, activation in shots:
+            if ((state.instance.graph.index, state.node.pos) == (DEATH_VOLLEY_GRAPH, 0)
+                    and state.allows_dead()):
+                self._shoot(bot, None, state, number, time, activation=activation)
+
     def _advance_bot_death(self, bot: bots.Bot, tick: int) -> None:
         if self._scene_component(bot) is not None:
             return
@@ -9499,6 +9510,8 @@ class Combat:
             return
         try:
             events = script.advance_death(tick + bot.clock_offset, int(BOT_RESPAWN / TICK))
+            if isinstance(script, BotScript):
+                self._consume_bot_death_volleys(bot, script)
         except Exception:
             script.retire()
             bot.body_script = None

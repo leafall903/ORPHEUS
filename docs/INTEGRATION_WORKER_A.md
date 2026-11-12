@@ -1127,3 +1127,40 @@ Original tests/assertions retained, no synthetic projectile/observer or matrix.
 No client run/publication. Next exact action: original NPC2535 death-volley
 modifier on existing BotWorld/BotScript, then normal original NPC/charge fixture
 contract and any genuine remaining consumers; keep acceptance-only residuals.
+
+
+## A42 - original NPC2535 death volleys and normal fixture entry
+
+Mounted existing BotWorld mode-variable/0E62-117 PlayScript consumer for original
+2535 graph, preserving declared-false availability and live mode changes. Original
+DEATH_VOLLEY_GRAPH/MODE_FLAG constants now belong to the actual consumer, not a
+fake test alias. After BotScript death and due death timers, only2535/0 dead-allowed
+volleys enter the shared projectile host. Current controller/death/clock-offset
+and owned-DVa lifecycle are retained.
+
+Preserved original component51 health_query utility/API: original48-slot float32
+fold plus explicit Match adapter to the one current authoritative body_health
+pool service. Runtime continues to use richer health_queries frontend; no second
+pool/query registration. This restores normal original NPC/charge fixture imports.
+Original NPC death-volley mode gate (four cases) and owned-dead Mayhem charge two
+methods pass. Entire original26 charge combat methods now execute normally:
+25 pass, one preserved old bubble.health observer failure (real0256 pool retained).
+Original health utility/current NPC control/navigation/controller storage72 checks:
+71 pass, one old detached-BodyWorld expectation None instead of current cached
+owner health200; assertions unchanged. Logs worker-a-junkrat-{deathvolley-first,
+deathvolley-shared,health-original,charge-original-combat}.log. No client run/push.
+
+Remaining0065 actual code audit: original archives_thunderstorm.py on2535's
+second34924 branch is not yet mounted; original command/control/eye/throttle/sleep/
+barrier fixtures still need source-consumer reconciliation. Keep prior recorded
+Tire expiry-frag/Fortify/observer residuals and old resource Target/Context fixture
+contract differences. Do not call entire frozen0065 admitted until root reconciles.
+Root additionally recorded original Tracer cross-owner sleep/Recall and old-body
+history residuals in root-trap-status-order-check.log; preserve for later audit.
+
+New root-directed owner transfer:0200 Ashe frozen
+8b991768223a98ff97f2618a53f0947dc6477c4b, source hero-lanes/0200/source, exclusively A.
+C confirms no Ashe WIP and keeps Mei/Sombra/Symm. Next exact action: audit source
+Ashe primary/Coach/dynamite/BOB/charge and mount real consumers in batches, reuse
+current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
+handoff above; root owns source-ref/provenance admission and ordering.
