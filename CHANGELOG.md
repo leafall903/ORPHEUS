@@ -12224,3 +12224,46 @@ VectorRecord/nodes are not rolled back. Scene.unbind alreadyclearsbotharrays.
 Still pending explicitcomponent86 Registry sameGUID adapter (B93), not fulltest/
 clientvalidation. Rootasked to preserve strongerdefault pending precisebackend
 mode boundary; continue scopedadapter after this independentlyreceivable batch.
+
+
+## B93 — recover explicit component86 backend selection without replacing defaults
+
+Root approved an explicit backend-presence boundary. OriginalScene.set_component86
+already declares knownRegistry/knownabsence; currentstatefactory overwrote its
+CF8C/066B and strictFC16 consumers with richerAIControlOverride/JunkensteinAIFacing.
+Restore this oldAPI on the SAME actualstate by Worldreadonly hook(defaultFalse),
+Scene declarationmap presence only. Declaredmode defers to originalComponent86State
+OnEnter selector/descriptor/ABORT lifecycle; undeclaredScene retains existing
+priority/selector/facing producer. No guessedbackend, duplicateactor/statefactory
+replacement or simultaneousregistration. AIControl samecomponent86 class helpers
+retain originaldynamicpriority/order, selectionseparatearray/acceptedtable and
+failurecleanup. When both oldexplicitAPI families exist, actualtarget's declared
+possession registry is checked first, preservingB92; otherwise component86.
+
+ActualstrictFC16 is JunkensteinAIFacing (laterstrictregistration), so adapt that
+sameclass to originalvector registration/dependencyupdates only in declaredmode.
+Defaultnarrowauthoredgraph/priority/direction checks and samefacingrecords intact.
+Cleanup/destroy aliases cover each selectedbackend; reentry recalculatesmode.
+Bothapplicable strict exporters registerexactmode/registry fields, component86
+Registry/Entry/Selection/NumericPair and actualstrictvectorstate layouts. Existing
+unknowncallbacks remainstrict; no broadserialization fallback. Scene no newstate
+field beyond its alreadyregisteredcomponent86_registries.
+
+Originalcomponent86 tests (dynamicvectorpriority/updates, numericpair, knownabsence
+ABORT, selectionacceptance/cleanup), originalpossessionScene methods andruntime
+all19/19 pass1.844s, worker-b-component86-backend-final.log. Initialextraerror exposed
+actualFC16factorypriority; fixedrealclass, no originalassertedvalues changed.
+ActualNPC-backedPhase2World control/vector entries sharedsameoldRegistry, no AI
+recordduplicate, strictVM descriptorhashmutation/restore anddestroycleanup pass;
+separateundeclaredWorld uses actualstrongerAIControl default, one record andmode
+False. worker-b-component86-storage.log. No clientacceptance.
+
+Next exact action: source012E generic externalimpulse world-gap replay actual
+consumer, rootassignedB; coordinateC68 Pharah replay budget and use SAME existing
+Knockbacks+Combat.normal_ticks loop, no oldImpulses manager clone. C source budget:
+REPLAY_LIMIT256; rockets last_tick+ceil(left/dt)+256; pendingbarrage/concussive
+previous+ceil8s/dt+256; airborne8s/fuel4s. Originalprimary/concussive recipient
+motion exactpaced/gap tests retained. Must preservePharah frozenimpactplan and
+sameplayer/NPC mover ownership/clock/replay/strictstorage; sourceSDK adapters are
+now mounted, not acceptance-matrix gated. Estimatedremainingactivecode6–12h for
+newgenericforce integration +boundedsourceclosure, excludingoldnumeric/clienttails.

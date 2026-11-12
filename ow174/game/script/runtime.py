@@ -1035,6 +1035,10 @@ class World:
         """Explicit registry for B61 state records."""
         return NotImplemented
 
+    def component86_backend_declared(self) -> bool:
+        """Whether the host explicitly selected the original component86 backend."""
+        return False
+
     def component86(self, entity: int):
         """Explicit target registry, known absence, or unknown service."""
         return NotImplemented

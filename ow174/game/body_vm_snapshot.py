@@ -91,8 +91,10 @@ _STATE_LAYOUTS = {
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
     nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
+    nodes.JunkensteinAIFacing: (("record", "remove_record", "registry", "component86_mode"), ()),
+    nodes.Component86VectorState: (("registry",), ()),
     nodes.Component86NumericPairState: (("registry", "request_registration"), ()),
-    nodes.AIControlOverride: (("remove_record", "request_registration"), ()),
+    nodes.AIControlOverride: (("remove_record", "request_registration", "component86_mode", "registry"), ()),
     nodes.BodyPlacement: ((), ()),
     nodes.JunkensteinControllerState: ((), ()),
     nodes.JunkensteinBehaviorBranch: ((), ()),
@@ -178,9 +180,14 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 
-from ow174.game.script import distance_constraints, possession_requests
+from ow174.game.script import component86, distance_constraints, possession_requests
 
 _VALUE_LAYOUTS = {
+    nodes.AIFacingRecord: ("direction", "priority", "prefer_later"),
+    component86.Registry: ("descriptors", "accepted_selections", "entries", "selection_entries"),
+    component86.Entry: ("state", "source", "instance", "node", "kind", "priority", "before_equal", "selection", "numeric_pair", "vector"),
+    component86.Selection: ("slot", "identifier", "flag"),
+    component86.NumericPair: ("first", "second"),
     possession_requests.Inputs: ("owner", "clock"),
     possession_requests.Selection: ("slot", "identifier", "flag"),
     possession_requests.Request: ("owner", "clock", "kind", "priority", "above_equal", "payload", "selection"),

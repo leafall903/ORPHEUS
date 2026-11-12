@@ -576,6 +576,9 @@ class SceneWorld(runtime.World):
             raise ValueError('component86 requires an unbound empty registry or known absence')
         self.component86_registries[entity] = registry
 
+    def component86_backend_declared(self) -> bool:
+        return bool(self.component86_registries)
+
     def component86(self, entity: int):
         return self.component86_registries.get(entity, NotImplemented)
 
