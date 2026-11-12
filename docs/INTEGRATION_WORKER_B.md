@@ -23,8 +23,18 @@ alone is not evidence that a line's consumers are actually mounted.
 - The source's input-only control flag now gates new and already queued down
   edges. It does not erase Punch knockback velocity as a generic player stun.
   Bot input/control and passive snapshots share the same stored controller.
+- First submitted batch: `41d6de0e`, accepted by canonical as `a51925d5`.
 - Both delivered `doomfist.py` and `meteor.py` implementations are retained.
-  Slams and Meteors are not yet mounted; do not claim the whole Doomfist line.
+  Slams now mount ground-hop velocity, aerial target/movement, landing, wave,
+  hit/pull and shield awards. Meteors are not yet mounted; do not claim the
+  whole Doomfist line.
+- The source null-case Switch semantics now run authored indexed phases while
+  retaining the earlier1248 weapon-combo adapter. Positive external launches
+  leave their floor before the authored landing limit can attach them again.
+- All22 original Slam checks,21 Punch and13 VM runtime checks pass (56 total).
+  Original Slam expectations remain; four reads of the source persistent
+  `temporary_pool_used` field use the canonical retained shield-object presence.
+  McCree Roll, numeric modifier and Lucio velocity regressions: all41 pass.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
   The active enclosing-server snapshot probe is recorded outside Git at
   `verification/worker-b-doomfist-active-punch-snapshot.log`.
@@ -34,7 +44,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount `doomfist.Slams` movement/landing/wave and `meteor.Meteors` targeting,
+1. Mount `meteor.Meteors` targeting,
    protection/landing/damage through the current collision/health services.
    Preserve current Doomfist Uppercut/passive implementation while reconciling
    its older unmounted `doomfist_passive.py` consumers.

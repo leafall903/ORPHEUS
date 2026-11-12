@@ -1472,6 +1472,22 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) in ((0x0B27, 75), (0x0DD8, 1)):
+            from ow174.game.combat import aim
+
+            if instance.component.owner_dead:
+                return True
+            owner = self.match._message_player(self.body) if self.match is not None else None
+            if owner is None:
+                return True
+            speed = float(node.field('m_BC5E91CF[2].m_9B7A63EA.m_expression.m_D99EF254[0]'))
+            velocity = (0., speed, 0.)
+            if instance.graph.index == 0x0B27:
+                scalar = float(instance.evaluate(node.field('m_BC5E91CF[2].m_9B7A63EA.m_configVars[1]')))
+                dx, _, dz = aim(owner.mover.yaw, 0)
+                velocity = tuple(v * speed * scalar / math.sqrt(1 + .3 * .3) for v in (dx, .3, dz))
+            self.velocity_requests.append((instance.component.frame + 1, 'impulse', velocity))
+            return True
         if self.hero == lucio_movement.HERO:
             return lucio_movement.action(instance, node)
         return mccree.velocity_action(self, instance, node)

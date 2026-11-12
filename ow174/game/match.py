@@ -477,6 +477,10 @@ class Player:
             self._advance_body_frame(command)
             return
         # Arbitration between simultaneous world-target states is unresolved.
+        slam = None if stunned or pulled else fight.slams.movement(self)
+        if slam is not None:
+            requests = [request for request in requests if request[0] is not slam[0]]
+            requests.append(slam)
         if self.hero.guid == GENJI:
             self.genji_mobility.before_pose(self, command, seconds, driven=bool(requests))
         movement_end = None
@@ -568,6 +572,7 @@ class Player:
             return
         if self.body_script is not None:
             if posed:
+                self.match.combat.slams.observe(self)
                 self.match.combat.prepare(self, command)
                 if charge_start is not None:
                     if self.hero.guid == 0x02E0000000000007:

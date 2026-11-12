@@ -54,3 +54,24 @@ shared input-suppression flag. All97 combined Punch/Shadow/button/runtime/scene/
 repair/charge/storage checks passed. An actual Punch control-service probe also
 confirmed that controlled Bastion cannot consume queued/continuous repair.
 These are batch integration results, not whole-hero or client acceptance.
+
+## Subsequent intake and remaining source audit
+
+C2 `247f0bce` is received as `566dc09a` (Bastion spread/rear core),
+with56 combined owner/Punch/Shadow/button/runtime checks passing. A2 `1e5e2358`
+is received as `69d82dee` (reflected Reaper shell ownership);42 combined
+reflection/charge/runtime/Bastion checks passed, with one optional D.Va skip.
+A3 `a3808633` is received as `5242951d`, preserving three unchanged source
+Reaper interlock checks; all three passed.
+
+Worker A has identified a Reaper owner reconciliation boundary. The original
+`4babd033` delivery also contains substantial cross-owner shared code. Audit
+those owners before receiving the original ref; do not overwrite newer combined
+implementations or equate the ref's ancestry with mounted owner functionality.
+
+The Bastion source's `sniper_reposition.py` is a separate nonhero consumer to
+audit. Canonical already contains automatic142C `sniper_retreat` and navigation
+repositioning, but the older manual begin/stop/wait/attack-mode contract is not
+the same API. Preserve the frozen implementation and original NPC checks while
+reconciling actual behavior. A source-package fallback used only to load a Tank
+player fixture does not demonstrate that the manual NPC implementation is merged.
