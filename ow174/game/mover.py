@@ -336,33 +336,47 @@ COMPONENT_FIELDS = dict(zip((
 ), (field.name for field in fields(MoverData)), strict=True))
 
 
-def statescript_mover_data(component) -> MoverData | None:
-    """Decode a sole active ED2B22BD embedded profile before scalar mods.
+MOVER_COMPONENT = -1  # Original internal typed discriminator, not a native numeric property.
 
-    Native D3C925..978 publishes the typed component; C3CC80..CECE copies
-    the selected active record before applying numeric modifiers. Simultaneous
-    profile arbitration is not bound here. Missing fields are not defaulted.
+
+def component_data(value: dict) -> MoverData:
+    """Read a complete original typed mover override without defaulting fields."""
+    if not isinstance(value, dict) or value.get("$") != "STUCharacterMoverComponent":
+        raise ValueError("typed mover override must be STUCharacterMoverComponent")
+    result = {}
+    for key, name in COMPONENT_FIELDS.items():
+        number = value.get("m_" + key)
+        if type(number) not in (int, float) or not math.isfinite(number):
+            raise ValueError(f"invalid typed mover field {name}")
+        if name in ("character_collision", "ground_circle_rays"):
+            if number != int(number) or number < 0:
+                raise ValueError(f"invalid typed mover integer {name}")
+            result[name] = int(number)
+        else:
+            result[name] = f32(number)
+    return MoverData(**result)
+
+
+def statescript_mover_data(component, *, mover=None, frame=None) -> MoverData | None:
+    """Select the original typed row on its existing mover publication clock.
+
+    Actual Player/owned-Mech callers supply their sole mover and exact next frame.
+    A standalone single-profile query remains available without inventing a
+    multirow publication clock from the component's unrelated frame/epoch.
     """
-    profiles = []
-    for instance in component.instances.values():
-        for state in instance.states.values():
-            if not state.active or state.node.cls != MOVEMENT_MOD:
-                continue
-            for row in state.node.field("m_BC5E91CF") or ():
-                if isinstance(row, dict) and row.get("$") == "STU_ED2B22BD":
-                    profile = row.get("m_9B7A63EA")
-                    if not isinstance(profile, dict) or profile.get("$") != "STUCharacterMoverComponent":
-                        raise ValueError("invalid embedded mover component")
-                    values = {}
-                    for key, name in COMPONENT_FIELDS.items():
-                        value = profile.get("m_" + key)
-                        if type(value) not in (float, int) or not math.isfinite(value):
-                            raise ValueError(f"missing or invalid mover component field {key}")
-                        integer = name in ("ground_circle_rays", "character_collision")
-                        values[name] = int(value) if integer else f32(value)
-                    profiles.append(MoverData(**values))
+    if mover is not None:
+        if type(frame) is not int:
+            raise ValueError("typed mover selection requires its actual published frame")
+        active = sorted((mod for mod in mover.mods.values() if mod.acts(frame)), key=Mod.order)
+        selected = typed_data(mover.data, active)
+        return None if selected is mover.data else selected
+    profiles = [component_data(row.get("m_9B7A63EA"))
+                for instance in component.instances.values() for state in instance.states.values()
+                if state.active and state.node.cls == MOVEMENT_MOD
+                for row in state.node.field("m_BC5E91CF") or ()
+                if isinstance(row, dict) and row.get("$") == "STU_ED2B22BD"]
     if len(profiles) > 1:
-        raise NotImplementedError("simultaneous embedded mover profiles require native arbitration")
+        raise NotImplementedError("multiple typed rows require their actual mover publication clock")
     return profiles[0] if profiles else None
 
 
@@ -512,7 +526,7 @@ class Mod:
 
     index: int
     op: int
-    value: float | tuple[float, float, float]
+    value: float | tuple[float, float, float] | MoverData
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -540,13 +554,25 @@ def apply_op(op: int, value: float, operand: float) -> float:
     return value
 
 
-def modded(data: MoverData, mods: list[Mod]) -> MoverData:
+def typed_data(data: MoverData, mods: list[Mod]) -> MoverData:
+    """Original last typed row in priority/start/key order; scalar rows follow."""
+    for mod in mods:
+        if mod.index == MOVER_COMPONENT:
+            if not isinstance(mod.value, MoverData):
+                raise ValueError("invalid typed mover modifier")
+            data = mod.value
+    return data
+
+
+def modded(data: MoverData, mods: list[Mod], *, typed=True) -> MoverData:
     """The values of a tick: the body's own changed by its mods (0x7FF789B4CBA0). Each index starts as a
     scalar of 1 (or the value it replaces: jump speed, terminal velocities, ground gravity, character
     collision); the mods act on it in their order; then the speeds, accelerations and decelerations are
     the body's times their scalars, most clamped to 0 or more first, as the client multiplies them."""
     if not mods:
         return data
+    if typed:
+        data = typed_data(data, mods)
     slots = dict.fromkeys(range(10), 1.0)
     slots.update({JUMP_SPEED_MOD: data.jump_speed, GRAVITY_MOD: 1.0, BODY_SIZE_MOD: 1.0, TERMINAL: data.terminal_velocity,
                   TERMINAL_UP: data.terminal_velocity_up, GROUND_ACCEL: data.ground_gravity_accel,
@@ -639,6 +665,12 @@ def statescript_mods(component) -> dict:
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
+                if isinstance(mod, dict) and mod.get("$") == "STU_ED2B22BD":
+                    priority = _number(instance, mod.get("m_priority"), 0.0)
+                    found[(instance.id, state.index, slot)] = (
+                        MOVER_COMPONENT, SET, component_data(mod.get("m_9B7A63EA")), priority,
+                    )
+                    continue
                 if isinstance(mod, dict) and mod.get("$") == "STU_09F9B1FE":
                     # Native vector SET: D354C0 type2DEDB88 ->D3C809/C33FC0,
                     # op2. Only mode0 (whole world velocity) is implemented.
@@ -1036,7 +1068,12 @@ class Mover:
         flight_scale, profile = self.flight_scale, self.script_data
         if flight_profile is not None:
             flight_scale, profile = flight_profile
-        self.values = data = modded(flight or profile or self.data, active)
+        use_typed = flight is None and flight_profile is None
+        if use_typed and any(mod.index == MOVER_COMPONENT for mod in self.mods.values()):
+            # script_data previews the next publication for storage/owner queries;
+            # old recovered poses select only rows active on their own frame.
+            profile = None
+        self.values = data = modded(flight or profile or self.data, active, typed=use_typed)
         self.yaw = command.yaw
         self.pitch, held = turned_pitch(command.pitch)
         if held:

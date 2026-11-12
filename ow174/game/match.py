@@ -754,7 +754,7 @@ class Player:
             charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                           if credit[0] > script.component.now))
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
-        self.mover.script_data = statescript_mover_data(script.component) if script else None
+        self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=command.frame + 1) if script else None
         self.mover.flight_scale = statescript_flight(script.component) if script else None
         retained = getattr(self, "valkyrie_pose", None)
         if retained is not None and command.frame >= retained.through:
@@ -773,7 +773,7 @@ class Player:
                     if key[0] == instance and key not in active and mod.end is None:
                         mod.end = frame + 1
         self.mover.track_mods(statescript_mods(script.component), script.frame, posed=False)
-        self.mover.script_data = statescript_mover_data(script.component)
+        self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=script.frame + 1)
         self.mover.flight_scale = statescript_flight(script.component)
 
     def clear_valkyrie_pose(self) -> None:
