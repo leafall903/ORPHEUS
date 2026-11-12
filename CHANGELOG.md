@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve three original-language integration checkpoints
+
+- Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
+  unified Ice Wall actor/pool implementations without waiting for whole-owner
+  acceptance. Preserve source assertions, shared actors and existing budgets.
+- Record the joint26 failures and passing original2 IceSentry checks explicitly;
+  workers continue actual owner/fixture reconciliation. Full integration remains
+  in progress, with appearance migration excluded.
+
+
 ### Persist original NPC and tank integration receipts
 
 - Record current original-language ownership, selected v18 inputs and actual

@@ -1097,3 +1097,40 @@ charge/remaining motion then nonFluxSigma; C51 single actual IceWall actor ID/
 Vitals/lifetime then retained support-impact helpers. Source nonappearance
 completion is unproven until all original consumers and remaining nonhero
 source changes are reconciled; ancestry/path/test counts are not completion.
+
+
+## Preserved parallel checkpoints after worker interruption
+
+All three worker tracked changes were first committed without dropping partial
+implementations, then reviewed and merged: A80 bb396d8f ->4091b974,
+B58 e33dd315 ->e55e3f80, C51 0dcad5d2 ->769b27b7. Canonical and intake both
+contain the original-language implementation. Workers subsequently resumed on
+their existing branches and continue remaining owner consumers; no new worker
+or source tree was substituted.
+
+A80 mounts original Pet expiry/cooldown on the existing scripted barrier actor;
+B58 uses dated details of the existing Vitals healing deficit and optional Hog
+command timestamps; C51 binds geometry to the original five pillar actors and
+actual Vitals/TTL rather than allocating five additional geometry entities.
+
+Root joint26 on frozen769b27b7 finished86.455s with12 assertion records and4
+errors, not a passing combined suite. Hog retains only the original exact
+channel-end mitigation two subcases20vs10. Zarya old grenade expectations retain
+50vsactual60; its new world-clock test also assumes no body catch-up, now in
+conflict with A80's original expiry neutral-gap driver (1125vs1002). A owns
+checking energy is not double-consumed and reconciling that test's real intent.
+Two retained Ana/Sentry tests still read the obsolete ice_wall observation path,
+and the old wall snapshot fixture creates geometry without an actual Mei body.
+C owns binding those fixtures to the sole real walls/Mei actors, preserving
+assertions and causal storage checks. These failures did not prevent merging.
+
+The original0016 two complete IceSentry methods separately passed9.922s with
+only the existing host name mapped to walls; no assertion changed. The current
+actual Pet component causal snapshot also passes in the joint run. Earlier
+frozenb03ab783 scoped clock/charge/runtime13 checks passed57.997s.
+
+All root process handles77455/31322/10000 are terminal. Original owner policies,
+nonhero source reconciliation and full nonappearance completion remain open.
+Latest worker estimates A5-10/B14-27/C8-18 active hours plus root integration;
+remaining30-60 continuous parallel hours /3-5 calendar days is low confidence,
+not a completion guarantee or a percentage derived from test counts.
