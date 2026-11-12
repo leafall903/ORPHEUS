@@ -305,6 +305,8 @@ class BodyWorld(runtime.World):
         self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
         self.zenyatta_charge_ammo = None
+        if hero == 0x02E0000000000005:
+            self.hanzo_climb = None
         self.match: Match | None = None
         if hero == 0x02E000000000007A:
             from ow174.game.script import spatial_queries
@@ -1922,7 +1924,8 @@ class BodyScript(ReplicatedBody):
         self.world_frame_anchor: tuple[int, int] | None = None
         if hero == 0x02E0000000000002 and match is not None:
             self.world_frame_anchor = match.tick, start_frame
-        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
+        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
+                                               0x02E0000000000005):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
@@ -2296,6 +2299,16 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if (self.ult_seconds is not None or self.retired or self.component.owner_dead
+                    or hanzo_control.casting(self) or type(points) not in (int, float)
+                    or not math.isfinite(points) or points <= 0):
+                return 0.0
+            before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            hanzo_charge.damage(self, points)
+            return expr.to_float(self.component.entity_var(ULT_CHARGE).value()) - before
         if self.hero == BASTION:
             if (type(points) not in (int, float) or not self._ult_charge_allowed()
                     or not math.isfinite(points) or points <= 0):
@@ -2341,6 +2354,15 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if self.retired or self.component.owner_dead or self.ultimate_running() or hanzo_control.casting(self):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                hanzo_charge.passive(self)
+                return
         if self.hero == BASTION:
             if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
                 self.passive_charge_ms = 0

@@ -236,3 +236,18 @@ fallback:140 vs70 Storm hit and lethal vs125 recovery arrow. Do not weaken those
 checks or delete native view offsets. Next exact action after the isolated
 runtime commit is finish/submit A12, then mount actual lunge/climb/Sonic/Dragon
 consumers. No whole0005 admission is claimed.
+
+A11 committed `a56f80cb`. A12 now mounts original Hanzo charge/control modules
+unchanged, default authored damage/passive charge (None debug override), control
+draw cancellation/manual-cast/Storm cleanup, bow critical/gravity and analytical
+sweeps, including explicit gravity-only arrows. Allseven focused original bow,
+Fortify/charge, melee/death and ballistic-gap checks passed in
+`worker-a-hanzo-bow-charge-final.log`. Original control file is retained unchanged;
+its full imports still need Sonic/Dragon fixtures/consumers, and its final damage
+assertions retain the previously recorded camera/contact differences. Earlier
+cancel/no-damage/control assertions passed before that numerical failure.
+Next exact action is mount hanzo_movement.py's lunge/climb/ledge and its native
+velocity/pose services; its sole Sigma dependency is the original
+controls_target_pose predicate over the target effect. Then mount original
+sonic.py/dragon.py and their actual shoot/update/cleanup consumers. Do not mark
+0005 complete just because its core modules or delivery ref are retained.
