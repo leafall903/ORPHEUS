@@ -6,6 +6,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Minimum Rust and portable crate CI
+
+- Added a Windows Rust 1.85.0 workspace/all-targets check with inspector enabled and an Ubuntu stable test lane for collision, runtime and wire. Retained both existing public check names.
+- The exact Rust 1.85.0 command passed locally. Both public lanes, both Clippy lanes, formatting and all 66 prepared baseline checks passed for the same Rust source. Hosted Linux verification is pending.
+
 #### Independent protocol crate
 
 - Extracted bits, commands, JAM cipher/codecs/framing and the game datagram codec into `orpheus-wire`, preserving existing server import paths and sharing the array-count limit with its collection caller.
