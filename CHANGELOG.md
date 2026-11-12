@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Doomfist defense consumers and flight budget
+
+- Retain original10 Wraith,15 Deflect and20 Grasp scenarios using actual
+  canonical services for their renamed observations. Wraith10 and Deflect15
+  pass with explicit complete external projectile tags; all13 passive checks
+  pass alongside Deflect (28 total).
+- Restore the delivered reflection endpoint policy: only move the separation
+  epsilon that remaining flight can pay for, and count it in travelled
+  distance. Keep source shield grant deadline/cap separate from the advancing
+  integration cursor and depleted wire maximum. Existing positional shield
+  constructor arguments remain unchanged; new stored fields are appended.
+- Preserve Grasp's first20-check result (one failure/four errors), concerning
+  old aggregate-field observations and source pool_reports versus native extra
+  pool staging. Actual023B pending/posed/fault consumers still need audit.
+- Echo/Genji shared33-check regression has7 failures/2 errors both with this
+  change and HEAD's original sweep function. Retain both logs; no original
+  check was removed. Whole-line/client acceptance remains open, no push.
+
 ### Retain Doomfist input and Meteor lifecycle checks
 
 - Preserve the original magazine/resource, Flashbang-interrupt, throttle and
