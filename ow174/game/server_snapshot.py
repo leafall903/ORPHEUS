@@ -246,7 +246,7 @@ FIELDS = {
         "combat seen regeneration protection_seen fields field_bindings matrices"
     ),
     healing.HealingEffects: _names("combat spec anti amp"),
-    absorption.Grasp: _names("combat converted last_tick"),
+    absorption.Grasp: _names("combat converted decay_clocks last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
     graviton.Gravitons: _names("fight fields pulled npc_movers"),
     winston_barrier.DomeWorld: _names("hero mode manager actor"),

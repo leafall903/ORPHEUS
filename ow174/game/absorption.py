@@ -45,10 +45,12 @@ class Grasp:
     def __init__(self, combat):
         self.combat = combat
         self.converted = {}
+        self.decay_clocks = {}
         self.last_tick = None
 
     def retire(self, entity):
         self.converted.pop(entity, None)
+        self.decay_clocks.pop(entity, None)
 
     def absorbed(self, state, direct, blast, source):
         value = amount(direct, blast)
@@ -85,6 +87,7 @@ class Grasp:
                 if getattr(getattr(target.owner, "hero", None), "guid", None) == SIGMA}
         for entity in self.converted.keys() - live:
             del self.converted[entity]
+            self.decay_clocks.pop(entity, None)
 
 
 def grasp_intersection(combat, shooter, origin, direction, reach):

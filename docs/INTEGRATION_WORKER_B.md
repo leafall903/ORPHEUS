@@ -2005,3 +2005,31 @@ restore actual original decay deadline/rate on existing soleTemporaryPoolgroup,
 using precise grant receipt bodyms/worldtick association, with zero/capped
 grants unable to extend an existing delay. No global clock/VM advancement or
 input lease; prove raw unequal epoch and same-domain sparse fixtures.
+
+
+## B74 — original Grasp world decay from actual producer phase
+
+Actual same-domain source grant recorded component.now18015/frame1125 and
+worldtick1125; its Wait71 deadline21015. Mapping to worldreceipt+3s alone gave
+21000,15ms early, so source start-1 became435.96 instead of436. Preserve that
+failed mount log; DO NOT hardcode15. Record actual producer frame+componentms+
+receiptworldtick, then deadline=worldtick+(componentms-frame*frame_ms+delayms)/16.
+Original delay/rate come from the actual71/70 graph expressions.
+
+Append soleGrasp.decay_clocks, exact server_snapshot field registered. Values
+are(sourceinstanceid,absorptioncounter,bodyframe,bodyms,worldtick,delay,rate),
+not an input lease/birthpair/second host. Only a valid ready original34 action
+whose evaluated amount/cap can actually add to current named pool establishes
+a new clock; zero/capped grants cannot postpone existing decay. Existing
+converted identity still deduplicates each activation. Existing pool.last_tick
+settles the ONE named pool group, even while bodyVM28 is inactive and input
+is absent. Primitive no-producer fallback is retained. Body retirement/death/
+exhaustion clears the clock; no second health/charge budget or VM advancement.
+
+Original missing sparse/replay plus two realactivation tests4/4 pass12.459s;
+FULL original023BGrasp shield11 +Damage8/runtime13 =32/32 pass41.192s, all
+original numbers/assertions retained. Logs worker-b-sigma-grasp-decay-{mount,
+subframe,source-joint}.log. Raw unequal-epoch strict-server proof is the next
+independent batch; do not claim that unrun probe from same-domain success.
+No original-client acceptance run. B75 prepared untracked raw test will verify
+actual1000+body/50world, inputless3s cutoff, frozen VM and causal clock hash.
