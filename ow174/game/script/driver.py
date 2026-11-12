@@ -549,11 +549,6 @@ class BodyWorld(runtime.World):
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and state.instance.graph.index == 0x0043 and state.node.pos == 14):
             return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
-        # The hosted projection supplies its overlap gate while the native
-        # 025C recipient effect/tag system is unimplemented.
-        if (self.match is not None and self.hero == 0x02E0000000000068
-                and state.instance.graph.index == 0x0244 and state.index == 0):
-            return self.match.combat._active_projected_barrier(self.body) is None
         return True
 
     def ability_cooldown_floor(self, state):
