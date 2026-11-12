@@ -48,6 +48,32 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_target_tag_query_replaces_old_results_in_declared_order_and_forgets_reused_ids(self):
+        def tag(key):
+            return {'$': 'STU_357DABBB', 'm_7D7C86A1': f'0x{0x0D60000000000000 | key:016X}'}
+
+        world = scene.SceneWorld()
+        for entity in (123, 124, 125, 126, 127):
+            world.bind(entity)
+        world.set_target_tag_candidates([(126, (2, 3)), (125, (1, 2, 3)),
+                                         (124, (1, 2)), (127, (1, 2, 3, 4))])
+        query = node(0, 'STU_42578342', m_4AEEE6A1={
+            '$': 'STUConfigVarDynamic', 'm_identifier': 9, 'm_60DB8F99': 0},
+            m_9C7BD8B8=array(tag(1), tag(3)), m_B486603E=array(tag(2), tag(3)),
+            m_8B2A4DF3=tag(4), m_outPlug=plug((1, 'm_inPlug')))
+        instance = runtime.Component(123, world=world, strict=True).create(graph([query, setter(1, 99)]), init=False)
+        instance.write((0, 9), (expr.Entity(999),))
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), (expr.Entity(126), expr.Entity(125)))
+        self.assertEqual(instance.vars[7].value(), 99)
+        world.unbind(126)
+        world.bind(126)
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), (expr.Entity(125),))
+        world.set_target_tag_candidates([])
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), ())
+
     def test_junkenstein_handoff_builds_the_authored_phase_duration_and_graph_list(self):
         world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[1])
         mode = runtime.GAME_MODE_ENTITY
