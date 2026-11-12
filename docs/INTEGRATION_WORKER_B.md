@@ -1785,3 +1785,32 @@ Next exact action: sync parent current canonical on clean boundary; audit
 Hypersphere real shared impulse and source Sigma charge/Grasp consumers. Root
 Flux and A Zarya remain sole owners. Source test/CLI module names must be
 verified from actual paths before claiming a file missing. No client acceptance.
+
+
+## B66 — original Hypersphere airburst, rings and impact consumers
+
+Original three initial Hypersphere cases failed before mounting: pair expiry
+left target200 rather than140; close enemy received no impulse; omitted scalar
+was0 rather than original1. Restore original hypersphere_motion whole-function
+AST unchanged in sigma_projectiles and call it only for actual Sigma187F45/56.
+Its actual gravity and declared expiry flag now feed the same Rocket flight.
+Recover original missing ring fallback1 inside Sigma187F/1BBB; explicit0 stays0.
+Original per-axis impulse profile is now read for actual187F45/56 and applied
+by existing same-mover helper after direct/blast damage, with source self damage
+through the same cover transaction. Self impulse remains original declared0,
+so close owner damage does not push itself or award enemy charge.
+
+Five unchanged original source methods pass3.495s:22m pair expiry, close self
+and enemy, missing/explicit-zero rings, sparse-vs-paced expiry, and unrelated
+projectiles retaining no expiry damage. Those5 +B64six +Damage8/runtime13
+=32/32 pass7.444s (worker-b-sigma-spheres-{baseline,mounted,joint}.log).
+No new persistent fields, manager/pool or controller; existing captured profile
+and source_graph fields remain authoritative. No client acceptance run.
+
+The profile's collision radii/bounce count/normal/tangent outputs still need
+the original distinct sphere wall response: do NOT claim whole sphere physics
+complete and do NOT substitute Junkrat restitution, whose response differs.
+Next exact action: clean sync parent canonical, then mount source normalized
+Hypersphere wall contact/fractional gravity/count retirement on same Rocket;
+retain current C55same-wall piece candidate and C56Pharah force-plan branches.
+After that continue Sigma charge/Grasp original consumer audit.
