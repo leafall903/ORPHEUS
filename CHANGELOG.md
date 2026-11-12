@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Apply existing frost modifiers to autonomous NPC navigation
+
+- Feed the existing per-body movement modifier into the same navigator Mover;
+  scale explicit MoveTo speeds and the existing ledge approach without changing
+  targets, planning, clocks, full-control gates or body allocation.
+- Original navigation37 and Mei frost9 all pass14.815s. A real prepared Trooper
+  receiving the actual frost consumer at50% travels0.8056640625 versus
+  1.6123046875 over20ticks, preserving the same navigator Mover.
+
 ### Connect original Photon plane casts and shared surface contacts
 
 - Mount original0016 Q confirmation, actor creation and lifetime in the existing
