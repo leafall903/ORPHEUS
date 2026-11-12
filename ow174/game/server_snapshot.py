@@ -201,7 +201,7 @@ FIELDS = {
     sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
-    knockback.Knockbacks: _names("combat serial active whole_hog_seen"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion"),
     support_effects.Effects: _names("match attachments boost_frames"),
     support_effects.EffectWorld: _names("hero mode match source owner"),
     sombra_control.DeviceWorld: _names("hero mode fight body tags"),
@@ -328,7 +328,7 @@ OPTIONAL_FIELDS = {
 }
 DATACLASSES = (
     message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
-    hook.Flight, whole_hog.Spec,
+    hook.Flight, whole_hog.Spec, whole_hog.Motion,
     ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,

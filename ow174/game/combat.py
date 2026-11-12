@@ -4568,7 +4568,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.hooks.flights or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
+            or self.hooks.flights or self.knockbacks.whole_hog_motion or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending

@@ -1562,3 +1562,46 @@ control priorities. Then cross-owner Hog victim credit and non-Flux Sigma.
 Remaining B effort approximately14–27 active hours, low confidence: Hog4–7,
 non-Flux Sigma6–12, other owned caller/storage closure4–8. Root Flux and A Zarya
 remain separate. Original failed assertions do not block delivered code batches.
+
+
+## B60 — original player WholeHog world motion on the sole capsule host
+
+Restore original Motion(owner,body,velocity,tick,npc_mover) as selected source
+state INSIDE sole Knockbacks. Player WholeHog no longer injects a parallel native
+queue delta: original world16ms damping calls the SAME player Mover.displace,
+leaving input velocity independent. Player.movement sums that original external
+velocity for the actual observer. Same-tick updates skip already consumed ticks;
+world-gap substeps include active source motion. Native queue requests keep
+priority and retire only the selected source channel; original Hook contact also
+retires ONLY that selected channel, leaving generic physical owners unchanged.
+Halt/root/pin/graviton/immunity preemption does not replay old external slices
+when released. Damageable non-body devices have no fabricated player capsule.
+Exact Motion and ledger fields are registered in strict server storage.
+
+Original total WholeHog damage/HIT relation now passes, correcting B53's
+329.0097vs336 after restoring original separate damping; with runtime13 this is
+14/14 pass4.066s. Five original motion cases + existing direct force regression
+6/6 pass46.373s:16ray aggregation/cap/decay and same-worldtick no-double-update,
+real wall sweep, continuous vs60tick world-only gap, actual Hook takeover, and
+read-only full-server export with motion velocity/dedup causal mutation. Followup
+six checks have only an old defenses.control_immune observation error; map it to
+actual fight._control_immune(player_target) and that original Fortify resume case
+passes1/1 in3.220s. The other five pass18.257s, including an added fresh body
+command PLUS another world update in the same tick with no duplicate external
+movement, death/replacement cleanup, far ring and repeated caps/owner death.
+Logs worker-b-hog-world-motion-{mount,original-2,boundaries,fortify}.log.
+
+Preserve original defense/graviton/trap/knockback fixture files in full. Real
+service mappings replace obsolete impulse views, radial callback observer,
+Fortify query and SoundBarrier constant; all original motion assertion-call ASTs
+match under those name/getter mappings. Trap fixture imports the Graviton module
+instead of leaking its TestCase into discovery. No expected numeric value changed.
+The original tests still include NPC/trap/graviton/counter scopes not yet all
+mapped; do not count the entire file as passed.
+
+Next exact action B61: ordinary five-NPC selected world motion on their SAME
+impulse_mover and prepared movement_data, then owned-DVa actual control_mover and
+body/world epoch queue contract. Those still use B53's narrower ordinary queue or
+explicit owned-mech skip; player success is not whole-owner completion. Root
+owns Flux, A Zarya. Cross-owner victim credit, historical reduction offset0,
+Halt/native-vector overlap details and non-Flux Sigma remain. No client run.

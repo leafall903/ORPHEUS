@@ -47,3 +47,13 @@ def evaluate(state, modify):
     return Spec(*values, rings)
 
 
+
+@dataclass
+class Motion:
+    owner: object
+    body: int
+    velocity: tuple
+    tick: int
+    npc_mover: object = None
+
+

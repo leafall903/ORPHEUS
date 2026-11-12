@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original player WholeHog world damping
+
+- The sole Knockbacks host now applies original selected external motion through
+  the same player capsule and observer velocity, without a second native delta.
+  Preserve generic queue/control priority and Hook takeover of this channel only.
+- Original damage/runtime14 and motion/storage6 checks pass, plus lifecycle,
+  Fortify/range/cap and same-tick command/world boundaries. Keep full original
+  fixtures and numbers; NPC/owned-mech coupling remains next. No client run.
+
 ### Preserve chronological Roadhog healing in strict server storage
 
 - Same Vitals budget now retains dated damage and actual pool changes for source
