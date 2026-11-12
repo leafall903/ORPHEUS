@@ -1864,3 +1864,49 @@ sharedHook andMine lifecycle; A ownsremaining000E/Pin/LinkedTarget wirecoupling.
 AggregateC remaining roughly9-20activeworkerhours(lowconfidence, overlaps);
 unknownsamefunctionconsumer equivalence/geometry canraiseit. Notcalendar estimate
 or linear extrapolation oftestcounts. No acceptance/client workadded to scope.
+
+
+## C45: select each incoming instance's actually observed component clock
+
+Cleanmerge root8fa1a320 as6f45a37e, preserving originalcontroller/Pin/LinkedTarget
+andMine consumers. OneControl conflict combined B45 preciseMine worldcursor until
+withC44 actualLock.clock; Mine+device_binding exclusions both retained. Upstream
+Mineflight fixture alreadyhasextraEOFblankline; C didnotrewriteitsoriginalfile.
+
+Root review prompted actualalias audit: pulse is0B32 recipientEMP, notcaster0B31.
+TypicalbodyEMP sharesapplicationcomponent; Portal remoteeffect referencesnear
+endpointpulse. SimplefirstEMP actualclocks happened equal andordernearfirst, not
+proof thatsourceclockwrong. Real sequence exposingbug: originalPortal deploy,
+actualremoteBotScript.advance_live(fight.tick,position) (nofieldmutation), ordinary
+Hack remote from(0,0,19), moveactualSombra near(4,0,0), paidEMP. Existingdict order
+remote->near; remoteclock(1119,16895),near(1119,16095), sameactualnear0B32pointer
+referencedbyremoteLock. C44 instance.update atworld1121 used16911ms whenactual
+pulsecomponentobservedpair requires16111ms. Read-onlywrapperobserved this800ms
+prematurecursor, no fakeVar/namespace/epoch. Logs
+worker-c-sombra-pulse-alias-probe.log,
+worker-c-sombra-foreign-pulse-clock-baseline-probe.log,
+worker-c-sombra-foreign-pulse-overlap-baseline-probe.log.
+
+Incomingreplay now builds ephemeral component->latestactualLock.clock lookup;
+EFFECT keepsitsownacceptedclock, pulseusesclockobservedonitsexactComponent.
+No knownassociation meansskip, never borrowforeigncomponentepoch. Instance
+identitydedupe and finally clockrestoration retained. No newstoredclockfield,
+sourcecontroller clock,0B31 replay, timer, effect or manager.
+Sameactualoverlapprobe nowobserves(1121,16111,16111); pulsecomponent(frame1005,
+now16095) restoredexactly. worker-c-sombra-foreign-pulse-overlap-corrected-probe.log.
+
+v17 environment/test_environment; python -B -m unittest
+ test_game_sombra_charge.SombraChargeTests test_ashe_hack
+ test_ashe_emp.AsheEmpTests.test_emp_refreshes_the_lock_from_its_own_impact_after_ordinary_hack
+ test_ashe_emp.AsheEmpTests.test_emp_blocks_abilities_without_suppressing_viper_and_releases_at_expiry
+ test_game_sombra_combat.SombraCombatTests.test_paid_emp_matches_pulse_and_expiry_with_no_player_commands
+ test_game_script_runtime -v:39allpass132.358s,
+worker-c-sombra-component-clock-shared-check.log. No source/assert edits duringgroup.
+
+NextC46: original EMPshielddrain damageconsumer currentlydirectpoolmutation loses
+canonicalshieldrecovery/receiveddamage/stats callbacks. Do not suppress existing
+Zenyatta regen foroldfixture. Thenprioritize actualSymm historicaldamage_starts/
+cryo_expiries/barrier_cover_ends pipeline andmissingretainedsupport helpercalls
+rootidentified cover_ray/trace_barrier/_splash_targets/_splash_barriers/
+visible_target; bridgecurrenthelpers, nevercopywholelegacyCombat.
+No client/journal/fullacceptance claim; previousperownerinventorystillapplies.

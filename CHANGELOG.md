@@ -81,6 +81,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   pass. Original explicit AI association/recipient coupling remains next; no
   client acceptance or extra controller allocation added by this fix.
 
+### Keep incoming EMP replay on each actual receiver component clock
+
+- Portal overlap can reference the near pulse from a remote endpoint effect.
+  Resolve that pulse's clock from its own existing component observation, and
+  skip unknown associations while preserving instance dedupe/clock restoration.
+- Real Hack-then-EMP relay reproduces an800ms foreign-clock cursor error and now
+  uses the correct16111ms. Original charge/Ashe/EMP/runtime39all pass; no new
+  stored clock, manager, timer or assertion changes.
+
+### Replay incoming Sombra applications on their observed recipient clocks
+
+- Record each existing Lock's actual delivery world/component association;
+  replay incoming EMP and retired-source Hack instances without advancing body
+  input, restoring component clocks and preserving live-source world expiry.
+- Ordinary/shifted-epoch and10000-tick gap probes retire actual applications
+  while recipient body clocks remain unchanged. Original70:68pass, two retained
+  snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
+  remaining owner consumer inventory and rough activehours persisted.
+
 ### Preserve controller Pin services in causal server storage
 
 - Exact original Pin/message storage and current scalar/vector modifier records
@@ -211,6 +230,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   while recipient body clocks remain unchanged. Original70:68pass, two retained
   snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
   remaining owner consumer inventory and rough activehours persisted.
+
 
 ### Consume original Sombra ability and logical-button silence policies
 
