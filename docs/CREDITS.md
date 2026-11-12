@@ -132,6 +132,14 @@ The 104319 RayCast state binds its outputs at RVA `8EC210` and updates them at
 The target-build `002C.097` profile supplies the static category mask for
 Seismic Slam and Piledriver.
 
+## The Best Defense
+
+The local 104319 graph export supplies the damage-dealt listener in `0DDD`,
+the grant script `0DF3`, the named pool and its decay. The existing Summoner
+damage sender supplies the typed message precedent. Blizzard's October 2019
+notes record the normal 30-point grant.
+[Blizzard October 2019 patch notes](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2019/10/)
+
 ## Wrecking Ball
 
 The local 104319 statescript export supplies the authored Quad Cannons (`1514`),

@@ -161,6 +161,30 @@ class AutomaticLifetimeTests(unittest.TestCase):
         component.run_frame(2)
         self.assertNotIn(active.id, component.instances)
 
+    def test_stopped_play_retirement_requires_world_opt_in_and_a_transient_root(self):
+        for opted_in, transient, child in ((True, True, False), (False, True, False),
+                                            (True, False, False), (True, True, True)):
+            with self.subTest(opted_in=opted_in, transient=transient, child=child):
+                component = runtime.Component(B, strict=True)
+                parent = component.create(graph()) if child else None
+                instance = component.create(graph([node(0, 'STUStatescriptState', state=0)]),
+                                            parent=parent)
+                instance.auto_retire = transient
+                state = instance.state(0)
+                state.begin()
+                instance.post(runtime.Event(component.now, 0, runtime.STOP))
+                with (
+                    mock.patch.object(component.world, 'retires_stopped_play', return_value=opted_in),
+                    mock.patch.object(state, 'on_destroyed', wraps=state.on_destroyed) as cleanup,
+                ):
+                    component.run_now()
+
+                retired = opted_in and transient and not child
+                self.assertTrue(instance.stopped)
+                cleanup.assert_called_once_with()
+                self.assertEqual(instance.id not in component.instances, retired)
+                self.assertEqual(instance in component.destroyed, retired)
+
     def test_events_and_active_states_keep_the_transient_instance_alive(self):
         component = runtime.Component(B, strict=True)
         active = component.create(graph([node(0, 'STUStatescriptState', state=0)]))

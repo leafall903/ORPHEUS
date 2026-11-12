@@ -196,6 +196,8 @@ WHEEL_CALLOUT_TEXTURES = {
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
 ABILITY_RAY_CATEGORIES = {0x069000000000002C: 0x1FDF}  # 104319 static cast profile
+DOOMFIST_PASSIVE_GRAPH = 0x0DDD
+DOOMFIST_SHIELD_GRAPH = 0x0DF3
 WHEEL_HEALING_TAG = 0x0D60000000000308
 WHEEL_GREETING_TAG = 0x0D60000000000661
 ASHE_BODY = 0x040000000000251C
@@ -471,7 +473,22 @@ class BodyWorld(runtime.World):
                         # The match does not attach a pet owner to these player bodies.
                         # Node 120 short-circuits before its component43 comparison.
                         return Entity(0)
-        if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+        if cls == "STU_783B4CF0" and self.match is not None and instance is not None:
+            kind = cfg.get("m_7E8B666C") or {}
+            pool_id = self._shield_pool_id(cfg)
+            if (pool_id is not None and kind.get("$") == "STU_297E1A30"
+                    and kind.get("m_7E8B666C") == 2
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                return self.temporary_shield_current(self.body, pool_id)
+        if cls == "STU_AC829876":
+            target_filter = cfg.get("m_filter") or {}
+            fields = {"$", "m_84065FD1", "m_66747E7D"}
+            if (self.match is not None and instance is not None
+                    and target_filter.get("$") == "STUConfigVarFilter"
+                    and target_filter.get("m_84065FD1") == 1 and target_filter.get("m_66747E7D") == 2
+                    and all(value in (None, 0) for key, value in target_filter.items() if key not in fields)):
+                target = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                return self.match.script_hostile_body(self.body, target)
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -481,9 +498,26 @@ class BodyWorld(runtime.World):
             return 0
         return self.match.combat.nearby_enemy_count(owner, radius)
 
-    def set_temporary_shield(self, owner: int, pool_id: int, amount: float) -> None:
+    @staticmethod
+    def _shield_pool_id(cfg: dict) -> int | None:
+        identifier = cfg.get("m_7BE02F89") or {}
+        guid = expr.guid_of(identifier.get("m_identifier"))
+        if identifier.get("$") == "STUConfigVarIdentifier" and guid >> 52 == 0x0D8:
+            return guid & 0xFFFFFFFF
+        return None
+
+    def set_temporary_shield(
+        self, owner: int, pool_id: int, amount: float, *, contributor: tuple[int, int] | None = None,
+    ) -> None:
         if self.match is not None and owner == self.body:
-            self.match.combat.set_temporary_shield(owner, pool_id, amount)
+            self.match.combat.set_temporary_shield(owner, pool_id, amount, contributor=contributor)
+
+    def temporary_shield_current(
+        self, owner: int, pool_id: int, *, contributor: tuple[int, int] | None = None,
+    ) -> float:
+        if self.match is None or owner != self.body:
+            return 0.0
+        return self.match.combat.temporary_shield_current(owner, pool_id, contributor=contributor)
 
     @staticmethod
     def equipped_wheel_asset(slots: tuple[int, ...], slot) -> Asset:
@@ -516,8 +550,11 @@ class BodyWorld(runtime.World):
     def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
         from ow174.game.script import play, play_queue
 
-        index = WHEEL_PLAY_GRAPHS.get((instance.graph.index, node.pos))
-        if not self.communication_wheel or index is None:
+        key = (instance.graph.index, node.pos)
+        index = DOOMFIST_SHIELD_GRAPH if key == (DOOMFIST_PASSIVE_GRAPH, 4) else None
+        if index is None and self.communication_wheel:
+            index = WHEEL_PLAY_GRAPHS.get(key)
+        if index is None:
             super().play_script(instance, node)
             return
         resource = play.resolve_resource(instance, node)
@@ -534,6 +571,9 @@ class BodyWorld(runtime.World):
         if request is not None and request.targets == (self.body,):
             # The bundle already holds the resource, so submission can flush synchronously.
             play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
+
+    def retires_stopped_play(self, instance: runtime.Instance) -> bool:
+        return instance.graph.index == DOOMFIST_SHIELD_GRAPH
 
     def _wheel_animation_key(self, instance: runtime.Instance, node: graph.Node) -> tuple | None:
         parent = instance.parent
@@ -732,8 +772,10 @@ class BodyWorld(runtime.World):
         return mccree.targets(self, state)
 
     def modify_health(self, state, elapsed_ms):
-        """Queue one hit per body for the supported tracked damage configuration."""
+        """Apply named shield decay or report damage from a supported target tracker."""
         config = state.node.field("m_modifyHealth") or {}
+        if state.instance.graph.index == DOOMFIST_PASSIVE_GRAPH and state.node.field("m_DD792FF0") == 2:
+            return self._decay_temporary_shield(state, config, elapsed_ms)
         if (self.match is None or state.node.field("m_DD792FF0") != 3
                 or config.get("m_93CDFD2F") != 1):
             return NotImplemented
@@ -761,6 +803,22 @@ class BodyWorld(runtime.World):
                 instance.component.damage_reports.append(
                     (state, state.counter, targets, hit.amount, hit.loadout, hit.tags),
                 )
+        return True
+
+    def _decay_temporary_shield(self, state, config, elapsed_ms):
+        pool_id = self._shield_pool_id(state.node.fields)
+        if (self.match is None or pool_id is None
+                or config.get("m_93CDFD2F") != 1
+                or state.evaluate(state.node.field("m_FA3ECC43"), watch=False) != Entity(self.body)
+                or state.evaluate(state.node.field("m_95F1FB0B"), watch=False) != 1):
+            return NotImplemented
+        rate = state.evaluate(config.get("m_amount"), watch=False)
+        if not nodes._finite_number(rate) or rate <= 0:
+            return NotImplemented
+        if elapsed_ms > 0:
+            self.match.combat.drain_temporary_shield(self.body, pool_id, rate * elapsed_ms / 1000.0)
+        if self.temporary_shield_current(self.body, pool_id) <= 0:
+            state.request_finish()
         return True
 
     def target_effects(self, state):

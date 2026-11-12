@@ -457,8 +457,15 @@ class World:
     def nearby_enemy_count(self, owner: int, radius: float) -> int:
         return 0
 
-    def set_temporary_shield(self, owner: int, pool_id: int, amount: float) -> None:
+    def set_temporary_shield(
+        self, owner: int, pool_id: int, amount: float, *, contributor: tuple[int, int] | None = None,
+    ) -> None:
         pass
+
+    def temporary_shield_current(
+        self, owner: int, pool_id: int, *, contributor: tuple[int, int] | None = None,
+    ) -> float | None:
+        return None
 
     def ai_weapon_button(self, slot: int) -> int | None:
         return None
@@ -709,6 +716,10 @@ class World:
 
     def finish_wheel_emote(self, instance: "Instance", node: Node):
         return NotImplemented
+
+    def retires_stopped_play(self, instance: "Instance") -> bool:
+        """Whether a stopped transient PlayScript root should leave this world."""
+        return False
 
     def play_script(self, instance: "Instance", node: Node) -> None:
         """Select a native PlayScript resource, then ask the world to route it."""
@@ -1537,6 +1548,14 @@ class Instance:
             self.write((scope, identifier), value)
         elif event.kind == STOP:
             self.stop()
+            if (
+                self.stopped
+                and self.auto_retire
+                and self.parent is None
+                and self.component.instances.get(self.id) is self
+                and self.component.world.retires_stopped_play(self)
+            ):
+                self.component.destroy(self)
         elif event.kind == BUTTON:
             self.button_edge(event.button, event.pressed)
         elif event.kind == MESSAGE:

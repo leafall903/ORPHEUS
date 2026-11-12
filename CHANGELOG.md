@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Doomfist temporary shields
+
+- Feed applied damage into Doomfist's authored The Best Defense listener.
+  Eligible skill hits grant 30 shield, and the authored ultimate tag grants
+  75, up to 150 current temporary shield under the default ruleset.
+- Track grants separately within one named health pool. Shared damage consumes
+  temporary shields first. The authored wait starts shield-only decay at
+  three points per second under the default ruleset. Retire depleted grant
+  instances and discard queued hits for replaced bodies.
+- Regressions cover real Uppercut and Hand Cannon input, tagged and excluded
+  damage, lethal hits, absorption, cap, decay, and hero switching. Passed Ruff,
+  921 public Python tests, six dashboard tests and 44 communication-wheel
+  regressions. Native capacity display,
+  exact decay granularity, Meteor Strike gameplay and client acceptance remain open.
+
 #### Rising Uppercut target sampling
 
 - Keep the immediate entry query and sample new targets on the authored

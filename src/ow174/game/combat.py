@@ -296,6 +296,9 @@ class WaveHealthPool:
     current: float
 
 
+ShieldContributions = dict[tuple[int, int] | None, tuple[float, float]]
+
+
 class Vitals:
     """A body's pools as component 51 has them: health, armour, shields (world.health's ids and fields)."""
 
@@ -303,7 +306,9 @@ class Vitals:
         self.entity = entity
         self.most = {HEALTH_POOL: float(health), ARMOUR_POOL: float(armour), SHIELDS_POOL: float(shields)}
         self.now = dict(self.most)
-        self.temporary_shields: dict[int, tuple[int, float, float]] = {}
+        # Wire slot -> (pool identifier, contributor -> (capacity, current)).
+        # A None contributor keeps the existing single-pool lifetime behavior.
+        self.temporary_shields: dict[int, tuple[int, ShieldContributions]] = {}
         self.ids = {}
         pool_id = 1
         for kind in (SHIELDS_POOL, ARMOUR_POOL):  # world.health numbers them so
@@ -325,32 +330,86 @@ class Vitals:
     @property
     def total(self) -> float:
         bonus = self.wave_health.current if self.wave_health is not None else 0.0
-        return sum(self.now.values()) + bonus + sum(now for _, _, now in self.temporary_shields.values())
+        temporary = sum(
+            current for _, rows in self.temporary_shields.values() for _, current in rows.values()
+        )
+        return sum(self.now.values()) + bonus + temporary
 
     @property
     def capacity(self) -> float:
-        return self.normal_health(maximum=True) + sum(most for _, most, _ in self.temporary_shields.values())
+        temporary = sum(
+            capacity for _, rows in self.temporary_shields.values() for capacity, _ in rows.values()
+        )
+        return self.normal_health(maximum=True) + temporary
 
-    def set_temporary_shield(self, pool_id: int, amount: float) -> None:
-        for slot, (existing, _, _) in self.temporary_shields.items():
-            if existing == pool_id:
-                if amount <= 0.0:
-                    self.temporary_shields[slot] = (0, 0.0, 0.0)
-                    self.changed.add(SHIELDS_POOL)
-                return
-        if amount <= 0.0 or self.dead:
+    def _shield_contributions(self, pool_id: int) -> ShieldContributions | None:
+        return next((rows for existing, rows in self.temporary_shields.values() if existing == pool_id), None)
+
+    def set_temporary_shield(
+        self, pool_id: int, amount: float, *, contributor: tuple[int, int] | None = None,
+    ) -> None:
+        """Register one grant, or remove its remaining contribution when its state ends."""
+        if pool_id <= 0 or not math.isfinite(amount):
             return
-        # Slot zero of this kind is reserved for the body's permanent shield.
-        for slot in range(1, POOLS):
-            if not self.temporary_shields.get(slot, (0, 0.0, 0.0))[0]:
-                self.temporary_shields[slot] = (pool_id, amount, amount)
+        rows = self._shield_contributions(pool_id)
+        if amount <= 0.0:
+            if rows is not None and contributor in rows:
+                del rows[contributor]
                 self.changed.add(SHIELDS_POOL)
-                return
+            return
+        if self.dead:
+            return
+        if rows is None:
+            # Slot zero of this kind is reserved for the body's permanent shield.
+            for slot in range(1, POOLS):
+                entry = self.temporary_shields.get(slot)
+                if entry is None or not entry[1]:
+                    rows = {}
+                    self.temporary_shields[slot] = (pool_id, rows)
+                    break
+        if rows is not None and contributor not in rows:
+            rows[contributor] = (amount, amount)
+            self.changed.add(SHIELDS_POOL)
+
+    def temporary_shield_current(self, pool_id: int, *, contributor: tuple[int, int] | None = None) -> float:
+        rows = self._shield_contributions(pool_id)
+        if rows is None:
+            return 0.0
+        if contributor is not None:
+            return rows.get(contributor, (0.0, 0.0))[1]
+        return sum(current for _, current in rows.values())
+
+    def _drain_shield_contributions(self, rows: ShieldContributions, amount: float) -> float:
+        """Consume grants in their registration order, releasing depleted stacked grants."""
+        left = amount
+        taken = 0.0
+        for contributor, (capacity, current) in tuple(rows.items()):
+            take = min(left, current)
+            if take <= 0.0:
+                continue
+            if contributor is not None and take == current:
+                del rows[contributor]
+            else:
+                rows[contributor] = (capacity, current - take)
+            left -= take
+            taken += take
+            if left <= 0.0:
+                break
+        if taken > 0.0:
+            self.changed.add(SHIELDS_POOL)
+        return taken
+
+    def drain_temporary_shield(self, pool_id: int, amount: float) -> float:
+        """Drain just the named temporary shield, up to its available current value."""
+        rows = self._shield_contributions(pool_id)
+        if rows is None or not math.isfinite(amount) or amount <= 0.0:
+            return 0.0
+        return self._drain_shield_contributions(rows, amount)
 
     def clear_temporary_shields(self) -> None:
-        for slot, (pool_id, _, _) in self.temporary_shields.items():
-            if pool_id:
-                self.temporary_shields[slot] = (0, 0.0, 0.0)
+        for _, rows in self.temporary_shields.values():
+            if rows:
+                rows.clear()
                 self.changed.add(SHIELDS_POOL)
 
     def add_wave_health(self, amount: float):
@@ -392,13 +451,12 @@ class Vitals:
         """
         left = max(0.0, amount)
         taken = 0.0
-        for slot, (pool_id, most, current) in self.temporary_shields.items():
-            take = min(left, current)
-            if take > 0.0:
-                self.temporary_shields[slot] = (pool_id, most, current - take)
-                self.changed.add(SHIELDS_POOL)
-                left -= take
-                taken += take
+        for _, rows in self.temporary_shields.values():
+            if left <= 0.0:
+                break
+            take = self._drain_shield_contributions(rows, left)
+            left -= take
+            taken += take
         for kind in (SHIELDS_POOL, ARMOUR_POOL, HEALTH_POOL):
             if left <= 0.0:
                 break
@@ -447,8 +505,12 @@ class Vitals:
                 bonus = self.wave_health
                 parts[1] = (world.pool(self.wave_health_id, kind, bonus.capacity, bonus.current)
                             if bonus is not None else world.pool(0, kind, 0, 0))
-        for slot, (pool_id, most, current) in self.temporary_shields.items():
-            parts[SHIELDS_POOL * POOLS + slot] = world.pool(pool_id, SHIELDS_POOL, most, current)
+        for slot, (pool_id, rows) in self.temporary_shields.items():
+            most = sum(capacity for capacity, _ in rows.values())
+            current = sum(remaining for _, remaining in rows.values())
+            parts[SHIELDS_POOL * POOLS + slot] = world.pool(
+                pool_id if rows else 0, SHIELDS_POOL, most, current,
+            )
         return {51: parts}
 
 
@@ -1010,13 +1072,31 @@ class Combat:
             for target in targets
         )
 
-    def set_temporary_shield(self, owner: int, pool_id: int, amount: float) -> None:
+    def set_temporary_shield(
+        self, owner: int, pool_id: int, amount: float, *, contributor: tuple[int, int] | None = None,
+    ) -> None:
         target = next((target for target in self._targets() if target.entity == owner), None)
         if target is None:
             return
         vitals = self.vitals_of(target)
-        vitals.set_temporary_shield(pool_id, amount)
+        vitals.set_temporary_shield(pool_id, amount, contributor=contributor)
         self._sync_body_health(target.owner, vitals)
+
+    def temporary_shield_current(
+        self, owner: int, pool_id: int, *, contributor: tuple[int, int] | None = None,
+    ) -> float:
+        vitals = self.vitals.get(owner)
+        return 0.0 if vitals is None else vitals.temporary_shield_current(pool_id, contributor=contributor)
+
+    def drain_temporary_shield(self, owner: int, pool_id: int, amount: float) -> float:
+        player = self.match._message_player(owner)
+        vitals = self.vitals.get(owner)
+        if player is None or vitals is None or vitals.dead:
+            return 0.0
+        drained = vitals.drain_temporary_shield(pool_id, amount)
+        if drained > 0.0:
+            self._sync_body_health(player, vitals)
+        return drained
 
     def clear_temporary_shields(self, owner: int) -> None:
         vitals = self.vitals.get(owner)
@@ -1712,6 +1792,7 @@ class Combat:
             flags = (CRITICAL if critical else 0) | (KILLING if killed else 0)
             self._tell_hit(shooter, target, dealt, flags, frame)
             shooter.stats.add(stats.HERO_DAMAGE, dealt)
+            self.match.queue_damage_dealt(shooter, target.entity, dealt, hit_tags)
             if award_ult:
                 if isinstance(target.owner, bots.Bot):
                     from ow174.game import mccree

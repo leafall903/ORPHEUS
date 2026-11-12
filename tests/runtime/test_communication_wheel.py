@@ -468,10 +468,11 @@ class CommunicationWheelTests(unittest.TestCase):
                 run.match.deliver_body_messages()
                 queued = run.match._body_messages
                 if directed:
-                    [(source, recipient, _, message, _)] = queued
+                    [(source, recipient, _, message, _, target_instance)] = queued
                     self.assertIs(source, speaker.body_script)
                     self.assertIs(recipient, target)
                     self.assertEqual(message, 0x0240000000000000 | target_message)
+                    self.assertIsNone(target_instance)
                 else:
                     self.assertEqual(queued, [])
                     self.assertTrue(

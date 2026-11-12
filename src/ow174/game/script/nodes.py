@@ -3220,19 +3220,43 @@ class HealthPool(State):
         key = guid(identifier.get("m_identifier"))
         return key & 0xFFFFFFFF if key is not None else None
 
+    def _contributor(self) -> tuple[int, int] | None:
+        if self.instance.auto_retire and self.instance.parent is None:
+            return self.instance.id, self.index
+        return None
+
     def on_enter(self) -> None:
         pool_id = self._shield_id()
         if pool_id is not None:
             amount = to_float(self.evaluate(_field(self, "m_amount"), watch=False))
+            contributor = self._contributor()
             if math.isfinite(amount) and amount > 0.0:
                 component = self.instance.component
-                component.world.set_temporary_shield(component.entity, pool_id, amount)
+                component.world.set_temporary_shield(
+                    component.entity, pool_id, amount, contributor=contributor,
+                )
+            if contributor is not None:
+                self.ticks()
+                self.tick()
+
+    def tick(self) -> None:
+        component = self.instance.component
+        pool_id = self._shield_id()
+        if pool_id is None:
+            return
+        remaining = component.world.temporary_shield_current(
+            component.entity, pool_id, contributor=self._contributor(),
+        )
+        if remaining is not None and remaining <= 0.0:
+            self.request_finish()
 
     def on_end(self, finished: bool) -> None:
         pool_id = self._shield_id()
         if pool_id is not None:
             component = self.instance.component
-            component.world.set_temporary_shield(component.entity, pool_id, 0.0)
+            component.world.set_temporary_shield(
+                component.entity, pool_id, 0.0, contributor=self._contributor(),
+            )
 
 @state_class("STUStatescriptStateModifyHealth")
 class ModifyHealth(State):

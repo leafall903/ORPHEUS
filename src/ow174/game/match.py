@@ -69,6 +69,7 @@ from ow174.game.projectiles import MAX_LEASE_FRAME
 from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import (
+    DOOMFIST_PASSIVE_GRAPH,
     WHEEL_ACTION_CATEGORIES,
     WHEEL_ACTION_PREFIX,
     BodyScript,
@@ -480,7 +481,7 @@ class Match:
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
-        self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict]] = []
+        self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict, int | None]] = []
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -1230,7 +1231,33 @@ class Match:
         shown = (player for player in self.players if player.body == entity and self._shown(player))
         return next(shown, None)
 
-    def queue_body_message(self, target: int, message: int, params: dict, sender: int) -> bool:
+    def script_hostile_body(self, owner: int, entity: int) -> bool:
+        source = self._message_player(owner)
+        if source is None or entity == owner or self.combat.is_dead(source):
+            return False
+        # A killing hit still has a recipient when the damage event is processed.
+        target = next((target for target in self.combat._targets() if target.entity == entity), None)
+        return target is not None and not self.combat._ally(source, target)
+
+    def queue_damage_dealt(self, shooter: Player, victim: int, amount: float, tags: tuple[int, ...]) -> None:
+        """Feed applied player damage into the supported authored passive listener."""
+        if not tags or shooter.hero.guid != 0x02E000000000012F or shooter.body_script is None:
+            return
+        passive = next((
+            instance for instance in shooter.body_script.component.instances.values()
+            if instance.graph.index == DOOMFIST_PASSIVE_GRAPH
+            and instance.initialized and not instance.stopped
+        ), None)
+        if passive is not None:
+            self.queue_body_message(shooter.body, 0x0240000000000012, {
+                0x13: amount,
+                0x15: expr.Entity(victim),
+                0x3D: tuple(expr.Asset(tag) for tag in tags),
+            }, shooter.body, target_instance=passive.id)
+
+    def queue_body_message(
+        self, target: int, message: int, params: dict, sender: int, *, target_instance: int | None = None,
+    ) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
         source, recipient = self._message_player(sender), self._message_player(target)
         if source is None or recipient is None:
@@ -1241,7 +1268,7 @@ class Match:
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
             return False
-        self._body_messages.append((source_script, recipient, script, message, dict(params)))
+        self._body_messages.append((source_script, recipient, script, message, dict(params), target_instance))
         return True
 
     def deliver_body_messages(self) -> None:
@@ -1250,7 +1277,7 @@ class Match:
             return
         pending, self._body_messages = self._body_messages, []
         # Messages emitted by a receiver enter the next batch, outside its VM call stack.
-        for source, player, script, message, params in pending:
+        for source, player, script, message, params, target_instance in pending:
             if source.retired or source.component.fault is not None:
                 continue
             if player.body_script is not script or script.retired or not self._shown(player):
@@ -1258,7 +1285,14 @@ class Match:
             try:
                 component = script.component
                 # An earlier message can start or stop a later message's entry state.
-                if runtime.send_message(component, message, params, source.entity):
+                if target_instance is None:
+                    count = runtime.send_message(component, message, params, source.entity)
+                else:
+                    instance = component.instances.get(target_instance)
+                    count = 0 if instance is None else runtime.send_instance_message(
+                        instance, message, params, source.entity,
+                    )
+                if count:
                     component.run_now()
             except Exception:
                 log.exception("[game] %s: %s's body message handling failed", self.label(), player.name)
