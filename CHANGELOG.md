@@ -170,6 +170,13 @@ This log records tested changes and their acceptance status. Entries are grouped
   anchors, retraction geometry, swing, cooldown, high-speed impacts and
   original-client acceptance remain open.
 
+#### Shared Python and Rust behavior contracts
+
+- Added the contribution workflow for language-neutral behavior fixtures, including reference provenance, explicit expected results, gradual backfill and pending original-client acceptance. Linked it from the contributor guide, agent instructions and pull request checklist.
+- Clarified that general Python work uses topic branches and pull requests to `main`, while `leafall` remains the designated hero-development branch with the same pull-request integration requirement.
+- Added a public synthetic JAM framing contract and Python tests using the normal framing sender and receiver, including every two-part split and one-byte delivery. The test accepts an external fixture directory so Python and Rust can consume the same file.
+- Passed Ruff, 920 public Python tests, six dashboard and NPC-console JavaScript tests, 12 local documentation link checks and the focused contract test with the external-directory setting. Original-client acceptance for this synthetic contract is pending.
+
 ### 2026-11-11
 
 #### Wine and Proton plaintext relay hook compatibility
