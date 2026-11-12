@@ -90,3 +90,10 @@ host integration`. All14 focused original Meteor range/runtime checks passed.
 Worker B retains and runs the complete28-check neutral-charge suite separately;
 its long-running result does not prevent submission of mounted implementation.
 No complete Doomfist line or client acceptance is inferred from this batch.
+
+C4 `c46b41e3` is received as `ddbd475f`; all62 combined Pharah/roll/runtime/
+Slam checks passed. Root also mounted the original0015 manual Sniper helper,
+its explicit NPC input/navigation mode, cleanup and snapshot field. All three
+unchanged original NPC reposition checks now pass using canonical modules and
+the existing external graph/catalog/mover inputs, without the former package
+fallback. Shared NPC/navigation checks are being retained and checked separately.

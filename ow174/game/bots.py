@@ -126,6 +126,7 @@ class Bot:
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # engaged sandbox NPC's current player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
+        self.attack_mode = "primary"
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.owner = 0
@@ -405,6 +406,11 @@ class Bot:
         """Stop combat and publish death, preserving an airborne retained corpse's fall."""
         from ow174.game import npc_navigation
 
+        if self.attack_mode == "reposition":
+            from ow174.game import sniper_reposition
+
+            sniper_reposition.stop(self, tick)
+            self.attack_mode = "primary"
         npc_navigation.stop(self, land=self.retain_corpse)
         self.dead = True
         if self.spawner.get('manual_spawn') is True:

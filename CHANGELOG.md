@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered manual Sniper repositioning
+
+- Preserve Bastion delivery0015's original sniper_reposition.py unchanged.
+  Restore the existing manual reposition argument, authored wait/MoveTo,
+  cooldown, stop/target-loss handling and post-reposition weapon resumption.
+  Route this explicit mode through current navigation without replacing the
+  existing automatic142C retreat or ordinary pursuit.
+- Retain the attack mode in Bot initialization/death and enclosing snapshots.
+  All three unchanged original NPC reposition checks passed against the actual
+  external NPC graph/catalog/mover inputs, without a source-package import
+  fallback. Shared NPC/navigation checks continue separately.
+- C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
+  Roll/runtime and Slam checks passed after preserving both velocity adapters.
+
 ### Mount delivered Doomfist Meteor host
 
 - Mount original Meteor targeting/confirmation, authored stages, landing warp,

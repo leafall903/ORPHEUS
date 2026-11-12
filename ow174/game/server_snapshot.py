@@ -247,7 +247,7 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation impulse_mover "
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode pitch navigation impulse_mover "
         "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
