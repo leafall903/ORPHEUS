@@ -881,3 +881,32 @@ launch cursor, missingterrain_bounces). Original full test module preserved;
 only sigma_grasp import points to current absorption provider. Next: actual
 source Frag Launcher gravity/range/fuse/terrain response on current single Rocket
 pipeline, then Mine/SteelTrap/Tire/charge and explicit necessary external inputs.
+
+### A33 reassigned0065 grenade physics (this commit)
+
+Clean sync e5e9c817 from intake ed400249. Frozen0065 sourcec31d926214d74bbb6d5f308cabce92c65d8a48fc.
+Source inline Frag/Mayhem launch/terrain logic mounted as junkrat_projectile.py
+on current single Rocket/_fly_step/_sweep_rocket path. Current velocity cache is
+coherent with source authoritative direction/speed after each ballistic chord.
+Actual radius uses existing HitDef.projectile_extent; radius alias reads it.
+max_distance/explode_on_expiry aliases existing range_limit/detonate_on_expiry.
+Only actual terrain counter/limit/response add stored Rocket fields; current
+server dataclass export captures them, and replay config includes source module.
+Native non-Junkrat motion, Matrix/Deflect, source identity, amplification and
+terrain/body/shield priority remain current shared consumers. No second driver.
+Original normal primary baseline3:2fail/2subcaseerrors (worker-a-junkrat-primary-baseline.log).
+Original actual primary/gravity-gap/terrain-threshold/range-fuse separation/range
+endpoint/oblique response/catch-up7 plus Damage8/ProjectileTiming7/runtime13 =35
+allpass, no skips (worker-a-junkrat-primary-shared.log). Final primary1 passes
+following source finite-gravity guard (worker-a-junkrat-primary-final.log).
+Original full projectile test file retained, assertions unchanged, sigma_grasp
+import only maps actual absorption provider. Untested old cross-owner/private
+interfaces remain in that full file rather than discarded.
+Next exact action: mount original Junkrat Mine/Trap as one actual deployable
+actor with shared Vitals; adapt targets/query/messages/sticky flight/retire and
+Torb hammer's existing target loop. Do not instantiate old unmounted steel_trap.py
+manager as a second actor/pool. Then actual root/status deadlines, Tire actor/
+movement/command lifecycle, source charge contexts and explicit external inputs.
+Low-confidence remaining0065 actual integration estimate:4–8 active worker hours;
+main uncertainty is old construct/vitals/host API adaptation and external096B/
+039C input completeness, not acceptance-matrix status. Estimate does not gate work.

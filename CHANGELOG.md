@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Junkrat grenade launch and terrain physics
+
+- Restore source0065 Frag/Mayhem launch metadata on the existing Rocket host:
+  authored gravity/collision radius, world launch cursor, independent cumulative
+  range/fuse, strict post-response terrain count and normal/tangent restitution.
+  Preserve single ballistic chord/end-velocity state, current defenses/source
+  identity, flight amplification and other hero paths. Rocket compatibility names
+  read/write actual existing fields, with no duplicate actor or pool.
+- Original primary baseline3 reproduced2 failures/2 subcase errors. Original
+  grenade physics7 and shared Damage/ProjectileTiming/runtime28 now all35 pass;
+  final direct+splash1 passes after matching source finite-gravity admission.
+  Full original projectile module retained with only current Grasp import name.
+- Mine/SteelTrap/Tire/charge and necessary external input consumers remain pending;
+  this batch does not claim whole0065 completion or original-client acceptance.
+
 ### Synchronize worker A for reassigned Junkrat delivery
 
 - Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
