@@ -10,6 +10,7 @@ from ow174.game.script.driver import OWNER_HEALTH, ReplicatedBody, Snapshot, cre
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
 FIRING_GRAPH = FIRING & 0xFFFF
+REBUILD_GRAPH = 0x0BA8  # the Training Bot's body graph: its 0013 entry starts the Anim that rebuilds it
 PRACTICE_NAMEPLATE = 0x0D24
 PRACTICE_NAMEPLATE_PARENT = 0x0C18
 ENABLE_NAMEPLATE = 0x0240000000000C3C
@@ -129,6 +130,7 @@ class BotScript(ReplicatedBody):
         manual_nameplate: bool = False,
         nameplate_name: str | None = None,
         manual_rialto_spawn: bool = False,
+        respawned: bool = False,
     ) -> None:
         from ow174.game import heavy_assault
 
@@ -157,6 +159,13 @@ class BotScript(ReplicatedBody):
                 heavy_assault.skip_sandbox_intro(instance)
         component.run_frame(frame)
         self.server_only = self.initial_exclusions()
+        if respawned:
+            # Reconstruction: a bot made again at its spawner gets the reset on its rebuild graph, whose
+            # 0013 entry starts the Anim that puts a Training Bot together (docs/research/bot-rebuild.md).
+            rebuilds = [item for item in component.instances.values() if item.graph.index == REBUILD_GRAPH]
+            for instance in rebuilds:
+                runtime.send_instance_message(instance, RESET, {}, entity)
+            component.run_now()
         self.behavior = component.create(firing) if firing is not None else None
         if self.behavior is not None:
             # Scope the reconstructed spawn reset to this instance. Other 0013 receivers have their own rules.
