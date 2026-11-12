@@ -2639,3 +2639,41 @@ Next C61: actualTrooper melee target/native consumer (threezero-damage failures)
 then Heavy capture mode/timing using the real existing1407/1408 host. Retained
 heavy_charge support functions are not a second gameplay driver. Remaining
 4–10 C activehours lowconfidence; no client/network/publication action.
+
+
+## C61 Trooper gate audit and producer regression (no production rewrite)
+
+Actual1422 tracker5 already publishes real375=(Entity(Bastion),), its capsule
+candidate search hits and nomination succeeds. Health4 never starts at2m because
+its ONLY input edge is38.m_truePlug. Original node38 evaluates real target/self
+STU_71A87E92 positions with authored1.5 distance condition. Actual1m yields25
+armour-adjusted damage/health4.counter1/gateTrue;1.5/2m yield0/counter0/gateFalse.
+Do not bypass that input edge, invoke a fake health state or relax the data.
+
+Frozen0015 runtime.World.position returns Vec3(0,0,0), and its BotWorld lacks the
+current explicit1422 real-position consumer. That explains the original2m test
+expectation's dependence on a less complete position host; this source limitation
+is preserved as evidence, not translated to a new physical-range rule. A confirms
+A65 touched only1177/224E LinkedTarget scopes, not general mode3. This was not a
+lost linked-array initial notification or missing health driver.
+
+New actual Trooper1m/2m producer regression keeps authored graph unchanged and
+verifies real hit counter, damage and no movement; with C60 Heavy test2/2pass
+7.571s (../worker-c-c61-trooper-gate-check.log). Original3Trooper25/19/19-vs0
+assertion failures at2m remain untouched in the source and documented C60 log.
+No production change is needed for this audit. Sync56557266 already brought A's
+real NPC projected-recipient host; root requests next sync5ca8f867 with strict
+NPCPet boundary before C62 actual projected replay admission.
+
+Root audit also found retained oldprototype _hitscan kwargs in
+symmetra_sentry.py:237(source_entity/beam) and torbjorn_turret.py:190(source_entity).
+These are not the actual damage consumers: sole current Symm uses
+symmetra/symmetra_turrets with native Bots/Vitals; sole Torb uses original
+hero_torbjorn/Turret actor path. nodes imports oldTorb HAMMER constant only.
+Do not report these prototype kwargs as current gameplay bugs or install duplicate
+managers. Root six actual geometry families are now verified readonly under raw
+Server identity/splash/hash; no duplicate rerun requested from C.
+
+Next C62 actual NPCProjected frozen-support guard, then Heavycapture source
+boundary with real existing drive/1407; estimates4–10 activeC hours lowconfidence.
+No client/network/publication action.
