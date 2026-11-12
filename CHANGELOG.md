@@ -291,6 +291,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
 ### Preserve original explicit filter and cache APIs
 
 - Restore the original caller-bound SDK and checks, reusing existing kernels.
