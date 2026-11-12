@@ -942,3 +942,34 @@ Root owns input union and frozen-ref reconciliation. Remaining0065 integration
 estimate remains low confidence4-8 active worker hours, excluding root conflicts.
 
 A34 clean-boundary sync: absorbed submitted intake7e9de0af; resolved stored Combat fields by retaining both Junkrat and current controls. No code consumer removed. Continue original0065 Trap activation.
+
+
+## A35 - actual Steel Trap actor, status and player restraint
+
+Mounted original0065 Trap projectile cast on the same Deployable/Vitals path,
+park/arm/search/damage/filter branches, original09BC victim status, independent
+per-owner roots, source/replacement/victim-death cleanup and player movement-only
+restraint preserving aim and attacks. Original projectile expiry now retains the
+authored Mine explosion flag instead of silently retiring every deployable.
+Fixed real lifecycle cleanup: an airborne, not-yet-attackable Trap must retain its
+existing Vitals until parked; do not recreate a second pool when targets appear.
+
+Preserved complete original37 Trap tests unchanged. Baseline first Trap check
+failed because no Trap existed. Launch/arm80 and movement checks now pass;
+4 original lethal/destruction/multiple-root checks all pass with v9 inputs.
+Focused21 checks:19 pass, one projected-barrier method has two retained old
+bubble.health observer failures while actual body protection/root suppression
+uses the current authored0256 Vitals. Damage/ProjectileTiming and stored-export
+checks in that run pass. Actual launched Trap probe confirms pool identity,
+active original09BC and causal release-tick export; no fake health observer.
+Initial full37 run preserved15 failure records before the actual pool fix;
+remaining known work includes original catch-up/deadlines/NPC consumers, native
+Fortify float rounding, current Cryo healing and old barrier/spy observations.
+External logs: worker-a-junkrat-trap-{baseline,full-first,death-final,shared,snapshot}.log.
+
+Root candidate v9 profile supplies original09BC and103A/11A9 union; base/source
+packs unchanged. Worker-only narrow external union is superseded by v9. No client
+run/publication. Next exact action A36: original ballistic/deployable deadline
+replay outside retained window, then actual NPC restraint consumers; continue
+Tire039C/control/climb/recovery and charge0B8B. Neither entire0065 completion nor
+all original assertions passing is claimed at this partial consumer boundary.
