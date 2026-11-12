@@ -20,7 +20,7 @@ from test_sigma_combat import SigmaCombatTests  # noqa: E402
 from test_sigma_symmetra_sentry import SigmaSentryTests  # noqa: E402
 from verify_sigma_npc_static import AuditClient  # noqa: E402
 
-from ow174.game import dva_matrix, npc, world  # noqa: E402
+from ow174.game import matrix, npc, world  # noqa: E402
 from ow174.game.script import filter_bits, graph  # noqa: E402
 
 
@@ -64,7 +64,7 @@ def sentry_filter_rows(config):
     sentry_case.prepare(run, owner)
     sentry = sentry_case.launch(run, owner, -32768)
     bot = sentry.bot
-    tags = dva_matrix.tags().get(bot.body)
+    tags = matrix.tags().get(bot.body)
 
     def observe(role):
         record = capture(lambda: run.match._bot_create_update(bot).build(0))

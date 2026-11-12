@@ -337,6 +337,7 @@ COMPONENT_FIELDS = dict(zip((
 
 
 MOVER_COMPONENT = -1  # Original internal typed discriminator, not a native numeric property.
+FLIGHT_ROLE = -2  # Record value index; distinct from B83 world-tick dictionary key prefix -2.
 
 
 def component_data(value: dict) -> MoverData:
@@ -380,14 +381,21 @@ def statescript_mover_data(component, *, mover=None, frame=None) -> MoverData | 
     return profiles[0] if profiles else None
 
 
-def statescript_flight(component) -> float | None:
+def statescript_flight(component, *, mover=None, frame=None) -> float | None:
     """Mercy's authored C1BA7545: native movement-hook kind16, parameter+18.
 
-    Owner command-frame scheduling is reconstructed. Other hook kinds and
-    simultaneous hook arbitration remain unbound.
+    Owner command-frame scheduling and original last-record arbitration are
+    reconstructed. Actual movers use their existing publication ledger; a
+    standalone overlapping query without that clock remains unavailable.
     """
     if component.owner_dead:
         return None
+    if mover is not None:
+        if type(frame) is not int:
+            raise ValueError("flight role selection requires its actual published frame")
+        roles = sorted((mod for key, mod in mover.mods.items()
+                        if key[0] != -2 and mod.index == FLIGHT_ROLE and mod.acts(frame)), key=Mod.order)
+        return roles[-1].value if roles else None
     values = []
     for instance in component.instances.values():
         if instance.graph.index != 0x10DA and component.world.hero != 0x02E000000000007A:
@@ -662,6 +670,16 @@ def statescript_mods(component) -> dict:
     found = {}
     for instance in component.instances.values():
         for state in instance.states.values():
+            if (state.active and state.node.cls == "STU_C1BA7545"
+                    and (instance.graph.index == 0x10DA or component.world.hero == 0x02E000000000007A)):
+                cfg = state.node.field("m_2166C07A")
+                value = 1.0 if cfg is None else instance.evaluate(cfg)
+                if type(value) not in (int, float, bool) or not math.isfinite(value):
+                    raise ValueError("invalid flight hook parameter")
+                found[(instance.id, state.index, state.counter)] = (
+                    FLIGHT_ROLE, SET, f32(value), _number(instance, state.node.field("m_priority"), 0.0),
+                )
+                continue
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
@@ -1089,6 +1107,11 @@ class Mover:
         if flight_profile is not None:
             flight_scale, profile = flight_profile
         use_typed = flight is None and flight_profile is None
+        if use_typed and any(key[0] != -2 and mod.index == FLIGHT_ROLE
+                             for key, mod in self.mods.items()):
+            role = next((mod for mod in reversed(active) if mod.index == FLIGHT_ROLE
+                         and (not mod.key or mod.key[0] != -2)), None)
+            flight_scale = role.value if role is not None else None
         if use_typed and any(mod.index == MOVER_COMPONENT for mod in self.mods.values()):
             # script_data previews the next publication for storage/owner queries;
             # old recovered poses select only rows active on their own frame.

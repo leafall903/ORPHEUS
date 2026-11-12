@@ -28,7 +28,8 @@ from test_game_combat import KANEZAKA_DM, FakeClient, Run, aim  # noqa: E402
 from test_sigma_combat import SigmaCombatTests  # noqa: E402
 from test_sigma_flux_placement import SigmaFluxPlacementTests  # noqa: E402
 
-from ow174.game import combat, enforcer, heavy_assault, mover, npc, npc_control, sigma, sniper  # noqa: E402
+from ow174.game import absorption, combat, enforcer, heavy_assault, mover, npc, npc_control, sigma, sigma_flux
+from ow174.game import sniper_reposition as sniper  # noqa: E402
 from ow174.game.collision import World  # noqa: E402
 from ow174.game.commands import FIRE  # noqa: E402
 from ow174.game.content import heroes  # noqa: E402
@@ -415,7 +416,7 @@ def incoming(definition, *, grasp=False, barrier=False):
     if grasp and not precharge:
         run.step({player: (yaw, pitch, 0x08)})
     grasp_instance = next((i for i in player.body_script.component.instances.values()
-                           if i.graph.index == sigma.GRASP), None)
+                           if i.graph.index == absorption.GRASP), None)
     grasp_started = bool(grasp_instance and grasp_instance.states.get(1)
                          and grasp_instance.states[1].active)
     damage_events = []
@@ -432,13 +433,13 @@ def incoming(definition, *, grasp=False, barrier=False):
                         "projectiles": len(fight.rockets) - before_launch})
 
     def record_damage(shooter, target, amount, *args, **kwargs):
-        pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
         before_temporary = pool.now if pool else 0
         before_total = vitals.total
         active = bool(grasp_instance and grasp_instance.states.get(1) and grasp_instance.states[1].active)
         original_damage(shooter, target, amount, *args, **kwargs)
         if target.owner is player:
-            pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+            pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
             damage_events.append({"frame": run.frame, "amount": amount, "dealt": before_total - vitals.total,
                                   "grasp_active": active, "temporary_before": before_temporary,
                                   "temporary_after": pool.now if pool else 0,
@@ -485,7 +486,7 @@ def incoming(definition, *, grasp=False, barrier=False):
                 "body_script_survives": survived}
     if grasp:
         absorbed = grasp_instance.vars[21312].value()
-        pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
         bonus = pool.now if pool else 0
         base_damage = before - sum(vitals.now.values())
         temporary_spent = sum(event["temporary_before"] - event["temporary_after"] for event in damage_events)
@@ -842,7 +843,7 @@ def enforcer_grasp_shield_spill(definition):
     script.set_ult_charge(cost - 60)
     run.step({player: (yaw, pitch, 0x08)})
     npc_control.start(run.match, player)
-    grasp = next(i for i in player.body_script.component.instances.values() if i.graph.index == sigma.GRASP)
+    grasp = next(i for i in player.body_script.component.instances.values() if i.graph.index == absorption.GRASP)
     absorbed = 0
     for _ in range(110):
         run.step({player: (yaw, pitch, 0)})
@@ -852,9 +853,9 @@ def enforcer_grasp_shield_spill(definition):
             break
     for _ in range(140):
         run.step({player: (yaw, pitch, 0)})
-        if sigma.SHIELD_TAG in vitals.temporary_shields:
+        if absorption.SHIELD_TAG in vitals.temporary_shields:
             break
-    granted = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+    granted = vitals.temporary_shields.get(absorption.SHIELD_TAG)
     grant = granted.now if granted is not None else 0
     first_activation = grasp.states[1].counter
     ability = grasp.states[0]
@@ -869,7 +870,7 @@ def enforcer_grasp_shield_spill(definition):
         if impacted and not any(rocket.shooter is bot for rocket in fight.rockets):
             npc_control.stop(run.match)
             break
-    temporary = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+    temporary = vitals.temporary_shields.get(absorption.SHIELD_TAG)
     remaining = temporary.now if temporary is not None else 0
     shield_damage = shield_max - vitals.now[shield]
     body_damage = vitals.most[combat.HEALTH_POOL] - vitals.now[combat.HEALTH_POOL]
@@ -891,10 +892,10 @@ def enforcer_grasp_shield_spill(definition):
     second_absorbed = sum(call.args[1] for call in record_absorption.call_args_list)
     for _ in range(140):
         run.step({player: (yaw, pitch, 0)})
-        pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+        pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
         if pool is not None and pool.now > 0:
             break
-    second_pool = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+    second_pool = vitals.temporary_shields.get(absorption.SHIELD_TAG)
     second_bonus = second_pool.now if second_pool is not None else 0
     second_damage = before_second - sum(vitals.now.values())
     unchanged_charge = script.component.entity_var(342).value()
@@ -919,7 +920,7 @@ def enforcer_earned_flux(run, player, bot, yaw, pitch, cost):
     fight = run.match.combat
     script = player.body_script
     charge = script.component.entity_var(342)
-    flux = SigmaCombatTests().ability(player, sigma.FLUX)
+    flux = SigmaCombatTests().ability(player, sigma_flux.FLUX)
     run.step({player: (yaw, pitch, 0x20)})
     denied = not flux.flags & nodes.Ability.RUNNING and charge.value() == cost - 60
     run.step({player: (yaw, pitch, 0)})
@@ -960,7 +961,7 @@ def enforcer_kills_flux_preview(definition):
     script.ult_seconds = 0
     charge = script.component.entity_var(342)
     script.set_ult_charge(script.component.entity_var(338).value())
-    flux = SigmaCombatTests().ability(player, sigma.FLUX)
+    flux = SigmaCombatTests().ability(player, sigma_flux.FLUX)
     run.step({player: (yaw, pitch, 0x20)})
     entered_preview = bool(flux.flags & nodes.Ability.RUNNING)
     after_start = charge.value()
@@ -970,7 +971,7 @@ def enforcer_kills_flux_preview(definition):
     effect_seen = False
     for _ in range(250):
         run.step({player: (yaw, pitch, 0)})
-        effect_seen |= any(i.graph.index == sigma.FLUX_EFFECT
+        effect_seen |= any(i.graph.index == sigma_flux.FLUX_EFFECT
                            for i in bot.body_script.component.instances.values())
         if fight.is_dead(player):
             break
@@ -992,7 +993,7 @@ def enforcer_kills_flux_preview(definition):
         for frame in range(750):
             # A real primary edge after death must not confirm the old preview.
             run.step({player: (yaw, pitch, FIRE if frame == 0 else 0)})
-            effect_seen |= any(i.graph.index == sigma.FLUX_EFFECT
+            effect_seen |= any(i.graph.index == sigma_flux.FLUX_EFFECT
                                for i in bot.body_script.component.instances.values())
             if respawn_charge is not None:
                 break
@@ -1057,7 +1058,7 @@ def enforcer_defense_order(definition, mode):
     durability = barrier.vitals.total
     run.step({player: (yaw, pitch, 0x08)})
     npc_control.start(run.match, player)
-    grasp = next(i for i in player.body_script.component.instances.values() if i.graph.index == sigma.GRASP)
+    grasp = next(i for i in player.body_script.component.instances.values() if i.graph.index == absorption.GRASP)
     contacts = []
     shoot = fight._shoot
 
@@ -1087,7 +1088,7 @@ def enforcer_defense_order(definition, mode):
     for _ in range(130):
         run.step({})
     absorbed = grasp.vars[21312].value()
-    temporary = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+    temporary = vitals.temporary_shields.get(absorption.SHIELD_TAG)
     bonus = temporary.now if temporary is not None else 0
     base_damage = before - sum(vitals.now.values())
     barrier_first = sum(a is not None and b is not None and a < b for a, b in contacts)
@@ -1137,7 +1138,7 @@ def incoming_npc_melee(definition, mode):
     component = bot.body_script.component
     attack = heavy_assault.ability(component)
     grasp = next((i for i in player.body_script.component.instances.values()
-                  if i.graph.index == sigma.GRASP), None)
+                  if i.graph.index == absorption.GRASP), None)
     began = False
     contact_frame = None
     defense_active = False
@@ -1436,7 +1437,7 @@ def incoming_heavy_charge(definition, mode):
     component = bot.body_script.component
     attack = heavy_assault.ability(component, heavy_assault.CHARGE_GRAPH, heavy_assault.CHARGE_ABILITY)
     grasp = next((i for i in player.body_script.component.instances.values()
-                  if i.graph.index == sigma.GRASP), None)
+                  if i.graph.index == absorption.GRASP), None)
     interrupted_at = None
     grasp_at_contact = False
     phase = attack.instance.vars[59]
@@ -1513,7 +1514,7 @@ def heavy_charge_carry(definition, mode):
     run.step({player: (yaw, pitch, 0)})
     npc_control.start(run.match, player)
     component = player.body_script.component
-    grasp = next(i for i in component.instances.values() if i.graph.index == sigma.GRASP)
+    grasp = next(i for i in component.instances.values() if i.graph.index == absorption.GRASP)
     attack = heavy_assault.ability(bot.body_script.component, heavy_assault.CHARGE_GRAPH, heavy_assault.CHARGE_ABILITY)
     before_pin = False
     for frame in range(120):
@@ -1764,7 +1765,7 @@ def heavy_charge_during_flux(definition):
     heavy_before = heavy_health.total
     script = player.body_script
     script.set_ult_charge(script.component.entity_var(338).value())
-    ability = SigmaCombatTests().ability(player, sigma.FLUX)
+    ability = SigmaCombatTests().ability(player, sigma_flux.FLUX)
     flux_yaw, flux_pitch = SigmaFluxPlacementTests().select(run, player, tuple(bot.position), click=False)
     start = bot.position
     x, floor, z = start
@@ -1875,7 +1876,7 @@ def sniper_retreat(definition, mode):
     run.step({player: (yaw, pitch, 0)})
     npc_control.start(run.match, player)
     state = sniper.reposition_state(bot)
-    grasp = SigmaCombatTests().ability(player, sigma.GRASP).instance
+    grasp = SigmaCombatTests().ability(player, absorption.GRASP).instance
     interrupted_at = None
     stunned = False
     stunned_damage = 0
@@ -1970,9 +1971,9 @@ def sniper_retreat(definition, mode):
             passed &= absorbed == 100
             for _ in range(130):
                 run.step({})
-                if sigma.SHIELD_TAG in vitals.temporary_shields:
+                if absorption.SHIELD_TAG in vitals.temporary_shields:
                     break
-            bonus = vitals.temporary_shields.get(sigma.SHIELD_TAG)
+            bonus = vitals.temporary_shields.get(absorption.SHIELD_TAG)
             passed &= bonus is not None and math.isclose(bonus.now, 60, abs_tol=1e-5)
     else:
         passed = 2.49 <= displacement <= 2.51 and damage == 100
@@ -2258,7 +2259,7 @@ def incoming_flux(definition, *, early=False):
     before, npc_before, floor = health.total, npc_health.total, bot.position[1]
     script = player.body_script
     script.set_ult_charge(script.component.entity_var(338).value())
-    ability = SigmaCombatTests().ability(player, sigma.FLUX)
+    ability = SigmaCombatTests().ability(player, sigma_flux.FLUX)
     if early:
         x, y, z = bot.position
         yaw, pitch = aim(fight._eye(player), (x, y + 1, z))
@@ -2288,7 +2289,7 @@ def incoming_flux(definition, *, early=False):
     with patch.object(fight, "_shoot", side_effect=observe):
         for _ in range(145):
             lift = next(
-                (i.states.get(16) for i in effects.values() if i.graph.index == sigma.FLUX_EFFECT),
+                (i.states.get(16) for i in effects.values() if i.graph.index == sigma_flux.FLUX_EFFECT),
                 None,
             )
             pre_descent = bool(lift and lift.active)
@@ -2297,7 +2298,7 @@ def incoming_flux(definition, *, early=False):
                 break
     pin = fight.pins.get(bot.entity) == player.body
     running = bool(ability.flags & nodes.Ability.RUNNING)
-    retained = any(i.graph.index == sigma.FLUX_EFFECT for i in effects.values())
+    retained = any(i.graph.index == sigma_flux.FLUX_EFFECT for i in effects.values())
     incoming_damage = before - health.total
     charge_after_contact = script.component.entity_var(342).value()
     npc_control.stop(run.match)

@@ -9,6 +9,144 @@ explicit0015 and automatic acquisition paths remain distinct. Recorded one
 unverified specials-without-acquire configuration boundary for parent review.
 Documentation only; no original assertion or production policy changed, no tests
 rerun, and no second host or legacy observer alias introduced.
+## A105 — signed original-language consumer handoff
+
+WorkerA signs the owned source reconciliation through A104 c905ea80 (A103
+6c2f73fc; A102a03e429f; A101 Moira evidence2e0e4b77; A10092de6f4e;
+A990e3c2041; A983137e7b4; A979033c8b0; A96654d814d; A9594742e40).
+Worktree/branch remain verification/merge-worker-a / integration/merge-worker-a.
+All implemented batches are committed. No known still-unsubmitted or unmounted
+owned production implementation is identified after the concrete audits below.
+This is code-consumer reconciliation, not full-client/full-matrix acceptance or
+an ancestry-only assertion. Root owns final original-ref/history admission and
+cross-owner old-manager reconciliation, including large0002 shared deliveries.
+
+Frozen refs and actual consumer signing:
+- 0002 4babd03311d49f89b9a819522fe23f72a5b2306a: reaper/damage_charge/
+  shot_patterns/blossom; Shadow selector/real movement/immunity/cleanup; reflected
+  shells/launch/source ownership. Current same mover/charge/defense hosts.
+- 0003 8a3ece2db99405a6c14e3e36c0492fc71d4bb48c: pistol/Blink, Recall sample/
+  history/health/ammo/control, Pulse throw/contact/fuse/deflect/source retirement;
+  original012/0B8B loss/tags/passive-owner event path viaA72, no doubleult credit.
+- 0004 14a69f134b36767ca7bfd2978a1468a7b6c37cb7: staff/boost/weapon,
+  GuardianAngel/Descent/Valkyrie, originalfold and healing/passive chronology;
+  A97–102 actual0267→0C71/0B99/0C72/filter_history on soleHealingEffects,
+  exact original100/60/1.5, Matrix, capturedMercycredit, frozenRocket affiliation,
+  actual Player/NPC death/removal/cleanse and same shield/passive ledgers.
+- 0005 2b67b154a11b7e930ee431182d8e3a70cb90b8bb: charge/control/movement,
+  Sonic/Dragon/Storm ricochet, source attribution/native clocks/historicalFortify,
+  explicit source profiles/CLI/provenance/finiteMatrix; root original optional
+  Volley/farSniper consumers share existing NPC/geometry hosts.
+- 000A 0bbf016a88d6272db5358c5e4f6a611d4db5b327: rifle/charge/Infra,
+  Grapple cast/pull/anchors, Venom realhealth/chronology/cleanup, worldbudget/
+  nativewindow/geometry source consumers; root original frozen replay was passed.
+- 0020 c81057dc27c9a6aee1fc277b7266396f112d0ef9: orb/charge/Transcendence,
+  NPCshield recovery/143A conditional pools and source catalog/constants;
+  same existing actualVitals and source component rather than observer pools.
+- 0065 c31d926214d74bbb6d5f308cabce92c65d8a48fc: cannon/bounce/Mine,
+  SteelTrap sameactor/Vitals/contact/root/application/deadline, RipTire same
+  possessed mover/body/health/fuse/explosion, charge/Mayhem/NPCdeath-volley;
+  A96 exact original component72 explicitSDK provider active in unique query
+  chain, existing DVa entity_link fallback preserved. Root shared34924/tools.
+- 0068 f5b7366d27c572125d1422618ec407d17794787d: same native025C/0256
+  Pet/pool, actual ctor/application pair/expiry/break/death/cooldown/cleanses,
+  source energy/beam/ammo/melee/secondary/charge, singleVitals shield recovery,
+  Graviton real flight/gravity/land/field/includes/pull/release/NPCsameMover/
+  mobility/Flux coexistence, launchNano offense snapshot/source/Mercycredit,
+  personalpriority/single recipient contact and original projectile splash.
+- 007A a2353c6036c270bb1359b8e3ba3e203437ad6264: same real Mech/Pilot
+  factory/foreign vars/possession/endpoints/weapon/Matrixoutputs/Booster/missiles/
+  SelfDestruct/CallMech/retirement; A103 typeddata+scalar/start-end/generation and
+  A104 flightroles consume sameMover.mods, no duplicate mover/clock/physics pool.
+- 0200 8b991768223a98ff97f2618a53f0947dc6477c4b: Viper/Coach/reload,
+  Dynamite bounce/reflection/absorption/fuse/burn/selfscale and BOB actualsingleNPC/
+  gun/charge/uppercut/Heavy carry/lateral/status/recipient clock/retirement.
+  Explicit current-bound mover pack preserves source/base hash verification.
+
+Additional shared000E signing A64–71: optional dynamic/bound ownerfull effects on
+sole statescript wire, unchanged16 no-effect bit/byte combinations; Match/select/
+delta-key refresh, scoped1177/224E LinkedTarget/angles/Wait, exact Pin services
+and messages, originalNpcContext/manual pair/Assassin recipient, exact storage.
+No second body/controller1177, wire encoder, NPC host or component pool.
+Original script/sleep_view functionality is current strict LinkedTarget/BodyWorld
+sampling+delay; root independently preserves pure query symbols where required.
+
+The audit's final concrete gaps are closed: A95 native projectile continuation,
+A96 explicit component72 contracts, A97–99 dynamichealing/lifecycle, A102 flight
+team, A103 typedrows and A104 flightrecords. A101 two-query Moira suspicion was
+withdrawn: actual registry excludesMoira; original uniquegrasp and one0.8 event
+and full48damage/selfheal expectations were verified, no needless dedup added.
+
+Kept validation/policy tails; none is silently called a missing code consumer:
+- Old Ana Recall warmup-vulnerability versus original0003 both-phase protection;
+  root documented ownerpolicy; retain all conflicting original assertions.
+- Old uniformeye/proxy DVa/Tracer head/crouch and parkedPlayer versus actualMech
+  observations, nativefold empty0.0/tuple and old private namespace/clock units.
+- Original0068 expected193 point-projectile timing versus current authoredextent.2,
+  old zarya_recovery.bodies observer, native6600 self-first projected rejection
+  versus old reconstruction; projected-first two actual200 pools are implemented.
+- NativeNPC shield recovery changes some original nethealth expectations (root
+  demonstrated actual grossdamage vs restoredpool); original values retained.
+- Baptiste original Modifier table/timer fixture needs actual native-child
+  observation underv19. Native grenade/Matrix/boost/lifecycle/whole-server code
+  is mounted; no fake runtime tables are added to satisfy the old observer.
+- DVa old early23184 Var reference can remainNone while fresh samecomponent
+  value=.4 and actual primary velocity3.2998. Explicit fresh actualaudit also
+  found Matrix+primary currentresource clears penalty/velocity5.5 while original
+  fixture expects latch.4/3.3; preserve this as resource/VM policy conflict,
+  not pretend all differences are observers or add an artificial latch. Booster
+  11.9902 and no-penalty, normal5.5 are actual. See
+  worker-a-dva-walk-actual-value-audit.log. Root has evidence for final disposition.
+- Pharah ForceWorldGap two position mismatches are byte-for-value same before
+  A104 on committed95a28fec; root/B own force semantics. Existing assertions kept.
+- C ownedMech melee actual polypath crash is fixed byc4290d9c for root intake,
+  preserving BotScript real component.world.hero rather than inventing hero attr.
+
+Latest focused evidence is A1038/8, A104original/source/clock/storage/owners11
+passed plus originaldetached bombs2/2; detailed commands/logs in preceding
+checkpoints. OriginalMercy28/128 assertions preserved normalmodule with numeric
+expectations unchanged. No broad repeats/new acceptance matrix required for
+submission. No client/service, Internet, publication/push, appearance or Rust.
+All inputs remain original externalimmutable packs; root unifiedv19 supplies
+needed bindings. Root may accept this signed boundary without waiting all tails
+to become green. No additional owner implementation remains WIP in this tree.
+
+## A104 — original flight-role producer and expiry on the same mod clock
+
+Final source audit proved another real original007A record producer/consumer:
+actual permissive C1BA7545 states active/counter1 previously produced no mods,
+and overlapping statescript_flight raisedNotImplemented. Original source emits
+FLIGHT_ROLE records keyed by instance/state/activation generation, with ordinary
+source-publishframe+1 lifetimes and existing priority/start/key ordering.
+
+Restored that producer on the same known Mercy10DA/DVa scope. The existing sole
+Mover.mods selects role value on each actual posed/recovered frame, including
+zero-valued flight and original expiry. Player/ownedMech snapshot previews use
+sameMover/nextframe selector. Current explicit external flight/retained profile
+keeps prior precedence. No new clock, mover field or manager. FLIGHT_ROLE=-2 is
+Mod.index, strictly distinct from B83 dictionary key prefix-2 (worldtick finite
+mods) and prefix-1 (scheduled impulse). Worldtick records remain untouched and
+never become flightroles. Invalid/nonfinite source parameters still reject.
+
+Original six-frame explicit/recovered history equality plus postexpiry height
+assertion preserved verbatim; original flight parameter/retirement passive
+whole-server causal method also preserved. Combined typed/flight actual/source
+8 +Mercy2+Mech recovered1 pass; one added Pharah ForceWorldGap method retains2
+position subfails on both A104 and fixed committedA103+be369 baseline with
+identical positions. Logs worker-a-flight-role-clock-causal-check.log (12run,
+11pass/1method failed) and worker-a-flight-role-force-baseline.log (7.422s).
+Actual multi-hook priority, properframe11, generation restart, expiry and B83
+worldtick100–102 modifier coexistence pass. Original detached boosting bomb moves
+and completes fuse after pilotdeath and wall cover2/2pass8.166s, log
+worker-a-flight-role-detached-bomb-check.log. Earlier original6frame+Mercy+
+Mech recovery3/3pass9.975s. Source assertions/constants unchanged.
+
+Clean sync be36954f was saved as95a28fec before this batch, preserving root
+Volskaya/platform, B83 timedmods/slams retirement, original SDK/filter additions
+and all existing codec/field registrations. Latest C ownedMech melee fixc4290d9c
+is root-owned intake, not reimplemented here. No remaining newly identified
+owned production consumer is currently open; A105 final signed mapping follows,
+without requiring all source/client acceptance to pass.
 
 ## C72 — layered lift world serves current precise ray and sphere consumers
 
@@ -78,6 +216,23 @@ consumer. A102 frozen affiliation is implemented. A final read-only comparison
 of original private FLIGHT_ROLE record versus current per-pose statescript_flight
 must distinguish effective mounted behavior from missing old observer symbols;
 no unproved host/clock duplication or acceptance-green gate will be introduced.
+## C71 — owned-mech quick melee keeps the original polymorphic hero guard
+
+Reused _melee existing actual hero identity for Mei size scaling, avoiding a real
+BotScript.hero AttributeError during owned-DVa melee. No BotScript alias or damage
+change. Original mech30/booster10 +MeiScale2+Damage8 =11/11pass8.715s on v19.
+Persisted six frozen original-line consumer receipts and the finite generic-force/
+controller-query SDK handoffs. No client/network/publication action.
+
+## C70 — original mode-scoped Mei melee projectile absorption
+
+Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
+actual22F0 defense on the same BodyScript/interception host. Original no-amount
+source41 contact, cone, boxes, tags, cooldown and fresh body lifecycle are preserved;
+ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
+source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
+three original Mei absolute differences and one old sigma_grasp fixture import
+error, without blocking code. No new defense pool, input bundle or client action.
 
 ## A102 — preserve existing grenade launch affiliation in native status routing
 
@@ -12730,3 +12885,85 @@ matches/controller_components SDK; SigmaCLI fixturechain. Broader crossowner
 controller/arena/input-resource conflicts remain explicitlydocumented; original
 clientacceptance notperformed. Rootformalmerge/percent usesits owncanonical
 receipt, not this worker'ssourcecopiedpath count.
+
+
+## B97 — preserve second original controller-query frozenset API
+
+Source0008 same-name controller_query is a DIFFERENT existingpublicinterface:
+CLASS/matches(explicitfrozenset|None), plusWorld.controller_components(instance,
+entity) resolvedoverride. B87preserved0007watchedContext; currentpluralRecord
+service doesnotexpose theseoriginaldirectAPIs. Append exactsource matches AST
+and originalunknownWorld API, restoreoriginalcallback+ensure_valid/source-lifetime/
+typedvalidation nativefallback branch. CurrentInstanceContext watchedContext and
+pluralRecord default precedence retained; no automaticcontrollerhost, component
+presence inference or secondrecordnamespace. BothsourceAPIs coexist in actual
+module, not a fakeimport alias.
+
+Restore source0008 fixture byte-for-byte under noncolliding deliveredfilename.
+Combinedoriginal0008/0007/runtime28run25pass3 retainedcontractdifferences2.927s,
+worker-b-controller-components-sdk.log. Newdirecttruth/malformed/explicitresolved/
+callbackretirement/hero-replacement cases pass; actualcurrentbodycontrollerRecord
+can resolveforeignbody asTrue whereas old0008 fixture expectedunboundNone.
+The other2are B87alreadyrecorded strongRecord knownabsence/fallback-order cases.
+Do not erase currentresolvedfacts to satisfy oldunknown expectations. No source
+assertionchanged, no clientacceptance. No newstorage (puredeclaredAPI behavior).
+
+Next exactaction B98: sole remainingtoolmodule dependency in wholeRoot audit,
+verify_sigma_filter_inputs→test_sigma_symmetra_sentry→originalbeamfixture, restore
+actualtoolcaller againstcurrentSymm/Sentry APIs (no modulealias). Then return to
+confirmedforceendpointphysical/input boundary. B96epochmetadata code delivered;
+rootreceived673c5607 androotjoint underway. No other knownpublicSDK consumer gap
+in currentBboundedowner inventory; oldnumeric/client/source-conflict tails remain
+explicitlyseparate from code-preservation delivery.
+
+
+## B97 follow-up — preserve BotWorld same-name census data
+
+C flagged exactsame-name legacyBotWorld.controller_components instanceattribute
+(None/dict/tuple), which shadows the restoredWorldmethod. Guard the B96D fallback
+withcallable beforeinvoking sourceSDK; noncallablecensus payload is NOT a selected
+resolvedbackend and must retain existingrecord-first/nativeunknown behavior.
+Do not rename/delete BotWorlddata or infer manualAssassincontext from presence.
+ActualBotWorld None/dict/tuple strictquery smoke preserves fallback without a
+TypeError; tooloutputrecorded. Queryguard readsresolver onlyfor B96D. No runtime
+state, protocol, sourceassertions or strongerRecord path changes. NextB98tool
+fixtureintegration remains, sourceCLI classhelpers will bindcurrentactualhost.
+
+
+## B98 — recover real Sigma filter-audit tool dependency consumers
+
+Restore complete original023B test_sigma_symmetra_sentry andtest_sigma_barrier
+fixture implementations. Sourcehas NO test_sigma_symmetra_beam file; prior
+inventoryphrase suggestingthatdependency wasincorrect. Actualmissing import is
+oldproduction symmetra_beam.HERO/WEAPON namespace; map directly tocurrentactual
+symmetra. Sentryhelper mapsactualsymmetra_turrets.LAUNCH_GRAPH/BODY andsole
+fight.sentries.sentries actorlist; Barrier mapsactualfight.sigma_barriers pool/
+actor dict andsigma_barrier functions. Grasp/Flux qualifiers mapactualabsorption/
+sigma_flux. No fakealiases/modules, secondbarrier/sentry instance or schema edits.
+Everyoriginalassertion AST preserved under those actualhost getter/qualifier
+mappings. Tests remainfullsource, not rewritten to copiesofimplementation.
+
+verify_sigma_filter_inputs now calls actualmatrix.tags immutablecombinedcatalog
+instead ofabsentdva_matrix module. Rootowns staticNPCtool originalprimarySniper
+consumer andA106remainingruntimeAPI adapters; no B overlap in thatfile. Synced
+root7b6e38ba afterrootactualSniper restore, no circumventingbackend aliases.
+
+RealCLI --help passes. Defaultaudit and --include-sentry bothcomplete and write
+originalJSON reports outsideworktree. Originalrawcriteria stays0/7 andoriginal
+exit1, not an import/API exception; no inventedstatus/categorybits to forcegreen.
+Include-sentry adds bothactual2658 flight andattached actorcreate rows (body_count
+remains7 by originalroledefinition). OriginalSentry prepare/launch/attach actual
+helper passes; originaltest_sentry_crosses_live_grasp_then_damages_and_slows_sigma
+passes2.153s. ActualoriginalBarrierarena reaches same nativeactor/700HP+Sigma400HP.
+Logs worker-b-sigma-filter-{tool-help-ready,default,sentry}.log, JSON reports
+worker-b-sigma-filter-{default,sentry}.json; helperlogs sigma-{sentry,barrier}-tool-
+helper.log and sigma-sentry-original-contact.log. No liveclientacceptance.
+
+This restores the onlymissingstatic testmodule import inroottools AST inventory,
+plusits actualproduction tag-provider dependency; rootseparatelyfixes staticNPC
+productionSniper producer. Otherfullsource numeric/legacyarena expectations are
+notclaimedgreen from thesehelpers. Next exactaction B99: knownforeign-source
+forcevictim endpoint replay on soleKnockbacks with Rocket.source_entity frozen
+identity; self/unknown/C68ownPharah endpoint remains its actualinput path. B96
+receipts prevent laterphysical duplicate. Rootconfirmed this sourceownership
+boundary; earlierglobalendpointreserve was our inference, not a userconstraint.
