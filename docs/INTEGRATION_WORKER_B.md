@@ -1923,3 +1923,19 @@ Original two-branch death/respawn(retry included) and hero replacement methods
 unchanged. No original-client acceptance run. Next exact action: Grasp typed
 interception/temporary-pool/current-clock consumers on existing sole hosts,
 then cross-owner original helper adapters and CLI fixture imports.
+
+
+## B71 — preserve original Grasp interception checks without a second host
+
+Restore test_sigma_grasp.py byte-for-byte from023B. All10 original actual-input
+checks pass5.455s: rifle accumulator, rear rejection, view rotation, nearer wall,
+ally rejection, consumed Helix and Hyperspheres/no later airburst, Accretion and
+melee exclusion, expiry followed by renewed damage. Existing sole interception/
+Grasp host already covers this source scope; do not copy legacy sigma.grasp
+implementation or infer absent module names mean absent interception.
+
+Log worker-b-sigma-grasp-original.log. No production change or client run.
+Next exact action: original self-grant replay dedup/lifecycle and full source
+shield fixture over existing played1D03/TemporaryPool/Grasp.converted. Current
+play queue policy skips an existing matching lease but replay after retirement
+requires auditing original absorption activation identity, not a fake facade.
