@@ -8597,7 +8597,7 @@ class Combat:
             excluded=() if native_impact_body is None else (native_impact_body,),
         ))
         for bubble in self.barriers.enemies(rocket.shooter):
-            if not isinstance(bubble, barriers.Bubble):
+            if not isinstance(bubble, barriers.Bubble) or bubble.body in protected:
                 continue
             distance = max(0.0, math.dist(point, bubble.centre()) - barriers.RADIUS)
             scalar = blast.splash(distance)
