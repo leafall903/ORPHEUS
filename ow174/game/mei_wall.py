@@ -327,6 +327,9 @@ class Walls:
                     self.anchors.pop(body)
                     ability.stop()
                     ability.instance.component.run_now()
+            venom = getattr(self.combat, "venom", None)
+            if venom is not None:
+                venom.mines[:] = [mine for mine in venom.mines if mine.wall != piece.entity]
             sentries = getattr(self.combat, "symmetra_sentries", None)
             if sentries is not None:
                 sentries.retire_supported_by(piece.entity)
@@ -395,6 +398,14 @@ class Walls:
             if hit is not None and (best is None or hit[0] < best[0]):
                 best = hit[0], piece, hit[1]
         return best
+
+    def blocked(self, origin, destination):
+        delta = tuple(b - a for a, b in zip(origin, destination, strict=True))
+        length = math.sqrt(sum(axis * axis for axis in delta))
+        if length < EPS:
+            return False
+        direction = tuple(axis / length for axis in delta)
+        return self.cast(origin, direction, length) is not None
 
     def contact(self, origin, direction, reach, static_hit):
         wall = self.cast(origin, direction, static_hit.distance if static_hit is not None else reach)

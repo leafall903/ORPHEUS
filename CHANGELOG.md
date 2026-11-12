@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate delivered Widowmaker Venom Mine and poison consumers
+
+- Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
+  world tick, body retirement, rifle/projectile contacts, melee and explosion.
+  Preserve authored arming/health/radius/75-point poison, fractional accumulator,
+  owner-only reveal, reflected ownership/lifetime, and Ice Wall attachment cleanup.
+- Adapt old shield/Genji/Matrix services to current combined barrier managers and
+  single _deflector host; freeze Matrix eligibility at launch. Explicit snapshot
+  layouts include flights/mines/poison, optional cached properties and the new
+  launch bit; replay configuration records Venom/Widow source constants.
+- Original Venom9 plus Ice Wall attachment1:9 pass, retained Helix test failure
+  only at shooter-health assertion (160.089 versus old200); the mine is destroyed.
+  Current native/shared explosion self-damage is preserved rather than replacing
+  the source's older enemy-only splash loop. Original reflected poison/flight
+  lifetime3, Matrix absorption/wall precedence2 and reflected state snapshot1 pass.
+  Shared Damage/ProjectileTiming/runtime28 checks pass. All original assertions
+  retained; full source Deflect/Matrix fixtures included with API-name adapters.
+
 ### Mount delivered Widowmaker Grapple cast, pull and Ice Wall anchors
 
 - Restore source000A STU_4BBC5D09 cast state, authored005A range/speed and
