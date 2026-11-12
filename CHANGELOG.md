@@ -24,6 +24,66 @@ This log records tested changes and their acceptance status. Entries are grouped
   in progress; client acceptance remains open. No publication or network action.
 
 
+### Connect Torbjorn hammer to shared native barrier surfaces
+
+- Reuse the received stateless Reinhardt surface helper with Torbjorn's original
+  sphere contact volume. Existing actor managers retain geometry, health and
+  lifetime; the per-swing source contact set retains late entry and deduplication.
+- Keep legacy attached-bubble absorption while excluding its raised-surface
+  route for this caller, so the shared helper owns those surfaces once. Default
+  existing Barriers.area callers remain unchanged.
+- Actual Torbjorn/Winston probe: two55-point hammer swings reduce the deployed
+  native shell700->590, leave the distant body500, and award no hero damage.
+  Three original Torbjorn contact/window checks and the original Reinhardt
+  native-shell check all pass. Initial ad-hoc probe setup selected the hammer
+  before the fresh body's equip finished; corrected setup waits as the original
+  fixture does. No production timing or source assertion was changed.
+- Earlier hammer repeat-interval differences and other owner interlocks remain
+  recorded. Molten Core and source charge are the next consumers; no client
+  or complete owner acceptance is claimed.
+
+### Mount delivered actor-backed Torbjorn turrets and primary marks
+
+- Mount the original turret factory/build/target/fire/repair/dismantle and reuse
+  manager on existing NPC bodies, pools and cleanup. Add original optional
+  initial health and precise selected-actor removal; retain ordinary manual
+  NPC behavior, existing controller/navigation and DVa owner credit. The turret
+  manager alone advances its gun VM; its player credit and custom physical
+  geometry connect to actual combat targeting, damage and snapshot consumers.
+- Connect original throw spawn/gravity and point collision to actual landing,
+  owner/body replacement, death/disconnect retirement, current script foreign
+  variables and bound interaction messages. Connect030E/16FC primary marks to
+  impacts and live turret target priority/expiry. No second turret entity/pool
+  or prototype gun manager is created.
+- Extend prepared supplements with conflict-checked deployables metadata. Source
+  shared records match current combined inputs exactly; additions are five
+  graphs1688/1689/16DE/16FB/16FC, two entities28B7/2903 and the original
+  format_version/turret/molten_core/primary_mark metadata. Root owns the final
+  profile composer; original inputs remain immutable.
+- Eight owner/cooldown/retire/passive-snapshot cases plus15 existing NPC/damage
+  checks pass (the24-check run also records an unexecuted missing mark-fixture
+  import). All five throw/death/repair cases pass; all five original primary-
+  mark cases pass. The required original defense/phase test fixtures are now
+  retained unchanged; their broader suites have not been claimed as executed.
+- Original turret fixtures import still-unmounted Molten/phase/charge modules;
+  these checks explicitly use a test-only frozen source package fallback for
+  those imports, not production integration. Molten Core, source charge and
+  cross-owner control/defense parity remain work. No client run or whole-line
+  completion is claimed; all existing failed assertions remain unchanged.
+
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
 ### Mount delivered Reinhardt Charge capture and bump lifecycle
 
 - Route actual Charge contacts to the same Charge record that owns bounded
@@ -154,6 +214,36 @@ This log records tested changes and their acceptance status. Entries are grouped
   manager/public-constant observations reconciled; retain those errors.
 - Whole-line/client acceptance remains open. No second bubble/impulse driver,
   new acceptance matrix, client session, network operation or push.
+### Mount delivered actor-backed Torbjorn turrets and primary marks
+
+- Mount the original turret factory/build/target/fire/repair/dismantle and reuse
+  manager on existing NPC bodies, pools and cleanup. Add original optional
+  initial health and precise selected-actor removal; retain ordinary manual
+  NPC behavior, existing controller/navigation and DVa owner credit. The turret
+  manager alone advances its gun VM; its player credit and custom physical
+  geometry connect to actual combat targeting, damage and snapshot consumers.
+- Connect original throw spawn/gravity and point collision to actual landing,
+  owner/body replacement, death/disconnect retirement, current script foreign
+  variables and bound interaction messages. Connect030E/16FC primary marks to
+  impacts and live turret target priority/expiry. No second turret entity/pool
+  or prototype gun manager is created.
+- Extend prepared supplements with conflict-checked deployables metadata. Source
+  shared records match current combined inputs exactly; additions are five
+  graphs1688/1689/16DE/16FB/16FC, two entities28B7/2903 and the original
+  format_version/turret/molten_core/primary_mark metadata. Root owns the final
+  profile composer; original inputs remain immutable.
+- Eight owner/cooldown/retire/passive-snapshot cases plus15 existing NPC/damage
+  checks pass (the24-check run also records an unexecuted missing mark-fixture
+  import). All five throw/death/repair cases pass; all five original primary-
+  mark cases pass. The required original defense/phase test fixtures are now
+  retained unchanged; their broader suites have not been claimed as executed.
+- Original turret fixtures import still-unmounted Molten/phase/charge modules;
+  these checks explicitly use a test-only frozen source package fallback for
+  those imports, not production integration. Molten Core, source charge and
+  cross-owner control/defense parity remain work. No client run or whole-line
+  completion is claimed; all existing failed assertions remain unchanged.
+
+
 ### Mount delivered Torbjorn hammer contact windows
 
 - Mount the original168C animation-derived ordinary/Overload impact windows,
@@ -206,6 +296,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Turret/hammer/Molten Core and Torbjorn charge/resource consumers remain to be
   reconciled. Original-client acceptance remains unexecuted; no whole-line
   completion or new acceptance matrix is claimed.
+
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
+
 
 ### Reconcile reflected projectile ownership with original Echo behavior
 
@@ -7552,3 +7657,36 @@ This log records tested changes and their acceptance status. Entries are grouped
   implementation was found in those relay copies. Preserve research snapshots.
 - No original-client acceptance or network publication performed. Remaining
   hero consumer integration stays open and is not blocked by acceptance.
+
+
+### Original Torbjorn input selection
+
+- Compose source0006 additions with current prepared inputs:15 added graphs,
+  3 entities,4 original Mercy effect bindings and original deployables mapping;
+  full3528 projectile definitions retained. Existing Junkenstein metadata stays.
+  Source-only status_effects remains in its original pack, recorded explicitly
+  as unselected; no current source consumer was found. The source Molten path
+  uses deployables and graph16DE and remains a separate integration batch.
+- Compare shared metadata when present in both packs; source packs need not
+  repeat other modes' metadata. Record all unselected top-level metadata in
+  provenance. Both shared graph conflicts and differing shared mode_scripts
+  reject before creating output. All source input hashes remain unchanged.
+- Normal Hanzo profile/journal9 passed. Normal Sonic/Dragon32 completed with
+  30 passes and2 optional input skips, original assertions retained. Evidence:
+  parallel-a18-normal-profile-check.log and parallel-a18-normal-sonic-dragon-check.log.
+- B14 original capture/bump lifecycle and C16 actor-backed turrets are received;
+  joint canonical checks follow. No original-client or publication actions.
+
+
+### Canonical actor input verification checkpoint
+
+- Original composed-input turret/NPC/Damage checks23 pass, including owner
+  attribution, airborne deployment, death persistence, repair and passive
+  snapshots. The turret uses canonical base plus additive v4 inputs; only
+  unused fixture Molten imports use explicit frozen-source fallback.
+- Original ChargeMovement/Contact/runtime/epoch54 run52 pass with2 retained
+  old.controls observation errors. No new numeric expectation failures and
+  no original assertion weakened. Incomplete acceptance does not block merge.
+- Evidence: parallel-c16-composed-turret-check.log and
+  parallel-b14-integrated-check.log. All root test processes are terminal.
+  No original-client acceptance or network publication performed.

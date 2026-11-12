@@ -125,7 +125,7 @@ FIELDS = {
                   "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
-    Player: _names("overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
+    Player: _names("turret_cooldown_until overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script controlled_mech body_script_failed genji_mobility seen shown script mode_script "
                    "next_countdown select_open controller_hero "
@@ -133,7 +133,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -251,7 +251,7 @@ FIELDS = {
     world.Movement: _names("position yaw pitch velocity flags throttles input_frame input_throttles "
                            "air_ticks gravity frame crouch_frame spring spring_speed fall"),
     bots.Bot: _names(
-        "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
+        "combat_owner combat_geometry entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
         "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode pitch navigation impulse_mover "
         "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
@@ -288,7 +288,7 @@ DATACLASSES = (
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
     npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
-    combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    combat.torbjorn_mark.Mark, combat.hero_torbjorn.Turret, combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,
     brigitte.BashStun,

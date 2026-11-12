@@ -68,6 +68,7 @@ from ow174.game import (
     health_packs,
     healing,
     hero_torbjorn,
+    torbjorn_mark,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -1287,7 +1288,7 @@ def hit_def(state, cfg) -> HitDef | None:
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
         knockback=_accretion_knockback(state, modify),
-        projectile_extent=(0.0 if graph_index == 0x0BD4 or (
+        projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5) or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
         ) else value("m_57DAE1B5", 0.0)),
         healing=modify.get("m_93CDFD2F") == 0,
@@ -1972,8 +1973,9 @@ class Combat:
         self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
+        self.torbjorn_marks = {}
         self.hammer_contacts = {}
-        self.turrets = {}  # Original owner actor collection; turret factory mounts separately.
+        self.turrets = {}  # Owner controller -> original actor-backed turret.
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2136,7 +2138,7 @@ class Combat:
             and viewer.client.combat_identity_ready(vitals.killer)
         )
 
-    def retire_player_body(self, player) -> None:
+    def retire_player_body(self, player, *, next_hero=None) -> None:
         """Discard body-local combat state when the player's current body retires."""
         from ow174.game import body_entities
 
@@ -2168,6 +2170,11 @@ class Combat:
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
+        if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
+            hero_torbjorn.destroy_turret(self, player)
+            for key, mark in tuple(self.torbjorn_marks.items()):
+                if mark.owner is player:
+                    torbjorn_mark.remove(self, key)
         self.hammer_contacts.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
         self.hammer_hits.pop(player.body, None)
@@ -2339,6 +2346,9 @@ class Combat:
             assassin.detach_victim(self.match, source, victim)
 
     def _hit_effect(self, target: Target, effect: int | None, *, shooter=None) -> None:
+        if effect == torbjorn_mark.EFFECT:
+            torbjorn_mark.apply(self, shooter, target)
+            return
         """Apply the reconstructed Flashbang interruption and the scoped Talon reaction."""
         if effect not in (SLEEP_DART_EFFECT, FLASHBANG_EFFECT):
             return
@@ -4015,6 +4025,8 @@ class Combat:
         for player in self.match.players:
             if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
                 player.body_script.orisa_fortify_pending = False
+        torbjorn_mark.update(self)
+        hero_torbjorn.update_turrets(self)
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -4251,12 +4263,11 @@ class Combat:
             data = mover_data(bot.body)
             controlled = bot.control_mover
             crouched = controlled is not None and controlled.crouched
-            found.append(
-                Target(
-                    bot.entity, bot.team, tuple(bot.position), data.crouch_height if crouched else data.stand_height,
-                    data.stand_radius, EYE if controlled is None else eye_height(bot.body, crouched), bot
-                )
-            )
+            height, radius, eye, critical = (getattr(bot, "combat_geometry", None) or (
+                data.crouch_height if crouched else data.stand_height, data.stand_radius,
+                EYE if controlled is None else eye_height(bot.body, crouched), True))
+            found.append(Target(bot.entity, bot.team, tuple(bot.position), height, radius, eye, bot,
+                                critical_allowed=critical))
         for actor in self.deployables.values():
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
@@ -4417,9 +4428,11 @@ class Combat:
     def _enemies(self, shooter, *, damageable: bool = False) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
         source = _source_entity(shooter)
+        owner = getattr(shooter, "combat_owner", None) if isinstance(shooter, bots.Bot) else shooter
         found = []
         for target in self._targets():
-            if target.owner is shooter or target.entity == source:
+            if (target.owner is shooter or target.entity == source or target.owner is owner
+                    or (owner is not None and getattr(target.owner, "combat_owner", None) is owner)):
                 continue
             if (isinstance(target.owner, bots.Bot) and target.owner.owner == shooter.entity
                     and target.owner.source_body == source):
@@ -4876,6 +4889,8 @@ class Combat:
 
         host = getattr(self.match, 'scene_host', None)
         for bot in self.match.bots:
+            if bot.body == hero_torbjorn.TURRET and bot.combat_owner is not None:
+                continue  # Original turret manager advances this VM and is its sole gun driver.
             if bot.control_mover is not None:
                 continue
             if host is not None and (bot.entity in host.weapons or host.combatant_component(bot) is not None):
@@ -4929,7 +4944,8 @@ class Combat:
     def _eye(self, player) -> tuple:
         if isinstance(player, bots.Bot):
             x, y, z = player.position
-            height = EYE if player.control_mover is None else eye_height(player.body, player.control_mover.crouched)
+            height = (player.combat_geometry[2] if getattr(player, "combat_geometry", None) else
+                      EYE if player.control_mover is None else eye_height(player.body, player.control_mover.crouched))
             return x, y + height, z
         x, y, z = player.mover.position
         crouched = player.mover.crouched
@@ -5103,7 +5119,8 @@ class Combat:
         if npc:
             x, y, z = shooter.position
             # Use the server body pose until the animated muzzle transform is available.
-            origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
+            height = shooter.combat_geometry[2] if getattr(shooter, "combat_geometry", None) else EYE
+            origin, direction = (x, y + height, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
             if (shooter.hero.guid == 0x02E0000000000008
@@ -5310,6 +5327,12 @@ class Combat:
             spawned = (node.field("m_49CBA3BC") or {}).get("m_entityDefinition") if server_ability else None
             spawned = state.evaluate(spawned, watch=False) if spawned is not None else None
             spawn = spawned.guid if isinstance(spawned, expr.Asset) else None
+            if (not npc and shooter.hero.guid == hero_torbjorn.HERO and source_graph == 0x16C5
+                    and hero_torbjorn.TURRET in projectiles._defs(node.field("m_49CBA3BC"))):
+                spawn = hero_torbjorn.TURRET
+                gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                              for motion in node.field("m_projectileMotions") or ()
+                              if motion.get("$") == "STU_E1A5B579")
             if server_ability and source_graph == 0x0CF5 and gravity is None:
                 gravity = sum(
                     _number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
@@ -6514,6 +6537,7 @@ class Combat:
             surface = collision.cast_ray(rocket.position, heading, t + EPSILON)
             if surface is not None:
                 surface_normal = surface.normal
+        hero_torbjorn.projectile_impact(self, rocket, point, struck)
         self._explode(rocket, point, impact_barrier=impact_barrier, ice=ice, shield=shield,
                       deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers,
                       damage_point=damage_point, incident_direction=heading, surface_normal=surface_normal)
@@ -8206,6 +8230,7 @@ class Combat:
                 vitals.base_maximum - vitals.base_total,
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
+        hero_torbjorn.turret_damaged(self, target)
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
         if isinstance(shooter, bots.Bot) and (credit := self._credit_player(shooter)) is not None:
             if target.owner is not shooter:
@@ -8510,6 +8535,9 @@ class Combat:
     def _credit_player(self, actor):
         if not isinstance(actor, bots.Bot):
             return actor
+        if getattr(actor, "combat_owner", None) is not None:
+            owner = actor.combat_owner
+            return owner if owner in self.match.players and not owner.gone else None
         player = self.match._message_player(actor.source_body) if actor.owner else None
         return player if player is not None and player.entity == actor.owner else None
 
@@ -8715,6 +8743,7 @@ class Combat:
                 self.deadeye_notices.append((killer, victim, script, root_id, shot_frame, deadline))
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
+        hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
         self.sound_barriers.retire(bot.entity)
