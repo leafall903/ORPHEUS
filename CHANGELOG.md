@@ -6,6 +6,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Target filter behavior contract
+
+- Added a public behavior contract for the six masks of a target filter: sixteen cases over the
+  authored filters of Guardian Angel, the Caduceus Staff and Hack, a tagged-enemy filter and an
+  empty one, with the answers the client's own test at image offset `0xBCAAE0` gives. Its Python
+  consumer calls `combat.filter_admits` and needs neither dependencies nor runtime data.
+- The contract stops at the mask test. Range, cone, sight and scoring keep their runtime tests,
+  and the bits a body carries stay a reconstruction outside it.
+- No server code changed. Ruff and the public tests passed.
+
 #### Uprising shows its defend and escort phases
 
 - An Uprising match now puts the phase's director graph on the game mode entity: `0D4A` once the

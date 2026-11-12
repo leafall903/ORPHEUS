@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "case_id": "target-filter.entity-and-relation-masks.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "5f8d068b1aef47e86781f0e650f1a99c1c578399",
+    "paths": [
+      "src/ow174/game/combat.py",
+      "docs/research/track-targets.md"
+    ]
+  },
+  "evidence": "client-code-reference",
+  "client_acceptance": "partial",
+  "input": {
+    "mask_order": ["any_bits", "all_bits", "excluded_bits", "any_relation", "required_relation", "excluded_relation"],
+    "relation_bits": {"not_hostile": 1, "hostile": 2, "owner": 4},
+    "cases": [
+      {"id": "ally-only.live-ally", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 1, "hostile": false, "own": false},
+      {"id": "ally-only.dead-ally", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 17, "hostile": false, "own": false},
+      {"id": "ally-only.enemy", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 1, "hostile": true, "own": false},
+      {"id": "ally-only.owner", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 1, "hostile": false, "own": true},
+      {"id": "ally-only.excluded-bit", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 2097153, "hostile": false, "own": false},
+      {"id": "ally-only.no-bits", "masks": [0, 1, 2097152, 1, 0, 4], "bits": 0, "hostile": false, "own": false},
+      {"id": "live-ally.live-ally", "masks": [1, 0, 2097168, 0, 1, 4], "bits": 1, "hostile": false, "own": false},
+      {"id": "live-ally.dead-ally", "masks": [1, 0, 2097168, 0, 1, 4], "bits": 17, "hostile": false, "own": false},
+      {"id": "live-ally.enemy", "masks": [1, 0, 2097168, 0, 1, 4], "bits": 1, "hostile": true, "own": false},
+      {"id": "live-ally.owner", "masks": [1, 0, 2097168, 0, 1, 4], "bits": 1, "hostile": false, "own": true},
+      {"id": "tagged-enemy.enemy", "masks": [64, 0, 20, 0, 0, 1], "bits": 64, "hostile": true, "own": false},
+      {"id": "tagged-enemy.ally", "masks": [64, 0, 20, 0, 0, 1], "bits": 64, "hostile": false, "own": false},
+      {"id": "tagged-enemy.other-bit", "masks": [64, 0, 20, 0, 0, 1], "bits": 1, "hostile": true, "own": false},
+      {"id": "any-entity.no-bits", "masks": [1073741823, 0, 148, 0, 0, 4], "bits": 0, "hostile": true, "own": false},
+      {"id": "any-entity.excluded-bit", "masks": [1073741823, 0, 148, 0, 0, 4], "bits": 16, "hostile": true, "own": false},
+      {"id": "empty-filter.anything", "masks": [0, 0, 0, 0, 0, 0], "bits": 0, "hostile": true, "own": false}
+    ]
+  },
+  "expected": {
+    "ally-only.live-ally": true,
+    "ally-only.dead-ally": true,
+    "ally-only.enemy": false,
+    "ally-only.owner": false,
+    "ally-only.excluded-bit": false,
+    "ally-only.no-bits": false,
+    "live-ally.live-ally": true,
+    "live-ally.dead-ally": false,
+    "live-ally.enemy": false,
+    "live-ally.owner": false,
+    "tagged-enemy.enemy": true,
+    "tagged-enemy.ally": false,
+    "tagged-enemy.other-bit": false,
+    "any-entity.no-bits": true,
+    "any-entity.excluded-bit": false,
+    "empty-filter.anything": true
+  }
+}
