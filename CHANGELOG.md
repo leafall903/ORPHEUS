@@ -5,6 +5,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 ### Mount delivered Molten Core projectiles, areas and status consumers
+### Mount delivered Charge and Rocket Punch cross counters
+
+- Evaluate original body inline224E profiles and delivered Punch tracker fallback
+  at eye-minus0.18m when the native attachment query is unresolved. Preserve
+  source aim/cone/radius/cover/ranking and admit Punch-initiated counter outside
+  Charge's cone. Existing Bash prepare/host_control keeps its native224E path.
+- Retire interrupted Punch movement immediately in both existing public and
+  native-control interruption paths, preserving foreign control timers and
+  external impulses. No second actor, pool or movement controller is added.
+- Four original focused input/two-sided movement/outside-cone/held-release
+  counter checks pass. Original174-test combined run retains13 cross-suite
+  subfailures and11 errors (including the two old Shatter-key observations);
+  no new failures occur in the prior157-test joint scope. Logs are external.
+- Source counter fixtures now read actual native224E inclusive timer endpoints,
+  Punch input-control clocks, impact target records and temporary-shield state.
+  All numerical expectations remain original. Retain broader Brigitte gaps and
+  finished-Punch-history/active-VM completion observations for the next batch;
+  original-client acceptance remains open. No network/publication action.
+
+
+### Mount delivered Reinhardt mutual Charge windup counters
 
 - Connect original16DA input/ten-globule resource lifetime, point ballistic
   chords, ground slope admission, ceiling/steep-surface rebounds, segment clock,
@@ -31,6 +52,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   original source checks. Source status_effects metadata has no direct reader;
   this host resolves deployables.status_graph explicitly. Client acceptance
   and whole-line completion remain unclaimed.
+
 
 ### Connect Torbjorn hammer to shared native barrier surfaces
 

@@ -162,27 +162,71 @@ def counter_duration(instance):
     return expr.to_float(instance.evaluate(values.get(0x0D800000000000D7)))
 
 
+
+def profile_duration(script, *, heavy=False):
+    """The body's inline224E counter-knockdown profile, not its ordinary hit stun."""
+    from ow174.game.combat import _number
+
+    for instance in script.component.instances.values():
+        if heavy and instance.graph.index != 0x1408:
+            continue
+        for node in instance.graph.nodes:
+            if node is None or node.cls != "STUStatescriptActionPlayScript":
+                continue
+            inline = (node.field("m_69F4B52C") or {}).get("m_6525E98B") or {}
+            if expr.guid_of(inline.get("m_graph")) != 0x058000000000224E:
+                continue
+            rows = {expr.guid_of(r.get("m_0D09D2D9")): r.get("m_value")
+                    for r in inline.get("m_1EB5A024") or () if isinstance(r, dict)}
+            kind = instance.evaluate(rows.get(0x0D80000000006BD6))
+            if not isinstance(kind, expr.Asset) or kind.guid != 0x0D80000000006BBE:
+                continue
+            if heavy and node.pos != 132:
+                continue
+            if not heavy and not expr.truthy(instance.evaluate(rows.get(0x0D80000000007312))):
+                continue
+            return _number(instance.evaluate(rows.get(0x0D800000000000D7)), 0)
+    return 0.0
+
+
 def counter_frame(fight, player):
-    """Delivered posed-command hook also admits close opposing windups."""
-    if player.hero.guid != barrier.REINHARDT or fight.is_stunned(player) or fight.is_dead(player):
+    """Delivered Charge/Punch query; Bash keeps its existing native host."""
+    from ow174.game.combat import segment_distance
+
+    hero = player.hero.guid
+    spec = {barrier.REINHARDT: (0x7D, 74, False),
+            0x02E000000000012F: (0xD06, 6, True)}.get(hero)
+    if (spec is None or fight.is_stunned(player) or fight.is_dead(player) or player.gone
+            or player.body_script.component.input_suppressed):
         return False
+    index, state_index, aim_tracker = spec
     script = player.body_script
-    instance = next((i for i in script.component.instances.values() if i.graph.index == 0x7D), None)
-    phase = instance.states.get(40) if instance is not None else None
-    if phase is None or not phase.active:
+    instance = next((i for i in script.component.instances.values() if i.graph.index == index), None)
+    if instance is None:
+        return False
+    tracker = instance.states.get(state_index)
+    phase = instance.states.get(40) if hero == barrier.REINHARDT else tracker
+    if phase is None or not phase.active or tracker is None or not tracker.active:
         return False
     yaw = player.mover.yaw * math.tau / 65536
-    return counter(fight, player, instance, (math.sin(yaw), 0., math.cos(yaw)), fight._enemies(player))
+    enemies = fight._enemies(player)
+    if aim_tracker:
+        enemies = sorted(enemies, key=lambda t: (segment_distance(fight._eye(player), *t.segment()), t.entity))
+    return counter(fight, player, instance, (math.sin(yaw), 0., math.cos(yaw)), enemies,
+                   tracker=tracker, aim_tracker=aim_tracker, solid_cryo=hero == 0x02E0000000000195)
 
 
-def counter(fight, player, instance, forward, enemies):
+def counter(fight, player, instance, forward, enemies, *, tracker=None, aim_tracker=False, solid_cryo=False):
     from ow174.game.combat import aim, capsule_visible, segment_distance
 
-    tracker = instance.states.get(74)
+    tracker = instance.states.get(74) if tracker is None else tracker
     if tracker is None or not tracker.active:
         return False
     node = tracker.node
     local = tracker.evaluate(node.field("m_05BE62DD"), watch=False)
+    if player.hero.guid == 0x02E000000000012F and not isinstance(local, expr.Vec3):
+        # Delivered fallback for the unresolved native Punch eye/attachment query.
+        local = expr.Vec3(0., fight._eye(player)[1] - player.mover.position[1] - .18, 0.)
     radius = expr.to_float(tracker.evaluate(node.field("m_radius"), watch=False))
     cone = expr.to_float(tracker.evaluate(node.field("m_A30B383E"), watch=False))
     if not isinstance(local, expr.Vec3) or radius <= 0:
@@ -190,11 +234,14 @@ def counter(fight, player, instance, forward, enemies):
     fx, _, fz = forward
     x, y, z = player.mover.position
     centre = (x + fz * local.x + fx * local.z, y + local.y, z - fx * local.x + fz * local.z)
+    if aim_tracker:
+        enemies = sorted(enemies, key=lambda t: (segment_distance(centre, *t.segment()), t.entity))
     for target in enemies:
         owner = target.owner
         script = getattr(owner, "body_script", None)
         if (script is None or isinstance(owner, bots.Bot)
-                or script.component.world.hero != barrier.REINHARDT or fight.is_stunned(owner)):
+                or script.component.world.hero not in (barrier.REINHARDT, 0x02E000000000012F)
+                or fight.is_stunned(owner)):
             continue
         flag = script.component.entity_var(596, create=False)
         tx, _, tz = aim(owner.mover.yaw, 0)
@@ -205,19 +252,37 @@ def counter(fight, player, instance, forward, enemies):
             continue
         dx, dz = target.feet[0] - centre[0], target.feet[2] - centre[2]
         distance = math.hypot(dx, dz)
-        if distance:
+        if aim_tracker:
+            from ow174.game import defenses
+            from ow174.game.combat import ray_cover
+            direction = aim(player.mover.yaw, player.mover.pitch)
+            point = (a[0], max(a[1], min(b[1], centre[1])), a[2])
+            offset = tuple(p - o for p, o in zip(point, centre))
+            length = math.hypot(*offset)
+            if length > 1e-9:
+                toward = tuple(v / length for v in offset)
+                angle = math.acos(max(-1., min(1., sum(x * y for x, y in zip(direction, toward)))))
+                if angle > math.radians(cone) / 2 + math.asin(min(1., target.radius / length)):
+                    continue
+                limit = length - target.radius
+                if limit > 0:
+                    blockers = defenses.cryo_blockers(fight.match.players, exclude=player) if solid_cryo else ()
+                    if (ray_cover(fight._collision(), centre, toward, limit, blockers) is not None
+                            or fight.walls.cast(centre, toward, limit) is not None
+                            or fight._barrier_contact(player, centre, toward, limit, bubbles=True) is not None):
+                        continue
+        elif distance:
             angle = math.acos(max(-1., min(1., (dx * fx + dz * fz) / distance)))
             if angle > math.radians(cone) / 2 + math.asin(min(1., target.radius / distance)):
                 continue
         from ow174.game.reinhardt_hammer import _wall_clear
-        if (not capsule_visible(fight._collision(), centre, a, b, target.radius)
-                or not _wall_clear(fight, centre, a)):
+        if not aim_tracker and (not capsule_visible(fight._collision(), centre, a, b, target.radius)
+                                or not _wall_clear(fight, centre, a)):
             continue
-        opposing = next((i for i in script.component.instances.values() if i.graph.index == 0x007D), None)
         own = next((t for t in fight._targets() if t.owner is player), None)
-        if opposing is None or own is None:
+        if own is None:
             continue
-        duration, other_duration = counter_duration(instance), counter_duration(opposing)
+        duration, other_duration = profile_duration(player.body_script), profile_duration(script)
         if duration > 0 and other_duration > 0:
             fight.stun(own, duration)
             fight.stun(target, other_duration)

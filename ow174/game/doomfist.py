@@ -57,6 +57,17 @@ class Punches:
         self.controls.pop(entity, None)
         self.impacts[:] = [i for i in self.impacts if i.target != entity and i.source_body != entity]
 
+    def interrupt(self, owner):
+        """Retire an interrupted Punch drive without clearing foreign controls."""
+        from ow174.game.combat import _source_entity
+
+        if owner is None:
+            return
+        if self.dashes.pop(_source_entity(owner), None) is not None:
+            mover = getattr(owner, "mover", None)
+            if mover is not None and not mover.external_impulse:
+                mover.stop_drive()
+
     def controlled(self, entity: int) -> bool:
         return self.controls.get(entity, -math.inf) > self.combat.now
 
