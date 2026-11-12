@@ -888,8 +888,7 @@ class BodyWorld(runtime.World):
             return NotImplemented  # NPC component43/controller ownership is not installed here.
         return None
 
-    @staticmethod
-    def _watch_possessor(watcher, target):
+    def _watch_possessor(self, watcher, target):
         # InstanceContext already records this config in native_dependency.
         # Match relation changes are polled at command boundaries; native
         # component43 callback allocation/phase order is not reconstructed.

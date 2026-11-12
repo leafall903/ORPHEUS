@@ -571,6 +571,7 @@ class _Export:
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
+                                     BodyWorld._lookup_possessor, BodyWorld._watch_possessor,
                                      BodyWorld._poll_entity_query, BodyWorld._query_spatial, BotWorld._lookup_entity_link)):
             return {"class": "builtins.method", "identity": self.identity(obj),
                     "owner": ["component", "world"], "function": _name(obj.__func__)}

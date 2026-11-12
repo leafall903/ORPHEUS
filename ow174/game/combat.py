@@ -4219,8 +4219,15 @@ class Combat:
 
     def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False):
         candidates = []
+        native_raised = [actor for actor in self.barriers.enemies(shooter)
+                         if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in native_raised}
+        for actor in native_raised:
+            distance = actor.trace(origin, direction, length, radius)
+            if distance is not None:
+                candidates.append((distance, actor.owner, actor))
         raised = self.barrier.intersect(shooter, origin, direction, length)
-        if raised is not None:
+        if raised is not None and raised[1] not in native_bodies:
             candidates.append((raised[0], raised[2], raised[1]))
         for hit in (
             self.barriers.world.trace(shooter, origin, direction, length, radius),
