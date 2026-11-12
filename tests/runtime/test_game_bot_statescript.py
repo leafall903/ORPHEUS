@@ -5,11 +5,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from test_game_combat import Run
-from test_game_graph_analysis import make_graph, node, output
-from test_game_packet_budget import connection, decoded
-from test_game_projectiles import ABILITY_2
-from test_game_repeated_lifecycles import wire_frame
 
 from ow174.game import bodytrace, bots, combat, heavy_assault, movelog, observers, projectiles, statescript, world
 from ow174.game.body_vm_snapshot import export_component_vm

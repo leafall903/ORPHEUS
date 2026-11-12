@@ -7,7 +7,6 @@ import math
 import unittest
 from dataclasses import replace
 
-from test_game_combat import KANEZAKA_DM, Run, aim
 
 from ow174.game import combat, projectiles, stats
 from ow174.game.collision import World
