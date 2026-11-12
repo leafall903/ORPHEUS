@@ -18,6 +18,42 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+### Restore the existing Brigitte shield health binding
+
+- Evaluate the exact non-strict0195/0EE3 dynamicPet13214 current-health query
+  through its existing Brigitte owner host before typed health returns zero
+  for an unavailable Pet identity. Require actual body definition, bound match
+  and component/body identity. Other queries retain strict typed contracts.
+- Original hammer/replacement shield cases now pass; typed health/runtime25
+  pass. Full shield/shared61 retains3 failures,6 old Winston cache errors and
+  1skip. Fire Strike now reaches the original250-versus150 pool assertion;
+  its missing explicit shield contact consumer is the next batch.
+- No second shield manager or native Pet creation claim. Client check open.
+
+### Restore delivered Charge impacts on Superchargers
+
+- Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
+  visibility query on the existing Charge. Feed the real device entity into
+  the authored end output and007D125 health node, retaining native damage175.
+- Use the same actual Device pool and original GJK mesh helper. No second
+  charge driver/actor or Brigitte1408 takeover. Preserve team and world cover.
+- Three original device cases pass: enemy200->25 once and authored termination,
+  allied skip/capture beyond it, and static cover. Existing Charge movement,
+  contacts, mutual counters and runtime55/55 pass. Client acceptance open.
+
+### Restore delivered Fire Strike deployment object contacts
+
+- Route existing Photon plane/mesh actors and Orisa Superchargers through the
+  same ordered Fire Strike contacts, captured affiliation and one-hit ledger.
+  Damage the actual owner pool; retain penetrating body hits and aura teardown.
+- Actual Photon Q plane probe: shield100/body100 damage once. Actual deployed
+  device probe:200->100->0 before expiry, actor/buff removal and scale reset.
+  Allied Fire Strike150 damage/charge, allied Charge and runtime19 checks pass.
+- Retain complete original Fusion/Supercharger suites:69 assertions each, order
+  and Constants unchanged. Full25 retains9 failures/1 obsolete getter error;
+  final getter mapped to actual charges passes focused check. Known gaps include
+  Charge device175 damage, native Fusion critical17 versus original ordinary6,
+  shield-break contact and reflected projectile metadata. Client acceptance open.
 
 ### Mount delivered Mei Blizzard flight and area consumers
 

@@ -600,6 +600,25 @@ alone is not evidence that a line's consumers are actually mounted.
   remaining source surface histories; audit fuller owner consumers before
   formal line completion. Keep Fusion numerical/source metadata gaps explicit.
 
+## B33 — Exact Brigitte owner health-query precedence
+
+- Actual prepared Brig had0EE3 active with587250/5860 and no owner shield pool.
+  Generic typed CURRENT short-circuited invalid Pet13214 to legal0 before the
+  existing BrigitteCombat.native pool initialization could run. Earlier probe
+  printed graph pos32 rather than state32; that was not incompatible input.
+- Restore only non-strict actual BodyWorld body-definition/bound match/samebody,
+  hero0195+graphEE3+CURRENT+Dynamic entity13214 context1. Delegate existing host,
+  retain unknown NotImplemented/strict semantics; no alternate Shield host.
+- worker-b-brig-health-priority-first.log: original Hammer and samebody reused
+  shield2pass; Fire Strike proceeds past oldKeyError to real250versus150 missing
+  contact consumer. worker-b-brig-health-typed-runtime.log25/25 unchanged tests.
+- Full worker-b-brig-health-priority-regression.log61:3fail6errors1skip. Errors
+  are original winston_domes legacy cache; failures actual Helix170vs130/shield
+  break wearer165vs200 and Rein whip shield1600vs1530. Retain all expectations.
+- NEXT B34: route actual same Brig barrier pool into Fire Strike orderedcontacts
+  and shared barrier query; preserve captured team, exact shield identity and
+  source surface history rather than constructing another actor.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue
