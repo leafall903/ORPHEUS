@@ -8,6 +8,96 @@ root completed0016 orb-route and handed C the retained-respawn review. Preserved
 all original assertions and separated old fixture/numeric differences from
 unmounted implementation. Documentation only; no tests rerun. Latest functional
 C63 body-size group remains16/16pass. No client or network action.
+## A93 — retain independent native casts without extra legacy gates
+
+Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup
+copy/typedEntity PlayScript value boundary and complete snapshot fixture restore;
+no serializer/runtime waiver. One append-only original test conflict retained all
+A92 silent-break assertions plus root's source header/fixture changes.
+
+Removed only two extra legacy host policies absent from original0068 candidates:
+projected target search no longer rejects a recipient merely because the old
+ProjectedBarrier cache exists; BodyWorld's TODO overlap placeholder no longer
+rejects personal casting solely from that legacy cache. Existing actual native
+Ability conditions/resource fields/cooldowns and025C target flags6600/11264,
+team/live/typed receiver gates are retained. Source resource audit explicitly
+found those flags in0244 n3/n19 and025C n11/n18; they were not deleted for oldtests.
+
+Original Genji two-caster full method now passes all original90/200→firstbreak40
+energy→second90/22energy/body200/nohit assertions. Actual native projected-first
+then personal yields distinct200/200 actual Vitals/actors, no extra pool host.
+Readonly resource-order evidence: personal-first sets6600=True so current declared
+025C filter rejects it; projected-first permits personal (11264 absent). This is a
+source reconstruction versus current resource ordering contract, not permission
+to drop declared flags. The old sequential self/projected cap fixture still has no
+Pet under its close horizontal input; its StopIteration/input is retained, no
+faked receiver. Log worker-a-zarya-overlap-resource-order-diagnostic.log.
+
+Original multi-projector +new actual actor-pair +A91/A92 original2 +whole-server
+projection causal capture/hash changes/restores/unknownreject =5/5pass60.442s
+(worker-a-zarya-overlap-whole-server-check.log). The whole-server proof includes
+the enclosing realNPC and actualnativePet, retaining root's exact parameter/value
+ownership boundary. No source expected numeric values or assertions were edited.
+
+Remaining actual code gap A94: original0068 personal-before-projected/roster-caster
+selection for one recipient is not fully mounted: current protect_body/ray tie
+and legacy area/explosion iterators can use creation order or consume multiple
+pools for one contact. Restore this existing source _candidates/_intercept policy
+on same actors/Vitals, keep closest-ray mathematics/cross-family order. Then final
+precise source mapping/handoff; source private API/geometry/resource conflicts and
+clientOPEN remain verification tails, not blockers to code admission. Shared mover
+old-symbol names will be mapped to actual current consumers rather than facades.
+
+
+## A92 — source silent active break and exact ctor/world pair
+
+Restored the distinct original0068 ACTIVE break branch on same duration's FINISH
+request/BarrierExpiry: label parent end with mapped actual contact, leave that
+frame available for real input, and use existing next-world-edge neutral gap.
+The actual child/Pet actor retires immediately. Native child cleanup can enqueue
+its original cooldown write at the idle parent cursor; after the contact-frame
+gap, the same Ability cur/rate gets the real contact-frame origin with its retained
+within-frame phase. A naturally reached duration keeps its ordinary end path;
+early child cleanup still supplies the original gap even if it already stopped
+the parent. No new pending ledger/state fields/timer/body VM or time override.
+
+Found A80 ctor binding off by one: BodyScript.frame is committed after command
+returns, but the native ctor is already in component.frame. _schedule_expiry now
+pairs the actual duration component ctor frame with actual Match.tick (they may
+be40frames apart), instead of the previous accepted BodyScript.frame. Original
+silent test exposed1067vs1068 after the first bridge; the actual ctor pair fixes
+that. This changes real expiry admission one tick as restored original causality;
+no source expected value changed and no frame==world assumption was introduced.
+
+Single native finite pool remains authoritative during that short break handoff:
+legacy personal absorption recognizes actual CompatiblePet.pet_entity, regardless
+of linked output mode; stale Barriers.Bubble references cannot synthesize a second
+pool without the scripted actor. Break clears only this activation's old personal/
+matching-source projected/live proxy caches. The next same-tick contact damages
+the body, while the breaking event has no overflow. No alias manager/observer.
+
+Normal module now also contains source silent-break whole method: fiveNPC
+projected plus personal, original script.frame/start/hit, energy2,8/10s cooldown,
+repress/generation assertions retained. All6cases baseline failed old bodyframe
+1001vs1068 (personal1002vs1069), then actual parent rawcooldown6.928vs8 traced to
+old-cursor queued native cleanup; both causality consumers are now restored.
+Final source2methods (includes A91) pass9.537s. Combined source no-overflow and exact
+capacity/40energy, nativeapplication2/lifetime2/worldenergy1 and actualNPC lifecycle3
+=12/12pass19.228s. Log worker-a-zarya-silent-break-ctor-lifetime-joint-check.log.
+Bounded original-cause evidence worker-a-zarya-native-break-causal-trace.log;
+source baseline worker-a-zarya-silent-active-break-baseline.log. No assertion or
+source numeric value was changed, and no serializer/shared runtime was changed.
+
+Remaining actual known implementation gap A93: legacy target overlap gates still
+reject second projected caster and personal+projected combination that original
+0068 candidates/interception support. Current unique actors/Vitals can already
+hold independent casts and choose one absorbing pool; restore admission consumers
+without changing C54 unique replay query. Root owns A90 value-copy boundary and
+has completed its strict whole-server verification. Verification tails (193 width,
+old private API, source geometry/contract differences, externalclient OPEN) are not
+production-merge blockers. Final source/shared mover replacement mapping follows
+A93; do not add legacy mover facades merely because names differ.
+
 
 ## A91 — original earlier break rebase after an ahead body end
 
@@ -308,6 +398,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original scaled Mei/Genji methods and mover/damage checks pass16/16. Old
   fixture/contract differences remain recorded separately; no new runtime host
   or client acceptance is implied.
+### Restore original victim-side credit for supported weapons
+
+- Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent
+  pool loss and the existing victim modifier, preserving other authored target
+  adjustments without duplicate scaling or another charge ledger.
+- Reached weapon/impact and shared30 checks pass. Original damage/physics and
+  numeric expectations remain; no original-client acceptance run.
+
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
 
 ### Admit proven projected-NPC Sentry history through the existing driver
 
@@ -324,6 +436,43 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Keep the original older 2m expectations as recorded differences, without
   widening graph conditions or creating another damage path. No runtime behavior
   was changed by this audit; client acceptance remains open.
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
+
+### Preserve original explicit filter and cache APIs
+
+- Restore the original caller-bound SDK and checks, reusing existing kernels.
+  Production controller contexts retain their current path and unknown binding
+  remains strict; no second attached filter/cache host is created.
+- Original42 and shared26 checks pass separately. Mixed-owner fixture and
+  actual dispatcher audits continue; no client acceptance run.
+
+### Restore original tag kernels on the existing Moira host
+
+- Preserve original tag API and use it on the same Moira candidate path, reusing
+  current guarded collection and existing catalog/volume/ranking services.
+- Original/current tag safety and real NPC consumer28 checks pass. No second
+  beam host, tag store, serializer change or client acceptance run.
+
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
+
 
 ### Restore original Heavy melee force on configured Bastion
 
@@ -11541,3 +11690,26 @@ vs native60 assertions remain visible and do not block real code integration.
   snapshot rejection remains unchanged.
 - Actual projected NPC causal storage, unknown-field rejection and shared
   damage/runtime20 checks pass; original gameplay assertions are retained.
+
+### Verify remaining actual prediction geometry families
+
+- Actual Orisa, Sigma and Photon shields pass surface/object/service identity,
+  splash inclusion/impact exclusion and readonly whole-server digest checks.
+  Correct raw world-flight and ground-aim input completes the existing fixture.
+- Combined with prior actual Mei/Reinhardt/Winston receipts, all six existing
+  geometry families now have scoped query evidence. No gameplay/runtime change.
+
+### Restore original horizontal speed modifier consumer
+
+- Restore delivery023B's field33 kernel unchanged on the existing normal mover
+  pose path. Original Flux impulse3 and preserved vertical speed now pass.
+- Actual/shared20 checks and modifier/state/floor16 checks pass. No new mover,
+  persistent field or altered original gameplay assertion.
+
+### Restore existing orb and NPC omitted-route history
+
+- Reuse current flight ticks and the sole Match route/impulse driver for
+  original0016 admitted orb history, retaining its authored remaining-flight
+  budget and actual time-dependent NPC pace. No new mover, VM or stored field.
+- All20 actual stepped/gap causal pairs match; retain two original Assassin
+  absolute-position failures instead of altering their expected numbers.

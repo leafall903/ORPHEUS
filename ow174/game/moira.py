@@ -10,7 +10,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 from ow174.game import absorption, actors, bots, combat, deflection, sigma_barrier, stats
-from ow174.game.script import entity_filter, expr, nodes, runtime
+from ow174.game.script import entity_filter, expr, filter_tags, nodes, runtime
 from ow174.game.script.target_volume import Volume
 
 MOIRA = 0x02E00000000001A2
@@ -691,7 +691,7 @@ def _grasp_contact(fight, player, command, search):
     # actors and projectiles. Runtime additions and removals need a live host.
     catalog = deflection.tags()
     filters = search.node.field("m_filter") or {}
-    tag_lists = tuple(entity_filter.collect_tags(search.instance, filters.get(name))
+    tag_lists = tuple(filter_tags.collect(search.instance, filters.get(name))
                       for name in entity_filter.TAG_FIELDS) if catalog else ()
     best = None
     view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
@@ -703,8 +703,8 @@ def _grasp_contact(fight, player, command, search):
         definition = owner.body if isinstance(owner, (bots.Bot, actors.Deployable)) else owner.hero.body
         tags = catalog.get(definition)
         if tags is not None:
-            static = entity_filter.TagSet(static=(tag & 0xFFFFFFFF for tag in tags))
-            if not entity_filter.matches_tags(static, *tag_lists):
+            static = filter_tags.Tags(base=tuple(tag & 0xFFFFFFFF for tag in tags))
+            if not filter_tags.matches(static, *tag_lists):
                 continue
         if not _track_visible(fight, collision, origin, shown):
             continue

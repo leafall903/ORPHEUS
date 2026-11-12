@@ -1439,20 +1439,24 @@ class Match:
 
     # --- lifetime ------------------------------------------------------------------------------
 
-    def _advance_bots(self, tick: int) -> None:
+    def _advance_bots(self, tick: int, *, routes_only=False, impulses_only=False, defer_routes=False, defer_impulses=False) -> None:
         if not self.bots:
             return
         from ow174.game import npc_navigation
 
-        if self._pending_bot_scripts:
+        if not (routes_only or impulses_only) and self._pending_bot_scripts:
             # Keep graph setup within the loading window and off the world-create burst.
             self._prepare_bot_script(self._pending_bot_scripts.popleft())
-        manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
+        manual = [] if routes_only or impulses_only else [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
         budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
         if budgets:
             self._npc_planning_turn += 1  # server ticks can skip under load
         pillars = ice_wall.pillar_actors(self.combat)
         for bot in self.bots:
+            if ((routes_only and not bot.route) or (impulses_only and bot.impulse_mover is None)
+                    or (defer_routes and bot.route)
+                    or (defer_impulses and bot.impulse_mover is not None)):
+                continue
             if self.combat.companions.actor_for(bot.entity) is not None:
                 continue  # The original phase driver owns this same NPC/mover.
             if self.combat.junkrat.rooted(bot.entity, tick):
@@ -1512,18 +1516,20 @@ class Match:
         if ready:
             first = tick
             frozen_sentries = self.combat.frozen_sentry_replay(tick)
+            orb_history = not frozen_sentries and self.combat.replays_orb_flights(tick)
+            replay_routes = orb_history and self.combat.replays_orb_routes(tick)
             if frozen_sentries:
                 # The delivered lock proof admits only one freeze plus the
                 # normal retained window. Reuse this same route/nav driver.
                 first = self.combat.tick + 1
-            elif (self.combat.tick and tick > self.combat.tick + 1
+            elif (not orb_history and self.combat.tick and tick > self.combat.tick + 1
                     and self.combat.lucio_auras.has_moving_npc_recipients()):
                 first = max(self.combat.tick + 1, tick - combat.COMBAT_CATCH_UP + 1)
             for at in range(first, tick + 1):
                 self.tick = at
-                self._advance_bots(at)
+                self._advance_bots(at, defer_routes=replay_routes, defer_impulses=orb_history)
                 self.combat.update(now - (tick - at) * combat.TICK, at,
-                                   frames=frames and at == tick)
+                                   frames=frames and at == tick, replay_routes=replay_routes)
             self.tick = tick
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)

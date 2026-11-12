@@ -4573,7 +4573,24 @@ class Combat:
         # admission still feeds the sole world/NPC update loop.
         return self.sentries.frozen_history_candidates(tick)
 
-    def update(self, now: float, tick: int, frames: bool = True) -> None:
+    def replays_orb_flights(self, tick: int) -> bool:
+        return self.tick + 1 < tick and any(
+            rocket.definition == symmetra.ORB_PROJECTILE and rocket.last_tick is not None
+            for rocket in self.rockets
+        )
+
+    def replays_orb_routes(self, tick: int) -> bool:
+        return any(bot.route for bot in self.match.bots) and self.replays_orb_flights(tick)
+
+    def _step_route_poses(self):
+        # Reuse the current sole route/control/impulse driver, without preparing
+        # another pending body or advancing unrelated endpoint NPCs again.
+        self.match._advance_bots(self.tick, routes_only=True)
+
+    def _step_impulse_poses(self):
+        self.match._advance_bots(self.tick, impulses_only=True)
+
+    def update(self, now: float, tick: int, frames: bool = True, *, replay_routes=False) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
         other players' body frames only on the ticks that send (`frames`)."""
         if self.match.collision_world is None:
@@ -4715,11 +4732,16 @@ class Combat:
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
         scheduled_flights = [
             (rocket, range(max(self.tick, rocket.last_tick) + 1,
-                           min(tick, rocket.last_tick + math.ceil(rocket.left / TICK)) + 1))
+                           min(tick, rocket.last_tick + math.ceil(
+                               (min(rocket.left, symmetra.ORB_LIFETIME)
+                                if rocket.definition == symmetra.ORB_PROJECTILE else rocket.left) / TICK)) + 1))
             for rocket in self.rockets if rocket.last_tick is not None
-            and _zarya_world_timed_flight(rocket.definition, rocket.spawn)
+            and (_zarya_world_timed_flight(rocket.definition, rocket.spawn)
+                 or rocket.definition == symmetra.ORB_PROJECTILE)
         ]
         flight_ticks = {at for _, flight in scheduled_flights for at in flight}
+        orb_ticks = {at for rocket, flight in scheduled_flights
+                     if rocket.definition == symmetra.ORB_PROJECTILE for at in flight}
         graviton_flights = [flight for rocket, flight in scheduled_flights
                            if flight and rocket.spawn == graviton.FIELD_ENTITY]
         field_ticks = self.zarya_gravitons.clock_ticks(self.tick, tick, graviton_flights)
@@ -4727,6 +4749,11 @@ class Combat:
             if at not in normal_ticks and not (
                 any(rocket in self.rockets and at in flight for rocket, flight in scheduled_flights)
                 or any(field.last_tick < at <= field.end_tick for field in self.zarya_gravitons.fields)
+                or (replay_routes and at in orb_ticks)
+                or (at in orb_ticks and any(
+                    bot.impulse_mover is not None and not bot.dead
+                    and (bot.impulse_mover.airborne or any(bot.impulse_mover.velocity)
+                         or bot.impulse_mover.velocity_changes) for bot in self.match.bots))
             ):
                 continue
             if field_first < at:
@@ -4737,6 +4764,10 @@ class Combat:
                     self._charge_zarya_passive(self.zarya_charge_tick + 1, at)
                 self.zarya_charge_tick = at
             self.now, self.tick = now - (tick - at) * TICK, at
+            if replay_routes:
+                self._step_route_poses()
+            if orb_ticks:
+                self._step_impulse_poses()
             for player, script, release in bubble_releases.get(at, ()):
                 if (player.body_script is not script or self.is_dead(player)
                         or winston.HostedBarriers(self).pending_release(player, round(TICK * 1000)) != release):
@@ -9325,8 +9356,7 @@ class Combat:
         candidates = []
         for target in self._targets():
             if (target.owner is caster or target.team != caster.team or self.vitals_of(target).dead
-                    or not barriers._projection_recipient_ready(self, target.owner)
-                    or self._active_projected_barrier(target.entity)):
+                    or not barriers._projection_recipient_ready(self, target.owner)):
                 continue
             script = target.owner.body_script
             if script is not None:
@@ -9403,6 +9433,8 @@ class Combat:
         pet = self._personal_barrier_pet(target.owner)
         if pet is None:
             return None
+        if isinstance(pet, nodes.CompatiblePet) and pet.pet_entity is not None:
+            return None  # this actual native factory owns its sole finite pool, even during break handoff
         activation = pet.instance.id, pet.counter
         prior = self.personal_barriers.get(target.entity)
         if prior is not None and prior[:2] == activation:
@@ -10247,11 +10279,23 @@ class Combat:
                 if hero == 0x02E0000000000040:
                     from ow174.game import roadhog_charge
 
-                    points *= roadhog_charge.damage_received_multiplier(getattr(victim, "body_script", None))
+                    points = max(0.0, base_before - vitals.base_total) * roadhog_charge.damage_received_multiplier(
+                        getattr(victim, "body_script", None))
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == ball.HERO:
                     points = dealt - (temporary_before - vitals.temporary_shields)
+                inherited_credit = (
+                    (hero == doomfist.HERO and loadout == 0x0B90000000000109)
+                    or (hero == ball.HERO and loadout in (
+                        0x0B90000000000189, 0x0B900000000001E8, 0x0B900000000002F5))
+                    or (hero == deflection.GENJI and loadout == 0x0B90000000000189)
+                )
+                if inherited_credit:
+                    from ow174.game import roadhog_charge
+
+                    points = max(0.0, base_before - vitals.base_total) * roadhog_charge.damage_received_multiplier(
+                        getattr(victim, "body_script", None))
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))
@@ -10778,6 +10822,7 @@ class Combat:
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
         self.hooks.retire(victim.body)
+        self.absorption.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)

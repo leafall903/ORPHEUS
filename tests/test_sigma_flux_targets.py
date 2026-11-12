@@ -9,11 +9,26 @@ from unittest.mock import patch
 import test_sigma_combat as fixtures
 import test_sigma_flux_placement as placement
 
-from ow174.game import npc
+from ow174.game import absorption, barriers, combat, fortify as orisa_fortify, npc
+import test_sigma_grasp_shields as grasp_observers
 from ow174.game import sigma_flux as sigma
 from ow174.game.body_vm_snapshot import export_component_vm, snapshot_digest
 from ow174.game.commands import JUMP
 from ow174.game.script import expr, graph, runtime
+
+
+def particle_for(fight, target):
+    return next((actor for actor in fight.barriers.scripted.values()
+                 if actor.component.world.hero == barriers.ZARYA
+                 and (actor.recipient_body or actor.parent_body) == combat._source_entity(target)
+                 and barriers._live(fight, actor)), None)
+
+
+def particle_amounts(fight, target):
+    return [actor.vitals.total for actor in fight.barriers.scripted.values()
+            if actor.component.world.hero == barriers.ZARYA
+            and (actor.recipient_body or actor.parent_body) == combat._source_entity(target)
+            and barriers._live(fight, actor)]
 
 
 class SigmaFluxTargetsTests(unittest.TestCase):
@@ -318,7 +333,7 @@ class SigmaFluxTargetsTests(unittest.TestCase):
         for _ in range(40):
             run.step({})
         run.step({target: (*grasp_aim, 0x08)})
-        grasp = fixtures.SigmaCombatTests().ability(target, sigma.GRASP).instance
+        grasp = fixtures.SigmaCombatTests().ability(target, absorption.GRASP).instance
         run.step({target: (*grasp_aim, 0), rifle: (*rifle_aim, 1)})
         self.assertEqual(grasp.vars[21312].value(), 20)
         self.assertEqual(health.total, starting_health)
@@ -326,8 +341,8 @@ class SigmaFluxTargetsTests(unittest.TestCase):
             body = target.body
             for _ in range(750):
                 run.step({target: (*grasp_aim, 0)})
-                self.assertNotIn(body, fight.grasp_grants)
-                self.assertNotIn(body, fight.grasp_shields)
+                self.assertNotIn(body, fight.absorption.converted)
+                self.assertNotIn(body, grasp_observers.grasp_decay_bodies(fight))
                 self.assertFalse(health.temporary_shields)
                 if target.body != body:
                     break
@@ -349,17 +364,17 @@ class SigmaFluxTargetsTests(unittest.TestCase):
         self.assertTrue(target.mover.airborne)
         after_entry = starting_health - 50
         self.assertEqual(health.total, after_entry)
-        self.assertNotIn(sigma.SHIELD_TAG, health.temporary_shields)
+        self.assertNotIn(absorption.SHIELD_TAG, health.tagged_shields)
         self.assertTrue(grasp.states[1].active)
         for _ in range(120):
             run.step({target: (*grasp_aim, 0)})
             if not grasp.states[1].active:
                 break
         self.assertFalse(grasp.states[1].active)
-        self.assertEqual(health.temporary_shields[sigma.SHIELD_TAG].now, 12)
+        self.assertEqual(grasp_observers.grasp_amount(health), 12)
         self.assertEqual(health.total, after_entry + 12)
         body = target.body
-        self.assertIn(body, fight.grasp_shields)
+        self.assertIn(body, grasp_observers.grasp_decay_bodies(fight))
         for _ in range(300):
             run.step({})
             if health.total < after_entry:
@@ -370,8 +385,8 @@ class SigmaFluxTargetsTests(unittest.TestCase):
         if lethal:
             self.assertTrue(health.dead)
             self.assertEqual(health.killer, caster.body)
-            self.assertNotIn(body, fight.grasp_shields)
-            self.assertNotIn(body, fight.grasp_grants)
+            self.assertNotIn(body, grasp_observers.grasp_decay_bodies(fight))
+            self.assertNotIn(body, fight.absorption.converted)
             for _ in range(750):
                 run.step({})
                 if target.body != body and not fight.is_dead(target):
@@ -381,11 +396,11 @@ class SigmaFluxTargetsTests(unittest.TestCase):
             new_health = fight.vitals_of(new_target)
             self.assertEqual(new_health.total, 400)
             self.assertFalse(new_health.temporary_shields)
-            self.assertNotIn(target.body, fight.grasp_shields)
+            self.assertNotIn(target.body, grasp_observers.grasp_decay_bodies(fight))
             self.assertFalse(any(i.graph.index == sigma.FLUX_EFFECT
                                  for i in target.body_script.component.instances.values()))
         else:
-            self.assertEqual(health.temporary_shields[sigma.SHIELD_TAG].now, 0)
+            self.assertEqual(grasp_observers.grasp_amount(health), 0)
 
     def test_flux_lift_during_accretion_windup_preserves_launch_and_cooldown(self):
         self.assert_accretion_from_flux_lift(hit=False)
@@ -427,7 +442,7 @@ class SigmaFluxTargetsTests(unittest.TestCase):
             run.step({})
         rock_aim = aim_rock()
         run.step({target: (*rock_aim, 0x10)})
-        ability = fixtures.SigmaCombatTests().ability(target, sigma.ACCRETION)
+        ability = fixtures.SigmaCombatTests().ability(target, combat.ACCRETION)
         self.assertTrue(ability.flags & nodes.Ability.RUNNING)
         self.assertFalse(fight.rockets)
         for _ in range(85):
@@ -599,19 +614,19 @@ class SigmaFluxTargetsTests(unittest.TestCase):
                     for _ in range(40):
                         run.step({})
                     run.step({caster: (0, 0, 0x08)})
-                    bubble = sigma.particle_barrier(target)
+                    bubble = particle_for(fight, target)
                     self.assertIsNotNone(bubble)
                     if breaking:
-                        health.particle_barriers[sigma.particle_barrier_key(bubble)] = 40
+                        bubble.vitals.damage(bubble.vitals.total - 40)
                     for _ in range(60):
                         if energy.value():
                             break
                         run.step({})
-                    self.assertEqual(list(health.particle_barriers.values()), [] if breaking else [150])
+                    self.assertEqual(particle_amounts(fight, target), [] if breaking else [150])
                     self.assertEqual(health.total, maximum)
                     self.assertAlmostEqual(energy.value(), 8 if breaking else 10, places=5)
                     if breaking:
-                        self.assertIsNone(sigma.particle_barrier(target))
+                        self.assertIsNone(particle_for(fight, target))
                 peak = y
                 for _ in range(260):
                     run.step({})
@@ -623,7 +638,7 @@ class SigmaFluxTargetsTests(unittest.TestCase):
                 self.assertTrue(target.mover.airborne)
                 self.assertTrue(any(i.graph.index == sigma.FLUX_EFFECT for i in receiver.instances.values()))
                 if entry_barrier:
-                    self.assertIsNone(sigma.particle_barrier(target))
+                    self.assertIsNone(particle_for(fight, target))
                 else:
                     self.assertEqual(health.total, maximum - 50)
                     if caster is target:
@@ -631,10 +646,10 @@ class SigmaFluxTargetsTests(unittest.TestCase):
                     else:
                         yaw, pitch = aim(fight._eye(caster), fight._eye(target))
                         run.step({caster: (yaw, pitch, 0x10)})
-                    bubble = sigma.particle_barrier(target)
+                    bubble = particle_for(fight, target)
                     self.assertIsNotNone(bubble)
                     if breaking:
-                        health.particle_barriers[sigma.particle_barrier_key(bubble)] = 40
+                        bubble.vitals.damage(bubble.vitals.total - 40)
                     self.assertTrue(target.mover.airborne)
 
                 for _ in range(28):
@@ -647,9 +662,9 @@ class SigmaFluxTargetsTests(unittest.TestCase):
                     self.assertEqual(health.total, maximum - 50)
                     self.assertAlmostEqual(energy.value(), 8 if breaking else maximum / 10, places=5)
                     if caster is teammate and not breaking:
-                        self.assertEqual(list(health.particle_barriers.values()), [100])
+                        self.assertEqual(particle_amounts(fight, target), [100])
                     else:
-                        self.assertIsNone(sigma.particle_barrier(target))
+                        self.assertIsNone(particle_for(fight, target))
                 self.assertEqual(script.component.entity_var(342).value(), 0)
 
     def test_fortify_before_flux_reduces_entry_and_during_flux_releases_lift(self):
@@ -679,7 +694,7 @@ class SigmaFluxTargetsTests(unittest.TestCase):
                         i.graph.index == sigma.FLUX_EFFECT for i in receiver.instances.values()
                     ))
                 run.step({orisa: (0, 0, 0x08)})
-                self.assertIsNotNone(sigma.fortify(orisa))
+                self.assertIsNotNone(orisa_fortify.active_filter(orisa))
                 peak = orisa.mover.position[1]
                 for _ in range(215):
                     run.step({})
