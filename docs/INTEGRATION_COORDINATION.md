@@ -63,6 +63,15 @@ is received as `69d82dee` (reflected Reaper shell ownership);42 combined
 reflection/charge/runtime/Bastion checks passed, with one optional D.Va skip.
 A3 `a3808633` is received as `5242951d`, preserving three unchanged source
 Reaper interlock checks; all three passed.
+B2 `856ce426` is received as `94ec713f`, mounting Slam, next-frame impulse,
+native null-case Switch behavior and positive-launch floor clearance. All74
+combined Slam/Punch/runtime/Shadow/button checks passed. Both Slam and Shadow
+state remain registered in the enclosing server snapshot.
+C3 `9d667dfd` is received by the merge named `merge: receive worker C Bastion
+Tank projectiles`. All11 unchanged focused Tank damage/expiry/splash/force/
+lifecycle/cadence checks passed. To import their shared fixture, validation
+appended the frozen source game package as a fallback for the real original
+sniper helper; these player checks do not exercise or admit that NPC consumer.
 
 Worker A has identified a Reaper owner reconciliation boundary. The original
 `4babd033` delivery also contains substantial cross-owner shared code. Audit
