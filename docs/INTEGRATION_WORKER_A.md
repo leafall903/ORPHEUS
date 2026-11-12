@@ -653,3 +653,43 @@ Next exact action: remaining real000A source weapon_launch cone consumer audit:
 current cone admission only McCree/Bastion, missing original Widow001B nodes9/19.
 Preserve native WeaponVolley spread/index timing while mounting delivered cone
 policy, then inspect remaining owner/cross-owner boundary before source reconcile.
+
+### A27 delivered Widow weapon_launch consumer (this commit)
+
+A26 committed8d5c691d. Source000A weapon_launch.py now invoked for actual Widow
+001B/node9/19 emissions, before damage construction. One dependency adapter:
+source old spread_at(post-count view) -> recovered native spread_for_index(number).
+Source scoped zero cone remains exact; current McCree and Enforcer drivers retain
+ownership, so the same module's old generic branches are not claimed as new
+cross-owner integration. They map to existing mccree/weapon_spread/volley_geometry.
+Actual20-frame spy proves indexes0/1/2/3 =>cones0/1/2/3 degrees, one ammo per ray,
+first exact and later rays differ. Log worker-a-widow-spread-native.log.
+Normal original Spread4:1pass/3fail; preserved post-count first-ray and off-axis
+expectations, plus old eye/cover mismatch (worker-a-widow-spread-first.log).
+Original WidowmakerCombatTests12+Damage/runtime21 all33 pass after cone mounting
+(worker-a-widow-spread-rifle-shared.log). Full original NPC fixture preserved;
+only dva_body/zarya/sigma identity imports point to actual current hosts.
+
+000A owner reconcile boundary (source0bbf016a88d6272db5358c5e4f6a611d4db5b327):
+- Original inline rifle/headshot/charge/Infra logic -> widowmaker.py + current
+  hit_def/BodyWorld/BodyScript/Ability expiry. Phase observation uses original
+  living-target filter; current owned-pet exclusion retained.
+- Original native GrappleCast/static+pillar search/MoveTo/terminal release ->
+  actual registered state, BodyWorld/Combat hook, current swept mover and Walls
+  anchors. Stored cast/RaycastResult/anchor layouts explicit.
+- Full venom.py Flight/Mine/Poison chronology -> actual throw/world tick/retire/
+  reveal/projectile/rifle/melee/splash and Wall consumers; launch ownership and
+  frozen Matrix bit use current shared deflector/barrier managers.
+- Original source world-budget/countdown helpers -> current selected Matrix
+  service and Genji fallback windows. Current owned-mech clock path preserved.
+- Source cone policy -> actual weapon emission, with recovered native caller
+  index maintained. Replays record module constants/source bytes.
+- Old static FirstPerson eye, residual-ammo dispatch, generic splash selfdamage,
+  fold empty-array default and old private health/catalog API expectations remain
+  distinct from current native implementations; all checks retained. Do not
+  overwrite current native implementations merely to satisfy those observations.
+- Frozen ref carries many cross-owner modules (old Sigma/Zarya, shields, NPC,
+  AI/control, etc.). Root owns final ref reconcile/admission; no ancestry claim
+  here. No appearance code or client work. Original replay fixture awaits root's
+  frozen-boundary run. Next: verify owner-specific nonhero/core dependencies and
+  consolidate remaining own0002/0003/0004/0005/0020/007A reconcile evidence.
