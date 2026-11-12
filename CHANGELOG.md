@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore the existing Brigitte shield health binding
+
+- Evaluate the exact non-strict0195/0EE3 dynamicPet13214 current-health query
+  through its existing Brigitte owner host before typed health returns zero
+  for an unavailable Pet identity. Require actual body definition, bound match
+  and component/body identity. Other queries retain strict typed contracts.
+- Original hammer/replacement shield cases now pass; typed health/runtime25
+  pass. Full shield/shared61 retains3 failures,6 old Winston cache errors and
+  1skip. Fire Strike now reaches the original250-versus150 pool assertion;
+  its missing explicit shield contact consumer is the next batch.
+- No second shield manager or native Pet creation claim. Client check open.
+
 ### Restore delivered Charge impacts on Superchargers
 
 - Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
