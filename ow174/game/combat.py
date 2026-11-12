@@ -4407,6 +4407,7 @@ class Combat:
     def frozen_sentry_replay(self, tick):
         """Admit the delivered bounded frozen lock through the existing NPC driver."""
         from ow174.game import cryo
+        from ow174.game.symmetra_turrets import _external_motion
 
         freeze_ticks = math.ceil(mei.FREEZE_MS / round(TICK * 1000))
         if not COMBAT_CATCH_UP < tick - self.tick <= COMBAT_CATCH_UP + freeze_ticks or not self.frost_hits:
@@ -4416,7 +4417,7 @@ class Combat:
                 or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
                        for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
-                or any(bot.firing or bot.impulse_mover is not None for bot in self.match.bots)):
+                or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
         # Ice-support/projected-impact proofs remain in the delivered owner
         # module; admit them only after their original service consumers map.
@@ -4463,6 +4464,11 @@ class Combat:
         self.pulse_bombs.prepare_gap(tick, self._targets())
         for player in self.match.players:
             self.barriers.sync(player)
+        replay_ice_sentries = bool(self.walls.pieces) and any(
+            sentry.support_pillar is not None
+            or (sentry.attached_at is None and sentry.bot.moved_tick is not None)
+            for sentry in self.sentries.sentries
+        )
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
         if self.tick and tick > self.tick + 1 and (
@@ -4473,7 +4479,7 @@ class Combat:
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
             or self.barriers.world.actors
-            or self.lucio_auras.healing or self.soundwaves
+            or self.lucio_auras.healing or self.soundwaves or replay_ice_sentries
             or any(shot.spawn == projectiles.FIELD_ENTITY for shot in self.projectiles.shots)
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
                    and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
@@ -4663,6 +4669,9 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             observe_sentry_cover_ends()
+            if at < tick and replay_ice_sentries:
+                self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends,
+                                     replay_ice=True)
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
