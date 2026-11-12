@@ -391,6 +391,13 @@ class InstanceContext(Context):
         from ow174.game.script import spatial_queries
 
         component = self.instance.component
+        if (not component.strict and self.instance.graph.index == 0x0B8B
+                and getattr(component.world, 'hero', None) == 0x02E000000000012E
+                and getattr(component.world, 'match', None) is not None):
+            result = component.world.match.combat.sombra_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
         if not component.strict and self.instance.graph.index in (0x0C19, 0x0C1A):
             from ow174.game import translocators
 

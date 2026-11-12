@@ -9,6 +9,7 @@ import test_server_snapshot as fixture
 from ow174.game import assassin_controller, enforcer_controller, npc
 from ow174.game.body_vm_snapshot import BodyVMSnapshotError, export_component_vm
 from ow174.game.server_snapshot import ServerSnapshotError, snapshot_digest
+from ow174.game.script import assassin_movement
 
 
 @unittest.skipUnless(os.environ.get("ORPHEUS_PVE_NPC_DATA")
@@ -62,6 +63,35 @@ class AssassinSceneSnapshotTests(unittest.TestCase):
             finally:
                 revision.base = previous
             self.assertEqual(snapshot_digest(helper.capture(session)), server_before)
+
+    def test_actual_movement_sample_override_has_exact_causal_storage(self):
+        helper, session, component = self.scene()
+        world = component.world
+        sample = world.assassin_movement_sample(world.body)
+        self.assertIs(type(sample), assassin_movement.Sample)
+        original = world.sample
+        world.sample = sample
+        try:
+            with patch.object(assassin_controller.Phase2World, "assassin_movement_sample",
+                              side_effect=AssertionError("movement getter executed")):
+                before = export_component_vm(component)
+                server_before = snapshot_digest(helper.capture(session))
+                world.sample = assassin_movement.Sample(sample.flags ^ assassin_movement.FLAGS, sample.axis)
+                self.assertNotEqual(export_component_vm(component), before)
+                self.assertNotEqual(snapshot_digest(helper.capture(session)), server_before)
+                world.sample = sample
+                self.assertEqual(export_component_vm(component), before)
+                self.assertEqual(snapshot_digest(helper.capture(session)), server_before)
+                object.__setattr__(sample, "unreviewed", True)
+                try:
+                    with self.assertRaises(BodyVMSnapshotError):
+                        export_component_vm(component)
+                    with self.assertRaises(ServerSnapshotError):
+                        helper.capture(session)
+                finally:
+                    object.__delattr__(sample, "unreviewed")
+        finally:
+            world.sample = original
 
     def test_unreviewed_scene_fields_are_rejected(self):
         helper, session, component = self.scene()

@@ -444,6 +444,7 @@ class Player:
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
         fight = self.match.combat
+        fight.knockbacks.prepare_victim(self, command.frame)
         command = fight.punches.command_input(self, command)
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
         if step_hook_victim is not None and step_hook_victim(self, command, seconds, tick):
@@ -645,6 +646,8 @@ class Player:
             # A late movement pose cannot resample an ability on an already evaluated body frame.
             return
         if self.body_script is not None:
+            from ow174.game import bob_victim
+            bob_victim.sample(self, self.body_script.component)
             command = self.match.combat.meteors.prepare_command(self, command)
             if posed:
                 self.match.combat.slams.observe(self)
@@ -1988,7 +1991,8 @@ class Match:
         return None
 
     def switch_hero(
-        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None
+        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None,
+        preserve_ultimate: bool = False,
     ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
@@ -2050,6 +2054,9 @@ class Match:
             elif hero.guid == hero_torbjorn.HERO:
                 overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
                 turret_cooldown = max(0.0, player.turret_cooldown_until - self.combat.now)
+            if player.hero.guid == 0x02E000000000012E:
+                self.combat.sombra_charge.prepare_retirement(
+                    player, preserve_ultimate and player.hero.guid == hero.guid)
             self.combat.retire_player_body(player, next_hero=hero.guid)
             if old_hero == 0x02E0000000000007:
                 self.stop_body_script(player)

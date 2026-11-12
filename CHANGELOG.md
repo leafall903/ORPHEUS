@@ -19,6 +19,52 @@ This log records tested changes and their acceptance status. Entries are grouped
   acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
   full control/history and Ball/client acceptance remain open.
 
+
+### Preserve Mercy scope execution during Sombra charge integration
+
+- Keep original Sombra charge sync inside the ordinary component-run branch;
+  Mercy retains its existing sole scope host runner. Root caught and corrected
+  the delivered indentation error before receiving this implementation batch.
+- Selected original Sombra natural/damage/respawn/stored-state checks plus Mercy
+  regeneration, Genji passive and runtime all32 pass62.098s. Original Sombra
+  world-gap replay consumers remain pending, without blocking this code merge.
+
+### Preserve original Assassin movement samples in strict stored snapshots
+
+- Register original immutable movement Sample flags/axis in the two existing
+  exporters, retaining the actual Phase2 override instead of rejecting that
+  supported stored value. Runtime movement and callback semantics stay intact.
+- Actual authored Assassin40tick scene produces the sample. Changing its stored
+  flags changes both exports; restoration reproduces both, export executes no
+  movement getter, and unknown sample fields are rejected. One check passes
+  in19.514s with original prepared inputs.
+
+### Restore original source preparation and native comparison tools
+
+- Preserve32 existing Python/PowerShell tools from the delivered lanes,
+  covering selective extraction, actor declarations, additive graph preparation,
+  original Hanzo/Junkrat/Ashe/NPC inputs and native placement/Sigma comparisons.
+  Duplicate source variants are byte-identical; no game archives are copied.
+- Restore original pure declaration schema lookup/dependency closure and the
+  graph-shard conflict validator used by these actual tools. Current runtime
+  supplement loading and its stricter effect/deployable validation stay intact.
+-31 Python tools parse,18 start with--help, and the PowerShell script parses.
+  Eleven original declaration/dependency/shard checks pass. Nine native tools
+  require the original optional Unicorn dependency absent from this environment;
+  four Sigma tools await original fixture integration owned by worker B.
+  Existing tool implementations are committed despite these explicit boundaries.
+
+
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
 ### Mount delivered Ball Fireball contacts on the same motion and impulse hosts
 
 - Consume original1203 high-speed search, capsule/cone/LOS,50 damage, pull/lift
@@ -31,17 +77,6 @@ This log records tested changes and their acceptance status. Entries are grouped
   ledger. Active BodyVM/server captures pass; removing/restoring actual contact
   changes/restores server digest. No second actor/mover/pool is introduced.
 - Native geometry/filter acceptance and complete Ball line remain open.
-
-### Mount original Archives Thunderstorm per-target damage
-
-- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
-  damage on the existing NPC body VM, shields and health pools. Current target
-  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
-- Retain individual combat frames while the original tracker is active and
-  advance once per actual NPC script frame, preserving existing actors/drivers.
-- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
-  pass with6.4 damage per16frames where authored, zero in blocked cases.
-  No original numeric expectation or shield geometry was changed.
 
 ### Mount delivered Ball Grapple lifecycle on the existing motion host
 
@@ -58,6 +93,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Depends on C35 original4f866474; worker-local duplicate1ba85a31 is not another
   delivery. Body/world historical clock mapping remains explicit pending work.
   Fireball/Minefield and full Ball/client acceptance remain open.
+### Mount original Sombra authored charge on its existing shared graph
+
+- Connect original012E natural0B8B cadence, resolved damage/tag admission,
+  multipliers/cap, active-EMP suppression, debug pause and same-hero respawn
+  retention in a Sombra-only host. Preserve current Reinhardt/Genji/Roadhog and
+  other owner charge hosts; prevent generic Sombra double credit when selected.
+- Select original ultimate-context data through the explicit prepared profile;
+  reuse real player controller/body records. Keep original optional
+  preserve_ultimate=False API alongside current pose/frame options, supplying
+  True only for Sombra automatic respawn.
+- Original Sombra core11 pass42.025s; first full player15 retained four missing
+  world-replay cases for the following batch. Shared Genji/Symmetra/runtime39
+  active checks pass; additional Orisa/Torb17 pass5original NPC-data skips.
+  Original constants/expectations remain unchanged; full NPC fixture imports
+  and accepted world-only replay remain open, not a submission gate.
 
 ### Retain actual Sombra skill-lock history for original Grapple queries
 
@@ -9471,3 +9521,8 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 
 - Mount actual ultimate factory, one shared NPC/Vitals/mover, authored gun reports, phase/lifetime/owner credit and active charge lock. Restore original companion ally healing and guard shared Sombra hit routing against nonplayer BotScript.
 - Original BOB factory/lifetime/gun14/14 and shared28/28 passed; actual controlled-input strict BOB snapshot passed. Original uppercut/victim handoff remains next, with its baseline error preserved; no whole-line completion claim.
+
+### Worker A49 - original BOB uppercut victim and queued reset
+
+- Mount17F6 on current single movement host, with actual pose delivery, scalar reset/additive launch, resistance, flags/landing/phase exit, retirement and strict causal state. Restore Ashe next-pose timing without changing generic Knockbacks defaults.
+- Source/shared25 checks passed; actual normal/Reinhardt reset/launch/land, five NPC120HP loss with Heavy zero-motion, post-BOB-removal skipped parity and controlled pending-victim strict storage passed. Original private queue/spy failures remain recorded for later API reconciliation.

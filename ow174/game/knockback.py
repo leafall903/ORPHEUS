@@ -103,6 +103,60 @@ class Knockbacks:
         self.serial += 1
         return True
 
+    def schedule_victim(self, target, source, instigator):
+        """Retain the original uppercut script delivery on this same movement host."""
+        from ow174.game.combat import _source_entity
+
+        entity = _source_entity(target.owner)
+        mover = self.active.get(entity)
+        if target.entity != entity:
+            return
+        key = HOST_PREFIX | self.serial
+        frame = next((row.frame for row in mover.velocity_changes if row.key == key), None) if mover else None
+        if frame is None:
+            frame = next((impact + 1 for impact, event_key, _impulse in getattr(self, "pending_npc", {}).get(entity, ())
+                          if event_key == key), None)
+        if frame is None:
+            # Fully resisted source launch still delivers its authored victim graph.
+            if self.serial >= 0xFFFFFFFF:
+                return
+            self.serial += 1
+            key = HOST_PREFIX | self.serial
+            frame = max(self.combat.match.tick, self.combat.tick) + 1
+        if not hasattr(self, "pending_victims"):
+            self.pending_victims = {}
+        self.pending_victims[entity] = (frame, key, source, instigator)
+
+    def prepare_victim(self, owner, pose):
+        from ow174.game import bob_victim
+        from ow174.game.combat import _source_entity
+        from ow174.game.mover import SET, statescript_mods
+        from ow174.game.script import graph
+
+        entity = _source_entity(owner)
+        pending = getattr(self, "pending_victims", {})
+        event = pending.get(entity)
+        if event is None or pose < event[0] - 1:
+            return
+        mover = self.active.get(entity)
+        if mover is None and entity in getattr(self, "pending_npc", {}):
+            return  # Its existing queued launch has not created the shared mover yet.
+        frame, key, source, instigator = pending.pop(entity)
+        if not pending and hasattr(self, "pending_victims"):
+            del self.pending_victims
+        if bob_victim.start(self.combat, source, owner, graph.graph(0x1537), instigator=instigator):
+            if mover is None:
+                # No motion pool is created for a fully resisted NPC request.
+                from ow174.game.bots import Bot
+                if isinstance(owner, Bot):
+                    owner.velocity = (0.0, 0.0, 0.0)
+                return
+            # Scalar reset executes before the already queued additive launch.
+            change = velocity.numeric(frame, 0, SET, 0.0)
+            velocity.enqueue(mover.velocity_changes, replace(change, key=key))
+            script = owner.body_script
+            mover.track_mods(self.combat.movement_mods(owner, statescript_mods(script.component)), script.component.frame)
+
     def _enqueue(self, entity, mover, frame, key, impulse):
         change = velocity.vector(frame, ADD, tuple(impulse), mover.velocity)
         velocity.enqueue(mover.velocity_changes, replace(change, key=key))
@@ -127,6 +181,7 @@ class Knockbacks:
         bot.last_tick = impact
 
     def step_npc(self, bot, tick, seconds, collision, **movement):
+        self.prepare_victim(bot, tick)
         pending = getattr(self, "pending_npc", None)
         events = pending.get(bot.entity) if pending is not None else None
         last_impact = None
@@ -139,6 +194,7 @@ class Knockbacks:
                 if last_impact != impact:
                     bot.step(impact, seconds, collision, **movement)
                 self._start_npc(bot, impact, key, impulse)
+                self.prepare_victim(bot, tick)
                 last_impact = impact
             if not events:
                 self._discard_pending_npc(bot.entity)
@@ -159,6 +215,11 @@ class Knockbacks:
         return entity in self.active
 
     def retire(self, entity):
+        pending = getattr(self, "pending_victims", None)
+        if pending is not None:
+            pending.pop(entity, None)
+            if not pending:
+                del self.pending_victims
         self._discard_pending_npc(entity)
         mover = self.active.pop(entity, None)
         if mover is not None:

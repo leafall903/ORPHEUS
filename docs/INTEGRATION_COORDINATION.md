@@ -713,3 +713,124 @@ when advancing the actual component. The original live probe's seven cases
 6.4/zero. Its startup selects the combined graph/catalog and explicit34924 mode
 rather than the old isolated review tree. Root-v13 joint remains frozen on
 canonical330fc5bb session23880; do not mutate that source until terminal.
+
+
+## Revised remaining-time estimate and live intake
+
+All three authorized persistent agents remain running. Updated low-confidence
+remaining active worker-hours: A4-10, B22-48, C14-28; work runs concurrently.
+Allow30-60 continuous elapsed hours including root integration/audit, and3-5
+calendar days as planning reserve. B remaining Ball/Sigma/Hog/Zarya actual
+consumers are the largest uncertainty. No completion percentage follows from
+this estimate, batch count or test pass rate. Preserve original-language code,
+exclude appearance migration and keep committing before complete acceptance.
+
+Root34924 is committed2a8933ef: original seven live ray/mode cases and runtime
+14pass2.111s. B38 original45d9b5d8 receivedab63b8e6, A48 original5a2f163f
+received8ead7a6c. C35 dependency already present; no duplicate control host.
+Canonical8ead7a6c is frozen for root original Bob14 session28430.
+
+Earlier v13 joint23880 is terminal28run10fail4error3skip186.726s. Original
+Coach pending-observer and precise surface distances plus old spread call
+argument positions are assigned A without changing expectations. V14 combined
+Bob/Grapple/34924/runtime40run26pass14skip41.481s; all Bob cases skipped on their
+original GRAPH_EXTENSION presence selector, despite actual runtime graph union.
+V15 now selects the original raw Ashe file for that fixture gate only; runtime
+still uses the reconciled39graph union. Actual Bob14 runs now, not claimed passed.
+V14/15 also select original Translocator and Sombra ultimate data and strictly
+verified current-bound BOB mover extension: all43 original/current records equal,
+original input hashes checked, no original bytes or fingerprint guard changed.
+
+
+Root final observed checkpoint: original Bob14 actually passes16.628s with
+v15; no remaining selector skip for this run. B39 cdeb223c received5796db50:
+original Fireball/runtime23run22pass1preserved strict impulse boundary failure
+11.0 not<11 in31.196s. It does not block the implementation commit/merge.
+All root sessions terminal; no root code WIP. Preparedv15 source hashes all
+rechecked unchanged. Three persistent workers continue; A49 uppercut/status
+and C36 Sombra charge WIP are worker-owned and not yet counted as merged.
+Current canonical/intake5796db50 before this checkpoint documentation commit.
+Remaining estimate30-60 continuous elapsed hours /3-5 calendar days remains
+low-confidence, with B's broad remaining owner audit the critical path.
+
+
+Root source-tool audit found32 missing original tools across source deliveries.
+All same-name variants are byte-identical. They are now preserved in their
+original Python/PowerShell with originals hashed in external parallel-merge/
+original-tool-intake-receipt.json. They include extraction/preparation and
+existing native placement/Sigma comparison CLIs; no new matrix or functionality.
+The real shard tool calls restored original pure graph.merge_extra_bundle;
+current runtime still uses add_supplement with its existing strict guards.
+Actor declaration CLI calls original definition_components/runtime_index and
+component_dependencies/declaration_mask rather than inventing effective state.
+All11 original declaration/dependency/shard tests pass0.042s,31Python ASTs parse,
+18CLIs start--help,PowerShell AST parses. Nine native CLI startup failures are
+missing optional Unicorn, not runtime feature claims; no network install.
+Four Sigma CLI startup failures are original missing test_sigma_*fixtures,
+assigned B for actual API integration, no fake module aliases. Initial startup
+results remain in parallel-merge/original-tool-startup-results.json; two helper
+failures there are superseded by the successful restored-helper checks.
+
+
+A49 c9943bde is received6c99c09c. Shared snapshot conflict preserves both
+existing Ball grapple_interrupt_frame and original pending_victims metadata.
+Frozen joint2170 terminal29run27pass2old-private-observer errors41.397s:
+source uppercut spy expects damage_tags, canonical real keyword is hit_tags;
+source Rein observes old impulses.pending instead of the sole mover queue.
+Actual original source/Fade uppercut plus all Grapple/runtime cases pass.
+A retains numerical expectations and owns remaining actual fixture adaptation.
+
+Root registers existing script.assassin_movement.Sample(flags,axis) exact
+stored value in both exporters. Actual Phase2 supports this override already;
+no new runtime behavior or arbitrary dataclass admission. Actual40tick Assassin
+sample test26721 terminal1pass19.514s: flags causal in VM/server, restore exact,
+getter guarded, unknown field rejected. Root has no live tests after that run.
+
+
+C36 original22972db0 is now integrated with exact original Sombra-only0B8B
+charge, existing multipliers/cap/tags, active EMP suppression, profile pause and
+same-hero respawn retention. Other hero ultimate owners remain their original
+current services; generic Sombra award is excluded only when original host is
+enabled with actual input. Root resolved snapshot import preserving both
+assassin_movement.Sample and new Sombra host, retaining all prior fields.
+
+Root review caught delivered _run indentation placing charge.sync/component
+run outside the ordinary branch. It is corrected before merge commit: existing
+Mercy scope_host remains the sole runner, Sombra sync wraps only ordinary
+component.run_frame. Worker C confirmed the defect and will absorb this root
+fix. Frozen root13084 is terminal32pass62.098s, comprising selected original
+natural/pistol/respawn/full stored charge plus Mercy regeneration, Genji passive
+and runtime. No numeric assertion changed. Four original world-only Sombra
+charge/recovery checks are not claimed complete; C37 actual replay still pending.
+Original main e1128509 is verified ancestor. Fresh original-language extension
+audit finds zero missing C/C++/C# source paths across32 delivered source trees;
+external original C#/C++ tool repositories were separately verified clean.
+
+
+## Current integrated server invocation
+
+The workspace-root RUN_SERVER.cmd still targets original ORPHEUS main with
+runtime-104319; it does not yet select this combined worktree. Final default
+launcher handoff remains an explicit root item. The integrated server can use
+its existing CLI with the prepared original inputs below, without installing
+new packages or copying a runtime. These are launch instructions, not a claim
+that a server/client was started during integration.
+
+```powershell
+Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
+$profile = Get-Content '../parallel-merge/runtime-inputs-v15/environment.json' -Raw | ConvertFrom-Json
+foreach ($entry in $profile.environment.PSObject.Properties) {
+    [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
+}
+$combatArguments = @($profile.server_cli_arguments)
+& '../../ORPHEUS/.venv/Scripts/python.exe' -u -B -m ow174 @combatArguments --mode retail --no-launch --host 127.0.0.1 --bnet-port 1118 --port 3724 --dashboard-port 3725 --game-port 3730 --test-players 1 --data-dir '../parallel-merge/server-state'
+```
+
+Runtime input selection uses environment only; original test selectors stay out
+of this command. The explicit Hanzo CLI arguments are required by the existing
+profile admission; environment fixture names alone do not configure them.
+Root actual parse_args/_combat_profiles accepts both original profiles, loads
+reconciled BOB2533/25C3 entity/graph and strict current-bound mover, and retains
+full default projectile admission. No services or client were started. The first
+probe read loaded_mover_table before actual lazy loading; corrected probe calls
+existing mover_data first, with no implementation change.

@@ -6080,6 +6080,10 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 @handler("STU_22926252")
 def stop_instance(instance: Instance, node, caller) -> bool:
     """104319 1B6C8F0 queues event 7 before continuing the action."""
+    if not instance.component.strict and (instance.graph.index, node.pos) == (0x17F6, 3):
+        instance.component.destroy(instance)
+        return True
+
     if instance.graph.index in (0x0B1F, 0x0B32):
         from ow174.game.health_packs import PackWorld
 
