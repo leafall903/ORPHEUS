@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect Torbjorn hammer to shared native barrier surfaces
+
+- Reuse the received stateless Reinhardt surface helper with Torbjorn's original
+  sphere contact volume. Existing actor managers retain geometry, health and
+  lifetime; the per-swing source contact set retains late entry and deduplication.
+- Keep legacy attached-bubble absorption while excluding its raised-surface
+  route for this caller, so the shared helper owns those surfaces once. Default
+  existing Barriers.area callers remain unchanged.
+- Actual Torbjorn/Winston probe: two55-point hammer swings reduce the deployed
+  native shell700->590, leave the distant body500, and award no hero damage.
+  Three original Torbjorn contact/window checks and the original Reinhardt
+  native-shell check all pass. Initial ad-hoc probe setup selected the hammer
+  before the fresh body's equip finished; corrected setup waits as the original
+  fixture does. No production timing or source assertion was changed.
+- Earlier hammer repeat-interval differences and other owner interlocks remain
+  recorded. Molten Core and source charge are the next consumers; no client
+  or complete owner acceptance is claimed.
+
 ### Mount delivered actor-backed Torbjorn turrets and primary marks
 
 - Mount the original turret factory/build/target/fire/repair/dismantle and reuse

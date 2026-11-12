@@ -171,10 +171,11 @@ def hammer(fight, player, command, script):
     x, y, z = player.mover.position
     origin = (x, y + 1.2, z)
     centre = combat._along(origin, combat.aim(*command.aim()), 1.5)
-    protected = fight.barriers.area(player, centre, 1.0, amount, contacted=contacts.barrier_hit)
-    fight.orisa_barriers.melee(player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)
-    combat.sigma_barrier.melee(fight, player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)
-    fight.photon_barriers.melee(player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)
+    from ow174.game import reinhardt_hammer
+
+    protected = fight.barriers.area(player, centre, 1.0, amount,
+                                   contacted=contacts.barrier_hit, include_raised=False)
+    reinhardt_hammer.surfaces(fight, player, ((centre, centre, 1.0),), amount, contacts.barrier_hit)
     traps = getattr(fight, "steel_traps", None)
     if traps is not None:
         traps.melee(player, origin, centre, 1.0, amount, contacted=contacts.barrier_hit)

@@ -313,3 +313,22 @@ preserving its Hanzo/Orisa/Winston/Rein consumers plus Torb marks/turrets,
 all snapshot fields and all changelog entries. Resolve conflicts by retaining
 both turret update and Orisa pending cleanup, root command ordering, and
 root expanded snapshot fields plus torbjorn_marks. Do not replay this merge.
+
+C17 reuses B12 reinhardt_hammer.surfaces for Torb sphere volumes; keep the
+original live-bubble path but exclude RaisedBarrier from that old route to
+avoid duplicate surface damage. Default area callers are unchanged. Actual
+probe uses ReinhardtWinstonBarrierTests.deploy(7), switches case.rein to Torb,
+places at(0,1,0), waits35, sendsCommand(action=2), waits45, then twice advances
+45frames(buttons=1)+25(buttons=0). Native shell700->590; body500 unchanged;
+HERO_DAMAGE0. Initial probes without the35-frame fresh-body equip wait were
+setup-invalid and left the rifle selected; no runtime timing was changed.
+Three Torb original delayed/late/distinct-target hammer tests plus original
+Rein native-shell hammer test pass4/4 in4.056s. No new tests/matrix were added.
+Root C16 received0854671e, v4 inputs e1c5e6fd actually add15graphs/3entities/
+4effects+deployables to canonical base, root23owner/NPC/damage checks pass.
+
+Next immediately mount original Molten Core; status_effects topmetadata has
+no direct reader anywhere in frozen0006/source/ow174 (rg confirmed). Original
+Molten Core reads deployables.molten_core and directly resolves status_graph
+16DE and its scopes. Root preserves status_effects as unselected input evidence;
+do not silently import it into production or claim a consumer without evidence.
