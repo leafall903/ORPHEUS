@@ -153,3 +153,8 @@ its arena only omits difficulty_index=None. Nondefault `difficulty_index` and
 0020 consumer to reconcile. The source recovery module's pool access/restoration
 is adapted to canonical Vitals and the keyword-only timed healing factor.
 Data path: `verification/combined-server-runtime/data`; no copied archives.
+
+At the clean A7 boundary worker A absorbed canonical37577fbd. The75-check mixed
+boundary run passed74; Pharah motion retained a top-level old sigma_grasp import
+failure in its defense fixture. No A6/A7 or new Slam/fold/runtime regression was
+observed. Next exact action remains0020 difficulty/143A conditional NPC pools.

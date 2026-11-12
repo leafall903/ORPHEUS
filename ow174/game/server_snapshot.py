@@ -64,7 +64,7 @@ from ow174.game import (
     zarya_barriers,
 )
 from ow174.game.script import fold, scopes, support_effects
-from ow174.game import doomfist, knockback, lucio, sombra_control, sound_barrier
+from ow174.game import doomfist, meteor, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
@@ -132,11 +132,13 @@ FIELDS = {
         "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
-        "punch_impacts punches projected_barriers projected_casts sigma_barriers charge_contacts "
+        "punch_impacts punches slams meteors projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     doomfist.Punches: _names("combat dashes impacts controls"),
+    doomfist.Slams: _names("combat casts"),
+    meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
@@ -245,7 +247,7 @@ FIELDS = {
     bots.Bot: _names(
         "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input pitch navigation impulse_mover "
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode pitch navigation impulse_mover "
         "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb"
     ),
     npc_navigation.Search: _names("start target queue points parents costs visited done path blocked_by_teammate"),
@@ -264,7 +266,8 @@ OPTIONAL_FIELDS = {
 }
 DATACLASSES = (
     fold.Scope,
-    doomfist.Dash, doomfist.Impact,
+    doomfist.Dash, doomfist.Impact, doomfist.Slam,
+    meteor.Cast,
     combat.InputLock,
     zenyatta.Owner, zenyatta.Orb,
     pulse_bomb.CommandPoseAnchor,

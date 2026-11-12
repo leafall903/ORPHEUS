@@ -377,6 +377,12 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 9)):
+            from ow174.game import doomfist_passive
+
+            return tuple(expr.Entity(entity) for entity in doomfist_passive.targets(self, state))
         if (self.hero == 0x02E000000000006E and self.match is not None
                 and not state.instance.component.strict and state.instance.graph.index == 0x0259
                 and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
@@ -731,6 +737,15 @@ class BodyWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 10)):
+            if elapsed_ms == 0:
+                from ow174.game import doomfist_passive
+
+                doomfist_passive.hit(self, state)
+            return True
+
         if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 22), (0x026A, 36)):
             if not elapsed_ms:
                 self.match.combat.dva_ultimate_damage(state)
@@ -1037,6 +1052,14 @@ class BodyWorld(runtime.World):
                     # Reconstruct only the declared pet-owner relation used by
                     # Halt's own-body gate, never arbitrary entity ownership.
                     return Entity(orb.rocket.source_body)
+        if (cls == "STU_C8C4C20D" and self.match is not None
+                and self.hero == 0x02E0000000000008 and instance is not None):
+            # Delivered body-yaw consumer for Jump Jet's authored horizontal vector.
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if entity == Entity(self.body):
+                player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                if player is not None:
+                    return f32(player.mover.yaw * 360.0 / 65536.0)
         if (self.match is not None and self.hero == barrier.REINHARDT and instance is not None
                 and instance.component.entity == self.body and instance.graph.index == 0x00BE):
             # Reconstructed owner pose services for the authored Earthshatter release expressions.
@@ -1471,9 +1494,58 @@ class BodyWorld(runtime.World):
 
         return tracer.blink(self, instance, node)
 
+    def _pharah_velocity_action(self, instance, node):
+        # Reconstructed adapter for Pharah's authored Jump Jet only. Other
+        # velocity modes must not accidentally inherit this subset's semantics.
+        match = self.match
+        if match is None or self.hero != 0x02E0000000000008 or instance.graph.index != 0x27:
+            return NotImplemented
+        player = next((p for p in match.players if p.has_body and p.body == self.body), None)
+        if player is None or instance.component.owner_dead:
+            return False
+        mods = node.field("m_BC5E91CF") or []
+        if len(mods) != 2:
+            return NotImplemented
+        reset, impulse = mods
+        if (reset.get("$") != "STU_9AF0FA80" or reset.get("m_A9561CA0") != 2
+                or impulse.get("$") != "STU_4635C5E2" or impulse.get("m_CFEC5F76") != 1):
+            return NotImplemented
+        vertical = instance.evaluate(reset.get("m_9B7A63EA"))
+        vector = instance.evaluate(impulse.get("m_9B7A63EA"))
+        if type(vertical) not in (int, float) or not isinstance(vector, Vec3):
+            return NotImplemented
+        from ow174.game.mover import FELL
+
+        mover = player.mover
+        vx, _, vz = mover.velocity
+        mover.velocity = (f32(vx + vector.x), f32(vertical + vector.y), f32(vz + vector.z))
+        mover.fall = 0.0
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.air_ticks = 0
+        return True
+
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) in ((0x0B27, 75), (0x0DD8, 1)):
+            from ow174.game.combat import aim
+
+            if instance.component.owner_dead:
+                return True
+            owner = self.match._message_player(self.body) if self.match is not None else None
+            if owner is None:
+                return True
+            speed = float(node.field('m_BC5E91CF[2].m_9B7A63EA.m_expression.m_D99EF254[0]'))
+            velocity = (0., speed, 0.)
+            if instance.graph.index == 0x0B27:
+                scalar = float(instance.evaluate(node.field('m_BC5E91CF[2].m_9B7A63EA.m_configVars[1]')))
+                dx, _, dz = aim(owner.mover.yaw, 0)
+                velocity = tuple(v * speed * scalar / math.sqrt(1 + .3 * .3) for v in (dx, .3, dz))
+            instance.component.motion_reports.append(((self.body,), velocity, instance.component.now))
+            return True
+        if self.hero == 0x02E0000000000008:
+            return self._pharah_velocity_action(instance, node)
         if self.hero == lucio_movement.HERO:
             return lucio_movement.action(instance, node)
         return mccree.velocity_action(self, instance, node)
@@ -2206,6 +2278,17 @@ class BodyScript(ReplicatedBody):
             runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
             self.component.run_now()
 
+    def ultimate_running(self) -> bool:
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return True
+        # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
+        # an Ability state. Its own charge-reset plug does not populate ultimates.
+        return self.hero == 0x02E0000000000008 and any(
+            state.active and state.node.cls == VOLLEY
+            for instance in self.component.instances.values() if instance.graph.index == 0x2B
+            for state in instance.states.values()
+        )
+
     def gain_ult_charge(self, points: float, *, kind="damage", target_definition=None, recipient=None) -> float:
         """Reconstructed one-point-per-effective-damage credit, capped at cost.
 
@@ -2213,14 +2296,14 @@ class BodyScript(ReplicatedBody):
         separate configured policy; this does not establish native charge rates.
         """
         if self.hero == BASTION:
-            if (not self._ult_charge_allowed() or type(points) not in (int, float)
+            if (type(points) not in (int, float) or not self._ult_charge_allowed()
                     or not math.isfinite(points) or points <= 0):
                 return 0.0
             points = ultimate.combat_points(self, points, kind, target_definition)
         if (self.retired or self.component.fault is not None
                 or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
-                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                or self.ultimate_running()):
             return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
@@ -2254,7 +2337,7 @@ class BodyScript(ReplicatedBody):
             return
         if self.hero == 0x02E000000000006E:
             if (self.retired or self.component.owner_dead
-                    or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                    or self.ultimate_running()):
                 self.passive_charge_ms = 0
                 return
             if self.ult_seconds is None:
@@ -2273,7 +2356,7 @@ class BodyScript(ReplicatedBody):
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             return
         if self.hero == baptiste.HERO and self.ult_seconds is None:
-            if self.retired or self.component.owner_dead or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            if self.retired or self.component.owner_dead or self.ultimate_running():
                 self.passive_charge_ms = 0
             else:
                 baptiste.passive_charge(self)
@@ -2295,7 +2378,7 @@ class BodyScript(ReplicatedBody):
             return
         blocked = self.component.entity_var(842, create=False)
         if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
-                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                or self.ultimate_running()):
             return
         if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
             return
