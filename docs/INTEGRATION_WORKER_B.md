@@ -2221,3 +2221,42 @@ accretion.control incompatibility remain explicit, not fake productionaliases.
 Estimated validation-tail hours must not be reported as required code merge
 time. Next exact action: clean sync rootfield33 commit545f3a6f, then that bounded
 actualconsumer inventory/probe; report confirmed missing code separately.
+
+
+## B80 — reached original0040 victim credit consumers (actual missing code)
+
+Clean sync root545f3a6f at worker mergeeb34efce, changelog conflict kept both
+sides. Rootfield33 soleMover consumer retained; do not re-add Mover.launch.
+
+Bounded production audit found original0040 Combat._damage explicitly applies
+base_dealt*01C7/111 victimfactor before its supportedgain dispatch: Hog, Doom
+HandCannon, Ballfireball/melee and QuadBall/Genji. Current Hoggeneric applied
+factor but used all dealt (including temporary loss); its supported other
+consumers missed that victimfactor. Actual unchanged weapons confirmed:
+Doom66HP→66charge instead49.5; BallQuad5→5 instead3.75, melee30→30 instead22.5,
+realGrapplefireball50→50 instead37.5; finalGenjiQuad impact50→50 instead37.5.
+ActualHogslug below36Grasp temporaryHP credited50 rather than14 permanentHP.
+Soldier real20HP hit already credits15 through authoredtag logic, so DO NOT
+apply a global multiplier or overwrite other owners' charge systems.
+
+Restore these EXACT original supported loadout/owner branches only, using same
+Vitalsbase_before/base_after and existingroadhog_charge.damage_received_multiplier,
+then existinggain. Preserve original health damage, pool/credit budgets, target
+eligibility, caps, projectile identity and ownedfloat arithmetic. No new ledger,
+manager, runtime mode or state field. Source newregression includes real
+HandCannon/Quad/melee/Grapplefireball/Hogslug plus postreflectionGenji impact
+consumer and actualSoldier non-double guard. Baseline6methods had6 failing
+subcases; health assertions already passed. Initial local mount missed the
+actualdeflection.GENJI provider; corrected that constant without changing any
+expectation, retaining the errorlog. New6 +originalHogvictim/Ballnormal/fireball
+3 +Damage8/runtime13 =30/30 pass11.604s. Logs worker-b-hog-victim-credit-
+{audit,baseline,mounted,corrected}.log (initialDoom diagnostic in tool output).
+
+This was confirmed unmounted PRODUCTION behavior, unlike fullNPCtest recovery
+or client/geometry validation tails. After this batch there is no additional
+confirmed runtime absence in the current owner inventory; remaining code audit
+must identify an original reachedconsumer before declaring missing feature.
+Next exact action: final bounded source production caller inventory (owner
+modules/sharedadapters); report zero/explicit remaining implementations to root
+separately from tests/conflicts/client follow-up, and do not gate delivery on
+full source matrices. No original-client acceptance run.

@@ -349,6 +349,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original scaled Mei/Genji methods and mover/damage checks pass16/16. Old
   fixture/contract differences remain recorded separately; no new runtime host
   or client acceptance is implied.
+### Restore original victim-side credit for supported weapons
+
+- Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent
+  pool loss and the existing victim modifier, preserving other authored target
+  adjustments without duplicate scaling or another charge ledger.
+- Reached weapon/impact and shared30 checks pass. Original damage/physics and
+  numeric expectations remain; no original-client acceptance run.
+
+### Retire Grasp ownership on actual death
+
+- Existing absorption ownership cleanup now runs for the actual dead body,
+  clearing grant and decay records before later respawn replacement.
+- Original lethal/cleanup cases and shared25 checks pass with unchanged
+  assertions. No new pool/controller or client acceptance run.
+
+### Bind original Flux checks to actual ability owners
+
+- Keep original numeric assertions while resolving Grasp/Accretion/Fortify and
+  native Zarya observations on their existing hosts and actual pools.
+- Seven formerly blocked source methods pass; lethal slam reveals delayed
+  Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
 
 ### Admit proven projected-NPC Sentry history through the existing driver
 
@@ -378,6 +400,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   native Zarya observations on their existing hosts and actual pools.
 - Seven formerly blocked source methods pass; lethal slam reveals delayed
   Grasp owner cleanup, retained for the next fix. No client acceptance run.
+
 
 ### Preserve original explicit filter and cache APIs
 
