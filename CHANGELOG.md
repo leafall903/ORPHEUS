@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Keep incoming EMP replay on each actual receiver component clock
+
+- Portal overlap can reference the near pulse from a remote endpoint effect.
+  Resolve that pulse's clock from its own existing component observation, and
+  skip unknown associations while preserving instance dedupe/clock restoration.
+- Real Hack-then-EMP relay reproduces an800ms foreign-clock cursor error and now
+  uses the correct16111ms. Original charge/Ashe/EMP/runtime39all pass; no new
+  stored clock, manager, timer or assertion changes.
+
 ### Replay incoming Sombra applications on their observed recipient clocks
 
 - Record each existing Lock's actual delivery world/component association;
