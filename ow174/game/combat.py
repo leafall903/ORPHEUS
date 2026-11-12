@@ -3423,6 +3423,8 @@ class Combat:
         self._cryo_healing(player)
         if mei.protected(player):
             self._clear_frost(player)
+            if not mei.cryo_world_expired(player):
+                self.sentries.release_target(player.body)
         if (repairs and not self.is_stunned(player)
                 and not (command is not None and script.controlled_at(command.frame))
                 and player.body not in self.sombra_controls.locks):
@@ -4787,8 +4789,20 @@ class Combat:
         return min(candidates, key=lambda hit: hit[0], default=None)
 
     def _cryo_contact(self, shooter, origin, direction, length):
+        from ow174.game import cryo
+
         hit = barriers.ray_hit(self, shooter, origin, direction, length)
-        return hit[0] if hit is not None and hit[1].component.world.hero == mei_wall.MEI else None
+        contacts = [hit[0]] if hit is not None and hit[1].component.world.hero == mei_wall.MEI else []
+        # Original0016 ice is solid cover for either team, not just a hostile
+        # shield. Read actual current body capsules; keep the existing native
+        # actor proxy above for its other consumers.
+        for target in self._targets():
+            if (target.owner not in self.match.players or not cryo.active(target.owner)):
+                continue
+            distance = ray_capsule(origin, direction, *target.segment(), target.radius)
+            if distance is not None and distance <= length:
+                contacts.append(distance)
+        return min(contacts, default=None)
 
     def _melee_pillar_targets(self, origin, centre, radius):
         hits = []
