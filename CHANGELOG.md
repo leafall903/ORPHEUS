@@ -1,5 +1,107 @@
 # Changelog
 
+## A105 — signed original-language consumer handoff
+
+WorkerA signs the owned source reconciliation through A104 c905ea80 (A103
+6c2f73fc; A102a03e429f; A101 Moira evidence2e0e4b77; A10092de6f4e;
+A990e3c2041; A983137e7b4; A979033c8b0; A96654d814d; A9594742e40).
+Worktree/branch remain verification/merge-worker-a / integration/merge-worker-a.
+All implemented batches are committed. No known still-unsubmitted or unmounted
+owned production implementation is identified after the concrete audits below.
+This is code-consumer reconciliation, not full-client/full-matrix acceptance or
+an ancestry-only assertion. Root owns final original-ref/history admission and
+cross-owner old-manager reconciliation, including large0002 shared deliveries.
+
+Frozen refs and actual consumer signing:
+- 0002 4babd03311d49f89b9a819522fe23f72a5b2306a: reaper/damage_charge/
+  shot_patterns/blossom; Shadow selector/real movement/immunity/cleanup; reflected
+  shells/launch/source ownership. Current same mover/charge/defense hosts.
+- 0003 8a3ece2db99405a6c14e3e36c0492fc71d4bb48c: pistol/Blink, Recall sample/
+  history/health/ammo/control, Pulse throw/contact/fuse/deflect/source retirement;
+  original012/0B8B loss/tags/passive-owner event path viaA72, no doubleult credit.
+- 0004 14a69f134b36767ca7bfd2978a1468a7b6c37cb7: staff/boost/weapon,
+  GuardianAngel/Descent/Valkyrie, originalfold and healing/passive chronology;
+  A97–102 actual0267→0C71/0B99/0C72/filter_history on soleHealingEffects,
+  exact original100/60/1.5, Matrix, capturedMercycredit, frozenRocket affiliation,
+  actual Player/NPC death/removal/cleanse and same shield/passive ledgers.
+- 0005 2b67b154a11b7e930ee431182d8e3a70cb90b8bb: charge/control/movement,
+  Sonic/Dragon/Storm ricochet, source attribution/native clocks/historicalFortify,
+  explicit source profiles/CLI/provenance/finiteMatrix; root original optional
+  Volley/farSniper consumers share existing NPC/geometry hosts.
+- 000A 0bbf016a88d6272db5358c5e4f6a611d4db5b327: rifle/charge/Infra,
+  Grapple cast/pull/anchors, Venom realhealth/chronology/cleanup, worldbudget/
+  nativewindow/geometry source consumers; root original frozen replay was passed.
+- 0020 c81057dc27c9a6aee1fc277b7266396f112d0ef9: orb/charge/Transcendence,
+  NPCshield recovery/143A conditional pools and source catalog/constants;
+  same existing actualVitals and source component rather than observer pools.
+- 0065 c31d926214d74bbb6d5f308cabce92c65d8a48fc: cannon/bounce/Mine,
+  SteelTrap sameactor/Vitals/contact/root/application/deadline, RipTire same
+  possessed mover/body/health/fuse/explosion, charge/Mayhem/NPCdeath-volley;
+  A96 exact original component72 explicitSDK provider active in unique query
+  chain, existing DVa entity_link fallback preserved. Root shared34924/tools.
+- 0068 f5b7366d27c572125d1422618ec407d17794787d: same native025C/0256
+  Pet/pool, actual ctor/application pair/expiry/break/death/cooldown/cleanses,
+  source energy/beam/ammo/melee/secondary/charge, singleVitals shield recovery,
+  Graviton real flight/gravity/land/field/includes/pull/release/NPCsameMover/
+  mobility/Flux coexistence, launchNano offense snapshot/source/Mercycredit,
+  personalpriority/single recipient contact and original projectile splash.
+- 007A a2353c6036c270bb1359b8e3ba3e203437ad6264: same real Mech/Pilot
+  factory/foreign vars/possession/endpoints/weapon/Matrixoutputs/Booster/missiles/
+  SelfDestruct/CallMech/retirement; A103 typeddata+scalar/start-end/generation and
+  A104 flightroles consume sameMover.mods, no duplicate mover/clock/physics pool.
+- 0200 8b991768223a98ff97f2618a53f0947dc6477c4b: Viper/Coach/reload,
+  Dynamite bounce/reflection/absorption/fuse/burn/selfscale and BOB actualsingleNPC/
+  gun/charge/uppercut/Heavy carry/lateral/status/recipient clock/retirement.
+  Explicit current-bound mover pack preserves source/base hash verification.
+
+Additional shared000E signing A64–71: optional dynamic/bound ownerfull effects on
+sole statescript wire, unchanged16 no-effect bit/byte combinations; Match/select/
+delta-key refresh, scoped1177/224E LinkedTarget/angles/Wait, exact Pin services
+and messages, originalNpcContext/manual pair/Assassin recipient, exact storage.
+No second body/controller1177, wire encoder, NPC host or component pool.
+Original script/sleep_view functionality is current strict LinkedTarget/BodyWorld
+sampling+delay; root independently preserves pure query symbols where required.
+
+The audit's final concrete gaps are closed: A95 native projectile continuation,
+A96 explicit component72 contracts, A97–99 dynamichealing/lifecycle, A102 flight
+team, A103 typedrows and A104 flightrecords. A101 two-query Moira suspicion was
+withdrawn: actual registry excludesMoira; original uniquegrasp and one0.8 event
+and full48damage/selfheal expectations were verified, no needless dedup added.
+
+Kept validation/policy tails; none is silently called a missing code consumer:
+- Old Ana Recall warmup-vulnerability versus original0003 both-phase protection;
+  root documented ownerpolicy; retain all conflicting original assertions.
+- Old uniformeye/proxy DVa/Tracer head/crouch and parkedPlayer versus actualMech
+  observations, nativefold empty0.0/tuple and old private namespace/clock units.
+- Original0068 expected193 point-projectile timing versus current authoredextent.2,
+  old zarya_recovery.bodies observer, native6600 self-first projected rejection
+  versus old reconstruction; projected-first two actual200 pools are implemented.
+- NativeNPC shield recovery changes some original nethealth expectations (root
+  demonstrated actual grossdamage vs restoredpool); original values retained.
+- Baptiste original Modifier table/timer fixture needs actual native-child
+  observation underv19. Native grenade/Matrix/boost/lifecycle/whole-server code
+  is mounted; no fake runtime tables are added to satisfy the old observer.
+- DVa old early23184 Var reference can remainNone while fresh samecomponent
+  value=.4 and actual primary velocity3.2998. Explicit fresh actualaudit also
+  found Matrix+primary currentresource clears penalty/velocity5.5 while original
+  fixture expects latch.4/3.3; preserve this as resource/VM policy conflict,
+  not pretend all differences are observers or add an artificial latch. Booster
+  11.9902 and no-penalty, normal5.5 are actual. See
+  worker-a-dva-walk-actual-value-audit.log. Root has evidence for final disposition.
+- Pharah ForceWorldGap two position mismatches are byte-for-value same before
+  A104 on committed95a28fec; root/B own force semantics. Existing assertions kept.
+- C ownedMech melee actual polypath crash is fixed byc4290d9c for root intake,
+  preserving BotScript real component.world.hero rather than inventing hero attr.
+
+Latest focused evidence is A1038/8, A104original/source/clock/storage/owners11
+passed plus originaldetached bombs2/2; detailed commands/logs in preceding
+checkpoints. OriginalMercy28/128 assertions preserved normalmodule with numeric
+expectations unchanged. No broad repeats/new acceptance matrix required for
+submission. No client/service, Internet, publication/push, appearance or Rust.
+All inputs remain original externalimmutable packs; root unifiedv19 supplies
+needed bindings. Root may accept this signed boundary without waiting all tails
+to become green. No additional owner implementation remains WIP in this tree.
+
 ## A104 — original flight-role producer and expiry on the same mod clock
 
 Final source audit proved another real original007A record producer/consumer:
