@@ -4,6 +4,76 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Mei Blizzard flight and area consumers
+
+- Connect original064A release, ballistic terrain/Ice Wall contact,0946 area,
+  original damage/frost cadence, viewer lifecycle, body retirement and stored
+  state. Reuse existing projectile leases and Genji/Matrix/Sigma interception;
+  capture outgoing Nano/Orisa scaling once rather than double applying it.
+- Restore original dependent Mei fixture files and normal module imports. Keep
+  literal expectations and failures: Blizzard20/21 cases pass across the full
+  run and targeted fixture adaptation; wall launch timing remains different.
+  Ultimate/Deflect48:40pass,7fail,1old shield-observer error. Full FrostSources16:
+  15pass,1same observer error. Original Damage/Punch29 and runtime17 pass.
+- Sampled Cryo status history and the remaining wall/weapon/observer differences
+  stay recorded for subsequent integration; no full acceptance claim.
+
+### Apply existing frost modifiers to autonomous NPC navigation
+
+- Feed the existing per-body movement modifier into the same navigator Mover;
+  scale explicit MoveTo speeds and the existing ledge approach without changing
+  targets, planning, clocks, full-control gates or body allocation.
+- Original navigation37 and Mei frost9 all pass14.815s. A real prepared Trooper
+  receiving the actual frost consumer at50% travels0.8056640625 versus
+  1.6123046875 over20ticks, preserving the same navigator Mover.
+
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
+### Restore delivered Orisa and Sigma barrier attack consumers
+
+- Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
+  native pool damage. Shatter retains their same geometry/pose only when this
+  wave breaks them, preserving stopped fronts without cloning an actor.
+- Synchronize Sigma's authored mode on its posed owner command through the
+  existing host with zero elapsed time after the world tick. Retire the same
+  owner-bound actor/child immediately with its body and clear cached activity.
+- Actual original verified C015 raw+integrity input creates700 health,16.5 speed
+  and1A2A child. All40 focused original interactions/runtime/snapshot pass.
+  Full original24 retains four Brigitte errors and contact8.92968 versus>9.6;
+  keep the full023B owner's authored0.9m launch bias and original expectations.
+- Preserve all original tests: main1399, Orisa40 and Sigma87 assertion counts,
+  order and Constants unchanged; fixture views read real fields and pools.
+  Original-client acceptance remains open.
+
 ### Restore delivered Fire Strike and shattered Winston shell consumers
 
 - Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
@@ -50,6 +120,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   rejection while this worker continued changing source during the2325s run,
   not evidence of a Genji defect. Keep the rejection; long journal acceptance
   requires the parent's frozen canonical run. Client acceptance remains open.
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
 
 ### Mount delivered Junkrat grenade launch and terrain physics
 
@@ -9047,3 +9148,5 @@ C confirms no Ashe WIP and keeps Mei/Sombra/Symm. Next exact action: audit sourc
 Ashe primary/Coach/dynamite/BOB/charge and mount real consumers in batches, reuse
 current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
 handoff above; root owns source-ref/provenance admission and ordering.
+
+A42 clean-boundary sync: absorbed submitted intake6e011ccf automatically, including root strict NPC-controller storage, accepted Total Mayhem, root status ordering and shared shield/Mei fixes. Next0200 Ashe actual consumer audit.

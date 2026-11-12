@@ -69,6 +69,7 @@ from ow174.game import (
     healing,
     hero_torbjorn,
     molten_core,
+    mei_blizzard,
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
@@ -2083,6 +2084,7 @@ class Combat:
         self.turrets = {}  # Owner controller -> original actor-backed turret.
         self.sentries = symmetra_turrets.Turrets(self)
         self.portals = symmetra_portals.Portals(self)
+        self.blizzard = mei_blizzard.Blizzard(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2260,6 +2262,7 @@ class Combat:
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
+        self.blizzard.retire(player.body)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -2282,6 +2285,7 @@ class Combat:
         self.orisa.retire(player.body)
         self.echo_duplicates.retired(player)
         self.barriers.retire(player.body)
+        sigma_barrier.retire_owner(self, player)
         barriers.retire_owner(self, player)
         assassin_victim.retire_target(self, player.body)
         self.clear_pins(player.body)
@@ -2680,8 +2684,9 @@ class Combat:
         if script is None:
             return
         component = script.component
-        from ow174.game import assassin, hanzo_control
+        from ow174.game import assassin, hanzo_control, photon_barrier
 
+        photon_barrier.interrupt(script)
         self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
         hero_torbjorn.cancel_hammer(self, component.entity)
@@ -3112,6 +3117,12 @@ class Combat:
         if command is not None:
             self.junkrat.tire.begin(player, command)
         self.barriers.sync(player)
+        if script.hero == sigma_barrier.HERO and not defer_effects:
+            # The authored owner mode changed on this posed frame. Reuse the
+            # existing world host (elapsed zero after its tick), not another drive.
+            for actor in tuple(self.sigma_barriers.values()):
+                if actor.owner is player:
+                    actor.update(self)
         reaper.advance_entry(player)
         self._shadow(player, command)
         self._winston_health(player, script)
@@ -3851,7 +3862,9 @@ class Combat:
                 continue
             a, b = shown.segment()
             if (segment_distance(centre, a, b) - shown.radius <= radius and amount > 0.0
-                    and capsule_visible(self._collision(), origin, a, b, shown.radius)):
+                    and capsule_visible(self._collision(), origin, a, b, shown.radius,
+                        mesh_blocks=lambda point,direction,length: self.photon_barriers.trace(
+                            shooter,point,direction,length) is not None)):
                 if (deflections.blocks_melee(self, shooter, target, state, modify)
                         or self._genji_deflects(target, contact.direction)):
                     continue
@@ -3868,6 +3881,8 @@ class Combat:
 
         world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
         self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
+        self.photon_barriers.melee(shooter, origin, centre, radius,
+                                   amount * self.orisa.superchargers.scale(shooter))
         self.venom.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
@@ -4086,6 +4101,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
+            or self.blizzard.flights or self.blizzard.areas
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -4189,6 +4205,7 @@ class Combat:
             self.sound_barriers.update()
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
+            self.blizzard.update(at)
             self.venom.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
@@ -5488,6 +5505,9 @@ class Combat:
             from ow174.game import mccree
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
+        if not npc and self.blizzard.fired(shooter, state, shot_frame, origin, direction,
+                                          activation=activation, snapshot=snapshot):
+            return
         if not npc and state.instance.graph.index == 0x01EE:
             from ow174.game import mccree
 
@@ -7482,6 +7502,17 @@ class Combat:
             key = (-actor.body, None)
             if contact is not None and key not in rocket.penetrated and (contact[0] < limit or not stops):
                 contacts.append((contact[0], 0, actor.body, key, (contact[0], actor.owner, actor)))
+        for actor in self.orisa_barriers.opponents(rocket.shooter, rocket.team):
+            distance = self.orisa_barriers.geometry.cast(actor.position, actor.yaw, rocket.position,
+                                                         direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
+        for actor in sigma_barrier.enemies(self, rocket.shooter, team=rocket.team):
+            distance = actor.intersection(rocket.position, direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
@@ -9532,6 +9563,7 @@ class Combat:
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
+            photon_barrier.interrupt(victim.body_script)
             self.primal_punches.interrupt(victim.body_script)
             self._winston_health(victim, victim.body_script)
 

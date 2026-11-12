@@ -3,7 +3,7 @@
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import actors, barrier, reinhardt_barrier, world_bubbles
+from ow174.game import actors, barrier, orisa_barrier, reinhardt_barrier, sigma_barrier, world_bubbles
 from ow174.game.collision import MOVER
 from ow174.game.script import expr, runtime
 
@@ -208,6 +208,16 @@ def _captured_trace(pose, origin, direction, length):
     if len(pose) == 4 and pose[0] == "dome":
         _, centre, radius, _ = pose
         return world_bubbles.shell(origin, direction, centre, radius, length)
+    if len(pose) == 5 and pose[0] == "flat":
+        _, geometry, position, yaw, _ = pose
+        return geometry.cast(position, yaw, origin, direction, length)
+    if len(pose) == 5 and pose[0] == "sigma":
+        _, geometry, position, basis, _ = pose
+        delta = tuple(a - b for a, b in zip(origin, position, strict=True))
+        local = tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in basis)
+        toward = tuple(sum(a * b for a, b in zip(direction, axis, strict=True)) for axis in basis)
+        hit = geometry.cast_ray(local, toward, length, MOVER)
+        return None if hit is None else hit.distance
     geometry, feet, yaw, pitch, radius, height, _ = pose
     return reinhardt_barrier.intersect(geometry, feet, yaw, pitch, origin, direction, length,
                                       owner_radius=radius, owner_height=height)
@@ -297,7 +307,7 @@ def advance(fight, wave):
             at, owner, actor = shield
             if owner is not None:
                 entity = actor if type(actor) is int else actor.entity if hasattr(actor, 'entity') else actor.body
-                source = getattr(actor, 'body', getattr(actor, 'owner_body', entity))
+                source = actor.body if isinstance(actor, reinhardt_barrier.RaisedBarrier) else entity
                 phase = actor.instance.states.get(17) if isinstance(actor, reinhardt_barrier.RaisedBarrier) else None
                 key = (source, fight.replacement_ticks.get(source), phase.counter if phase is not None else None)
                 if key not in wave.shields:
@@ -305,10 +315,16 @@ def advance(fight, wave):
                     if isinstance(actor, reinhardt_barrier.RaisedBarrier):
                         feet, yaw, pitch, owner_radius, height = actor.pose()
                         pose = actor.geometry, tuple(feet), yaw, pitch, owner_radius, height, actor.entity
+                    elif isinstance(actor, orisa_barrier.Barrier):
+                        pose = ("flat", fight.orisa_barriers.geometry, tuple(actor.position), actor.yaw, actor.entity)
+                    elif isinstance(actor, sigma_barrier.Barrier):
+                        pose = ("sigma", actor.geometry, tuple(actor.position), tuple(actor.basis), actor.entity)
                     fight._damage_contact_barrier(shield, wave.normal.amount, shooter=wave.shooter)
                     wave.shields.add(key)
-                    if pose is not None and actor.health <= 0 and pose not in wave.shield_poses:
-                        wave.shield_poses.append(pose)
+                    if pose is not None:
+                        remaining = actor.vitals.total if isinstance(actor, sigma_barrier.Barrier) else actor.health
+                        if remaining <= 0 and pose not in wave.shield_poses:
+                            wave.shield_poses.append(pose)
                     if isinstance(actor, world_bubbles.FixedBubble) and actor.health <= 0:
                         wave.dome_poses[actor.body] = tuple(actor.point), actor.radius
             current = tuple(start[k] + direction[k] * at - (.1 if k == 1 else 0) for k in range(3))

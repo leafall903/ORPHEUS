@@ -118,9 +118,29 @@ class Barriers:
         self.actors = {}
         self.casts = {}
 
+    def confirm(self, world, state):
+        """Original0016 plane confirmation on the same cast/health/lifecycle host."""
+        if (not _applies(world, state.instance) or state.node.pos != 57 or not state.active
+                or body_definition() is None or graph.graph(ACTOR_GRAPH) is None):
+            return NotImplemented
+        if self.geometry is not None:
+            return placement(world, state, confirm=True)
+        owner = _owner(world)
+        if (owner is None or owner.gone or not owner.spawned or self.fight.match.ended
+                or self.fight.is_dead(owner) or self.fight.is_stunned(owner)):
+            return True
+        from ow174.game import symmetra_placement
+
+        result = symmetra_placement.preview(world, state)
+        if result is NotImplemented:
+            return NotImplemented
+        if result is not None and result.valid:
+            self.casts[owner] = (state.instance, self.fight.tick, state.instance.component.frame)
+        return world.calculate_placement(state, commit=True)
+
     def create(self, world, state):
         instance, node = state.instance, state.node
-        if self.geometry is None or not _applies(world, instance) or node.pos != 17:
+        if not _applies(world, instance) or node.pos != 17:
             return NotImplemented
         from ow174.game.combat import TICK
 
@@ -168,7 +188,7 @@ class Barriers:
         return body
 
     def play(self, instance, node):
-        if self.geometry is None or (instance.graph.index, node.pos) != (0x156B, 13):
+        if (instance.graph.index, node.pos) != (0x156B, 13):
             return NotImplemented
         actor = self.actors.get(instance.component.entity)
         if actor is None:
@@ -239,13 +259,47 @@ class Barriers:
                      if actor.health > 0 and actor.owner is not shooter
                      and (self.fight.match.game_map.free_for_all or actor.team != team))
 
+    @staticmethod
+    def _normal(actor):
+        return math.sin(actor.yaw), 0.0, math.cos(actor.yaw)
+
     def closest(self, barrier, point):
-        return self.geometry.closest(barrier.position, barrier.yaw, point)
+        if self.geometry is not None:
+            return self.geometry.closest(barrier.position, barrier.yaw, point)
+        normal = self._normal(barrier)
+        distance = sum((a-b)*n for a,b,n in zip(barrier.position, point, normal, strict=True))
+        return tuple(p+distance*n for p,n in zip(point, normal, strict=True))
+
+    def contact(self, actor, origin, direction, reach, radius=0.0):
+        if self.geometry is not None:
+            return self.geometry.cast(actor.position, actor.yaw, origin, direction, reach, radius)
+        # Original source plane contact uses the centre ray, not a fabricated mesh/sweep.
+        normal = self._normal(actor)
+        denominator = sum(n*d for n,d in zip(normal, direction, strict=True))
+        if abs(denominator) < 1e-8:
+            return None
+        distance = sum((p-o)*n for p,o,n in zip(actor.position, origin, normal, strict=True))/denominator
+        return distance if 0 <= distance <= reach else None
+
+    def capsule_contacts(self, actor, a, b, radius):
+        """Exact capsule/plane points for the existing melee surface consumer."""
+        normal = self._normal(actor)
+        da, db = (sum((p-o)*n for p,o,n in zip(point, actor.position, normal, strict=True))
+                  for point in (a,b))
+        if da == db == 0:
+            return a, b, tuple((x+y)/2 for x,y in zip(a,b,strict=True))
+        if da*db <= 0:
+            share = da/(da-db)
+            return (tuple(x+(y-x)*share for x,y in zip(a,b,strict=True)),)
+        nearest, distance = (a,da) if abs(da)<abs(db) else (b,db)
+        if abs(distance)>radius:
+            return ()
+        return (tuple(p-distance*n for p,n in zip(nearest, normal, strict=True)),)
 
     def trace(self, shooter, origin, direction, reach, radius=0.0, *, team=None):
         best = None
         for actor in self.opponents(shooter, team=team):
-            distance = self.geometry.cast(actor.position, actor.yaw, origin, direction, reach, radius)
+            distance = self.contact(actor, origin, direction, reach, radius)
             if distance is not None and (best is None or distance < best[0]):
                 best = distance, actor
         return best

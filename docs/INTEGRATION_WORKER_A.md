@@ -1164,3 +1164,5 @@ C confirms no Ashe WIP and keeps Mei/Sombra/Symm. Next exact action: audit sourc
 Ashe primary/Coach/dynamite/BOB/charge and mount real consumers in batches, reuse
 current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
 handoff above; root owns source-ref/provenance admission and ordering.
+
+A42 clean-boundary sync: absorbed submitted intake6e011ccf automatically, including root strict NPC-controller storage, accepted Total Mayhem, root status ordering and shared shield/Mei fixes. Next0200 Ashe actual consumer audit.

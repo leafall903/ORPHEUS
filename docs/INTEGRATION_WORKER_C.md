@@ -844,3 +844,148 @@ Next C29: in the same existing Photon host, mount actual originalQ/plane fallbac
 when no mesh configured and retain configuredmesh path, onecast/HP/lifecycle.
 No syntheticmesh, newwallmanager or fixture-only patch. Then continue authorized
 NPC bridge and original Mei Blizzard, sampled Cryo history, Sombra/Ashe remainder.
+
+C28 SHA4fd1d4f7 delivered. Clean sync root7e9de0af preserves affiliation capture and all accepted C27/A/B changes; coordination only. C29 Photon sourceplane/Q with original0040 exactmesh, existingonehost.
+
+C29: original Photon Q/plane and configured mesh consumers
+-------------------------------------------------------
+Same existing photon_barrier.Barriers retains one cast/actor health/lifecycle.
+When geometry is None, confirmation uses original0016 placement, actual Q creates
+156C actor and original plane ray/closest contacts; configured original0040 mesh
+still delegates Geometry.cast/closest and canonical placement. No invented mesh.
+Existing interrupt helper is now consumed on control/death; deployed wall remains.
+Ordinary melee now blocks body through Photon and damages its shell exactly once;
+B12 hammer uses analytic capsule/plane contacts plus existing surface seen keys.
+
+Public contact API: manager.contact(actor,origin,direction,reach,radius=0.0)
+returns distance|None; trace(shooter,...,*,team=None) returns (distance,actor)|None.
+contact's source plane uses centre ray (source behavior), configured mesh uses
+existing cast. capsule_contacts(actor,a,b,radius) returns real contact points.
+B29 FireStrike can reuse these; do not skip Photon merely because geometry=None.
+
+Exact verification with v9 environment: python -B -m unittest
+ test_game_moira_photon -v :9pass7.625s,
+worker-c-photon-mesh-v9-final-check.log. v8 same production Q/plane with eight
+original common methods invoked directly (class has mesh-only skip decorator),
+all8pass; only mesh-specific invalid-confirmation/rotation excluded,
+worker-c-photon-plane-v8-final-check.log. Assertions unchanged, no fake geometry.
+Actual real Q plane probe traces 1000m sideways at distance5; actual existing
+hammer contact lowers4000->3945 once and repeated seen set prevents duplicate.
+Actual v9 Q probe at1000m sideways misses, proving authored finite mesh bounds.
+
+Shared exact v9 command: python -B -m unittest test_symmetra_charge
+ test_delivered_reinhardt_winston_barrier test_game_combat.DamageTests
+ test_doomfist_punch -v :52run46.521s,41pass4fail7errors retained,
+worker-c-photon-shared-check.log. Charge9,Damage8,Punch21 allpass; Win suite3pass,
+4fail7errors: FireStrike shell remains700vs600, shatter body455vs500, float point
+1.1000000238vs1.1, controlled/FixedBubble.ray/old shield observer protocols absent.
+B29 is independently integrating Win FireStrike/Shatter consumers. No assertions
+changed or omitted from that shared run. First failing plane/mesh logs retained.
+Recommend v9 exact original0040 mesh profile for configured geometry; v8 remains
+functional original0016 plane mode. No input file bytes changed.
+
+Boundary: original private NPC/wire observer equivalence not established; no new
+alias manager. Sentry retained-history phases, sparse Photon expiry charge clock,
+generic strict placement, sampled Cryo and Blizzard remain actual pending gaps.
+Next independent narrow batch: authorized autonomous navigator consumes existing
+movement_mods for partial frost slow; preserve mover/clock/control/path strategy.
+Then original Mei Blizzard/Cryo, Sombra and Ashe. Root also flagged DeviceWorld
+old symmetra_portal imports: adapt actual fight.portals endpoint/service consumers,
+not a name alias or second manager. Remaining rough estimate16-32 active hours,
+low confidence, excludes root reception and client acceptance.
+
+C29 SHA1bcd0e56 delivered. Coordination sync898cd33b accepted root intake;
+CHANGELOG merge preserved both sides, shared code merged without conflict.
+
+C30: authorized existing navigator frost movement bridge
+------------------------------------------------------
+Only npc_navigation.py changes: existing drive receives match, reads the same
+fight.movement_mods; tracks existing source-script plus imposed modifier on the
+same Mover and scales explicit MoveTo speed (Mover's MoveTo bypasses run_forward).
+Existing ledge approach uses this helper when a real body world is present;
+released ledge still has no horizontal target. No second state, Mover, Frost,
+clock, control policy, input, path or search-budget change. Existing full freeze,
+root/immovable/control gates remain intact. Preserve original _drop_step call
+signature: initial combined check exposed one existing mock assertion against
+signature, fixed code rather than editing the original assertion.
+
+v9 exact check: python -B -m unittest test_npc_navigation test_mei_frost -v
+46allpass14.815s, worker-c-frost-nav-final-check.log. Before ledge extension,
+navigation37allpass6.143s. Real prepared Trooper (1D40/controller), actual
+fight._frost_hit(target,source=player,initial=.5), same navigator.mover identity,
+20worldticks distance1.6123046875 normal vs0.8056640625 slowed. Initial probe used
+navigation's deliberately scriptless fixture and was invalid for Frost because
+normal cleanup removes status on bodies lacking scripts; final probe uses actual
+prepared Trooper body/VM, not a fake status receiver.
+
+Next C31: mount original mei_blizzard.py flight/area/retire into same existing
+projectile/deflection/absorption/status hosts, then normal-import original full
+Mei ultimate/frost source modules when their real dependencies are mounted.
+Keep sampled Cryo history and old wall/shield/deflect observers explicit; never
+replace actual consumers by aliases or weaken strict guards/assertions.
+
+C30 SHA55932da4 delivered.
+
+C31: actual original Mei Blizzard owner
+---------------------------------------
+Original mei_blizzard.py flight/area implementation now consumed by Combat._shoot
+064A/st3; one projectiles lease, actual ballistic chord/terrain/Mei wall anchoring,
+200ms delay/4250ms area/20DPS, independent per-target200ms frost channel, existing
+entity allocator/viewer create-destroy, world ticks/catch-up and body retirement.
+Existing Combat._deflector supplies single Genji/Matrix/Sigma service and actual
+projectile tag admission, with existing Grasp output plug for zero-damage consume.
+No old source defense managers or module-name aliases. Reflection reassigns actual
+owner/body and outgoing snapshot; existing _damage is source_scaled to avoid
+applying captured Nano/Orisa twice. Defense/phase queries use existing actual
+Cryo/phase hosts. Stored manager/flights/areas registered, including area deadlines,
+static-impact side and source samples. Original passive storage test passed.
+
+Restored original tests/test_mei_blizzard,wall,wall_placement,control,deflect,shields.
+Only fixture API/import adaptation: delivered combat fixture name; Genji's HERO/
+active observer -> existing deflection.GENJI/defenses.deflect_state, shield fixture
+-> actual barriers.Bubble/defenses.ZARYA (old Bubble constructor still not claimed
+equivalent); one raw frost tuple assignment -> combat.Frost(sample=originaltuple).
+All original literal values/counts match AST Counter; no expected values edited.
+No fake observer/health view, no second pool, no tests removed. Old shields observer
+errors remain visible instead of aliases. The old cryo sampled consumer is still
+not mounted; current barriers.cryo_heal remains sole healer pending next batch.
+
+Exact v9 environment+test_environment commands:
+python -B -m unittest test_mei_blizzard -v :21run106.663s,19pass1fail1error(two
+subcases). worker-c-mei-blizzard-second-check.log. The error was raw tuple fixture
+in frozen-input case; after actual Frost(sample=...) adaptation that original case
+passes in the shared command below. Thus20/21 original cases pass across these
+runs, not a fresh final all21 run. Wall near-face test expects one flight after32
+frames but actual current wall has already anchored it (0flights); preserve original
+assertion/geometry/timing rather than delay a real hit for the check.
+First failed matrix_definitions=None integration log retained; final production
+uses existing _deflector current tag policy, not an ad-hoc nullable catalog check.
+
+python -B -m unittest test_mei_ultimate test_mei_deflect -v :48run44.488s,
+40pass7fail1error,worker-c-mei-blizzard-ultimate-deflect-check.log. These are normal
+imports and full original classes, not earlier AST selection. Ultimate31:29pass,
+wall damage400vs325 fail and old fight.shields observer error. Deflect17:11pass,
+remaining6 differences include spray damage/freeze, wall flight already anchored,
+post-duration/rear icicle damage50vs125, spray230.75vs250, static cover175vs250.
+Actual airborne Blizzard reflection ownership, area damage/frost, rear/allied
+non-reflection, original-owner switch survival/reflected-owner retirement allpass.
+
+python -B -m unittest test_mei_frost_sources -v :full normal module16run37.673s,
+15pass1old fight.shields observer error; worker-c-mei-frost-sources-full-check.log.
+Includes formerly unrun actual spray+Blizzard channels/two areas/Cryo cleanse and
+wall source isolation. Source file still byte-identical to original delivered ref.
+
+python -B -m unittest test_mei_blizzard.BlizzardTests.
+ test_frozen_input_cannot_start_and_freeze_during_windup_prevents_launch
+ test_game_combat.DamageTests test_doomfist_punch test_game_runtime -v:
+30actualtests pass21.621s,plus1 loader error because module name was mistyped.
+worker-c-mei-blizzard-shared-check.log. Correct separate command:
+python -B -m unittest test_game_script_runtime -v :17pass.909s,
+worker-c-mei-blizzard-runtime-check.log. Do not count the mistyped loader as a
+runtime implementation failure or claim its group passed as written.
+
+Next C32: reconcile original CryoHealing sampled VM/status history with existing
+barriers.cryo_heal into one actual health consumer, then original normal Cryo
+checks and status timing. Sombra/Ashe remain actual unmounted owner modules;
+root flagged old DeviceWorld/driver symmetra_portals name lookups to adapt to
+actual fight.portals and symmetra_portals.py, with endpoint attribution/EMP/lock.

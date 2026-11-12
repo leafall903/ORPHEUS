@@ -103,6 +103,7 @@ class Barrier:
             self.component.set(478, self.vitals.total <= 0)
 
     def retire_child(self):
+        self.active = False
         if self.component is not None:
             for instance in tuple(self.component.instances.values()):
                 self.component.destroy(instance)
@@ -305,6 +306,14 @@ def play_barrier_request(combat, body, instance, node):
         barrier.child.write((expr.INSTANCE, 59), barrier.phase)
         child.run_now()
     return True
+
+
+def retire_owner(combat, owner):
+    """Retire the original owner-bound actor immediately with its body."""
+    for entity, actor in tuple(combat.sigma_barriers.items()):
+        if actor.owner is owner and actor.owner_body == owner.body:
+            del combat.sigma_barriers[entity]
+            actor.retire_child()
 
 
 def update_barriers(combat):
