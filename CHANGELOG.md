@@ -102,6 +102,27 @@ This log records tested changes and their acceptance status. Entries are grouped
   behavioral assertions remain. Log:worker-b-reinhardt-contact-fourth.log.
 - Full source counter-charge, deployable collision, windup interruption and
   Earthshatter integration continue; original-client acceptance remains open.
+### Mount launch-frozen absorption and owned-mech Matrix contacts
+
+- Capture the delivered projectile Matrix/Grasp admission bit at emission and
+  consume it through current absorption paths, preserving None for old explicit
+  Rocket construction. A later profile selection cannot rewrite an in-flight
+  projectile's eligibility. Capture the bit in existing server storage.
+- Mount the source owned0407 Matrix contact/close projection: verify its real
+  pilot/body ownership, use the actual controlled mover and existing authored
+  box consumer. Previously _trace_absorption only recognized player Hero.body,
+  so a controlled mech's Matrix volume was skipped. Preserve current actor and
+  controller state; no second Matrix driver or artificial observer state.
+- Original normal/final Sonic ricochet absorption now completes all eight real
+  D.Va/Sigma on/off subcases through no-beacon, lease retirement and damage
+  checks. Four final old Vitals.bonus_shields observations still error unchanged.
+  Their real granted shield pools remain owned by current1D03/native health.
+- Four actual Ana Matrix/Grasp cases pass after reversing profile admission
+  immediately after emission: eligible launches still absorb and excluded
+  launches still damage. All50 existing projectile/Bastion/Damage checks pass.
+  The admission bit changes live stored digest and exports repeatably with
+  variable/expression getters disabled. Continue legacy controlled-Matrix flight
+  routes and old private-observer reconciliation in the next batch.
 
 ### Mount delivered Storm Arrow one-bounce flight
 
