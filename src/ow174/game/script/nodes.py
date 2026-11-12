@@ -74,6 +74,7 @@ from ow174.game.script.runtime import (
     RaycastRequest,
     RaycastResult,
     State,
+    TrackedBodySamples,
     Var,
     handler,
     send_message,
@@ -3339,7 +3340,7 @@ class TrackTargets(State):
             self.count_var = self.link(target)
             return
         self.refresh()
-        if self.managed:
+        if self.managed and not self.impact_sphere():
             if self.hostile_body_profile() is not None:
                 self.checked_frame = self.instance.component.frame & FRAME_MASK
             self.ticks()
@@ -3349,7 +3350,11 @@ class TrackTargets(State):
         if values is NotImplemented:
             return
         self.managed = True
-        self.targets = tuple(values)
+        if isinstance(values, TrackedBodySamples):
+            self.targets = tuple(entity for entity, _ in values.rows)
+            self.instance.write(lvalue(self.node.field("m_CEE20F6F")), tuple(d for _, d in values.rows))
+        else:
+            self.targets = tuple(values)
         self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(e) for e in self.targets))
 
     def tick(self) -> None:
@@ -3369,8 +3374,34 @@ class TrackTargets(State):
                 return
         self.refresh()
 
+    def impact_sphere(self) -> bool:
+        """The supported owner-relative sphere writes paired distances on impact."""
+        if (self.instance.graph.index, self.node.pos) != (0x160A, 19):
+            return False
+        fields = self.node.fields
+        origin = fields.get("m_D59188D5") or {}
+        primary = fields.get("m_filter") or {}
+        masks = tuple(primary.get(name) for name in ("m_4EA686DB", "m_84065FD1", "m_89831602"))
+        return (
+            fields.get("m_DD792FF0") == 3
+            and fields.get("m_95FFC3C5") == 1
+            and fields.get("m_3D667CE3") is None
+            and primary.get("$") == "STUConfigVarFilter"
+            and masks == (20, 64, 1)
+            and not any(value for key, value in primary.items() if key not in (
+                "$", "m_4EA686DB", "m_84065FD1", "m_89831602",
+            ))
+            and (fields.get("m_8DCA77B6") or {}).get("$") == "STU_B5A0CAF0"
+            and origin.get("$") == "STU_21A13145"
+            and (origin.get("m_entity") or {}).get("$") == "STU_B5A0CAF0"
+            and lvalue(fields.get("m_CEE20F6F")) is not None
+            and lvalue(fields.get("m_8A2905A0")) is not None
+        )
+
     def hostile_body_profile(self) -> int | None:
-        """Recognize the authored hostile capsule query with line-of-sight profile 002C."""
+        """Recognize a supported hostile capsule query and its sight profile."""
+        if self.impact_sphere():
+            return 0x069000000000002D  # CAF17A-CAF1C7: absent profile defaults to 002D.
         fields = self.node.fields
         primary = fields.get("m_filter")
         secondary = fields.get("m_3D667CE3")

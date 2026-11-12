@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Wrecking Ball Piledriver impact
+
+- Use the shared hostile capsule query to return target IDs and surface
+  distances to Piledriver's authored impact graph. Check static sight using
+  the fallback `002D` profile with its reconstructed static category.
+- Run the authored per-target damage loop on landing. Damage tapers from
+  100 inside 1.5 metres to 20 at 8 metres, with ordinary combat hit feedback.
+- Passed 923 public Python tests, six dashboard tests, Ruff and 102
+  prepared-runtime checks covering all three Wrecking Ball changes, Doomfist
+  reactions and shields, and weapon and VM regressions. Two historical
+  Soldier crash-frame comparisons fail identically on baseline `7636346`.
+- Dynamic visibility, victim displacement, impact presentation and
+  original-client acceptance remain open.
+
 #### Wrecking Ball Quad Cannons
 
 - Evaluate the authored spread angle at each shot and feed it into the same

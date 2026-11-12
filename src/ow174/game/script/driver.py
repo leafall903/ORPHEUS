@@ -197,6 +197,10 @@ WHEEL_CALLOUT_TEXTURES = {
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
 ABILITY_RAY_CATEGORIES = {0x069000000000002C: 0x1FDF}  # 104319 static cast profile
+TRACK_TARGET_RAY_CATEGORIES = {
+    **ABILITY_RAY_CATEGORIES,
+    0x069000000000002D: 0x1FDF,  # default 104319 tracker profile, using its static CBC flags
+}
 DOOMFIST_PASSIVE_GRAPH = 0x0DDD
 DOOMFIST_SHIELD_GRAPH = 0x0DF3
 UPPERCUT_TARGET_GRAPH = 0x0E7D
@@ -768,19 +772,31 @@ class BodyWorld(runtime.World):
             )
             return (target,) if target is not None else ()
 
-        category = ABILITY_RAY_CATEGORIES.get(state.hostile_body_profile())
+        category = TRACK_TARGET_RAY_CATEGORIES.get(state.hostile_body_profile())
         if self.match is not None and category is not None:
             centre = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
-            origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
             radius = state.evaluate(state.node.field("m_radius"), watch=False)
+            if state.impact_sphere():
+                source = self.match._message_player(self.body)
+                if not (source is not None and source.mover is not None and nodes._finite_vector(centre)
+                        and nodes._finite_number(radius) and radius > 0):
+                    return runtime.TrackedBodySamples(())
+                centre = tuple(
+                    f32(base + offset) for base, offset in zip(source.mover.position, centre, strict=True)
+                )
+                rows = self.match.combat.track_hostile_bodies(
+                    self.body, centre, radius, self.match.combat._eye(source), category,
+                )
+                return runtime.TrackedBodySamples(rows)
+            origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
             if not (nodes._finite_vector(centre) and nodes._finite_vector(origin)
                     and nodes._finite_number(radius) and radius > 0):
                 return ()
             # This tracker retains prior hits for the cast.
-            new_targets = self.match.combat.track_hostile_bodies(
+            rows = self.match.combat.track_hostile_bodies(
                 self.body, tuple(centre), radius, tuple(origin), category, state.targets,
             )
-            return state.targets + new_targets
+            return state.targets + tuple(entity for entity, _ in rows)
 
         from ow174.game import mccree
 
@@ -794,11 +810,22 @@ class BodyWorld(runtime.World):
         if (self.match is None or state.node.field("m_DD792FF0") != 3
                 or config.get("m_93CDFD2F") != 1):
             return NotImplemented
-        target = expr.lvalue(state.node.field("m_FA3ECC43"))
+        instance = state.instance
+        target_config = state.node.field("m_FA3ECC43")
+        if (instance.graph.index, state.node.pos) == (0x160A, 16) and state.node.field("m_8B707686") == 1:
+            if state.evaluate(config.get("m_instigator"), watch=False) != Entity(self.body):
+                return NotImplemented
+            if not elapsed_ms:
+                victim = state.evaluate(target_config, watch=False)
+                if isinstance(victim, Entity) and expr.valid_entity(victim.id):
+                    self._queue_tracked_damage(state, config, (victim.id,), activation=None)
+                # This discrete hit has been committed by the graph and can advance its victim loop.
+                state.request_finish()
+            return True
+        target = expr.lvalue(target_config)
         paired = expr.lvalue(state.node.field("m_B12BFE8B"))
         if target is None or paired is None:
             return NotImplemented
-        instance = state.instance
         tracker = next((
             tracker for tracker in instance.ticking
             if isinstance(tracker, nodes.TrackTargets) and tracker.active and tracker.managed
@@ -809,16 +836,21 @@ class BodyWorld(runtime.World):
         if tracker is None or state.evaluate(config.get("m_instigator"), watch=False) != Entity(self.body):
             return NotImplemented
         targets = tuple(entity for entity in tracker.targets if entity not in state.hit_entities)
-        if targets:
-            from ow174.game.combat import hit_def
-
-            hit = hit_def(state, {"m_modifyHealth": config})
-            if (hit is not None and math.isfinite(hit.amount) and hit.amount > 0
-                    and hit.loadout is not None and hit.loadout >> 52 == 0x0B9):
-                instance.component.damage_reports.append(
-                    (state, state.counter, targets, hit.amount, hit.loadout, hit.tags),
-                )
+        self._queue_tracked_damage(state, config, targets, activation=state.counter)
         return True
+
+    @staticmethod
+    def _queue_tracked_damage(state, config, targets, *, activation):
+        if not targets:
+            return
+        from ow174.game.combat import hit_def
+
+        hit = hit_def(state, {"m_modifyHealth": config})
+        if (hit is not None and math.isfinite(hit.amount) and hit.amount > 0
+                and hit.loadout is not None and hit.loadout >> 52 == 0x0B9):
+            state.instance.component.damage_reports.append(
+                (state, activation, targets, hit.amount, hit.loadout, hit.tags),
+            )
 
     def _decay_temporary_shield(self, state, config, elapsed_ms):
         pool_id = self._shield_pool_id(state.node.fields)

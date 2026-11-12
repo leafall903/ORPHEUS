@@ -393,6 +393,13 @@ class RaycastResult:
     normal: expr.Vec3 | None
 
 
+@dataclass(frozen=True)
+class TrackedBodySamples:
+    """Target IDs and capsule distances from one supported sphere query."""
+
+    rows: tuple[tuple[int, float], ...]
+
+
 class World:
     """What the runtime asks outside its entity: the owner's hero and mode (for ruleset defaults), other
     entities, config vars the server cannot compute, and game messages to other entities. The base
@@ -811,7 +818,7 @@ class Component:
         self.destroyed: list[Instance] = []
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
-        self.damage_reports: list[tuple[State, int, tuple[int, ...], float, int, tuple[int, ...]]] = []
+        self.damage_reports: list[tuple[State, int | None, tuple[int, ...], float, int, tuple[int, ...]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0

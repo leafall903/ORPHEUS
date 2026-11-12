@@ -870,16 +870,19 @@ class Combat:
                 log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
 
     def _apply_tracked_damage(self, player, frame: int, reports) -> None:
-        """Apply active state reports after the body VM has finished its frame."""
+        """Apply state reports after the body VM has finished its frame."""
         enemies = {target.entity: target for target in self._enemies(player)}
         for state, activation, entities, amount, loadout, tags in reports:
-            if not state.active or state.counter != activation:
+            if activation is not None and (not state.active or state.counter != activation):
                 continue
             for entity in entities:
                 target = enemies.get(entity)
-                if target is None or entity in state.hit_entities or self.vitals_of(target).dead:
+                if target is None or self.vitals_of(target).dead:
                     continue
-                state.hit_entities.add(entity)
+                if activation is not None:
+                    if entity in state.hit_entities:
+                        continue
+                    state.hit_entities.add(entity)
                 self._damage(player, target, amount, False, loadout, frame, hit_tags=tags)
 
     def _tesla(self, player, command, script) -> None:
@@ -1107,9 +1110,9 @@ class Combat:
             vitals.clear_temporary_shields()
 
     def track_hostile_bodies(
-        self, owner: int, centre, radius: float, origin, category: int, tracked: tuple[int, ...],
-    ) -> tuple[int, ...]:
-        """Resolve the supported authored filter against ordinary player and NPC capsules."""
+        self, owner: int, centre, radius: float, origin, category: int, tracked: tuple[int, ...] = (),
+    ) -> tuple[tuple[int, float], ...]:
+        """Resolve visible hostile body capsules and their surface distances from the query centre."""
         collision = self.match.collision_world
         source = self.match._message_player(owner)
         if collision is None or source is None:
@@ -1119,12 +1122,14 @@ class Combat:
         # The modeled player and bot bodies stand in for the native category and tag checks.
         # CA7C4C/C8E660 compare the query sphere with the candidate's stance capsule.
         for target in self._enemies(source):
-            if (target.entity in tracked
-                    or segment_distance(centre, *target.segment()) > radius + target.radius):
+            if target.entity in tracked:
+                continue
+            axis_distance = segment_distance(centre, *target.segment())
+            if axis_distance > radius + target.radius:
                 continue
             pose = self.model_pose_for(target.entity)
             if _communication_visible(rays, origin, target, category, pose):
-                found.append(target.entity)
+                found.append((target.entity, expr.f32(max(0.0, axis_distance - target.radius))))
         return tuple(found)
 
     def _wheel_model_pose(self, entity: int) -> ModelPose | None:
