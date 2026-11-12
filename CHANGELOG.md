@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Pharah Barrage channel velocity
+
+- Retain authored09F9B1FE mode0 world-velocity SET vectors, their existing tracked
+  start/end/priority intervals and typed-zero fallback. Keep vector mods separate
+  from scalar speed/intent indices; apply SET after gravity and before external
+  velocity actions through the existing swept mover.
+- Recognize Pharah's active002B WeaponVolley as an ultimate for existing charge
+  admission and passive fill, alongside the current Ability-based ultimates.
+- Preserve all five original Barrage movement checks unchanged: ground/air
+  channel, release, hero switch, attack/fuel suppression and passive vector
+  snapshot storage pass. All37 physics/Tracer-mod/Echo-movement checks pass.
+- Barrage projectile launch spread, oscillating chords/range/deflection and
+  Pharah splash/impulse remain for the next batch. Client acceptance stays open.
+
 ### Mount delivered Pharah hover and Jump Jet movement
 
 - Retain the0025 active hover force, authored speed cap and existing graph-owned

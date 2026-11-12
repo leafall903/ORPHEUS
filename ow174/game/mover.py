@@ -456,7 +456,7 @@ class Mod:
 
     index: int
     op: int
-    value: float
+    value: float | tuple[float, float, float]
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -497,7 +497,7 @@ def modded(data: MoverData, mods: list[Mod]) -> MoverData:
                   GROUND_DECEL: data.ground_gravity_decel, COLLISION_MOD: float(data.character_collision),
                   STEP_DOWN_MOD: 1.0})  # fmt: skip
     for mod in mods:
-        if mod.index in slots:
+        if mod.index in slots and not isinstance(mod.value, tuple):
             slots[mod.index] = apply_op(mod.op, slots[mod.index], mod.value)
     clamp = {index: max(0.0, slots[index]) for index in (0, 1, 2, 3, 4, 5, 7, 8)}
     speed = clamp[SPEED]
@@ -533,7 +533,7 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     """A value the transitions read through the mods of its index (0x7FF789B42FB0): the jump and crouch
     intents (1 with the button, 0 without) and the landing's speed limit."""
     for mod in mods:
-        if mod.index == index:
+        if mod.index == index and not isinstance(mod.value, tuple):
             value = apply_op(mod.op, value, mod.value)
     return value
 
@@ -561,12 +561,33 @@ def statescript_mods(component) -> dict:
     """The movement mods of a body's statescript (a script.runtime.Component) that are on now:
     {(instance, state, slot): (index, op, value, priority)}. The client gives the mover each mod of a
     MovementMod state while it is on (0x7FF789C49590 begin, 0x7FF789C4C1E0 tick, 0x7FF789C499C0 end)."""
+    from ow174.game.script.expr import Vec3
+
     found = {}
     for instance in component.instances.values():
         for state in instance.states.values():
             if not state.active or state.node.cls != MOVEMENT_MOD:
                 continue
             for slot, mod in enumerate(state.node.fields.get("m_BC5E91CF") or ()):
+                if isinstance(mod, dict) and mod.get("$") == "STU_09F9B1FE":
+                    # Native vector SET: D354C0 type2DEDB88 ->D3C809/C33FC0,
+                    # op2. Only mode0 (whole world velocity) is implemented.
+                    # Barrage supplies scalar0: F65E70 rejects that type, so
+                    # getter1B721B0 uses default zero vector3241710.
+                    if mod.get("m_CFEC5F76") != 0:
+                        continue
+                    value = instance.evaluate(mod.get("m_9B7A63EA"))
+                    if isinstance(value, Vec3):
+                        vector = (value.x, value.y, value.z)
+                    elif isinstance(value, (int, float)) and value == 0:
+                        vector = (0.0, 0.0, 0.0)
+                    else:
+                        continue  # other typed-getter branches are not hosted here
+                    if not all(math.isfinite(axis) for axis in vector):
+                        continue
+                    priority = _number(instance, mod.get("m_priority"), 0.0)
+                    found[(instance.id, state.index, slot)] = (0, SET, vector, priority)
+                    continue
                 kind = MOD_OPS.get(mod.get("$")) if isinstance(mod, dict) else None
                 if kind is None or mod.get("m_A9561CA0") is None:
                     continue
@@ -963,6 +984,11 @@ class Mover:
                     vx, vy, vz = self.velocity
                     self.velocity = (vx, vy - WORLD_GRAVITY * data.gravity_scale * dt, vz)
                     self.fall = f32(self.fall + f32(f32(-WORLD_GRAVITY * data.gravity_scale) * f32(dt)))
+            # Delivered whole-world velocity SET runs after gravity and before
+            # external action deltas; scalar movement indices remain separate.
+            for mod in active:
+                if isinstance(mod.value, tuple) and mod.index == 0 and mod.op == SET:
+                    self.velocity = mod.value
             if any(change.frame == frame for change in self.velocity_changes):
                 from ow174.game.velocity import consume
 

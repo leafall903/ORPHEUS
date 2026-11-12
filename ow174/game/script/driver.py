@@ -2245,6 +2245,17 @@ class BodyScript(ReplicatedBody):
             runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
             self.component.run_now()
 
+    def ultimate_running(self) -> bool:
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return True
+        # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
+        # an Ability state. Its own charge-reset plug does not populate ultimates.
+        return self.hero == 0x02E0000000000008 and any(
+            state.active and state.node.cls == VOLLEY
+            for instance in self.component.instances.values() if instance.graph.index == 0x2B
+            for state in instance.states.values()
+        )
+
     def gain_ult_charge(self, points: float, *, kind="damage", target_definition=None, recipient=None) -> float:
         """Reconstructed one-point-per-effective-damage credit, capped at cost.
 
@@ -2259,7 +2270,7 @@ class BodyScript(ReplicatedBody):
         if (self.retired or self.component.fault is not None
                 or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
-                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                or self.ultimate_running()):
             return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
@@ -2293,7 +2304,7 @@ class BodyScript(ReplicatedBody):
             return
         if self.hero == 0x02E000000000006E:
             if (self.retired or self.component.owner_dead
-                    or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                    or self.ultimate_running()):
                 self.passive_charge_ms = 0
                 return
             if self.ult_seconds is None:
@@ -2312,7 +2323,7 @@ class BodyScript(ReplicatedBody):
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             return
         if self.hero == baptiste.HERO and self.ult_seconds is None:
-            if self.retired or self.component.owner_dead or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            if self.retired or self.component.owner_dead or self.ultimate_running():
                 self.passive_charge_ms = 0
             else:
                 baptiste.passive_charge(self)
@@ -2334,7 +2345,7 @@ class BodyScript(ReplicatedBody):
             return
         blocked = self.component.entity_var(842, create=False)
         if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
-                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+                or self.ultimate_running()):
             return
         if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
             return
