@@ -26,7 +26,13 @@ class ManualAssassinTargetTests(unittest.TestCase):
         fight = run.match.combat
         self.assertTrue(bot.attack_input)
         self.assertLess(fight.vitals_of(fight.player_target(player)).total, 200)
+        context = bot.body_script.control_context
+        if context is not None:
+            self.assertIs(context.target_host, player.controller_vm)
+            self.assertEqual([item.graph.index for item in player.controller_vm.component.instances.values()], [0x1177])
+            self.assertFalse(any(item.graph.index == 0x1177 for item in player.body_script.component.instances.values()))
         self.assertEqual(npc_control.stop(run.match), 1)
+        self.assertNotIn(bot.entity, fight.pins)
         for _ in range(5):
             run.step({})
         self.assertFalse(bot.attack_input)

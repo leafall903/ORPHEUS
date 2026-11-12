@@ -289,6 +289,10 @@ class Player:
         return TEAM_BIT << self.team
 
     @property
+    def controller_filter_bits(self) -> int:
+        return PLAYER_FILTER | self.team_bit
+
+    @property
     def player_id(self) -> tuple[int, int]:
         """The 16-byte id of the player's entity (component 29) as (low, high): his card's key. The
         lobby's account id, which a client also holds for itself (20500): its own entity is then the
@@ -1155,7 +1159,7 @@ class Match:
         (_show_players)."""
         frame = player.card.get("+0x28") or None
         components = {
-            26: [PLAYER_FILTER | player.team_bit],
+            26: [player.controller_filter_bits],
             29: self._player_info(player),
             74: [frame, None, player.slot, None, None, player.role or None, 1, 1, None],
         }
