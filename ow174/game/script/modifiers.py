@@ -12,6 +12,7 @@ from ow174.game.script.expr import Vec3, f32
 
 UINT32_MAX = (1 << 32) - 1
 PRIORITY_EPSILON = f32(0.004)
+_VECTOR_BASE_OMITTED = object()
 
 
 def _uint(value, bits, name):
@@ -225,10 +226,10 @@ class NumericModifiers:
                 found = True
         return found, value
 
-    def resolve_vector(self, field: int, base: Vec3 | None = None, *, frame: int):
+    def resolve_vector(self, field: int, base=_VECTOR_BASE_OMITTED, *, frame: int):
         _uint(field, 32, "field")
         _uint(frame, 32, "read frame")
-        if base is None:
+        if base is _VECTOR_BASE_OMITTED:
             # Original API asks for the last replacement, without a caller's base.
             # General ADD/MULTIPLY rows remain available through the base API.
             return next((tuple(record.value) for record in reversed(self.vector_records)

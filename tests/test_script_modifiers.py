@@ -104,6 +104,15 @@ class ModifierRecordTests(unittest.TestCase):
         backend.erase(1, 1)
         self.assertEqual(backend.records[0].end, 0xFFFFFFFF)
 
+    def test_omitted_vector_base_does_not_accept_explicit_invalid_base(self):
+        backend = modifiers.NumericModifiers()
+        backend.upsert_vector(modifiers.VectorReplacement(1, 9, 1, 0, (2, 3, 4)))
+        self.assertEqual(backend.resolve_vector(0, frame=1), (2., 3., 4.))
+        self.assertEqual(backend.resolve_vector(0, expr.Vec3(8, 9, 10), frame=1),
+                         (True, expr.Vec3(2, 3, 4)))
+        with self.assertRaises(TypeError):
+            backend.resolve_vector(0, None, frame=1)
+
     def test_native_source_key_preserves_counter_row_offset_and_signed_instance_bits(self):
         self.assertEqual(modifiers.state_key(0x8001, 2, 3, 4), 0x8001000200030004)
         self.assertEqual(modifiers.state_key(1, 2, 3, 8, 0xFFFF), 0x0001000200040007)
