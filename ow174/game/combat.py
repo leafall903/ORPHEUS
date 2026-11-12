@@ -7507,6 +7507,12 @@ class Combat:
             key = (-actor.body, None)
             if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
                 contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for distance, owner, shield in self.brigitte.barrier_contacts(
+                rocket.shooter, rocket.position, direction, limit,
+                radius=rocket.penetration_radius, team=rocket.team):
+            key = (-owner.body, (self.replacement_ticks.get(owner.body), shield.instance.states[30].counter))
+            if key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 3, owner.body, key, shield))
         devices = self.orisa.superchargers
         if devices.geometry is not None:
             for actor in devices.opponents(rocket.shooter, rocket.team):
@@ -7538,6 +7544,9 @@ class Combat:
                     continue  # a nearer body hit can retire its carried shield
                 rocket.penetrated.add(key)
                 self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
+            elif kind == 3:
+                rocket.penetrated.add(key)
+                self.brigitte.damage_barrier(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
             elif kind == 2:
                 rocket.penetrated.add(key)
                 self.orisa.superchargers.damage(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))

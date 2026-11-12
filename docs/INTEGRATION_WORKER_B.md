@@ -619,6 +619,25 @@ alone is not evidence that a line's consumers are actually mounted.
   and shared barrier query; preserve captured team, exact shield identity and
   source surface history rather than constructing another actor.
 
+## B34 — Fire Strike uses the existing Brigitte shield faces/pool
+
+- Refactor Brigitte barrier_ray only into nearest selection over existing face
+  geometry contacts. Default interface/result unchanged; optional capturedteam
+  passed to original opponent filter, owner identity unchanged. No second host.
+- Enumerate actual shields in Fire Strike ordered loop; source key is negative
+  ownerbody plus replacement tick/state30.counter, source scale from actual
+  Superchargers, actual damage_barrier owns pool and terminal1 semantics.
+- worker-b-brig-strike-first.log original shield penetration/body/downstream,
+  Hammer/replacement3 pass. Final exact source key/scale also probed actual
+  changed affiliation in worker-b-brig-strike-captured-team.log: default query
+  excludes newally, capturedteam hits same shield250->150/body105/downstream100.
+- worker-b-brig-strike-regression.log full65:7subfail6oldWinCacheerrors1skip.
+  Four sourceflank bash cases hit48versus47 timing before later expectations;
+  same3Helix/Reinwhip numerical failures as B33. No original assertion edits.
+- NEXT source shared query/explicit Brigitte shield dispatch and Shatter frozen
+  surface history, retaining original partial host geometry/terminal1. Do not
+  mistake remaining Bash timing for only observer drift or claim line complete.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue
