@@ -2172,6 +2172,8 @@ class Combat:
         component.edges([(value, False) for value in tuple(component.held)])
         # Let authored release paths establish their cooldown before forced stop.
         component.run_now()
+        if isinstance(script, BodyScript):
+            script.interrupt_control()
         for instance in list(component.instances.values()):
             for state in list(instance.states.values()):
                 if instance.graph.index == 0x01DB and isinstance(state, nodes.MoveTo) and state.active:

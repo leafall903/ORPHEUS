@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Pharah Barrage control interruption
+
+- Mount the original002B entity33 stack abort through combined combat-control
+  interruption and Sombra's existing interrupt service. Unwind channel volley,
+  duration and movement mods while preserving the permanent ultimate listener.
+- Preserve the original eight control checks unchanged. The previously failing
+  Flashbang/Barrage abort/recast case now passes, as do the five Barrage movement
+  checks. Four pre-existing subcase failures remain in Flashbang launch timing
+  and McCree post-roll hit-count expectations, identical to the baseline.
+- A real Pharah body/Sombra interrupt-service probe confirms abort and recast;
+  all26 shared script-runtime/Reaper-Shadow checks pass. Keep normal source
+  checks and known failures without weakening assertions or blocking submission.
+- C6's full shared Helix/Tank/server-snapshot run remains active at this commit;
+  record its final outcome next. Original curved-flight reflection eye/seed/
+  lifetime restart and Pharah splash/impulse remain for subsequent batches.
+
 ### Mount delivered Pharah Barrage launch and curved flight
 
 - Mount the original barrage_motion sampler, seed/quantization and two motion
