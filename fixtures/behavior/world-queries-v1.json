@@ -1,0 +1,472 @@
+{
+  "schema_version": 1,
+  "case_id": "world-queries.synthetic-strict-host.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "50ba408640f1e368f22242c824abee1e612aa42c",
+    "paths": [
+      "src/ow174/game/script/runtime.py",
+      "src/ow174/game/script/expr.py"
+    ]
+  },
+  "evidence": "synthetic-strict-host-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "cases": [
+      {
+        "id": "known-origin",
+        "context": {
+          "owner": 2684354816,
+          "positions": {
+            "2684354816": [
+              0,
+              0,
+              0
+            ]
+          },
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              50,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "known-position",
+        "context": {
+          "owner": 2684354816,
+          "positions": {
+            "2684354816": [
+              3,
+              4,
+              0
+            ]
+          },
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              51,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "known-origin-distance",
+        "context": {
+          "owner": 2684354816,
+          "positions": {
+            "2684354816": [
+              0,
+              0,
+              0
+            ]
+          },
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            },
+            {
+              "$": "STUConfigVarVec3",
+              "m_value": {
+                "X": 3,
+                "Y": 4,
+                "Z": 0
+              }
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              14,
+              1,
+              53,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "unknown-position-length",
+        "context": {
+          "owner": 2684354816,
+          "positions": {},
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              50,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "unknown-position-distance",
+        "context": {
+          "owner": 2684354816,
+          "positions": {},
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            },
+            {
+              "$": "STUConfigVarVec3",
+              "m_value": {
+                "X": 3,
+                "Y": 4,
+                "Z": 0
+              }
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              14,
+              1,
+              54,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "unknown-position-add",
+        "context": {
+          "owner": 2684354816,
+          "positions": {},
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            },
+            {
+              "$": "STUConfigVarVec3",
+              "m_value": {
+                "X": 3,
+                "Y": 4,
+                "Z": 0
+              }
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              14,
+              1,
+              23,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "known-unset-member",
+        "context": {
+          "owner": 2684354817,
+          "positions": {},
+          "members": {
+            "2684354816": {
+              "7": null
+            }
+          },
+          "instance_variables": {
+            "1": {
+              "entity": 2684354816
+            }
+          }
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STUConfigVarInt",
+              "m_value": 7
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              8,
+              0,
+              14,
+              0,
+              15,
+              0
+            ],
+            "m_dynamicVars": [
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "known-member",
+        "context": {
+          "owner": 2684354817,
+          "positions": {},
+          "members": {
+            "2684354816": {
+              "7": 23
+            }
+          },
+          "instance_variables": {
+            "1": {
+              "entity": 2684354816
+            }
+          }
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STUConfigVarInt",
+              "m_value": 7
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              8,
+              0,
+              14,
+              0,
+              16,
+              0
+            ],
+            "m_dynamicVars": [
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "unknown-member",
+        "context": {
+          "owner": 2684354817,
+          "positions": {},
+          "members": {},
+          "instance_variables": {
+            "1": {
+              "entity": 2684354816
+            }
+          }
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STUConfigVarInt",
+              "m_value": 7
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              8,
+              0,
+              14,
+              0,
+              15,
+              0
+            ],
+            "m_dynamicVars": [
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "null-member",
+        "context": {
+          "owner": 0,
+          "positions": {},
+          "members": {}
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STU_B5A0CAF0"
+            },
+            {
+              "$": "STUConfigVarInt",
+              "m_value": 7
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              14,
+              0,
+              14,
+              1,
+              15,
+              0
+            ]
+          }
+        }
+      },
+      {
+        "id": "known-missing-member",
+        "context": {
+          "owner": 2684354817,
+          "positions": {},
+          "members": {
+            "2684354816": {}
+          },
+          "instance_variables": {
+            "1": {
+              "entity": 2684354816
+            }
+          }
+        },
+        "config": {
+          "$": "STU_919FD47C",
+          "m_configVars": [
+            {
+              "$": "STUConfigVarInt",
+              "m_value": 7
+            }
+          ],
+          "m_expression": {
+            "m_opcodes": [
+              8,
+              0,
+              14,
+              0,
+              15,
+              0
+            ],
+            "m_dynamicVars": [
+              {
+                "$": "STUConfigVarDynamic",
+                "m_identifier": 1,
+                "m_60DB8F99": false
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "expected": {
+    "known-origin": {
+      "value": {
+        "kind": "float",
+        "value": 0
+      }
+    },
+    "known-position": {
+      "value": {
+        "kind": "float",
+        "value": 5
+      }
+    },
+    "known-origin-distance": {
+      "value": {
+        "kind": "float",
+        "value": 5
+      }
+    },
+    "unknown-position-length": {
+      "error": {
+        "kind": "unavailable_position",
+        "entity": 2684354816
+      }
+    },
+    "unknown-position-distance": {
+      "error": {
+        "kind": "unavailable_position",
+        "entity": 2684354816
+      }
+    },
+    "unknown-position-add": {
+      "error": {
+        "kind": "unavailable_position",
+        "entity": 2684354816
+      }
+    },
+    "known-unset-member": {
+      "value": {
+        "kind": "null"
+      }
+    },
+    "known-member": {
+      "value": {
+        "kind": "integer",
+        "value": 23
+      }
+    },
+    "unknown-member": {
+      "error": {
+        "kind": "unavailable_entity_variable",
+        "entity": 2684354816,
+        "id": 7
+      }
+    },
+    "null-member": {
+      "value": {
+        "kind": "null"
+      }
+    },
+    "known-missing-member": {
+      "value": {
+        "kind": "null"
+      }
+    }
+  }
+}

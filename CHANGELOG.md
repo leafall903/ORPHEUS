@@ -202,6 +202,13 @@ This log records tested changes and their acceptance status. Entries are grouped
   anchors, retraction geometry, swing, cooldown, high-speed impacts and
   original-client acceptance remain open.
 
+#### Strict World query behavior contract
+
+- Added eleven synthetic World query cases with fixed expected values and diagnostic categories, covering known positions and foreign variables, unavailable services and null entity reads.
+- Added a Python consumer using the production strict component and expression evaluator, with a data-only World adapter and external fixture-directory support. It verifies result types, diagnostic entity and variable identifiers, and Python component failure after a strict error.
+- Documented that the contract compares query outcomes; Python component failure and Rust expression diagnostics have different lifecycles. Original-client acceptance remains pending.
+- Passed Ruff, 921 public Python tests, six dashboard and NPC-console JavaScript tests, five local documentation link and anchor checks, and the focused contract without site packages using both local and external fixture directories. The isolated headless startup probe passed lobby, RPC, dashboard and UDP checks and prepared Practice Range collision with 15 bots. No game client was launched.
+
 #### Shared Python and Rust behavior contracts
 
 - Added the contribution workflow for language-neutral behavior fixtures, including reference provenance, explicit expected results, gradual backfill and pending original-client acceptance. Linked it from the contributor guide, agent instructions and pull request checklist.
