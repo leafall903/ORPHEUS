@@ -245,6 +245,10 @@ def aim(yaw: int, pitch: int) -> tuple[float, float, float]:
 
 def projectile_directions(state, direction, shot, activation):
     """Echo 19E5/st3 ring with authored radius and reconstructed seed identity."""
+    if state.instance.graph.index == 0x1683:
+        from ow174.game import projectile_patterns
+
+        return projectile_patterns.directions(state, direction)
     if (state.instance.graph.index, state.index) == (0x0D0A, 2):
         return hand_cannon_directions(state, direction, state.instance.component.entity, shot, activation)
     if (state.instance.graph.index, state.index) != (0x19E5, 3):
@@ -1280,7 +1284,7 @@ def hit_def(state, cfg) -> HitDef | None:
         # Reconstructed for the two authored Biotic Rifle volleys.
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
-        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164) or (graph_index, node_index) == (0x0D0A, 2),
+        projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=(0.0 if graph_index == 0x0BD4 or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
@@ -6412,7 +6416,9 @@ class Combat:
                     and not immunity.fortified(struck.owner, struck.entity)
                 )
                 amount = direct.amount * (direct.critical if critical else 1.0)
-                if rocket.scale_direct or zen_orb:
+                if (rocket.scale_direct or zen_orb
+                        or (getattr(rocket.shooter.hero, "guid", None) == hero_torbjorn.HERO
+                            and direct.projectile_headshot)):
                     amount *= direct.scale(rocket.flown * rocket.speed)
                 before = self.vitals_of(struck).total if rocket.accretion_source is not None else 0.0
                 landed = self._damage(
