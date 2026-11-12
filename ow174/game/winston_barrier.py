@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from ow174.game.script import expr, graph, runtime
 
+HERO = 0x02E0000000000009
+DEFINITION = 0x04000000000001C3
 RADIUS = 5.0
 
 
