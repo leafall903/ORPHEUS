@@ -1424,9 +1424,11 @@ class Combat:
             origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
-            from ow174.game import mccree
+            from ow174.game import mccree, weapon_spread
 
-            direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
+            direction = weapon_spread.player_volley_direction(
+                shooter, state, direction, number, time, activation,
+            )
         if not npc and state.instance.graph.index == 0x01EE:
             from ow174.game import mccree
 

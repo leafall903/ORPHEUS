@@ -2177,6 +2177,7 @@ class WeaponVolley(State):
         self.volleys = 0  # the volley counter (the record's low byte); 1 after the first StartFiring
         self.per_shot = 1
         self.ammo0 = 0
+        self.ammo_sample: int | None = None
         self.rate = 1.0
         self.spread0 = 0.0
         self.spread_ramp: float | None = None
@@ -2227,8 +2228,10 @@ class WeaponVolley(State):
                 and launch.get("m_23C72C36") is None):
             cfg = launch.get("m_AC20B1C1")
             self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
-        self.spread = self.spread_at(self.now - self.start - self.offset)
-        if spread is not None and self.spread_ramp is not None and self.spread < 1.0:
+        elapsed = self.now - self.start - self.offset
+        self.ammo_sample = self.ammo_at(elapsed) if ammo is not None and self.per_shot > 0 else None
+        self.spread = self.spread_at(elapsed)
+        if self.ammo_sample or (spread is not None and self.spread_ramp is not None and self.spread < 1.0):
             self.ticks()
         self.links = []
         for slot, (name, value) in enumerate(
@@ -2283,16 +2286,24 @@ class WeaponVolley(State):
         return self.spread
 
     def tick(self) -> None:
-        spread = self.spread_at(self.now - self.start - self.offset)
-        if spread == self.spread:
-            return
-        # Expressions watching the linked variable need an ordinary change event.
-        var = self._out("m_3FFC9EB9")
-        if var is not None:
-            before = var.value()
-            self.spread = spread
-            self.instance.changed(var, before)
-        if spread >= 1.0:
+        elapsed = self.now - self.start - self.offset
+        if self.ammo_sample:
+            ammo = self.ammo_at(elapsed)
+            if ammo != self.ammo_sample:
+                ammo_var = self._out("m_24E351A4")
+                if ammo_var is not None and ammo_var.links:
+                    link = ammo_var.links[-1]
+                    if link.state is self and link.slot == 0:
+                        self.instance.changed(ammo_var, self.ammo_sample)
+                self.ammo_sample = ammo
+        spread_var = self._out("m_3FFC9EB9") if self.spread_ramp is not None and self.spread < 1.0 else None
+        if spread_var is not None:
+            spread = self.spread_at(elapsed)
+            if spread != self.spread:
+                before = spread_var.value()
+                self.spread = spread
+                self.instance.changed(spread_var, before)
+        if not self.ammo_sample and (spread_var is None or self.spread >= 1.0):
             self.instance.ticking.remove(self)
 
     def spread_at(self, elapsed: int) -> float:
@@ -2317,9 +2328,14 @@ class WeaponVolley(State):
             link = next((item for item in var.links if item.state is self), None)
             if link is not None:
                 before = var.value()
+                if link.slot == 0 and var.links[-1] is link and self.ammo_sample is not None:
+                    # The computed link may already read zero before the final shot timer
+                    # removes it. Its watchers still need the last observed ammo change.
+                    before = self.ammo_sample
                 var.base = values.get(link.slot)
                 self.unlink(var)
                 self.instance.changed(var, before)
+        self.ammo_sample = None
         self.spread = values[2]
         self.links = []
 

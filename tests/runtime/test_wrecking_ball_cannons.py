@@ -1,6 +1,8 @@
 """Target-build Quad Cannons through the shared body and combat paths."""
 
+import math
 import unittest
+from unittest.mock import patch
 
 from ow174.game import combat
 from ow174.game.commands import FIRE
@@ -13,6 +15,7 @@ AMMO = 53
 SPREAD = 231
 HUD_SPREAD = 243
 RELOAD = 0x400
+ROLL = 0x08
 
 
 class WreckingBallCannonsTests(unittest.TestCase):
@@ -86,9 +89,52 @@ class WreckingBallCannonsTests(unittest.TestCase):
         self.advance(55)
         self.assertEqual((spread.value(), hud.value()), (0.0, 0.0))
 
+    def test_empty_magazine_reloads_and_held_fire_resumes(self):
+        self.advance(200, FIRE)
+        ammo = self.weapon.vars[AMMO]
+        self.assertEqual(ammo.value(), 0)
+        self.advance(50, FIRE)
+        self.assertEqual(ammo.value(), 0)
+        self.advance(40, FIRE)
+        self.assertEqual(ammo.value(), 80)
+        self.advance(50, FIRE)
+        self.assertLess(ammo.value(), 80)
+        self.assertGreater(ammo.value(), 0)
+
+    def test_primary_keeps_rounds_until_the_guns_are_out_again(self):
+        self.advance(9, FIRE)
+        ammo = self.weapon.vars[AMMO]
+        self.assertEqual(ammo.value(), 76)
+        self.advance(1)
+        self.advance(1, ROLL)
+        self.advance(1)
+        self.advance(8, FIRE)
+        self.assertEqual(self.ball.mover.data.stand_radius, 0.5)
+        self.assertEqual(ammo.value(), 76)
+
+        self.advance(21, FIRE)
+        self.assertEqual(self.ball.mover.data.stand_radius, 0.7)
+        self.assertEqual(ammo.value(), 76)
+        self.advance(22, FIRE)
+        self.assertLess(ammo.value(), 76)
+
     def test_primary_uses_authored_damage_falloff(self):
         volley = self.weapon.state(9)
         hit = combat.hit_def(volley, volley.node.field("m_6396149F"))
         self.assertEqual((hit.amount, hit.falloff_start, hit.falloff_end), (5.0, 15.0, 25.0))
         self.assertAlmostEqual(hit.scale(20.0), 0.65)
         self.assertAlmostEqual(hit.scale(30.0), 0.30)
+
+    def test_primary_combat_rays_use_authored_cone_at_each_shot(self):
+        forward = combat.aim(self.yaw, self.pitch)
+        with patch.object(self.fight, "_hitscan", wraps=self.fight._hitscan) as hitscan:
+            self.advance(50, FIRE)
+        rays = [call.args[3] for call in hitscan.call_args_list]
+        self.assertEqual(len(rays), 20)
+        self.assertEqual(len(set(rays)), 20)
+        for number, ray in enumerate(rays, 1):
+            dot = math.fsum(a * b for a, b in zip(forward, ray, strict=True))
+            self.assertGreater(dot, math.cos(math.radians(number * 0.1)) - 1e-7)
+        self.assertLess(min(math.fsum(a * b for a, b in zip(forward, ray, strict=True))
+                            for ray in rays), math.cos(math.radians(1.0)))
+        self.assertEqual((self.weapon.vars[AMMO].value(), self.vitals.total), (60, 100.0))

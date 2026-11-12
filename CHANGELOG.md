@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Wrecking Ball Quad Cannons
+
+- Evaluate the authored spread angle at each shot and feed it into the same
+  deterministic cone sampler as McCree's Fan the Hammer.
+- Notify graph listeners when a volley spends ammunition, including on the
+  final shot. The Quad Cannons graph now starts its authored automatic reload
+  and resumes held fire after recovery.
+- Cover ammunition retention when primary fire exits Roll and the firing delay
+  before the guns become available. The original-client seed mapping, muzzle
+  and critical hit behavior remain open.
+- Passed 921 public Python tests, Ruff and 60 prepared-runtime checks covering
+  Quad Cannons, McCree's weapon, snapshots and native body replay.
+
 #### Wrecking Ball Minefield
 
 - Simulate the three authored launch volleys with 15 mines, reference-pose

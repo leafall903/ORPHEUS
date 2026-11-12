@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import test_mccree_combat as scenes
 
-from ow174.game import combat, mccree, weapon_spread
+from ow174.game import combat, weapon_spread
 from ow174.game.commands import Command
 from tests.runtime.test_game_combat import aim
 
@@ -58,7 +58,7 @@ class McCreeSpreadTests(unittest.TestCase):
         health = fight.vitals_of(body)
         before = health.total
         samples = []
-        original = mccree.fan_direction
+        original = weapon_spread.player_volley_direction
 
         def observe(player, state, forward, number, time, activation):
             vector = original(player, state, forward, number, time, activation)
@@ -67,7 +67,7 @@ class McCreeSpreadTests(unittest.TestCase):
             return vector
 
         yaw, pitch = aim(fight._eye(shooter), (body.feet[0], body.feet[1] + 1, body.feet[2]))
-        with patch.object(mccree, 'fan_direction', side_effect=observe):
+        with patch.object(weapon_spread, 'player_volley_direction', side_effect=observe):
             for _ in range(100):
                 run.step({shooter: (yaw, pitch, 2)})
                 # Network retransmission of this same input must not generate another shot.
@@ -113,10 +113,12 @@ class McCreeSpreadTests(unittest.TestCase):
         weapon = next(i for i in shooter.body_script.component.instances.values() if i.graph.index == 0x1d2)
         state = next(s for s in weapon.states.values() if s.node.pos == 37)
         activation = state.counter, state.start
-        first = mccree.fan_direction(shooter, state, (0, 0, 1), 0, state.start, activation)
+        first = weapon_spread.player_volley_direction(shooter, state, (0, 0, 1), 0, state.start, activation)
         state.counter += 20
-        self.assertEqual(first, mccree.fan_direction(shooter, state, (0, 0, 1), 0, state.start, activation))
-        self.assertNotEqual(first, mccree.fan_direction(
+        self.assertEqual(first, weapon_spread.player_volley_direction(
+            shooter, state, (0, 0, 1), 0, state.start, activation,
+        ))
+        self.assertNotEqual(first, weapon_spread.player_volley_direction(
             shooter, state, (0, 0, 1), 0, state.start, (activation[0] + 1, activation[1])))
 
     def test_primary_scope_keeps_the_command_direction(self):
@@ -125,5 +127,6 @@ class McCreeSpreadTests(unittest.TestCase):
         weapon = next(i for i in shooter.body_script.component.instances.values() if i.graph.index == 0x1d2)
         state = next(s for s in weapon.states.values() if s.node.pos == 31)
         forward = 0.0, 0.0, 1.0
-        self.assertEqual(mccree.fan_direction(shooter, state, forward, 0, state.start,
-                                             (state.counter, state.start)), forward)
+        self.assertEqual(weapon_spread.player_volley_direction(
+            shooter, state, forward, 0, state.start, (state.counter, state.start),
+        ), forward)

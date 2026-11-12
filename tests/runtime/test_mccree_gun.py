@@ -16,7 +16,7 @@ class McCreeGunTests(unittest.TestCase):
                 for head in (False, True):
                     for distance in (10, 41):
                         with (self.subTest(npc=npc, button=button, head=head, distance=distance),
-                              patch('ow174.game.mccree.fan_direction',
+                              patch('ow174.game.weapon_spread.player_volley_direction',
                                     side_effect=lambda shooter, state, forward, *args: forward)):
                             run, shooter, target = melee_cases.McCreeMeleeTests().arena(
                                 npc=npc, distance=distance)

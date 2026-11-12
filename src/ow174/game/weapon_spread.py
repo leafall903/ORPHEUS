@@ -1,14 +1,18 @@
 """104319 spread-table generators and circular-cone math.
 
 Tables are generated, never loaded from client assets. Their complete outputs
-match the authorized capture. Seed-base argument identities belong to callers;
-McCree and the manual Enforcer supply server identities for this mapping.
+match the authorized capture. Seed-base argument identities belong to callers.
 """
 
 import math
 from functools import cache
 
 from ow174.game.script.expr import f32, to_float, to_int
+
+PLAYER_CONE_VOLLEYS = frozenset((
+    (0x02E0000000000042, 0x01D2, 37),  # McCree Fan the Hammer
+    (0x02E00000000001CA, 0x1514, 24),  # Wrecking Ball Quad Cannons
+))
 
 
 @cache
@@ -135,6 +139,31 @@ def authored_ring_directions(state, forward, base, shot, *, volley=None):
             or sum(size for _, size in rings) != count):
         return (forward,)
     return ring_directions(forward, math.radians(spread), base, shot, rings)
+
+
+def player_volley_direction(shooter, state, forward, number: int, time: int, activation):
+    """Resolve the authored angle at the shot time for supported 239B571E volleys."""
+    profile = (shooter.hero.guid, state.instance.graph.index, state.node.pos)
+    if (profile not in PLAYER_CONE_VOLLEYS or shooter.body_script is None
+            or state.instance.component is not shooter.body_script.component):
+        return forward
+    launch = state.node.field("m_5EC1EB38")
+    if (not isinstance(launch, dict) or launch.get("$") != "STU_239B571E"
+            or state.spread_ramp is None):
+        return forward
+    low, high = (
+        to_float(state.evaluate(launch.get(name), watch=False))
+        for name in ("m_7F0FED02", "m_429A6C85")
+    )
+    normalized = state.spread_at(time - activation[1] - state.offset)
+    degrees = f32(f32(f32(high - low) * normalized) + f32(low))
+    if degrees == 0.0:
+        return forward
+    cone = f32(degrees * f32(math.pi / 180))
+    # Use server identities and the uniform radius from D74C0E/D79BB9.
+    # The original-client identity mapping and per-path mode are still open.
+    base = seed_base(shooter.body, state.instance.id, state.node.pos, activation[0])
+    return direction(forward, cone, base, number)
 
 
 def direction(forward, cone: float, base: int, shot: int, pellet: int = 0,
