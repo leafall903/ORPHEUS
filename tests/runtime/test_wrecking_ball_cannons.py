@@ -4,7 +4,7 @@ import math
 import unittest
 from unittest.mock import patch
 
-from ow174.game import combat
+from ow174.game import combat, weapon_spread
 from ow174.game.commands import FIRE
 from ow174.game.content import heroes
 from tests.runtime.test_game_combat import KANEZAKA_DM, Run, aim
@@ -127,11 +127,17 @@ class WreckingBallCannonsTests(unittest.TestCase):
 
     def test_primary_combat_rays_use_authored_cone_at_each_shot(self):
         forward = combat.aim(self.yaw, self.pitch)
-        with patch.object(self.fight, "_hitscan", wraps=self.fight._hitscan) as hitscan:
+        with (
+            patch.object(self.fight, "_hitscan", wraps=self.fight._hitscan) as hitscan,
+            patch.object(weapon_spread, "seed_base", wraps=weapon_spread.seed_base) as seed_base,
+        ):
             self.advance(50, FIRE)
         rays = [call.args[3] for call in hitscan.call_args_list]
         self.assertEqual(len(rays), 20)
         self.assertEqual(len(set(rays)), 20)
+        volley = self.weapon.state(9)
+        self.assertEqual(volley.node.pos, 24)
+        self.assertEqual([call.args[2] for call in seed_base.call_args_list], [9] * 20)
         for number, ray in enumerate(rays, 1):
             dot = math.fsum(a * b for a, b in zip(forward, ray, strict=True))
             self.assertGreater(dot, math.cos(math.radians(number * 0.1)) - 1e-7)

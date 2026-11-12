@@ -6,6 +6,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Player weapon spread seed
+
+- Use the authored state-table index in the shared Quad Cannons and Fan the
+  Hammer seed calculation. Build 104319's state constructor stores that
+  index at +0x70 and its volley call reads the same word.
+- Passed 20 prepared-runtime Quad Cannons and McCree checks and Ruff.
+- Original-client owner seed identity and muzzle sampling remain open.
+
 #### Wrecking Ball Minefield arming effects
 
 - Send the deployed mine's two authored armed effect states after its arming

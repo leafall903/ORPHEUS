@@ -160,9 +160,9 @@ def player_volley_direction(shooter, state, forward, number: int, time: int, act
     if degrees == 0.0:
         return forward
     cone = f32(degrees * f32(math.pi / 180))
-    # Use server identities and the uniform radius from D74C0E/D79BB9.
-    # The original-client identity mapping and per-path mode are still open.
-    base = seed_base(shooter.body, state.instance.id, state.node.pos, activation[0])
+    # D74B68 reads the m_states index written at 1B914DD. Use the server
+    # body ID for the unverified owner word and the uniform radius from D74C0E/D79BB9.
+    base = seed_base(shooter.body, state.instance.id, state.index, activation[0])
     return direction(forward, cone, base, number)
 
 
