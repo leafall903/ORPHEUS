@@ -82,6 +82,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   manager/public-constant observations reconciled; retain those errors.
 - Whole-line/client acceptance remains open. No second bubble/impulse driver,
   new acceptance matrix, client session, network operation or push.
+### Mount delivered Torbjorn hammer contact windows
+
+- Mount the original168C animation-derived ordinary/Overload impact windows,
+  per-swing target/contact sets, late entry and aim updates, fire-release
+  retention, holster/death/control cancellation and passive snapshot state.
+  Preserve its source Genji107 tag/scalar gate alongside combined defenses.
+- Adapt existing barrier area/melee methods with an optional contacted set;
+  actual entity keys deduplicate each swing while ordinary callers retain
+  previous behavior. Four direct actual-method probes verify both routes.
+- Original13 hammer cases plus the previously missing background-reload/hammer
+  interaction run14:12 pass, two repeat-interval differences remain (ordinary
+  53 vs47frames; Overload's second hit is later than the original33frame probe).
+  Keep the source assertions and current shared animation/stack semantics.
+- Two old descriptor-gated barrier fixtures skip and one old fixture expects
+  absent body_barriers; no complete shared fixture pass is claimed. Native
+  barrier surfaces will reconcile with worker B's shared capsule helper.
+  Turret repair needs the next actor-backed factory batch, and the source
+  Steel Trap melee consumer waits for that owner. No client run was performed.
+
 ### Mount delivered Torbjorn rivet pellet consumers and retain both resource suites
 
 - Route unpredicted1683 volleys through the original radial projectile_patterns

@@ -1971,6 +1971,8 @@ class Combat:
         self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
+        self.hammer_contacts = {}
+        self.turrets = {}  # Original owner actor collection; turret factory mounts separately.
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2165,6 +2167,7 @@ class Combat:
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
+        self.hammer_contacts.pop(player.body, None)
         self.melee_seen.pop(player.body, None)
         self.hammer_hits.pop(player.body, None)
         self.tesla_frames.pop(player.body, None)
@@ -2465,6 +2468,7 @@ class Combat:
         from ow174.game import assassin, hanzo_control
 
         hanzo_control.cancel_draw(script)
+        hero_torbjorn.cancel_hammer(self, component.entity)
         component.discard_button_presses()
         assassin.bind(component.world, component, None)
         matrices = dict(deflection.matrix_abilities(script))
@@ -2936,6 +2940,7 @@ class Combat:
                             self._launch(entity, velocity)
             self._cleanse_biotic_block(player, self.vitals.get(player.body))
             moira.transition(player)
+            hero_torbjorn.hammer(self, player, command, script)
             moira.grasp(self, player, command)
             moira.coalescence(self, player, command)
             if self.walls.command(player, command):
@@ -8185,6 +8190,7 @@ class Combat:
         victim = target.owner
         copy_break = killed and not isinstance(victim, bots.Bot) and self.echo_duplicates.active(victim)
         if killed and not copy_break:
+            self.hammer_contacts.pop(target.entity, None)
             vitals.set_over_armour(None)
             vitals.now[HEALTH_POOL] = 0.0
             vitals.died_at = self.now
