@@ -40,6 +40,7 @@ from ow174.game import (
     combat,
     correction,
     cryo,
+    dva,
     earthshatter,
     echo_movement,
     heroselect,
@@ -52,6 +53,7 @@ from ow174.game import (
     sigma_barrier,
     stats,
     world,
+    winston,
     wraith,
 )
 from ow174.game.collision import (
@@ -482,7 +484,15 @@ class Player:
         frost = fight.frost_progress(self, tick=tick)
         command = fight.sombra_controls.input(self, command)
         command = fight.clamp_sleep_command(self, command)
+        pull = fight.zarya_gravitons.movement_for(self)
         pulled = self.body in fight.zarya_gravitons.pulled
+        if pull is None:
+            fight.zarya_gravitons.release_player(self)
+            pulled = False
+        elif (command.buttons & 8 and (self.hero.guid in (GENJI, winston.HERO, 0x02E0000000000007)
+                                      or dva.boosters(self) is not None)):
+            # Original0068 blocks mobility before its body graph can spend cooldown.
+            command = replace(command, buttons=command.buttons & ~8)
         if fight.recalls.locked(self):
             from ow174.game import tracer
 

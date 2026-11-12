@@ -2101,6 +2101,35 @@ class Combat:
                 if viewer.spawned and viewer.client is not None:
                     viewer.client.queue_bot_live(bot.entity, snapshot)
 
+    def stop_boosters(self, player) -> None:
+        from ow174.game import dva
+
+        instance = dva.boosters(player)
+        if instance is None:
+            return
+        ability = instance.states.get(0)
+        if not isinstance(ability, nodes.Ability) or not ability.flags & ability.RUNNING:
+            return
+        ability.presses.clear()
+        ability.stop()
+        instance.component.run_now()
+        self.booster_contacts.pop(instance.component.entity, None)
+        if not isinstance(player, bots.Bot):
+            player.sync_movement_mods(instance.component.frame)
+
+
+    def stop_genji_strike(self, player) -> None:
+        if getattr(player.hero, "guid", None) != 0x02E0000000000029 or player.body_script is None:
+            return
+        self.genji_strikes.pop(player.body, None)
+        component = player.body_script.component
+        instance = next((i for i in component.instances.values() if i.graph.index == 0x01DB), None)
+        dash = instance.states.get(1) if instance is not None else None
+        if dash is not None and dash.active:
+            dash.request(runtime.ABORT)
+            component.run_now()
+
+
     def _booster_contact(self, player, command, script) -> None:
         """Consume 047E's live tracking and damage states using current capsules and static LOS."""
         mover = player.control_mover if isinstance(player, bots.Bot) else player.mover
