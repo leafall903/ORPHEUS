@@ -200,6 +200,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
   remaining owner consumer inventory and rough activehours persisted.
 
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
+
 ### Preserve controller Pin services in causal server storage
 
 - Exact original Pin/message storage and current scalar/vector modifier records
