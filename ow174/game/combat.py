@@ -5770,9 +5770,7 @@ class Combat:
                     self.timed_hits.remove(dose)
 
     def cleanse_ana_effects(self, entity):
-        self.healing.record_regeneration(entity)
-        self.healing.anti.pop(entity, None)
-        self.healing.record_regeneration(entity)
+        self.healing.cleanse(entity)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != entity or hit.healing]
 
     def body_clearance(self, player, point, *, radius=None):
@@ -5885,6 +5883,7 @@ class Combat:
         # Retained status intervals supply their exact boundaries even when body
         # samples arrive after expiry. Settle before a real status is replaced.
         points = {*vitals.healing_block, *vitals.healing_boost}
+        points.update(tick * TICK for tick, _ in self.healing.filter_history.get(target.entity, ()))
         for effect in (self.healing.anti.get(target.entity), self.healing.amp.get(target.entity)):
             if effect is not None:
                 points.update((effect.start * TICK, effect.end * TICK))
@@ -5947,7 +5946,7 @@ class Combat:
     def _heal_pools(self, owner, vitals, amount, *, maximum=None, tags=()):
         if vitals.dead:
             return 0.0
-        if vitals.entity in self.healing.anti or vitals.entity in self.healing.amp:
+        if self.healing.has_status(vitals.entity):
             target = next((target for target in self._targets()
                            if target.entity == vitals.entity and target.owner is owner), None)
             if target is not None:
