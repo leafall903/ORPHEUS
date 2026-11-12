@@ -1032,7 +1032,7 @@ class RoadhogSecondaryTests(unittest.TestCase):
 
                     run.step({hog: (yaw, pitch, 2)})
                     parent, = fight.rockets
-                    with patch.object(fight, "_expired", wraps=fight._expired) as expired:
+                    with patch.object(fight, "_expire", wraps=fight._expire) as expired:
                         for _ in range(100):
                             run.step({})
                     burst_count = sum(call.args[0] is parent for call in expired.call_args_list)
@@ -1099,8 +1099,8 @@ class RoadhogSecondaryTests(unittest.TestCase):
                 ammo = weapon.vars[53].value()
                 run.step({hog: (0, 0, 2)})
                 parent, = fight.rockets
-                self.assertIsNotNone(parent.burst)
-                self.assertEqual(len(parent.burst.directions), 25)
+                self.assertIsNotNone(parent.split_on_expiry)
+                self.assertEqual(len(parent.split_on_expiry.directions), 25)
                 x, y, z = parent.position
                 wall_z = z + parent.speed * parent.left + offset
                 wall = World([
@@ -1109,7 +1109,7 @@ class RoadhogSecondaryTests(unittest.TestCase):
                 ])
                 with (
                     patch.object(fight, "_collision", return_value=wall),
-                    patch.object(fight, "_expired", wraps=fight._expired) as expired,
+                    patch.object(fight, "_expire", wraps=fight._expire) as expired,
                 ):
                     for _ in range(40):
                         run.step({})

@@ -16,6 +16,16 @@ This log records tested changes and their acceptance status. Entries are grouped
   excluded by its real state/control owners. Original31 shared methods pass.
 
 
+### Restore original Roadhog secondary expiry fragments
+
+- The existing SplitVolley/Rocket host freezes and emits original25 fragments
+  only at slug expiry, retains the same-step flight remainder, and reorients
+  their captured cone on Deflect. Existing non-source split defaults remain.
+- Original secondary/projectile/Damage/runtime36/36 pass; actual raw active
+  cone storage and expiry damage pass. Fixture edits only map real field/callback
+  names with normalized original AST unchanged. Lifecycle and WholeHog motion
+  audits continue; no client acceptance run.
+
 ### Restore original Roadhog primary pellet geometry and falloff
 
 - Selected Scrap Gun fire now launches the original25 directions with one ammo
