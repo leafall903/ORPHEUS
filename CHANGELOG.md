@@ -22,7 +22,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   0.5 m where the mech's is 0.7 m. Its eye height is the default. Eject, Self-Destruct and Call
   Mech are not played: a destroyed mech is a dead D.Va, and she respawns in the mech. The pilot's
   Light Gun does not fire on the server.
-- Original-client acceptance is pending.
+- Original-client check, Practice Range, one player. A pick of D.Va gave the mech's cockpit view
+  with both cannons, 600 / 600 health with its armour segments, and the Boosters, Micro Missiles
+  and Defense Matrix icons. Held fire flashed the cannons, drew their tracers and raised the
+  ultimate charge. Micro Missiles started their cooldown and Boosters flew the mech across the
+  room.
+- Seen and not right: Self-Destruct hid the cockpit, showed its warning and spent the charge, and
+  the player stayed in the mech at 600 health. Three node classes of its graph have no model on the
+  server (`STU_43B63AD0`, `STU_D6EB7F8D`, `STU_523EE38D`). Defense Matrix drew nothing in the one
+  capture taken. Not checked: taking damage, death, and what another player sees.
 
 #### Training Bot rebuild seen in the client
 
