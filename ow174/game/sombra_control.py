@@ -19,6 +19,7 @@ class Lock:
     application: runtime.Instance
     until: float
     pulse: runtime.Instance | None
+    clock: tuple[int, int] | None = None  # actual(world tick, recipient component ms) at delivery
 
 
 class DeviceWorld(runtime.World):
@@ -34,6 +35,11 @@ class DeviceWorld(runtime.World):
         return entity_queries.Component76Keys(self.tags) if entity == self.body else NotImplemented
 
     def native(self, cfg, instance):
+        if (instance is not None and instance.graph.index == EFFECT
+                and cfg is instance.graph.node(19).field("m_condition")):
+            from ow174.game.sombra_replay import _shown_sources
+
+            return expr.to_entity(instance.evaluate(cfg.get("m_entity"))) in _shown_sources(self.fight.match)
         portals = getattr(self.fight, "portals", None)
         if (portals is not None and instance is not None and instance.graph.index == PULSE
                 and cfg.get("$") == entity_queries.POSSESSED):
@@ -242,6 +248,9 @@ class Controls:
                 component.destroy(application)
 
     def update(self):
+        from ow174.game.sombra_replay import _shown_sources
+
+        sources = _shown_sources(self.fight.match)
         for entity, (component, windows) in tuple(self.lock_history.items()):
             if component.owner_dead:
                 self.lock_history.pop(entity, None)
@@ -259,7 +268,8 @@ class Controls:
             keep = []
             for lock in locks:
                 self.observe_lock(lock.application)
-                if self.fight.now < lock.until:
+                orphaned = lock.application.source_entity() not in sources
+                if self.fight.now < lock.until and not (orphaned and lock.application.stopped):
                     keep.append(lock)
                 else:
                     self.destroy(lock)
@@ -385,7 +395,7 @@ class Controls:
                     locks = self.locks.setdefault(target.entity, [])
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
-                    locks.append(Lock(application, self.fight.now + duration, pulse))
+                    locks.append(Lock(application, self.fight.now + duration, pulse, (self.fight.tick, application.start)))
                     self.remember_lock(application, duration)
                     for sentry in self.fight.sentries.sentries:
                         if sentry.bot is target.owner:
@@ -593,7 +603,7 @@ class Controls:
                     locks = self.locks.setdefault(target.entity, [])
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
-                    locks.append(Lock(application, fight.now + duration, pulse))
+                    locks.append(Lock(application, fight.now + duration, pulse, (fight.tick, application.start)))
                     self.silence_body(script.component)
                     self.remember_lock(application, duration)
                     held = getattr(script, "buttons", 0) & SKILL_INPUT

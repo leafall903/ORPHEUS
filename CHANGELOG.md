@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Replay incoming Sombra applications on their observed recipient clocks
+
+- Record each existing Lock's actual delivery world/component association;
+  replay incoming EMP and retired-source Hack instances without advancing body
+  input, restoring component clocks and preserving live-source world expiry.
+- Ordinary/shifted-epoch and10000-tick gap probes retire actual applications
+  while recipient body clocks remain unchanged. Original70:68pass, two retained
+  snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
+  remaining owner consumer inventory and rough activehours persisted.
+
 ### Consume original Sombra ability and logical-button silence policies
 
 - Restore original weapon/passive/drawn-blade classification and logical input
