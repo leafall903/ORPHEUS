@@ -129,6 +129,29 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Mount delivered Sonic impact, attachment and reveal consumers
+
+- Mount original sonic.py unchanged: explicit external profile, per00B9 Sonic
+  payload, body/static impact Beacon, historical birth tick, tick refresh,
+  independent authored010E reveal stacks, attachment freeze and team/FFA query.
+  Capture profile/beacons and preserve deployed fields across source replacement.
+- Mount the original five-definition lease allocation: first four block bases
+  stay unchanged; half-window stride reserves the fifth definition without
+  overlapping any of32 slots or overflowing the29-bit entity index. Preserve
+  current owner/observer delivery. Retain the original all-slot boundary check
+  separately, unchanged, rather than replacing existing projectile tests.
+- Preserve00B9 ballistic path limits as travelled distance with range_left
+  storage and the current analytic sweep; no beacon is created by mere expiry.
+  Adapt the old Fortify query to the current defenses consumer. All13 original
+  Sonic Player checks passed (12 together, final Fortify check separately),
+  six original Sonic cooldown checks passed, the original fifth-lease check
+  passed and42 existing projectile/Bastion lifecycle checks passed. Player tests
+  used isolated AST loading solely to omit an unrelated unmounted NPC fixture
+  import. Original Sonic/cooldown/bow files are retained unchanged.
+- External profile is hero-lanes/0005/hanzo-sonic-profile.json; no asset pack is
+  copied or changed. Explicit server startup profile plumbing and moving Dragon
+  consumers remain next; no full0005 completion is claimed.
+
 ### Mount delivered Hanzo Lunge, wall climb and ledge movement
 
 - Mount0005 hanzo_movement through authored010C yaw/velocity actions, posed

@@ -52,6 +52,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 
 from ow174.game import (
+    sonic,
     absorption,
     barrage_motion,
     actors,
@@ -1465,6 +1466,8 @@ class Rocket:
     motion: tuple = ()
     motion_phase_offset: float = 0.0
     deflect_lifetime: float | None = None
+    started_tick: float | None = None
+    sonar: sonic.Profile | None = None
     barrage_source: tuple | None = None
 
 
@@ -1524,6 +1527,15 @@ class Rocket:
             self.source_entity = getattr(self.shooter, "entity", None) if isinstance(
                 self.shooter, (bots.Bot, actors.Deployable)
             ) else getattr(self.shooter, "body", None)
+
+
+def _active_fortify(owner, *, tick=None):
+    """Delivered Fortify-state query over the combined defensive consumer."""
+    script = getattr(owner, "body_script", None)
+    if (tick is not None and getattr(script, "orisa_fortify_pending", False)
+            and tick < owner.match.tick):
+        return None
+    return defenses.fortify_state(owner)
 
 
 class _HeavyTargetFilter(runtime.InstanceContext):
@@ -1857,6 +1869,8 @@ class Combat:
         self.booster_contacts = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.sonic_profile: sonic.Profile | None = None
+        self.sonars: list[sonic.Beacon] = []
         self.pending_attacks: list[PendingAttack] = []
         self.timed_hits: list[TimedHit] = []
         self.recalls = tracer_recall.Recalls(self)
@@ -3758,6 +3772,7 @@ class Combat:
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
+            self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
                 if earthshatter.advance(self, wave):
@@ -4767,6 +4782,17 @@ class Combat:
                 log.exception("[game] %s: %s's pending attack failed", self.match.label(), attack.shooter.name)
 
 
+    def configure_sonic(self, profile: sonic.Profile) -> None:
+        """Explicitly mount the delivered external reconstructed Sonic profile."""
+        if not isinstance(profile, sonic.Profile) or self.rockets or self.sonars:
+            raise ValueError("Sonic profile must be mounted before active projectiles")
+        self.sonic_profile = profile
+
+    def revealed_to(self, viewer, target) -> bool:
+        """Read current team-scoped reconstructed reveal state."""
+        return any(sonic.visible(beacon, viewer, _source_entity(target), self.match.game_map.free_for_all)
+                   for beacon in self.sonars)
+
     def _commit_attack(self, shooter, frame, payload, boost):
         scale = boost[1] if boost is not None else 1.0
         if isinstance(payload, Rocket):
@@ -4949,7 +4975,7 @@ class Combat:
                 blast = HitDef(amount, direct.loadout if direct else None, rings=((radius, 1.0),),
                                healing=True, line_of_sight=True,
                                tags=direct.tags if direct else (), health_operation=0)
-            range_left = reach if field_spec is not None or grenade is not None else None
+            range_left = reach if field_spec is not None or grenade is not None or hanzo_bow else None
             barrage = (not npc and shooter.hero.guid == 0x02E0000000000008
                        and (state.instance.graph.index, state.index) == (barrage_motion.GRAPH, barrage_motion.STATE))
             curve_motion = ()
@@ -5088,6 +5114,10 @@ class Combat:
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
+                        started_tick=(self.tick + time % state.instance.component.frame_ms
+                                      / state.instance.component.frame_ms if hanzo_bow else None),
+                        sonar=(self.sonic_profile if not npc and shooter.hero.guid == sonic.HANZO
+                               and state.instance.graph.index == 0x00B9 and definition in sonic.DEFINITIONS else None),
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
                         target_limit=target_limit,
@@ -5095,7 +5125,7 @@ class Combat:
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
-                        range_limit=reach if field_canister or barrage else None,
+                        range_limit=reach if field_canister or barrage or hanzo_bow else None,
                         rebound_limit=rebound_limit if field_canister else None,
                         rebound_scale=rebound_scale,
                     )
@@ -5588,6 +5618,8 @@ class Combat:
             self.pulse_bombs.context = self.tick
         try:
             self._fly_current(rocket)
+            if rocket.source_graph == 0x00B9 and rocket.range_limit is not None:
+                rocket.range_left = max(0.0, rocket.range_limit - rocket.travelled)
         finally:
             self.pulse_bombs.context = previous
 
@@ -5614,9 +5646,12 @@ class Combat:
             return
         # Each legacy integration advances the pose through its labelled tick.
         # Keep that same contiguous interval when several ticks are swept at once.
+        if rocket.started_tick is None:
+            rocket.started_tick = self.tick - elapsed
         sweep_tick = self.tick - elapsed + 1
         rocket.last_tick = self.tick
-        if rocket.deployment is not None or rocket.range_left is not None or rocket.penetrated is not None:
+        if (rocket.deployment is not None or rocket.penetrated is not None
+                or rocket.range_left is not None and rocket.source_graph != 0x00B9):
             duration = elapsed * TICK
             sweep_tick = self.tick - elapsed
             while duration > EPSILON and rocket in self.rockets:
@@ -5861,6 +5896,11 @@ class Combat:
                 if remaining <= step:
                     duration *= remaining / step
                     step, range_ends = remaining, True
+        if not rocket.is_barrage and rocket.range_limit is not None:
+            remaining = max(0.0, rocket.range_limit - rocket.travelled)
+            if remaining <= step:
+                duration *= remaining / step if step > EPSILON else 0.0
+                step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
@@ -6115,6 +6155,13 @@ class Combat:
             return 0.0
         if struck is None:
             point = _along(rocket.position, heading, max(0.0, t - 1e-4))
+        if rocket.sonar is not None:
+            attached = struck.entity if struck is not None else None
+            offset = _sub(point, struck.feet) if struck is not None else (0.0, 0.0, 0.0)
+            self.sonars.append(sonic.Beacon(
+                rocket.shooter, rocket.source_entity, rocket.team, point, attached,
+                offset, rocket.started_tick + rocket.flown / TICK, rocket.sonar,
+            ))
         broken_particle_barriers: set[int] = set()
         if struck is not None and rocket.direct is not None and rocket.direct.amount > 0.0:
             direct = rocket.direct
