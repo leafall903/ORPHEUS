@@ -27,7 +27,7 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from ow174.game import animation_pose, pools, ult_charge
+from ow174.game import animation_pose, dva, pools, ult_charge
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
@@ -354,6 +354,8 @@ class BodyWorld(runtime.World):
         from ow174.game import mccree
 
         result = mccree.native(self, cfg, instance)
+        if result is NotImplemented:
+            result = dva.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
         cls = cfg.get("$")
@@ -393,13 +395,6 @@ class BodyWorld(runtime.World):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
-        if (cls == "STU_F7262B36" and self.match is not None and instance is not None
-                and instance.graph.index == 0x0276 and self.body_definition == 0x0400000000000407
-                and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
-            # The mech's authored startup lock waits for its component 43 owner.
-            owner = next((player for player in self.match.players
-                          if player.has_body and not player.gone and player.body == self.body), None)
-            return Entity(owner.entity if owner is not None else 0)
         if self.communication_wheel and instance is not None and instance.graph.index == 0x004B:
             # BodyScript is the match-owned human body. 004B's untagged filter
             # and its player check gate the authored 05AD and 02CF wheels.
@@ -699,7 +694,19 @@ class BodyWorld(runtime.World):
 
         return mccree.velocity_action(self, instance, node)
 
+    def create_owned_entity(self, instance, node):
+        return dva.create_owned_entity(self, instance, node)
+
+    def destroy_entity(self, instance, node):
+        return dva.destroy_entity(self, instance, node)
+
+    def board(self, state) -> None:
+        dva.board(self, state)
+
     def tracked_targets(self, state):
+        found = dva.blast(self, state)
+        if found is not NotImplemented:
+            return found
         if (self.communication_wheel and self.match is not None
                 and state.instance.graph.index == 0x05AD and state.node.pos in (113, 115)):
             collision_filter = state.node.field("m_3D667CE3") or {}
@@ -849,8 +856,9 @@ class BodyWorld(runtime.World):
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         match = self.match
-        if (match is not None and sender == self.body
-                and match.queue_body_message(target, message, params, sender)):
+        if match is not None and sender == self.body and (
+                (self.body_definition in dva.BODIES and dva.message(self, target, message, params))
+                or match.queue_body_message(target, message, params, sender)):
             return
         super().send_message(target, message, params, sender)
 

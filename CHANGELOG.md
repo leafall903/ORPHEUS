@@ -6,6 +6,46 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### D.Va leaves her mech and calls a new one
+
+- Decoded her two forms in `docs/research/dva-forms.md`. The hero's body is always the pilot: her
+  graph `026A` makes the mech with `STU_B6E3C77D` and boards it, and the mech's graphs send her
+  game message `016C.025` to leave. Read from code: `STU_F7262B36` reads component 43 (who drives
+  an entity), `STU_0AC15F78` component 44 of a player (the hero he plays), `STU_F76C486C`
+  component 72 (whom it was made for). Read from data: Self-Destruct's 3 s fuse, its 20 m reach
+  and its damage of 1000 within 4 m falling from 900 to 50; Call Mech's 0.2 s, its 250 within
+  2.5 m after 0.7 s, and the 1.75 s until she is in the mech.
+- A mech whose health is gone no longer kills her: she is the pilot, alive, where it stood.
+  Self-Destruct ejects her at once and the mech stays for its fuse, hits what is hostile, in
+  reach and in sight, fills her Call Mech charge and is destroyed by its own graph. Call Mech
+  stands a mech at her feet and puts her in it 1.75 s later. A dead pilot respawns in her mech.
+- New module `ow174.game.dva`. `Match.switch_hero` takes a place for the new body and can keep
+  the old one; `Match.forms` holds the mechs nobody plays.
+- The pilot's Light Gun now fires on the server. Her graph took its "nobody drives me" branch,
+  the one for a pilot stowed in her mech, because `STU_F7262B36` was answered for the mech alone.
+- New state classes: `STU_CA861E44` (she is in the entity it names), `STU_54FEB21C` and
+  `STU_43DB06B1`. `STU_B6E3C77D` and `STU_523EE38D` are handled in her graphs.
+- Reconstructed, each point named in the note. The server plays one body for a player where the
+  data keeps the pilot and adds the mech, so a change of form is a new body entity at the old
+  one's place. A destroyed mech ejects her at once: its 1 s before the eject and its wreck are
+  not played. The landing-spot search answers "no spot", so a called mech stands where she
+  stands. The blast's hits are given by the server with the graph's amounts, without knockback.
+  A new mech starts with no charge.
+- Added ten runtime tests in `tests/runtime/test_dva_forms.py`.
+- Passed Ruff and 922 public Python tests. The runtime suite ran 1707 tests with 27 failures, the same 27 as before this change: the baseline's 26 and the packing artifact of the body filter bit.
+- Original client, Practice Range, five runs. Self-Destruct gives the pilot's view at once, with
+  150 health and the Light Gun; 3 s later the screen flashes, two Training Bots burst with
+  "ELIMINATED TRAINING BOT" twice, and Call Mech's icon is lit. The Light Gun fires and its
+  ammunition counts down. Call Mech drops the mech in front of her, she climbs in, and the view
+  is the cockpit at 600 health, facing the way she faced.
+- Found in those runs and fixed: the pilot's screen was black (her graph's `#6828`, which only
+  her being stowed clears, now starts off), and Call Mech turned the view (her boarding state
+  turns her aim to the mech's yaw, which the client reads from a movement state the standing mech
+  did not have).
+- Not seen: the mech she left, a mech destroyed by damage, a dead pilot's return, another
+  player's view. Seen and not right: 12 s of the mech's held fire at a Training Bot 6 m away did
+  not kill it.
+
 #### D.Va enters play in her mech
 
 - A pick of D.Va now gives her mech, body definition `0407`, where it gave her pilot `040A`: the

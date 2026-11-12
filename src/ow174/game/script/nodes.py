@@ -3817,6 +3817,39 @@ class RecentInputState(State):
         instance.follow(self.node, 'm_1405CDCB', self)
 
 
+@state_class("STU_CA861E44")
+class Boarded(State):
+    """The body is in the entity m_C98661CF names, as D.Va's pilot is in her mech (dva.py)."""
+
+    def on_enter(self) -> None:
+        self.instance.component.world.board(self)
+
+
+@state_class("STU_54FEB21C")
+class Settle(State):
+    """reconstruction: its code is not read. With no time authored (m_ED97A97C) the graphs use it as
+    a step that ends by itself before a server action, so it finishes in the frame it begins; one
+    with a time stays on, as before."""
+
+    def on_enter(self) -> None:
+        if self.node.field("m_ED97A97C") is None:
+            self.request_finish()
+
+
+@state_class("STU_43DB06B1")
+class Placement(State):
+    """A search for the spot an owned entity is put on. reconstruction: the search is not played,
+    and it answers its "search now" input with the output for "no spot", which in D.Va's Call Mech
+    puts the mech where she stands."""
+
+    def plug_enter(self, input_path: str) -> bool:
+        if input_path == "m_6647ED22":
+            if self.active:
+                self.instance.follow(self.node, "m_425337C6", self)
+            return True
+        return super().plug_enter(input_path)
+
+
 @state_class("STU_7B9E8909")
 class ActiveOutput(State):
     """The 104319 input hook at 1B97E10 consumes input and forwards only while active."""
@@ -4327,9 +4360,16 @@ def stop_gate_animation(instance: Instance, node, caller) -> bool:
     return True
 
 
+@handler('STU_B6E3C77D')
+def create_owned_entity(instance: Instance, node, caller) -> bool:
+    return instance.component.world.create_owned_entity(instance, node)
+
+
 @handler('STU_523EE38D')
 def retire_junkenstein_corpse(instance: Instance, node, caller) -> bool:
     component = instance.component
+    if not component.strict and component.world.destroy_entity(instance, node) is True:
+        return no_op(instance, node, caller)
     if (component.strict and component.entity == GAME_MODE_ENTITY
             and (instance.graph.index, node.pos) == (0x0C8C, 327)):
         retire = getattr(component.world, 'retire_vengeful_ghost', None)

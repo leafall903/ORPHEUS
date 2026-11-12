@@ -70,7 +70,7 @@ _STATE_LAYOUTS = {
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: ((), ()),
-    nodes.ActiveOutput: ((), ()),
+    nodes.ActiveOutput: ((), ()), nodes.Boarded: ((), ()), nodes.Settle: ((), ()), nodes.Placement: ((), ()),
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),

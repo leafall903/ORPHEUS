@@ -53,7 +53,18 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ow174.game import bots, contacts, observers, pools, projectiles, stats, ult_charge, voicelines, world
+from ow174.game import (
+    bots,
+    contacts,
+    dva,
+    observers,
+    pools,
+    projectiles,
+    stats,
+    ult_charge,
+    voicelines,
+    world,
+)
 from ow174.game.bits import BitWriter
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command
@@ -995,6 +1006,7 @@ class Combat:
         self.projectiles.update(tick, first_tick=retained)
         self._flush_deadeye_notices()
         self.match.deliver_body_messages()
+        self.match.forms.update()
         if frames:
             self.observers.update()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
@@ -1164,6 +1176,19 @@ class Combat:
         if search.score is not None:
             found.sort(key=lambda row: row[0])
         return tuple(target.entity for _, target in found[:search.limit])
+
+    def blast_targets(self, shooter, origin: tuple, radius: float) -> list[tuple[Target, float]]:
+        """The live hostile bodies within `radius` of a point and in clear sight of it, each with the
+        distance from the point to its root: an explosion's search (C8E660, CA3570, C9763C)."""
+        collision = self.match.collision_world
+        if collision is None:
+            return []
+        rays = collision.ray_geometry or collision
+        return [
+            (target, math.dist(origin, target.feet)) for target in self._enemies(shooter)
+            if _in_search_volume(origin, (0.0, 0.0, 1.0), radius, -1.0, target)
+            and _communication_visible(rays, origin, target, SEARCH_MASK, self.model_pose_for(target.entity))
+        ]
 
     def _wheel_model_pose(self, entity: int) -> ModelPose | None:
         player = self.match._message_player(entity)
@@ -1822,6 +1847,8 @@ class Combat:
         if dealt <= 0.0:
             return
         killed = vitals.pool_current(HEALTH_POOL) <= EPSILON
+        if killed and self.match.forms.wrecked(target.owner):
+            killed = False  # her mech is gone and she is not: the pilot leaves it (dva.py)
         if killed:
             vitals.now[HEALTH_POOL] = 0.0
             vitals.clear_temporary_shields()
@@ -2044,7 +2071,7 @@ class Combat:
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
             return
-        if not self.match.switch_hero(player, player.hero):
+        if not self.match.switch_hero(player, dva.respawn_form(player.hero)):
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
         self.voice.spawned(player, self.now)
