@@ -403,6 +403,20 @@ class InstanceContext(Context):
             result = component.world.native(cfg, self.instance)
             if result is not NotImplemented:
                 return result
+        if (not component.strict and component.world.hero == 0x02E0000000000029
+                and cls == body_owner.CLASS and self.instance.graph.index == 0x0B8B
+                and getattr(component.world, "match", None) is not None
+                and component.entity == getattr(component.world, "body", None)
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"):
+            result = component.world.native(cfg, self.instance)
+            if result is not NotImplemented:
+                return result
+        if cls == body_owner.CLASS:
+            context = component.world.body_owner_context(component.entity)
+            if type(context) is body_owner.Context and not context.instance_present:
+                # Preserve the delivered unavailable-instance guard before any
+                # alternate query provider evaluates the entity selector.
+                return body_owner.evaluate(self, cfg)
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)

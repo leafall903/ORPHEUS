@@ -7933,3 +7933,25 @@ client operations performed. Whole nonappearance integration remains active.
   d546d8c6/ffe56d54. Broader original B cross-hero and old private-observer
   differences remain worker-owned and documented, not commit gates. No client
   acceptance or network publication performed.
+
+
+### Restore original owner-query guards
+
+- Preserve the existing Genji0B8B normal-player gate before the generic typed
+  owner lookup, scoped to its nonstrict owned-body/self query. This restores
+  original spawned/dead/ended lifecycle without changing passive awards or
+  replacing its charge host. Previously failing original spawn lifecycle now
+  passes; Genji passive plus runtime26 pass unchanged.
+- Preserve original body_owner unavailable-instance short-circuit before the
+  alternate controller-query provider evaluates a selector. This repairs the
+  original missing-instance/destination-preservation check; strict provider
+  and all other query dispatch remain unchanged.
+- Original Genji/runtime/body-owner/controller-query/Ana/fold67 run retains
+  two pre-existing Ana health-on-leave subcase failures: partial combined
+  Combat.body_health falls back to unknown/null for absent entities. Original
+  source013B has fuller read-only health lifetime lookup; root will restore
+  that consumer separately. No original assertion changed. Evidence:
+  parallel-root-genji-owner-gate-check.log,
+  parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
+  Orisa input skips before availability fix), and
+  parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
