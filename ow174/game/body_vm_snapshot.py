@@ -12,7 +12,7 @@ import marshal
 import random
 import types
 
-from ow174.game import hanzo_movement, replay_values
+from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
@@ -85,6 +85,8 @@ _STATE_LAYOUTS = {
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
     nodes.AIControlOverride: (("remove_record",), ()),
     nodes.BodyPlacement: ((), ()),
+    nodes.JunkensteinControllerState: ((), ()),
+    nodes.JunkensteinBehaviorBranch: ((), ()),
     nodes.FilterArray: ((), ()),
     nodes.StaticTagTarget: ((), ()),
     nodes.RecentInputState: (("recent",), ("history",)),
@@ -529,7 +531,8 @@ class _Export:
         if kind is graph.Node:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld):
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld,
+                    enforcer_controller.TargetWorld, assassin_controller.TargetWorld):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -566,6 +569,10 @@ class _Export:
                 fields.update(("manager", "actor"))
             if kind is PhotonWorld:
                 fields.add("actor")
+            if kind is enforcer_controller.TargetWorld:
+                fields.update(("fight", "body", "selected"))
+            if kind is assassin_controller.TargetWorld:
+                fields.update(("fight", "body", "candidates", "attack_target", "windup_target"))
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
         if (kind is types.MethodType and obj.__self__ is self.component.world

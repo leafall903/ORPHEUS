@@ -624,3 +624,26 @@ or rounding precision changed. Root has no live tests or code WIP; all ready
 batches are committed and the three workers continue. NPC controller snapshot
 registration remains the next concrete root integration task; overall goal
 is active and incomplete.
+
+
+## Actual NPC target-controller storage boundary
+
+Root registers exact enforcer_controller.TargetWorld and
+assassin_controller.TargetWorld storage in both exporters, plus all five
+existing optional Bot controller attributes. The actual four-body producer
+uses existing JunkensteinControllerState/JunkensteinBehaviorBranch nodes with
+no additional fields; their exact layouts are registered while the original
+node-model/type validation remains in place. No getter, VM tick or allocation
+runs during export. Assassin Phase2World's separate SceneWorld storage remains
+pending; this boundary does not claim all five controller exports complete.
+
+The actual40tick Trooper/Enforcer/Sniper/Heavy probe now exports each component
+and the combined controlled GameServer (root-npc-target-storage-check.log).
+Targeted regression88747 is terminal:2 tests90.609s, both pass. It creates the
+four live controllers through original npc.spawn/acquisition, proves repeatable
+VM/server snapshots and selected-body sensitivity, guards against native/health
+getter execution, restores identical digests and confirms unknown fields are
+rejected by both exporters. Test fixture imported as module so discovery does
+not inadvertently re-run the entire unrelated snapshot class. Runtime assertions
+are unchanged. Next root boundary is full Phase2World scene/callback/revision
+storage, retaining original state rather than omitting it from snapshots.
