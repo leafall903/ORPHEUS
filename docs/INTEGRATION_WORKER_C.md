@@ -64,10 +64,20 @@ and Flashbang boundary differences); do not weaken or drop those assertions.
 Torbjorn pending resources check differs from source (including150 versus200 tick
 fire cadence sampling); preserve both originals under distinct names later.
 
+Sixth batch SHA: `1ecc533b`.
+Seventh batch: `feat: integrate delivered Pharah channel interruption` mounts
+source002B stack abort in combat and Sombra consumers. Original13 control/channel
+checks retain4 baseline subcase failures in two other-owner timing/hit-count
+methods; the real Barrage abort/recast now passes. Real Sombra service probe and
+all26 script-runtime/Reaper-Shadow checks pass. `test_pharah_control.py` is now
+submitted unchanged rather than left as an untracked fixture.
+C6 full shared run remains in session33339; poll the external log before deciding
+whether any new failure needs correction. Do not silently claim it passed.
+
 ## Exact next work
 
-1. Continue Pharah's original curve reflection eye/seed/lifetime restart and
-   scoped002B stack interruption, then splash/self-splash/impulse and remaining
+1. Continue Pharah's original curve reflection eye/seed/lifetime restart
+   (scoped002B interruption is mounted), then splash/self-splash/impulse and remaining
    charge/control consumers. Do not replace the combined projectile host.
    Root owns NPC bots/navigation/snapshot edits while reconciling sniper helpers.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not

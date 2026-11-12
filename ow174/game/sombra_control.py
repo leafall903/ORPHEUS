@@ -99,6 +99,8 @@ class Controls:
         script = getattr(player, "body_script", None)
         if script is None:
             return
+        if not hack_only and getattr(script, "hero", None) == 0x02E0000000000008:
+            script.interrupt_control()
         for instance in tuple(script.component.instances.values()):
             if hack_only and instance.graph.index != HACK:
                 continue
