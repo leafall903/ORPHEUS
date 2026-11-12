@@ -1949,3 +1949,105 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+## A84 — original0068 world charge and respawn credit
+
+Restored source f5b7366d original ultimate_charge_ready_frame and Combat's single
+zarya_charge_tick/ready host: passive5/s uses accepted Match world ticks, cast's
+actual body/world pair, live flight exclusion, field end+1 admission, and actual
+body birth. Ordinary beam/grenade/melee damage awards actual lost HP once, with
+original world-ready gate. Generic fallback excludes Zarya to avoid two awards;
+Graviton direct/DOT retain award_ult=False. Same-body source/client/fault/death
+eligibility is original source policy. The two causal host fields are registered
+in existing exact server snapshot. Retirement removes readiness for old body.
+Original BodyScript.award_ult_charge uses current capped _gain_ult_points so the
+retained Duplicate bonus is not discarded. Existing Echo health-event host is
+preserved, and copied Zarya damage is excluded from this second credit branch.
+World passive uses the same copied body's bonus. No new012/charge manager.
+
+Baseline original passive100ticks failed0.56 vs8. After integration original7
+methods pass9.656s: passivepaced/sparse, fieldend+170, futurecast+500 lock,
+latebody2cases, realweapon damage and post-field melee admission. Additional
+original overkill/cap/ally/miss/absorbed/heldQ pass; death test exposed missing
+source _respawn Zarya charge preservation. Added only source-matching healthy
+BodyScript capture to current respawn points bridge (not global hero switching),
+then all four original methods pass6.566s. Logs worker-a-zarya-world-charge-
+original-check.log and worker-a-zarya-charge-respawn-original-check.log.
+
+Crossowner originalEcho13+Zarya4+server snapshot1 ran18 in41.376s:16passed,
+Zarya respawn fail subsequently fixed as above; copiedSoldier passive fixture
+still computes1000*None because current Soldier uses natural0B8B rather than its
+old numeric ult_seconds timer. This error occurs in its expected-value expression;
+all other12Echo checks and existing whole-server combat snapshot pass. No original
+assertions/numbers modified. Original blocks-charge wholemethod also stops at
+prior health193.4 vs<193 (before charge assertions), kept visible. Original193
+projectile point/extent residual from A83 remains unchanged.
+
+Next: source field offense snapshot on existing Rocket/Field; sync root's actual
+cover_ray query for original field LOS; then mobility-stop/idle-reload/cadence
+consumer audit. No duplicate active actors, movers, regen ledgers or acceptance
+matrix. Estimated remaining3–7active hours low confidence, not a submission gate.
+
+## A85 — original Graviton eye-point cover consumer
+
+Cleanly absorbed root faec1f1c (worker merge652efbce) including five pure geometry
+queries, B61 actual NPC sole-mover ownership and C wall geometry. Restored source
+Graviton eye-point ray admission through existing Combat.cover_ray. It reads the
+same settled static world, IceWall and actual Cryo body geometry; no second trace
+service or historical-time facade was introduced. Current birth, radius, team,
+phase/Fade/Recall/Fortify and same-body protections remain on the existing path.
+
+Original static-wall and direct5/DOT20 methods plus NPC same-mover2, Flux overlap1,
+Fortify2 all pass (8 methods; only the SwiftStrike method
+fails its2subcases, all other7 pass),20.531s. Original SwiftStrike team/
+cover method now reaches its genuine missing ability-stop assertion (dash.active
+True vsFalse), which belongs to the next existing mobility consumer batch. All
+assertions/numerics retained. Log worker-a-zarya-field-cover-eye-check.log.
+
+Next: frozen field offense on existing Rocket/Field and source mobility stop/
+ready gates, then actual idle reload/cadence audit. Original193 width boundary,
+old recovery-ledger observations and Ana50/native60 remain visible.
+
+## A86 — original0068 launch Nano snapshot and causal storage
+
+Restored original Rocket.offense_scale optional launch snapshot for owned03DB/
+03E2 only, defaultNone preserves every other family's policy. Original source
+snapshot is Nano only: direct/blast HitDefs pre-multiply the launch scalar, and
+Field retains it. Body direct/splash and field DOT skip liveNano after that,
+while existing impact team/supercharger and captured Mercy credit remain. Native
+Pet/shield HitDef consumers receive the pre-scaled amount. The actual generic
+penetration contact helper has an optional source_scaled=False and snapshot
+Rocket passesTrue to prevent its additional Nano multiplication. Sigma/Orisa/
+Photon/Winston/Pet damage helpers were checked: no other liveNano multiplication.
+Deflect removes old captured staff*oldNano before applying new source staff*newNano;
+no accumulated boost, source ownership/flight lifecycle remain existing policy.
+No duplicate charge/field/defense service. Both fields use current exact dataclass
+storage; actualencrypted-peer whole GameServer launch and landing prove Rocket
+and Field scalar mutations change/restore digest and unknownField storage rejects.
+That causal method passes44.570s; initial out-of-journal direct switch was correctly
+rejected, replaced by session.apply and peer.commands, no strict bypass.
+
+Kept original0068 Nano secondary/Graviton checks as normal module with original
+assertions/numbers. Observation bridges: nano_until seconds->actual tick, original
+offense_scale observer->sole nano.offense, old pool->actual Pet.vitals. Original
+eye-aim Nano helper is incompatible with existing013B centre ranking at3m; recorded
+failed actual cast, then helper targets existing centre service without changing
+source assertions/range/cone or host Nano policy. Original secondary70.5 passed;
+Graviton unshielded/personal subcases preserve1.5 scalar after actualNano expiry,
+direct7.5+DOT30 total37.5, pool190.1/energy1.98. Projected subcase stillfails7.5
+initial health loss vs0: bounded diagnostic proves noPet existed,025C slot536
+absent/faultNone before projectile. It is an original horizontal projection input
+versus current actual target capsule/eye admission issue, not duplicate damage;
+original projected input and expectations retained. Diagnostic log
+worker-a-zarya-nano-projected-actual-diagnostic.log. First nullable536 diagnostic
+error retained and corrected; no fake slot/actor supplied. Current originalAna
+actual250heal/8s expiry and defaultGraviton/directweapon checks also passed.
+
+Logs worker-a-zarya-nano-launch-field-current-host-check.log (2methods oneprojected
+subfail, all othercases pass), worker-a-zarya-nano-actual-server-storage-check.log,
+worker-a-zarya-nano-snapshot-default-joint-check.log (3functional methods pass,
+initial controlled-root probe error before final fix). Remaining: original
+mobility-stop/ready gates, idle-reload/cadence, and C-reported trueNPC projected
+recipient admission on sameBarriers/Pet host. Do not create zarya_bubbles or old
+private recovery-ledger aliases. Original193 point/extent, oldAna50/native60 and
+all original assertions remain. Lowconfidence remaining3–7active hours.

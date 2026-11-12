@@ -1682,3 +1682,106 @@ assertions; then remaining source control/vector/victim-credit caller audit and
 non-Flux Sigma. Do not change global clocks/leases or rebuild movement objects.
 Root Flux and A Zarya remain separate. Source NPC/full cross-owner fixture
 couplings remain recorded rather than being counted complete from this batch.
+
+
+## B63 — original inclusive Breather deadline and exact endpoint clock
+
+Restore source note_breather_clock integer ceil/inclusive semantics INSIDE the
+existing Channel. Append optional deadline after existing positional fields.
+Observe the actual Hog body-command endpoint (including B58 healing_tick for
+historical callbacks); the later Combat observer must not overwrite that clock.
+No global time/lease change. Original scalar.5 expires only when world tick is
+GREATER than the declared deadline, keeping the impact-before-input final tick.
+
+Measured source evidence: castworld1001/componentnow16031, Wait.start16016+2000,
+remaining1985ms→ceil125→inclusive world1126. Previous floatuntil18.001 preceded
+world1126=18.016 by15ms. This explains the exact original offset0 difference;
+no damage expectation, timer duration or geometry was adjusted.
+
+Original fullcharge + rawchronology/strictstorage + runtime31 run109.780s retains
+four stale readiness observer subfails ONLY: B57 mapped old impulses.live to the
+then-native queue, while B60 now owns selected whole_hog_motion. Point that same
+original observer to the actual selected ledger; original readiness(all4 earning
+sources) and all six mitigation boundary subcases now2/2 methods pass15.129s.
+All other methods in the31-run pass, including the previously failing offset0,
+history, multipliers, real unequal-epoch late-damage proof, reset and strict
+storage. Original92 assertion-call ASTs match under actual observer mapping.
+The earlier progress statement that the whole charge group had passed was
+premature; final stale-observer result and corrected focused rerun are recorded
+without claiming a single all-green31 rerun. Logs worker-b-hog-inclusive-
+{deadline,readiness-corrected}.log. No client acceptance run.
+
+Next exact action: audit023B non-Flux Accretion/Grasp/barrier/charge/recovery real
+source consumers against sole current services, starting Accretion played control
+and receiver/native callbacks. Hog weapon/self-heal/charge/player-NPC-owned-mech
+motion core is mounted; remaining cross-control/vector/device/victim-credit and
+complete original NPC fixtures are STILL OPEN, not relabelled complete. Root
+owns Sigma Flux and A owns Zarya; do not duplicate those hosts.
+
+
+## B64 — actual Accretion caster blast and existing impulse consumer
+
+Audit finds current Accretion launch/tagged hit already mounted in Combat and
+1BBB/18 already creates the actual224E on sole Brigitte host. Keep that host;
+do not replay the unused legacy accretion.control or add a parallel stun pool.
+Original priority and launch cases pass. Full27 original Accretion methods
+baseline16.563s:6fail17errors, including genuinely missing caster self damage,
+self impulse and Fortify impulse guard, plus unresolved legacy helper/getters.
+
+Recover actual caster in existing explosion candidate/cover/damage transaction,
+only for actual accretion_source and same source entity. Original zero-amount
+blast still applies its declared self impulse; it does not emit a damage event.
+Reuse HitDef.source_impulse_scale, restoring original default1 only for the two
+original Sigma blast loadouts with enabled self impulse. No new persistent field,
+manager, pool, controller or VM step. Existing impulse helper now observes actual
+protection/control immunity and scales the original same-mover impulse.
+
+Six original real-input methods (zero-damage impulse, close self/enemy damage,
+lethal self hit, static cover, real target priority, authored launch) plus eight
+Damage and13runtime =27/27 pass5.832s. Whole fixture AST is unchanged under only
+actual sigma.ACCRETION→combat.ACCRETION and rock.blast.self_impulse_scale→
+source_impulse_scale mappings. Logs worker-b-sigma-{accretion-full-baseline,
+owner-blast,owner-blast-corrected,owner-final,owner-joint}.log retain all outcomes.
+The first two attempted joint commands had misspelled test module names; final
+27-run selects actual test_game_combat.DamageTests and test_script_runtime.
+
+Remaining exact original2.65m wall case now has self impulse but loss20 rather
+than expected below20; do NOT tune geometry or original assertion. Fortify
+case passes its original protected-mover checks before later legacy stuns-dict
+KeyError. Two other control cases also observe old dict while actual224E uses
+existing Brigitte host; prove the real recipient lifecycle before adapting those
+observers. No client acceptance run, no claim whole Sigma is complete.
+
+Next exact action: recover original non-Flux Sigma shield recovery/charge and
+Hypersphere shared impulse callers after auditing sole0033/pools/charge services;
+then map real existing Grasp/barrier contexts in original fixtures and restore
+missing test_sigma_symmetra_beam for original CLI consumers. Root owns Flux,
+A owns Zarya. Hog cross-control/device/vector/victim-credit and full NPC fixture
+audits remain open. Current remainder estimate12–25 active B hours, low
+confidence; largest unaudited source scope is Sigma non-Flux integration.
+
+
+## B65 — Sigma base shields use existing0033 recovery and actual pool query
+
+The shared recovery integrator and0033 own-body pool query both excluded Sigma.
+Adding Sigma only to those existing allowlists restores its original3s/30pps
+base-shield consumer without another deadline field, heal path or health pool.
+An actual damaged Sigma probe showed delay3/rate0 despite modifiers1: rate's
+existing current/max query returned the fallback. After exact query admission
+the original rifle interruption and respawn/recovery tests both pass unchanged.
+Use existing Vitals.last_damage_at/shield_accounted_at, already serverregistered.
+
+Two original Sigma checks + Zarya actual status2 + shared Damage8/runtime13
+=25/25 pass10.851s (worker-b-sigma-recovery-joint.log). Broader source23run
+41.184s:4failing subcases and2errors retained in recovery-native.log. Sigma's
+original Helix gap health260.24 remains actual260.0 paced/262.64 sparse on this
+older base, before its legacy shield_recovery_tick observer. Zarya twoerrors
+read old zarya_recovery.bodies; impact1244/1262 vs1245 also retained. A confirms
+A83 already repairs sparse admission on canonical, making paced/sparse1244,
+with original0068 point0 vs current authored extent.2 remaining1tick difference.
+Do not alter original numbers/geometry or call this a new Sigma regression.
+
+Next exact action: sync parent current canonical on clean boundary; audit
+Hypersphere real shared impulse and source Sigma charge/Grasp consumers. Root
+Flux and A Zarya remain sole owners. Source test/CLI module names must be
+verified from actual paths before claiming a file missing. No client acceptance.
