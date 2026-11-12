@@ -161,9 +161,10 @@ class AutomaticLifetimeTests(unittest.TestCase):
         component.run_frame(2)
         self.assertNotIn(active.id, component.instances)
 
-    def test_stopped_play_retirement_requires_world_opt_in_and_a_transient_root(self):
+    def test_explicit_stop_retirement_requires_world_opt_in_and_a_root(self):
         for opted_in, transient, child in ((True, True, False), (False, True, False),
-                                            (True, False, False), (True, True, True)):
+                                            (True, False, False), (False, False, False),
+                                            (True, True, True)):
             with self.subTest(opted_in=opted_in, transient=transient, child=child):
                 component = runtime.Component(B, strict=True)
                 parent = component.create(graph()) if child else None
@@ -179,7 +180,7 @@ class AutomaticLifetimeTests(unittest.TestCase):
                 ):
                     component.run_now()
 
-                retired = opted_in and transient and not child
+                retired = opted_in and not child
                 self.assertTrue(instance.stopped)
                 cleanup.assert_called_once_with()
                 self.assertEqual(instance.id not in component.instances, retired)

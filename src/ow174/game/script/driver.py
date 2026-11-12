@@ -205,7 +205,10 @@ DOOMFIST_PASSIVE_GRAPH = 0x0DDD
 DOOMFIST_SHIELD_GRAPH = 0x0DF3
 UPPERCUT_TARGET_GRAPH = 0x0E7D
 BODY_PLAY_GRAPHS = {(DOOMFIST_PASSIVE_GRAPH, 4): DOOMFIST_SHIELD_GRAPH}
-TARGET_PLAY_GRAPHS = {(0x0DD8, 22): UPPERCUT_TARGET_GRAPH}
+TARGET_PLAY_GRAPHS = {
+    (0x0DD8, 22): UPPERCUT_TARGET_GRAPH,
+    (0x160A, 42): 0x165A,  # Piledriver's per-victim movement reaction
+}
 WHEEL_HEALING_TAG = 0x0D60000000000308
 WHEEL_GREETING_TAG = 0x0D60000000000661
 ASHE_BODY = 0x040000000000251C
@@ -595,7 +598,8 @@ class BodyWorld(runtime.World):
         return True
 
     def retires_stopped_play(self, instance: runtime.Instance) -> bool:
-        return instance.graph.index in (DOOMFIST_SHIELD_GRAPH, UPPERCUT_TARGET_GRAPH)
+        index = instance.graph.index
+        return index == DOOMFIST_SHIELD_GRAPH or index in TARGET_PLAY_GRAPHS.values()
 
     def _wheel_animation_key(self, instance: runtime.Instance, node: graph.Node) -> tuple | None:
         parent = instance.parent
@@ -778,20 +782,21 @@ class BodyWorld(runtime.World):
         category = TRACK_TARGET_RAY_CATEGORIES.get(state.hostile_body_profile())
         if self.match is not None and category is not None:
             centre = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+            origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
             radius = state.evaluate(state.node.field("m_radius"), watch=False)
             if state.impact_sphere():
                 source = self.match._message_player(self.body)
-                if not (source is not None and source.mover is not None and nodes._finite_vector(centre)
+                if not (source is not None and source.mover is not None
+                        and nodes._finite_vector(centre) and nodes._finite_vector(origin)
                         and nodes._finite_number(radius) and radius > 0):
                     return runtime.TrackedBodySamples(())
                 centre = tuple(
                     f32(base + offset) for base, offset in zip(source.mover.position, centre, strict=True)
                 )
                 rows = self.match.combat.track_hostile_bodies(
-                    self.body, centre, radius, self.match.combat._eye(source), category,
+                    self.body, centre, radius, tuple(origin), category,
                 )
                 return runtime.TrackedBodySamples(rows)
-            origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
             if not (nodes._finite_vector(centre) and nodes._finite_vector(origin)
                     and nodes._finite_number(radius) and radius > 0):
                 return ()

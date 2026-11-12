@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Wrecking Ball Piledriver target reaction
+
+- Send the authored `165A` reaction to each selected opposing player using
+  the existing recipient PlayScript queue. The mover applies the velocity
+  reset and input limits, and releases control on the authored exit.
+- Retire explicitly stopped reaction roots so the next cast can start them.
+  Requests still carry the selected body identity across queued delivery.
+- Resolve the impact sight origin through the same authored stance and spring
+  anchor used by Seismic Slam.
+- Passed 923 public Python tests, Ruff and 82 targeted checks covering
+  Piledriver, recipient lifetimes, body VM storage and Doomfist regressions.
+- The launch impulse, NPC target movement and original-client presentation
+  remain open.
+
 #### Wrecking Ball Piledriver impact
 
 - Use the shared hostile capsule query to return target IDs and surface

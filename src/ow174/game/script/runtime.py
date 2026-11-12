@@ -727,7 +727,7 @@ class World:
         return NotImplemented
 
     def retires_stopped_play(self, instance: "Instance") -> bool:
-        """Whether a stopped transient PlayScript root should leave this world."""
+        """Whether the world removes this root when it explicitly stops."""
         return False
 
     def play_script(self, instance: "Instance", node: Node) -> None:
@@ -1557,9 +1557,9 @@ class Instance:
             self.write((scope, identifier), value)
         elif event.kind == STOP:
             self.stop()
+            # Native entity instances are pruned after explicit STOP even with lifetime byte 1.
             if (
                 self.stopped
-                and self.auto_retire
                 and self.parent is None
                 and self.component.instances.get(self.id) is self
                 and self.component.world.retires_stopped_play(self)
