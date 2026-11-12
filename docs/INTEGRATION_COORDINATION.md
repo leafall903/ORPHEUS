@@ -1160,3 +1160,32 @@ The five-NPC and actual encrypted-server Flux causal evidence is recorded in
 INTEGRATION_ROOT_FLUX.md. All32 original delivery source repositories were clean
 in the latest Git audit; this proves source submission state, not functional
 completion. Main/intake changes and remaining active worker WIP stay distinct.
+
+
+## Original tool consumers and shared force integration
+
+Root32-source non-game/tools symbol audit identified actual omitted extraction
+paths rather than treating missing names as missing runtime functions. Original
+NPC associated-evidence and status child-graph/definition supplementary CLI paths
+are restored (74aadb77 ->df655283), with42 original/shared checks passing0.470s
+and an actual immutable-base CLI probe passing. Original012F stance metadata
+extractor/full original tests are preserved (f5e456c3 ->11acb805); two parser
+methods and actual XML-to-existing34-field mover-loader probe pass. Two legacy
+mover-view API errors and four explicit-input skips remain unchanged. Current
+view_offsets continues as the runtime provider; no new physical fields, runtime
+pack, appearance extraction, service or client operation was introduced.
+
+A81 37335a94 ->cdff4126 restores actual Graviton includes/pulls/Fortify/Cryo/pin
+and no-ultimate-charge/periodic-armour policy. Its actual Flux overlap uses the
+same mover's horizontal pull and vertical physics instead of world_driven
+skipping the latter. B60 14f1b15b ->5f5ea2d8 restores original player WholeHog
+world damping/capsule displacement in the sole Knockbacks host, retains native
+queue priority, clears only selected motion on Hook, and exports exact causal
+motion fields. Both preserve original numeric assertions and actor identities.
+
+Root joint20 on frozen5f5ea2d8 passed57.127s: Graviton/Flux/Fortify/DOT/release,
+original Hog aggregation/wall/gap/Hook/causal storage, direct force and shared
+runtime budget. No whole-owner or original-client completion claim follows.
+All root handles are terminal. A82 actual NPC same-mover/data/release then
+flight/field clocks, B61 NPC/owned-mech actual Motion consumers and nonFluxSigma,
+and C remaining original support/phase paths continue on existing worker branches.
