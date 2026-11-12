@@ -3464,7 +3464,7 @@ class Combat:
         other players' body frames only on the ticks that send (`frames`)."""
         if self.match.collision_world is None:
             return
-        from ow174.game import defenses
+        from ow174.game import defenses, npc_shields
 
         self.echo_duplicates.update(now)
         self.pulse_bombs.prepare_gap(tick, self._targets())
@@ -3485,6 +3485,7 @@ class Combat:
                    for player in self.match.players)
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
+            or any(npc_shields.recovery_pending(bot) for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
@@ -7569,6 +7570,9 @@ class Combat:
         if not killed and not isinstance(victim, bots.Bot) and victim.body_script is not None:
             regeneration.damaged(victim.body_script, _source_entity(shooter))
         if isinstance(victim, bots.Bot) and isinstance(victim.body_script, BotScript):
+            from ow174.game import npc_shields
+
+            npc_shields.received_damage(self, victim, vitals, attacker)
             victim.body_script.show_damage_nameplate(_source_entity(shooter))
             if (hit_reaction or deadeye) and not self.is_stunned(victim):
                 # Ordinary hit presentation does not interrupt AI or move the victim.

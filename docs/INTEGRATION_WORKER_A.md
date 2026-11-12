@@ -135,3 +135,21 @@ condition rejects disabled primary, unlike old007A's held-only query. Preserve
 that semantic difference and the original check. Remaining owned-body difference
 also includes the original spread trace expecting the prior private call shape.
 Do not count those alone as an absent gameplay consumer or weaken their assertions.
+
+DVa launch/landing batch committed `9669c2f4`. Source007A core `dva.py`,
+`fusion_spread.py`, `weapon_aim.py`, `script/placement.py`, `script/entity_link.py`
+are unchanged. All body_entities functions are mounted; differences bridge the
+combined healing/barriers/pins/mover/factory context. Factory, foreign variables,
+possession, weapons, Matrix, Boosters, missiles, Self-Destruct, Call Mech, return
+and retirement have actual consumers. Root owns formal delivery ancestry and
+cross-owner Ana/hook/graviton/Sigma reconciliation; preserve all original checks.
+
+The0020 NPC-shield batch mounts0E62 queries, actual-damage rearm, authored
+recovery and combat catch-up using existing Vitals shields. All14 focused
+recovery/runtime checks passed with existing combined catalog/graphs/movers.
+`test_npc_shields_delivery.py` preserves the original actual-hit test assertions;
+its arena only omits difficulty_index=None. Nondefault `difficulty_index` and
+143A conditional NPC pools remain genuinely unmounted and are the next exact
+0020 consumer to reconcile. The source recovery module's pool access/restoration
+is adapted to canonical Vitals and the keyword-only timed healing factor.
+Data path: `verification/combined-server-runtime/data`; no copied archives.
