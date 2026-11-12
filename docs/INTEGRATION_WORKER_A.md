@@ -288,3 +288,37 @@ Next exact actions: mount dragon.py, initial034F manual0101 cast delivery,
 initial penetration and terminal Flight continuation, historical target poses,
 then source combat_profiles + CLI/lobby/GameServer startup/replay plumbing.
 No whole0005 completion claimed; no runtime input files changed.
+
+
+A14 committed `1b11d19c`. A15 mounts source dragon.py (single source_entity ->
+source_body keyword adapter), live034F range/pierce/subframe continuation,
+independent moving damage source, source leave cleanup and full storage. Exact
+source observe_dragon_pose/_dragon_gap_poses methods are mounted; match command
+pose evidence now consumed. Existing ConditionalTimer already runs0101's
+1s/1.2s phases, confirmed by original stored-timer mutation check.
+Original19 DragonPlayer methods retained unchanged and executed via AST solely
+to omit absent test_game_hanzo_npc import:14 passed,5 method failures preserved
+(2 failures and5 errors including dependent subtests). Four methods need original
+Orisa Fortify historical pose-anchor/pending activation/idle clocks; fifth is
+an API spy checking source_entity while combined adapter passes source_body.
+Range/penetration, exact subframe, source death/replacement, opposing sources,
+expiry/clamped dose and both VM/server storage methods pass. Logs:
+worker-a-hanzo-dragon-player-first.log and worker-a-hanzo-dragon-nonstorage.log.
+No old checks changed. Next exact action: mount original combat_profiles,
+--reconstructed-hanzo-{sonic,dragon}-profile CLI flags, lobby Settings ->
+GameServer -> each match configure and journal operation/snapshot capture;
+then merge original Orisa Fortify history without replacing newer Orisa barrier
+manager. Root has been asked whether its latest damage API already bridges the
+old source_entity keyword; do not wait to continue startup consumers.
+
+A15 final attribution adjustment authorized by root: restore dragon.py exactly
+and add explicit _damage(source_entity) synonym. A conflicting non-None
+source_body/source_entity raises before even vitals_of lookup. Allthree original
+two-cast spy, source replacement and source death methods pass unchanged; the
+conflict probe passes with vitals_of instrumented to reject any access. This
+retires the old API-spy failure:15/19 unique original DragonPlayer methods now
+pass, four Fortify historical-clock methods remain. Original full19-method
+log predates the alias; worker-a-hanzo-dragon-source-api.log is final attribution
+evidence.55 existing projectile/Bastion/runtime checks pass in
+worker-a-hanzo-dragon-shared.log. Keep the four source Fortify checks unchanged.
+A15 final DamageTests regression:8/8 passed in worker-a-hanzo-dragon-damage-regression.log.

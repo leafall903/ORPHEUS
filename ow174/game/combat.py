@@ -53,6 +53,7 @@ from dataclasses import dataclass, field, replace
 
 from ow174.game import (
     sonic,
+    dragon,
     absorption,
     barrage_motion,
     actors,
@@ -1466,6 +1467,7 @@ class Rocket:
     motion: tuple = ()
     motion_phase_offset: float = 0.0
     deflect_lifetime: float | None = None
+    continuation: dragon.Profile | None = None
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
     barrage_source: tuple | None = None
@@ -1869,6 +1871,9 @@ class Combat:
         self.booster_contacts = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.dragon_profile: dragon.Profile | None = None
+        self.dragons: list[dragon.Flight] = []
+        self.dragon_pose_anchors: dict[int, tuple] = {}
         self.sonic_profile: sonic.Profile | None = None
         self.sonars: list[sonic.Beacon] = []
         self.pending_attacks: list[PendingAttack] = []
@@ -3682,6 +3687,7 @@ class Combat:
             return
         from ow174.game import defenses, npc_shields
 
+        dragon_poses = self._dragon_gap_poses(tick)
         self.echo_duplicates.update(now)
         self.pulse_bombs.prepare_gap(tick, self._targets())
         self.barriers.world.update(tick)
@@ -3690,7 +3696,8 @@ class Combat:
         retained = max(self.tick + 1, tick - COMBAT_CATCH_UP + 1)
         first = tick
         if self.tick and tick > self.tick + 1 and (
-            self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
+            self.dragons or any(r.continuation is not None for r in self.rockets)
+            or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -3719,6 +3726,9 @@ class Combat:
             self.now, self.tick = now - (tick - first + 1) * TICK, first - 1
             self.zenyatta.update()
             self.now, self.tick = previous_time, previous_tick
+        if self.dragons and first > self.tick + 1:
+            self.dragons[:] = [flight for flight in self.dragons
+                               if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         field_first = self.tick + 1
@@ -3772,6 +3782,8 @@ class Combat:
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
+            self.dragons[:] = [flight for flight in self.dragons
+                               if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
@@ -3974,6 +3986,58 @@ class Combat:
             self.barrier.damage(actor, owner, amount)
         else:
             self.barriers.damage(actor, amount, shooter)
+
+    def observe_dragon_pose(self, player, frame: int, exact: bool) -> None:
+        """Track an observed command/world anchor, retaining its first pose during a batch."""
+        if not player.mover.history or player.mover.history[-1].frame != frame:
+            self.dragon_pose_anchors.pop(player.body, None)
+            return
+        world = self.match.tick
+        previous = self.dragon_pose_anchors.get(player.body)
+        latest = frame if exact else None
+        if previous is None:
+            anchor = (world, frame, False, latest)
+        else:
+            old_world, old_frame, trusted, old_latest = previous
+            if world == old_world:
+                continued = exact and old_latest is not None and frame == old_latest + 1
+                anchor = (world, old_frame, trusted and continued, latest)
+            else:
+                aligned = exact and world == old_world + 1 and old_latest == old_frame and frame == old_frame + 1
+                anchor = (world, frame, aligned, latest)
+        self.dragon_pose_anchors[player.body] = anchor
+
+
+    def _dragon_gap_poses(self, tick: int) -> dict:
+        """Use a complete, explicitly received movement batch for this world gap."""
+        if tick <= self.tick + 1 or not (self.dragons or any(r.continuation for r in self.rockets)):
+            return {}
+        from ow174.game.mover import CROUCHED
+
+        poses = {}
+        for target in self._targets():
+            anchor = self.dragon_pose_anchors.get(target.entity)
+            if anchor is None:
+                continue
+            world, frame, trusted, latest = anchor
+            if not trusted or world != self.tick or latest != frame + tick - world:
+                continue
+            history = {sample.frame: sample for sample in target.owner.mover.history}
+            if latest not in history or history[latest].position != target.feet:
+                continue
+            frames = range(frame, latest)
+            if any(number not in history for number in frames):
+                continue
+            body = target.owner.hero.body
+            data = mover_data(body)
+            for step, number in enumerate(frames, 1):
+                sample = history[number]
+                crouched = bool(sample.flags & CROUCHED)
+                height = data.crouch_height if crouched else data.stand_height
+                poses[target.entity, world + step] = replace(
+                    target, feet=sample.position, height=height, eye=eye_height(body, crouched))
+        return poses
+
 
     def _targets(self) -> list[Target]:
         found = []
@@ -4782,6 +4846,12 @@ class Combat:
                 log.exception("[game] %s: %s's pending attack failed", self.match.label(), attack.shooter.name)
 
 
+    def configure_dragonstrike(self, profile: dragon.Profile) -> None:
+        """Mount the delivered explicit external reconstructed Dragon profile."""
+        if not isinstance(profile, dragon.Profile) or self.rockets or self.dragons:
+            raise ValueError("Dragon profile must be mounted before active projectiles")
+        self.dragon_profile = profile
+
     def configure_sonic(self, profile: sonic.Profile) -> None:
         """Explicitly mount the delivered external reconstructed Sonic profile."""
         if not isinstance(profile, sonic.Profile) or self.rockets or self.sonars:
@@ -4918,6 +4988,9 @@ class Combat:
         if (hanzo_bow and direct is not None
                 and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
             direct = replace(direct, critical=2.0, projectile_headshot=True)
+        dragon_initial = (not npc and shooter.hero.guid == dragon.HANZO
+                          and definition == dragon.INITIAL)
+        continuation = self.dragon_profile if dragon_initial else None
         field_canister = (not npc and state.instance.graph.index == 0x0257 and state.index == 1
                           and definition == 0x040000000000072D)
         rebound_limit, rebound_scale = None, 0.0
@@ -4975,7 +5048,7 @@ class Combat:
                 blast = HitDef(amount, direct.loadout if direct else None, rings=((radius, 1.0),),
                                healing=True, line_of_sight=True,
                                tags=direct.tags if direct else (), health_operation=0)
-            range_left = reach if field_spec is not None or grenade is not None or hanzo_bow else None
+            range_left = reach if field_spec is not None or grenade is not None or hanzo_bow or continuation is not None else None
             barrage = (not npc and shooter.hero.guid == 0x02E0000000000008
                        and (state.instance.graph.index, state.index) == (barrage_motion.GRAPH, barrage_motion.STATE))
             curve_motion = ()
@@ -5114,18 +5187,19 @@ class Combat:
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
+                        continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
-                                      / state.instance.component.frame_ms if hanzo_bow else None),
+                                      / state.instance.component.frame_ms if hanzo_bow or continuation is not None else None),
                         sonar=(self.sonic_profile if not npc and shooter.hero.guid == sonic.HANZO
                                and state.instance.graph.index == 0x00B9 and definition in sonic.DEFINITIONS else None),
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
-                        target_limit=target_limit,
+                        target_limit=continuation.initial_hit_limit if continuation is not None else target_limit,
                         spawn=spawn, source_graph=source_graph, source_state=state if server_ability or not npc else None,
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
-                        range_limit=reach if field_canister or barrage or hanzo_bow else None,
+                        range_limit=reach if field_canister or barrage or hanzo_bow or continuation is not None else None,
                         rebound_limit=rebound_limit if field_canister else None,
                         rebound_scale=rebound_scale,
                     )
@@ -5651,7 +5725,7 @@ class Combat:
         sweep_tick = self.tick - elapsed + 1
         rocket.last_tick = self.tick
         if (rocket.deployment is not None or rocket.penetrated is not None
-                or rocket.range_left is not None and rocket.source_graph != 0x00B9):
+                or rocket.range_left is not None and rocket.source_graph != 0x00B9 and rocket.continuation is None):
             duration = elapsed * TICK
             sweep_tick = self.tick - elapsed
             while duration > EPSILON and rocket in self.rockets:
@@ -5659,6 +5733,17 @@ class Combat:
                 self._sweep(rocket, portion, sweep_tick)
                 duration -= portion
                 sweep_tick += portion / TICK
+            return
+        if rocket.continuation is not None:
+            if getattr(rocket.shooter, "gone", False):
+                self._landed(rocket, release=False)
+                return
+            duration = min(elapsed * TICK, rocket.left,
+                           max(0.0, (self.tick - rocket.started_tick) * TICK - rocket.flown))
+            if duration > 0:
+                self._fly_slice(rocket, duration, self.tick)
+            elif rocket.left <= 0:
+                self._expire(rocket)
             return
         if rocket.is_barrage:
             registered = rocket in self.rockets
@@ -6055,7 +6140,7 @@ class Combat:
                     manager.damage(actor, rocket.direct, rocket.flown * rocket.speed)
                 self._stick(rocket, point, duration - contact_time)
                 return 0.0
-            self._landed(rocket)
+            self._landed(rocket, continuation_point=point)
             self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
             return 0.0
 
@@ -6125,7 +6210,7 @@ class Combat:
             rocket.flown += spent - contact_time
             rocket.left -= spent
             if rocket.left <= EPSILON:
-                self._landed(rocket)
+                self._landed(rocket, continuation_point=point)
                 return 0.0
             return duration - spent
         point = _along(rocket.position, heading, t)
@@ -6136,7 +6221,7 @@ class Combat:
             if rocket.sticky_delay is not None:
                 self._stick(rocket, point, duration - contact_time)
             else:
-                self._landed(rocket)
+                self._landed(rocket, continuation_point=point)
             return 0.0
         if echo_shield is not None:
             actor = echo_shield[1]
@@ -6151,7 +6236,7 @@ class Combat:
                 self._explode(rocket, point, protected=(actor.body,))
             else:
                 self._explode(rocket, point, world_shields=(actor,))
-            self._landed(rocket)
+            self._landed(rocket, continuation_point=point)
             return 0.0
         if struck is None:
             point = _along(rocket.position, heading, max(0.0, t - 1e-4))
@@ -6219,7 +6304,7 @@ class Combat:
                 rocket.attached_offset = _sub(point, struck.feet)
             self._stick(rocket, point, duration - contact_time)
             return 0.0
-        self._landed(rocket)
+        self._landed(rocket, continuation_point=point)
         damage_point = (_along(point, heading, 1e-4)
                         if struck is None and rocket.direct is not None
                         and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
@@ -6998,10 +7083,18 @@ class Combat:
             if mover.velocity[1] > 0:
                 mover.fall = 0.0
 
-    def _landed(self, rocket: Rocket, *, release: bool = True, ground_point=None) -> None:
+    def _landed(self, rocket: Rocket, *, release: bool = True, ground_point=None, continuation_point=None) -> None:
         """Finish authority and release or retire the predicted copy."""
         if rocket in self.rockets:
             self.rockets.remove(rocket)
+            if release and rocket.continuation is not None:
+                if continuation_point is not None:
+                    rocket.position = continuation_point
+                born = self.tick if rocket.started_tick is None else rocket.started_tick + rocket.flown / TICK
+                self.dragons.append(dragon.Flight(
+                    rocket.shooter, rocket.source_entity or _source_entity(rocket.shooter), rocket.team,
+                    rocket.position, rocket.direction, rocket.continuation, born,
+                ))
             if rocket.source_graph in (0x0CCB, 0x0BD7, 0x0CF5):
                 self.ability_impacts.append(rocket)
             self.orisa.landed(rocket)
@@ -7828,9 +7921,13 @@ class Combat:
         hit_tags: tuple[int, ...] = (), armour_scalar: float | None = None,
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
-        reflected_reaper_shell: bool = False,
+        reflected_reaper_shell: bool = False, source_entity: int | None = None,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
+        if source_entity is not None:
+            if source_body is not None and source_body != source_entity:
+                raise ValueError("conflicting damage source_body and source_entity")
+            source_body = source_entity
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
             return False
         vitals = self.vitals_of(target)

@@ -129,6 +129,30 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Mount delivered Dragonstrike launch and moving-damage continuation
+
+- Mount original dragon.py unchanged and an explicit source_entity damage API
+  alias; reject conflicting source_body/source_entity before any pool lookup. Mount explicit profile, initial034F range,
+  penetration and subframe launch clock, terminal Flight at the actual contact,
+  ongoing seven-sphere damage, independent source body, death/replacement/leave
+  semantics and storage. Keep current ConditionalTimer native phase handling.
+- Mount the delivery's exact command-batch pose evidence methods and bridge the
+  current movement/update scheduler. Retain the original Dragon test file
+  unchanged.15 of19 original Player methods passed, including both phase/server
+  storage checks, batched poses, body penetration, range transformation, original
+  killer after caster replacement/death, independent opposing sources and the
+  final clamped dose. AST loading omitted only unrelated absent NPC fixture.
+- Preserve all failures: four Fortify historical-clock methods still require the
+  delivery's Orisa pose-anchor/pending activation and idle clock consumer. The
+  original two-cast spy/source attribution now passes unchanged, as do source
+  death/replacement checks and the conflicting-source-before-pool probe. All55
+  projectile/Bastion/runtime checks passed; DamageTests results are in checkpoint.
+  Do not weaken the remaining checks or block this implementation commit.
+  Full evidence is worker-a-hanzo-dragon-player-first.log (19 methods) and
+  worker-a-hanzo-dragon-nonstorage.log. Client/native rate/volume semantics remain
+  open as in source. Next mount explicit CLI/lobby/server/replay profile plumbing,
+  then reconcile the remaining Orisa historical clock consumer.
+
 ### Mount delivered Sonic impact, attachment and reveal consumers
 
 - Mount original sonic.py unchanged: explicit external profile, per00B9 Sonic
