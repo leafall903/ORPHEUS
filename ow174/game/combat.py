@@ -70,6 +70,7 @@ from ow174.game import (
     hero_torbjorn,
     molten_core,
     torbjorn_mark,
+    torbjorn_charge,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -819,6 +820,46 @@ class Vitals:
             self.next_pool += 1
         self.changed.add(ARMOUR_POOL)
         return True
+
+    @property
+    def temporary_shields(self):
+        """Delivered tagged-shield API view onto existing authoritative extra pools."""
+        return {pool.identifier: pool for pool in self.extra.values()
+                if pool.kind == SHIELDS_POOL and not pool.removed}
+
+    def grant_temporary_shields(self, tag: int, amount: float, limit: float) -> float:
+        if not math.isfinite(amount) or not math.isfinite(limit) or amount < 0 or limit < 0:
+            raise ValueError("temporary shields need finite nonnegative amount/cap")
+        if self.dead or amount == 0:
+            return 0.0
+        pool = self.temporary_shields.get(tag)
+        current = pool.now if pool is not None else 0.0
+        given = min(amount, max(0.0, limit - current))
+        if given > 0:
+            if pool is None:
+                key = ("adaptive", tag) if tag == moira.ADAPTIVE_SHIELD_TAG else ("tagged-shield", tag)
+                pool = self.add_temporary(key, tag, SHIELDS_POOL, given, -1)
+                if pool is None:
+                    raise ValueError("temporary shield slots exhausted")
+            else:
+                pool.now += given
+                pool.most = pool.now
+                self.changed.add(SHIELDS_POOL)
+        return given
+
+    def decay_temporary_shields(self, tag: int, amount: float) -> float:
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("temporary shield decay needs finite nonnegative amount")
+        pool = self.temporary_shields.get(tag)
+        if pool is None:
+            return 0.0
+        taken = min(amount, pool.now)
+        if taken > 0:
+            pool.now -= taken
+            if pool.now <= EPSILON:
+                pool.now = pool.most = 0.0
+            self.changed.add(SHIELDS_POOL)
+        return taken
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -8423,6 +8464,9 @@ class Combat:
             charge.boosted(caster, target.entity, dealt, extra, scale - 1.0,
                            valkyrie_frame=impact if historical else None)
         adaptive_loss = shield_before - (adaptive.now if adaptive is not None else 0.0)
+        charge_owner = self._credit_player(shooter)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
+            torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8490,7 +8534,7 @@ class Combat:
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
-                    and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == doomfist.HERO:

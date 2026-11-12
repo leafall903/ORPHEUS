@@ -81,6 +81,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Mount delivered Reinhardt mutual Charge windup counters
+### Mount delivered Torbjorn original charge and owner gates
+
+- Connect original0B8B permission, native owner/classification queries, periodic
+  wait and012 damage/tag/pool-loss records to Torbjorn only. Preserve current
+  Genji and Orisa single owner hosts, their charge formulas/history and all
+  generic typed evaluators outside this explicit compatibility route.
+- Route turret damage through its real owner, deduct actual3EBB shield loss,
+  reject deployable/repair/self/ultimate damage and retain authored clamps and
+  modifiers. Transfer the normal passive deadline and unspent charge across
+  same-hero replacements; retain explicit sandbox timer overrides.
+- Adapt original tagged-shield grant/decay/read API to real existing extra pools
+  and unique wire IDs. Existing TTL/capsule/owner lifetimes stay authoritative;
+  there is no second pool or independent observed health counter.
+- Preserve original Torbjorn assembly ultimate gate and held/released input
+  policy without altering existing skill locks. Source charge/NPC/ultimate
+  checks are retained unchanged. Six owner core checks pass; three actual
+  shield/grant/cast checks pass; passive replacement/respawn cases pass. Seven
+  additional lifecycle/turret checks pass, and all three assembly cases pass.
+- Shared60-check run:55 pass/four skip/one existing Genji spawn-lifecycle fail.
+  Root reproduced the identical line206 failure on clean8dc396d6 before C19,
+  and is fixing its existing Genji host dispatch separately. No source
+  assertion was changed or existing check weakened to submit this batch.
+- Original shared Genji/Orisa/Ball helper declarations are retained; new C19
+  consumers are scoped to Torb. Canonical Ball1566 and the other two charge
+  hosts remain separate owners. Cross-owner3EBB record equivalence still needs
+  audit (Orisa currently emits empty detail arrays); whole0006 completion and
+  original-client acceptance are not claimed.
+
 ### Mount delivered Molten Core projectiles, areas and status consumers
 
 - Connect original16DA input/ten-globule resource lifetime, point ballistic

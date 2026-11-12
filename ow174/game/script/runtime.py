@@ -364,6 +364,17 @@ class InstanceContext(Context):
     def fold(self, cfg: dict, *, initial=None):
         from ow174.game.script import fold
 
+        component = self.instance.component
+        if (not component.strict and component.world.hero == 0x02E0000000000006
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            # Delivered012 pool records are the explicit sandbox tag/loss
+            # representation. Preserve its3EBB deduction before generic folds.
+            from ow174.game import torbjorn_charge
+
+            result = torbjorn_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
 
     def native(self, cfg: dict):
@@ -398,6 +409,18 @@ class InstanceContext(Context):
         )
 
         component = self.instance.component
+        if (not component.strict and component.world.hero == 0x02E0000000000006
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            # Preserve the delivered Torb normal/practice gate before the newer
+            # generic typed component43 query. Other owners keep their hosts.
+            from ow174.game import torbjorn_charge
+
+            result = torbjorn_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
+            if cls == body_owner.CLASS:
+                return False  # Body construction has not published its owner script yet.
         if (not component.strict and component.world.hero == 0x02E0000000000004
                 and cls == body_owner.CLASS and self.instance.graph.index in (0x0B8B, 0x006B)):
             result = component.world.native(cfg, self.instance)

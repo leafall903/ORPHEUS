@@ -2662,6 +2662,10 @@ class Wait(State):
 
     def arm(self) -> None:
         self.ms = seconds_to_ms(self.evaluate(_field(self, "m_timeout")))
+        if getattr(self.instance.component.world, "hero", None) == 0x02E0000000000006:
+            from ow174.game import torbjorn_charge
+
+            self.ms = torbjorn_charge.passive_wait_duration(self, self.ms)
         if self.ms > 0 and self.instance.component.world.external_wait(self):
             return
         if self.dynamic():
@@ -3539,6 +3543,15 @@ class Ability(State):
     def can_start(self) -> bool:
         if self.instance.component.owner_dead:
             return False  # unverified (PS4 build): no start while the owner is dead ("allowed": not read)
+        world = self.instance.component.world
+        match = getattr(world, "match", None)
+        if getattr(world, "hero", None) == 0x02E0000000000006 and match is not None and match.assembling():
+            from ow174.game import torbjorn_charge
+
+            player = torbjorn_charge.owner(world, self.instance.component)
+            if player is not None and self in player.body_script.ultimates:
+                self.presses.clear()
+                return False
         start, hold, _ = self.buttons()
         if self.instance.component.world.skill_locked(self):
             self.presses.clear()
