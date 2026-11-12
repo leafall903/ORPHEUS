@@ -316,6 +316,7 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.body_definition = body_definition
+        self.beam_barrier = None
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
         self.emote_blend_trees: tuple[int, ...] = ()

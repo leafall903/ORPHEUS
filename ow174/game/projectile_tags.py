@@ -48,3 +48,7 @@ def absorbable(definition):
 
 def tags_of(definition):
     return _CATALOG.get(definition)
+
+
+def has_tag(definition, tag):
+    return tag in _CATALOG.get(definition, ())
