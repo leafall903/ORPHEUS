@@ -8504,6 +8504,8 @@ class Combat:
                 self._cleanse_biotic_block(target.owner, vitals)
 
     def _cleanse_biotic_block(self, owner, vitals: Vitals | None) -> None:
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            return  # Native Pet application owns Zarya's original cleanse event.
         if vitals is None or self.now >= vitals.healing_block[1]:
             return
         if self._personal_barrier_pet(owner) is not None:
@@ -8976,8 +8978,7 @@ class Combat:
                     caster.body, self.now + seconds, capacity,
                 )
                 vitals = self.vitals_of(target)
-                if self.now < vitals.healing_block[1]:
-                    vitals.healing_block = vitals.healing_block[0], self.now
+                # Actual native Pet application owns the recipient cleanse.
 
     @staticmethod
     def _particle_barrier_capacity() -> float:
