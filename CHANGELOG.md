@@ -20,6 +20,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   and PinEffectServices stored callbacks remain the next root integration batch;
   the independent empty VM core is mounted without claiming that scope complete.
 
+### Preserve NPC control interruption through Photon guards
+
+- Non-Symmetra BotScript no longer crashes in the shared Photon windup interrupt guard; real Symmetra handling is unchanged. Actual Sleep Dart now pauses BOB on existing Vitals and resumes its authored gun.
+- Real contiguous/skipped BOB sleep regression preserves original hit schedule and fixed lifetime. Together with original BOB and shared VM:28 passed. Original sleeps/freezes/Photon observer API errors retained; no client acceptance run.
 
 ### Read BOB silence through its actual recipient clock
 

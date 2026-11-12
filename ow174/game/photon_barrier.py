@@ -387,7 +387,7 @@ def _active_wait(instance):
 
 def interrupt(script):
     """Abort 156B's confirmed windup before its finished plug can create the wall."""
-    if script.hero != HERO or script.component.strict:
+    if getattr(script, 'hero', None) != HERO or script.component.strict:
         return
     for instance in script.component.instances.values():
         if instance.graph.index == GRAPH:
