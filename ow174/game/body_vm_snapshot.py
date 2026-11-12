@@ -115,7 +115,7 @@ _STATE_LAYOUTS = {
                            "voice_submitted", "voice_failed"), ()),
     nodes.VoiceSetOverride: ((), ()),
     nodes.NumericPropertyModifiers: (("per_frame",), ()),
-    nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits"), ()),
+    nodes.LinkedTarget: (("mover_angles", "linked_entity", "adjustment", "local_yaw", "local_limits", "linked_cache"), ()),
     nodes.ScopedSubgraph: (("scope_registry",), ()),
     nodes.AuxiliaryEffect: (("scope_registry", "effect", "effect_list", "owned_effects"), ()),
     nodes.BooleanSwitch: (("current", "pending"), ()),
