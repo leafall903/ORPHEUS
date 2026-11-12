@@ -3532,7 +3532,7 @@ class Combat:
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
         self.hooks.command(player, command)
-        self.breathers.observe(player)
+        self.breathers.observe(player, clock=False)
         self.sound_barriers.observe(player)
         if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
             self.lucio_auras.refresh(script.frame)
@@ -9268,7 +9268,9 @@ class Combat:
         if not math.isfinite(scalar):
             scalar = fallback
         channel = self.breathers.channels.get(entity)
-        if (scalar == 0.5 and channel is not None and self.now > channel.until
+        expired = (self.tick > channel.deadline if channel is not None and channel.deadline is not None
+                   else channel is not None and self.now > channel.until)
+        if (scalar == 0.5 and expired
                 and getattr(getattr(owner, 'hero', None), 'guid', None) == breather.HERO):
             return 1.0
         return max(0.0, scalar)
