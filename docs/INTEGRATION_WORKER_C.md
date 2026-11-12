@@ -476,3 +476,169 @@ and retained scheduling/respawn bridges require separate source comparison;
 constants or source files alone are not completion. Source symmetra placement/
 transit/teleport entry consumers have not yet been copied/mounted. Remaining
 other owners0065/00DD/012E/0200 still require full reconciliation.
+
+C20 SHA cc349c0f delivered. Clean boundary synchronizes root7ba03d3c, preserving
+4999fd44 actual Vitals clock/tag dispatch and numeric/tagged API split, Genji/
+Torb direct native routing, health lifetime and Venom source consumers. Verify
+no duplicate non-property methods remain in touched classes; no whole-file
+replacement or rollback of other owners. This coordination merge is not a new
+delivery. C19's shared regression is fixed and retained by this synchronization.
+
+
+## C21 original Symmetra recovery checkpoint
+
+Original0033 recovery consumes existing Vitals shields. last_damage_at and
+shield_accounted_at reset only for Symm after actual positive damage; recover
+through now-TICK before damage. Read authored delay/rate and modifiers.
+Runtime/BodyWorld native own-kind current/maximum queries are narrowly Symm0033
+nonstrict; unsupported queries preserve typed fallthrough. Root4999fd44 shield
+numeric/tagged APIs and clock/tag decay dispatch are preserved.
+
+Original test_symmetra_combat21/21 pass21.061s; log
+worker-c-symmetra-recovery-final-check.log. With v4/PYTHONPATH tests:
+python -B -m unittest test_game_combat.DamageTests test_game_npc test_doomfist_resources -v
+20/20 pass10.484s; worker-c-symmetra-recovery-shared-check.log.
+Actual ServerSnapshotTests.scene/capture digest independently changes for
+last_damage_at=1.25 and shield_accounted_at=2.5. First probe found C20's actual
+beam_barrier field absent from server registry (VM-only registered); repaired
+here and second actual probe passes. No original assertions changed.
+
+Next: commit recovery and mount original Symm charge, then actual sentry and
+portal/placement managers. Sentry source has substantial retained-history
+replay/defense adapters; copying alone cannot count it integrated. Source25s
+orb and retained flight remain unfinished. Other C20 owner boundaries persist.
+
+
+C21 SHA ce7f0a78 delivered; root notes C20 receiver already repaired its server
+beam field and C19 passive_charge_due, so retain their receiver registrations.
+
+## C22 original Symmetra charge checkpoint
+
+Source symmetra_charge.py actual0B8B queries, mode gate, command synchronization,
+world idle deadlines and012 pool loss are connected for Symm only. Original
+module's shared Genji constants/helpers remain present; canonical Genji's own
+single host remains authoritative and is not routed through this new host.
+Photon wall suppression reads existing photon_barriers.actors, no second pool.
+Generic combat award excludes Symm so actual damage is not counted twice.
+Same-hero respawn restores meter and resets the real charge_clock; selection
+still resets normally. VM/server optional registries include this actual tuple.
+
+First7 core run: sixpass/onecase with2 offset failures; clock initialized before
+_spawn was wrong (time0 vs initialized16015). Match source placement after
+successful_spawn; all7 then pass4.259s. Full original unchanged
+ test_symmetra_charge + test_symmetra_combat =30pass28.268s, including the
+25second orb lifetime and real pre/post-respawn hits (no claim that all source
+retained scheduler branches are integrated). Log worker-c-symmetra-charge-full-check.log.
+OriginalGenji passive+Damage21pass10.319s, worker-c-symmetra-charge-shared-check.log.
+Actual ServerSnapshotTests scene, session.apply switch_hero Symm, capture and
+export_body_vm: changing charge_clock tick+1/time+16 changes both digests.
+First ad-hoc probe tried direct switch outside controlled journal root and
+correctly rejected; repeat uses existing session.apply, no guard weakened.
+
+Remaining: original source Photon-expiry/omitted-history clocks need comparison
+against canonical actor scheduler; unmounted sentry/portal/placement services
+and their retained-history interactions remain. Core9 charge passing does not
+prove those cross-owner branches. Continue actual sentry deployment/beam/slow
+and preserved original source checks next; no full-journal gate or client use.
+
+C22 SHA5beccbdc delivered. Clean boundary sync root6ef42b61 preserves B18 BotScript polymorphism/nontransportability, A25/26 Widow and source reconciliation map. Server registry retains root passive_charge_due plus own charge_clock and one beam_barrier field. Coordination only; continue C23 sentry.
+
+
+## C23 actor-backed original sentry core checkpoint
+
+Actual2658 NPC/Vitals/BotScript owner core mounted in symmetra_turrets.Turrets,
+Combat.sentries. Source157E/12 shot hands off before generic projectile; exact
+source157F boot/1590 live beam/range and01E7 aura inputs. Generic bot gun skips
+these actors, no second gun or pool. Existing Bot.combat_geometry retains source
+1m/0.2m capsule; zero-locomotion summoned actors are driven solely by this owner
+flight/attach logic (source Definition.mover constructor is not a second NPC API).
+NPC.remove_body does exact existing cleanup. Source death persists, switch/leave
+retire owned actors; source target change/destroy/retire destroys only its aura.
+Mei pillar removal calls actualmanager.retire_attached_to; old unused prototype
+module remains preserved, no fake .devices/.sentries health view.
+
+Original test_symmetra_turrets.py copied byte-identically. First3 checks exposed
+source Definition.mover positional mismatch; adapt to existing Definition pools
+and actual geometry rather than replacing NPC/nav. Next3pass2.226s; full14pass
+17.417s, worker-c-symmetra-sentry-core-check.log. Environment v4 + original
+ORPHEUS_EXTRA_GRAPH_BUNDLES skip input. Actual source summon-graphs3graphs and
+4entities composed in memory using existing graph.add_supplement(graph._data(),
+{version,graphs,entities}); patch only _data to return that real composed data.
+No fake health/geometry/assertions, no runtime pack writes. This is not yet the
+final root explicit-profile rerun. Root notified complete minimal input diff:
+base+v4 additions graphs01E7/157F/1590, actors2658/26B0/26F2/272D, zero shared
+record conflicts/identicals. Source topmetadata only version/source_sha256.
+Shared DamageTests + test_game_npc + test_symmetra_combat36pass15.682s (v4).
+
+Exact unmounted retained boundary: source frozen_history_candidates,
+_ice_support_rocket and related history/route isolation functions preserved;
+not called from current Combat gap replay. Their original phase_defenses and
+zarya projected-history helper protocols are not mounted. Normal update currently
+passes empty damage_starts/cryo_expiries/barrier_cover_ends; therefore original
+cross-owner phase/thaw/barrier-expiry omitted intervals remain unfinished.
+Do not infer them from core14 pass. Source supporting-ice basic retire is mounted.
+Next: explicit profile rerun, storage probe if useful, then mount these retained
+consumers against existing defense/clock owners or proceed portal placement in
+an independent actual batch. Keep all original checks and no acceptance matrix.
+
+
+C23 SHA c31524d4 delivered, explicit0016 input composer profile still pending.
+
+## C24 actual15F5/1647 transit checkpoint
+
+Original symmetra.play_transit_script and teleport_body mounted through existing
+compatibility_play_script/relocate_through_portal handlers. Existing legacy
+portal fallback preserved. Only owned15F5/nonstrict BodyWorld position query
+runs before typed spatial dispatch; unknown IDs remain None, other graphs and
+strict paths retain their current services. Original World.teleport_body default
+NotImplemented protocol restored, no pretend relocation for generic worlds.
+
+Original test_symmetra_teleport_action.py byte-identical, first9:7pass/onefail/
+oneerror (knownbody position missing; base protocol absent). Corrected source
+consumers, final9pass1.836s, worker-c-symmetra-transit-final-check.log.
+Original test_script_body_owner+DamageTests15pass2.027s,
+worker-c-symmetra-transit-shared-check.log. Actual mover physics instance remains
+same, position/history updates; old hit traces cannot interpolate teleport.
+No client execution, no pair/placement/admission implementation claimed.
+Next: original stateless placement_geometry/clock helpers and sourcePortalPair
+actor factory/confirm/interaction against existing NPC/actor pool; preserve
+canonical Photon barrier and DVa CallMech placement. No generic service overwrite.
+
+
+C24 SHA184e4d32 delivered. Root explicit profile now runtime-inputs-v5,
+.environment plus .test_environment (EXTRA only originalskip flag).
+
+## C25 original static placement checkpoint
+
+Source script/placement_geometry.py and symmetra_placement.py stateless math
+preserved. Append source Clock/Record/StaticResult/publication/history/Confirmation
+primitives to existing script/placement.py without replacing CallMech.Result/place.
+Original World provider protocols and source Placement base now exist; current
+PlacementPreview delegates only for actual Symm1571/69 and156B/57 when canonical
+Photon.geometry is absent. Configured Photon retains current whole placement
+path; no second wall manager. Original server forward-clock/disabled prediction
+history policy is explicit. Confirmation remains unknown until real owner accepts.
+Actual placement body/view axes and static null-parent transform route narrowly
+before typed native services. Initial15:14pass/axis-stack failure exposed missing
+poll_native on early answer; fix that dependency registration, final15pass2.691s.
+VM registry stores actual PlacementPreview.last_frame/latest_frame; actual active
+1571 preview export changes digest when latest_frame changes.
+
+Explicit root v5 environment +test_environment, no _data patch:
+python -B -m unittest test_symmetra_turrets test_symmetra_static_placement test_symmetra_placement_axes test_game_dva_placement test_symmetra_teleport_action -v
+46run45pass1skip36.499s; worker-c-symmetra-placement-v5-check.log. C23 original14
+now exercised on final additive v5 records rather than in-memory test composition.
+Original pure test_script_placement_geometry+history44pass0.004s.
+Original test_script_placement_results retained unchanged:6cases, sevenerrors
+across fivecases from existing strict map SummonerPlacement refusing FA02 state
+at construction; permissive provider-shape case/subcases execute. First combined
+67run10errors1skip before actual source base class renamed Placement; after
+proper source classname, strict boundary isolated to sevenerrors, no fakealias.
+Do not weaken strict map guard or original assertions for this check. Original
+strict generic Placement role still needs reconciliation with map placement;
+current server owner path is permissive and actually works. No new matrix.
+
+Next: original PortalPair/confirm/factory/interaction via existing NPC pool,
+with original actor inputs already supplied by v5. Preserve current strict map
+Summoner and configured Photon paths while completing these missing consumers.
+Source sentry retained phase/ice/projected-history boundaries remain above.

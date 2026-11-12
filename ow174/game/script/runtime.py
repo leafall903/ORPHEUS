@@ -375,6 +375,14 @@ class InstanceContext(Context):
             result = torbjorn_charge.native(component.world, cfg, self.instance)
             if result is not NotImplemented:
                 return result
+        if (not component.strict and component.world.hero == 0x02E000000000013E
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            from ow174.game import orisa_charge
+
+            result = orisa_charge.pool_loss_fold(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
 
     def native(self, cfg: dict):
@@ -382,6 +390,23 @@ class InstanceContext(Context):
         cls = cfg.get("$")
         from ow174.game.script import spatial_queries
 
+        component = self.instance.component
+        if (not component.strict and self.instance.graph.index == 0x15F5
+                and getattr(component.world, "body_definition", None) is not None):
+            from ow174.game import symmetra
+
+            result = symmetra.transit_position_query(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
+        if (not component.strict and self.instance.graph.index in (0x156B, 0x1571)
+                and getattr(component.world, "body_definition", None) is not None):
+            from ow174.game import symmetra, symmetra_placement
+
+            for query in (symmetra.placement_direction_query, symmetra_placement.static_transform):
+                result = query(component.world, cfg, self.instance)
+                if result is not NotImplemented:
+                    self.poll_native(cfg)
+                    return result
         if cls in spatial_queries.INTERFACES:
             result = spatial_queries.evaluate(self, cfg)
             if result is not NotImplemented:
@@ -409,6 +434,22 @@ class InstanceContext(Context):
         )
 
         component = self.instance.component
+        if (not component.strict and component.world.hero == 0x02E0000000000016
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            from ow174.game import symmetra_charge
+
+            result = symmetra_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
+        if (not component.strict and component.world.hero == 0x02E0000000000016
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0033):
+            from ow174.game import symmetra
+
+            result = symmetra.pool_query(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         if (not component.strict and component.world.hero == 0x02E0000000000016
                 and getattr(component.world, "body_definition", None) is not None
                 and self.instance.graph.index == 0x157C):
@@ -539,6 +580,64 @@ class World:
     def movement_flag_projection(self, instance, node):
         """Explicitly supported (known-bit mask, value), or unknown engine input."""
         return None
+
+    def placement_clock(self, state):
+        """Explicit native instance frame, phase clock and update interval."""
+        return NotImplemented
+
+    def confirm_placement(self, state):
+        """An explicit authoritative host may own the special placement input."""
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        """True for an admitted history result, False for calculation, or unknown."""
+        return NotImplemented
+
+    def calculate_placement(self, state, *, commit: bool):
+        """Publish an admitted static-world outcome; geometry stays an owner service."""
+        from ow174.game.script import placement
+
+        result = self.placement_geometry(state)
+        if result is NotImplemented:
+            return NotImplemented
+        if result is None:  # Known missing owner: native returns without any result writes.
+            return True
+        component, instance, node = state.instance.component, state.instance, state.node
+        if type(result) is not placement.StaticResult:
+            component.unsupported(instance, "placement result shape", node.cls, node)
+
+        def unknown(feature):
+            if component.strict:
+                component.unsupported(instance, feature, node.cls, node)
+
+        def frame():
+            context = self.placement_clock(state)
+            if context is NotImplemented:
+                unknown("placement result clock")
+                return NotImplemented
+            if type(context) is not placement.Clock:
+                component.unsupported(instance, "placement result clock shape", node.cls, node)
+            return context.frame
+
+        def record(value):
+            accepted = self.record_placement(state, value)
+            if accepted is NotImplemented:
+                unknown("placement history recording")
+            return accepted
+
+        return placement.publish_static(
+            result, commit=commit,
+            write=lambda field, value: instance.write(expr.lvalue(node.field(field)), value),
+            frame=frame, record=record, follow=lambda plug: instance.follow(node, plug, state),
+        )
+
+    def placement_geometry(self, state):
+        """StaticResult, known absent owner (None), or unknown; no synthetic hit."""
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        """Explicit history owner service, including a declared disabled role."""
+        return NotImplemented
 
     def placement_confirmation(self, state):
         """Explicit world placement adapter, or an unknown engine service."""
@@ -1109,6 +1208,10 @@ class World:
         return NotImplemented
 
     def confirm_portal(self, state):
+        return NotImplemented
+
+    def teleport_body(self, instance, node):
+        """Original body relocation protocol; a concrete world must supply it."""
         return NotImplemented
 
     def relocate_through_portal(self, instance, node):

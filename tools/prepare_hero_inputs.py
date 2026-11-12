@@ -14,7 +14,8 @@ from ow174.game.projectile_tags import read_catalog
 
 
 def read_graphs(path):
-    data = json.loads(gzip.decompress(path.read_bytes()))
+    raw = path.read_bytes()
+    data = json.loads(gzip.decompress(raw) if raw.startswith(b'\x1f\x8b') else raw)
     if type(data.get('version')) is not int or data['version'] != 1:
         raise ValueError(f'graph input must use version1: {path}')
     indexes = [row['index'] for row in data.get('graphs', [])]

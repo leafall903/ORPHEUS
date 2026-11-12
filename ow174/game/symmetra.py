@@ -220,3 +220,146 @@ def _damage_barrier(fight, player, contact, amount):
     if isinstance(actor, barriers.Barrier):
         return barriers.damage(fight, actor, amount * nano.offense(fight, player.body), attacker=player.body)
     return fight._damage_contact_barrier(contact, amount, shooter=player)
+
+
+def owns_shield_recovery(owner):
+    hero = getattr(owner, "hero", None)
+    return getattr(hero, "guid", hero) == HERO
+
+
+def pool_query(world, cfg, instance):
+    """Original0033 own-body current/maximum kind query for shield recovery."""
+    if (world.hero != HERO or world.match is None or instance is None
+            or instance.component.strict or instance.graph.index != 0x0033
+            or cfg.get("$") not in ("STU_783B4CF0", "STU_68883EAC")):
+        return NotImplemented
+    target = instance.evaluate(cfg.get("m_entity"))
+    pool = cfg.get("m_7E8B666C") or {}
+    kind = pool.get("m_7E8B666C")
+    vitals = world.match.combat.vitals.get(world.body)
+    if (target == expr.Entity(world.body) and pool.get("$") == "STU_297E1A30"
+            and type(kind) is int and kind in (0, 1, 2) and vitals is not None):
+        values = vitals.now if cfg["$"] == "STU_783B4CF0" else vitals.most
+        return values[kind]
+    return NotImplemented
+
+
+def play_transit_script(world, instance, node):
+    """Continue only 15F5's authored own-body 1647 invocation.
+
+    Portal eligibility and the intervening 54FEB21C host signal remain external.
+    This does not supply the generic native PlayScript target/policy service.
+    """
+    if world.match is None or instance.graph.index != 0x15F5 or node.pos != 10:
+        return NotImplemented
+    target = instance.evaluate(node.field("m_targets"))
+    definition = instance.evaluate(node.field("m_script"))
+    if target != expr.Entity(world.body) or definition != expr.Asset(0x0580000000001647):
+        return NotImplemented
+    params = tuple((int(row["m_B5051BCE"], 16), instance.evaluate(row["m_value"]))
+                   for row in node.field("m_params"))
+    destination = next(value for key, value in params if key == 0x0A40000000000078)
+    if not isinstance(destination, expr.Vec3):
+        return False
+    source = expr.to_entity(instance.find_var(graph.INSTANCE, 40).value())
+    return instance.component.play_loaded_graph(
+        graph.graph(0x1647), source=source, params=params, policy=1, instigator=source) is not None
+
+def teleport_body(world, instance, node):
+    """Execute 1647's own-body relocation with explicit graph entry inputs.
+
+    The portal's placement, pair membership and transit admission are separate
+    services. Preserve current orientation/velocity as this authored action asks.
+    Discontinuity/history handling is a reconstructed server policy.
+    """
+    if world.match is None or instance.graph.index != 0x1647 or node.pos != 1:
+        return NotImplemented
+    if world.match.ended:
+        return False
+    target = node.field("m_target")
+    rotation, velocity = node.field("m_E3779CD0"), node.field("m_C0EDD7EC")
+    if (not isinstance(target, dict) or target.get("$") != "STU_B5A0CAF0"
+            or not isinstance(rotation, dict) or rotation.get("$") != "STU_C8C4C20D"
+            or not isinstance(velocity, dict) or velocity.get("$") != "STU_40AC5AE4"
+            or rotation.get("m_entity") != target or velocity.get("m_entity") != target):
+        return NotImplemented
+    destination = instance.evaluate(node.field("m_AF774F7D"))
+    if (not isinstance(destination, expr.Vec3)
+            or not all(math.isfinite(expr.f32(v)) for v in (destination.x, destination.y, destination.z))):
+        return False
+    player = next((p for p in world.match.players if p.body == world.body), None)
+    if (player is None or player.gone or not player.spawned or not player.has_body
+            or player.client is None or world.match.combat.is_dead(player)):
+        return False
+    from ow174.game.mover import quantise
+
+    mover = player.mover
+    try:
+        position = [quantise(v) for v in (destination.x, destination.y, destination.z)]
+    except (OverflowError, ValueError):
+        return False
+    mover.position = position
+    if mover.body is not None:
+        x, y, z = mover.position
+        mover.body.teleport((x, expr.f32(y + mover._lift()), z))
+    frame = instance.component.now // instance.component.frame_ms
+    snapshot = mover.snapshot(frame)
+    if mover.history and mover.history[-1].frame == frame:
+        mover.history[-1] = snapshot
+    else:
+        mover.history.append(snapshot)
+    # Never interpolate an ordinary hit trace across the teleport distance.
+    fight = world.match.combat
+    fight.history.pop(world.body, None)
+    fight.record_replacement(world.body)
+    return True
+
+
+def transit_position_query(world, cfg, instance):
+    if (world.match is None or instance is None or instance.component.strict
+            or instance.graph.index != 0x15F5 or cfg.get("$") != "STU_71A87E92"):
+        return NotImplemented
+    target = instance.evaluate(cfg.get("m_entity"))
+    if isinstance(target, expr.Entity):
+        point = world.match.script_body_position(target.id, world.body)
+        if point is not None:
+            return expr.Vec3(*point)
+    return None
+
+
+def placement_direction_query(world, cfg, instance):
+    """Expose native direction queries for the owned upright placement body.
+
+    CE8460 and CCDD80 select rows0 and2 of D1B5E0's transform, respectively.
+    CC94D0/D18780/C5E040 adds the stored pitch for the view-forward query.
+    Arbitrary transforms, parent attachments and the native component contracts
+    remain open; this maps only the known upright server mover pose.
+    """
+    queries = {"STU_66F3B89E": "lateral", "STU_021D01CD": "forward", "STU_2200A66D": "view"}
+    kind = queries.get(cfg.get("$"))
+    if (kind is None or world.hero != HERO or world.match is None
+            or instance.graph.index not in (0x156B, 0x1571)):
+        return NotImplemented
+    if instance.evaluate(cfg.get("m_entity")) != expr.Entity(world.body):
+        return NotImplemented
+    owner = next((p for p in world.match.players if p.body == world.body), None)
+    if (owner is None or owner.gone or not owner.has_body or not owner.spawned
+            or world.match.combat.is_dead(owner)):
+        return NotImplemented
+    yaw = owner.mover.yaw
+    if type(yaw) not in (int, float) or not math.isfinite(yaw) or not -32768 <= yaw <= 32768:
+        return NotImplemented
+    angle = yaw * math.tau / 65536
+    sine, cosine = math.sin(angle), math.cos(angle)
+    if kind == "view":
+        pitch = owner.mover.pitch
+        if type(pitch) not in (int, float) or not math.isfinite(pitch) or not -32768 <= pitch <= 32768:
+            return NotImplemented
+        # Original C5E040 converts the signed stored pitch with this f32 scale.
+        radians = expr.f32(expr.f32(pitch) * 9.58738019107841e-05)
+        horizontal = math.cos(radians)
+        return expr.Vec3(expr.f32(sine * horizontal), expr.f32(-math.sin(radians)),
+                         expr.f32(cosine * horizontal))
+    axes = (expr.Vec3(expr.f32(cosine), 0.0, expr.f32(-sine)),
+            expr.Vec3(expr.f32(sine), 0.0, expr.f32(cosine)))
+    return axes[0 if kind == "lateral" else 1]

@@ -636,6 +636,11 @@ class BodyWorld(runtime.World):
 
 
     def relocate_through_portal(self, instance, node):
+        from ow174.game import symmetra
+
+        result = symmetra.teleport_body(self, instance, node)
+        if result is not NotImplemented:
+            return result
         portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
         return portals.relocate(instance, node) if portals is not None else NotImplemented
 
@@ -746,8 +751,11 @@ class BodyWorld(runtime.World):
         return NotImplemented
 
     def compatibility_play_script(self, instance, node):
-        from ow174.game import barriers
+        from ow174.game import barriers, symmetra
 
+        result = symmetra.play_transit_script(self, instance, node)
+        if result is not NotImplemented:
+            return result
         if self.hero == 0x02E000000000023B and self.match is not None:
             if instance.graph.index == 0x1D02 and node.pos == 34:
                 from ow174.game import interception
@@ -933,7 +941,25 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn, torbjorn_charge
+        from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
+
+        if instance is not None:
+            from ow174.game import symmetra_placement
+            for query in (symmetra.placement_direction_query, symmetra_placement.static_transform):
+                value = query(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
+            value = symmetra.transit_position_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero == symmetra_charge.HERO:
+            value = symmetra_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero == symmetra.HERO:
+            value = symmetra.pool_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         if self.hero == torbjorn_charge.HERO and instance is not None:
             value = torbjorn_charge.native(self, cfg, instance)
@@ -1803,6 +1829,46 @@ class BodyWorld(runtime.World):
     def placement_probe(self, state):
         return self.match is not None and ice_wall.probe(self.match.combat, state)
 
+    def uses_delivered_placement(self, state):
+        if (self.hero != 0x02E0000000000016 or self.match is None
+                or (state.instance.graph.index, state.node.pos) not in ((0x156B, 57), (0x1571, 69))):
+            return False
+        return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
+
+    def confirm_placement(self, state):
+        if self.match is not None and state.instance.graph.index == 0x1571:
+            portals = getattr(self.match.combat, "portals", None)
+            if portals is not None:
+                return portals.confirm(self, state)
+        return NotImplemented
+
+    def placement_clock(self, state):
+        from ow174.game import symmetra
+        from ow174.game.script import placement
+
+        if (self.hero == symmetra.HERO and self.match is not None
+                and (state.instance.graph.index, state.node.pos) in ((0x156B, 57), (0x1571, 69))):
+            frame = state.instance.component.frame
+            # Explicit authoritative forward-server policy: one VM frame per
+            # update. Native render/prediction clock reconciliation is separate.
+            return placement.Clock(frame & 0xFFFFFFFF, frame, 1)
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        if self.placement_clock(state) is not NotImplemented:
+            return False  # This server has no admitted client placement history.
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        if self.placement_clock(state) is not NotImplemented:
+            return True  # Explicit forward-server policy: no admitted prediction storage.
+        return NotImplemented
+
+    def placement_geometry(self, state):
+        from ow174.game import symmetra_placement
+
+        return symmetra_placement.preview(self, state)
+
     def refresh_compatible_placement(self, state, *, confirm):
         from ow174.game import photon_barrier
 
@@ -2115,6 +2181,8 @@ class BodyScript(ReplicatedBody):
             self.component.disconnect_foreign_watchers()
             self.world.match = None
             raise
+        if hero == 0x02E0000000000016 and match is not None:
+            self.charge_clock = match.tick, self.component.now
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -2251,7 +2319,11 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
-        from ow174.game import torbjorn_charge
+        from ow174.game import symmetra_charge, torbjorn_charge
+
+        authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
+        if authored_symmetra:
+            symmetra_charge.sync(self)
 
         if self.hero == barrier.REINHARDT and self.world.match is not None:
             enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
@@ -2290,7 +2362,10 @@ class BodyScript(ReplicatedBody):
         self.support_healing.extend(support.healing_reports(self, frame))
         immunity.advance_startup(self.component)
         self._report_shots()
-        self._charge_ult()
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+        else:
+            self._charge_ult()
 
     def apply_control(self, start: int, end: int, *, sleep: bool = False) -> None:
         """Keep control intervals until delayed simulation has passed them.

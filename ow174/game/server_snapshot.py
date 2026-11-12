@@ -16,6 +16,7 @@ import weakref
 from collections import deque
 from pathlib import Path
 
+from ow174.game import symmetra_turrets
 from ow174.game import (
     combat_profiles,
     venom,
@@ -109,6 +110,8 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    symmetra_turrets.Turrets: _names("combat sentries"),
+    symmetra_turrets.Sentry: _names("owner bot direction speed last_tick attached_at target slow support_pillar"),
     scopes.Registry: _names("states"),
     scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
@@ -135,7 +138,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -167,7 +170,7 @@ FIELDS = {
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs anchors"),
     combat.Vitals: _names(
-        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
+        "last_damage_at shield_accounted_at entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
@@ -267,7 +270,7 @@ OPTIONAL_FIELDS = {
     venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
     driver.BodyWorld: _names("passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
-    driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
+    driver.BodyScript: _names("charge_clock passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
     Player: _names("impulse_correction valkyrie_pose"),

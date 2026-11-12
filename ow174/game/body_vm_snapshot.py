@@ -73,7 +73,7 @@ _SCRIPT = frozenset((
     "winston_charge_ms", "winston_charge_tick", "winston_primal_clock",
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
-_SCRIPT_OPTIONAL = ("passive_ult_deadline", "passive_ult_last_command_tick",
+_SCRIPT_OPTIONAL = ("charge_clock", "passive_ult_deadline", "passive_ult_last_command_tick",
                     "orisa_pose_anchor", "orisa_fortify_pending")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
@@ -91,6 +91,8 @@ _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.CombatModFilter: (("combat_filter",), ()),
+    nodes.CombatDamageFilter: (("combat_filter",), ()),
     nodes.RecallRewind: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
@@ -134,7 +136,7 @@ _STATE_LAYOUTS = {
     nodes.MoveTo: (("movement",), ()),
     nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
-    nodes.PlacementPreview: ((), ()),
+    nodes.PlacementPreview: (("last_frame", "latest_frame"), ()),
     nodes.SummonerPlacement: (("confirmed",), ()),
     nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (

@@ -330,6 +330,9 @@ class Walls:
             venom = getattr(self.combat, "venom", None)
             if venom is not None:
                 venom.mines[:] = [mine for mine in venom.mines if mine.wall != piece.entity]
+            original_sentries = getattr(self.combat, "sentries", None)
+            if original_sentries is not None:
+                original_sentries.retire_attached_to(piece.entity)
             sentries = getattr(self.combat, "symmetra_sentries", None)
             if sentries is not None:
                 sentries.retire_supported_by(piece.entity)

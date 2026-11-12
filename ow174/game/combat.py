@@ -71,6 +71,8 @@ from ow174.game import (
     molten_core,
     torbjorn_mark,
     torbjorn_charge,
+    symmetra_charge,
+    symmetra_turrets,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -669,6 +671,8 @@ class Vitals:
         self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
         self.died_at: float | None = None
+        self.last_damage_at: float | None = None
+        self.shield_accounted_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
         self.ult_healing_deficit = 0.0
@@ -2042,6 +2046,7 @@ class Combat:
         self.torbjorn_marks = {}
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
+        self.sentries = symmetra_turrets.Turrets(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2211,6 +2216,9 @@ class Combat:
         from ow174.game import body_entities
 
         body_entities.retire_source(self.match, player.entity, player.body)
+        if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
+            self.sentries.retire_owner(player)
+        self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
         self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
@@ -3975,6 +3983,9 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        for player in self.match.players:
+            if player.hero.guid == symmetra_charge.HERO:
+                symmetra_charge.advance_idle(player, first - 1, round(TICK * 1000), before_combat=True)
         bubble_releases = {}
         for player in self.match.players:
             release = winston.HostedBarriers(self).pending_release(player, round(TICK * 1000))
@@ -4066,6 +4077,9 @@ class Combat:
             reinhardt_charge.sync(self)
             self.photon_barriers.update(at)
             for player in self.match.players:
+                if player.hero.guid == symmetra_charge.HERO:
+                    symmetra_charge.advance_idle(player, at, round(TICK * 1000))
+            for player in self.match.players:
                 self._update_sleep_view(player)
                 self._sync_adaptive_shield(player)
             moira.advance_clocks(self)
@@ -4134,6 +4148,7 @@ class Combat:
                 player.body_script.orisa_fortify_pending = False
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
+        self.sentries.update({}, {}, ())
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -4151,6 +4166,7 @@ class Combat:
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
+        self._regenerate_shields()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
         self._send_health()
         for bot in self.match.bots:
@@ -4351,6 +4367,48 @@ class Combat:
                     target, feet=sample.position, height=height, eye=eye_height(body, crouched))
         return poses
 
+
+    def _regenerate_shields(self) -> None:
+        for target in self._targets():
+            vitals = self.vitals.get(target.entity)
+            if vitals is not None and symmetra.owns_shield_recovery(target.owner):
+                self._recover_shields(target.owner, vitals, self.now)
+
+    def _recover_shields(self, owner, vitals: Vitals, through: float) -> None:
+        """Integrate 0033's authored shield recovery after its damage-free delay.
+
+        The data supplies the 3 s delay, 30 DPS and their modifiers. Scheduling
+        damage-free world time here reconstructs the server's missing health
+        service; it does not implement the unknown B591EBFE native State.
+        """
+        if not symmetra.owns_shield_recovery(owner):
+            return
+        if vitals.dead or vitals.last_damage_at is None or vitals.most[SHIELDS_POOL] <= 0:
+            return
+        previous = vitals.shield_accounted_at
+        if previous is not None and through <= previous + EPSILON:
+            return
+        script = getattr(owner, "body_script", None)
+        if script is None:
+            return
+        instance = next((i for i in script.component.instances.values()
+                         if i.graph.index == pools.BODY_GRAPH), None)
+        if instance is None:
+            return
+        wait, heal = instance.state(27), instance.state(2)
+        delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
+        start = max(previous if previous is not None else through, vitals.last_damage_at + delay)
+        vitals.shield_accounted_at = through
+        if through <= start or vitals.now[SHIELDS_POOL] >= vitals.most[SHIELDS_POOL]:
+            return
+        modify = heal.node.field("m_modifyHealth")
+        rate = _number(heal.evaluate(modify.get("m_amount"), watch=False), 0.0)
+        given = min(max(0.0, rate) * (through - start),
+                    vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+        if given > 0:
+            vitals.now[SHIELDS_POOL] += given
+            vitals.changed.add(SHIELDS_POOL)
+            self._sync_body_health(owner, vitals)
 
     def _targets(self) -> list[Target]:
         found = []
@@ -5020,7 +5078,7 @@ class Combat:
 
         host = getattr(self.match, 'scene_host', None)
         for bot in self.match.bots:
-            if bot.body == hero_torbjorn.TURRET and bot.combat_owner is not None:
+            if bot.body in (hero_torbjorn.TURRET, symmetra_turrets.BODY) and bot.combat_owner is not None:
                 continue  # Original turret manager advances this VM and is its sole gun driver.
             if bot.control_mover is not None:
                 continue
@@ -5245,6 +5303,9 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None, command_quanta=None,
     ) -> None:
+        if (not isinstance(shooter, bots.Bot) and command is not None
+                and self.sentries.fired(shooter, command, state)):
+            return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
         if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E000000000013B
@@ -8528,6 +8589,7 @@ class Combat:
             return False
         self.zenyatta.regenerate_before_damage(target, vitals)
         amount *= self.zenyatta.boost(target)
+        self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
@@ -8545,6 +8607,8 @@ class Combat:
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
+        if symmetra.owns_shield_recovery(target.owner):
+            vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
@@ -8582,6 +8646,8 @@ class Combat:
         charge_owner = self._credit_player(shooter)
         if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
             torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == symmetra_charge.HERO):
+            symmetra_charge.damage(charge_owner, target, dealt)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8610,8 +8676,8 @@ class Combat:
                 self._tell_hit(shooter, target, dealt, flags, frame)
                 shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
-                orisa_charge.damage(shooter, target, dealt, loadout)
                 if source_body is None or source_body == shooter.body:
+                    orisa_charge.damage(shooter, target, dealt, loadout, adaptive_shield_loss=adaptive_loss)
                     lucio.charge_damage(shooter, target, base_before - vitals.base_total, loadout)
                 moira.gain_combat_charge(
                     shooter, dealt, body=source_body, damage_target=target, damage_tags=hit_tags,
@@ -8654,9 +8720,9 @@ class Combat:
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
-                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
-                points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
+                points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == 0x02E000000000006E:
@@ -9245,7 +9311,7 @@ class Combat:
             return
         old_script = player.body_script
         points, pending = None, ()
-        if old_script is not None and player.hero.guid in (regeneration.MERCY, 0x02E000000000013B):
+        if old_script is not None and player.hero.guid in (symmetra_charge.HERO, regeneration.MERCY, 0x02E000000000013B):
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
@@ -9257,6 +9323,8 @@ class Combat:
 
             script = player.body_script
             script.set_ult_charge(points)
+            if player.hero.guid == symmetra_charge.HERO:
+                script.charge_clock = self.tick, script.component.now
             if player.hero.guid == regeneration.MERCY:
                 charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                               if credit[0] > script.component.now))

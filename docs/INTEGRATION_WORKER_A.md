@@ -750,3 +750,120 @@ only dva_body/zarya/sigma identity imports point to actual current hosts.
 A28 owner reconciliation checkpoint: current seven-owner map moved to the top
 of this document, superseding chronological next-actions. Latest source code
 boundary isbd8f0a37; no production code changed in this documentation batch.
+
+### New root-directed cross-owner handoff after A28
+
+Clean sync: canonical a7728f76 absorbed after7c014166; retain all root shield,
+charge, catalogue and replay fixes. Root requests actual3EBB Adaptive Shield loss
+policy for Genji/Orisa from source0006. Existing _damage already measures the
+same real Vitals.extra pool loss for Torb/Moira. Orisa existing012 packet still
+sends empty0x624; Genji existing generic gain receives full dealt. Restore those
+single hosts without another012, passive/profile change or Fortify replacement.
+
+### A29 root-directed Genji/Orisa pool-loss restoration (this commit)
+
+Clean sync committed032f2ed1 from canonical a7728f76. Source policy refs:
+0006 3d4d42993cfcd78a954e20c1d273ce8b5e0905f5;
+0029 e7e1706797c49055c0a34f5b4482892450718697;
+013E 5b38741c097433b04e977d7e499d176ccc816d44.
+Source0006 torbjorn_charge supports3EBB deduction for Torb/Genji/Orisa. Preserve
+source0029/current Genji generic gain and source013E/current Orisa metadata-gated
+012 host rather than activate another copy of source0006 charge routing.
+Combat's same authoritative extra pool before/after produces adaptive_loss:
+Orisa existing012 now gets ((3EBB,f32(loss)),) in0x624, with emptytuple for0;
+only exact3EBB-selector/pair representation invokes shared pure reducer from
+its existing0B8B runtime fold. Other native folds/representations keep original
+provider; Torb reuses its already-read records. Genji existing generic points
+subtract same loss, keeping all existing source/death/enemy/ultimate gates.
+No profile, passive, original credit route or historical Fortify change. No
+snapshot fields or observer compatibility pool added.
+New test_delivered_pool_loss_charge normal3 methods/10 subcases pass using real
+Vitals.extra via original grant_temporary_shields and actual Ball1566 cast.
+70 damage into100 shields gives0 charge, into50 gives20, unrelated5847 gives70;
+400 damage into50shield+200base gives200 charge. Actual Ball100 Adaptive +130
+incoming yields100shield loss/25basearmour loss/25 charge;600 ticks removes the
+same pool without generating another012. Spies wrap actual calls: Orisa one012
+andzero genericgain, Genji zero012 andone genericgain. Log pool-loss-final.log.
+Original selected Torb rivet/mixed attacks/actual cast expiry3; Orisa actual
+passive/critical/restore+ruleset/armour+Fortify/melee/overkill7; full Genji passive13;
+Damage/runtime21 =44 original methods pass, no skips (pool-loss-original-shared.log).
+Final focused new3 + original Torb rivet1 =4 pass after reducer factoring
+(pool-loss-final-boundary.log). All logs verification/worker-a-*.
+Next exact action: root receive independent A29, then continue concrete cross-owner
+pool event/credit audit; do not introduce another012 or any new feature/matrix.
+
+### A30 actual source-body credit boundary (this commit)
+
+A29 committede72e0a15. Follow-on actual provenance probe: Genji body retired by
+switch toOrisa, grant real50Adaptive to victim, damage70 with old source_body;
+victim correctly loses50shield+20base but current Orisa incorrectly gained20.
+Source013E predates retained foreign-flight/source_body support, while current
+Genji generic route already excludes retired source bodies. Root's handoff
+explicitly requires source credit belong to its owner. Move only Orisa existing
+012 call under the already-present source_body/currentbody guard shared by Lucio.
+No new host, source pointer rewrite, damage/stat suppression or flight teardown.
+Extend real-pool regression with both hero-switch directions and award_ult=False:
+actual damage/pool loss remains70, new body gains0, no012. Existing current-body
+loss cases remain passing. All26 new4 + originalOrisa critical1 + GenjiPassive13
++ Damage8 methods pass, no skips (worker-a-charge-source-boundary.log).
+Next exact action: root receive A29/A30 and their clean sync; continue concrete
+cross-owner pool event/credit audit, keeping original source checks and semantics.
+
+### A31 positive-pool expiry evidence (this commit)
+
+A30 committedb11ec8da. One remaining concrete coverage concern: prior actual
+cast→130damage→expiry had already depleted100Adaptive before timer expiry.
+Extend the same original real-cast regression to70damage leaving30Adaptive,
+zero base loss/zero charge, then600ticks expires the still-positive same extra
+pool. Both Genji and Orisa invoke neither generic damage gain nor012 on expiry;
+existing resource passive remains independent. Also retain130damage spill case.
+Allfour actual cast/expiry subcases pass in1 method12.004s, no skips
+(worker-a-pool-positive-expiry.log). No production code or old assertion changed.
+Root handoff's grant/damage/mixed loss/positive expiry/single-host/current-source
+conditions now have actual Vitals.extra evidence. No further identified gap in
+this scoped handoff; remain available for concrete cross-owner conflicts/gaps.
+
+### New root-directed strict NPC filter registry handoff
+
+Clean sync from committed intake d3801262 after8313e46e; canonical remains root's
+frozen replay worktree and was not touched. Baseline original normal module
+ test_script_npc_combat_states:6 methods,1 failure/1 error. Earlier registered
+CombatModFilter(RegisteredState) is overwritten by later CombatDamageFilter(State)
+for identical STUStatescriptStateCombatModFilter. Original tag-only profile cannot
+reach its callback/registry; richer SceneWorld host accepts only actual contracts.
+Next: one registered derived state retaining both providers/lifecycles and strict
+unknown rejection; preserve snapshots and DVa direct filter consumer.
+
+### A32 strict CombatModFilter registry coexistence (this commit)
+
+Sync4dc9e115 absorbed intake d3801262; canonical6ef42b61 frozen replay untouched.
+Baseline normal test_script_npc_combat_states6:1fail/1error reproduced because
+later CombatDamageFilter(State) overwrote strict registration of original
+CombatModFilter(RegisteredState), from original NPC/source013B. Rich original
+source0042/current SceneWorld host handles actual0CBC/141 outgoing damage and
+156C/9 incoming barrier damage. Preserve both, not graphF110 testspecialcases.
+One strict registration now selects CombatDamageFilter(CombatModFilter). Accepted
+host binding registers directly; NotImplemented validates original complete tag
+schema then registers; explicit provider refusal and unknown schema remain strict.
+Single native ordered registry/payload/cleanup shared by both providers; failed
+pre-registration cleanup cannot remove nonexistent entries. Host-only callback
+returns no tag-only result, and tag-only cleanup does not unbind another host.
+Explicit combat_filter=None/profile stored field registered for both API classes;
+constructor initialization permits getter-free before/after activation export.
+No damage-filter scalar/schema changes, DVa consumer changes or new matrix.
+New normal test_script_combat_filter_registry3 uses actual0CBC/141 and156C/9
+resource fields with real SceneWorld, plus tag callback coexistence and snapshot
+stability/sensitivity with bind/profile calls forbidden during export.
+Final12: originalNPC6 + actualRoadhog1 + originalDVa entry immunity2 + new3 all
+pass, no skips (worker-a-combat-filter-12-final.log). OriginalNPC assertions and
+constants untouched. Baseline worker-a-combat-filter-baseline.log retains1fail/1error.
+Broader body_vm29 has4 old expectation failures (report/input fields, Soldier
+world fields, Assassin allocation/movement type); identical normal-module clean
+HEAD baseline confirmed in worker-a-combat-filter-storage-baseline.log. Broader
+strict16 also retains tire-wave scope registration2fail/1error in one method;
+identical clean HEAD baseline confirmed in worker-a-combat-filter-strict-baseline.log.
+Only own WIP source bytes were temporarily restored from committed HEAD for
+those normal-module baselines then restored byte-for-byte in try/finally; no
+other worktree touched, no AST/assertion bypass and no original check weakened.
+Next exact action: root receive independent A32 and its sync; remain available
+for concrete cross-owner registry/consumer gaps rather than changing old checks.
