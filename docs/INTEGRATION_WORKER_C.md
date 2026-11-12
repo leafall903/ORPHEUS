@@ -2443,3 +2443,44 @@ waiting for that whole-family result. Next persist terminal outcome, continue
 actual projected-recipient replay admission/phase clocks and Pharah impact cover;
 Bastion Heavy stance/push interlocks remain. Remaining C effort6–14 active hours,
 low confidence. No client/network/publication action.
+
+
+## C55 terminal and C56 Pharah impact-time force cover
+
+C55 handle1866 terminal: original on/after-thaw method,10NPC/offset subcases,
+allpass89.317s. With preceding5before-thaw cases, all15selected Helix original
+step/gap comparisons pass. Original expectations unchanged.
+
+C56 restores original0008 frozen impact exposure for force: compute the existing
+Pharah radial impulses before this blast spends wall/shield health, keep only a
+local tuple for this call, then dispatch once through the same existing physical
+mover/Bot.apply_impulse after damage. Still recheck alive/protected at dispatch.
+Actual scripted Zarya bodies and broken_particle_barriers protect the same shot's
+force. No stored queue/provider/second force or pool. Accretion branch B64 remains
+owned B/root and must be preserved when receiving overlapping _explode context.
+
+Initial diagnostic was invalid evidence: switch_hero relocated the shooter onto
+the same side of the wall. Its nonzero velocity did not prove leaking cover.
+Corrected explicit opposite-side3m fixture was outside force range (old/new2pass).
+Final actual opposite-side2m wall scenario proves the boundary: old2828ff70
+_explode/_pharah_impulses AST functions fail wall assertion with Mei position
+Y1→1.021484375 and Z42.1474609375→42.1318359375; current functions pass without
+motion. Actual20HP native projected Pet same-shot case passes old and new,
+retaining prior behavior. Old1pass1fail2.451s/current2pass1.067s in
+../worker-c-c56-near-cover-baseline-check.log. No original source assertion
+modified; these are actual producer interaction regressions, not mocked shields.
+
+Final actual cover2 + originalPharahImpulse/PharahCombat/Damage suites:
+26/26pass16.142s, ../worker-c-c56-final-cover-shared-check.log. Earlier initial
+incorrect-fixture2fail24pass20.920s remains recorded in
+../worker-c-c56-cover-shared-check.log. Tests now explicitly position shooter
+following actual hero replacement, preserving the intended geometry.
+
+Next C57: source live boost for new Walls splash/direct consumers (Walls.damage
+uses source_scaled=True, so source outgoing modifiers must be consumed once),
+and _support_retarget_isolated old reinhardt_barriers.states→actual raised actor
+service. Root owns pure five geometry adapters; A owns true projected-NPC Pet
+recipient admission (current _recipient_live onlyplayers); no alias manager.
+Mei/Symm phase/retarget, Pharah remaining cover interlocks and Bastion Heavy
+stance/push audit stayopen. Estimated5–12active C hours, lowconfidence; no client,
+network or publication performed.

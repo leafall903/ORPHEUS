@@ -109,6 +109,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Pharah force cover through the same impact
+
+- Read original Pharah impulse exposure before the blast breaks its cover, then
+  apply once through the existing mover after damage. Keep native particle
+  protection and same-shot broken-barrier protection.
+- Actual near-wall interaction fails the old path and passes the restored path;
+  26 actual-cover/Pharah/damage checks pass. Original Helix on/after-thaw's10
+  subcases also pass. Client acceptance and remaining owner interlocks stayopen.
+
 ### Restore original projectile contact and splash on bound Mei walls
 
 - Resolve same-entity native pillars through their solid geometry instead of a

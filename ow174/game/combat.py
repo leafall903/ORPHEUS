@@ -8402,6 +8402,18 @@ class Combat:
                 rocket, point, self._ice_wall_blockers(), shield_los=False,
             ))
             return 0.0
+        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
+        impulse_protected = set(protected) | set(broken_particle_barriers or ())
+        if pharah:
+            impulse_protected.update(
+                actor.recipient_body or actor.parent_body for actor in self.barriers.scripted.values()
+                if actor.component.world.hero == barriers.ZARYA and actor.vitals is not None
+                and actor.vitals.total > 0 and barriers._live(self, actor)
+            )
+        pharah_impulses = (self._pharah_impulses(
+            rocket, damage_point, point, protected=impulse_protected,
+            heading=incident_direction, normal=surface_normal, defer=True,
+        ) if pharah else ())
         boost = self.orisa.superchargers.scale(rocket.shooter)
         source = _along(point, incident_direction, -0.0001)
         # Sample the original solid-wall exposure before any impact can remove
@@ -8432,7 +8444,6 @@ class Combat:
         if accretion and blast is not None and blast.amount <= 0:
             candidates = []
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
-        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or blast.loadout == 0x0B9000000000020B
@@ -8447,7 +8458,7 @@ class Combat:
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
         if blast is None or (blast.amount <= 0.0 and not (accretion and blast.source_impulse_scale)):
             if pharah:
-                self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+                self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
             if ice is not None:
                 self.walls.damage(ice[1], rocket.shooter, ice_damage, team=rocket.team)
             for barrier, amount in shield_damage:
@@ -8591,9 +8602,13 @@ class Combat:
                     )
 
         if pharah:
-            self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+            self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
 
-    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None, normal=(0.0, 0.0, 0.0)):
+    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None,
+                         normal=(0.0, 0.0, 0.0), defer=False):
+        # Freeze exposure before the same impact can destroy its cover. The
+        # local plan is applied once after damage by the existing physical host.
+        impulses = []
         blast = rocket.blast
         heading = rocket.direction if heading is None else heading
         candidates = self._enemies(rocket.shooter)
@@ -8645,6 +8660,15 @@ class Combat:
             length = math.hypot(dx, dz)
             scale = flat / length if length > EPSILON else 0.0
             impulse = (dx * scale, upward, dz * scale)
+            impulses.append((target, impulse))
+        if not defer:
+            self._apply_pharah_impulses(impulses, protected=protected)
+        return tuple(impulses)
+
+    def _apply_pharah_impulses(self, impulses, *, protected=()):
+        for target, impulse in impulses:
+            if target.entity in protected or self.vitals_of(target).dead:
+                continue
             if isinstance(target.owner, bots.Bot):
                 from ow174.game.collision import TEAM0, TEAM1
 
