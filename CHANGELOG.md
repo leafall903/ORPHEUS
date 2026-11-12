@@ -73,6 +73,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   unchanged apart from frost fixture import naming; no client check implied.
 - Autonomous navigator partial slow still needs its authorized narrow bridge;
   Blizzard, sampled Cryo history and full pending fixture imports remain open.
+### Restore delivered Orisa and Sigma barrier attack consumers
+
+- Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
+  native pool damage. Shatter retains their same geometry/pose only when this
+  wave breaks them, preserving stopped fronts without cloning an actor.
+- Synchronize Sigma's authored mode on its posed owner command through the
+  existing host with zero elapsed time after the world tick. Retire the same
+  owner-bound actor/child immediately with its body and clear cached activity.
+- Actual original verified C015 raw+integrity input creates700 health,16.5 speed
+  and1A2A child. All40 focused original interactions/runtime/snapshot pass.
+  Full original24 retains four Brigitte errors and contact8.92968 versus>9.6;
+  keep the full023B owner's authored0.9m launch bias and original expectations.
+- Preserve all original tests: main1399, Orisa40 and Sigma87 assertion counts,
+  order and Constants unchanged; fixture views read real fields and pools.
+  Original-client acceptance remains open.
+
 ### Restore delivered Fire Strike and shattered Winston shell consumers
 
 - Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
@@ -119,6 +135,37 @@ This log records tested changes and their acceptance status. Entries are grouped
   rejection while this worker continued changing source during the2325s run,
   not evidence of a Genji defect. Keep the rejection; long journal acceptance
   requires the parent's frozen canonical run. Client acceptance remains open.
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
 
 ### Mount delivered Junkrat grenade launch and terrain physics
 
@@ -8975,3 +9022,107 @@ worker-a-junkrat-npc-{original-baseline,actual-final,attacks-second,heavy,shared
 No client run/publication. Next exact action: original Tire039C actor/control/
 climb/recovery and command hooks, then original0B8B charge and Mayhem/death-volley;
 follow up unchanged original NPC import contract and current Sniper clock evidence.
+
+
+## A38 - original RIP-Tire actor, operator control and recovery
+
+Mounted original0065 Tire039C placement/readiness/charge consumption, authoring
+0233 drive selector, wall-climb0234, exclusive operator commands, remote detonation,
+100HP actor damage/destruction, source/owner retirement, posthumous timeout,
+respawn deferral and1.5s recovery. Tire is one actual Deployable and its same
+Vitals in targets/storage; no second construct pool/driver created. Deadline replay
+includes Tire timeout/recovery outside the retained shared window. Busy Tire gates
+both current passive and generic damage charge, pending original0B8B activation.
+Restored original explicit Player.take_commands(not_after=...) through existing
+strict CommandQueue horizon, preserving Bastion horizon and epoch bounds.
+
+Original46 Tire tests preserved unchanged. Baseline readiness had no actor;
+readiness+front placement now2 pass. Full initial46 run preserved6 failure and
+6 error records. Follow-up6 affected checks:5 pass (steering/jump, falloff325,
+input-silence catchup, detonation600/owner credit/no refund, posthumous timeout);
+expiry-frame frag collision has two retained failing subcases. Full run remaining
+native Fortify float residual and old grasp_grants private observer errors are
+preserved; no fake observer restored. Original command epochs/handoff/command
+checks plus Damage/ProjectileTiming34 pass. Actual launched Tire stored probe
+passes same actor/pool identity and causal controller/deadline digest export;
+registered exact Command dataclass fields for its real retained control record.
+External logs worker-a-junkrat-tire-{baseline,full-first,second,shared,snapshot-final}.log.
+
+Original inputs used read-only: hero-lanes/0065/junkrat_tire_174.json and
+tire-0234-extracted.json via ORPHEUS_JUNKRAT_TIRE_PROFILE and
+ORPHEUS_JUNKRAT_TIRE_CONTROLLER. Root owns composed profile/provenance admission;
+no base runtime copy/change or client run/publication. Next exact action: original
+0B8B single charge host, entity/filter provider adapters and actual damage012;
+then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
+0065 actual integration estimate now low-confidence2-5 active worker hours,
+excluding root intake/conflicts and acceptance-only residuals.
+
+A38 clean-boundary sync: absorbed submitted intake2c6fb142 automatically, retaining root control/Frost/Trap ordering and current shield/Shatter paths. Continue source0065 charge integration.
+
+
+## A39 - original single0B8B Junkrat charge host
+
+Activated original charge attach/detach, same-hero reserve, explicit catalog,
+world passive deadline and actual pool-loss012 lifecycle. Current native
+entity_filter.admit host, component76 key provider and possessor query remain
+unique; original hostility backend supplies the current relationship frontend.
+Catalog descriptors contain declared filter/tag inputs, never duplicate health.
+Generic Junkrat passive/damage gains are disabled so only original0B8B awards;
+shared award_ult/source-body/actor guards remain. No second012 emitter or old
+entity_filter manager was installed. Exact callback/target/filter storage is
+registered for actual current dataclasses and lifetime contexts.
+
+Actual original timing expectation passes: passive15 after160 silent ticks,
+no owner-frame advance, no duplicate or late-input extra award. Primary actual
+40 direct+80 splash sends corresponding two loss events totaling120 and awards
+120 once overall. Same-hero body handoff retains120; other-hero switch detaches.
+Actual original tag priorities pass:3C3->60,11E->90,both->60 for real120 loss.
+Original charge snapshot test passes, including deadline/tags/context retirement/
+reserve/detach causal storage. Current filter/tag/mask/collect/queries plus
+Damage/ProjectileTiming76 checks run,73 pass;3 existing errors are the unchanged
+entity_filter missing WILDCARD constant used in its old record backend. Next tiny
+boundary restores its already-inline native0x3FFFFFFF constant, no schema waiver.
+
+Complete original charge resource/combat/snapshot fixtures preserved unchanged.
+Resource fixtures retain old six-argument Target/Context constructor errors;
+normal combat fixture still inherits original NPC health_query import failure
+and pending death-volley constants. No assertion/observer alias workaround.
+Logs: worker-a-junkrat-charge-{original,actual-second,tags,shared}.log.
+Original input hero-lanes/0065/charge-entity-inputs.json configured by
+ORPHEUS_CHARGE_ENTITY_INPUTS. No client run/publication. Next: native filter
+constant, original Mayhem/death-volley on current bot/body hosts, normal fixture
+contract reconciliation and residual actual consumers. Root owns input/ref admission.
+
+
+## A40 - preserve native entity-filter wildcard constant
+
+Restored the missing WILDCARD=0x3FFFFFFF already used inline by native BCAAE0
+mask admission, and shared it with the existing record backend. This fixes three
+pre-existing missing-name errors, without new fallback/schema/graph exceptions.
+Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
+classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
+No client run/publication. Continue original0065 Mayhem/death-volley.
+
+
+## A41 - original player Total Mayhem death volleys
+
+Restored WeaponVolley's authored m_58631C73 allow-shots-while-dead query and
+report guard, then consumed only Junkrat022A terminal reports immediately from
+the existing authoritative death callback. Ordinary dead primary/melee remain
+rejected. Mounted original launch_ring.py only for Total Mayhem's six authored
+scatter states; other existing native spread/Volley/NPC consumers are retained.
+Original collision/gravity/rebound/fuses run through A33's actual shared Rocket.
+
+Baseline two original Mayhem checks failed0 volleys. Original reports-six,
+six-direction scatter, floor/wall rebound, bounded six fuses and skipped-update
+blast order5 pass. Original launch-ring math, shared Damage/ProjectileTiming,
+dead-primary rejection, team/wall and Wraith/Cryo29 pass. Current original
+runtime17 pass. Actual still-owned dead-source Mayhem earns200 for its200HP victim, as required
+by the original charge fixture; it must not be suppressed as a retired source.
+The initial extra probe incorrectly assumed zero and that expectation was rejected;
+original assertions were not changed. Logs worker-a-junkrat-mayhem-{baseline,
+fourth,shared,runtime,charge-final}.log.
+Original tests/assertions retained, no synthetic projectile/observer or matrix.
+No client run/publication. Next exact action: original NPC2535 death-volley
+modifier on existing BotWorld/BotScript, then normal original NPC/charge fixture
+contract and any genuine remaining consumers; keep acceptance-only residuals.

@@ -125,6 +125,11 @@ class SegmentPairTests(unittest.TestCase):
         self.assertAlmostEqual(distance((-1, 0, 0), (1, 0, 0), (0, -1, 2), (0, 1, 2)), 2)
 
 
+def deployment_health(deployment):
+    from ow174.game import sigma_barrier
+    return deployment.vitals.total if isinstance(deployment, sigma_barrier.Barrier) else deployment.health
+
+
 def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=None, allied=False):
     """Approach a real deployment and return the stopped pose for removal checks."""
     case.match.game_map = replace(case.match.game_map, free_for_all=False)
@@ -149,7 +154,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
         case.assertGreater(expiry - 7, fight.tick)
         while fight.tick < expiry - 7:
             case.run.step(hold)
-    health = deployment.health
+    health = deployment_health(deployment)
     if allied:
         case.rein.team, case.other.team = case.other.team, case.enemy.team
     case.run.step({case.other: (yaw, 0, 3)})
@@ -163,7 +168,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
     case.assertFalse(dash.active)
     stopped = tuple(case.other.mover.position)
     if allied:
-        case.assertEqual(deployment.health, health)
+        case.assertEqual(deployment_health(deployment), health)
         case.assertEqual(case.health(case.rein), 497.5)
         case.assertTrue(controlled(fight, case.rein.body))
         case.assertEqual(len(case.other.client.messages(combat.HIT)), 1)
@@ -172,7 +177,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
     case.assertGreater((face - stopped[2]) * direction, 0.4)
     case.assertLess((face - stopped[2]) * direction, 0.7)
     case.assertEqual(case.other.mover.velocity[2], 0)
-    case.assertEqual(deployment.health, health)
+    case.assertEqual(deployment_health(deployment), health)
     case.assertEqual(case.health(case.rein), 500)
     case.assertFalse(controlled(fight, case.rein.body))
     if expiry is not None:

@@ -530,9 +530,36 @@ alone is not evidence that a line's consumers are actually mounted.
   FireStrike consumers, reuse C29 Photon contact(actor,...) plane/mesh API when
   merged. No metadata alias alone counts as complete owner integration.
 
+## B30 actual Orisa/Sigma contacts and owner-bound mode lifecycle
+
+- Existing FireStrike ordered collection now uses original real Orisa and Sigma
+  geometry/intersection, rocket.team, native pool damage and actor keys. Retain
+  geometry/pose references after this wave breaks a barrier; no cloned actor,
+  second health pool or mover. Correct Sigma key to its actual barrier entity.
+- Original source assertions exposed mode3 already in owner VM59/entity19777
+  while canonical cached phase remained2. Posed owner command now calls the
+  existing update host with elapsed0; no extra motion integration. Original
+  retire_owner semantics remove its native child and clear activity immediately.
+- Select original023B/barrier-resources/00000000C015.00C with its strict adjacent
+  model-integrity.json through ORPHEUS_SIGMA_BARRIER_MODEL before module import;
+  never send the old Sigma collision JSON to that loader. Real700/16.5/1A2A,
+  recall, break lock, recovery and actor teardown all pass original cases.
+- `worker-b-rein-orisa-sigma-focused.log`:40/40. Full original24 third log:
+  19pass,4Brigitte errors and one original8.9296825 not>9.6 expectation. Original
+ 023B/source/ow174/game/sigma.py:939 already declares0.9m initial bias; preserve
+  this fuller owner implementation instead of changing geometry to pass older
+ 0007 helper expectation. Both source suites remain fully retained.
+- Source fixture views do not create state: actual Vitals/phase/child and actor
+  identity, actual pool input for pre-damage, source registry projected by real
+  owner_body. AST audit main1399/1399, Orisa40/40, Sigma87/87, zero per-method
+  assertion Constants/order changes. Root was sent verified raw input readiness.
+- Next: clean sync latest canonical/C29 Photon contact API, then remaining
+  FireStrike deployment objects, Photon plane/mesh and Brigitte cross-owner
+  host audit. Keep source tests and all numerical boundaries intact.
+
 ## Exact next work
 
-1. Commit B29, then clean-sync canonical after parent acceptance. Continue
+1. Commit B30, then clean-sync canonical after parent acceptance. Continue
    source0007 actual shield retirement/death/control/break/recast consumers,
    real native pool fixture inputs, source frozen-team queries and remaining
    surface histories. Preserve original grenade incident-side occlusion and

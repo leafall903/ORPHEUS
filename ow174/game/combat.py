@@ -2287,6 +2287,7 @@ class Combat:
         self.orisa.retire(player.body)
         self.echo_duplicates.retired(player)
         self.barriers.retire(player.body)
+        sigma_barrier.retire_owner(self, player)
         barriers.retire_owner(self, player)
         assassin_victim.retire_target(self, player.body)
         self.clear_pins(player.body)
@@ -3115,13 +3116,23 @@ class Combat:
                 and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
+        if command is not None:
+            self.junkrat.tire.begin(player, command)
         self.barriers.sync(player)
+        if script.hero == sigma_barrier.HERO and not defer_effects:
+            # The authored owner mode changed on this posed frame. Reuse the
+            # existing world host (elapsed zero after its tick), not another drive.
+            for actor in tuple(self.sigma_barriers.values()):
+                if actor.owner is player:
+                    actor.update(self)
         reaper.advance_entry(player)
         self._shadow(player, command)
         self._winston_health(player, script)
         self.winston_jump.command(player, command, dead=self.is_dead(player))
         hero_torbjorn.overload(self, player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
+        if self.junkrat.tire.busy(player.body):
+            shots = [shot for shot in shots if shot[0].allows_dead()]
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
         if command is not None and reinhardt_charge.counter_frame(self, player):
@@ -3136,6 +3147,11 @@ class Combat:
         repairs, script.self_repairs[:] = list(script.self_repairs), []
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
+            if player.hero.guid == 0x02E0000000000065:
+                terminal = command or Command(self.tick, yaw=round(player.mover.yaw), pitch=round(player.mover.pitch))
+                for state, number, time, activation in shots:
+                    if state.instance.graph.index == 0x022A and state.allows_dead():
+                        self._shoot(player, terminal, state, number, time, activation=activation)
             return
         self._cryo_healing(player)
         if mei.protected(player):
@@ -4103,6 +4119,8 @@ class Combat:
             or any(npc_shields.recovery_pending(bot) for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
+            first = retained
+        if self.tick and (self.junkrat.tire.actors or self.junkrat.tire.recovery):
             first = retained
         for player in self.match.players:
             if player.hero.guid == symmetra_charge.HERO:
@@ -5824,7 +5842,13 @@ class Combat:
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)
                     if len(directions) == 1:
                         directions = ring_directions(state, direction) or directions
-                if explicit_directions is not None:
+                if (not npc and junkrat_profile is not None and state.instance.graph.index == 0x022A):
+                    from ow174.game import launch_ring
+
+                    directions = launch_ring.projectile_directions(state, direction, number, activation)
+                    if directions is None:
+                        raise ValueError("unsupported authored Total Mayhem launch")
+                elif explicit_directions is not None:
                     directions = explicit_directions
                 dose_scalar = None
                 if direct is not None and direct.duration > 0.0:
@@ -7523,6 +7547,17 @@ class Combat:
             key = (-actor.body, None)
             if contact is not None and key not in rocket.penetrated and (contact[0] < limit or not stops):
                 contacts.append((contact[0], 0, actor.body, key, (contact[0], actor.owner, actor)))
+        for actor in self.orisa_barriers.opponents(rocket.shooter, rocket.team):
+            distance = self.orisa_barriers.geometry.cast(actor.position, actor.yaw, rocket.position,
+                                                         direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
+        for actor in sigma_barrier.enemies(self, rocket.shooter, team=rocket.team):
+            distance = actor.intersection(rocket.position, direction, limit, rocket.penetration_radius)
+            key = (-actor.entity, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
@@ -8925,6 +8960,8 @@ class Combat:
         if symmetra.owns_shield_recovery(target.owner):
             vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
+        if award_ult:
+            self.junkrat.charge.damage(shooter, target, dealt, loadout, attacker)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
             if vitals.dead or vitals.now[HEALTH_POOL] <= EPSILON:
@@ -9631,6 +9668,10 @@ class Combat:
                     # The server owns the death event. Run it before the observer snapshot even
                     # if the victim sends no further commands.
                     component.run_now()
+                    if victim.hero.guid == 0x02E0000000000065:
+                        script._report_shots()
+                        self.command(victim, Command(self.tick, yaw=round(victim.mover.yaw),
+                                                     pitch=round(victim.mover.pitch)))
             except Exception:
                 log.exception("[game] %s: %s's body script failed on %X", label, victim.name, DIED)
         self.brigitte.died(victim)
@@ -9642,6 +9683,9 @@ class Combat:
             return
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
+            return
+        if self.junkrat.tire.busy(player.body):
+            self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
         old_script = player.body_script
         points, pending = None, ()

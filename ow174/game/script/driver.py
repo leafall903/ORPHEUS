@@ -615,6 +615,12 @@ class BodyWorld(runtime.World):
     def component76_keys(self, entity):
         if self.match is None:
             return NotImplemented
+        binding = self.match.combat.junkrat.charge.bindings.get(self.body)
+        if binding is not None and binding.owned():
+            record = binding.record(entity)
+            if record is not None:
+                tags = record[3].tags
+                return entity_queries.Component76Keys(frozenset(tags.base), frozenset(tags.added), frozenset(tags.removed))
         from ow174.game import health_packs
 
         return health_packs.tag_keys(getattr(self.match.combat, "health_packs", {}).get(entity))
@@ -871,7 +877,21 @@ class BodyWorld(runtime.World):
 
             barriers.retire(self.match.combat, entity)
 
+    def entity_relation_context(self, entity, *, component=None):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self.match.combat.junkrat.charge.context(self.body, "hostility")
+
+    def entity_filter_host(self, instance):
+        if self.match is None or instance.component.entity != self.body:
+            return NotImplemented
+        return self.match.combat.junkrat.charge.context(self.body, "filtered")
+
     def entity_possessor_context(self, entity: int):
+        if self.match is not None and entity == self.body:
+            context = self.match.combat.junkrat.charge.context(self.body, "relation")
+            if context is not NotImplemented:
+                return context
         if self.match is None or entity != self.body or self.hero != barrier.REINHARDT:
             return NotImplemented  # retain other heroes' existing dedicated native adapters
         if self._possessor_query is None:
@@ -951,6 +971,12 @@ class BodyWorld(runtime.World):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         if self.match is not None and instance is not None:
+            from ow174.game.script import entity_relation
+
+            if cfg.get("$") == entity_relation.CLASS:
+                value = entity_relation.evaluate(runtime.InstanceContext(instance, None), cfg)
+                if value is not NotImplemented:
+                    return value
             value = self.match.combat.junkrat.query(cfg, instance)
             if value is not NotImplemented:
                 return value
@@ -2598,6 +2624,9 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.world.match is not None and (self.hero == 0x02E0000000000065
+                or self.world.match.combat.junkrat.tire.busy(self.entity)):
+            return 0.0
         if self.hero == 0x02E000000000000A:
             from ow174.game import widowmaker
 
@@ -2658,6 +2687,10 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+
+        if self.world.match is not None and (self.hero == 0x02E0000000000065
+                or self.world.match.combat.junkrat.tire.busy(self.entity)):
+            return
 
         if self.hero == mei.HERO:
             if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):
