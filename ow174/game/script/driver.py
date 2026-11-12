@@ -834,6 +834,12 @@ class BodyWorld(runtime.World):
 
     def native(self, cfg: dict, instance):
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
+        from ow174.game import hanzo_movement
+
+        if instance is not None:
+            movement = hanzo_movement.native(self, cfg, instance)
+            if movement is not NotImplemented:
+                return movement
 
         if self.hero == 0x02E000000000007A and self.match is not None:
             from ow174.game import body_entities
@@ -1550,7 +1556,12 @@ class BodyWorld(runtime.World):
             return self._pharah_velocity_action(instance, node)
         if self.hero == lucio_movement.HERO:
             return lucio_movement.action(instance, node)
-        return mccree.velocity_action(self, instance, node)
+        result = mccree.velocity_action(self, instance, node)
+        if result is NotImplemented:
+            from ow174.game import hanzo_movement
+
+            return hanzo_movement.velocity_action(self, instance, node)
+        return result
 
     def tracked_targets(self, state):
         if (self.communication_wheel and self.match is not None
@@ -2027,6 +2038,9 @@ class BodyScript(ReplicatedBody):
         if self.hero == GENJI and health <= 0:
             self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        if health <= 0 and getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
         if self.component.owner_dead and hasattr(self, "self_repairs"):
             self.self_repairs.clear()
             self.control_windows.clear()
@@ -2634,6 +2648,9 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        if getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
         self.self_repairs.clear()
         self.control_windows.clear()
         self.sleep_windows.clear()

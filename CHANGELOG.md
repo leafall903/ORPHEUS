@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Hanzo Lunge, wall climb and ledge movement
+
+- Mount0005 hanzo_movement through authored010C yaw/velocity actions, posed
+  capsule movement, input synchronization and death/retirement cleanup. Preserve
+  current forced-movement, external impulse and other-hero arbitration. Adapt
+  only the absent Sigma Flux import to the delivery's exact1DBC/node12 active
+  predicate; no second Sigma manager is installed.
+- Capture Climb budget/contact/mantle state in body and server storage. Retain
+  the original movement and climb test files unchanged. Seven original Lunge
+  direction/launch/cooldown/collision/death/strict checks passed. Eight original
+  climb budget/contact/input/landing/ledge checks and the original strict/storage
+  digest check passed through isolated AST loading because unrelated top-level
+  Sonic/Dragon/ExperimentalBarrier fixture imports are not mounted yet. Their
+  original assertions were not altered. Shared runtime/button/Shadow regression
+  results are recorded in the worker checkpoint.
+- Client/native movement acceptance remains open as in the delivery. Sonic,
+  moving Dragon and remaining cross-owner Hanzo consumers are still pending;
+  earlier camera/contact numerical differences remain recorded.
+
 ### Mount delivered Hanzo charge, interruption and bow ballistics
 
 - Mount the original hanzo_charge/hanzo_control modules unchanged. Preserve the

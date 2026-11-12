@@ -12,7 +12,7 @@ import marshal
 import random
 import types
 
-from ow174.game import replay_values
+from ow174.game import hanzo_movement, replay_values
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
@@ -160,6 +160,7 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal", "mantle"),
     scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
     scopes.History: ("records", "initial", "dispatched"),
     scopes.Edge: ("frame", "active"),
