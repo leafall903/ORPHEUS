@@ -10,12 +10,18 @@ data/game_heroes_174.json and the training bots' bodies in data/ai_spawners_174.
 
     py tools/extract_game_movers.py <XML dump folder>\003
 
+To append explicit NPC definitions without rewriting prepared inputs, pass
+--base <existing movers> --npc-catalog <pve_npcs_174.json> --output <new file>.
+The explicit NPC path rejects missing mover definitions instead of substituting
+the Soldier capsule. Prepared game data belongs outside the source repository.
+
 The dump names the fields by hash. Their meaning comes from where the client's mover reads them: it keeps
 the component's values at mover +0x418 + the field's offset (TankLib's STU layout), for example the jump
 speed at +0x49C (jump 0x7FF789B48880), the gravity scale at +0x4A0 (0x7FF789AD03A0), the speeds at
 +0x460..+0x474 (wish 0x7FF789B44340), the capsule at +0x430..+0x444 (stance 0x7FF789B4C3D0).
 """
 
+import argparse
 import json
 import math
 import re
@@ -110,23 +116,46 @@ def mover_of(text: str) -> dict | None:
 
 
 def main(argv: list[str]) -> None:
-    if len(argv) < 2:
-        raise SystemExit(__doc__)
-    folder = Path(argv[1])
-    heroes = list(json.loads((DATA_DIR / "game_heroes_174.json").read_text(encoding="utf-8")).values())
-    spawners = DATA_DIR / "ai_spawners_174.json"
-    if spawners.is_file():
-        heroes += json.loads(spawners.read_text(encoding="utf-8"))["heroes"].values()
-    table = {}
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("folder", type=Path)
+    parser.add_argument("--base", type=Path,
+                        help="Preserve a prepared mover catalog; append explicit NPCs only")
+    parser.add_argument("--npc-catalog", type=Path,
+                        help="Prepared pve_npcs_174.json with explicit body GUIDs")
+    parser.add_argument("--output", type=Path, default=DATA_DIR / "game_movers_174.json")
+    args = parser.parse_args(argv[1:])
+    folder = args.folder
+    if args.base is not None:
+        table = json.loads(args.base.read_text(encoding="utf-8"))
+        if not isinstance(table, dict):
+            raise ValueError("base mover catalog must be an object")
+        heroes = []
+    else:
+        table = {}
+        heroes = list(json.loads((DATA_DIR / "game_heroes_174.json").read_text(encoding="utf-8")).values())
+        spawners = DATA_DIR / "ai_spawners_174.json"
+        if spawners.is_file():
+            heroes += json.loads(spawners.read_text(encoding="utf-8"))["heroes"].values()
+    if args.npc_catalog is not None:
+        catalog = json.loads(args.npc_catalog.read_text(encoding="utf-8"))
+        if catalog.get("format_version") != 1 or not isinstance(catalog.get("definitions"), list):
+            raise ValueError("NPC catalog must have explicit version-1 definitions")
+        heroes += catalog["definitions"]
     for hero in heroes:
         body = int(hero["body"], 16)
+        if body >> 48 != 0x0400 or not body & 0xFFFFFFFFFFFF:
+            raise ValueError("mover catalog needs full nonzero entity definition GUIDs")
         dump = folder / f"{body & 0xFFFFFFFFFFFF:012X}.003.xml"
         values = mover_of(dump.read_text(encoding="utf-8")) if dump.is_file() else None
         if values is None:
+            if args.npc_catalog is not None:
+                raise ValueError(f"missing character mover for {hero['name']}: {dump}")
             print(f"skipped {hero['name']}: no character mover in {dump}")
             continue
         table[hero["body"]] = {"name": hero["name"], **values}
-    out = DATA_DIR / "game_movers_174.json"
+    out = args.output
+    if args.base is not None and out.resolve() == args.base.resolve():
+        raise ValueError("output must not overwrite the prepared base catalog")
     out.write_text(
         json.dumps(dict(sorted(table.items())), indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
     )

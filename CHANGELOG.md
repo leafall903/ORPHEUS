@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore explicit NPC mover export options
+
+- Restore original006E --base/--npc-catalog/--output on the existing mover export
+  tool, retaining stance metadata and the original34 physical fields.
+- Actual extraction/loader checks preserve base records and bytes, reject base
+  overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+
+
 ### Preserve original stance metadata extraction
 
 - Restore original012F FirstPerson extraction alongside the existing34 mover
