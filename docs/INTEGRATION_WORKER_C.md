@@ -540,3 +540,5 @@ against canonical actor scheduler; unmounted sentry/portal/placement services
 and their retained-history interactions remain. Core9 charge passing does not
 prove those cross-owner branches. Continue actual sentry deployment/beam/slow
 and preserved original source checks next; no full-journal gate or client use.
+
+C22 SHA5beccbdc delivered. Clean boundary sync root6ef42b61 preserves B18 BotScript polymorphism/nontransportability, A25/26 Widow and source reconciliation map. Server registry retains root passive_charge_due plus own charge_clock and one beam_barrier field. Coordination only; continue C23 sentry.

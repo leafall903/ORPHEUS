@@ -9,6 +9,59 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
+## Current owner reconciliation after A27
+
+All seven assigned hero cores have actual consumers; no additional missing own
+hero-core consumer is currently identified. This is an owner boundary, not a
+claim that every file in each large frozen cross-owner delivery is reconciled or
+formally admitted. Root owns source-ref history admission and final cross-owner
+reconcile. Earlier chronological next-actions below are superseded by this block.
+
+- 0002 Reaper, source4babd03311d49f89b9a819522fe23f72a5b2306a: original
+  reaper/damage_charge/shot_patterns/blossom consumers, Shadow selector/movement/
+  immunity/cleanup, reflected shells with retained launch and deflector contexts,
+  and interlocks are mounted. A1-A3 cover real missing code. Shared old managers
+  in its107-file delivery remain cross-owner reconciliation, not Reaper omissions.
+- 0003 Tracer, source8a3ece2db99405a6c14e3e36c0492fc71d4bb48c: pistol/Blink
+  source mapped to current original-language hosts; Recall samples/history/phase/
+  health+ammo/control and Pulse current Rocket/pose/fuse/attachment/deflection/
+  damage/source-body retirement have actual consumers. Keep newer native Pulse
+  velocity and old unarmed None-vs0 observation difference (A22).
+- 0004 Mercy, source14a69f134b36767ca7bfd2978a1468a7b6c37cb7: existing staff,
+  boost, Guardian Angel/Descent, Valkyrie and weapon paths retain consumers; A4
+  original fold and A9 healing/regen chronology/history fill identified gaps.
+  Root's explicit merged effects/graphs input supplies all original bindings;
+  base runtime remains immutable. Distinct pending Descent/Valkyrie checks remain.
+- 0005 Hanzo, source2b67b154a11b7e930ee431182d8e3a70cb90b8bb: original charge/
+  control/movement/Sonic/Dragon, Storm ricochet, native timers, actual impact and
+  continued ownership, historical Fortify, profile CLI/provenance and Matrix
+  eligibility/contact consumers mounted by A11-A21. Root separately mounted the
+  original optional Volley and far Sniper consumers, keeping newer shared paths.
+- 000A Widowmaker, source0bbf016a88d6272db5358c5e4f6a611d4db5b327: A23-A27
+  mount rifle/charge/Infra, GrappleCast/pull/pillar anchor, full Venom chronology
+  and attack/cleanup consumers, actual world-budget queries and cone emission.
+  Full mapping and known native/old-observer differences appear in A27 below.
+- 0020 Zenyatta, sourcec81057dc27c9a6aee1fc277b7266396f112d0ef9: core module
+  is source-equivalent apart from actual combined barrier/healing adapters and
+  safe identity/dead-owner guards. A7 NPC shield recovery, A8 conditional143A
+  health/shield difficulty pools and A10 constants/catalog consumers are mounted.
+- 007A DVa, sourcea2353c6036c270bb1359b8e3ba3e203437ad6264: original dva.py,
+  fusion_spread.py and weapon_aim.py still byte-equivalent; body_entities functions
+  mapped to current factory/foreign-var/possession/weapon/Matrix/Booster/missile/
+  Self-Destruct/CallMech/pilot/retirement consumers. A5/A6 fixed real entry,
+  lifetime, owned lethal and missile/landing consumers. Keep grounded/button/
+  native storage and source reconstructed camera observations distinct.
+
+Remaining handoffs: root final cross-owner/ref reconciliation; frozen original
+Widow replay after A26/A27; preserved older private API/numeric/client geometry
+checks. Root is restoring catalog compatibility independently. Do not claim those
+checks passed or weaken them. No Internet, external publication, Rust cutover,
+appearance work, game client or acceptance matrix was added.
+
+Next worker action: assist any concrete missing own consumer found by root's
+cross-owner audit; retain the source and known failures. Routine whole-suite
+repeats are unnecessary without a new change or unresolved concrete concern.
+
 Committed batch A1 (`0e13388f`) ports Reaper00F2 Shadow Step's selector/confirmation/cancel,
 locked destination, actor/capsule/Mei-pillar exclusion, revalidation, authored
 cast completion, actual movement, immunity and retirement. It also retains the
@@ -617,3 +670,83 @@ Next exact action: inspect original Widow cross-owner control/defense/clock and
 replay consumers; audit remaining inline source000A body/weapon differences,
 keep original test modules/normal dependencies, and record owner reconcile.
 Do not mark whole ref admitted until root reconciles cross-owner content.
+
+Clean-boundary sync after A25: absorbed canonical d594849c (includes root
+Sniper/native shared fixes and accepted A23/A24), automatic source merge with no
+conflicts. Retain root current shield APIs and all worker Venom consumers.
+Next: normal source000A Infra clock/buffer/defense checks, no runtime asset edits.
+
+### A26 delivered defense world-clock queries (this commit)
+
+Synced canonical d594849c in28247487. Port source000A deflection.py pure
+countdown_deadline/state_deadline/world_active/matrix_deadline; use current
+selected-player Matrix service/absorption trace, keeping owned Bot _owned_closed.
+Existing Genji window now also gates _genji_deflect_state plus optional at_tick
+in existing static _deflect_state; both current internal trace/melee callers pass
+world tick. No owner VM advancement, no duplicate guard manager or snapshotfields.
+Infra source damageable=False search admits living phase/Recall bodies through
+explicit observation filter, retaining current owned-pet exclusion and team/range.
+Original InfraClock+Buffer12 pass (worker-a-widow-clock-buffer.log).
+MatrixClock6 pass; DeflectClock2pass/2fail only now HP174vs187 (current command
+cadence26vs13), proving the prior stale/future block removed but preserving old
+assertions (worker-a-widow-defense-clock-second.log).
+Broader original WeaponEdge/Eye/Throttle/MatrixClock/DeflectClock23 initially14
+failure records including subtests: residual1..4ammo fires under native dispatch,
+old static eye1.5vs current1.55 plus cover, and missing clock gates fixed here.
+Shared GenjiDeflect/Blade/TracerMatrix/Damage/runtime56:6failure/2error, preserved
+old Mei spray/bubble/noneligible/splash and missingTAGS_PATH expectations. Root
+is independently restoring catalog APIs; no claimed full green. AnaDeflect+
+Damage/runtime34:2failure/3error, oldgrenade50vsnative60 and healing_boost_until
+private view, retained. Logs worker-a-widow-deadline-shared.log and
+worker-a-widow-clock-ana-shared.log.
+Original normal Widow replay fixture retained unchanged. First235-second run
+invalidated its model manifest because files were edited during replay; root will
+run at a frozen committed boundary, not an implementation failure claim.
+Next exact action: remaining real000A source weapon_launch cone consumer audit:
+current cone admission only McCree/Bastion, missing original Widow001B nodes9/19.
+Preserve native WeaponVolley spread/index timing while mounting delivered cone
+policy, then inspect remaining owner/cross-owner boundary before source reconcile.
+
+### A27 delivered Widow weapon_launch consumer (this commit)
+
+A26 committed8d5c691d. Source000A weapon_launch.py now invoked for actual Widow
+001B/node9/19 emissions, before damage construction. One dependency adapter:
+source old spread_at(post-count view) -> recovered native spread_for_index(number).
+Source scoped zero cone remains exact; current McCree and Enforcer drivers retain
+ownership, so the same module's old generic branches are not claimed as new
+cross-owner integration. They map to existing mccree/weapon_spread/volley_geometry.
+Actual20-frame spy proves indexes0/1/2/3 =>cones0/1/2/3 degrees, one ammo per ray,
+first exact and later rays differ. Log worker-a-widow-spread-native.log.
+Normal original Spread4:1pass/3fail; preserved post-count first-ray and off-axis
+expectations, plus old eye/cover mismatch (worker-a-widow-spread-first.log).
+Original WidowmakerCombatTests12+Damage/runtime21 all33 pass after cone mounting
+(worker-a-widow-spread-rifle-shared.log). Full original NPC fixture preserved;
+only dva_body/zarya/sigma identity imports point to actual current hosts.
+
+000A owner reconcile boundary (source0bbf016a88d6272db5358c5e4f6a611d4db5b327):
+- Original inline rifle/headshot/charge/Infra logic -> widowmaker.py + current
+  hit_def/BodyWorld/BodyScript/Ability expiry. Phase observation uses original
+  living-target filter; current owned-pet exclusion retained.
+- Original native GrappleCast/static+pillar search/MoveTo/terminal release ->
+  actual registered state, BodyWorld/Combat hook, current swept mover and Walls
+  anchors. Stored cast/RaycastResult/anchor layouts explicit.
+- Full venom.py Flight/Mine/Poison chronology -> actual throw/world tick/retire/
+  reveal/projectile/rifle/melee/splash and Wall consumers; launch ownership and
+  frozen Matrix bit use current shared deflector/barrier managers.
+- Original source world-budget/countdown helpers -> current selected Matrix
+  service and Genji fallback windows. Current owned-mech clock path preserved.
+- Source cone policy -> actual weapon emission, with recovered native caller
+  index maintained. Replays record module constants/source bytes.
+- Old static FirstPerson eye, residual-ammo dispatch, generic splash selfdamage,
+  fold empty-array default and old private health/catalog API expectations remain
+  distinct from current native implementations; all checks retained. Do not
+  overwrite current native implementations merely to satisfy those observations.
+- Frozen ref carries many cross-owner modules (old Sigma/Zarya, shields, NPC,
+  AI/control, etc.). Root owns final ref reconcile/admission; no ancestry claim
+  here. No appearance code or client work. Original replay fixture awaits root's
+  frozen-boundary run. Next: verify owner-specific nonhero/core dependencies and
+  consolidate remaining own0002/0003/0004/0005/0020/007A reconcile evidence.
+
+A28 owner reconciliation checkpoint: current seven-owner map moved to the top
+of this document, superseding chronological next-actions. Latest source code
+boundary isbd8f0a37; no production code changed in this documentation batch.

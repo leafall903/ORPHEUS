@@ -4105,17 +4105,17 @@ class TalonInteractionTests(unittest.TestCase):
                     self.assertEqual(rows[0]["m_A9561CA0"], 26)
                     self.assertEqual(rows[0]["m_9B7A63EA"]["m_value"], 0)
                     self.assertEqual(bot.position, (1.6, 1, 3))
-                    self.assertNotIn(bot.entity, self.match.combat.knockbacks)
+                    self.assertNotIn(bot.entity, self.match.combat.knockbacks.active)
                     self.assertEqual(host.movement_flags(bot.entity), bot.movement_flags)
                 else:
                     self.assertGreater(bot.position[0], 1.6)
                     self.assertGreater(bot.position[1], 1)
-                    self.assertIn(bot.entity, self.match.combat.knockbacks)
-                    mover = self.match.combat.knockbacks[bot.entity]
+                    self.assertIn(bot.entity, self.match.combat.knockbacks.active)
+                    mover = self.match.combat.knockbacks.active[bot.entity]
                     self.assertTrue(mover.airborne)
                     self.assertEqual(host.movement_flags(bot.entity), mover.flags)
                 self.advance(250, buttons=0)
-                self.assertNotIn(bot.entity, self.match.combat.knockbacks)
+                self.assertNotIn(bot.entity, self.match.combat.knockbacks.active)
                 self.assertEqual(host.movement_flags(bot.entity), bot.movement_flags)
                 self.assertAlmostEqual(bot.position[1], 1, places=2)
                 self.assertEqual(vitals.total, expected)
@@ -4130,10 +4130,10 @@ class TalonInteractionTests(unittest.TestCase):
                     self.assertTrue(pinned(self.match.combat, bot.entity))
                 else:
                     self.match.combat.knockback(target, (5, 2, 0), self.run.frame)
-                    self.assertIn(bot.entity, self.match.combat.knockbacks)
+                    self.assertIn(bot.entity, self.match.combat.knockbacks.active)
                 self.assertIn(bot.entity, npc.remove_spawned(self.match))
                 self.assertFalse(controlled(self.match.combat, bot.entity))
-                self.assertNotIn(bot.entity, self.match.combat.knockbacks)
+                self.assertNotIn(bot.entity, self.match.combat.knockbacks.active)
                 self.assertFalse(any(c.pinned == bot.entity
                                      for c in self.match.combat.charges.values()))
 
@@ -4213,7 +4213,7 @@ class TalonInteractionTests(unittest.TestCase):
                 self.assertIsNotNone(bot.body_script)
                 self.assertTrue(bot.body_script.component.owner_dead)
                 self.assertTrue(any(entity == bot.entity for entity, _ in self.rein.client.deaths))
-                self.assertNotIn(bot.entity, self.match.combat.knockbacks)
+                self.assertNotIn(bot.entity, self.match.combat.knockbacks.active)
                 position = tuple(bot.position)
                 self.advance(210, buttons=0)
                 self.assertIn(bot, self.match.bots)
