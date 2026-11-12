@@ -808,3 +808,17 @@ loss cases remain passing. All26 new4 + originalOrisa critical1 + GenjiPassive13
 + Damage8 methods pass, no skips (worker-a-charge-source-boundary.log).
 Next exact action: root receive A29/A30 and their clean sync; continue concrete
 cross-owner pool event/credit audit, keeping original source checks and semantics.
+
+### A31 positive-pool expiry evidence (this commit)
+
+A30 committedb11ec8da. One remaining concrete coverage concern: prior actual
+cast→130damage→expiry had already depleted100Adaptive before timer expiry.
+Extend the same original real-cast regression to70damage leaving30Adaptive,
+zero base loss/zero charge, then600ticks expires the still-positive same extra
+pool. Both Genji and Orisa invoke neither generic damage gain nor012 on expiry;
+existing resource passive remains independent. Also retain130damage spill case.
+Allfour actual cast/expiry subcases pass in1 method12.004s, no skips
+(worker-a-pool-positive-expiry.log). No production code or old assertion changed.
+Root handoff's grant/damage/mixed loss/positive expiry/single-host/current-source
+conditions now have actual Vitals.extra evidence. No further identified gap in
+this scoped handoff; remain available for concrete cross-owner conflicts/gaps.

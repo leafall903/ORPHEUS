@@ -68,33 +68,36 @@ class DeliveredPoolLossChargeTests(unittest.TestCase):
 
     def test_actual_adaptive_cast_damage_spill_and_expiry_use_same_extra_pool(self):
         for hero in (GENJI, ORISA):
-            with self.subTest(hero=hero):
-                run, source, victim, _, _ = self.arena(hero)
-                self.assertTrue(run.match.switch_hero(victim, heroes()[torbjorn_charge.WRECKING_BALL]))
-                source.mover.position[:] = (0, 0, 0)
-                victim.mover.position[:] = (0, 0, 100)
-                victim.mover.body = None
-                for _ in range(35):
-                    run.step({})
-                run.step({victim: (0, 0, 16)})
-                for _ in range(3):
-                    run.step({})
-                fight = run.match.combat
-                target = next(t for t in fight._targets() if t.owner is victim)
-                hp = fight.vitals_of(target)
-                pool = hp.extra[("adaptive", TAG)]
-                self.assertEqual(pool.now, 100)
-                source.body_script.set_ult_charge(0)
-                base = hp.base_total
-                self.assertTrue(fight._damage(source, target, 130, False, None, run.frame))
-                self.assertEqual(pool.now, 0)
-                self.assertEqual(base - hp.base_total, 25)
-                self.assertEqual(self.charge(source), 25)
-                with patch.object(message_receive, "receive", wraps=message_receive.receive) as receive:
-                    for _ in range(600):
+            for incoming, remaining, expected in ((70, 30, 0), (130, 0, 25)):
+                with self.subTest(hero=hero, incoming=incoming):
+                    run, source, victim, _, _ = self.arena(hero)
+                    self.assertTrue(run.match.switch_hero(victim, heroes()[torbjorn_charge.WRECKING_BALL]))
+                    source.mover.position[:] = (0, 0, 0)
+                    victim.mover.position[:] = (0, 0, 100)
+                    victim.mover.body = None
+                    for _ in range(35):
                         run.step({})
-                self.assertTrue(pool.removed or ("adaptive", TAG) not in hp.extra)
-                self.assertFalse(any(call.args[1].message == orisa_charge.DEALT for call in receive.call_args_list))
+                    run.step({victim: (0, 0, 16)})
+                    for _ in range(3):
+                        run.step({})
+                    fight = run.match.combat
+                    target = next(t for t in fight._targets() if t.owner is victim)
+                    hp = fight.vitals_of(target)
+                    pool = hp.extra[("adaptive", TAG)]
+                    self.assertEqual(pool.now, 100)
+                    source.body_script.set_ult_charge(0)
+                    base = hp.base_total
+                    self.assertTrue(fight._damage(source, target, incoming, False, None, run.frame))
+                    self.assertEqual(pool.now, remaining)
+                    self.assertEqual(base - hp.base_total, expected)
+                    self.assertEqual(self.charge(source), expected)
+                    with patch.object(message_receive, "receive", wraps=message_receive.receive) as receive:
+                        with patch.object(source.body_script, "gain_ult_charge", wraps=source.body_script.gain_ult_charge) as gain:
+                            for _ in range(600):
+                                run.step({})
+                    self.assertEqual(gain.call_count, 0)
+                    self.assertTrue(pool.removed or ("adaptive", TAG) not in hp.extra)
+                    self.assertFalse(any(call.args[1].message == orisa_charge.DEALT for call in receive.call_args_list))
 
     def test_retired_source_and_suppressed_award_do_not_credit_new_body(self):
         for hero in (GENJI, ORISA):

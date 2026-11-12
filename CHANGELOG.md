@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Verify positive Adaptive Shield expiry preserves charge ownership
+
+- Extend the real cast regression to retain30 shields after a70-damage hit, then
+  expire that same authoritative extra pool. Both Genji and Orisa add no damage
+  charge call/event during expiry; the original passive paths remain independent.
+  Allfour actual cast/damage/expiry subcases pass; no production code changed.
+
 ### Keep retired-body damage out of the new Orisa charge meter
 
 - Apply the existing current source-body guard to Orisa's012 alongside Lucio's
