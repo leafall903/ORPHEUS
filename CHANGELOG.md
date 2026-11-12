@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve NPC control interruption through Photon guards
+
+- Non-Symmetra BotScript no longer crashes in the shared Photon windup interrupt guard; real Symmetra handling is unchanged. Actual Sleep Dart now pauses BOB on existing Vitals and resumes its authored gun.
+- Real contiguous/skipped BOB sleep regression preserves original hit schedule and fixed lifetime. Together with original BOB and shared VM:28 passed. Original sleeps/freezes/Photon observer API errors retained; no client acceptance run.
+
 ### Read BOB silence through its actual recipient clock
 
 - Existing companion pose/gun consumers query the sole Controls.locked_at with the frame used by their actual component driver. Preserve original Wait window, world locks and fixed BOB lifetime; avoid stale BotScript wrapper frames.
