@@ -13,6 +13,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   workers continue actual owner/fixture reconciliation. Full integration remains
   in progress, with appearance migration excluded.
 
+### Preserve chronological Roadhog healing in strict server storage
+
+- Same Vitals budget now retains dated damage and actual pool changes for source
+  body-command healing replay. Hog endpoint clocks stay local and restoreNone;
+  register the precise optional field in both strict exporters.
+- Original history/self-heal/runtime23 checks pass; real unequal-epoch raw input
+  prevents late-damage refill and proves causal server storage. Actual same-pool
+  resurrection clears the same budget/detail. Preserve original mitigation and
+  unrelated native cast timing failures; no client acceptance run.
 
 ### Persist original NPC and tank integration receipts
 

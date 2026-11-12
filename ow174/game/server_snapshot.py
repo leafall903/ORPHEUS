@@ -318,7 +318,7 @@ OPTIONAL_FIELDS = {
     assassin_controller.Phase2World: _names("auto_scene auto_target sample"),
     venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
-    driver.BodyWorld: _names("passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
+    driver.BodyWorld: _names("healing_tick passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
     driver.BodyScript: _names("charge_clock passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending grapple_interrupt_frame ball_birth cryo_birth"),
     knockback.Knockbacks: _names("pending_npc pending_victims"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
