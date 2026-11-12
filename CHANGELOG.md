@@ -8103,3 +8103,19 @@ client operations performed. Whole nonappearance integration remains active.
   separate CombatModFilter versus CombatDamageFilter registration/host contract,
   with2 input skips; preserve original expectations for later provider merge.
   It does not gate the completed actual foreign-variable code submission.
+
+
+### Retain original projectile catalog queries and storage checks
+
+- Restore original deflection BUILD/TAGS_PATH input identities and immutable
+  ProjectileTags.absorbable API using the existing0145 tag policy and blob.
+  No new loader or query-time file read. Source Widow snapshot fixture now
+  writes the actual registered projectile_tags member rather than creating an
+  unused projectile_catalog attribute; original literal expectations remain.
+- Original catalog/actual-byte snapshot/reflected-flight storage4 all pass.
+  Broader A25 Deflect/Matrix/snapshot/shared84 had2 missing API errors repaired
+  here and2 retained source ammo/cadence expectations (174/144 vs187/157).
+  The actual clock guard work remains worker A's separate consumer batch.
+  Evidence: parallel-root-widow-catalog-storage-check.log and
+  parallel-a25-venom-shared-check.log. Do not count partial owner intake as
+  all-source completion. Original client/publication operations not performed.

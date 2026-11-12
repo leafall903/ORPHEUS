@@ -17,6 +17,7 @@ from types import MappingProxyType
 
 from ow174.game.script import expr, runtime
 from ow174.paths import DATA_DIR
+from ow174.game.projectile_tags import BUILD
 
 GENJI = 0x02E0000000000029
 EXCLUDED_TAG = 0x0D60000000000145
@@ -57,9 +58,14 @@ class ProjectileTags:
         tags = _rows(self.blob).get(definition) if self.blob is not None else None
         return tags is not None and EXCLUDED_TAG not in tags
 
+    def absorbable(self, definition):
+        """Delivered Matrix query over this same immutable0145 tag catalog."""
+        return self.admitted(definition)
+
 
 _path = os.environ.get('ORPHEUS_PROJECTILE_TAGS')
 _path = Path(_path) if _path else DATA_DIR / 'projectile_tags_174.json'
+TAGS_PATH = _path  # Original input identity; queries keep using immutable catalog bytes.
 _CATALOG = ProjectileTags(_path.read_bytes() if _path.is_file() else None)
 if os.environ.get('ORPHEUS_PROJECTILE_TAGS') and _CATALOG.blob is None:
     raise FileNotFoundError(_path)
