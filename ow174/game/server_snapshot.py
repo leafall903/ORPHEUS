@@ -108,6 +108,7 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    scopes.Registry: _names("states"),
     scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
                        "on_leave on_join on_clock_ready combat_profiles "
@@ -133,7 +134,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -288,7 +289,7 @@ DATACLASSES = (
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
     npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
-    combat.torbjorn_mark.Mark, combat.hero_torbjorn.Turret, combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    combat.molten_core.Pool, combat.molten_core.Arrival, combat.molten_core.Burn, combat.torbjorn_mark.Mark, combat.hero_torbjorn.Turret, combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,
     brigitte.BashStun,

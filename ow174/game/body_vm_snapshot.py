@@ -163,6 +163,7 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    scopes.Registry: ("states",),
     hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal", "mantle"),
     scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
     scopes.History: ("records", "initial", "dispatched"),
