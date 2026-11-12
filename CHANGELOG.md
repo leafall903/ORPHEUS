@@ -358,6 +358,16 @@ already-consumed recipient excluded, same Rocket/one explosion/one damage servic
 A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
+## C70 — original mode-scoped Mei melee projectile absorption
+
+Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
+actual22F0 defense on the same BodyScript/interception host. Original no-amount
+source41 contact, cone, boxes, tags, cooldown and fresh body lifecycle are preserved;
+ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
+source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
+three original Mei absolute differences and one old sigma_grasp fixture import
+error, without blocking code. No new defense pool, input bundle or client action.
+
 ## C69 — original AI search contract and actual Assassin target IDs
 
 Corrected the existing13C2 provider to return raw IDs to its one typed TrackTargets

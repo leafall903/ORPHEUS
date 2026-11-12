@@ -5,6 +5,54 @@ import math
 from ow174.game.script import expr
 
 EPSILON = 1e-9
+MEI_MELEE_DEFENSE = 0x22F0
+MEI_BODY = 0x04000000000008BA
+
+
+def mei_melee_contact(fight, target, origin, direction, reach, *, shown=None, admitted=False):
+    """Original Snowball0059 body-scoped22F0 absorption, not ordinary Mei melee."""
+    from ow174.game.combat import aim
+
+    owner = target.owner
+    identity = getattr(owner, "hero", None)
+    script = getattr(owner, "body_script", None)
+    if (not admitted or getattr(identity, "guid", None) != 0x02E00000000000DD
+            or getattr(identity, "body", None) != MEI_BODY or script is None
+            or script.retired or script.component.owner_dead or script.component.fault is not None
+            or fight.is_stunned(owner)):
+        return None
+    for instance in script.component.instances.values():
+        if instance.graph.index != MEI_MELEE_DEFENSE or instance.stopped:
+            continue
+        state = instance.states.get(6)
+        if (state is None or not state.active or state.ending or state.node.pos != 14
+                or state.node.cls != "STUStatescriptStateDeflectProjectiles"
+                or state.node.field("m_8B251D53") != 1):
+            continue
+        angle = expr.to_float(state.evaluate(state.node.field("m_025D0C39"), watch=False))
+        if not math.isfinite(angle) or not 0 < angle <= 360:
+            continue
+        forward = aim(owner.mover.yaw, owner.mover.pitch)
+        alignment = -sum(axis * travel for axis, travel in zip(forward, direction, strict=True))
+        if alignment < math.cos(math.radians(angle * .5)):
+            continue
+        distance = box_contact(target, state, origin, direction, reach, shown=shown)
+        if distance is not None:
+            return distance, state, forward
+    return None
+
+
+def mei_melee_absorbed(state, source):
+    """The original22F0 contact has a source41 output and no damage-amount slot."""
+    instance = state.instance
+    source_slot = expr.lvalue(state.node.field("m_0A2CABA3"))
+    if (instance.graph.index != MEI_MELEE_DEFENSE or source_slot != (expr.INSTANCE, 41)
+            or expr.lvalue(state.node.field("m_F6CDC81C")) is not None):
+        return
+    with instance.component.operation():
+        instance.write(source_slot, expr.Entity(source))
+        instance.follow(state.node, "m_160B5DBE", state)
+        instance.component.run_now()
 
 
 def ray_box(origin, direction, low, high, reach, *, padding=0.0):
