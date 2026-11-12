@@ -398,7 +398,19 @@ class Junkrat:
             trap.release_flag_seen = self.target_flag(target, TRAP_RELEASE_VAR)
             self.roots.setdefault(target.entity, {})[trap.entity] = trap.release_tick
             if isinstance(target.owner, bots.Bot):
+                from ow174.game import assassin, heavy_assault, npc_navigation
+
                 fight.knockbacks.retire(target.entity)
+                npc_navigation.stop(target.owner)
+                target.owner.impulse_mover = None
+                component = getattr(target.owner.body_script, "component", None)
+                if component is not None:
+                    charge = heavy_assault.ability(component, heavy_assault.CHARGE_GRAPH, heavy_assault.CHARGE_ABILITY)
+                    if charge is not None:
+                        heavy_assault.stop_charge(component, charge)
+                    if target.owner.hero == assassin.HERO:
+                        assassin.bind(component.world, component, None)
+                        fight.release_pin(target.entity)
                 target.owner.velocity = (0.0, 0.0, 0.0)
             else:
                 target.owner.mover.velocity = (0.0, 0.0, 0.0)

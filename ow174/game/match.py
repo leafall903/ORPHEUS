@@ -1351,6 +1351,11 @@ class Match:
             self._npc_planning_turn += 1  # server ticks can skip under load
         pillars = ice_wall.pillar_actors(self.combat)
         for bot in self.bots:
+            if self.combat.junkrat.rooted(bot.entity, tick):
+                npc_navigation.stop(bot)
+                bot._pause(tick)
+                bot.last_tick = tick
+                continue
             if self.combat.orisa.controls(bot.entity, tick):
                 continue
             hooks = getattr(self.combat, "hooks", None)

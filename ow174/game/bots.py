@@ -207,6 +207,11 @@ class Bot:
                                if pillar.created_tick <= at < pillar.expires_tick)
                 self._tick(at, seconds, collision, pace_limits, active)
 
+    def _trap_rooted(self, tick):
+        component = getattr(self.body_script, "component", None)
+        match = getattr(getattr(component, "world", None), "match", None)
+        return match is not None and match.combat.junkrat.rooted(self.entity, tick)
+
     def apply_impulse(self, velocity, tick, collision, *, category=MOVER) -> bool:
         """Reconstructed manual-NPC impulse using its actual prepared body data.
 
@@ -217,7 +222,7 @@ class Bot:
         velocity = tuple(velocity)
         if len(velocity) != 3 or not all(math.isfinite(value) for value in velocity):
             raise ValueError("invalid external impulse")
-        if self.dead:
+        if self.dead or self._trap_rooted(tick):
             return False
         if self.control_mover is not None:
             self.control_mover.apply_impulse(velocity)
@@ -332,7 +337,7 @@ class Bot:
         Route intent waits while displaced; control pauses do not erase physical momentum.
         Native NPC resistance/force ordering remains unproved.
         """
-        if self.dead:
+        if self.dead or self._trap_rooted(tick):
             return
         category = MOVER if free_for_all or self.team not in (0, 1) else (TEAM0, TEAM1)[self.team]
         if self.impulse_mover is None:
