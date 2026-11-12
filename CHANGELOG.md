@@ -291,6 +291,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original body-size and Mei combat consumers
+
+- Merge original size modifier12 and the same mover-derived scale into actual
+  eye/target dimensions, Mei melee reach and the existing self-size query.
+  Preserve original physical capsule and current other-owner fields.
+- Original scaled Mei/Genji methods and mover/damage checks pass16/16. Old
+  fixture/contract differences remain recorded separately; no new runtime host
+  or client acceptance is implied.
+
 ### Admit proven projected-NPC Sentry history through the existing driver
 
 - Replace the blanket projected-barrier rejection with the original strict

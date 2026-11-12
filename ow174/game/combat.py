@@ -4302,6 +4302,9 @@ class Combat:
             from ow174.game.script import charge
 
             charge_context = charge.damage_context(script, state, modify) if isinstance(script, BodyScript) else None
+            if script.hero == mei.HERO:
+                scale = player.mover.body_scale
+                reach, radius = reach * scale, radius * scale
             origin, direction = self._eye(player), aim(*command.aim())
             ring = knockback.quick_melee_ring(state) if hero == lucio.HERO else None
             centre = _along(origin, direction, reach)
@@ -5203,10 +5206,10 @@ class Combat:
                 continue
             if player.controlled_mech is not None:
                 continue
-            data = mover_data(player.hero.body)
+            data = player.mover.values
             crouched = player.mover.crouched
             height = data.crouch_height if crouched else data.stand_height
-            eye = eye_height(player.hero.body, crouched)
+            eye = eye_height(player.hero.body, crouched) * player.mover.body_scale
             head_offset = None
             if player.hero.body == TRACER_BODY and not crouched:
                 hx, hy, hz = TRACER_HEAD
@@ -6019,7 +6022,7 @@ class Combat:
             return x, y + height, z
         x, y, z = player.mover.position
         crouched = player.mover.crouched
-        height = eye_height(player.hero.body, crouched)
+        height = eye_height(player.hero.body, crouched) * player.mover.body_scale
         return (x, y + height, z)
 
     def damage_scale(self, shooter) -> float:
