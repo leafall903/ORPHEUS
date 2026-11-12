@@ -19,8 +19,9 @@ PROTECTION_STACKS = (6604, 8440, 478, 33551)
 class StatusWorld(support_effects.EffectWorld):
     plays_scripts = True
 
-    def __init__(self, match, source, owner):
+    def __init__(self, match, source, owner, *, source_team=None):
         super().__init__(match, source, owner)
+        self.source_team = source_team
         self.hero = 0x02E000000000013B
 
     def native(self, cfg, instance):
@@ -29,6 +30,9 @@ class StatusWorld(support_effects.EffectWorld):
             source = expr.to_entity(instance.evaluate(cfg.get("m_source")))
             target = expr.to_entity(instance.evaluate(cfg.get("m_target")))
             actors = {t.entity: t for t in self.match.combat._targets()}
+            if self.source_team is not None and source == self.source:
+                return (target in actors and (source == target or (
+                    not self.match.game_map.free_for_all and self.source_team == actors[target].team)))
             return (source in actors and target in actors and (source == target or (
                 not self.match.game_map.free_for_all and actors[source].team == actors[target].team)))
         if cls == "STU_AC829876":
@@ -111,7 +115,7 @@ class Statuses:
                 item.component.destroy(instance)
 
     def impact(self, shooter, target, damage_scale=1.0, *, boost_credit=None,
-               source_entity=None, healing_scale=1.0, broken_particle_barriers=None):
+               source_entity=None, healing_scale=1.0, broken_particle_barriers=None, source_team=None):
         fight = self.match.combat
         vitals = fight.vitals_of(target)
         if vitals.dead or fight.now < vitals.invulnerable_until or not self.available():
@@ -119,20 +123,21 @@ class Statuses:
         source = (getattr(shooter, "body", getattr(shooter, "entity", 0))
                   if source_entity is None else source_entity)
         hostile = source != target.entity and (
-            self.match.game_map.free_for_all or shooter.team != target.team
+            self.match.game_map.free_for_all or (shooter.team if source_team is None else source_team) != target.team
         )
         if hostile and fight.damage_immune(target.owner):
             return
         key = source, target.entity
         item = self.applied.get(key)
         if item is None:
-            component = runtime.Component(target.entity, world=StatusWorld(self.match, source, target.entity))
+            component = runtime.Component(target.entity, world=StatusWorld(self.match, source, target.entity, source_team=source_team))
             component.frame, component.now = fight.tick, fight.tick * component.frame_ms
             root = component.create(graph.graph(0x0C71))
             root.set_source_entity(target.entity)
             item = Applied(source, target.entity, component, root, fight.tick - 1)
             self.applied[key] = item
         item.damage_scale = damage_scale
+        item.component.world.source_team = source_team
         message_receive.receive(item.root, message_receive.Packet(support_effects.START, source, source, ()))
         self._advance(item, fight.tick, boost_credit=boost_credit, shooter=shooter,
                       healing_scale=healing_scale, broken_particle_barriers=broken_particle_barriers)

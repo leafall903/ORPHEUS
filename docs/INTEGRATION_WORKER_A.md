@@ -2604,3 +2604,34 @@ notified; C owns no samebeam WIP and will not duplicate the audit. Other generic
 owners remain as documented: Symmetra excluded from secondcall, Echo own seen
 frame, Zarya original activation/bodytime/worldelapsed gate. No global deletion
 of the second query call or unsupported all-beams claim.
+
+## A102 — preserve existing grenade launch affiliation in native status routing
+
+A98's original victim loop uses Rocket.team, but StatusWorld's original standalone
+faction predicate read live actor.team. Confirmed genuine integration mismatch:
+real hostilegrenade after source joins recipientteam healed/left400 instead of
+340; real friendlygrenade after source changesenemy dealt60 (190 instead of350).
+No invented new faction rule: the preexisting Rocket affiliation is authoritative
+for this existing flight victim decision.
+
+Passed optional source_team from that same Rocket to the same Applied StatusWorld
+and exactowner source predicate. Original manual impact defaultNone continues
+its prior live-source semantics. Refresh replaces only that actual host's captured
+team for the current accepted application. Source IDs remain exact, no inferred
+body/team, no second host or ledger. Registered only actual source_team storage
+on StatusWorld; SupportWorld unaffected, unknownfield/exporter guards retained.
+
+Native full10methods pass47.651s, including two real switch-team flights with
+original100/60 results and correct0B99/0C72 branch, Matrix, shield cleanse, actual
+5NPCdeath, Zarya sparse ledger and whole-server storage. After adding explicit
+source_team causal perturbation/restoration to actualServerSession capture,
+focused whole method passes51.064s. Logs worker-a-native-status-launch-team-baseline.log,
+worker-a-native-status-launch-team-check.log and
+worker-a-native-status-launch-team-storage-check.log. No original assertions
+or expected constants changed.
+
+Next A103 original007A/0068 typed-row ordering must use actual sameMover.Mod.start
+first-publish frame+1, not guess from component/state clock. Restore original
+component_data strict parser and typed_data on current sole mod ledger, preserve
+explicit flight/profile/ownedMech and root Volskaya mover hooks. A101 Moira
+suspicion is closed; no Moira production changes authorized or needed by evidence.
