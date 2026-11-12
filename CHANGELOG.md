@@ -11687,3 +11687,31 @@ existing rocket sweep (currently static ray_world only), then SDK7 public API/
 classID inventory. Do not overwrite stronger current projectile paths or
 collect_targets branches. B82/B83 restoration remains required, not optional
 validation-tail work. All existing input/unknown boundaries retained.
+
+
+## B85 — restore frozen Hand Cannon active Cryo cover
+
+Original58 rocket sweep uses ray_cover with every active Cryo capsule (except
+shooter) for HandCannon109; staged sibling deleted this production consumer.
+Current generic body/terrain sweep is insufficient: actual alliedMei is absent
+from enemy shot targets, yet her original090B shell is still cover. Real emitted
+pellet beyond alliedCryo incorrectly dealt6HP to the enemy behind it (baseline
+200→194). Restore original exactloadout selector+HAND_CANNON publicmetadata and
+same existing ray_cover before ordinary terrain ordering. All other projectile
+sweeps, geometry, stronger scene/barrier handlers and their ordering remain.
+
+New actual three-player/pick/Cryo/input/emitted-pellet test now stops at ally
+Cryo and preserves200HP behind. With originalDoomdefenses/Damage/runtime32/32
+pass26.981s, worker-b-doom-cryo-cover-corrected.log. Initial newfixture assumed
+smallerMei bodyradius but current authoredradius is.5; corrected to proven ally
+exclusion path, retaining logs. First mount referenced originalHAND_CANNON
+metadata absent in currentdefenses; restored originalconstant, no alias or new
+host. No original assertions changed. No client acceptance.
+
+Next exact action: SDK7 original public interfaces vs currentactualclassID/
+callbacks inventory, preserving sourceAPI only where not replaced. In particular
+source distance/possession state classes HAVE current strongerAIBehaviorState/
+AIControlOverride consumers under the sameGUID; do not overwrite those hosts
+with old registries merely to satisfy sourcefixture import names. Map semantics
+first and retain directly callable SDK where required. General42578342 B84 and
+source58twoheight/Slam B82/B83 are substantive restored code, not matrixgates.
