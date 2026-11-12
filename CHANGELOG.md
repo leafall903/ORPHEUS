@@ -15,6 +15,37 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Actual settled mover remains eligible for frozen proof; active displacement is
   excluded by its real state/control owners. Original31 shared methods pass.
 
+
+### Restore actual Whole Hog force capture on the shared mover
+
+- Capture original force/rings and volley identity through hitscan/deflection;
+  one deduplicated force submission uses the existing Knockbacks mover queue.
+  Preserve current control priorities and exact force-ledger server storage.
+- Actual volley/rings/VM plus Damage/runtime22/22 pass; raw two-client causal
+  server storage passes. Original separate external damping/world-gap behavior
+  and resulting damage/HIT difference remain open with assertions preserved.
+  No client acceptance run.
+
+### Restore original Roadhog body-node self healing
+
+- Original0240/node18 heal budget now runs through the existing ModifyHealth and
+  live Vitals path, with exact strict VM/server fields and no duplicate world
+  dose. The public8243 query and actual incoming damage share the same scalar.
+- Original self-heal8/8 pass; raw active heal storage, exact Hook interruption
+  and runtime15/15 pass. Preserve both conflicting original Roadhog/Ana
+  no-command healing assertions, plus old getter/impulse observation errors.
+  No client acceptance run.
+
+### Mount original Roadhog Hook through shared movement and storage
+
+- Real Hook launch, flight, capture, pull, command cutoff and cleanup now use one
+  Combat service and each actual player/NPC/owned-mech mover. Preserve shared
+  movement priorities and release immediately on death or body replacement.
+- Original core/runtime15 and actual owned-mech plus original DVa3 checks pass;
+  five NPC factories and raw two-client strict VM/server causal storage pass.
+  Original Hook assertions remain unchanged. Breather same-tick accounting,
+  projected-shield immediate release and an old barrier getter remain recorded;
+  no client acceptance run.
 ### Reuse the NPC driver for proven frozen sentry history
 
 - Mount original bounded no-support frozen-lock proof through the existing
@@ -60,6 +91,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the
@@ -266,6 +298,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   Original Hook assertions remain unchanged. Breather same-tick accounting,
   projected-shield immediate release and an old barrier getter remain recorded;
   no client acceptance run.
+
 
 
 ### Preserve controller Pin services in causal server storage

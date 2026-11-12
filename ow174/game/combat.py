@@ -119,7 +119,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
-from ow174.game import ball, ball_mines, hook
+from ow174.game import ball, ball_mines, hook, whole_hog
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -1246,6 +1246,7 @@ class HitDef:
     vertical_impulse_minimum: float | None = None
     source_impulse_scale: float = 0.0
     source_impulse_ignores_los: bool = False
+    whole_hog_spec: object = None
 
     @property
     def damage_tags(self):
@@ -1431,6 +1432,7 @@ def hit_def(state, cfg) -> HitDef | None:
         ally_heal=amount if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
+        whole_hog_spec=whole_hog.evaluate(state, modify),
         knockback=_accretion_knockback(state, modify),
         projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5, 0x16DA) or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
@@ -1895,6 +1897,7 @@ class RangedContact:
     world_tick: int | None = None
     reaper_shell: dict | None = None
     coach_rays: tuple | None = None
+    impulse_packet: tuple | None = None
 
 @dataclass(frozen=True)
 class MeleeContact:
@@ -5960,7 +5963,8 @@ class Combat:
             for direction in payload.coach_rays or (payload.direction,):
                 resolved = self._hitscan(shooter, payload.state, payload.origin, direction, payload.reach,
                                         targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
-                                        definition=payload.definition, reaper_shell=payload.reaper_shell)
+                                        definition=payload.definition, reaper_shell=payload.reaper_shell,
+                                        impulse_packet=payload.impulse_packet)
                 if payload.coach_rays is not None and resolved is not None:
                     source, target, distance = resolved
                     source_hits = hits.setdefault(_source_entity(source), (source, {}))[1]
@@ -6458,6 +6462,7 @@ class Combat:
             self._submit_attack(shooter, shot_frame, RangedContact(
                 direct, origin, pellet, reach, view_tick, charge_context, definition, state,
                 view_tick if npc else None, reaper_shell,
+                impulse_packet=(state.instance.component.entity, activation, time),
             ))
 
     @staticmethod
@@ -6539,7 +6544,7 @@ class Combat:
 
     def _hitscan(self, shooter, state, origin, direction, reach, targets, direct, shot_frame, world_tick,
                  *, view_tick=None, reflected=frozenset(), definition=None, travelled=0.0, matrix_factor=1.0, bounces=0,
-                 reaper_shell=None):
+                 reaper_shell=None, impulse_packet=None):
         best = None
         for target, shown in targets:
             if self._has_protection(target, PHASE_STATES) or immunity.wraith_active(target.owner, target.entity):
@@ -6702,6 +6707,7 @@ class Combat:
                     shot_frame, self.tick, view_tick=self.tick, reflected=reflected | {target.entity},
                     definition=definition, travelled=travelled + distance,
                     matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
+                    impulse_packet=impulse_packet,
                 )
             return
         if grenade_hit is not None and (wall is None or grenade_hit[0] < wall):
@@ -6749,6 +6755,8 @@ class Combat:
             reflected_reaper_shell=reaper_shell is not None and bounces > 0,
         )
         if landed:
+            self.knockbacks.whole_hog_hit(target, direction, travelled + t,
+                                         direct.whole_hog_spec, impulse_packet)
             self._hit_effect(target, direct.effect, shooter=shooter)
             return shooter, target, travelled + t
 

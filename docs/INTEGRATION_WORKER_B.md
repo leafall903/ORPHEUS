@@ -1345,3 +1345,43 @@ audit this impulse contract and remaining original Hog projectile/reload/control
 consumers, adapting observers to the actual sole service without weakening
 assertions. Root owns Sigma Flux and A owns Zarya; preserve those boundaries.
 No client acceptance run; no completed whole-Hog owner claim.
+
+
+## B53 — actual Whole Hog force capture and sole-mover submission
+
+Correction to B52's preliminary classification: old impulses.hit instrumentation
+was not merely an observer difference. The source Whole Hog Spec/evaluate and
+per-volley force consumer were unmounted; existing damage/ult tests alone did
+not prove force. Restored original Spec/evaluate unchanged (AST) in whole_hog.py,
+append captured spec/packet fields to existing HitDef/RangedContact, preserve
+packet on deflection, and call the actual sole Knockbacks host after damage.
+Original per-volley/recipient dedup, force/rings/flat and lift caps are applied
+before one queued vector delta. Exact seen ledger and Spec participate in server
+storage. Existing Hook/Trap/Pin/Halt/Graviton/immunity priorities are checked;
+ordinary NPC reuses the existing impulse channel. Owned DVa's separate body-clock
+channel is explicitly not guessed or cloned in this force scope.
+
+Actual Q proof:16-pellet volley produces one accepted force submission/seen key,
+flat10 and lift1.8 from original14/10/14 data, same target mover, real damage and
+subsequent displacement. Original ring samples5/20/60/101 and strict owner/victim
+VM pass. That regression + Damage8 + runtime13 =22/22 pass31.345s.
+Actual two-client raw HeroPick/Q verifies same sole mover, actual queued velocity
+(0,1.7998046875,10), strict twoBodyVM/whole-server storage, and seen timestamp
+mutation/restoration changes/restores digest. Logs worker-b-hog-force-{mount,
+core,raw-storage}.log in external storage. No client acceptance run.
+
+This is NOT full original Whole Hog motion equivalence: source separate external
+velocity damping/world-only integration remains to reconcile through this same
+host. With actual force now active, original WholeHog total/HIT relation fails
+329.0097175396113vs336 as movement changes falloff; original assertion retained.
+The old impulses.hit instrumentation is retained pending real callback mapping,
+not supplied by a fake alias. No new motion actor or duplicate mover was added.
+
+Next exact action: finish frozen original projectile/secondary/reload baseline
+(worker-b-hog-weapons-original.log, process78178), then restore the original
+0040 spread/fragment critical/resource consumers against the current actual
+launch path. Source has explicit primary/WholeHog2x critical default and full
+spread.directions/reorient; these are not established by the narrower current
+NPC-only source-ring path. Keep fullsource test_game_roadhog assertions. Then
+complete original force damping/world-gap priority via the same movement host,
+followed by non-Flux Sigma audit. Root owns Flux and A owns Zarya.
