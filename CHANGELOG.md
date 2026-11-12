@@ -17,6 +17,48 @@ This log records tested changes and their acceptance status. Entries are grouped
   the old healing_boost_until field. Current healing status is hosted by
   HealingEffects. Keep those original observations/expectations and logs; they
   neither block this code submission nor constitute full Ana acceptance.
+### Mount delivered Reinhardt active hammer swings
+
+- Restore source0048 active-window target queries, overlapping capsule dedup,
+  delayed contact and replacement-body generation handling. Merge physical
+  primary/melee alias controls before computing input edges, preserving held
+  attack when switching keys. Source ring origins use the current body basis.
+- Apply the original alternating radial ring through existing additive
+  Knockbacks; retain a single authoritative mover and existing Photon surface
+  consumer. Persist swing records in server snapshots and retire owner records.
+- Preserve the full original Reinhardt regression module without changed
+  assertions. Original Segment/Hammer25 ran with two flank-Bash damage failures
+  and13 subcase errors from old Brigitte/charge/target/control observations.
+  Active-window, late-entry, replacement-body, alias handoff, alternating
+  impulses, occlusion and retirement checks pass. All33 shared runtime/input/
+  epoch checks pass. Logs: worker-b-reinhardt-hammer-third.log and
+  worker-b-reinhardt-hammer-shared-fixed.log in external verification storage.
+- Active original hammer on the enclosing real GameServer snapshot passes
+  repeatability, getter-free capture and stored-contact causality.
+- Charge, Earthshatter, full surface/object swing interactions and owner-line
+  completion remain in progress. Original-client acceptance remains open;
+  no network operation, push, appearance migration or new acceptance matrix.
+
+
+### Mount delivered Winston idle bubble release
+
+- Schedule the source pending deployment on its original release frame and
+  host existing WorldBubbles actors during chronological combat replay. Advance
+  their lifetime on the same replay clock; Winston Primal follows the current
+  combat tick rather than jumping early to a later world endpoint.
+- Connect the existing world-bubble melee surface-damage consumer while
+  retaining body bypass. Retain all28 source bubble scenarios against actual
+  native actor identity, caster, location and lifetime observations.
+- Source bubble28 plus Primal18:44 of46 pass. Preserve the two original exact
+  float assertions: native f32 point1.10000002384 versus1.1 and health699.039978
+  versus699.04. No precision downgrade or assertion tolerance change.
+- Idle-release probe passes original accepted+3 birth,700 health, identity,
+  nonreplay and9s expiry. Bubble+Primal with700 silent ticks passes expiry and
+  exactly5 post-Primal charge/200ms phase; three original sparse/Primal-clock
+  checks also pass. Old Ana/Tracer bubble suites still need their renamed
+  manager/public-constant observations reconciled; retain those errors.
+- Whole-line/client acceptance remains open. No second bubble/impulse driver,
+  new acceptance matrix, client session, network operation or push.
 
 ### Reconcile reflected projectile ownership with original Echo behavior
 

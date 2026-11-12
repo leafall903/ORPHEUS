@@ -15,6 +15,18 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B10 idle bubble batch00f8133a submitted; synchronized canonical25e8154a
+  with local mergecc899e53. Never send that local synchronization merge for
+  cherry-pick; send each independent implementation commit.
+-0007 Hammer batch mounts the delivered active0048 queries and body-generation
+  hit records, original alternating ring basis/impulse and physical-key alias.
+  Source Segment/Hammer25 retained: core scenarios pass; two flank-Bash damage
+  assertions500 versus497.5 and13 legacy observation subcase errors remain.
+  Active real-server hammer stored snapshot passes repeatability, getter-free
+  capture and hit-contact causality. Shared runtime/commands/epoch33 all pass. Surface/object/turret interactions,
+  Charge and Earthshatter still need source integration; do not call0007 done.
+
+
 - `feat: integrate delivered Doomfist Rocket Punch host`: mounts the original
   owner Punches controller, charge/release contact, swept movement, control,
   wall bonus, authoritative impulse and passive-shield award consumer. The
@@ -165,7 +177,10 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Synchronize latest accepted canonical after this clean batch. Continue
+1. Commit/submit Hammer batch; continue0007 source surface/object contacts,
+   full Charge and Earthshatter. Reconcile original observations with the actual
+   native services; do not install competing shield or movement controllers.
+   Continue
    Winston cross-hero status/NPC equivalence audit, then advance remaining tank
    owners; no duplicate bubble/impulse controller and no naming-only completion.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC

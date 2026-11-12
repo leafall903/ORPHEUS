@@ -888,6 +888,25 @@ class BodyWorld(runtime.World):
                                and p.body == self.body and p.hero.guid == self.hero), None)
                 return Entity(player.entity) if player is not None else None
 
+        if (self.hero == 0x02E0000000000007 and self.match is not None and instance is not None
+                and instance.graph.index == 0x48
+                and cfg.get("$") in ("STU_71A87E92", "STU_021D01CD", "STU_C8C4C20D", "STU_66F3B89E", "STU_2200A66D")
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                cls = cfg.get("$")
+                yaw = player.mover.yaw * math.tau / 65536
+                if cls == "STU_71A87E92":
+                    return Vec3(*player.mover.position)
+                if cls == "STU_021D01CD":
+                    return Vec3(math.sin(yaw), 0., math.cos(yaw))
+                if cls == "STU_C8C4C20D":
+                    return player.mover.yaw * 360. / 65536
+                if cls == "STU_66F3B89E":
+                    return Vec3(math.cos(yaw), 0., -math.sin(yaw))
+                from ow174.game.combat import aim
+                return Vec3(*aim(player.mover.yaw, player.mover.pitch))
+
         if (cfg.get("$") == "STU_021D01CD" and self.hero == 0x02E000000000012F
                 and self.match is not None and instance is not None):
             from ow174.game.combat import aim
@@ -2115,7 +2134,12 @@ class BodyScript(ReplicatedBody):
             self.component.set(2070, bool(forward or right))
         from ow174.game import tracer
 
-        self._run(frame, tracer.filter_edges(self.world, button_edges(self.buttons, buttons, action)))
+        previous, current = self.buttons, buttons
+        if self.hero == 0x02E0000000000007 and self.world.match is not None:
+            # Delivered alias policy: merge physical controls before finding edges.
+            previous |= bool(previous & 0x800)
+            current |= bool(current & 0x800)
+        self._run(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
