@@ -5480,10 +5480,24 @@ def contains(instance: Instance, node, caller) -> bool:
 
 @handler("STU_7DEB522D")
 def button_held(instance: Instance, node, caller) -> bool:
-    """The held condition checks active button blocks first (104319 1B75954)."""
+    """Native1B758C0: disabled rejects; flags select down/up edges or held/released.
+
+    STU offsets B0..B3 are87F97379/12A75BC7/00994FF0/F2B4B71D.
+    The default is down-edge only, not held. Treating it as held loops Reaper's
+    refused Shadow Step stack back into its input wait within the same tick.
+    """
     button = to_int(instance.evaluate(node.fields.get("m_logicalButton")))
     component = instance.component
-    return branch(instance, node, caller, button in component.held and not component.disabled.get(button))
+    held = button in component.held
+    accepted = not component.disabled.get(button) and (
+        (component.button == button and (
+            (node.fields.get("m_87F97379", 1) and held)
+            or (node.fields.get("m_12A75BC7", 0) and not held)
+        ))
+        or (node.fields.get("m_00994FF0", 0) and held)
+        or (node.fields.get("m_F2B4B71D", 0) and not held)
+    )
+    return branch(instance, node, caller, bool(accepted))
 
 
 @handler("STU_CFCE55DC")

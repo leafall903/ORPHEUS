@@ -472,7 +472,7 @@ class MatchSceneHostTests(unittest.TestCase):
         world.set_current_possession(controller, A)
         world.bind_ai_behavior(controller)
         component = host.add(A, definition())
-        shooter = mock.Mock(spec=bots.Bot, entity=A, hero=hero, team=1, dead=False)
+        shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=hero, team=1, dead=False)
         host.bind_combatant(shooter, mock.Mock())
 
         authored = scene_host.graph.graph(0x157C)
@@ -565,7 +565,7 @@ class MatchSceneHostTests(unittest.TestCase):
         world.set_current_possession(controller, A)
         world.bind_ai_behavior(controller)
         component = host.add(A, definition())
-        actor = mock.Mock(spec=bots.Bot, entity=A, hero=hero)
+        actor = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=hero)
         host.bind_combatant(actor, mock.Mock())
         source = scene_host.graph.graph(0x0033).node(5)
         model = graph([node(5, source.cls, state=0, **(source.fields | {'m_subgraphPlug': None}))])
@@ -736,7 +736,7 @@ class MatchSceneHostTests(unittest.TestCase):
         instance = component.create(model, init=False)
         instance.initialized = True
         state = instance.state(0)
-        shooter = mock.Mock(spec=bots.Bot, entity=enemy, hero=hero, team=1, dead=False,
+        shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=enemy, hero=hero, team=1, dead=False,
                             position=(0, 0, 0), yaw=0, pitch=0)
         controller = enemy + 1
         host.world.bind(controller, definition=0x0400000000001959, component92_present=True)
@@ -1330,7 +1330,7 @@ class MatchSceneHostTests(unittest.TestCase):
         target, = fight._targets()
         host = match.scene_host
         vm = host.combatant_component(bot)
-        killer = mock.Mock(spec=bots.Bot, entity=A + 2)
+        killer = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A + 2)
         killer.name = 'Killer'
         fight._damage(killer, target, 10, False, None, 100)
         self.assertEqual(vm.entity_var(OWNER_HEALTH).value(), 90)
@@ -1384,7 +1384,7 @@ class MatchSceneHostTests(unittest.TestCase):
         match.update(1.6, 100)
         fight, host = match.combat, match.scene_host
         target, = fight._targets()
-        killer = mock.Mock(spec=bots.Bot, entity=A + 2)
+        killer = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A + 2)
         killer.name = 'Killer'
         fight._damage(killer, target, 200, False, None, 100)
         deadline = 100 + junkenstein_scene.COMMON_CORPSE_GRACE_MS // host.frame_ms
@@ -1427,7 +1427,7 @@ class MatchSceneHostTests(unittest.TestCase):
             world.bind_ai_behavior(controller)
             world.set_possessions(possessors=(controller,), primary=((A, controller),))
             world.set_current_possession(controller, A)
-            shooter = mock.Mock(spec=bots.Bot, entity=A, hero=junkenstein_ai.ZOMBARDIER,
+            shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=junkenstein_ai.ZOMBARDIER,
                                 team=1, position=(0, 0, 0), dead=False)
             shooter.body_script = SimpleNamespace(component=component)
             control = junkenstein_ai.ZombardierControl(controller, shooter, component, 29)

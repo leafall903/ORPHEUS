@@ -232,6 +232,7 @@ ULT_CHARGE, ULT_COST = 342, 338
 ULT_GAIN_ENABLED = 2426
 ULT_GAIN_GRAPH = 0x0B8B
 ULT_SECONDS = 60.0
+BASTION = 0x02E0000000000015
 GENJI = 0x02E0000000000029
 GENJI_IN_AIR, GENJI_ON_GROUND = 417, 545
 VOLLEY = "STUStatescriptStateWeaponVolley"
@@ -1863,7 +1864,7 @@ class BodyScript(ReplicatedBody):
         self.world_frame_anchor: tuple[int, int] | None = None
         if hero == 0x02E0000000000002 and match is not None:
             self.world_frame_anchor = match.tick, start_frame
-        if ult_seconds is None and hero not in (0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
+        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
@@ -1874,6 +1875,10 @@ class BodyScript(ReplicatedBody):
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
         self.self_healing = 0.0
+        self.self_repairs: list[float] = []
+        self.control_windows: list[tuple[int, int]] = []
+        self.sleep_windows: list[tuple[int, int]] = []
+        self.frost_windows: list[tuple[int, int]] = []
         self.support_healing = []
         initial_pools = (pools.body_pools(hero) if body_definition is None
                          else pools.active_pools(hero, body_definition))
@@ -1936,6 +1941,9 @@ class BodyScript(ReplicatedBody):
             self.world.scope_host.run_frame(frame)
         else:
             component.run_frame(frame)
+        if self.hero == BASTION and component.entity_var(2426).value() is None:
+            component.set(2426, True)
+            component.run_now()
         if self.hero == lucio.HERO and self.world.match is not None:
             lucio.stop_passive_timer(component)
         self.server_only = self.initial_exclusions()
@@ -1958,6 +1966,11 @@ class BodyScript(ReplicatedBody):
         if self.hero == GENJI and health <= 0:
             self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        if self.component.owner_dead and hasattr(self, "self_repairs"):
+            self.self_repairs.clear()
+            self.control_windows.clear()
+            self.sleep_windows.clear()
+            self.frost_windows.clear()
         ultimate.sync_practice_timer(self)
 
     # --- running -----------------------------------------------------------------------------------
@@ -2009,6 +2022,10 @@ class BodyScript(ReplicatedBody):
         ultimate.sync_practice_timer(self)
         from ow174.game import lucio
 
+        if self.hero == BASTION:
+            # Bastion's delivered accepted-frame bridge owns passive cadence,
+            # including an explicit zero-rate override. Keep message entries live.
+            lucio.stop_passive_timer(self.component)
         if self.hero == lucio.HERO:
             lucio.stop_passive_timer(self.component)
             player = lucio.charge_player(self.world, self.component)
@@ -2022,12 +2039,121 @@ class BodyScript(ReplicatedBody):
         else:
             self.component.run_frame(frame, edges)
         self.self_healing += regeneration.report(self)
+        for windows in (self.control_windows, self.sleep_windows, self.frost_windows):
+            windows[:] = [(low, high) for low, high in windows if high > frame]
+        self._report_self_repair()
         from ow174.game.script import support
 
         self.support_healing.extend(support.healing_reports(self, frame))
         immunity.advance_startup(self.component)
         self._report_shots()
         self._charge_ult()
+
+    def apply_control(self, start: int, end: int, *, sleep: bool = False) -> None:
+        """Keep control intervals until delayed simulation has passed them.
+
+        Combat's live deadline disappears at expiry; a later command can still
+        backfill frames inside it. Accepted command frames can lag the current
+        world tick, so only the owner's simulation cursor can retire a window.
+        """
+        self.self_repairs.clear()
+        windows = self.sleep_windows if sleep else self.control_windows
+        self._record_control(windows, start, end)
+
+    def apply_frost(self, start: int, end: int) -> None:
+        self.self_repairs.clear()
+        self._record_control(self.frost_windows, start, end)
+
+    def shorten_frost(self, end: int) -> None:
+        if self.frost_windows:
+            low, high = self.frost_windows[-1]
+            self.frost_windows[-1] = low, min(high, end)
+
+    def _record_control(self, windows, start: int, end: int) -> None:
+        windows[:] = [(low, high) for low, high in windows if high > self.component.frame]
+        if windows and windows[-1][1] >= start:
+            low, high = windows[-1]
+            windows[-1] = low, max(high, end)
+        else:
+            windows.append((start, end))
+
+    def shorten_sleep(self, end: int) -> None:
+        if self.sleep_windows:
+            low, high = self.sleep_windows[-1]
+            self.sleep_windows[-1] = low, min(high, end)
+
+    def controlled_at(self, frame: int) -> bool:
+        if self.component.input_suppressed:
+            return True
+        local = any(low <= frame < high
+                   for windows in (self.control_windows, self.sleep_windows, self.frost_windows)
+                   for low, high in windows)
+        match = self.world.match
+        if local or match is None:
+            return local
+        actor = match._message_player(self.entity)
+        return (actor is not None and match.combat.is_stunned(actor)
+                or any(lock.start <= frame and (lock.end is None or frame < lock.end)
+                       for lock in match.combat.input_locks.get(self.entity, ())))
+
+    def _report_self_repair(self) -> None:
+        """Reconstruct Bastion's 0153/st0 continuous self heal from its authored rate.
+
+        This is deliberately not a generic ModifyHealth implementation. Targeting,
+        rate semantics and combat modifiers for other health states remain open.
+        Sampling here preserves every simulated frame, including a release inside
+        a command gap; combat consumes each report once.
+        """
+        if self.hero != BASTION or self.component.owner_dead:
+            return
+        frame = self.component.frame
+        if self.controlled_at(frame):
+            return
+        for instance in self.component.instances.values():
+            state = instance.states.get(0) if instance.graph.index == 0x0153 else None
+            if state is None or not state.active:
+                continue
+            modify = state.node.field("m_modifyHealth") or {}
+            if (modify.get("m_93CDFD2F") != 0
+                    or state.evaluate(state.node.field("m_FA3ECC43"), watch=False) != Entity(self.entity)):
+                continue
+            rate = expr.to_float(state.evaluate(modify.get("m_amount"), watch=False))
+            if math.isfinite(rate) and rate > 0:
+                self.self_repairs.append(rate * self.frame_ms / 1000.0)
+        del self.self_repairs[:-MAX_GAP]
+
+    def _ult_charge_allowed(self) -> bool:
+        if (self.retired or self.component.owner_dead
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return False
+        if self.hero == BASTION:
+            gate = self.component.entity_var(2426).value()
+            # Preserve the numeric bridge for an unbound runtime value.
+            # Explicit graph gates still control damage and passive gains.
+            return ((gate is None or expr.truthy(gate))
+                    and not expr.truthy(self.component.entity_var(842).value())
+                    and self.component.entity_var(1216).value() not in (4, 5, 6, 7))
+        return True
+
+    def report_self_healing(self, amount: float) -> None:
+        """Reconstruct Self-Repair's0044 notification; the graph owns qualification.
+
+        Supply actual restored HP and the authored tags. Qualification uses
+        the current gate and 0B8B's suppression, tag and target tests.
+        """
+        if (self.hero != BASTION or self.retired or self.component.owner_dead
+                or not math.isfinite(amount) or amount <= 0):
+            return
+        instance = next((item for item in self.component.instances.values()
+                         if item.graph.index == 0x0153), None)
+        if instance is None:
+            return
+        config = instance.graph.state(0).field("m_modifyHealth")
+        tags = tuple(instance.evaluate(item.get("m_EE3055BD"))
+                     for item in config.get("m_148F3152") or [])
+        params = {0x40: f32(amount), 0x41: tags, 0x3F: Entity(self.entity)}
+        if runtime.send_message(self.component, 0x0240000000000044, params, self.entity):
+            self.component.run_now()
 
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e)."""
@@ -2100,6 +2226,11 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == BASTION:
+            if (not self._ult_charge_allowed() or type(points) not in (int, float)
+                    or not math.isfinite(points) or points <= 0):
+                return 0.0
+            points = ultimate.combat_points(self, points, kind, target_definition)
         if (self.retired or self.component.fault is not None
                 or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
@@ -2122,6 +2253,13 @@ class BodyScript(ReplicatedBody):
         return after - before
 
     def _charge_ult(self) -> None:
+        if self.hero == BASTION:
+            if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                ultimate.passive_points(self)
+                return
         if self.hero == 0x02E0000000000002:
             from ow174.game import reaper
 
@@ -2386,6 +2524,10 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
+        self.self_repairs.clear()
+        self.control_windows.clear()
+        self.sleep_windows.clear()
+        self.frost_windows.clear()
         from ow174.game.script import charge
 
         charge.set_pending_credits(self.world, ())

@@ -1887,7 +1887,12 @@ class Instance:
         elif event.kind == CHECK:
             state.flags_check = False
             if state.active:
-                state.try_complete()
+                previous = self.component.button
+                self.component.button = event.button
+                try:
+                    state.try_complete()
+                finally:
+                    self.component.button = previous
         elif event.kind == CHANGED:
             state.flags_changed = False
             if state.active:
@@ -1929,19 +1934,21 @@ class Instance:
             state = self.state(index)
             if state is not None:
                 state.button(button, pressed)
+        # A logical-button condition is not itself a State. Its compiled owner
+        # list identifies transition States that need a completion check when
+        # this input changes (e.g. Reaper00F2/st1 waiting for Shadow Step).
+        for node in self.graph.nodes:
+            if node.cls != "STU_7DEB522D" or not self.accepts(node):
+                continue
+            cfg = node.field("m_logicalButton")
+            if expr.to_int(self.evaluate(cfg)) != button:
+                continue
+            for index in node.field("m_122DF0CA") or ():
+                state = self.states.get(index)
+                if state is not None and state.active and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
-        if pressed and self.graph.index == 0x023A:
-            # 023A's held-button transition conditions name the states to recheck.
-            for condition in self.graph.nodes:
-                if (condition is None or condition.cls != "STU_7DEB522D"
-                        or not condition.field("m_00994FF0")
-                        or expr.to_int(self.evaluate(condition.field("m_logicalButton"))) != button):
-                    continue
-                for index in condition.field("m_122DF0CA") or ():
-                    state = self.states.get(index)
-                    if state is not None and state.active and not state.flags_check:
-                        state.flags_check = True
-                        self.post(Event(component.now, 0, CHECK, state=state))
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""

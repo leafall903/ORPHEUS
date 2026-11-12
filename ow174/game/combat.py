@@ -106,7 +106,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, REPEAT, STEP, Mov
 from ow174.game.props import ModelPose
 from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
+from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -1076,7 +1076,7 @@ class SceneHazard:
 
 def _source_entity(actor) -> int:
     """The combat actor's live entity ID."""
-    return actor.entity if isinstance(actor, (bots.Bot, actors.Deployable)) else actor.body
+    return actor.entity if isinstance(actor, (bots.Bot, actors.Deployable, SceneHazard)) else actor.body
 
 
 def _volley_directions(actor, state, direction, *, number=0, counter=0):
@@ -1695,6 +1695,7 @@ class Combat:
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
         self.reaper_blossoms: dict[int, dict] = {}
+        self.reaper_shadows: dict[int, dict] = {}
         self.echo_duplicates = echo_duplicate.Duplicates(self)
         self.barriers = barriers.Barriers(self)
         self.observers = observers.Observers(match)  # the bodies' statescript for the other clients
@@ -1836,6 +1837,7 @@ class Combat:
         self.input_locks.pop(player.body, None)
         self.booster_contacts.pop(player.body, None)
         self.reaper_blossoms.pop(player.body, None)
+        self.reaper_shadows.pop(player.body, None)
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
         self.zenyatta.retire(player.body)
@@ -2013,7 +2015,8 @@ class Combat:
         if effect not in (SLEEP_DART_EFFECT, FLASHBANG_EFFECT):
             return
         vitals = self.vitals_of(target)
-        if vitals.dead or self._invulnerable(target.owner) or immunity.control_immune(target.owner, target.entity):
+        if (vitals.dead or self._invulnerable(target.owner) or reaper.intangible(target.owner)
+                or immunity.control_immune(target.owner, target.entity)):
             return
         if effect == SLEEP_DART_EFFECT:
             floor = self.tick + SLEEP_WAKE_FLOOR_TICKS
@@ -2521,6 +2524,8 @@ class Combat:
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
         self.barriers.sync(player)
+        reaper.advance_entry(player)
+        self._shadow(player, command)
         shots, script.component.shots[:] = list(script.component.shots), []
         self.zenyatta.command(player, command)
         interception.update_pools(self, self.tick)
@@ -2529,9 +2534,20 @@ class Combat:
             self.genji_strikes.pop(player.body, None)
             self.genji_blades.pop(player.body, None)
         healing, script.self_healing = script.self_healing, 0.0
+        repairs, script.self_repairs[:] = list(script.self_repairs), []
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
+        if (repairs and not self.is_stunned(player)
+                and not (command is not None and script.controlled_at(command.frame))
+                and player.body not in self.sombra_controls.locks):
+            target = next((target for target in self._targets() if target.owner is player), None)
+            if target is not None:
+                vitals = self.vitals_of(target)
+                given = vitals.heal(sum(repairs) * vitals.healing_factor(self.now))
+                player.stats.add(stats.HEALING, given)
+                self._sync_body_health(player, vitals)
+                script.report_self_healing(given)
         if healing > 0.0:
             target = next((target for target in self._targets() if target.owner is player), None)
             if target is not None:
@@ -3814,7 +3830,7 @@ class Combat:
                 continue
             if not free_for_all and target.team == shooter.team:
                 continue
-            if (self.vitals_of(target).dead or self._has_protection(target, PHASE_STATES)
+            if (self.vitals_of(target).dead or reaper.intangible(target.owner) or self._has_protection(target, PHASE_STATES)
                     or self.pulse_bombs.recalling(target)):
                 continue
             if damageable and immunity.wraith_active(target.owner, target.entity):
@@ -6703,6 +6719,18 @@ class Combat:
             scalar = fallback
         return amount * max(0.0, scalar)
 
+    @staticmethod
+    def _bastion_damage_scalar(owner) -> float:
+        """Delivered Ironclad query; incoming8243 already applies it once."""
+        if isinstance(owner, bots.Bot) or owner.hero.guid != BASTION or owner.body_script is None:
+            return 1.0
+        for instance in owner.body_script.component.instances.values():
+            state = instance.states.get(124) if instance.graph.index == 0x012F else None
+            if state is not None and state.active:
+                modifier = _number(state.evaluate(state.node.field("m_50530EAB"), watch=False), 0.0)
+                return max(0.0, 1.0 + modifier) if math.isfinite(modifier) else 1.0
+        return 1.0
+
     def _charge_echo_health_event(self, player, amount: float, *, source_body=None) -> None:
         """Mount health-event charge for Echo and the hero body currently copied by Echo."""
         script = getattr(player, 'body_script', None)
@@ -7092,6 +7120,7 @@ class Combat:
             return False
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
+                or reaper.intangible(target.owner)
                 or immunity.wraith_active(target.owner, target.entity) or moira.fading(target.owner)
                 or self.pulse_bombs.recalling(target) or self.zenyatta.ultimate(target.owner)
                 or self._has_protection(target, DAMAGE_IMMUNITY_STATES)):
@@ -7438,6 +7467,121 @@ class Combat:
             return actor
         player = self.match._message_player(actor.source_body) if actor.owner else None
         return player if player is not None and player.entity == actor.owner else None
+
+    def _shadow_landing(self, player, point) -> bool:
+        """Reconstructed standing-capsule clearance and live-actor exclusion."""
+        mover = player.mover
+        radius, segment = mover._capsule(False)
+        body = contacts.CharacterBody(radius, segment + radius, world=self._collision().engine,
+                                      category=mover.category)
+        body.teleport((point[0], point[1] + mover.data.stand_pogo, point[2]))
+        if not body.fits(radius, segment + radius):
+            return False
+        if not self.walls.fits(point, radius, mover.data.stand_height, tick=self.tick):
+            return False
+        ground = self._collision().ground(point[0], point[2], point[1] + 0.1, point[1] - 0.1)
+        if not self.walls.supports(point, tick=self.tick) and (
+            ground is None or ground.normal[1] < mover.slope_cos
+        ):
+            return False
+        for target in self._targets():
+            if target.owner is player or self.vitals_of(target).dead:
+                continue
+            if (abs(point[1] - target.feet[1]) < max(mover.data.stand_height, target.height)
+                    and math.hypot(point[0] - target.feet[0], point[2] - target.feet[2])
+                    < radius + target.radius):
+                return False
+        return True
+
+    def _shadow(self, player, command) -> None:
+        """Bridge00F2's selector and teleport with declared server geometry policy.
+
+        The native landing adjustment solver and random/context callbacks remain
+        unimplemented; require a directly visible walkable surface within the
+        authored35m ray and a free standing capsule. Keep authored cast phases,
+        recovery and cooldown; lock a confirmed destination until completion.
+        """
+        if not reaper.is_reaper(player):
+            return
+        script = player.body_script
+        if script.component.owner_dead or self.is_dead(player):
+            self.reaper_shadows.pop(player.body, None)
+            return
+        instance = next((i for i in script.component.instances.values()
+                         if i.graph.index == reaper.SHADOW_GRAPH), None)
+        if instance is None:
+            return
+        selector = instance.states.get(0)
+        record = self.reaper_shadows.get(player.body)
+        if command is not None and not command.buttons & 16:
+            idle, targeting, casting = (instance.states.get(index) for index in (1, 6, 19))
+            if (idle is not None and not idle.active and not (targeting and targeting.active)
+                    and not (casting and casting.active)):
+                # The unsupported native reset action on a refused cooldown
+                # attempt must not permanently retire the input wait. Re-arm
+                # only after release, avoiding an immediate held-button cycle.
+                idle.request(runtime.BEGIN)
+                script.component.run_now()
+        if selector is not None and selector.active and command is not None:
+            identity = (instance.id, selector.counter)
+            if record is None or record["selector"] != identity:
+                record = self.reaper_shadows[player.body] = {
+                    "selector": identity, "buttons": command.buttons, "target": None,
+                    "cast": None, "moved": False,
+                }
+            origin = self._eye(player)
+            reach = _number(selector.evaluate(selector.node.field("m_6386E7B4"), watch=False), 0.0)
+            direction = aim(*command.aim())
+            hit = self._collision().cast_ray(origin, direction, reach)
+            point = hit.point if hit is not None else None
+            normal = hit.normal if hit is not None else None
+            pillar = self.walls.cast(origin, direction, hit.distance if hit is not None else reach)
+            if pillar is not None:
+                point = _along(origin, direction, pillar[0])
+                normal = pillar[2]
+            valid = (point is not None and normal[1] >= player.mover.slope_cos
+                     and self._shadow_landing(player, point))
+            record["target"] = tuple(point) if valid else None
+            instance.write((0, 983), bool(valid))
+            if point is not None:
+                instance.write((0, 432), expr.Vec3(*point))
+                instance.write((0, 985), expr.Vec3(*point))
+            down = command.buttons & ~record["buttons"]
+            record["buttons"] = command.buttons
+            if down & 2:
+                instance.state(6).request(runtime.ABORT)
+                script.component.run_now()
+                record["target"] = None
+            elif down & 1 and valid:
+                instance.follow(selector.node, "m_F6955E81", selector)
+                script.component.run_now()
+                cast = instance.states.get(32)
+                if cast is not None and cast.active:
+                    record["cast"] = (cast.counter, cast.start)
+        if record is None or record["cast"] is None or record["moved"]:
+            return
+        cast = instance.states.get(32)
+        if cast is None or (cast.counter, cast.start) != record["cast"] or cast.active:
+            return
+        # A same-frame abort is terminal even though the cast did not run.
+        record["moved"] = True
+        if cast.ended_at <= cast.start:
+            return
+        # A parent/control abort before the authored completion cannot teleport.
+        delay = _number(cast.evaluate(cast.node.field("m_ED97A97C"), watch=False), 0.0) * 1000
+        if cast.ended_at - cast.start + EPSILON < delay:
+            return
+        point = record["target"]
+        if point is None or not self._shadow_landing(player, point):
+            return
+        mover = player.mover
+        mover.position[:] = [quantise(axis) for axis in point]
+        mover.velocity = (0.0, 0.0, 0.0)
+        mover.spring = mover.spring2 = mover.spring_speed = mover.fall = 0.0
+        mover.spring_steps = (0, 0)
+        mover.body = None
+        if mover.history and mover.history[-1].frame == script.frame:
+            mover.history[-1] = mover.snapshot(script.frame)
 
     def _blossom(self, player, *, register=False) -> None:
         from ow174.game import reaper_blossom
