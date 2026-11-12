@@ -138,6 +138,13 @@ This log records tested changes and their acceptance status. Entries are grouped
   timing failures remain recorded, and projected/respawn admission stays pending.
 - Original-client acceptance remains unperformed; implementation is saved without
   waiting for the complete acceptance group.
+### Preserve unbound native pillar exposure
+
+- Deduplicate prediction body splash only for the same actual pillar bound to
+  solid-wall geometry. Unbound native pillars remain ordinary damage targets.
+- Actual unbound-pillar80 splash and whole-server readonly state checks pass;
+  actual Winston query checks now pass with its real world/input clock driven.
+
 
 ### Restore shared original Sentry geometry queries
 
