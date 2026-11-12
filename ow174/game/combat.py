@@ -2071,6 +2071,7 @@ class Combat:
         self.charges: dict[int, reinhardt_charge.Charge] = {}
         self.ball_grapples = {}
         self.grapple_seen = {}
+        self.ball_contacts = {}
         self.pile_air_locks = {}
         self.moira_orbs: list[moira.Orb] = []
         self.moira_clocks = {}
@@ -2266,6 +2267,7 @@ class Combat:
 
         ball.cancel_grapple(self, player)
         self.grapple_seen.pop(player.body, None)
+        self.ball_contacts.pop(player.body, None)
         self.pile_air_locks.pop(player.body, None)
         body_entities.retire_source(self.match, player.entity, player.body)
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
@@ -2656,6 +2658,7 @@ class Combat:
         actor = target.owner
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
+            self.ball_contacts.pop(actor.body, None)
         self._interrupt_reaper(target.entity, actor)
         mover = actor.control_mover if isinstance(actor, bots.Bot) else getattr(actor, "mover", None)
         if mover is not None and (last := mover.last_command) is not None:
@@ -3095,6 +3098,80 @@ class Combat:
                     start = self.match.tick
                     self.pile_air_locks[target.entity] = (start, start + math.ceil(0.5 / TICK))
 
+    def _fireball(self, player, command):
+        """Bridge 1203's live high-speed search to enemy capsule damage/control.
+
+        The graph supplies speed gates, radii, angle, damage and impulse values.
+        Capsule/cone/LOS geometry and one hit until leaving the outer proximity
+        sphere are reconstruction policies; exact native filters/rehit remain open.
+        """
+        instance = ball.instance(player, 0x1203)
+        if instance is None or not ball.rolling(player):
+            self.ball_contacts.pop(player.body, None)
+            return
+        if command is None:
+            return
+        search = instance.states.get(35)
+        damage = instance.states.get(39)
+        proximity = instance.graph.node(57)
+        offset = instance.evaluate(proximity.field('m_05BE62DD'))
+        if not isinstance(offset, expr.Vec3):
+            return
+        centre = tuple(p + axis for p, axis in zip(player.mover.position, offset, strict=True))
+        outer = _number(instance.evaluate(proximity.field('m_radius')), 0.0)
+        enemies = self._enemies(player)
+        nearby = {target.entity for target in enemies
+                  if segment_distance(centre, *target.segment()) - target.radius <= outer}
+        contacts = self.ball_contacts.setdefault(player.body, set())
+        contacts.intersection_update(nearby)
+        if search is None or not search.active or damage is None or not damage.active:
+            return
+        radius = _number(search.evaluate(search.node.field('m_radius'), watch=False), 0.0)
+        angle = _number(search.evaluate(search.node.field('m_A30B383E'), watch=False), 0.0)
+        velocity = player.mover.velocity
+        speed = math.sqrt(_dot(velocity, velocity))
+        if radius <= 0 or speed <= EPSILON or not 0 < angle <= 360:
+            return
+        direction = tuple(v / speed for v in velocity)
+        # Interpret the authored cone angle as its full aperture, aligned to
+        # actual velocity. Native orientation configs are not generally restored.
+        modify = damage.node.field('m_modifyHealth')
+        amount = _number(damage.evaluate(modify.get('m_amount'), watch=False), 0.0)
+        horizontal = _number(damage.evaluate(modify.get('m_E33EFEE1'), watch=False), 0.0)
+        vertical = _number(damage.evaluate(modify.get('m_583C208B'), watch=False), 0.0)
+        loadout = damage.evaluate(modify.get('m_loadout'), watch=False)
+        for target in enemies:
+            if target.entity not in nearby or target.entity in contacts:
+                continue
+            if isinstance(target.owner, ball_mines.Mine) and target.owner.armed:
+                # Let the armed mine's proximity search resolve the crossing.
+                continue
+            a, b = target.segment()
+            point = tuple((low + high) * 0.5 for low, high in zip(a, b, strict=True))
+            delta = _sub(point, centre)
+            distance = math.sqrt(_dot(delta, delta))
+            if segment_distance(centre, a, b) - target.radius > radius:
+                continue
+            # Cone aims at the capsule midpoint; its angular radius admits edge
+            # overlap. Exact native hit-volume/filter correspondence stays open.
+            margin = math.asin(min(1.0, target.radius / distance)) if distance > EPSILON else math.pi
+            minimum = math.cos(min(math.pi, math.radians(angle * 0.5) + margin))
+            if distance > target.radius and _dot(delta, direction) / distance < minimum:
+                continue
+            if not capsule_visible(self._collision(), centre, a, b, target.radius):
+                continue
+            contacts.add(target.entity)
+            if self.barriers and barriers.protect_body(self, target, amount, attacker=player.body):
+                continue
+            self._damage(player, target, amount, False,
+                         loadout.guid if isinstance(loadout, expr.Asset) else None, command.frame)
+            if (not self.vitals_of(target).dead and not self._has_protection(target, {barriers.MEI: (0x5FE, 35)})
+                    and (horizontal > 0 or vertical > 0)):
+                planar = math.hypot(velocity[0], velocity[2])
+                push = ((horizontal * velocity[0] / planar, horizontal * velocity[2] / planar)
+                        if planar > EPSILON and horizontal > 0 else (0.0, 0.0))
+                self._ball_launch(target, vertical, push, command.frame)
+
     def _ball_launch(self, target, speed, planar, frame):
         # Original upward maximum, routed through the existing owned impulse host.
         owner = target.owner
@@ -3260,6 +3337,7 @@ class Combat:
         moira.track_clock(self, player, posed=command is not None)
         if self.is_stunned(player):
             ball.cancel_grapple(self, player)
+            self.ball_contacts.pop(player.body, None)
             return
         if script.hero == ball.HERO and not defer_effects:
             ball.update_grapple(self, player, command, aim(*command.aim()) if command is not None else None)
@@ -3269,6 +3347,7 @@ class Combat:
         self.primal_punches.command(player, command)
         if script.hero == ball.HERO and not defer_effects:
             self._piledriver(player, command)
+            self._fireball(player, command)
         if not defer_effects:
             self._blossom(player, register=command is not None)
         if command is not None:
@@ -9651,6 +9730,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)
         """Dispatch notices, authored death, and the respawn."""

@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Ball Fireball contacts on the same motion and impulse hosts
+
+- Consume original1203 high-speed search, capsule/cone/LOS,50 damage, pull/lift
+  and outer-proximity rehit ledger from the actual Roll/Grapple swing. Retire
+  contacts with death/body/control and reuse the existing Knockbacks host.
+- Full Fireball10/runtime17 retains only original half-push11.0 not<11 and one
+  old snapshot ctor error; corrected exact ctor makes original storage case pass.
+  Preserve all44 original assertion AST nodes and the strict numerical boundary.
+- Raw controlled server actual swing deals50 and creates a nonempty contact
+  ledger. Active BodyVM/server captures pass; removing/restoring actual contact
+  changes/restores server digest. No second actor/mover/pool is introduced.
+- Native geometry/filter acceptance and complete Ball line remain open.
+
 ### Mount delivered Ball Grapple lifecycle on the existing motion host
 
 - Route original launch/anchor travel/attachment, release/cooldown, body death/

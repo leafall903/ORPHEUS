@@ -754,14 +754,39 @@ alone is not evidence that a line's consumers are actually mounted.
   original source control/Hack/EMP, spread/passive/charge and Minefield. Ball
   owner combat26 audit retains6fail4errors in earlier log, no whole-line claim.
 
+## B39 — Original Fireball search/damage/impulse/contact lifecycle
+
+- Mount original source _fireball on the same actual1203 Roll/Grapple velocity
+  tiers, original search35/damage39/proximity57 operands. Capsule midpoint cone,
+  LOS, outer sphere latch, once-per-entry damage50, loadout and original target
+  shield/Cryo/Mine exclusions remain source policies. Existing Knockbacks host
+  receives combined original planar and max-upward delta, no NPC impulse copy.
+- Store actual Combat.ball_contacts and clear with owner death/body/control;
+  leave-proximity removes retained recipient key, low-speed form cannot hit.
+- worker-b-ball-fireball-first.log27:8 full original gameplay tests+runtime17
+  pass, one half-push original11.0 not<11 numerical subfail and one old_Graph
+  ctor error. Correct fixture ctor passes snapshot.log1/1. Original44 assertion
+  AST fully identical; do not weaken strict half-push boundary for quantization.
+- worker-b-ball-fireball-active-storage.log: actual controlled raw receiver,
+  original320 bootstrap/lift/Grapple swing physically produces50 damage and a
+  nonempty same-owner contact ledger. Strict export_body_vm succeeds; full
+  export_server_state succeeds. Removing/restoring actual recipient contact
+  changes/restores exact server digest. No fake player/actor/activated state.
+- NEXT clean-sync accepted canonical at this saved boundary; source Adaptive
+  Shield already has an actual tagged extra pool, but original world-only expiry
+  and stale activation admission are missing. Preserve that pool instead of
+  installing old numeric-only Vitals alongside it. Then owner spread/passive/
+  charge and actual Minefield (ball_mines module currently lacks live manager).
+
 ## Exact next work
 
-1. Commit B38 independent delivery with C35 prerequisite explicitly recorded.
-   Next B39 source Fireball damage/impulse/contact lifecycle on same actual
-   Roll/Grapple motion; then Ball spread/passive/charge and Minefield source
-   owner audit. Preserve actual Piledriver high-origin/descent/pull/steer numeric
-   differences and unconverted historical-control clock boundary. Full Ball
-   owner combat26 audit retains6fail4errors; no completed-line claim.
+1. Commit B39 independent delivery, then clean-sync canonical. Continue source
+   Ball Adaptive Shield actual tagged pool world-only expiry/stale admission;
+   do not replace current Vitals/tagged shield host with original numeric-only
+   fields. Then original spread/passive/charge and actual Minefield manager.
+   Preserve Piledriver high-origin/descent/pull/steer numerical differences,
+   Fireball half-push11.0 boundary and historical-control clock gap. Full Ball
+   owner combat26 earlier audit retains6fail4errors, no completed-line claim.
    Rein shared Brig/Shatter boundary remains parent-owned evidence audit.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
