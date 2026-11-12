@@ -2277,3 +2277,43 @@ has completed its strict whole-server verification. Verification tails (193 widt
 old private API, source geometry/contract differences, externalclient OPEN) are not
 production-merge blockers. Final source/shared mover replacement mapping follows
 A93; do not add legacy mover facades merely because names differ.
+
+## A93 — retain independent native casts without extra legacy gates
+
+Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup
+copy/typedEntity PlayScript value boundary and complete snapshot fixture restore;
+no serializer/runtime waiver. One append-only original test conflict retained all
+A92 silent-break assertions plus root's source header/fixture changes.
+
+Removed only two extra legacy host policies absent from original0068 candidates:
+projected target search no longer rejects a recipient merely because the old
+ProjectedBarrier cache exists; BodyWorld's TODO overlap placeholder no longer
+rejects personal casting solely from that legacy cache. Existing actual native
+Ability conditions/resource fields/cooldowns and025C target flags6600/11264,
+team/live/typed receiver gates are retained. Source resource audit explicitly
+found those flags in0244 n3/n19 and025C n11/n18; they were not deleted for oldtests.
+
+Original Genji two-caster full method now passes all original90/200→firstbreak40
+energy→second90/22energy/body200/nohit assertions. Actual native projected-first
+then personal yields distinct200/200 actual Vitals/actors, no extra pool host.
+Readonly resource-order evidence: personal-first sets6600=True so current declared
+025C filter rejects it; projected-first permits personal (11264 absent). This is a
+source reconstruction versus current resource ordering contract, not permission
+to drop declared flags. The old sequential self/projected cap fixture still has no
+Pet under its close horizontal input; its StopIteration/input is retained, no
+faked receiver. Log worker-a-zarya-overlap-resource-order-diagnostic.log.
+
+Original multi-projector +new actual actor-pair +A91/A92 original2 +whole-server
+projection causal capture/hash changes/restores/unknownreject =5/5pass60.442s
+(worker-a-zarya-overlap-whole-server-check.log). The whole-server proof includes
+the enclosing realNPC and actualnativePet, retaining root's exact parameter/value
+ownership boundary. No source expected numeric values or assertions were edited.
+
+Remaining actual code gap A94: original0068 personal-before-projected/roster-caster
+selection for one recipient is not fully mounted: current protect_body/ray tie
+and legacy area/explosion iterators can use creation order or consume multiple
+pools for one contact. Restore this existing source _candidates/_intercept policy
+on same actors/Vitals, keep closest-ray mathematics/cross-family order. Then final
+precise source mapping/handoff; source private API/geometry/resource conflicts and
+clientOPEN remain verification tails, not blockers to code admission. Shared mover
+old-symbol names will be mapped to actual current consumers rather than facades.

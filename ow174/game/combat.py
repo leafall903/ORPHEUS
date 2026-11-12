@@ -9322,8 +9322,7 @@ class Combat:
         candidates = []
         for target in self._targets():
             if (target.owner is caster or target.team != caster.team or self.vitals_of(target).dead
-                    or not barriers._projection_recipient_ready(self, target.owner)
-                    or self._active_projected_barrier(target.entity)):
+                    or not barriers._projection_recipient_ready(self, target.owner)):
                 continue
             script = target.owner.body_script
             if script is not None:
