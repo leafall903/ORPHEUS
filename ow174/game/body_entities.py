@@ -84,7 +84,7 @@ def complete_return(pilot):
     if bot.detached_bomb:
         pilot.match.combat.zarya_gravitons.release(bot)
         pilot.match.combat.healing.retire(bot.entity)
-        pilot.match.combat.frost_hits.pop(bot.entity, None)
+        pilot.match.combat._clear_frost(bot)
         pilot.match.combat.barriers.retire(bot.entity)
         pilot.match.combat.clear_pins(bot.entity)
     ejected = bot.dead or bot.detached_bomb

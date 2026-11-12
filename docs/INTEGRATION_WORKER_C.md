@@ -771,3 +771,76 @@ mei_frost not yet mounted. Do not count helper class presence as its consumer.
 Next C28: original multi-source frost in the current Frost host, preserving
 current player/NPC/control consumers and one aggregate; then Blizzard original
 flights/area. Sombra/Ashe and0008/Bastion remaining boundaries still persist.
+
+
+C27 SHAac284345 received root67825a29. Root v7 selects original013B controller
+supplement; v8 additionally selects original Rein/Orisa geometry. Use configured
+profile.environment and.test_environment; no source pack overwrite.
+
+## C28 original multi-source Frost checkpoint
+
+Original mei_frost.py57lines actualsettings/prune/combine consumed. Existing
+Frost host now stores original aggregate sample; original Combat.frost/frozen
+program consumers read it. frost_sources is the actual original body/channel
+causal map and Frost.sources refers to that same object, not a copied observer
+view or second manager. Legacy Frost(sources={body:(progress,expiry)}) calculation
+is retained when no new sample exists; adopting a live default-host object
+preserves its partial entries. Default and configured min/rate/duration/stacking
+use original helper math. Frozen sample is not extended by more hits; owner aim
+is captured and current input/movement/status2427 consume this same aggregate.
+Actual NPC freeze deadline enters existing movement_pause/is_stunned; standard
+NPC mover gets existing fight.movement_mods. No extra mover/driver.
+
+Original Cryo, attached-shield, death/replacement and orphan cleanup clear the
+causal map and visible aggregate. body_entities detachedbomb direct pop becomes
+_clear_frost(bot), coordinated with A, no other DVa behavior touched. The current
+Frost dataclass auto-storage registration includes sample; Combat registry adds
+frost_sources. Shared reference identity is preserved by stored graph export.
+
+Original9 test_mei_frost first8pass1fail: existing TacticalVisor was stopped by
+generic_interrupt. Original00DD explicitly preserves that positive buff. Add
+optional preserve=() to existing_interrupt/interrupt_controlled, defaults unchanged;
+only freeze with actual defenses.soldier_visor_running passes real activeultimate
+states. All other input/weapon/channel cleanup runs, strict/generic policies stay.
+Final9allpass7.117s, worker-c-mei-frost-final-check.log. Original checks only change
+fixture import to delivered29 source; methods/assertions remain AST-identical.
+
+Original test_mei_frost_sources.py byte-preserved. Its untouched FrostSourceTests
+class AST runs with actual globals fixtures=test_delivered_mei_combat,
+frost_fixtures=test_mei_frost, actual dataclasses/unittest/Run/KANEZAKA_DM/content/
+combat/mei/mei_frost. No fake fixtures, assertions or return values. Select11 by
+excluding exactly these5 whose full fixture dependencies remain unmounted:
+ice_wall_blocks_only_the_occluded_spray_frost_source;
+actual_spray_and_own_blizzard_use_separate_frost_channels;
+two_actual_blizzards_compose_independent_area_frost;
+cryo_cleanses_both_actual_blizzards_and_restores_fresh_samples;
+projected_shield_cleanses_source_storage_as_well_as_visible_frost.
+Prefix test_. All11pass28.976s, worker-c-mei-frost-sources-first-check.log. Once
+Blizzard/shield/wall fixtures mount, run original module with normal imports.
+Do not count the selected class run as complete raw module coverage.
+
+Shared exact command with v7 environment+test_environment:
+python -B -m unittest test_doomfist_punch test_game_combat.DamageTests test_game_npc -v
+36allpass17.452s, worker-c-mei-frost-shared-check.log. Actual controlled stored
+scene(two=True), real second-player target, _frost_hit(source=first): confirms
+Frost.sources is fight.frost_sources[target.entity]; second actualhit advances
+sample and changes serverdigest. This uses actual new Frost objects, in addition
+to the source stored primitive-tuple test. No full journal/client gate.
+
+Remaining precise NPC bridge: npc_navigation.step earlycontinue bypasses the
+standard mover mods; root authorized one narrow existing navigator mover/
+track_mods/speed_scale bridge for autonomous partial slow. Do not change NPC
+input/pathfinding/control clocks or create another mover. It may be next batch;
+C28 code does not wait on it. Full freeze already uses existing is_stunned.
+
+Photon audit requested by root: current photon_barrier.Barriers.geometry is
+None without ORPHEUS_SYMMETRA_COLLISION; source0016 really uses unbounded plane,
+so leaving only sourcepreview is not complete Q integration. Exact existing
+mesh found at hero-lanes/0040/symmetra_collision_174.json (identical0002/barrier-
+runtime copy),368bytes/two authoredtriangles, SHA256
+ d11a09fc7224c2b73819a06a40f9dbb1cb35ff681c373aa1891a987de6eedfe8,
+matching canonical GEOMETRY_SHA256. Root may choose original0040 path in v9.
+Next C29: in the same existing Photon host, mount actual originalQ/plane fallback
+when no mesh configured and retain configuredmesh path, onecast/HP/lifecycle.
+No syntheticmesh, newwallmanager or fixture-only patch. Then continue authorized
+NPC bridge and original Mei Blizzard, sampled Cryo history, Sombra/Ashe remainder.
