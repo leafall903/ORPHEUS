@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect original Mei input resources and ultimate settings
+
+- Mount original Mei05FE entry completion, automatic real reload/low-ammo
+  icicle admission and Hack/EMP edge interlocks using existing control locks.
+  Keep existing authoritative Cryo health handling as the sole healer.
+- Connect source ultimate default5 points/s, generation settings, spawn-ready
+  precedence,253A input gate, effective damage/self-healing credit and same-hero
+  respawn retention. Exclude generic duplicate damage awards and Blizzard credit.
+- Source player placement synchronizes physical/stored pose and now runs for
+  actual ice-pillar player lifts; retain the existing NPC lift driver.
+- Original13 selected charge methods pass11.140s with their unchanged class AST
+  and real mounted fixtures. Selected Cryo/reload15:13 pass, four frost observer
+  errors in one case and one in-flight hit-set difference. Existing Mei/Damage
+  20 pass; two old ice_wall observer cases error. Actual pillar lift/pose probe
+  passes. Full original checks and known failures retained; Frost aggregation,
+  Blizzard and sampled Cryo history remain unfinished. Client acceptance unrun.
+
 ### Connect original Symmetra portal pair lifecycle
 
 - Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with

@@ -2593,7 +2593,11 @@ class ConditionalTimer(State):
             self.timer_at(0, 1)
             return
         if not self.instance.component.strict:
-            from ow174.game import torbjorn_turret, tracer_recall
+            from ow174.game import mei, torbjorn_turret, tracer_recall
+
+            if self.instance.graph.index == mei.CRYO and self.index == 41:
+                mei.permissive_state_enter(self)
+                return
 
             entry = self.instance.graph.index, self.node.pos
             if tracer_recall.prelude(self):
