@@ -16,6 +16,18 @@ from ow174.game.content import heroes
 from ow174.game.script import nodes
 
 
+def sleeping(fight):
+    """Observe the combined host's stored sleep deadlines, without changing them."""
+    return {entity for entity, vitals in fight.vitals.items() if vitals.sleep_until > fight.tick}
+
+
+def instance_for(player, graph_index):
+    script = player.body_script
+    if script is None:
+        return None
+    return next((i for i in script.component.instances.values() if i.graph.index == graph_index), None)
+
+
 def flat_meteor_damage(horizontal, mover):
     """Expected damage for a standing target on the same floor as the caster."""
     radius = mover.stand_radius
@@ -580,7 +592,7 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
                 break
         self.assertNotEqual(self.a.body, old_body)
         self.assertNotIn(old_body, self.fight.meteors.casts)
-        self.assertEqual(self.fight.vitals[self.a.body].total, 250)
+        self.assertEqual(self.fight.body_vitals(self.a.body, self.a).total, 250)
         fresh_charge = self.a.body_script.component.entity_var(342)
         self.assertLessEqual(fresh_charge.value(), .448001)
         charge = self.charge_checkpoint()
@@ -611,11 +623,11 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
         yaw, pitch = aim(self.fight._eye(self.b), self.fight._eye(self.a))
         self.run.step({self.b: (yaw, pitch, 8)})
         for _ in range(45):
-            if body in self.fight.ana_sleeps:
+            if body in sleeping(self.fight):
                 break
             self.assertFalse(cast.finished)
             self.run.step({self.b: (yaw, pitch, 0)})
-        self.assertIn(body, self.fight.ana_sleeps)
+        self.assertIn(body, sleeping(self.fight))
         self.assertTrue(self.fight.is_stunned(self.a))
         self.assertFalse(ability.flags & nodes.Ability.RUNNING)
         self.assertTrue(cast.finished)
@@ -632,8 +644,8 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
 
     def test_sleep_dart_and_frost_spray_are_rejected_during_meteor_descent(self):
         for hero, button, effect, held in (
-                (0x02E000000000013B, 8, combat.ANA_SLEEP_EFFECT, False),
-                (0x02E00000000000DD, 1, combat.MEI_SPRAY_EFFECT, True)):
+                (0x02E000000000013B, 8, combat.SLEEP_DART_EFFECT, False),
+                (0x02E00000000000DD, 1, 0x04A0000000000169, True)):
             with self.subTest(hero=hero):
                 self.ready(5)
                 self.match.switch_hero(self.b, heroes()[hero])
@@ -646,11 +658,11 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
                 with patch.object(self.fight, '_shoot', wraps=self.fight._shoot) as shots:
                     for frame in range(45):
                         self.run.step({self.b: (yaw, pitch, button if held or frame == 0 else 0)})
-                        self.assertTrue(self.fight.protected(body))
+                        self.assertTrue(self.fight.damage_immune(self.a))
                         self.assertFalse(cast.impacted)
                         self.assertEqual(own.total, 250)
-                        self.assertNotIn(body, self.fight.ana_sleeps)
-                        self.assertNotIn(body, self.fight.frost)
+                        self.assertNotIn(body, sleeping(self.fight))
+                        self.assertNotIn(body, self.fight.frost_hits)
                     definitions = [combat.hit_def(state, state.node.field('m_6396149F'))
                                    for shooter, _, state, *_ in (call.args for call in shots.call_args_list)
                                    if shooter is self.b]
@@ -659,45 +671,47 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
                 self.land(cast)
                 self.assertFalse(cast.hit)
                 self.assertEqual(own.total, 250)
-                self.assertNotIn(body, self.fight.ana_sleeps)
-                self.assertNotIn(body, self.fight.frost)
+                self.assertNotIn(body, sleeping(self.fight))
+                self.assertNotIn(body, self.fight.frost_hits)
 
     def test_hack_cannot_acquire_during_descent_but_retries_after_meteor_impact(self):
         self.ready(10)
-        self.match.switch_hero(self.b, heroes()[sombra_hack.SOMBRA])
+        self.match.switch_hero(self.b, heroes()[sombra_hack.HERO])
         x, y, z = self.a.mover.position
         self.place_player(self.b, (x, y, z + 10))
         cast = self.start_descent()
         yaw, pitch = aim(self.fight._eye(self.b), self.fight._eye(self.a))
-        query = sombra_hack.query
+        query = self.fight.sombra_controls.targets
         results = []
 
-        def observe(fight, state):
-            result = query(fight, state)
+        def observe(player, state):
+            result = query(player, state)
             if state.instance.component.entity == self.b.body and state.node.pos == 50:
                 results.append(result)
             return result
 
-        with patch.object(sombra_hack, 'query', new=observe):
+        with patch.object(self.fight.sombra_controls, 'targets', new=observe):
             for _ in range(45):
                 self.run.step({self.b: (yaw, pitch, 2)})
-                self.assertTrue(self.fight.protected(self.a.body))
+                self.assertTrue(self.fight.damage_immune(self.a))
                 self.assertFalse(cast.impacted)
-                self.assertIsNone(sombra_hack.instance_for(self.a, 0x0B1F))
+                self.assertIsNone(instance_for(self.a, 0x0B1F))
         self.assertTrue(results)
         self.assertTrue(all(result == () for result in results))
         self.land(cast)
         self.assertFalse(cast.hit)
-        self.assertIsNone(sombra_hack.instance_for(self.a, 0x0B1F))
+        self.assertIsNone(instance_for(self.a, 0x0B1F))
 
         for _ in range(65):
             self.run.step({self.b: (yaw, pitch, 2)})
-            if sombra_hack.locked(self.a):
+            if (self.a.body in self.fight.sombra_controls.locks):
                 break
-        self.assertTrue(sombra_hack.locked(self.a))
-        receiver = sombra_hack.instance_for(self.a, 0x0B1F)
-        self.assertEqual(receiver.states[58].ms, 5000)
-        self.assertEqual(self.fight.vitals[self.a.body].total, 250)
+        self.assertTrue((self.a.body in self.fight.sombra_controls.locks))
+        receiver = instance_for(self.a, 0x0B1F)
+        lock, = self.fight.sombra_controls.locks[self.a.body]
+        self.assertIs(lock.application, receiver)
+        self.assertEqual(round((lock.until - self.fight.now) * 1000), 5000)
+        self.assertEqual(self.fight.body_vitals(self.a.body, self.a).total, 250)
 
     def test_flashbang_expires_without_damage_or_stun_during_meteor_descent(self):
         self.ready(3)
@@ -711,7 +725,7 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
             self.run.step({self.b: (yaw, pitch, 16)})
             for _ in range(20):
                 self.run.step({})
-                self.assertTrue(self.fight.protected(self.a.body))
+                self.assertTrue(self.fight.damage_immune(self.a))
                 self.assertFalse(cast.impacted)
                 self.assertEqual(own.total, 250)
                 self.assertFalse(self.fight.is_stunned(self.a))
@@ -739,7 +753,7 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
         self.run.step({self.b: (yaw, pitch, 16)})
         flashbang, = (rocket for rocket in self.fight.rockets if rocket.shooter is self.b)
         self.assertEqual(flashbang.blast.effect, combat.FLASHBANG_EFFECT)
-        self.assertTrue(self.fight.protected(self.a.body))
+        self.assertTrue(self.fight.damage_immune(self.a))
         self.assertFalse(cast.impacted)
 
         # Move the thrower clear of Meteor while keeping the released trajectory.
@@ -789,5 +803,3 @@ class MeteorPlayerLifecycleTests(MeteorFixture, unittest.TestCase):
         self.assertFalse(cast.hit)
         self.assertLess(script.component.entity_var(342).value(), 100)
         self.assertEqual(self.vitals().total, 225)
-
-
