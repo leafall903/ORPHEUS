@@ -59,7 +59,7 @@ def sync_adaptive_shield(fight, player, script):
     if source == vitals.adaptive_shield_source:
         return
     vitals.adaptive_shield_source = source
-    pool = vitals.temporary_shields.get(ADAPTIVE_SHIELD_TAG)
+    pool = vitals.tagged_shields.get(ADAPTIVE_SHIELD_TAG)
     if pool is not None:
         vitals.decay_temporary_shields(ADAPTIVE_SHIELD_TAG, pool.now)
     if source is not None:

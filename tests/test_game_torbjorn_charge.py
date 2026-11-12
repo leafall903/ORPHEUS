@@ -14,7 +14,7 @@ import test_game_torbjorn_ultimate as ultimate_tests
 from test_game_combat import aim
 from test_game_mover import box, wall
 
-from ow174.game import hero_torbjorn, molten_core, npc, sigma_grasp, stats, torbjorn_charge
+from ow174.game import hero_torbjorn, molten_core, npc, absorption as sigma_grasp, stats, torbjorn_charge
 from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -361,7 +361,7 @@ class TorbjornChargeTests(unittest.TestCase):
                 run.step({owner: (0, 0, 1)})
                 self.advance(run, 40)
                 self.assertEqual(before - hp.total, 70)
-                self.assertEqual(hp.temporary_shields[tag].now, max(0, amount - 70))
+                self.assertEqual(hp.tagged_shields[tag].now, max(0, amount - 70))
                 self.assertEqual(self.charge(owner), expected)
 
     def test_actual_secondary_melee_and_hammer_deduct_adaptive_shield_loss(self):
@@ -622,7 +622,7 @@ class TorbjornChargeTests(unittest.TestCase):
                 player.take_commands([Command(run.frame)])
         impact = run.frame
         self.assertEqual(hp.total, base - 35)
-        self.assertEqual(hp.temporary_shields[torbjorn_charge.ADAPTIVE_SHIELD_TAG].now, 0)
+        self.assertEqual(hp.tagged_shields[torbjorn_charge.ADAPTIVE_SHIELD_TAG].now, 0)
         self.assertEqual(owner.stats.value(stats.HERO_DAMAGE), 135)
         self.assertEqual(self.charge(owner), cost)
         self.assertFalse(any(state.flags & nodes.Ability.RUNNING for state in script.ultimates))
@@ -829,7 +829,7 @@ class TorbjornChargeTests(unittest.TestCase):
         ball.mover.body = None
         self.advance(run, 8)
         self.assertAlmostEqual(hp.total, base + 43)
-        self.assertAlmostEqual(hp.temporary_shields[torbjorn_charge.ADAPTIVE_SHIELD_TAG].now, 43)
+        self.assertAlmostEqual(hp.tagged_shields[torbjorn_charge.ADAPTIVE_SHIELD_TAG].now, 43)
         self.assertEqual(self.charge(owner), 0)
 
     def test_damage_to_deployable_and_repair_do_not_charge(self):

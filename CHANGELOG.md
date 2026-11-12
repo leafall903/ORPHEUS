@@ -8033,3 +8033,22 @@ client operations performed. Whole nonappearance integration remains active.
   failures now pass unchanged. Evidence:
   parallel-root-restored-health-query-check.log. No source assertion modified,
   no second pool/manager or new game feature. Remaining batches continue.
+
+
+### Reconcile original temporary-shield APIs
+
+- C19 introduced two genuine same-name collisions: tagged decay replaced the
+  existing Doom clocked decay method, and a tagged dictionary property replaced
+  the existing numeric temporary_shields total. Preserve both implementations.
+  Dispatch one-clock and tag/amount decay to their original bodies; retain the
+  original numeric total and expose real existing extra pools as tagged_shields.
+  No additional pool, ID, TTL, fake numeric/dictionary view or combat manager.
+- Adapt source Torb consumers/fixtures only to the unambiguous tagged property;
+  every original literal expectation is AST-identical. Source Grasp fixture
+  constant maps directly to mounted absorption.SHIELD_TAG0x5847, removing the
+  missing obsolete-module import. Keep other source assertions unchanged.
+- Original Doom Punch/Mutual/epochs/handoff + Torb real attacks, adaptive loss,
+  passive timing/replacement/respawn55 checks all pass after repair. The initial
+  real damage/control TypeErrors and later six numeric-vs-dictionary subcase
+  failures were reproduced and resolved, not ignored. Evidence:
+  parallel-b17-c19-shield-consumers-check.log. No client/publication operations.

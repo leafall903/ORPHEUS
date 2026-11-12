@@ -740,7 +740,7 @@ class Vitals:
     def temporary_pool_used(self) -> bool:
         return self.temporary_shield is not None
 
-    def decay_temporary_shields(self, now: float) -> float:
+    def _decay_clocked_shields(self, now: float) -> float:
         """Advance the delivered tagged aggregate on the authoritative clock."""
         shield = self.temporary_shield
         if shield is None or now <= shield.decay_from:
@@ -822,7 +822,7 @@ class Vitals:
         return True
 
     @property
-    def temporary_shields(self):
+    def tagged_shields(self):
         """Delivered tagged-shield API view onto existing authoritative extra pools."""
         return {pool.identifier: pool for pool in self.extra.values()
                 if pool.kind == SHIELDS_POOL and not pool.removed}
@@ -832,7 +832,7 @@ class Vitals:
             raise ValueError("temporary shields need finite nonnegative amount/cap")
         if self.dead or amount == 0:
             return 0.0
-        pool = self.temporary_shields.get(tag)
+        pool = self.tagged_shields.get(tag)
         current = pool.now if pool is not None else 0.0
         given = min(amount, max(0.0, limit - current))
         if given > 0:
@@ -847,10 +847,17 @@ class Vitals:
                 self.changed.add(SHIELDS_POOL)
         return given
 
-    def decay_temporary_shields(self, tag: int, amount: float) -> float:
+    def decay_temporary_shields(self, tag=None, amount=None, *, now=None) -> float:
+        """Retain clocked aggregate and explicit tagged-pool decay consumers."""
+        if amount is None:
+            if now is not None and tag is not None:
+                raise TypeError("select one shield decay clock")
+            return self._decay_clocked_shields(now if now is not None else tag)
+        if now is not None:
+            raise TypeError("tagged shield decay takes an amount, not a clock")
         if not math.isfinite(amount) or amount < 0:
             raise ValueError("temporary shield decay needs finite nonnegative amount")
-        pool = self.temporary_shields.get(tag)
+        pool = self.tagged_shields.get(tag)
         if pool is None:
             return 0.0
         taken = min(amount, pool.now)
