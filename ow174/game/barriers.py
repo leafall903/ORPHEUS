@@ -62,24 +62,148 @@ def sphere(origin, direction, centre, radius, length):
     return distance if 0 <= distance <= length else None
 
 
+@dataclass
+class BarrierExpiry:
+    owner: object
+    duration: object
+    generation: int
+    frame: int
+    tick: int
+    started: int
+    ended_ahead: bool = False
+
+
 class Barriers:
     def __init__(self, fight):
         self.fight = fight
         self.live = {}
         self.scripted: dict[int, Barrier] = {}
+        self.expiries: dict[tuple[int, bool], BarrierExpiry] = {}
+        self.cooldown_deadlines: dict[tuple[int, bool], int] = {}
         self.seen = {}
         self.next_entity = 0
         self.world = world_bubbles.WorldBubbles(fight)
         self.reinhardt = reinhardt_barrier.ReinhardtBarriers(fight)
 
     def retire(self, body):
+        for projected in (False, True):
+            self.expiries.pop((body, projected), None)
+            self.cooldown_deadlines.pop((body, projected), None)
         self.world.retire(body)
         self.reinhardt.actors.pop(body, None)
         self.live = {k: b for k, b in self.live.items() if b.body != body and b.caster_body != body}
         self.seen = {k: v for k, v in self.seen.items() if k[0] != body}
 
+    def ability_start_allowed(self, state):
+        index = state.instance.graph.index
+        if (index, state.node.pos) not in ((0x0244, 3), (0x025C, 21)):
+            return True
+        key = state.instance.component.entity, index == 0x025C
+        return key not in self.expiries and self.fight.match.tick >= self.cooldown_deadlines.get(key, 0)
+
+    def _schedule_expiry(self, caster, duration, projected):
+        from ow174.game.combat import TICK
+        from ow174.game.projectiles import MAX_LEASE_FRAME
+
+        from ow174.game.script import nodes
+
+        if not isinstance(duration, nodes.ChaseVar) or not duration.active:
+            return
+        script = caster.body_script
+        remaining = duration.remaining
+        if remaining is None:
+            rate = expr.to_float(duration.evaluate(duration.node.field("m_9B0385B4"), watch=False))
+            if rate <= 0:
+                return
+            remaining = round(abs(expr.to_float(duration.cur) - expr.to_float(duration.destination())) * 1000
+                              / rate)
+        frame = (duration.last + remaining - 1) // script.frame_ms
+        if script.frame < frame < MAX_LEASE_FRAME:
+            elapsed = (frame - script.frame) * script.frame_ms
+            started = caster.match.tick
+            tick = started + math.ceil(elapsed / (TICK * 1000))
+            expiry = BarrierExpiry(caster, duration, duration.counter, frame, tick, started)
+            self.expiries[caster.body, projected] = expiry
+
+    def clock_edges(self, tick):
+        return {edge for expiry in self.expiries.values()
+                for edge in (expiry.tick, expiry.tick + 1, expiry.tick + 2)
+                if self.fight.tick < edge <= tick}
+
     @staticmethod
-    def live_source(bubble):
+    def _duration_ended_on_deadline(expiry, frame_ms):
+        # An accepted input frame can finish the duration before the world replays
+        # an earlier contact. Keep that activation until its mapped expiry tick.
+        duration = expiry.duration
+        return (not duration.active and duration.counter == expiry.generation
+                and duration.ended_at // frame_ms == expiry.frame)
+
+    def advance_expiries(self):
+        for (body, projected), expiry in tuple(self.expiries.items()):
+            owner = expiry.owner
+            script = owner.body_script
+            if (not self.fight.match.ended and not owner.gone and owner.has_body and owner.body == body
+                    and script is not None and not script.retired
+                    and script.component is expiry.duration.instance.component
+                    and expiry.duration.counter == expiry.generation
+                    and not self.fight.is_dead(owner)):
+                if expiry.ended_ahead and self.fight.tick <= expiry.tick:
+                    continue
+                if expiry.duration.active and self.fight.tick > expiry.tick:
+                    # Leave the expiry frame available for real input before running a neutral gap.
+                    frame = expiry.frame + min(1, self.fight.tick - expiry.tick - 1)
+                    owner._advance_body_gap(frame + 1)
+                if expiry.duration.active:
+                    continue
+                self._record_cooldown(body, projected, expiry, script.frame_ms)
+            self.expiries.pop((body, projected), None)
+
+    @staticmethod
+    def _ability(instance, projected):
+        return instance.states.get(instance.graph.node(21 if projected else 3).state)
+
+    def _record_cooldown(self, body, projected, expiry, frame_ms):
+        instance = expiry.duration.instance
+        ability = self._ability(instance, projected)
+        if ability is None or ability.cur <= 0 or ability.cooldown_rate <= 0:
+            return
+        self.cooldown_deadlines[body, projected] = self._mapped_cooldown_ready_tick(ability, expiry, frame_ms)
+
+    @staticmethod
+    def _mapped_cooldown_ready_tick(ability, expiry, frame_ms):
+        from ow174.game.combat import TICK
+
+        # The authored exit writes the cooldown. Map its ready frame back to the
+        # world clock even if a command already advanced the linked variable to zero.
+        ready_frame = (ability.last + expr.round_half_away(expr.f32(expr.f32(ability.cur * 1000.0) / ability.cooldown_rate))) // frame_ms
+        elapsed = (ready_frame - expiry.frame) * frame_ms
+        return expiry.tick + math.ceil(elapsed / (TICK * 1000))
+
+    def cooldown_ready_tick(self, ability):
+        index = ability.instance.graph.index
+        if (index, ability.node.pos) not in ((0x0244, 3), (0x025C, 21)):
+            return 0
+        key = ability.instance.component.entity, index == 0x025C
+        expiry = self.expiries.get(key)
+        if (expiry is not None and expiry.duration.instance is ability.instance
+                and not expiry.duration.active and expiry.duration.counter == expiry.generation):
+            script = expiry.owner.body_script
+            if script is not None and script.component is ability.instance.component:
+                return self._mapped_cooldown_ready_tick(ability, expiry, script.frame_ms)
+        return self.cooldown_deadlines.get(key, 0)
+
+    def start_edges(self, tick):
+        return {edge for barrier in self.scripted.values()
+                if barrier.component.world.hero == ZARYA
+                for edge in (barrier.application_tick - 1, barrier.application_tick)
+                if self.fight.tick < edge <= tick}
+
+    def live_source(self, bubble):
+        actor = self.authored_for(bubble.caster_body, bubble.phase)
+        if actor is not None:
+            return actor.vitals.total > 0
+        if bubble.phase.instance.graph.index in (PERSONAL, PROJECTED):
+            return False  # the existing scripted actor alone owns protection
         script = getattr(bubble.caster, 'body_script', None)
         return (script is not None and not script.retired
                 and script.component is bubble.phase.instance.component
@@ -147,7 +271,11 @@ class Barriers:
             phase = instance.states.get(state_id) if instance is not None else None
             # Death prevents new casts, but a live script's already-running025C
             # pet timer is independent of Ability.stop. Retire only with its phase.
-            if phase is None or not phase.active or (dead_caster and index == 0x244):
+            expiry = self.expiries.get((body, index == 0x25C))
+            historical = (phase is not None and expiry is not None and expiry.ended_ahead
+                          and phase.ended_at == expiry.duration.ended_at
+                          and self.fight.tick <= expiry.tick)
+            if phase is None or (not phase.active and not historical) or (dead_caster and index == 0x244):
                 self.live.pop(key, None)
                 continue
             stamp = instance.id, phase.counter, phase.start
@@ -504,6 +632,10 @@ def create(world, state):
     if world.hero == REINHARDT:
         barrier.mesh, barrier.geometry_digest = barrier_geometry.load()
     fight.barriers.scripted[entity] = barrier
+    if world.hero == ZARYA:
+        projected = signature[1] == PROJECTED
+        duration = state.instance.states.get(11 if projected else 1)
+        fight.barriers._schedule_expiry(owner, duration, projected)
     #011A's actual initial script, recovered from the external entity XML.
     if definition is not None:
         initial = component.create(definition, init=False)
@@ -514,6 +646,16 @@ def create(world, state):
 
 
 def retire(fight, entity):
+    barrier = fight.barriers.scripted.get(entity)
+    expiry = _expiry(fight, barrier) if barrier is not None else None
+    if (expiry is not None and fight.tick <= expiry.tick
+            and fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
+            and not fight.is_dead(barrier.parent)
+            and barrier.parent.body_script is not None
+            and barrier.parent.body_script.component is barrier.source
+            and _recipient_live(fight, barrier)):
+        expiry.ended_ahead = True
+        return  # Preserve this same actual actor for earlier world contacts.
     barrier = fight.barriers.scripted.pop(entity, None)
     if barrier is None:
         return
@@ -589,7 +731,7 @@ def health_query(world, instance, cfg):
 
 def advance(fight, tick):
     for barrier in list(fight.barriers.scripted.values()):
-        if not _live(fight, barrier):
+        if not _valid(fight, barrier):
             if barrier.recipient is not None and not _recipient_live(fight, barrier):
                 _end_bubble(fight, barrier)
             else:
@@ -658,7 +800,25 @@ def _recipient_live(fight, barrier):
                               and player.body_script.component is barrier.recipient_component))
 
 
+def _expiry(fight, barrier):
+    if barrier.component.world.hero != ZARYA:
+        return None
+    expiry = fight.barriers.expiries.get((barrier.parent_body, barrier.recipient is not None))
+    return expiry if (expiry is not None and expiry.duration.instance.id == barrier.instance
+                      and expiry.duration.instance.component is barrier.source) else None
+
+
 def _live(fight, barrier):
+    if not _valid(fight, barrier):
+        return False
+    if barrier.component.world.hero == ZARYA:
+        expiry = _expiry(fight, barrier)
+        return (barrier.application_tick <= fight.tick
+                and (expiry is None or fight.tick <= expiry.tick))
+    return True
+
+
+def _valid(fight, barrier):
     owner = barrier.parent
     if barrier.component.world.hero == MEI:
         from ow174.game import mei
@@ -667,10 +827,14 @@ def _live(fight, barrier):
             return False
     instance = barrier.source.instances.get(barrier.instance)
     state = instance.states.get(barrier.state) if instance is not None else None
+    expiry = _expiry(fight, barrier)
+    historical = (expiry is not None and expiry.ended_ahead
+                  and state is not None and state.ended_at == expiry.duration.ended_at
+                  and fight.tick <= expiry.tick)
     return (not barrier.retired and not owner.gone and owner.has_body
             and owner.body == barrier.parent_body and owner.body_script is not None
             and not owner.body_script.retired and owner.body_script.component is barrier.source
-            and not fight.is_dead(owner) and state is not None and state.active
+            and not fight.is_dead(owner) and state is not None and (state.active or historical)
             and state.counter == barrier.activation and _recipient_live(fight, barrier))
 
 

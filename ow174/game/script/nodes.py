@@ -3719,7 +3719,7 @@ class Ability(State):
 
     def output(self, slot: int):
         """Slot 0: the cooldown left (the cooldown variable); slot 1: true (the stack variable)."""
-        return self.remaining() if slot == 0 else True
+        return max(self.remaining(), self.instance.component.world.ability_cooldown_floor(self)) if slot == 0 else True
 
     def var_written(self, var: Var) -> None:
         if var is self.var:
