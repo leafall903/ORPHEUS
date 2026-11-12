@@ -3367,3 +3367,33 @@ nonancestors. This batch does not alter refs/history/runtime or execute any
 ancestry merge, and does not count graph reachability as implementation proof.
 JSON count/uniqueness/clean/checkpoint/receipt invariants verified locally.
 No gameplay test matrix needed for this documentation-only audit; no live handles.
+
+
+## C76 — ten root-baseline actual consumer signing, independent of ancestry
+
+Parent requested actual source/current reconciliation for0029/0042/006E/0079/
+013B/013E/0195/01A2/0206/0221 rather than calling their ancestor relation proof.
+Reviewed frozen source against exact canonicalc25a8a9c8eaa3f48d06503fb04696c086d678d13.
+New INTEGRATION_BASELINE_CONSUMERS.md/.json records each frozen fullSHA, actual
+entry chain,32 selected module AST comparisons, explicit adapters, old owner/root
+verification receipts and finite unproven scope.12 selected modules have identical
+whole AST, including genji, lucio_movement, enforcer_controller/coordination,
+orisa_halt/dynamic_spheres, biotic and Echo movement/duplicate/copied helpers.
+
+Important mappings checked by actual callers: Ana013B/Soldier006E primary lives
+in shared Combat/BodyWorld, not a missing standalone module. Original Ana sleep,
+healing and Nano consumers use existing _hit_effect/_heal_target/nano on the same
+ledger. Current Genji0B8B goes to its existing owner before typed guard; original
+Moira actualgrasp remains single(A101) and Bap actual Matrix80/200(A100). Original
+copiedRoll/Deadeye/Flashbang callers now use mccree; original Lucio.Barriers maps
+the sole SoundBarriers073A/073B status/Vitals path. Deflect/absorb/Matrix and six
+query families map the existing stronger actual producers, not second hosts.
+
+No newly PROVEN unmounted producer found by this bounded primary entry audit.
+It does not independently prove every altered shared method's arithmetic, all
+foreign target branches, numeric policy or complete client acceptance. These
+limits are explicit in each row; prior original expectations remain intact.
+No new tests/matrix/service/runtime changes or ancestry operations were made.
+Locally validated10 ID/fullSHA identities,32 comparison rows,12 whole-AST exact
+modules; all read-only audit handles terminal. A107 rootaccepted at snapshot;
+B99 endpoint pending separately and this is not an overall-goal completion claim.

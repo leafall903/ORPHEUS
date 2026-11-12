@@ -1,0 +1,998 @@
+{
+  "version": 1,
+  "canonical_sha": "c25a8a9c8eaa3f48d06503fb04696c086d678d13",
+  "scope": "bounded10 baseline owner consumer reconciliation, not exhaustive shared-module equivalence or full acceptance",
+  "rows": [
+    {
+      "id": "0029",
+      "name": "Genji",
+      "source_ref": "refs/hero-deliveries/0029",
+      "source_sha": "e7e1706797c49055c0a34f5b4482892450718697",
+      "current_entries": [
+        "Match.Player.genji_mobility -> Mobility.before_pose",
+        "Combat._shoot/genji_fan -> same projectile and Deflect03A3 interception",
+        "Combat._genji_eliminations and BodyScript gain/passive charge",
+        "Runtime InstanceContext.native -> exact Genji0B8B body-owner cfg -> existing BodyWorld.native"
+      ],
+      "mapping": "genji.py entire AST exact. Shared deflect/projectile histories, same charge/Vitals and C19/root native routing are later preserved integrations.",
+      "existing_verification_receipts": [
+        "Root347eb102/8937f36a: original Genji passive/runtime and typed owner-health80 passed; parent receipt",
+        "C19/A29 preserve original generic award, extra-pool loss and source lifetime",
+        "Root17b8eec7 Echo normal-reflect/source_entity regression original29 passed; copied Genji old663 versus718 explicitly traced to11x5 passive"
+      ],
+      "limits": [
+        "Copied Genji old numerical credit expectation remains source policy evidence; no new producer inferred"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/genji.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 3,
+          "exact_methods": [
+            "Mobility.before_pose",
+            "Mobility.end_climb",
+            "Mobility.climb"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "0042",
+      "name": "Cassidy",
+      "source_ref": "refs/hero-deliveries/0042",
+      "source_sha": "5f8423c014f0ebcfaabe8135a4ce2c0428f190f3",
+      "current_entries": [
+        "BodyWorld.native/velocity_action/targets/effects -> mccree",
+        "Match.Player physical pose -> mccree.apply_velocity",
+        "Combat._shoot -> fan_direction/flashbang gravity+launch bias/shot_aim",
+        "Combat._fly -> mccree.gravity_velocity; damage/death notice and charge on same host"
+      ],
+      "mapping": "mccree retains19 original methods,17 exact; two changes integrate shared physical pose/actual peer contacts. Other source0206 copied Cassidy helpers consolidate into this same host.",
+      "existing_verification_receipts": [
+        "C7/C8 original copied/curve/eye checks retained; root accepted with original McCree hitcount tail",
+        "A24/B shared projectile and control changes preserve current one-shot consumer"
+      ],
+      "limits": [
+        "No new numerical acceptance claim; original hit-count/fusion differences remain recorded"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/mccree.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 19,
+          "exact_methods": [
+            "award_sandbox_charge",
+            "_owner",
+            "_living",
+            "target_point",
+            "targets",
+            "effects",
+            "_roll_owner",
+            "velocity_action",
+            "_roll_active",
+            "_npc_peer_contacts",
+            "native",
+            "critical_default",
+            "flashbang_gravity",
+            "gravity_velocity",
+            "flashbang_direction",
+            "fan_direction",
+            "shot_aim"
+          ],
+          "adapted_same_name_methods": [
+            "apply_velocity",
+            "step_rialto_pose"
+          ],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "006E",
+      "name": "Soldier76 and projectile defense baseline",
+      "source_ref": "refs/hero-deliveries/006E",
+      "source_sha": "c5607bc4ee3b49e9af04f56949aa13f100143391",
+      "current_entries": [
+        "BodyScript gain_ult_charge/_charge_ult -> ultimate combat/passive/tag/field points",
+        "Combat.command/update -> defenses.soldier_visor_running/input_recovery/field_windup",
+        "Combat._soldier_visor_direction and ordinary _shoot/_fly/_heal_field",
+        "Combat._genji_deflect_contact/_trace_absorption -> current deflection/interception/deflections; matrix/projectile catalog same immutable input"
+      ],
+      "mapping": "view_offsets AST exact; defenses20/21 and ultimate11/13 methods exact. Source deflection state/front/box/trace consolidate into current existing evaluated interception services, not a second module-manager; matrix trace and projectile admission consume the one immutable catalog.",
+      "existing_verification_receipts": [
+        "C6/C10 original Helix/Pharah integrated62 checks passed; root C10 actual prepared profile same62 passed",
+        "A56-A57 Matrix actual original output/controlled mech consumers; A100 actual Matrix status proof",
+        "Root prepared original full3528 projectile tags and exact35 missing EYE literals union, no conflicting replacement"
+      ],
+      "limits": [
+        "Original reduced projectile catalog versus combined full catalog is explicit input policy, not proof that every original tag/filter expectation passes",
+        "Changed interception functions reviewed by current call routing/owner receipts, not claimed whole-module AST equivalence"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/deflection.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 5,
+          "exact_methods": [],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": [
+            "state_of",
+            "frontal",
+            "ray_box",
+            "box_contact",
+            "trace"
+          ]
+        },
+        {
+          "path": "ow174/game/defenses.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 21,
+          "exact_methods": [
+            "uses_world_clock",
+            "active_state",
+            "soldier_field_windup",
+            "ana_sleep_dart_windup",
+            "soldier_sprint_running",
+            "soldier_input_recovery_active",
+            "soldier_visor_running",
+            "fortify_state",
+            "deflect_state",
+            "grasp_state",
+            "matrix_state",
+            "reinhardt_barrier_state",
+            "fortify_scale",
+            "knockback_scale",
+            "intangible",
+            "cryo_protected",
+            "cryo_healing_sample",
+            "timed_protection",
+            "projectile_protection_active",
+            "advance_entry"
+          ],
+          "adapted_same_name_methods": [
+            "invulnerable"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/matrix.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 1,
+          "exact_methods": [],
+          "adapted_same_name_methods": [
+            "trace"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/projectile_tags.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 3,
+          "exact_methods": [
+            "read_catalog",
+            "tags_of"
+          ],
+          "adapted_same_name_methods": [
+            "absorbable"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/ultimate.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 13,
+          "exact_methods": [
+            "practice_timer",
+            "practice_passive_clock",
+            "start_practice_timer",
+            "sync_practice_timer",
+            "ChargeInput.__init__",
+            "ChargeInput.var",
+            "ChargeInput.native",
+            "field_healing_points",
+            "tagged_damage_points",
+            "tagged_damage_query",
+            "combat_points"
+          ],
+          "adapted_same_name_methods": [
+            "instance_of",
+            "passive_points"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/view_offsets.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 2,
+          "exact_methods": [
+            "read_catalog",
+            "get"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "0079",
+      "name": "Lucio",
+      "source_ref": "refs/hero-deliveries/0079",
+      "source_sha": "17da4f0fd916759b4ad1df4546d10a7f9bd9ba7e",
+      "current_entries": [
+        "BodyWorld.native/action -> lucio charge query/lucio_movement",
+        "Match.Player -> wall_ride controller and pose",
+        "Combat.lucio_auras -> source Auras leases/heal/phase/cadence",
+        "Combat.sound_barriers -> current SoundBarriers observe/command/publish/update/retire; BodyWorld.tracked_targets -> same073A/073B receiver"
+      ],
+      "mapping": "lucio_movement AST exact, wall_ride11/13 methods exact. Original lucio.Barriers methods are mapped to the existing sound_barrier.SoundBarriers sole owner, with actual073B applications and Vitals.extra. It is a real renamed implementation boundary, not an absent second Barriers class.",
+      "existing_verification_receipts": [
+        "Root original support/Lucio aura/charge checks recorded with v6-v18 actual status inputs; C27-root73992 shared regression receipt",
+        "C28/C47 support historical and real NPC phase/frozen input routes retain same Lucio effects ledger",
+        "A29 source-death generic/012 award gate preserves Lucio original source lifetime"
+      ],
+      "limits": [
+        "Auras and barrier method bodies differ from frozen; this finite audit does not independently prove all phase/cast overlap mathematics or full old suite"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/lucio.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 30,
+          "exact_methods": [
+            "charge_player",
+            "replacement_charge_ratio",
+            "restore_charge",
+            "_charge_event",
+            "charge_damage",
+            "effect_gap_frame",
+            "Auras.__init__",
+            "Auras.retire",
+            "Auras._drop",
+            "Auras._play_controller",
+            "Auras._record_healing",
+            "Auras.update"
+          ],
+          "adapted_same_name_methods": [
+            "advance_passive_charge",
+            "damage_charge_query",
+            "barrier_owner_filter",
+            "keep_active_amp_on_stun",
+            "Auras.has_moving_npc_recipients",
+            "Auras.refresh",
+            "Auras._update_leases",
+            "Auras._heals",
+            "Auras._settle_healing"
+          ],
+          "original_names_absent_current": [
+            "Barriers.__init__",
+            "Barriers.retire",
+            "Barriers._drop",
+            "Barriers.command",
+            "Barriers.awaiting_slam",
+            "Barriers.due",
+            "Barriers.publish",
+            "Barriers._grant",
+            "Barriers.update"
+          ]
+        },
+        {
+          "path": "ow174/game/lucio_movement.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 4,
+          "exact_methods": [
+            "owner",
+            "query",
+            "soundwave_direction",
+            "action"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/wall_ride.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 13,
+          "exact_methods": [
+            "controller",
+            "feedback",
+            "candidate_clearance",
+            "blend_normal",
+            "phase_backdate",
+            "wall_force",
+            "accelerate_tangent",
+            "stationary_friction",
+            "wall_tangent",
+            "wall_ramp",
+            "advance"
+          ],
+          "adapted_same_name_methods": [
+            "cancel",
+            "_wall"
+          ],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "013B",
+      "name": "Ana, with shared five-body/native AI services",
+      "source_ref": "refs/hero-deliveries/013B",
+      "source_sha": "14f691f6eea6d70e9623ef1061ca7e8ff0471d58",
+      "current_entries": [
+        "Combat._shoot/_sweep_rocket/_explode -> actual rifle doses, SleepDart and grenade contacts on same Rocket/Vitals ledger",
+        "Combat._hit_effect sleep branch -> Vitals.sleep_until/wake_floor/input locks and shared interrupt; cleanse_ana_effects -> existing native statuses",
+        "BodyWorld tracked_targets -> nano.targets; Combat._shoot effect -> nano.apply; shared damage -> nano.offense/recipient multiplier",
+        "Combat._charge_ana/_heal_target/body_health -> actual same owner charge and health queries",
+        "npc.spawn/update_acquisition -> actual controllers/Phase2/enforcer admission, Combat._bot_weapons -> unique BotScript and Sniper advance; BotWorld -> trooper coordination"
+      ],
+      "mapping": "Original Ana lives primarily in shared Combat/BodyWorld, not a missing standalone ana.py. Original rifle timed damage/healing and grenade are current dose/contact/native-healing consumers; original _sleep is current shared _hit_effect SleepDart branch, original nano_targets/apply_nano are existing nano.targets/apply, and original _heal/_give_healing are the sole _heal_target/Vitals path. Health/current/maximum/body-owner semantics were explicitly restored by root. The additional source013B controller inventory retains enforcer_controller and trooper_coordination whole AST; Assassin24/26 same methods and current Sniper scope/physical adaptors preserve the same existing controller producer.",
+      "existing_verification_receipts": [
+        "Root8937f36a restores original013B Combat.body_health live/left/unknown/controller semantics; original typed owner/health80 passed",
+        "A98 actual hostile grenade60/friendly100 with native0C72/0B99, Matrix statuses and causal lifecycle9 passed30.942s; A100 original80/200 Matrix totals",
+        "A65/B33 same224E sleep/control receiver and C70/C71 shared real body defenses; original Ana numeric50-vs-prepared60 conflict is retained",
+        "Root v18 actual5NPC association/VM/native pair27 passed; strict Scene/Phase2 causal snapshots preserved",
+        "Root original Sniper open/stop and C74 public specials-only joint28 passed; root optional definition metadata73 passed"
+      ],
+      "limits": [
+        "Original grenade50 expectation versus selected native source60 and shielded NPC total-recovery expectations are explicit source/input/observer conflicts, not claimed equivalent numerical outcomes",
+        "No complete rerun or independent proof of every shared status/phase/target ranking branch; explicit SDK callback presence is not an inferred automatic controller mount"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/enforcer.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 1,
+          "exact_methods": [],
+          "adapted_same_name_methods": [
+            "directions"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/enforcer_controller.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 10,
+          "exact_methods": [
+            "_definition",
+            "TargetWorld.__init__",
+            "TargetWorld.filtered_body_health",
+            "TargetWorld.target_record_scalar",
+            "TargetWorld.entity_var",
+            "TargetWorld.native",
+            "require_trooper_controller",
+            "_owner",
+            "admit",
+            "retire"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/assassin_controller.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 26,
+          "exact_methods": [
+            "_selected_entity",
+            "_preferred_entity",
+            "_eligible_preference",
+            "TargetWorld.__init__",
+            "TargetWorld.selects_ai_behavior",
+            "TargetWorld.native",
+            "TargetWorld.entity_var",
+            "TargetWorld.send_message",
+            "Phase2World.__init__",
+            "Phase2World.prepare_scene",
+            "Phase2World.entity_var_slot",
+            "Phase2World.selects_ai_behavior",
+            "Phase2World.hosts_assassin_pursuit_callbacks",
+            "Phase2World.assassin_movement_sample",
+            "Phase2World._source",
+            "Phase2World.entity_filter_record",
+            "Phase2World.target_record_scalar",
+            "Phase2World.position",
+            "Phase2World.body_health",
+            "Phase2World.native",
+            "phase2_definition",
+            "mount_phase2",
+            "_select_phase2_target",
+            "select"
+          ],
+          "adapted_same_name_methods": [
+            "TargetWorld.tracked_targets",
+            "apply_phase2_input"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/sniper_retreat.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 8,
+          "exact_methods": [
+            "_active",
+            "_target",
+            "acquire",
+            "interrupt"
+          ],
+          "adapted_same_name_methods": [
+            "_root",
+            "native",
+            "_destination",
+            "advance"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/trooper_coordination.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 13,
+          "exact_methods": [
+            "CoordinationWorld.__init__",
+            "CoordinationWorld.tracked_targets",
+            "CoordinationWorld.controller_record",
+            "CoordinationWorld.message_state_context",
+            "CoordinationWorld.voice_context",
+            "CoordinationWorld.entity_var_slot",
+            "CoordinationWorld.array_filter_accepts",
+            "CoordinationWorld.native",
+            "CoordinationWorld._local_vector",
+            "Coordination.__init__",
+            "Coordination.admit",
+            "Coordination.advance",
+            "Coordination.retire"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry",
+      "embedded_owner_consumers": [
+        {
+          "original": "Combat._sleep",
+          "current": "Combat._hit_effect SleepDart branch",
+          "original_line": 696
+        },
+        {
+          "original": "Combat.cleanse_ana_effects",
+          "current": "Combat.cleanse_ana_effects",
+          "original_line": 716
+        },
+        {
+          "original": "Combat.body_health",
+          "current": "Combat.body_health",
+          "original_line": 1128
+        },
+        {
+          "original": "Combat.nano_targets",
+          "current": "nano.targets",
+          "original_line": 1364
+        },
+        {
+          "original": "Combat.apply_nano",
+          "current": "nano.apply",
+          "original_line": 1402
+        },
+        {
+          "original": "Combat._charge_ana",
+          "current": "Combat._charge_ana",
+          "original_line": 2299
+        },
+        {
+          "original": "Combat._heal",
+          "current": "Combat._heal_target",
+          "original_line": 2359
+        },
+        {
+          "original": "Combat._give_healing",
+          "current": "Combat._heal_target / Vitals.heal",
+          "original_line": 2372
+        }
+      ]
+    },
+    {
+      "id": "013E",
+      "name": "Orisa",
+      "source_ref": "refs/hero-deliveries/013E",
+      "source_sha": "5b38741c097433b04e977d7e499d176ccc816d44",
+      "current_entries": [
+        "Combat.orisa -> Orisa command/update/landed and same barrier/Halt/supercharger ownership",
+        "BodyWorld and BotWorld.native -> orisa_halt.native; BodyScript -> orisa_charge.activate/native",
+        "Combat._damage -> orisa_charge.damage; source booster scaling -> same Superchargers.scale",
+        "Current prediction geometry -> actual Orisa mesh readonly surface"
+      ],
+      "mapping": "orisa_halt and dynamic_spheres AST exact. Orisa19/20, charge10/11 and supercharger9/10 methods exact; changes integrate sampled history/loss/typed scalar and actual scaled source while retaining one host.",
+      "existing_verification_receipts": [
+        "A17 retains Orisa history/8243 factor and original same-host source loss",
+        "Root original six geometry family readonly whole-server receipt in INTEGRATION_ROOT_QUERIES.md",
+        "A29 Torb/Genji/Orisa extra-pool charge source lifetime and owner native guards passed"
+      ],
+      "limits": [
+        "Source/frozen absolute barrier placement or detail observer expectations remain explicit policy/verification differences"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/orisa.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 20,
+          "exact_methods": [
+            "_identity",
+            "Orisa.__init__",
+            "Orisa.admit",
+            "Orisa.receive",
+            "Orisa.position",
+            "Orisa.flying",
+            "Orisa.retire",
+            "Orisa._drop",
+            "Orisa.interrupt_supercharger_cast",
+            "Orisa._immune",
+            "Orisa._finish",
+            "Orisa._dispatch_halt_explosion",
+            "Orisa._pull",
+            "Orisa._valid",
+            "Orisa.movement",
+            "Orisa._request",
+            "Orisa.controls",
+            "Orisa.npc_movement_mods",
+            "Orisa.update"
+          ],
+          "adapted_same_name_methods": [
+            "Orisa.landed"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/orisa_charge.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 11,
+          "exact_methods": [
+            "replacement_ratio",
+            "restore",
+            "_read",
+            "catalog",
+            "_metadata",
+            "_target",
+            "_body",
+            "native",
+            "foreign_var",
+            "activate"
+          ],
+          "adapted_same_name_methods": [
+            "damage"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/orisa_halt.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 17,
+          "exact_methods": [
+            "_graph",
+            "control_graph",
+            "query_graph",
+            "_VisibilityContext.__init__",
+            "_VisibilityContext.owner",
+            "_VisibilityContext.var",
+            "_VisibilityContext.param",
+            "_VisibilityContext.native",
+            "configured_path",
+            "HaltPhysicsExplosion.on_enter",
+            "PullQuery.__init__",
+            "PullQuery.native",
+            "PullQuery.dispatch_explosion",
+            "PullQuery.start_tail",
+            "PullQuery.complete",
+            "native",
+            "npc_movement_mods"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/orisa_supercharger.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 10,
+          "exact_methods": [
+            "DeviceWorld.__init__",
+            "DeviceWorld.position",
+            "Superchargers.__init__",
+            "Superchargers.landed",
+            "Superchargers.bind_owner",
+            "Superchargers.remove",
+            "Superchargers.retire",
+            "Superchargers.update",
+            "Superchargers.refresh"
+          ],
+          "adapted_same_name_methods": [
+            "Superchargers.scale"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/dynamic_spheres.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 4,
+          "exact_methods": [
+            "DynamicSpheres.__init__",
+            "DynamicSpheres.register",
+            "DynamicSpheres.register_initial",
+            "DynamicSpheres.dispatch"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "0195",
+      "name": "Brigitte",
+      "source_ref": "refs/hero-deliveries/0195",
+      "source_sha": "a3004ec6c35139e80a39e2153cecd70c9687811b",
+      "current_entries": [
+        "Combat.brigitte = BrigitteCombat; prepare/command/passive_command/update/retire",
+        "BodyWorld.native -> same BrigitteCombat.native",
+        "BodyWorld control native -> BrigitteCombat.host_control -> actual224E receiver",
+        "Combat shared melee/barrier ray and actual raised face queries use same body/HP"
+      ],
+      "mapping": "Brigitte39/41 methods exact; only barrier_ray/_barrier_faces adapt the actual current shared geometry path. No second raised barrier/health manager.",
+      "existing_verification_receipts": [
+        "B33 restores0195/0EE3 exact existing pool query before typed zero",
+        "A65 existing224E LinkedTarget sample and B12/B shared shield/hammer consumers",
+        "Current shared geometry reads actual Brigitte existing faces rather than inventing a mesh; separate six-family root fixture receipts are not claimed as a new Brigitte-specific proof"
+      ],
+      "limits": [
+        "This bounded audit does not newly certify every original Brigitte stun/repair/NPC timing test"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/brigitte.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 41,
+          "exact_methods": [
+            "BrigitteCombat.__init__",
+            "BrigitteCombat.retire",
+            "BrigitteCombat.rally_active",
+            "BrigitteCombat.died",
+            "BrigitteCombat.charge_allowed",
+            "BrigitteCombat.charge",
+            "BrigitteCombat._rally_command",
+            "BrigitteCombat._expire_rally",
+            "BrigitteCombat.native",
+            "BrigitteCombat._barrier_active",
+            "BrigitteCombat._sync_barrier",
+            "BrigitteCombat._update_barriers",
+            "BrigitteCombat.blast_barriers",
+            "BrigitteCombat.damage_barrier",
+            "BrigitteCombat.prepare",
+            "BrigitteCombat.bash_barrier_distance",
+            "BrigitteCombat._bash_travel_distance",
+            "BrigitteCombat.bash_movement_limit",
+            "BrigitteCombat._prepare_bash",
+            "BrigitteCombat._bash_target",
+            "BrigitteCombat._bash_command",
+            "BrigitteCombat._opposing_charge",
+            "BrigitteCombat._resolve_charge_counter",
+            "BrigitteCombat.host_control",
+            "BrigitteCombat._drop_stun",
+            "BrigitteCombat.controlled",
+            "BrigitteCombat._update_stuns",
+            "BrigitteCombat.damaged",
+            "BrigitteCombat.update",
+            "BrigitteCombat._heal_effects",
+            "BrigitteCombat._update_repair_lifetimes",
+            "BrigitteCombat._repair_command",
+            "BrigitteCombat.interrupted",
+            "BrigitteCombat._deliver_repairs",
+            "BrigitteCombat._launch_whip",
+            "BrigitteCombat._fortify_blocks_whip",
+            "BrigitteCombat._fly_whips",
+            "BrigitteCombat.passive_command",
+            "BrigitteCombat.command"
+          ],
+          "adapted_same_name_methods": [
+            "BrigitteCombat.barrier_ray",
+            "BrigitteCombat._barrier_faces"
+          ],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "01A2",
+      "name": "Moira",
+      "source_ref": "refs/hero-deliveries/01A2",
+      "source_sha": "df51065e8163f569f75f1f1596d626210ffea119",
+      "current_entries": [
+        "Combat.command -> moira.track_clock/transition/grasp/coalescence",
+        "Combat._shoot/fly -> actual spray/orb and Combat.moira_hots/moira_orbs update",
+        "BodyWorld.tracked_targets -> moira.grasp_targets; native -> damage_charge_query",
+        "Shared HealingEffects -> biotic.heal_factor and actual typed statuses"
+      ],
+      "mapping": "biotic AST exact; moira26/33 methods exact. Changed contacts/heals/orbs consume actual single targets/statuses/capsules; A101 proved generic BEAM_STATES excludes Moira so no second grasp driver.",
+      "existing_verification_receipts": [
+        "A101 original full secondary60frames health52/damage48 and20frames target84/self107.68 both passed2.067s",
+        "A101 read-only actual command probe:2 generic callbacks but exactly1 real0.8 damage event",
+        "B76 actual filter_tags consumer and C12 real Deployable guards preserved"
+      ],
+      "limits": [
+        "Original old target/mode/source numeric expectations are not changed or claimed all green"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/moira.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 33,
+          "exact_methods": [
+            "_RecoveryContext.native",
+            "_recover_grasp",
+            "_active_npc_charge_tag",
+            "damage_charge_query",
+            "start_charge",
+            "gain_combat_charge",
+            "Orb.__post_init__",
+            "spray_trace",
+            "spray_hit",
+            "orb_fired",
+            "_orb_move",
+            "transition",
+            "_active_timed_cast",
+            "track_clock",
+            "_passive_due",
+            "advance_clocks",
+            "fading",
+            "clear_fade_press",
+            "_grasp_projection",
+            "GraspFrame.targets",
+            "grasp_command",
+            "grasp_targets",
+            "_track_volume",
+            "_track_visible",
+            "_active_beam_health",
+            "_beam_route"
+          ],
+          "adapted_same_name_methods": [
+            "fly_spray",
+            "advance_spray_heals",
+            "_orb_targets",
+            "advance_orbs",
+            "_grasp_contact",
+            "grasp",
+            "coalescence"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/biotic.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 1,
+          "exact_methods": [
+            "explode"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "0206",
+      "name": "Echo and copied-hero shared consumers",
+      "source_ref": "refs/hero-deliveries/0206",
+      "source_sha": "fe7877307a3a10ac53df86d8eebb171b53254fe5",
+      "current_entries": [
+        "Combat.echo_duplicates -> command/update/restore/retired and same Match.switch_hero body factory",
+        "Match.Player physical pose -> echo_movement effective_data/request/glide_limit",
+        "Copied Cassidy source copied_roll/deadeye/flashbang -> current mccree velocity/native/targets/effects/shot_aim and projectile gravity",
+        "Combat reflection -> deflections.intercept/absorb and existing Genji source attribution"
+      ],
+      "mapping": "echo_duplicate/echo_movement/copied_roll/deadeye AST exact; flashbang methods exact with only module-level difference. Old copied helper files are retained but actual consumers intentionally consolidated in mccree, whose corresponding source0042 implementations are mapped above, no duplicate driver.",
+      "existing_verification_receipts": [
+        "Root17b8eec7 fixed actual sticky motion/source attribution; original29 passed, C9/C10 curve/impulse fields preserved",
+        "C9 original Echo old95vs20 and718vs663 observations retained with native/source evidence, not hidden",
+        "A104 typed flight roles and C71 real owned-mech melee remain shared actual body routing"
+      ],
+      "limits": [
+        "AST exact modules alone do not prove every copied ability/client transition; no such exhaustive claim"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/echo_duplicate.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 8,
+          "exact_methods": [
+            "_copy_charge_bonus",
+            "Duplicates.__init__",
+            "Duplicates.active",
+            "Duplicates.retired",
+            "Duplicates._target",
+            "Duplicates.command",
+            "Duplicates.restore",
+            "Duplicates.update"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/echo_movement.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 5,
+          "exact_methods": [
+            "flight",
+            "glide_properties",
+            "glide_limit",
+            "effective_data",
+            "request"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/copied_roll.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 5,
+          "exact_methods": [
+            "owner",
+            "velocity_action",
+            "apply_velocity",
+            "native",
+            "critical_default"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/deadeye.py",
+          "whole_module_ast_equal": true,
+          "original_methods": 7,
+          "exact_methods": [
+            "_owner",
+            "_living",
+            "target_point",
+            "targets",
+            "effects",
+            "native",
+            "shot_aim"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/flashbang.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 2,
+          "exact_methods": [
+            "launch",
+            "accelerate"
+          ],
+          "adapted_same_name_methods": [],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/deflections.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 5,
+          "exact_methods": [
+            "_dot",
+            "_box",
+            "absorb",
+            "blocks_melee"
+          ],
+          "adapted_same_name_methods": [
+            "intercept"
+          ],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    },
+    {
+      "id": "0221",
+      "name": "Baptiste",
+      "source_ref": "refs/hero-deliveries/0221",
+      "source_sha": "6f0bdcc4d146c30e5dc812efd07229e025119503",
+      "current_entries": [
+        "Combat.baptiste = BaptisteEffects -> command/update/field projectiles/protection/retire",
+        "BodyWorld tracked/action/native -> matrix confirm/spawn/query on same effect host",
+        "Combat damage/healing -> matrix_multiplier and same field/Matrix/Vitals consumers",
+        "Combat.healing = HealingEffects -> native actual status/pruning/cleanse and source-credit lifecycle"
+      ],
+      "mapping": "Baptiste30/31 methods exact; eligible target guard adapts actual device/body polymorphism. HealingEffects uses the same status host with A97-A99 native healing/retirement and C32 sampled Cryo integration, not another healing pool.",
+      "existing_verification_receipts": [
+        "A100 real Matrix-crossed native grenade: hostile80/friendly200 and original0/1.5 status factors passed1.914s",
+        "A98 real native grenade/pet+whole-server causal9 passed30.942s; A99 original28 methods/all128 asserts preserved",
+        "C32 sampled Cryo hooks sole HealingEffects; current LayeredWorld field placement C72 actual queries34 passed"
+      ],
+      "limits": [
+        "Original Baptiste legacy Modifier-table/timer fixture observations remain verification adapters; shield-recovery total expectations retained as original conflicts"
+      ],
+      "module_ast_audit": [
+        {
+          "path": "ow174/game/baptiste.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 31,
+          "exact_methods": [
+            "primary_direction",
+            "grenade_direction",
+            "projectile_gravity",
+            "_charge_blocked",
+            "passive_charge",
+            "_ChargeInput.__init__",
+            "_ChargeInput.var",
+            "BaptisteEffects.__init__",
+            "BaptisteEffects.damage_charge",
+            "BaptisteEffects.healing_charge",
+            "BaptisteEffects._combat_charge",
+            "BaptisteEffects._matrix_owner",
+            "BaptisteEffects.matrix_native",
+            "BaptisteEffects.matrix_confirm",
+            "BaptisteEffects.matrix_spawn",
+            "BaptisteEffects.matrix_multiplier",
+            "BaptisteEffects.retire_body",
+            "BaptisteEffects._number",
+            "BaptisteEffects.command",
+            "BaptisteEffects.grenade_parameters",
+            "BaptisteEffects.field_parameters",
+            "BaptisteEffects.projectile_impact",
+            "BaptisteEffects.protection_valid",
+            "BaptisteEffects._remove_protection",
+            "BaptisteEffects.deployable_removed",
+            "BaptisteEffects._update_fields",
+            "BaptisteEffects._burst",
+            "BaptisteEffects.refresh_field_protection",
+            "BaptisteEffects.update",
+            "BaptisteEffects._protection_top_up"
+          ],
+          "adapted_same_name_methods": [
+            "BaptisteEffects._eligible"
+          ],
+          "original_names_absent_current": []
+        },
+        {
+          "path": "ow174/game/healing.py",
+          "whole_module_ast_equal": false,
+          "original_methods": 11,
+          "exact_methods": [
+            "_HumanSource.native",
+            "Spec.load",
+            "HealingEffects.immune",
+            "HealingEffects.accepts"
+          ],
+          "adapted_same_name_methods": [
+            "HealingEffects.__init__",
+            "HealingEffects.retire",
+            "HealingEffects.prepare",
+            "HealingEffects.prune",
+            "HealingEffects.factor",
+            "HealingEffects._install",
+            "HealingEffects.grenade"
+          ],
+          "original_names_absent_current": []
+        }
+      ],
+      "newly_proven_unmounted_consumer": null,
+      "proof_basis": "source AST + current actual call route + cited existing owner/root receipts; NOT ref ancestry"
+    }
+  ],
+  "no_runtime_or_test_edits": true,
+  "no_new_matrix_or_service": true,
+  "live_handles": [],
+  "known_open_handoffs_at_review": [
+    "B99 actual force endpoint pending root receipt; not edited here"
+  ],
+  "unproven_scope": "Remaining changed shared method arithmetic/foreign graph branches not fully re-executed; recorded per row, no absence inferred from old symbol names"
+}

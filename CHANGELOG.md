@@ -1,5 +1,13 @@
 # Changelog
 
+## C76 — actual consumer receipt for ten root-baseline deliveries
+
+Audited ten frozen owners against canonicalc25a8a9c actual entry chains rather
+than ref ancestry. Recorded fullSHAs,32 selected module comparisons(12 whole AST
+exact), source-to-current adapters and existing root/owner proof with explicit
+unproven shared scope. No newly proven missing producer, no runtime/test edits,
+new acceptance matrix or ancestry operation; B99 remains separate pending work.
+
 ## C75 — reconcile32 frozen source deliveries and preserved checkpoints
 
 Read-only canonical26994683 provenance audit:32 original repositories clean,
