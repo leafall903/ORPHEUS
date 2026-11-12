@@ -1,0 +1,72 @@
+Enforcer25-projectile ring flight versus Ana: partial104319 restoration
+
+Native and resource basis
+13EB node24/state14 has25 projectiles, amount2, speed80, lifetime5s, range100m,
+critical1 and falloff8..15m down to.2. Its613BDDB0 launch has ring rows
+(radius0,count1),(.5,8),(1,16), spread230=4 and92308789=2.
+The older contact-only model ignored the count and produced one flight/2 damage.
+That failure remains in enforcer-actual-primary-execution.json; the new
+enforcer-ring-actual-primary-execution.json records one ammo spent and Ana200->150.
+
+Original D80310 has100 executed prefix cases and162 complete aspect1 transform
+cases. The production helper matches all162, including true/near-vertical inputs,
+with maximum error1.1920928955078125e-7 under sin/cos libm adapters. Original
+seed/table lookups and rotations execute in the probe. Both generated random
+tables match all32768 captured values bit-for-bit. Runtime tables are generated
+from algorithms; client assets are never loaded or embedded in production code.
+
+D886C4's type descriptor2DFD1A0 identifies613BDDB0. Original D8870C..D887C2
+scalar baking has24 cases with dependency/getter adapters: resource48/50 maps
+spread/jitter with missing defaults0/0; phase58 absent becomes-1(random),
+explicit degrees convert to radians and negative values wrap upward. Ring row
+field/packed layout is also visible in D887C2..D888C3. Complete engine allocation
+and binding is not reproduced.
+
+Production policy and scope
+Only Enforcer01CE/13EB/node24 invokes the ring adapter. It emits every authored
+projectile as an independent80m/s Rocket with its own direction, distance,
+contact, barrier/reflect and health resolution. One report spends one round.
+Invalid ring coverage or noncircular aspect fails explicitly. Other launch shapes
+are not silently converted into this pattern.
+Seed inputs are declared server mappings from body entity, instance.id,node.pos
+and activation counter. Native handle/client seed parity, hardpoint/muzzle origin,
+real hitboxes and presentation remain open. NPC origin stays the body-eye proxy.
+Manual pitch reaches both flight aim and movement output and is causal storage.
+
+Configured ballistic falloff previously was ignored. Rockets now accumulate
+modeled chord-path length, including reflected segments, and apply existing
+linear HitDef.scale at direct impact. This is not recovered native curve,
+Deflect-reset or full-physics proof. Distance is causal state. Warming immutable
+spread-table caches does not change the exported state hash.
+
+Executed focused scope
+Fifteen methods pass in23.667s, plus one source-death method in2.445s. They cover
+25 distinct directions/one report/round, actual manual down-pitch, delayed50
+point-blank damage, partial-wall contacts, firing-time outgoing and live incoming
+Nano, actual projected protection/energy,48/49 pool-breaking boundaries, actual
+Genji Deflect return, sleep after release, removal of all25 flights and target
+replacement at a different pose. Source death is an authoritative death-boundary
+fixture, not a firing-input kill claim; released source identity remains intact.
+Range tests move target X onto an emitted trajectory crossing its unchanged body
+height, isolating6/12/16m falloff and99/101m range. This is not native accuracy
+evidence. The first99m fixture picked a ray above/below the body and was corrected.
+Initial tests also assumed lazy vitals existed and decimal energy10 was exact;
+fixtures now observe default pools and permit the authored float32 sum. No
+target/predicate/health-hit result was forced by these fixture corrections.
+
+The first ring adapter covered only hitscan; resource speed80 revealed the
+ballistic branch. That frontier is preserved and the adapter now precedes both
+branches. The current normal-runtime regression passed all525 methods across42
+modules in1492.067s with stable source hashes, stored replay, and no skips. The
+separate authored43-row NPC group ran43 methods in147.266s;42 passed and Assassin
+incoming was the sole failed subcase. Prior514 full replay and109 query/snapshot
+checks predate this work.
+Remaining Ana/NPC/defense/controller/client gates stay open; no final commit.
+
+External evidence
+enforcer-ring-prefix-native-validation.json; enforcer-ring-transform-native-
+validation.json; enforcer-ring-baking-native-validation.json;
+enforcer-scattergun-resource-evidence.json; enforcer-range-frontier.json;
+ana-enforcer-ring-range-final.txt; ana-enforcer-ring-death-focused.txt;
+ana-enforcer-ring-full-regressions.txt and its source-hash manifest;
+ana-enforcer-ring-npc-final.txt; ANA_STATIC_MATRIX.json.

@@ -78,16 +78,11 @@ def _target(bot, state, query_position):
         or match.combat.is_stunned(bot)
     ):
         return None
-    target = next(
-        (
-            target
-            for target in match.combat._enemies(bot)
-            if getattr(target.owner, "client", None) is not None
-            and not target.owner.gone
-            and target.owner.entity == bot.attack_target
-        ),
-        None,
-    )
+    if query_position == CHARGE_QUERY and match.combat.junkrat.rooted(bot.entity, match.tick):
+        return None
+    target = next((target for target in match.combat._enemies(bot)
+                   if getattr(target.owner, "client", None) is not None
+                   and not target.owner.gone and target.owner.entity == bot.attack_target), None)
     if target is None:
         return None
     query = state.instance.graph.node(query_position)
@@ -120,11 +115,9 @@ def charge_lane(match, bot, target):
 
     world = match.collision_world
     x, y, z = target.mover.position
-    if (
-        world is None
-        or not 8 <= math.dist(bot.position, target.mover.position) <= 16
-        or abs(bot.position[1] - y) >= CHARGE_FLOOR_TOLERANCE
-    ):
+    if (world is None or match.combat.junkrat.rooted(bot.entity, match.tick)
+            or not 8 <= math.dist(bot.position, target.mover.position) <= 16
+            or abs(bot.position[1] - y) >= CHARGE_FLOOR_TOLERANCE):
         return False
     data = mover_data(bot.body)
     if not npc_navigation.teammate_clear(match, bot, bot.position, target.mover.position, data):
@@ -145,7 +138,9 @@ def update(bot, component, enabled):
             component.edges([(CHARGE_BUTTON, False)])
         phase = charge.instance.vars.get(59)
         if phase is not None and expr.to_int(phase.value()) != 0:
-            if not bot.firing or bot.attack_target is None or component.world.match.combat.is_stunned(bot):
+            fight = component.world.match.combat
+            if (not bot.firing or bot.attack_target is None or fight.is_stunned(bot)
+                    or fight.junkrat.rooted(bot.entity, fight.tick)):
                 stop_charge(component, charge)
             return True
         if enabled and not state.flags & nodes.Ability.RUNNING and charge.remaining() <= 0:
@@ -204,6 +199,9 @@ def stop_charge(component, ability_state):
     ability_state.stop()
     component.edges([(CHARGE_BUTTON, False)])
     instance.write((expr.INSTANCE, 59), 0)
+    match = getattr(component.world, "match", None)
+    if match is not None:
+        match.combat.release_heavy_capture(component.entity)
     pending = [instance.states.get(instance.graph.node(pos).state) for pos in (137, 71)]
     for state in pending:
         if state is not None and state.active:
@@ -223,6 +221,10 @@ def charge_motion(bot):
     component = script.component
     charge = ability(component, CHARGE_GRAPH, CHARGE_ABILITY)
     if charge is None:
+        return None
+    fight = component.world.match.combat
+    if fight.junkrat.rooted(bot.entity, fight.tick):
+        stop_charge(component, charge)
         return None
     instance = charge.instance
     phase = instance.vars.get(59)
@@ -299,7 +301,7 @@ def tracked_targets(world, state):
     return (target.entity,) if target is not None else ()
 
 
-def _push(source, target, state, settings):
+def _push(source, target, state, settings, *, defer=False):
     # Resource scalars 1257/1258 supply the horizontal and upward parts.
     # Their application as a velocity impulse is the sandbox reconstruction.
     horizontal = expr.to_float(state.evaluate(settings.get("m_E33EFEE1"), watch=False))
@@ -314,11 +316,24 @@ def _push(source, target, state, settings):
     else:
         dx, _, dz = combat.aim(source.yaw, 0)
     mover = target.owner.mover
-    vx, vy, vz = mover.velocity
-    mover.velocity = (expr.f32(vx + horizontal * dx), expr.f32(vy + upward), expr.f32(vz + horizontal * dz))
-    if upward > 0 and not mover.flags_word & IN_AIR:
-        mover.flags_word |= FELL
-        mover.air_ticks = 0
+    if defer:
+        # The original configured-Sentry force must join the next physical
+        # action phase after its persistent movement constraints.
+        fight = state.instance.component.world.match.combat
+        accepted = fight.knockbacks.apply(target, expr.Vec3(horizontal * dx, upward, horizontal * dz),
+                                          impact_frame=fight.tick)
+        if accepted and upward > 0 and state.instance.graph.index in (GRAPH, 0x1422):
+            fight.knockbacks.record_launch(target, source_entity=source.entity)
+    else:
+        vx, vy, vz = mover.velocity
+        mover.velocity = (expr.f32(vx + horizontal * dx), expr.f32(vy + upward),
+                          expr.f32(vz + horizontal * dz))
+        if upward > 0 and not mover.flags_word & IN_AIR:
+            mover.flags_word |= FELL
+            mover.air_ticks = 0
+        if upward > 0 and state.instance.graph.index in (GRAPH, 0x1422):
+            state.instance.component.world.match.combat.knockbacks.record_launch(
+                target, source_entity=source.entity)
     if source.hero == HERO and (horizontal > 0 or upward > 0):
         correction.force_impulse(target.owner)
 

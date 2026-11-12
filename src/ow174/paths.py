@@ -47,6 +47,18 @@ GREETING_CLIP_DATA = "greeting_clips_174.json"
 EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved default lookup key
 VOICE_EFFECT_DATA = "voice_effects_174.json"
 
+EMOTE_ALIAS_DATA = "emote_aliases_174.json"
+EMOTE_BLEND_TREE_DATA = "emote_blend_trees_174.json"
+EMOTE_TAGGED_DATA = "emote_tagged_174.json"
+EMOTE_DURATION_DATA = "emote_durations_174.json"
+EMOTE_SCALAR_DATA = "emote_scalar_tracks_174.json"
+EMOTE_CLIP_DATA = "emote_clips_174.json"
+WHEEL_POSE_DATA = "wheel_pose_174"
+GREETING_DURATION_DATA = "greeting_durations_174.json"
+GREETING_CLIP_DATA = "greeting_clips_174.json"
+EMOTE_ANY_CATEGORY = 0xFFFFFFFFFFFFFFFF  # reserved default lookup key
+VOICE_EFFECT_DATA = "voice_effects_174.json"
+
 LOBBY_RUNTIME_DATA = (
     "schemas_174.json", "retail_templates.json", *CLIENT_CATALOGS,
     "resource_keys_174.json", "arcade_cards_174.json", "game_queues_174.json", "lobby_state_blob.key",

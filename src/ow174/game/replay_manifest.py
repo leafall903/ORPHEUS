@@ -28,23 +28,40 @@ DATA_FILES = (
     "schemas_174.json", "statescript_codecs_174.json",
 )
 DEPENDENCIES = ("cryptography", "protobuf", "websockets")
+OPTIONAL_DATA_FILES = ("barrier_geometry_174.json",)
 _RUNTIME_FIELDS = {
     "implementation", "version", "implementation_version", "cache_tag",
     "pointer_bits", "machine", "byteorder", "system",
 }
 _CONFIG_MODULES = (
+    "ow174.game.ashe", "ow174.game.sombra_hack", "ow174.game.bob_victim", "ow174.game.junkrat_projectile", "ow174.game.junkrat", "ow174.game.launch_ring", "ow174.game.junkrat_tire", "ow174.game.junkrat_charge",
+    "ow174.game.venom", "ow174.game.widowmaker", "ow174.game.weapon_launch",
+    "ow174.game.view_offsets", "ow174.game.defenses", "ow174.game.ultimate",
+    "ow174.game.assassin", "ow174.game.assassin_victim", "ow174.game.npc_context",
+    "ow174.game.barriers",
+    "ow174.game.barrier_geometry",
+    "ow174.game.baptiste", "ow174.game.healing", "ow174.game.deflection", "ow174.game.absorption",
     "ow174.game.bots", "ow174.game.casc", "ow174.game.collision", "ow174.game.combat", "ow174.game.commands",
-    "ow174.game.contacts", "ow174.game.correction", "ow174.game.heroselect",
+    "ow174.game.contacts", "ow174.game.correction", "ow174.game.genji", "ow174.game.heroselect",
+    "ow174.game.interception", "ow174.game.npc_control", "ow174.game.npc_console",
     "ow174.game.link", "ow174.game.match", "ow174.game.messages", "ow174.game.mover",
-    "ow174.game.notices", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
-    "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
+    "ow174.game.notices", "ow174.game.npc", "ow174.game.observers", "ow174.game.onfire", "ow174.game.pools",
+    "ow174.game.projectile_tags", "ow174.game.projectiles", "ow174.game.props", "ow174.game.replay_values",
     "ow174.game.server_snapshot", "ow174.game.physics_snapshot", "ow174.game.body_vm_snapshot",
-    "ow174.game.server", "ow174.game.statescript",
+    "ow174.game.server", "ow174.game.sigma_barrier", "ow174.game.statescript",
     "ow174.game.stats", "ow174.game.voicelines", "ow174.game.world",
     "ow174.game.script.driver", "ow174.game.script.expr", "ow174.game.script.runtime",
     "ow174.jam.codec",
 )
 _REQUIRED_CONFIG = {
+    "ow174.game.view_offsets": {"CATALOG_SHA256"},
+    "ow174.game.projectile_tags": {"CATALOG_SHA256"},
+    "ow174.game.sigma_barrier": {"MODEL_SHA256"},
+    "ow174.game.combat": {"EYE_STANDING", "EYE_CROUCHED"},
+    "ow174.game.baptiste": {"HERO", "TICK"},
+    "ow174.game.healing": {"GRENADE", "TICK"},
+    "ow174.game.deflection": {"GENJI", "TICK", "MAX_DEFLECTIONS", "EXCLUDED_TAG", "CATALOG_SHA256"},
+    "ow174.game.absorption": {"SIGMA", "SHIELD_TAG", "TICK"},
     "ow174.game.match": {"HEALTH", "BODY_SCRIPT_HEROES", "SEND_EVERY", "RETAIL_QUANTA", "TOURNAMENT_QUANTA"},
     "ow174.game.correction": {"CORRECTIONS", "HEROES"},
     "ow174.game.script.runtime": {
@@ -201,6 +218,9 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     if type(quanta_us) is not int or quanta_us <= 0 or type(run_options) is not dict:
         raise ManifestError("explicit positive quanta_us and run_options mapping are required")
     values = {"run.quanta_us": quanta_us, "run.options": run_options}
+    from ow174.game.photon_barrier import replay_inputs
+
+    values.update(replay_inputs())
     for name in _CONFIG_MODULES:
         module = importlib.import_module(name)
         required = _REQUIRED_CONFIG.get(name, set())
@@ -212,7 +232,19 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
             numeric = value is None or type(value) in (bool, int, float)
             limit = field.startswith("MAX_") or field.endswith("_MAX") or "BUDGET" in field
             if numeric or limit or field in required:
+                if name == "ow174.game.combat" and field in ("EYE_STANDING", "EYE_CROUCHED"):
+                    value = tuple(sorted(value.items()))
                 values[f"{name}.{field}"] = value
+    from ow174.game import orisa_barrier, reinhardt_barrier
+
+    values["ow174.game.reinhardt_barrier.GEOMETRY_SHA256"] = reinhardt_barrier.geometry_sha256()
+    values["ow174.game.orisa_barrier.GEOMETRY_SHA256"] = orisa_barrier.geometry_sha256()
+    from ow174.game.barrier import model_identity
+
+    values["ow174.game.barrier.model_sha256"] = model_identity()
+    from ow174.game import scalar_math
+
+    values["ow174.game.scalar_math.profile"] = scalar_math.profile()
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)
@@ -246,6 +278,8 @@ def capture_manifest(
             name = path.relative_to(root).as_posix()
             files.append(_file(root, name, name))
     files.extend(_file(data_dir, name, f"data/{name}") for name in DATA_FILES)
+    files.extend(_file(data_dir, name, f"data/{name}") for name in OPTIONAL_DATA_FILES
+                 if (data_dir / name).exists())
     actual_runtime = runtime_identity() if runtime is None else runtime
     _validate_runtime(actual_runtime)
     actual_dependencies = dependency_versions() if dependencies is None else dependencies

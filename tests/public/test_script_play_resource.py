@@ -3,9 +3,9 @@
 import unittest
 from unittest import mock
 
-from ow174.game.script import expr, play, runtime
+from ow174.game.script import expr, play, play_queue, runtime, scene
 from tests.public.test_script_play_loaded import KEY, definition, dynamic, model_record
-from tests.script_fixtures import graph, node, plug, setter
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 GUID = 0x0580000000000002
 IDENT = play.IDENTIFIER_TYPE
@@ -59,6 +59,54 @@ class TraceWorld(runtime.World):
 
 
 class PlayResourceTests(unittest.TestCase):
+    def test_managed_local_script_replaces_only_its_owned_child_and_retires_on_abort(self):
+        caller_graph = graph([node(
+            0, 'STU_CB4905E9', state=0, m_69F4B52C=dynamic(77),
+            m_targets={'$': 'STU_B5A0CAF0'},
+        )])
+        world = scene.SceneWorld()
+        world.bind(123)
+        component = runtime.Component(123, world=world, strict=True)
+        world.bind_script_component(123, component)
+        first, second = graph([]), graph([])
+        first.index, second.index = 2, 3
+        unrelated = component.create(first)
+        requests = []
+
+        def acquire(guid):
+            requests.append(guid)
+            return play_queue.Load('ready', first if guid == GUID else second)
+
+        world.set_play_queue(123, play_queue.Queue(component, acquire))
+        caller = component.create(caller_graph)
+        caller.write((runtime.INSTANCE_SCOPE, 77), expr.Asset(GUID))
+        state = caller.node_state(caller_graph.node(0))
+        with component.operation():
+            state.begin()
+            original_child = state.child
+            state.begin()
+        self.assertIsNot(original_child, unrelated)
+        self.assertIs(state.child, original_child)
+        self.assertEqual(requests, [GUID])
+        caller.write((runtime.INSTANCE_SCOPE, 77), expr.Asset(GUID + 1))
+        component.run_frame(1)
+        self.assertTrue(original_child.stopped)
+        self.assertIs(state.child.graph, second)
+        replacement = state.child
+        with component.operation():
+            state.end(False)
+        self.assertTrue(replacement.stopped)
+        self.assertIs(component.instances.get(unrelated.id), unrelated)
+        self.assertEqual(requests, [GUID, GUID + 1])
+
+    def test_array_form_graph_config_keeps_typed_first_value_for_selection(self):
+        primary = {'$': 'STU_6DF07EE5', 'm_36F7B64C': {'m_C974E369': resource()}}
+        caller, action = requesting(primary, {'$': 'Unused'})
+        self.assertEqual(caller.evaluate(primary), (expr.Asset(GUID),))
+        self.assertEqual(play.resolve_resource(caller, action), play.Resource(GUID))
+        primary['m_36F7B64C']['m_C974E369'] = resource(0)
+        self.assertEqual(caller.evaluate(primary, initial=19), 19)
+
     def test_inline_primary_evaluates_overrides_once_and_does_not_touch_fallback(self):
         world = TraceWorld([17])
         caller, action = requesting(inline([row(IDENT | 7, {'$': 'Trace'})]), {'$': 'Unused'}, world)

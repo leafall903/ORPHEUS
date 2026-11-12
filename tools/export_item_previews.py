@@ -26,7 +26,8 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.catalog.items import ItemDB  # noqa: E402
 from ow174.catalog.templates import RetailTemplates  # noqa: E402
 from ow174.content.collection import Collection, frame_parts  # noqa: E402

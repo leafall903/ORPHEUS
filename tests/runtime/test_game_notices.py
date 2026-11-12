@@ -84,7 +84,7 @@ class FakeClient:
     def bot_create_acked(self, entity: int) -> bool:
         return self.player.seen.get(entity, False)
 
-    def body_id_available(self, entity: int) -> bool:
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
         return True  # the lobby notification model has no transport reservations
 
 

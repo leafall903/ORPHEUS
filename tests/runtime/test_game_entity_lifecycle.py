@@ -75,7 +75,7 @@ class FrozenCreateTests(unittest.TestCase):
         callback = Mock()
         new_script = object()
 
-        def start(player, create):
+        def start(player, create, *, ult_fraction=0.0):
             player.body_script = new_script
             create.stream = callback
 

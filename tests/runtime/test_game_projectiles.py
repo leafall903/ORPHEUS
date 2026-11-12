@@ -311,7 +311,7 @@ class ProjectileRangeTests(unittest.TestCase):
                 self.assertEqual(vitals.total, expected_health)
 
     def test_helix_sweeps_to_its_range_boundary(self):
-        for z, hit in ((100.05, True), (100.7, False)):
+        for z, hit in ((100.05, True), (100.75, False)):
             with self.subTest(target_feet_z=z):
                 run = Run(KANEZAKA_DM, ("A", "B"))
                 shooter, victim = run.players
@@ -327,8 +327,11 @@ class ProjectileRangeTests(unittest.TestCase):
                 reach = rocket.speed * rocket.left
                 self.assertEqual(reach, 100.0)
                 target = next(target for target in fight._targets() if target.owner is victim)
+                self.assertIsNotNone(rocket.direct)
+                self.assertAlmostEqual(rocket.direct.projectile_extent, 0.2)
                 contact = combat.ray_capsule(
-                    rocket.position, rocket.direction, *target.segment(), target.radius,
+                    rocket.position, rocket.direction, *target.segment(),
+                    target.radius + rocket.direct.projectile_extent,
                 )
                 self.assertGreater(contact, reach - rocket.speed * combat.TICK)
                 self.assertEqual(contact < reach, hit)
@@ -650,8 +653,10 @@ class OwnerVolleyDeliveryTests(unittest.TestCase):
 
     def test_rapid_arrows_use_only_their_own_delivered_volley_activation(self):
         releases = (1022, 1058)
+        # Keep both arrows airborne through the identity comparison at1064.
+        # Authored gravity lands the first level weak arrow at1057.
         commands = [
-            Command(frame, buttons=FIRE if 1017 <= frame < 1022 or 1053 <= frame < 1058 else 0)
+            Command(frame, pitch=-6000, buttons=FIRE if 1017 <= frame < 1022 or 1053 <= frame < 1058 else 0)
             for frame in range(1017, 1064)
         ]
         player, reports, _ = self.play(0x02E0000000000005, commands)  # Hanzo
@@ -1235,7 +1240,7 @@ class BioticFieldTests(unittest.TestCase):
                 else:
                     self.assertEqual(owner_fields, {})
 
-    def test_gap_across_field_opening_keeps_only_retained_healing(self):
+    def test_gap_across_field_opening_preserves_full_healing_interval(self):
         def launch():
             run = Run(KANEZAKA_DM)
             player, = run.players
@@ -1273,8 +1278,7 @@ class BioticFieldTests(unittest.TestCase):
                 endpoint = start + elapsed
                 skipped.match.update(endpoint * combat.TICK, endpoint)
                 self.assertEqual(field.field_tick, start)
-                retained = min(elapsed, combat.COMBAT_CATCH_UP)
-                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+                self.assertAlmostEqual(vitals.total, health[elapsed])
 
     def test_active_field_heals_elapsed_ticks_once_and_stops_at_expiry(self):
         run = Run(KANEZAKA_DM)
@@ -1429,6 +1433,48 @@ class BioticFieldTests(unittest.TestCase):
         self.assertFalse(fights.shots)
         destroyed = {item.entity for item in a.client.entities if item.op == OP_DESTROY}
         self.assertTrue({item.entity for item in field_creates} <= destroyed)
+
+    def test_gap_across_field_opening_keeps_only_retained_healing(self):
+        def launch():
+            run = Run(KANEZAKA_DM)
+            player, = run.players
+            fight = run.match.combat
+            target = next(target for target in fight._targets() if target.owner is player)
+            vitals = fight.vitals_of(target)
+            vitals.damage(199.0)
+            run.step({player: (0, 0, ABILITY_2)})
+            for _ in range(80):
+                if fight.projectiles.shots:
+                    break
+                run.step({})
+            field, = fight.projectiles.shots
+            run.step({})  # admit the canister on the world clock before the gap
+            self.assertIsNone(field.field_tick)
+            return run, field, vitals
+
+        normal, field, vitals = launch()
+        for _ in range(80):
+            if field.field_tick is not None:
+                break
+            normal.step({})
+        start = normal.frame
+        self.assertEqual(field.field_tick, start)
+        self.assertEqual(vitals.total, 1.0)  # no healing on the opening tick
+        health = [vitals.total]
+        for _ in range(combat.COMBAT_CATCH_UP + 5):
+            normal.step({})
+            health.append(vitals.total)
+
+        for elapsed in (5, combat.COMBAT_CATCH_UP + 5):
+            with self.subTest(elapsed=elapsed):
+                skipped, field, vitals = launch()
+                self.assertLess(skipped.frame, start)
+                endpoint = start + elapsed
+                skipped.match.update(endpoint * combat.TICK, endpoint)
+                self.assertEqual(field.field_tick, start)
+                retained = min(elapsed, combat.COMBAT_CATCH_UP)
+                self.assertAlmostEqual(vitals.total, 1.0 + health[elapsed] - health[elapsed - retained])
+
 
 
 class ObserverTests(unittest.TestCase):

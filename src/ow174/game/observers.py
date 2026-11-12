@@ -35,11 +35,24 @@ from ow174.game.statescript import (
 log = logging.getLogger("ow174.game")
 
 
+def _server_phase_list(definition, node) -> bool:
+    return definition.index == 0x180A and node.pos == 42 and node.cls == "STU_77E13026"
+
+
+def _phase_list_row(instance) -> bool:
+    parent = instance.parent
+    if parent is None or instance.parent_state is None:
+        return False
+    state = parent.graph.state(instance.parent_state)
+    return state is not None and _server_phase_list(parent.graph, state)
+
+
 class SceneBody(ReplicatedBody):
     """Project a match-owned body without advancing its scene VM."""
 
-    def __init__(self, component):
+    def __init__(self, component, *, actions=None):
         self.component = component
+        self.actions = actions
         self.server_only = self.initial_exclusions()
         self.latest_live = snapshot(self)
         self.terminal_snapshot = None
@@ -52,13 +65,21 @@ class SceneBody(ReplicatedBody):
     def initial(self):
         return full_frame(self, self.latest_live), self.latest_live
 
+    def callout_snapshot(self) -> Snapshot:
+        events = tuple(self.actions()) if self.actions is not None else ()
+        return Snapshot(self.frame, callout=events[-1].serial if events else 0, callouts=events)
+
+    def replicated_instances(self):
+        # The list's same-graph item scopes only exist in the server VM.
+        return (instance for instance in super().replicated_instances() if not _phase_list_row(instance))
+
     def refresh(self):
         current = snapshot(self)
         dead = self.component.owner_dead
         first_death = dead and self.terminal_snapshot is None
         previous = self.terminal_snapshot or self.latest_live
-        if not first_death and (current.instances, current.vars, current.states) == (
-            previous.instances, previous.vars, previous.states
+        if not first_death and (current.instances, current.vars, current.states, current.callout) == (
+            previous.instances, previous.vars, previous.states, previous.callout
         ):
             return None
         if dead:
@@ -73,7 +94,10 @@ def snapshot(script) -> Snapshot:
     states that are on (or StEC states that ran)."""
     snap = script.callout_snapshot()
     for instance in script.replicated_instances():
-        parent = (instance.parent.id, instance.parent_state) if instance.parent is not None else None
+        owner = instance.parent
+        # A graph played by a list row has its own resolved start values and
+        # presentation states. Advertise it without the synthetic row parent.
+        parent = (owner.id, instance.parent_state) if owner is not None and not _phase_list_row(owner) else None
         snap.instances[instance.id] = (instance.graph.index, parent)
         _add_vars(snap, instance.id, script.replicated_vars(instance))
         for index, cls, codec, stec in _remote_snapshot_states(instance.graph):
@@ -98,7 +122,9 @@ def _remote_snapshot_states(definition: graph.Graph) -> tuple:
     return tuple(
         (node.state, node.cls, family(node.cls), node.cls in stec)
         for node in definition.remote_states()
-        if not presenter(node)
+        # 104319's remote activation of this list faults in its config walk.
+        # Preserve its native wire slot, leaving it inactive on clients.
+        if not presenter(node) and not _server_phase_list(definition, node)
     )
 
 
@@ -120,14 +146,16 @@ def _graphs(script) -> dict:
 
 
 def full_frame(script, snap: Snapshot):
-    live_graphs = _graphs(script)
-    # A retained live baseline can include a reaction that ended on the
-    # death tick. Resolve those graph definitions from the saved snapshot.
-    graphs = {item: live_graphs.get(item) or graph.graph(index)
-              for item, (index, _) in snap.instances.items()}
-    wires = {
-        item: InstanceWire(item, graphs[item], parent=parent) for item, (_, parent) in snap.instances.items()
-    }
+    live = _graphs(script)
+    graphs = {}
+    wires = {}
+    for item, (index, parent) in snap.instances.items():
+        definition = live.get(item)
+        if definition is None or definition.index != index:
+            # Delayed full frames can outlive the instance captured in the snapshot.
+            definition = graph.graph(index)
+        graphs[item] = definition
+        wires[item] = InstanceWire(item, definition, parent=parent)
     entity_vars = {}
     for (owner, var), value in snap.vars.items():
         if owner == 0:

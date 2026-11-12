@@ -1098,3 +1098,9 @@ Escape closed the spawn menu. About 15 seconds after the kill, physical
 minus reported one removal and both the corpse and its detached gear
 disappeared. All four lobby chat tests and the Windows hook test passed.
 Local evidence is native-rialto-6CC8-closed-menu-corpse-removal.json.
+
+- Difficulty-indexed config selection now uses the native scalar-index and
+  collecting-container interfaces (docs/CONFIG_ARRAY_SELECTION.txt). This fixes
+  a separate zero-damage cause in the Enforcer weapon, but its production control
+  context is still absent. A forced-controller external experiment is diagnostic
+  evidence only; the production three-of-five damage result remains unchanged.

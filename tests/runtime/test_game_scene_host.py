@@ -12,7 +12,7 @@ from ow174.game.match import Match, _rotation
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import entity_team, expr, runtime, scene, scene_host
 from ow174.game.script.bot import DIED
-from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS
+from ow174.game.script.driver import DEFAULT_SLOT, OWNER_HEALTH, WEAPON_SLOTS, BodyScript
 from ow174.game.server import GameServer
 from ow174.game.server_snapshot import ServerSnapshotError, export_server_state
 from tests.public.test_script_scene_host import A, ValueWorld, literal
@@ -43,6 +43,45 @@ class HomeClient:
 
 
 class MatchSceneHostTests(unittest.TestCase):
+    def test_junkenstein_keeps_phase_list_scopes_off_the_client_wire(self):
+        component = runtime.Component(runtime.GAME_MODE_ENTITY)
+        model = scene_host.graph.graph(0x180A)
+        phase_list = model.node(42)
+        root = component.create(model, init=False)
+        projection = observers.SceneBody(component)
+
+        root.states[phase_list.state] = SimpleNamespace(active=True)
+        row = component.create(model, parent=root, parent_state=phase_list.state, init=False)
+        cinematic = scene_host.graph.graph(0x027F)
+        phase = component.create(cinematic, parent=row, parent_state=model.node(41).state, init=False)
+        sibling = component.create(model, init=False)
+
+        snapshot = observers.snapshot(projection)
+        self.assertIn(phase_list, model.remote_states())
+        self.assertNotIn((root.id, phase_list.state), snapshot.states)
+        self.assertEqual(snapshot.instances[phase.id], (cinematic.index, None))
+        self.assertEqual(set(snapshot.instances), {root.id, phase.id, sibling.id})
+        self.assertEqual(set(projection.graphs()), {root.id, phase.id, sibling.id})
+        self.assertIs(component.instances[phase.id], phase)
+        self.assertIsNotNone(observers.full_frame(projection, snapshot))
+        self.assertIsNotNone(observers.acknowledged_delta(projection, projection.latest_live, snapshot))
+
+    def test_junkenstein_mounts_boss_intro_on_the_player_owner_stream(self):
+        mode = JUNKENSTEIN_MODES[0]
+        host = junkenstein_scene.JunkensteinSceneHost(scene.SceneWorld(mode=mode))
+        self.addCleanup(host.close)
+        script = BodyScript(0x02E0000000000042, 0xA0000101, 0, mode=mode)
+
+        host.mount_player_intro_receiver(script)
+
+        intro, = (instance for instance in script.component.instances.values()
+                  if instance.graph.index == junkenstein_scene.TEAM_BODY_GRAPH)
+        receiver = intro.graph.node(33)
+        snapshot = script.snapshot()
+        self.assertEqual(snapshot.instances[intro.id], (intro.graph.index, None))
+        self.assertTrue(snapshot.states[(intro.id, receiver.state)][1])
+        self.assertNotIn((intro.id, intro.graph.node(43).state), snapshot.states)
+
     def test_mystery_swap_selects_authored_weighted_count_from_bound_controllers(self):
         mode = runtime.GAME_MODE_ENTITY
         world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[0])
@@ -433,7 +472,7 @@ class MatchSceneHostTests(unittest.TestCase):
         world.set_current_possession(controller, A)
         world.bind_ai_behavior(controller)
         component = host.add(A, definition())
-        shooter = mock.Mock(spec=bots.Bot, entity=A, hero=hero, team=1, dead=False)
+        shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=hero, team=1, dead=False)
         host.bind_combatant(shooter, mock.Mock())
 
         authored = scene_host.graph.graph(0x157C)
@@ -526,7 +565,7 @@ class MatchSceneHostTests(unittest.TestCase):
         world.set_current_possession(controller, A)
         world.bind_ai_behavior(controller)
         component = host.add(A, definition())
-        actor = mock.Mock(spec=bots.Bot, entity=A, hero=hero)
+        actor = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=hero)
         host.bind_combatant(actor, mock.Mock())
         source = scene_host.graph.graph(0x0033).node(5)
         model = graph([node(5, source.cls, state=0, **(source.fields | {'m_subgraphPlug': None}))])
@@ -546,6 +585,24 @@ class MatchSceneHostTests(unittest.TestCase):
         vitals.died_at = 2
         self.assertTrue(world.modify_health(recharge, 1000))
         self.assertEqual(vitals.pool_current(combat.SHIELDS_POOL), 0)
+
+    def test_returning_junkrat_uses_its_own_wave_and_seen_flag(self):
+        mode = runtime.GAME_MODE_ENTITY
+        world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[0])
+        world.bind(mode)
+        mode_vm = runtime.Component(mode, world=world)
+        world.bind_script_component(mode, mode_vm)
+        body = runtime.Component(A, world=world)
+        model = scene_host.graph.graph(0x0CBC)
+        wave = body.create(model, init=False)
+        wave.states[5] = SimpleNamespace(active=True)
+        mode_vm.set(8566, True)
+        mode_vm.set(8521, True)
+        self.assertFalse(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
+        mode_vm.set(8522, True)
+        self.assertTrue(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
+        body.create(scene_host.graph.graph(0x0CE0), init=False)
+        self.assertFalse(junkenstein_ai.returning_boss_ready(world, junkenstein_ai.JUNKRAT, body))
 
     def test_roadhog_ai_uses_hook_readiness_and_releases_its_input(self):
         world = ValueWorld(mode=JUNKENSTEIN_MODES[0])
@@ -585,7 +642,7 @@ class MatchSceneHostTests(unittest.TestCase):
         hook.instance.write((runtime.INSTANCE, 9570), True)
         state(vm, 0x01C6, 28)
         gate = state(control, 0x0BC6, 25)
-        nav = SimpleNamespace(handoff_complete=True, search=None, path=(), drop_started=None)
+        nav = SimpleNamespace(handoff_complete=False, search=None, path=(), drop_started=None)
         actor = SimpleNamespace(
             entity=A, hero=hero, position=(0, 0, 0), keys=False, dead=False, navigation=nav,
         )
@@ -593,8 +650,26 @@ class MatchSceneHostTests(unittest.TestCase):
         world.bind(target.entity)
         fight._enemies.return_value = [target]
 
+        mode = runtime.GAME_MODE_ENTITY
+        world.bind(mode)
+        mode_vm = host.add(mode, definition())
+        wave = scene_host.graph.graph(0x0CBC)
+        gate_node = wave.states[4]
+        returning = graph([node(index, 'STUStatescriptStateWait', state=index, m_timeout=literal(1))
+                           for index in range(4)]
+                          + [node(gate_node.pos, 'STUStatescriptStateWait', state=4, m_timeout=literal(1))])
+        returning.index = wave.index
+        wave_instance = vm.create(returning, init=False)
+        wave_instance.initialized = True
+        wave_instance.state(4).begin()
         with mock.patch.object(vm, 'edges') as edges:
             junkenstein_ai.update_boss_combat(host, actor, vm)
+            self.assertFalse(nav.handoff_complete)
+            edges.assert_not_called()
+            mode_vm.set(8521, True)
+            mode_vm.set(8566, True)
+            junkenstein_ai.update_boss_combat(host, actor, vm)
+            self.assertTrue(nav.handoff_complete)
             edges.assert_called_once_with([(35, True)])
             vm.held[:] = [35]
             hook.flags = hook.RUNNING
@@ -661,7 +736,7 @@ class MatchSceneHostTests(unittest.TestCase):
         instance = component.create(model, init=False)
         instance.initialized = True
         state = instance.state(0)
-        shooter = mock.Mock(spec=bots.Bot, entity=enemy, hero=hero, team=1, dead=False,
+        shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=enemy, hero=hero, team=1, dead=False,
                             position=(0, 0, 0), yaw=0, pitch=0)
         controller = enemy + 1
         host.world.bind(controller, definition=0x0400000000001959, component92_present=True)
@@ -1255,7 +1330,7 @@ class MatchSceneHostTests(unittest.TestCase):
         target, = fight._targets()
         host = match.scene_host
         vm = host.combatant_component(bot)
-        killer = mock.Mock(spec=bots.Bot, entity=A + 2)
+        killer = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A + 2)
         killer.name = 'Killer'
         fight._damage(killer, target, 10, False, None, 100)
         self.assertEqual(vm.entity_var(OWNER_HEALTH).value(), 90)
@@ -1309,7 +1384,7 @@ class MatchSceneHostTests(unittest.TestCase):
         match.update(1.6, 100)
         fight, host = match.combat, match.scene_host
         target, = fight._targets()
-        killer = mock.Mock(spec=bots.Bot, entity=A + 2)
+        killer = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A + 2)
         killer.name = 'Killer'
         fight._damage(killer, target, 200, False, None, 100)
         deadline = 100 + junkenstein_scene.COMMON_CORPSE_GRACE_MS // host.frame_ms
@@ -1352,7 +1427,7 @@ class MatchSceneHostTests(unittest.TestCase):
             world.bind_ai_behavior(controller)
             world.set_possessions(possessors=(controller,), primary=((A, controller),))
             world.set_current_possession(controller, A)
-            shooter = mock.Mock(spec=bots.Bot, entity=A, hero=junkenstein_ai.ZOMBARDIER,
+            shooter = mock.Mock(spec=bots.Bot, owner=0, source_body=0, entity=A, hero=junkenstein_ai.ZOMBARDIER,
                                 team=1, position=(0, 0, 0), dead=False)
             shooter.body_script = SimpleNamespace(component=component)
             control = junkenstein_ai.ZombardierControl(controller, shooter, component, 29)

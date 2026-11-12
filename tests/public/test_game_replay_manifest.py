@@ -8,13 +8,15 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from ow174.paths import DATA_DIR
+
 import unittest
 from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ow174.game import correction, match
+from ow174.game import absorption, baptiste, barrier, combat, correction, deflection, genji, healing, interception, match
 from ow174.game import replay_manifest as manifest
 from ow174.game.script import driver, runtime
 from ow174.paths import ROOT
@@ -103,6 +105,19 @@ class ReplayManifestTests(unittest.TestCase):
             {"path": "files/src/ow174/game/model.py", "kind": "missing"},
             {"path": "files/src/ow174/jam/new_package/new_model.py", "kind": "added"},
         ])
+
+    def test_optional_barrier_geometry_presence_and_content_are_causal_inputs(self):
+        before = self.capture()
+        path = self.data / "barrier_geometry_174.json"
+        path.write_bytes(b"external geometry one")
+        present = self.capture()
+        self.assertEqual(manifest.compare_manifests(before, present), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "added"}])
+        path.write_bytes(b"external geometry two")
+        self.assertEqual(manifest.compare_manifests(present, self.capture()), [
+            {"path": "files/data/barrier_geometry_174.json", "kind": "changed"}])
+        path.unlink()
+        self.assertEqual(self.capture(), before)
 
     def test_required_data_and_source_roots_fail_explicitly(self):
         for name in manifest.DATA_FILES:
@@ -212,10 +227,27 @@ class ReplayManifestTests(unittest.TestCase):
         for name in ("EVENTS_PER_TIME", "MAX_SCRIPT_WORK", "MAX_INSTANCE_UPDATES", "MAX_COMPONENT_UPDATES"):
             self.assertEqual(config[f"ow174.game.script.runtime.{name}"], getattr(runtime, name))
         self.assertEqual(config["ow174.game.script.driver.MAX_SHOTS"], driver.MAX_SHOTS)
+        self.assertEqual(config["ow174.game.genji.WORLD_GRAVITY"], genji.WORLD_GRAVITY)
+        self.assertEqual(config["ow174.game.interception.EPSILON"], interception.EPSILON)
+        self.assertEqual(config["ow174.game.baptiste.TICK"], baptiste.TICK)
+        self.assertEqual(config["ow174.game.healing.TICK"], healing.TICK)
+        self.assertEqual(config["ow174.game.absorption.TICK"], absorption.TICK)
+        self.assertEqual(config["ow174.game.combat.EYE_STANDING"], tuple(sorted(combat.EYE_STANDING.items())))
+        self.assertEqual(config["ow174.game.deflection.CATALOG_SHA256"], deflection.CATALOG_SHA256)
+        self.assertEqual(config["ow174.game.barrier.model_sha256"], barrier.model_identity())
         with (
             mock.patch.object(match, "HEALTH", 222.0),
             mock.patch.object(correction, "HEROES", {123, 456}),
             mock.patch.object(runtime, "MAX_SCRIPT_WORK", runtime.MAX_SCRIPT_WORK + 1),
+            mock.patch.object(genji, "WORLD_GRAVITY", genji.WORLD_GRAVITY + 1),
+            mock.patch.object(interception, "EPSILON", interception.EPSILON * 2),
+            mock.patch.object(baptiste, "TICK", 0.008),
+            mock.patch.object(healing, "TICK", 0.02),
+            mock.patch.object(absorption, "TICK", 0.01),
+            mock.patch.object(combat, "EYE_STANDING", {123: 1.35}),
+            mock.patch.object(deflection, "MAX_DEFLECTIONS", 3),
+            mock.patch.object(deflection, "CATALOG_SHA256", "0" * 64),
+            mock.patch.object(barrier, "model_identity", return_value="1" * 64),
         ):
             changed = manifest.runtime_configuration(quanta_us=7000, run_options={"mode": "controlled"})
         differences = manifest.compare_manifests(
@@ -224,11 +256,39 @@ class ReplayManifestTests(unittest.TestCase):
         self.assertEqual({row["path"] for row in differences}, {
             "configuration/ow174.game.match.HEALTH", "configuration/ow174.game.correction.HEROES",
             "configuration/ow174.game.script.runtime.MAX_SCRIPT_WORK", "configuration/run.quanta_us",
+            "configuration/ow174.game.genji.WORLD_GRAVITY",
+            "configuration/ow174.game.interception.EPSILON",
+            "configuration/ow174.game.baptiste.TICK", "configuration/ow174.game.healing.TICK",
+            "configuration/ow174.game.absorption.TICK",
+            "configuration/ow174.game.combat.EYE_STANDING",
+            "configuration/ow174.game.deflection.MAX_DEFLECTIONS",
+            "configuration/ow174.game.deflection.CATALOG_SHA256",
+            "configuration/ow174.game.barrier.model_sha256",
         })
         self.assertEqual(config["ow174.game.correction.HEROES"], correction.HEROES)
         for quanta, options in ((True, {}), (0, {}), (16000, None)):
             with self.subTest(quanta=quanta, options=options), self.assertRaises(manifest.ManifestError):
                 manifest.runtime_configuration(quanta_us=quanta, run_options=options)
+
+    def test_reinhardt_descriptor_identity_follows_content_across_relocation(self):
+        first = self.base / "original.json"
+        second = self.base / "relocated.json"
+        payload = b'{"build":104319,"maximum":1600}'
+        first.write_bytes(payload)
+        second.write_bytes(payload)
+        key = "ow174.game.reinhardt_barrier.GEOMETRY_SHA256"
+        with mock.patch.dict(os.environ, {"ORPHEUS_REINHARDT_COLLISION": str(first)}):
+            original = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        with mock.patch.dict(os.environ, {"ORPHEUS_REINHARDT_COLLISION": str(second)}):
+            moved = manifest.runtime_configuration(quanta_us=16000, run_options={})
+            second.write_bytes(payload.replace(b"1600", b"1200"))
+            changed = manifest.runtime_configuration(quanta_us=16000, run_options={})
+        self.assertEqual(original[key], hashlib.sha256(payload).hexdigest())
+        self.assertEqual(moved, original)
+        differences = manifest.compare_manifests(
+            self.capture(configuration=original), self.capture(configuration=changed),
+        )
+        self.assertEqual([row["path"] for row in differences], [f"configuration/{key}"])
 
     def test_digest_rejects_unsealed_tampering_and_malformed_typed_values(self):
         captured = self.capture()
@@ -269,7 +329,9 @@ class ReplayManifestTests(unittest.TestCase):
             "data/collision_keys_174.json", "data/collision_props_174.json",
         ):
             self.assertIn(name, files)
-        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, set(manifest.DATA_FILES))
+        expected = set(manifest.DATA_FILES) | {
+            name for name in manifest.OPTIONAL_DATA_FILES if (DATA_DIR / name).exists()}
+        self.assertEqual({name[5:] for name in files if name.startswith("data/")}, expected)
         self.assertFalse(any(name.endswith(".col") for name in files))
 
     def test_fresh_process_hash_seed_does_not_change_canonical_set_identity(self):

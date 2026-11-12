@@ -21,15 +21,16 @@ from ow174.game.collision_fingerprint import (
 from ow174.game.collision_fingerprint import SCHEMA as WORLD_SCHEMA
 from ow174.game.commands import Command
 from ow174.game.mover import Mod, Mover, MoverData, Snapshot
+from ow174.game.velocity import Change
 
 SCHEMA = "ow174.physics-snapshot.v1"
 SCOPE = "stored-mover-physics-only"
 MOVER_FIELDS = (
-    "data", "values", "position", "on_map", "world", "category", "velocity", "driven", "yaw", "pitch",
+    "script_data", "flight_scale", "data", "values", "position", "on_map", "world", "category", "velocity", "driven", "horizontal_driven", "yaw", "pitch",
     "flags_word", "air_ticks", "spring", "spring2", "spring_steps", "spring_speed", "fall", "landed",
     "crouch_end", "throttles", "input_throttles", "input_tick", "input_frame", "last_command", "mods",
     "history", "corrected", "body", "slope", "slope_cos", "slope_tan", "slope_cos32", "spring_low",
-    "spring_high",
+    "spring_high", "external_impulse", "velocity_changes", "wall_contact",
 )
 DATA_FIELDS = (
     "stand_height", "stand_radius", "stand_pogo", "crouch_height", "crouch_radius", "crouch_pogo",
@@ -48,6 +49,7 @@ OBJECT_FIELDS = {
     Mover: MOVER_FIELDS,
     MoverData: DATA_FIELDS,
     Mod: ("index", "op", "value", "start", "end", "priority", "key"),
+    Change: ("frame", "index", "op", "value", "key", "priority"),
     Command: ("frame", "forward", "right", "yaw", "pitch", "buttons", "action", "extra", "subframe",
               "click_yaw", "click_pitch"),
     Snapshot: ("frame", "position", "velocity", "yaw", "pitch", "flags", "air_ticks", "gravity",
@@ -104,17 +106,30 @@ def _descriptor(value):
 
 class _StaticReferences:
     def __init__(self, world):
-        _stored(world, collision.World, WORLD_FIELDS)
         engine = world.engine
-        _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
-        if type(engine.shapes) is not list:
-            raise PhysicsSnapshotError("unsupported static shape sequence")
+        if type(world) is collision.LayeredWorld:
+            fields = _stored(world, collision.LayeredWorld, ("base", "moving", "engine", "lowest"))
+            engines = _stored(engine, collision.LayeredEngine, ("base", "moving"))
+            for name in ("base", "moving"):
+                layer = _stored(fields[name], collision.World, WORLD_FIELDS)
+                if layer["engine"] is not engines[name]:
+                    raise PhysicsSnapshotError("inconsistent layered engine reference")
+                _stored(engines[name], contacts.StaticWorld, ("shapes", "huge", "grid"))
+                if type(engines[name].shapes) is not list:
+                    raise PhysicsSnapshotError("unsupported collision layer shape sequence")
+            shapes = engines["base"].shapes + engines["moving"].shapes
+        else:
+            _stored(world, collision.World, WORLD_FIELDS)
+            _stored(engine, contacts.StaticWorld, ("shapes", "huge", "grid"))
+            shapes = engine.shapes
+            if type(shapes) is not list:
+                raise PhysicsSnapshotError("unsupported static shape sequence")
         self.world, self.engine = world, engine
         self.refs = {id(world): (world, {"static": "world"}),
                      id(engine): (engine, {"static": "engine"})}
         self.geometry = {}
         shape_count = 0
-        for shape in engine.shapes:
+        for shape in shapes:
             if id(shape) in self.refs:
                 if self.refs[id(shape)][0] is not shape:
                     raise PhysicsSnapshotError("ambiguous static identity")

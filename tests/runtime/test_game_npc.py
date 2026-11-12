@@ -3,11 +3,14 @@
 import json
 import tempfile
 import unittest
+from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from ow174.game import npc, projectiles, world
+from ow174.game.commands import FIRE
+from ow174.game.mover import MoverData
 from ow174.game.script import graph
 from tests.runtime.test_game_combat import Run
 
@@ -61,6 +64,7 @@ class ManualNpcTests(unittest.TestCase):
         self.match.combat.respawns.append((9999, bot))
         self.match.combat.history[bot.entity] = []
         self.match.combat.melee_seen[bot.entity] = {}
+        self.match.combat.genji_assists[bot.entity] = {self.player.body: (self.player, self.match.tick)}
         shot = projectiles.Shot(bot, bot.entity, 1, self.match.tick, 1, 0, (1, 0))
         delivery = Mock()
         shot.observers.append(delivery)
@@ -69,6 +73,7 @@ class ManualNpcTests(unittest.TestCase):
         self.assertEqual(self.match.bots, original)
         self.assertEqual(self.match.combat.rockets, [])
         self.assertEqual(self.match.combat.projectiles.shots, [])
+        self.assertNotIn(bot.entity, self.match.combat.genji_assists)
         delivery.finish.assert_called_once_with(self.match.tick, False)
         self.assertFalse(any(who is bot for _, who in self.match.combat.respawns))
         for table in (self.match.combat.vitals, self.match.combat.history,
@@ -107,7 +112,58 @@ class ManualNpcTests(unittest.TestCase):
                 npc.Definition(**values)
 
 
+    def test_authored_controller_reference_survives_spawn_without_claiming_control_mounting(self):
+        self.definition = replace(self.definition, controller=0x040000000000227A)
+        count = len(self.match.bots)
+        bot = self.create()
+        self.assertEqual(bot.spawner['controller_definition'], '0x040000000000227A')
+        self.assertEqual(len(self.match.bots), count + 1)
+        for invalid in (True, 0, 0x02E00000000001CE, '0x040000000000227A'):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                replace(self.definition, controller=invalid)
+
+    def test_explicit_mover_controls_actual_capsule_hits_and_movement_values(self):
+        results = []
+        for movement in (None, MoverData(stand_height=2.3, stand_radius=.7, run_forward=2.2)):
+            definition = replace(self.definition, mover=movement)
+            x, y, z = self.player.mover.position
+            bot = npc.spawn(self.match, definition, (x + .65, y, z + 6), team=1)
+            target = next(t for t in self.match.combat._targets() if t.owner is bot)
+            before = self.match.combat.vitals_of(target).total
+            self.run.step({self.player: (0, 0, FIRE)})
+            results.append(before - self.match.combat.vitals_of(target).total)
+            if movement is not None:
+                self.assertEqual((target.height, target.radius, bot.speed), (2.3, .7, 2.2))
+            self.run.step({})
+            for _ in range(10):
+                self.run.step({})
+            npc.remove_spawned(self.match)
+        self.assertEqual(results[0], 0)
+        self.assertGreater(results[1], 0)
+
+    def test_explicit_mover_rejects_nonfinite_and_nonpositive_capsules(self):
+        for movement in (MoverData(stand_radius=0), MoverData(stand_height=-1),
+                         MoverData(run_forward=float('nan')), MoverData(stand_radius=True)):
+            with self.subTest(movement=movement), self.assertRaises(ValueError):
+                replace(self.definition, mover=movement)
+
 class CatalogTests(unittest.TestCase):
+    def test_catalog_mover_round_trip_requires_complete_finite_fields(self):
+        row = {'key': '1', 'hero': '0x02E000000000016B', 'body': '0x0400000000001403',
+               'name': 'Prepared enemy', 'health': 250, 'armour': 0, 'shields': 100,
+               'mover': asdict(MoverData(stand_height=2.3, stand_radius=.7))}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'catalog.json'
+            for movement, valid in ((row['mover'], True), ({'stand_height': 2.3}, False),
+                                    ({**row['mover'], 'stand_height': float('inf')}, False)):
+                data = {'format_version': 1, 'definitions': [{**row, 'mover': movement}]}
+                path.write_text(json.dumps(data), encoding='utf-8')
+                if valid:
+                    self.assertEqual(npc.load_catalog(path)['1'].mover.stand_radius, .7)
+                else:
+                    with self.assertRaises(ValueError):
+                        npc.load_catalog(path)
+
     def test_catalog_round_trip_preserves_selection_and_shields_as_shields(self):
         row = {'key': '2', 'hero': '0x02E000000000016B', 'body': '0x0400000000001403',
                'name': 'Synthetic enemy', 'health': 250, 'armour': 0, 'shields': 100}

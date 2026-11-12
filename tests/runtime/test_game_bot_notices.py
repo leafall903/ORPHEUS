@@ -5,6 +5,9 @@ import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
+from test_game_packet_budget import connection, decoded, large_messages
+from test_game_repeated_lifecycles import wire_frame
+
 from ow174.game import bodytrace, bots, combat, heroselect, junkenstein_ai, movelog, npc, world
 from ow174.game.content import JUNKENSTEIN_MAP, JUNKENSTEIN_MODES, PRACTICE_RANGE, SOLDIER, heroes
 from ow174.game.link import ACK, KIND_CONTROL, LinkCipher, Packet, ReceiveWindow
@@ -13,8 +16,6 @@ from ow174.game.script import decode, graph, scene, scene_host
 from ow174.game.script.driver import OWNER_HEALTH
 from ow174.game.server import SILENCE_SECONDS, TICK_SECONDS, Client
 from tests.public.test_script_startup import definition, spec
-from tests.runtime.test_game_packet_budget import connection, decoded, large_messages
-from tests.runtime.test_game_repeated_lifecycles import wire_frame
 
 
 class BotNoticeTests(unittest.TestCase):

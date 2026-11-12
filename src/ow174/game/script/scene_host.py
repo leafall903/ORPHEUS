@@ -188,6 +188,10 @@ class SceneHost:
         """Additional live scene entities for a viewer entering the world."""
         return ()
 
+    def spawned_entity_movements(self, viewer):
+        """Pose records for additional scene entities the viewer already has."""
+        return ()
+
     def bind_zombardier(self, control, *, collision, targets, launch) -> None:
         """Mount the body input and authoritative volley sink on an allocated enemy pair."""
         from ow174.game import junkenstein_ai

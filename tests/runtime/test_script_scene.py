@@ -11,11 +11,11 @@ from ow174.game import mover
 from ow174.game.combat import Vitals
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.match import _rotation
-from ow174.game.script import entity_team, expr, modifiers, play, runtime, scene
+from ow174.game.script import distance_constraints, entity_team, expr, modifiers, npc_queries, play, possession_requests, runtime, scene
 from tests.public.test_script_for_code import KEY, make, row
 from tests.public.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.public.test_script_play_resource import row as schema_row
-from tests.script_fixtures import graph, node, plug, setter
+from tests.runtime.test_script_runtime_budget import graph, node, plug, setter
 
 ALPHA = '12345678-1234-4321-9876-112233445566'
 BETA = '87654321-1234-4321-9876-112233445566'
@@ -48,6 +48,101 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_enforcer_possession_request_preserves_configured_float_order(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        component = runtime.Component(owner, world=world, strict=True)
+        authored = graph([node(
+            0, 'STU_473549CA', state=0, m_00D49978=reference(),
+            m_49EEBB65={'$': 'STUConfigVarFloat', 'm_value': 1.25},
+            m_FD4D6C19={'$': 'STUConfigVarFloat', 'm_value': 2.5},
+        )])
+        instance = component.create(authored, init=False)
+        instance.state(0).begin()
+        self.assertEqual(requests.requests, (
+            possession_requests.Request(owner, 1234, kind=1, payload=(1.25, 2.5)),
+        ))
+        component.destroy(instance)
+        self.assertFalse(requests.requests)
+
+    def test_possession_request_cleanup_leaves_other_requests_intact(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        old = possession_requests.Request(345, 23)
+        top = possession_requests.Request(678, 45, above_equal=True)
+        requests.insert(old)
+        component = runtime.Component(owner, world=world, strict=True)
+        definition = graph([node(0, 'STU_CF8C7CC5', state=0, m_00D49978=reference())])
+        active = component.create(definition, init=False)
+        state = active.state(0)
+        state.begin()
+        request = possession_requests.Request(owner, 1234)
+        requests.insert(top)
+        self.assertEqual(requests.requests, (top, old, request))
+        state.end(False)
+        self.assertEqual(requests.requests, (top, old))
+        state.begin()
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(requests.requests, (top, old))
+        world.unbind(target)
+        self.assertFalse(requests.requests)
+
+    def test_distance_constraint_registry_orders_equal_priority_and_cleans_up_on_failure(self):
+        world = scene.SceneWorld()
+        world.bind(123)
+        registry = distance_constraints.Registry()
+        world.set_distance_constraints(123, registry)
+        old = registry.register(object(), priority=1.5)
+        newest = registry.register(object(), priority=1.5, above_equal=True)
+        low = registry.register(object(), priority=-1)
+        component = runtime.Component(123, world=world, strict=True)
+        active = component.create(graph([node(0, 'STU_B61E6681', state=0)]), init=False)
+        state = active.state(0)
+        state.begin()
+        added = state.registration[1]
+        self.assertEqual(registry.entries, (newest, old, added, low))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(registry.entries, (newest, old, low))
+        world.unbind(123)
+        self.assertFalse(registry.entries)
+        self.assertIs(world.distance_constraint_registry(123), NotImplemented)
+
+    def test_target_tag_query_replaces_old_results_in_declared_order_and_forgets_reused_ids(self):
+        def tag(key):
+            return {'$': 'STU_357DABBB', 'm_7D7C86A1': f'0x{0x0D60000000000000 | key:016X}'}
+
+        world = scene.SceneWorld()
+        for entity in (123, 124, 125, 126, 127):
+            world.bind(entity)
+        world.set_target_tag_candidates([(126, (2, 3)), (125, (1, 2, 3)),
+                                         (124, (1, 2)), (127, (1, 2, 3, 4))])
+        query = node(0, 'STU_42578342', m_4AEEE6A1={
+            '$': 'STUConfigVarDynamic', 'm_identifier': 9, 'm_60DB8F99': 0},
+            m_9C7BD8B8=array(tag(1), tag(3)), m_B486603E=array(tag(2), tag(3)),
+            m_8B2A4DF3=tag(4), m_outPlug=plug((1, 'm_inPlug')))
+        instance = runtime.Component(123, world=world, strict=True).create(graph([query, setter(1, 99)]), init=False)
+        instance.write((0, 9), (expr.Entity(999),))
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), (expr.Entity(126), expr.Entity(125)))
+        self.assertEqual(instance.vars[7].value(), 99)
+        world.unbind(126)
+        world.bind(126)
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), (expr.Entity(125),))
+        world.set_target_tag_candidates([])
+        instance.run_node(instance.graph.node(0), None)
+        self.assertEqual(instance.vars[9].value(), ())
+
     def test_junkenstein_handoff_builds_the_authored_phase_duration_and_graph_list(self):
         world = scene.SceneWorld(mode=JUNKENSTEIN_MODES[1])
         mode = runtime.GAME_MODE_ENTITY
@@ -1694,7 +1789,73 @@ class SceneIdentityTests(unittest.TestCase):
                 scene.SceneWorld.from_map(original, **options)
 
 
+    def test_orientation_queries_use_the_addressed_entity_and_its_own_binding(self):
+        world = scene.SceneWorld()
+        for entity in (123, 124):
+            world.bind(entity)
+        world.set_entity_directions(123, aim=(0, 0, 1))
+        world.set_entity_directions(124, aim=(1, 0, 0), forward=(0, 0, -1))
+        instance = caller(world)
+        aim = {"$": "STU_2200A66D", "m_entity": expr.Entity(124)}
+        forward = {**aim, "$": "STU_021D01CD"}
+        self.assertEqual(instance.evaluate(aim), expr.Vec3(1, 0, 0))
+        self.assertEqual(instance.evaluate(forward), expr.Vec3(0, 0, -1))
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_021D01CD"):
+            caller(world).evaluate({**forward, "m_entity": expr.Entity(123)})
+        world.unbind(124)
+        self.assertEqual(instance.evaluate(aim, initial=99), 99)
+        world.bind(124)
+        with self.assertRaisesRegex(runtime.UnsupportedScriptError, "STU_2200A66D"):
+            caller(world).evaluate(aim)
+
+
+    def test_target_tag_query_replaces_destination_and_retires_unbound_members(self):
+        tag = 0x0D6000000000081F
+        world = scene.SceneWorld()
+        for entity in (123, 124, 125):
+            world.bind(entity)
+        world.set_target_tag_entities(tag, (125, 124, 125))
+        destination = {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': expr.INSTANCE}
+        action = node(0, 'STU_42578342', m_4AEEE6A1=destination,
+                      m_B486603E={'$': 'STU_357DABBB', 'm_7D7C86A1': f'0x{tag:016X}'})
+        definition = graph([action])
+        component = runtime.Component(123, world=world, strict=True)
+        instance = component.create(definition, init=False)
+        instance.initialized = True
+        target = expr.INSTANCE, 7
+        instance.write(target, 99)
+        instance.run_node(definition.node(0), None)
+        self.assertEqual(instance.find_var(*target).value(), (expr.Entity(125), expr.Entity(124)))
+        world.unbind(125)
+        world.bind(125)
+        world.unbind(124)
+        instance.run_node(definition.node(0), None)
+        self.assertEqual(instance.find_var(*target).value(), ())
+
+
+
 class NativeFailureTests(unittest.TestCase):
+    def test_npc_query_context_forwards_typed_arguments_and_retires_on_unbind(self):
+        world = scene.SceneWorld()
+        world.bind(123, ALPHA)
+        world.bind(456, BETA)
+        calls = []
+        world.set_npc_query_context(123, npc_queries.Context(
+            lambda owner, selector: calls.append((owner, selector)) or 456,
+            lambda owner, target: calls.append((owner, target)) or True,
+        ))
+        active = caller(world)
+        entity = {'$': npc_queries.ENTITY_QUERY, 'm_152B6961': reference(),
+                  'm_A60150E2': {'$': 'STUConfigVarInt', 'm_value': 4}}
+        pair = {'$': npc_queries.PAIR_QUERY, 'm_7826B991': reference(), 'm_target': reference(BETA)}
+        self.assertEqual(active.evaluate(entity), expr.Entity(456))
+        self.assertIs(active.evaluate(pair), True)
+        self.assertEqual(calls, [(123, 4), (123, 456)])
+        world.unbind(123)
+        world.bind(123, ALPHA)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            active.evaluate(entity)
+
     def test_failed_reference_preserves_destination_but_successful_null_overwrites_it(self):
         active = caller(scene.SceneWorld())
         initial = expr.Asset(17)

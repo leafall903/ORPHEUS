@@ -9,13 +9,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ow174.paths import (
-    DATA_DIR,
-    EMOTE_ALIAS_DATA,
-    EMOTE_BLEND_TREE_DATA,
-    EMOTE_TAGGED_DATA,
-    VOICE_EFFECT_DATA,
-)
+from ow174.paths import DATA_DIR, EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_TAGGED_DATA, VOICE_EFFECT_DATA
 
 UNLOCK_BASE = 0x0250000000000000
 SKIN_THEME_BASE = 0x0A50000000000000  # skin themes (0A6)

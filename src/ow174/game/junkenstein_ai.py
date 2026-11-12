@@ -471,6 +471,28 @@ def _junkrat_ballistics(component, controller):
     return (speed, gravity) if speed > 0 and gravity is not None and gravity > 0 else None
 
 
+def returning_boss_ready(world, hero, component):
+    """Check the 0CBC return-wave branch when the mode skips a boss intro."""
+    if hero == REAPER:
+        seen_var, wave_state = 8520, 6
+    elif hero == ROADHOG:
+        seen_var, wave_state = 8521, 4
+    elif hero == JUNKRAT:
+        seen_var, wave_state = 8522, 5
+    else:
+        return False
+    for key in (seen_var, 8566):
+        value = world.entity_var(runtime.GAME_MODE_ENTITY, key)
+        if value is NotImplemented or not expr.truthy(value):
+            return False
+    live = [instance for instance in component.instances.values() if not instance.stopped]
+    if any(instance.graph.index == 0x0CE0 for instance in live):
+        return False
+    return any(instance.graph.index == 0x0CBC
+               and (state := instance.states.get(wave_state)) is not None and state.active
+               for instance in live)
+
+
 def update_boss_combat(host, actor, component):
     """Publish the defender target and drive the boss's authored weapon inputs."""
     reach, weapon_graph, _ = BOSS_PRIMARY[actor.hero]
@@ -519,6 +541,8 @@ def update_boss_combat(host, actor, component):
             for state in script.states.values()
             if state.node.pos == position
         )
+        if not nav.handoff_complete:
+            nav.handoff_complete = returning_boss_ready(world, actor.hero, component)
     target_id = None
     selected_button = None
     ready = (
@@ -917,13 +941,13 @@ def install_enemy_creator(match, host, definitions, configure_component):
     def add_wave_health(component, amount):
         registration = host.combatants.get(component.entity)
         vitals = fight.vitals.get(component.entity)
-        if (
-            registration is None
-            or host.combatant_component(registration[0]) is not component
-            or vitals is None
-            or vitals.dead
-            or vitals.wave_health is not None
-        ):
+        if (registration is None or host.combatant_component(registration[0]) is not component
+                or vitals is None):
+            return NotImplemented
+        if vitals.dead:
+            # The wave child may initialize after combat has already killed its owner.
+            return None
+        if vitals.wave_health is not None:
             return NotImplemented
         remove = vitals.add_wave_health(amount)
         try:

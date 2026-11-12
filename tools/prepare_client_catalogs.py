@@ -8,7 +8,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game.casc import CascError, game_root
 from ow174.paths import CLIENT_CATALOGS, ROOT

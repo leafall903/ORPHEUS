@@ -1,0 +1,323 @@
+"""Authored interception boxes and Sigma's reconstructed shield-pool host."""
+
+import math
+
+from ow174.game.script import expr
+
+EPSILON = 1e-9
+MEI_MELEE_DEFENSE = 0x22F0
+MEI_BODY = 0x04000000000008BA
+
+
+def mei_melee_contact(fight, target, origin, direction, reach, *, shown=None, admitted=False):
+    """Original Snowball0059 body-scoped22F0 absorption, not ordinary Mei melee."""
+    from ow174.game.combat import aim
+
+    owner = target.owner
+    identity = getattr(owner, "hero", None)
+    script = getattr(owner, "body_script", None)
+    if (not admitted or getattr(identity, "guid", None) != 0x02E00000000000DD
+            or getattr(identity, "body", None) != MEI_BODY or script is None
+            or script.retired or script.component.owner_dead or script.component.fault is not None
+            or fight.is_stunned(owner)):
+        return None
+    for instance in script.component.instances.values():
+        if instance.graph.index != MEI_MELEE_DEFENSE or instance.stopped:
+            continue
+        state = instance.states.get(6)
+        if (state is None or not state.active or state.ending or state.node.pos != 14
+                or state.node.cls != "STUStatescriptStateDeflectProjectiles"
+                or state.node.field("m_8B251D53") != 1):
+            continue
+        angle = expr.to_float(state.evaluate(state.node.field("m_025D0C39"), watch=False))
+        if not math.isfinite(angle) or not 0 < angle <= 360:
+            continue
+        forward = aim(owner.mover.yaw, owner.mover.pitch)
+        alignment = -sum(axis * travel for axis, travel in zip(forward, direction, strict=True))
+        if alignment < math.cos(math.radians(angle * .5)):
+            continue
+        distance = box_contact(target, state, origin, direction, reach, shown=shown)
+        if distance is not None:
+            return distance, state, forward
+    return None
+
+
+def mei_melee_absorbed(state, source):
+    """The original22F0 contact has a source41 output and no damage-amount slot."""
+    instance = state.instance
+    source_slot = expr.lvalue(state.node.field("m_0A2CABA3"))
+    if (instance.graph.index != MEI_MELEE_DEFENSE or source_slot != (expr.INSTANCE, 41)
+            or expr.lvalue(state.node.field("m_F6CDC81C")) is not None):
+        return
+    with instance.component.operation():
+        instance.write(source_slot, expr.Entity(source))
+        instance.follow(state.node, "m_160B5DBE", state)
+        instance.component.run_now()
+
+
+def ray_box(origin, direction, low, high, reach, *, padding=0.0):
+    enter, leave = 0.0, reach
+    for position, velocity, a, b in zip(origin, direction, low, high, strict=True):
+        a, b = min(a, b) - padding, max(a, b) + padding
+        if a > b:
+            return None
+        if abs(velocity) <= EPSILON:
+            if position < a or position > b:
+                return None
+            continue
+        first, last = (a - position) / velocity, (b - position) / velocity
+        enter, leave = max(enter, min(first, last)), min(leave, max(first, last))
+        if enter > leave + EPSILON:
+            return None
+    return enter if leave >= 0 and enter <= reach else None
+
+
+def box_contact(target, state, origin, direction, reach, *, shown=None):
+    """Shared reconstructed eye/aim frame for one authored interception state."""
+    from ow174.game.combat import _dot, _sub, aim
+
+    shown = target if shown is None else shown
+    mover = getattr(target.owner, "control_mover", None) or target.owner.mover
+    yaw, pitch = mover.yaw, mover.pitch
+    forward = aim(yaw, pitch)
+    angle = yaw * 2 * math.pi / 65536
+    right = (math.cos(angle), 0.0, -math.sin(angle))
+    up = (-forward[1] * math.sin(angle),
+          forward[2] * right[0] - forward[0] * right[2],
+          -forward[1] * math.cos(angle))
+    eye = (shown.feet[0], shown.feet[1] + shown.eye, shown.feet[2])
+    offset = _sub(origin, eye)
+    local = tuple(_dot(offset, axis) for axis in (right, up, forward))
+    ray = tuple(_dot(direction, axis) for axis in (right, up, forward))
+    best = None
+    for box in state.node.field("m_boxes") or ():
+        low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+        high = state.evaluate(box.get("m_AEF67365"), watch=False)
+        if not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3):
+            continue
+        if not all(math.isfinite(v) for v in (*low, *high)):
+            continue
+        distance = ray_box(local, ray, tuple(low), tuple(high), reach)
+        if distance is not None and (best is None or distance < best):
+            best = distance
+    return best
+
+
+def play_shield_script(world, instance, node):
+    """Scope a live Sigma self-target call to the actual loaded native queue.
+
+    Runtime graph readiness is explicit and synchronous, so this queue cannot
+    retain pending resource work after the call. Other body PlayScript routes
+    remain outside this reconstructed host's declared scope.
+    """
+    from ow174.game.script import graph, play, play_queue
+
+    if (world.hero != 0x02E000000000023B or world.match is None
+            or instance.graph.index != 0x1D02 or node.pos != 34):
+        return
+    owner = next((p for p in world.match.players if p.has_body and p.body == world.body), None)
+    if (owner is None or owner.gone or owner.body_script is None or owner.body_script.retired
+            or owner.body_script.component is not instance.component
+            or world.match.combat.is_dead(owner)):
+        return
+    resource = play.resolve_resource(instance, node)
+    definition = graph.graph(0x1D03)
+    if resource is None or resource.guid != 0x0580000000001D03 or definition is None:
+        return
+    request = play.resolve_request(
+        instance, node, resource,
+        context_provider=lambda: play.InvocationContext(world.body, world.body, instance.source_entity()),
+    )
+    if request is None or request.targets != (world.body,):
+        return
+    absorption = instance.states.get(1)
+    if absorption is None or not absorption.counter:
+        return True
+    converted = world.match.combat.absorption.converted
+    activation = instance.id, absorption.counter
+    if converted.get(world.body) == activation:
+        return True
+    # Original023B consumes an absorption activation even for a zero/capped grant.
+    # The existing registered ledger outlives a played lease's retirement.
+    converted[world.body] = activation
+    queue = play_queue.Queue(instance.component, lambda guid: play_queue.Load("ready", definition))
+    queue.submit(request)
+    if queue.pending:
+        raise ValueError("ready self-target Sigma script left pending work")
+    # Original023B starts/restarts decay only when this action can grant health.
+    fight = world.match.combat
+    params = dict(request.params)
+    amount = expr.to_float(params[0x0A4000000000002A])
+    limit = expr.to_float(params[0x0A400000000003D1])
+    vitals = fight.vitals.get(world.body)
+    current = sum(pool.now for pool in vitals.extra.values()
+                  if pool.identifier == 0x5847 and pool.kind == 2) if vitals is not None else 0.0
+    if vitals is not None and not vitals.dead and min(amount, limit - current) > 0:
+        delay = expr.to_float(instance.evaluate(instance.graph.node(71).field("m_timeout")))
+        rate = expr.to_float(instance.evaluate(instance.graph.node(70).field("m_modifyHealth.m_amount")))
+        fight.absorption.decay_clocks[world.body] = (
+            instance.id, absorption.counter, instance.component.frame, instance.component.now,
+            fight.tick, delay, rate)
+    return True
+
+
+def shield_amount(world, instance, cfg):
+    """The authored named-pool query used to cap subsequent self grants."""
+    if (world.hero != 0x02E000000000023B or world.match is None
+            or instance.graph.index != 0x1D03
+            or instance.evaluate(cfg.get("m_entity")) != expr.Entity(world.body)
+            or (cfg.get("m_7E8B666C") or {}).get("m_7E8B666C") != 2
+            or expr.guid_of((cfg.get("m_7BE02F89") or {}).get("m_identifier"))
+            != 0x0D80000000005847):
+        return NotImplemented
+    vitals = world.match.combat.vitals.get(world.body)
+    return expr.f32(sum(pool.now for pool in vitals.extra.values()
+                        if pool.identifier == 0x5847 and pool.kind == 2)) if vitals else 0.0
+
+
+def update_pools(fight, tick):
+    """Host actual1D03 pool lifetimes; decay cadence/priority are reconstructed.
+
+    The grant amount is evaluated by the actual played graph, including its
+    existing-pool cap query. Temporary shields precede base shields, cannot be
+    healed and retire with their source state/body. Named1D02 ModifyHealth28
+    supplies the decay amount after its authored delay; interpreted per second.
+    Native pool getter slots, scale and presentation are not accepted here.
+    """
+    from ow174.game.script import runtime
+
+    for target in fight._targets():
+        owner = target.owner
+        script = getattr(owner, "body_script", None)
+        component = getattr(script, "component", None)
+        if (not isinstance(component, runtime.Component) or getattr(script, "retired", False)
+                or getattr(component.world, "hero", None) != 0x02E000000000023B):
+            continue
+        vitals = fight.vitals_of(target)
+        active = {}
+        empty = []
+        if not vitals.dead:
+            for instance in list(script.component.instances.values()):
+                if instance.graph.index != 0x1D03:
+                    continue
+                has_pool = False
+                for state in list(instance.states.values()):
+                    if state.active and state.node.cls == "STUStatescriptStateHealthPool":
+                        active[(instance.id, state.index, state.counter)] = state
+                        has_pool = True
+                if not has_pool and instance.initialized and not instance.queue:
+                    empty.append(instance)
+        changed = False
+        for key in list(vitals.extra):
+            if key not in active and not vitals.extra[key].removed:
+                vitals.remove_temporary(key)
+                changed = True
+        for key, state in active.items():
+            pool = vitals.extra.get(key)
+            if pool is None:
+                amount = expr.to_float(state.evaluate(state.node.field("m_amount"), watch=False))
+                pool = vitals.add_temporary(key, 0x5847, 2, amount, tick)
+                changed = changed or pool is not None
+            if pool is None:
+                # Zero grants and exhausted host capacity must not leave an
+                # inert lease graph alive or turn into a delayed future grant.
+                state.request(runtime.FINISH)
+                state.instance.component.run_now()
+                state.instance.component.destroy(state.instance)
+                continue
+        live = [pool for key, pool in vitals.extra.items() if key in active and not pool.removed]
+        if live:
+            last = max(pool.last_tick for pool in live)
+            for pool in live:
+                pool.last_tick = max(pool.last_tick, tick)
+            clock = fight.absorption.decay_clocks.get(target.entity)
+            source = script.component.instances.get(clock[0]) if clock is not None else None
+            if source is not None and source.graph.index == 0x1D02:
+                subframe = clock[3] - clock[2] * script.frame_ms
+                deadline = clock[4] + (subframe + clock[5] * 1000) / 16
+                remaining = max(0.0, clock[6]) * max(0.0, tick - max(last, deadline)) * .016
+            else:
+                # Preserve the primitive callee path when no actual source grant was recorded.
+                remaining = 0.0
+                for instance in script.component.instances.values():
+                    decay = instance.states.get(28) if instance.graph.index == 0x1D02 else None
+                    if decay is not None and decay.active:
+                        amount = expr.to_float(decay.evaluate(
+                            (decay.node.field("m_modifyHealth") or {}).get("m_amount"), watch=False))
+                        elapsed = max(0.0, tick - max(last, decay.start / script.frame_ms)) * .016
+                        remaining += max(0.0, amount) * elapsed
+            for pool in live:
+                lost = min(pool.now, remaining)
+                if lost:
+                    pool.now -= lost
+                    remaining -= lost
+                    vitals.changed.add(2)
+                    changed = True
+        for key, state in active.items():
+            pool = vitals.extra.get(key)
+            if pool is None:
+                continue
+            if pool.now <= EPSILON:
+                vitals.remove_temporary(key)
+                state.request(runtime.FINISH)
+                state.instance.component.run_now()
+                # The permissive VM does not host1D03's stop-script action yet.
+                # Retire this completed lease graph explicitly to bound lifetime.
+                state.instance.component.destroy(state.instance)
+                changed = True
+        if not any(pool.now > EPSILON and not pool.removed and pool.identifier == 0x5847 and pool.kind == 2
+                   for pool in vitals.extra.values()):
+            fight.absorption.decay_clocks.pop(target.entity, None)
+        if changed:
+            fight._sync_body_health(owner, vitals)
+        for instance in empty:
+            script.component.destroy(instance)  # completed/declined self-grant stop-action reconstruction
+
+
+def absorption(fight, shooter, hit, origin, direction, length, *, padding=0.0, definition=None, admitted=None):
+    """Nearest eligible enemy Grasp volume before a body or wall is considered."""
+    if hit is None:
+        return None
+    definitions = getattr(fight, "matrix_definitions", None)
+    if not (admitted if admitted is not None else
+            definition in definitions if definitions is not None else hit.deflectable):
+        return None
+    best = None
+    for target in fight._enemies(shooter):
+        owner = target.owner
+        mover = getattr(owner, "mover", None)
+        script = getattr(owner, "body_script", None)
+        if mover is None or script is None:
+            continue
+        yaw, pitch = mover.yaw * math.tau / 65536, mover.pitch * math.tau / 65536
+        sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
+        basis = ((cy, 0, -sy), (sy * sp, cp, cy * sp), (sy * cp, -sp, cy * cp))
+        eye = fight._eye(owner)
+        delta = tuple(a - b for a, b in zip(origin, eye, strict=True))
+        local_origin = tuple(sum(a * b for a, b in zip(delta, axis, strict=True)) for axis in basis)
+        local_direction = tuple(sum(a * b for a, b in zip(direction, axis, strict=True)) for axis in basis)
+        for instance in script.component.instances.values():
+            if instance.graph.index != 0x1D02:
+                continue
+            for state in instance.states.values():
+                if (not state.active or state.node.cls != "STUStatescriptStateDeflectProjectiles"
+                        or state.node.field("m_8B251D53") != 1):
+                    continue
+                for box in state.node.field("m_boxes") or ():
+                    low = state.evaluate(box.get("m_CBA118B2"), watch=False)
+                    high = state.evaluate(box.get("m_AEF67365"), watch=False)
+                    if not isinstance(low, expr.Vec3) or not isinstance(high, expr.Vec3):
+                        continue
+                    distance = ray_box(local_origin, local_direction, low, high, length, padding=padding)
+                    if distance is not None and (best is None or distance < best[0]):
+                        best = distance, state
+    return best
+
+
+def absorbed(state, amount):
+    """Write the per-projectile amount and run the authored accumulation plug."""
+    output = expr.lvalue(state.node.field("m_F6CDC81C"))
+    if output is not None:
+        state.instance.write(output, expr.f32(amount))
+    state.instance.follow(state.node, "m_160B5DBE", state)
+    state.instance.component.run_now()

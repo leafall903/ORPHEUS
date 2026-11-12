@@ -3,7 +3,7 @@
 import math
 import unittest
 
-from ow174.game.script import modifiers, runtime, scene
+from ow174.game.script import expr, modifiers, runtime, scene
 from tests.public.test_script_play_resource import EMPTY, array, integer
 from tests.runtime.test_script_runtime_budget import graph, node
 
@@ -104,6 +104,15 @@ class ModifierRecordTests(unittest.TestCase):
         backend.erase(1, 1)
         self.assertEqual(backend.records[0].end, 0xFFFFFFFF)
 
+    def test_omitted_vector_base_does_not_accept_explicit_invalid_base(self):
+        backend = modifiers.NumericModifiers()
+        backend.upsert_vector(modifiers.VectorReplacement(1, 9, 1, 0, (2, 3, 4)))
+        self.assertEqual(backend.resolve_vector(0, frame=1), (2., 3., 4.))
+        self.assertEqual(backend.resolve_vector(0, expr.Vec3(8, 9, 10), frame=1),
+                         (True, expr.Vec3(2, 3, 4)))
+        with self.assertRaises(TypeError):
+            backend.resolve_vector(0, None, frame=1)
+
     def test_native_source_key_preserves_counter_row_offset_and_signed_instance_bits(self):
         self.assertEqual(modifiers.state_key(0x8001, 2, 3, 4), 0x8001000200030004)
         self.assertEqual(modifiers.state_key(1, 2, 3, 8, 0xFFFF), 0x0001000200040007)
@@ -169,16 +178,63 @@ class ModifierStateTests(unittest.TestCase):
         component, _, state, _ = setup([row(integer(8))], backend='unknown')
         with self.assertRaises(runtime.UnsupportedScriptError):
             begin(component, state)
-        component, active, state, backend = setup([row(integer(8))])
+        vector = {'$': 'STU_09F9B1FE', 'm_CFEC5F76': 0}
+        component, active, state, backend = setup([row(integer(8)), vector])
         begin(component, state)
         self.assertTrue(backend.records)
+        self.assertTrue(backend.vector_records)
         with self.assertRaises(runtime.UnsupportedScriptError):
             component.unsupported(active, 'later missing service', 'Unknown')
         self.assertFalse(backend.records)
-        component, _, state, backend = setup([row(integer(8)), row(cls='STU_56F54BF7')])
+        self.assertFalse(backend.vector_records)
+        component, _, state, backend = setup([row(integer(8)), row(cls='STU_ED2B22BD')])
         with self.assertRaises(runtime.UnsupportedScriptError):
             begin(component, state)
         self.assertFalse(backend.records)
+
+    def test_vector_replacement_preserves_numeric_rows_and_retires_at_its_clock(self):
+        vector = {'$': 'STU_09F9B1FE', 'm_CFEC5F76': 0,
+                  'm_9B7A63EA': {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': 0}}
+        component, active, state, backend = setup([row(integer(0), field=26), vector])
+        active.write((0, 7), 7)
+        begin(component, state)
+        self.assertEqual(backend.resolve(26, 1, frame=21), (True, 0))
+        self.assertIsNone(backend.resolve_vector(0, frame=20))
+        self.assertEqual(backend.resolve_vector(0, frame=21), (0., 0., 0.))
+        backend.source_frame = 21
+        active.write((0, 7), ((expr.Vec3(2, 3, 4),), 9))
+        component.run_now()
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(1, frame=22))
+        backend.source_frame = 22
+        state.end(False)
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(0, frame=23))
+        self.assertEqual(backend.resolve(26, 1, frame=23), (False, 1))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'later missing service', 'Unknown')
+        self.assertFalse(backend.records)
+        self.assertFalse(backend.vector_records)
+
+    def test_vector_rows_order_defaults_separate_storage_and_retirement(self):
+        vector = expr.Vec3
+        rows = [row(integer(8), field=0),
+                {'$': 'STU_09F9B1FE', 'm_CFEC5F76': 0, 'm_9B7A63EA': integer(42)},
+                {'$': 'STU_56F54BF7', 'm_CFEC5F76': 0, 'm_9B7A63EA': vector(1, 2, 3)},
+                {'$': 'STU_09441550', 'm_CFEC5F76': 0, 'm_9B7A63EA': vector(2, -1, 4)},
+                {'$': 'STU_09441550', 'm_CFEC5F76': 0}]
+        component, _, state, backend = setup(rows)
+        begin(component, state)
+        base = vector(5, 6, 7)
+        self.assertEqual(len(backend.records), 1)
+        self.assertEqual([entry.operation for entry in backend.vector_records], [2, 0, 1, 1])
+        self.assertEqual(backend.resolve(0, 4, frame=21), (True, 8))
+        self.assertEqual(backend.resolve_vector(0, base, frame=20), (False, base))
+        self.assertEqual(backend.resolve_vector(0, base, frame=21), (True, vector(2, -2, 12)))
+        backend.source_frame = 22
+        state.end(True)
+        self.assertEqual(backend.resolve_vector(0, base, frame=22), (True, vector(2, -2, 12)))
+        self.assertEqual(backend.resolve_vector(0, base, frame=23), (False, base))
 
     def test_known_absent_component_skips_rows_and_legacy_body_retains_passive_policy(self):
         for options in ({'backend': 'absent'}, {'backend': 'unknown', 'strict': False}):

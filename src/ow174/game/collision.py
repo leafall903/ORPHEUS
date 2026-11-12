@@ -43,7 +43,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from ow174.game import contacts, props
 from ow174.game.casc import CascError, RecordCatalog, Storage, game_root
@@ -67,6 +67,8 @@ RAY_PROP_SCOPE = "indexed-static-models"
 RAY_ROOT_PROP_SCOPE = "indexed-and-authenticated-roots"
 ALL_CATEGORIES = 0xFFFF  # original per-triangle and per-shape masks are u16
 MAX_CACHE_HEADER = 1 << 20
+INITIAL_SPHERE_CATALOG = "initial_dynamic_spheres"
+INITIAL_SPHERE_READ_ERRORS = (OSError, CascError, props.PropError, struct.error, IndexError, KeyError, OverflowError)
 CELL = 2.0  # metres per grid column
 CELL_CACHE = 1024  # columns kept as ready triangle lists
 LARGE = 4096  # a triangle over more columns than this is checked by every query instead
@@ -682,6 +684,32 @@ def _placement_groups(header: dict, identifiers: frozenset[int]) -> frozenset[in
                           if int(text, 16) in identifiers)])
 
 
+def _cached_initial_spheres(records, identifiers: frozenset[int]) -> tuple[props.PlacedDynamicSphere, ...]:
+    if type(records) is not list:
+        raise CollisionError("invalid initial sphere catalog")
+    result = []
+    seen = set()
+    for row in records:
+        if type(row) is not list or len(row) != 7:
+            raise CollisionError("invalid initial sphere record")
+        identifier, placement, definition, shape, centre, radius, inverse_mass = row
+        if any(type(value) is not int or not 0 <= value < 1 << 64
+               for value in (identifier, placement, definition, shape)):
+            raise CollisionError("invalid initial sphere identifier")
+        if type(centre) is not list or len(centre) != 3:
+            raise CollisionError("invalid initial sphere centre")
+        if any(type(value) is not float or not math.isfinite(value) for value in (*centre, radius, inverse_mass)):
+            raise CollisionError("invalid initial sphere numeric field")
+        if radius <= 0 or inverse_mass < 0 or (placement, shape) in seen:
+            raise CollisionError("invalid initial sphere shape, mass or duplicate key")
+        seen.add((placement, shape))
+        if not identifier or identifier in identifiers:
+            result.append(props.PlacedDynamicSphere(
+                placement, definition, shape, tuple(centre), radius, initial_inverse_mass=inverse_mass,
+            ))
+    return tuple(result)
+
+
 class World(_TriangleScene):
     """A movement world with the static physics engine for character contacts."""
 
@@ -692,9 +720,34 @@ class World(_TriangleScene):
             mesh = soup_mesh(triangles, self.masks, self.surfaces)
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
+        self.initial_dynamic_spheres: tuple[props.PlacedDynamicSphere, ...] = ()
+
+    def sweep_sphere(self, origin, direction, length: float, radius: float, category: int = MOVER) -> float | None:
+        """Distance travelled by a sphere before first static contact."""
+        end = tuple(a + axis * length for a, axis in zip(origin, direction, strict=True))
+        hit = contacts.scene_sweep(self.engine, origin, end, ((0.0, 0.0, 0.0),), radius, category)
+        return hit[0] * length if hit is not None else None
+
+    def cast_sphere(
+        self, origin, direction, length: float, radius: float, category: int = MOVER,
+    ) -> RayHit | None:
+        """Sweep a sphere along the same segment as a combat ray."""
+        endpoint = tuple(a + length * b for a, b in zip(origin, direction, strict=True))
+        hit = contacts.scene_sweep(self.engine, origin, endpoint, ((0.0, 0.0, 0.0),), radius, category)
+        if hit is None:
+            return None
+        fraction, point, normal, shape, triangle = hit
+        if triangle < 0:
+            return RayHit(length * fraction, point, normal, shape.mask, 0)
+        mask = shape.geometry.masks[triangle]
+        surface = shape.geometry.surfaces[triangle]
+        return RayHit(length * fraction, point, normal, mask, surface)
 
     @classmethod
-    def load(cls, path: str | Path, identifiers: frozenset[int] = frozenset()) -> "World":
+    def load(
+        cls, path: str | Path, identifiers: frozenset[int] = frozenset(), *,
+        read_legacy_spheres: Callable[[], tuple[props.PlacedDynamicSphere, ...]] | None = None,
+    ) -> "World":
         """A cache file's movement world for a mode that keeps these placeable identifiers."""
         with Path(path).open("rb") as file:
             header = _read_cache_header(file)
@@ -704,7 +757,73 @@ class World(_TriangleScene):
         groups = _placement_groups(header, identifiers)
         engine = engine_world(meshes, hulls, models, placements, groups)
         triangles, masks, surfaces = probe_triangles(meshes, hulls, models, placements, groups)
-        return cls(triangles, masks, surfaces, header.get("name", ""), engine)
+        world = cls(triangles, masks, surfaces, header.get("name", ""), engine)
+        if INITIAL_SPHERE_CATALOG in header:
+            world.initial_dynamic_spheres = _cached_initial_spheres(header[INITIAL_SPHERE_CATALOG], identifiers)
+        elif read_legacy_spheres is not None:
+            world.initial_dynamic_spheres = read_legacy_spheres()
+        return world
+
+
+class LayeredEngine:
+    def __init__(self, base, moving):
+        self.base, self.moving = base, moving
+
+    def query(self, low, high):
+        return [*self.base.query(low, high), *self.moving.query(low, high)]
+
+@dataclass(frozen=True, slots=True)
+class _LayeredRayQuery:
+    """Temporary query view; preserve each layer's exact RayHit metadata."""
+
+    base: object
+    moving: object
+
+    def cast_ray(self, *args, **kwargs):
+        base = self.base.cast_ray(*args, **kwargs)
+        moving = self.moving.cast_ray(*args, **kwargs)
+        if moving is not None and (base is None or moving.distance < base.distance):
+            return moving
+        return base
+
+    def nearby(self, *args, **kwargs):
+        return [*self.base.nearby(*args, **kwargs), *self.moving.nearby(*args, **kwargs)]
+
+
+class LayeredWorld:
+    """Query the immutable cached map and the lift at the current frame."""
+
+    def __init__(self, base, moving):
+        if type(base) is not World or type(moving) is not World or base is moving:
+            raise ValueError('a layered collision world requires two distinct World layers')
+        self.base, self.moving = base, moving
+        self.lowest = min(base.lowest, moving.lowest)
+        self.engine = LayeredEngine(base.engine, moving.engine)
+
+    @property
+    def ray_geometry(self):
+        # Query the verified static ray geometry, including its prop metadata,
+        # together with the current platform layer. No new persistent world.
+        return _LayeredRayQuery(self.base.ray_geometry or self.base,
+                                self.moving.ray_geometry or self.moving)
+
+    sweep_sphere = World.sweep_sphere
+    cast_sphere = World.cast_sphere
+
+    def nearby(self, *args, **kwargs):
+        return [*self.base.nearby(*args, **kwargs), *self.moving.nearby(*args, **kwargs)]
+
+    def ground(self, *args, **kwargs):
+        base, moving = self.base.ground(*args, **kwargs), self.moving.ground(*args, **kwargs)
+        if moving is not None and (base is None or moving.y > base.y):
+            return moving
+        return base
+
+    def cast_ray(self, *args, **kwargs):
+        base, moving = self.base.cast_ray(*args, **kwargs), self.moving.cast_ray(*args, **kwargs)
+        if moving is not None and (base is None or moving.distance < base.distance):
+            return moving
+        return base
 
 
 class RayWorld(_TriangleScene):
@@ -894,6 +1013,14 @@ def build(
     }
     if ray_geometry:
         source.update(geometry=RAY_GEOMETRY, category_mask=category, prop_scope=RAY_PROP_SCOPE)
+    else:
+        try:
+            source[INITIAL_SPHERE_CATALOG] = [
+                (identifier, row.placement, row.definition, row.shape, row.centre, row.radius, row.initial_inverse_mass)
+                for identifier, row in props.map_initial_dynamic_spheres(map_guid, storage.read_record)
+            ]
+        except INITIAL_SPHERE_READ_ERRORS as error:
+            log.warning("[game] no initial sphere catalog for %s: %s", name or hex(map_guid), error)
     if prop_records is not None:
         source.update(
             prop_scope=RAY_ROOT_PROP_SCOPE,
@@ -981,27 +1108,37 @@ def default_collision_provider() -> CollisionProvider:
 
 def _read_cache(map_guid: int, name: str, build_missing: bool, identifiers: frozenset[int]) -> World:
     path = cache_path(map_guid)
-    if build_missing and map_guid in collision_keys():
+    root = installed_game() if build_missing and map_guid in collision_keys() else None
+    if root is not None:
         with _building:
-            if cache_version(path) != VERSION and (root := installed_game()) is not None:
+            if cache_version(path) != VERSION:
                 started = time.monotonic()
                 build(map_guid, Storage(root), name)
                 log.info("[game] built the collision of %s in %.1f s", name or hex(map_guid),
                          time.monotonic() - started)  # fmt: skip
-    if path.is_file():
-        from ow174.game.bots import prepare_patrols
+    if not path.is_file():
+        raise CollisionError(f"no collision cache for {name or hex(map_guid)}")
 
-        world = World.load(path, identifiers)
+    def read_legacy_spheres() -> tuple[props.PlacedDynamicSphere, ...]:
         try:
-            world.ray_geometry = RayWorld._load(map_guid, identifiers)
-        except FileNotFoundError:
-            pass
-        except (OSError, CollisionError, lzma.LZMAError, ValueError, struct.error,
-                KeyError, IndexError, TypeError) as error:
-            log.warning("[game] no expanded ray geometry for %s: %s", name or hex(map_guid), error)
-        prepare_patrols(map_guid, world)
-        return world
-    raise CollisionError(f"no collision cache for {name or hex(map_guid)}")
+            placements = props.map_dynamic_spheres(map_guid, Storage(root).read_record, identifiers=identifiers)
+            return tuple(row for row in placements if row.initial_inverse_mass is not None)
+        except INITIAL_SPHERE_READ_ERRORS as error:
+            log.warning("[game] no initial dynamic spheres for %s: %s", name or hex(map_guid), error)
+            return ()
+
+    world = World.load(path, identifiers, read_legacy_spheres=read_legacy_spheres if root is not None else None)
+    try:
+        world.ray_geometry = RayWorld._load(map_guid, identifiers)
+    except FileNotFoundError:
+        pass
+    except (OSError, CollisionError, lzma.LZMAError, ValueError, struct.error,
+            KeyError, IndexError, TypeError) as error:
+        log.warning("[game] no expanded ray geometry for %s: %s", name or hex(map_guid), error)
+    from ow174.game.bots import prepare_patrols
+
+    prepare_patrols(map_guid, world)
+    return world
 
 
 def _load(map_guid: int, name: str, build_missing: bool, identifiers: frozenset[int]) -> World | None:

@@ -1,0 +1,53 @@
+Shared input17/18/19 consumption in the Ana lane: partial104319 restoration
+
+Parent discovery and resource scope
+Parent mover.py reported that numeric movement rows17/18/19 were collected by
+statescript_mods but never consumed by acceleration. A direct resource closure
+audit finds such rows in023A,01CB and00CB for both Ana and Zarya. The known
+closures contain55/61 graphs and each has one missing0F9C reference; this audit
+is not complete dynamic-controller/effect closure or full-hero acceptance.
+
+Only parent modified_throttles, constants17/18/19 and its call after command
+throttle decoding are ported. The helper applies17 to nonnegative forward,
+18 to the backward magnitude and19 to absolute lateral input; it restores
+lateral sign and clamps the resulting values before acceleration. When those
+fields are absent, the decoded input is returned unchanged. No Roll velocity
+backend, new command format or new snapshot field is imported. The helper AST
+matches the reviewed parent uncommitted change; parent files remain read only.
+
+Actual command fixture and proof limits
+A declared original023A/state1 scope supplies parameter2101=0 on living Ana and
+Zarya bodies. The fixture starts only that original MovementMod state, without
+claiming023A's natural animation/effect/controller activation. Real Match/Player
+commands cover forward, backward and both lateral directions. Before the port,
+0/8 restrictions worked: zero-valued rows still accelerated the body. After the
+port,8/8 block input. Raw throttle bytes remain populated, so this does not fake
+a suppressed command. No unknown predicate is forced or resource row changed.
+
+Five methods pass in7.799s, covering both bodies, fractional lateral sign,
+current-frame input before activation, restriction on the following frame,
+scope-end behavior through that frame and restoration on the next frame, raw
+input bytes and replacement-body isolation. This tests consumption and phase
+boundaries; exact natural foreign effect/control startup and full collision or
+native mover equivalence remain OPEN.
+
+Native prefix verification
+ana-private-throttle-native-validation.json records120 original104319 prefix
+executions C33960..C33A8D against the private helper. Modifier scalar lookup at
+C32FB0 is an explicit independent add/multiply/replace stub. Original code owns
+field selection, forward/back split, lateral sign and clamps. Captured code is
+unchanged; the shared image SHA256 is verified. This does not prove full native
+mod storage, all six lookup operations, the complete mover or original client.
+
+The429-method energy/buffer full replay regression in1279.942s is the baseline
+before this mover port. Post-port movement/control/snapshot checks are recorded
+separately; do not relabel that earlier429 run as a current full replay result.
+Final post-port group:207 methods PASS in440.149s, no skips, including movement,
+scope/control, all barrier/energy/buffer cases, VM snapshots/aliases and server
+snapshot tests. This group excludes StoredJournalTests. Current NPC19 methods
+in92.909s retain only Enforcer/Assassin2 ordinary incoming failures; all65 added
+projected/energy NPC scenarios pass. Ruff and git diff --check PASS. After these
+runs, only documentation/status records change; runtime/test source is frozen.
+Full Ana static/client acceptance remains incomplete, code stays uncommitted
+and MERGE_READY remains false. See external throttle-parent-provenance.json,
+ana-zarya-throttle-modifier-scope.json and the paired before/after JSON records.
