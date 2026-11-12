@@ -340,6 +340,14 @@ class Orisa:
                     break
             pull.last_tick = tick
             bot.position, bot.velocity = tuple(pull.mover.position), pull.mover.velocity
+            retained = bot.impulse_mover
+            if retained is not None and retained is not pull.mover:
+                # The independent force retired at takeover; keep its reusable
+                # body solver at the actual controlled pose for release.
+                retained.position[:] = bot.position
+                retained.velocity = bot.velocity
+                retained.retire_impulses()
+                retained.body = None
             pull.script.component.world.owner_position = expr.Vec3(*bot.position)
             bot.moved_tick = bot.last_tick = tick
             bot.pace, bot.keys = 0.0, False

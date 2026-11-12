@@ -3453,3 +3453,46 @@ This new concrete retirement consumer was found AFTER the C76 bounded receipt;
 C77 closes its known code gap without using reachability/full acceptance as proof.
 Root must incorporate this batch and outstanding A/B consumers before refreshing
 its final completion statement. No overall goal completion is claimed by C77.
+
+
+## C78 — actual Halt release reanchors the retained NPC physical solver
+
+Parent requested the finite release probe before signing the original012E force
+retirement boundary closed. The pointer-only observation in C77 was insufficient;
+this batch records the actual resulting movement. Enforcer with accepted(1,2,0)
+force before Halt starts its authored pull, then releases at worldtick1059.
+Baseline normal pull's maximum step is0.320434547m. The force case first ends at
+(54.6435546875,2.216796875,48.9248046875), then on1060 snaps to the stale retained
+solver position(54.8125,1,47.1474609375):2.1605758397m in one tick, even though old
+velocity is already0. This is an actual old-position resumption, not a pointer
+or old-observer-name assertion. Baseline includes both cases in
+../worker-c-c78-halt-release-baseline.log.
+
+Restore original Impulses.retire cancellation semantics within current actual
+physical ownership: after the existing NPC Halt solver writes bot.position/
+velocity, synchronize the already retained bot.impulse_mover to that same pose,
+clear its retired external force/mod mode and invalidate only its capsule.
+Keep its identity, data/mod metadata and driver lifecycle. Do not delete it,
+construct another mover, alter pull.mover's authored trajectory, change its VM
+or touch owned-DVa control_mover. No persisted field/schema added, no source
+body constructor/epoch or completed-pose receipts cleared.
+
+Actual post-fix proof: all7 controlled tick/position/velocity tuples exactly
+match the pre-fix force case. Original release1059 and final controlled position/
+velocity also match exactly. The six-tick release window has maximum0.238271244m,
+not2.160575840m; same retained solver and same MoverData identities remain.
+Receipt ../worker-c-c78-halt-release-proof.json stores these comparisons and trace.
+This fixes the control-to-ordinary-physics handoff while preserving original
+Halt movement and current physical solver ownership.
+
+Verification: test_force_relocation_retirement6/6pass5.613s,
+../worker-c-c78-halt-release-check.log, including the actual release regression
+and allC77 Shadow/Halt/Translocator/late-input receipts. Existing original Halt
+secondpress(Frame26), narrow-door capsule, Fortify-after-acquisition and late
+world expiry4/4pass2.885s, ../worker-c-c78-halt-source-check.log. All original
+assertions/values intact; no expanded acceptance matrix or client session.
+All handles terminal. The previously unproved retained-pointer concern is now
+resolved by an actual baseline/fix comparison on the same host. C77+C78 cover
+the three specifically requested original012E relocation retirement callers.
+Root owns final cross-owner code receipt and completion statement; no conclusion
+is drawn from the34 source commits' ancestry alone.

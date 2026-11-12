@@ -1,5 +1,14 @@
 # Changelog
 
+## C78 — prevent stale NPC force pose from resuming after Halt
+
+Actual Enforcer release reproduced a2.16058m snap to the retained solver's old
+position. Reanchor that same existing solver after actual Halt movement, clear
+retired external-force mode and rebuild only its capsule. Same solver/data,
+all7 controlled pose/velocity tuples, final position and release tick1059 remain
+exact; post-fix release maxstep0.23827m. Focused6 and original Halt4 checks pass.
+No shared solver deletion, new host, source assertion or ownedDVa control change.
+
 ## C77 — retire original accepted force at Shadow/Halt relocation
 
 Restored original012E retirement in current Shadow successful commit and actual
