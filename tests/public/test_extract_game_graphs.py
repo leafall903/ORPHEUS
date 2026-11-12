@@ -100,6 +100,31 @@ class LinkEvidenceTests(unittest.TestCase):
 
 
 class EntityRootTests(unittest.TestCase):
+    def test_optional_ai_profile_extraction_keeps_identifier_and_profile_asset_distinct(self):
+        row = """
+          <STUAIDifficultyProfile>
+            <tank:ref dragon:name="m_13E9E420" GUID="00000000195F.01C" />
+            <tank:ref dragon:name="m_AFEEA472" GUID="000000000068.0AE" />
+          </STUAIDifficultyProfile>
+        """
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / "entity.xml"
+
+            def write(rows):
+                path.write_text(f'<STUEntityDefinition xmlns:dragon="https://yretenai.com/dragonml/v1" '
+                                f'xmlns:tank="urn:test:tank">{rows}</STUEntityDefinition>', encoding="utf-8")
+
+            write(row)
+            base, _ = extractor.body_record(path, EnumTables(root), None, "AI")
+            selected, _ = extractor.body_record(path, EnumTables(root), None, "AI", include_ai_profiles=True)
+            self.assertNotIn("ai_difficulty_profiles", base)
+            self.assertEqual(selected["ai_difficulty_profiles"], {"0x0D8000000000195F": "0x0B50000000000068"})
+            for invalid in (row + row, row.replace(".0AE", ".01C"), row.replace("m_AFEEA472", "missing")):
+                write(invalid)
+                with self.assertRaisesRegex(ValueError, "invalid or duplicate AI difficulty"):
+                    extractor.body_record(path, EnumTables(root), None, "AI", include_ai_profiles=True)
+
     def test_plug_walk_ignores_reference_cycles_and_keeps_alias_paths(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -303,6 +328,8 @@ class AIWeaponButtonTests(unittest.TestCase):
         self.assertEqual(opted_in["entities"][body]["ai_association"], 0x0400000000001404)
         self.assertIn("0x0400000000001404", opted_in["entities"])
         self.assertNotIn("0x0400000000001404", baseline["entities"])
+        self.assertEqual(opted_in["entities"][body]["controller"], "0x0400000000001404")
+        self.assertEqual(opted_in["entities"]["0x0400000000001404"]["graphs"], [])
         self.assertEqual(opted_in["bodies"], baseline["bodies"])
         self.assertNotIn("ai_weapon_buttons", opted_in["bodies"][body])
 
@@ -349,6 +376,76 @@ class AIWeaponButtonTests(unittest.TestCase):
         self.write_body('<dragon:ref dragon:name="m_8B9A461F" GUID="000000001404.01B" />')
         with self.assertRaisesRegex(ValueError, r"m_8B9A461F must reference a \.003"):
             self.body_record()
+
+
+class StatusClosureTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = Path(folder.name)
+        (self.root / "01B").mkdir()
+        (self.root / "053").mkdir()
+        self.heroes = self.root / "heroes.json"
+        self.heroes.write_text("{}", encoding="utf-8")
+        self.namespace = 'xmlns:d="https://yretenai.com/dragonml/v1"'
+
+    def write(self, kind, index, body):
+        path = self.root / kind / f"{index:012X}.{kind}.xml"
+        path.write_text(f'<STUStatus {self.namespace}>{body}</STUStatus>', encoding="utf-8")
+
+    def collect(self, enabled):
+        with patch.object(extractor, "HEROES", self.heroes), patch.object(
+            extractor, "ROOT_GRAPHS", {0x266: "Lucio"},
+        ):
+            return extractor.collect(self.root, EnumTables(self.root),
+                                     status_xml=self.root / "053" if enabled else None)
+
+    def test_opt_in_follows_status_graph_and_nested_status_cycles(self):
+        self.write("01B", 0x266, '<d:ref d:name="buff" GUID="0000000000A4.053" />')
+        self.write("053", 0xA4, '<d:ref d:name="script" GUID="000000000267.01B" />')
+        self.write("01B", 0x267, '<d:ref d:name="buff" GUID="000000000191.053" />')
+        self.write("053", 0x191, '''
+            <d:ref d:name="script" GUID="00000000073B.01B" />
+            <d:ref d:name="cycle" GUID="0000000000A4.053" />''')
+        self.write("01B", 0x73B, "")
+        baseline, extended = self.collect(False), self.collect(True)
+        self.assertEqual([g["index"] for g in baseline["graphs"]], [0x266])
+        self.assertNotIn("status_definitions", baseline)
+        self.assertEqual([g["index"] for g in extended["graphs"]], [0x266, 0x267, 0x73B])
+        self.assertEqual(len(extended["status_definitions"]), 2)
+        self.assertEqual(extended["status_definitions"]["0x04A00000000000A4"]["script"],
+                         "0x0580000000000267")
+        self.assertEqual(extended["missing_statuses"], [])
+        self.assertEqual(extended["roots"], baseline["roots"])
+
+    def test_missing_status_and_child_graph_are_distinct(self):
+        self.write("01B", 0x266, '''
+            <d:ref d:name="buff" GUID="0000000000A4.053" />
+            <d:ref d:name="unknown" GUID="000000000191.053" />''')
+        self.write("053", 0xA4, '<d:ref d:name="script" GUID="000000000267.01B" />')
+        result = self.collect(True)
+        self.assertEqual(result["missing_statuses"], ["0x04A0000000000191"])
+        self.assertEqual(result["missing"], [0x267])
+
+    def test_missing_directory_is_rejected_instead_of_dropping_all_effects(self):
+        with self.assertRaisesRegex(ValueError, "status XML directory does not exist"):
+            extractor.collect(self.root, EnumTables(self.root), status_xml=self.root / "missing")
+
+    def test_supplement_keeps_only_new_graphs_without_copying_body_catalog(self):
+        base = {"graphs": [{"index": 0x266}]}
+        extended = {"graphs": [{"index": 0x266}, {"index": 0x267}], "bodies": {"body": {}},
+                    "status_definitions": {}, "missing": [], "missing_statuses": []}
+        result = extractor.status_supplement(extended, base)
+        self.assertEqual(result["graphs"], [{"index": 0x267}])
+        self.assertNotIn("bodies", result)
+        self.assertEqual(result["target_build"], "1.74.0.0.104319")
+
+    def test_supplement_rejects_conflicting_base_graph_and_unextended_data(self):
+        with self.assertRaisesRegex(ValueError, "requires --status-xml"):
+            extractor.status_supplement({"graphs": []}, {"graphs": []})
+        with self.assertRaisesRegex(ValueError, "conflicts with base graph 0266"):
+            extractor.status_supplement({"status_definitions": {}, "graphs": [{"index": 0x266}]},
+                                        {"graphs": [{"index": 0x266, "field": 1}]})
 
 
 class NumericScalarTests(unittest.TestCase):

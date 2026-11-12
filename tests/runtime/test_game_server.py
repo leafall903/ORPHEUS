@@ -146,6 +146,24 @@ class GameServerTests(unittest.TestCase):
         game.send_message(21616, pick(0xA0000100, REAPER))
         game.frames_until(lambda ids, count: self.server.snapshot()[0]["players"][0]["hero"] == "Reaper")
 
+    def test_brigitte_pick_creates_a_live_body_after_server_warmup(self):
+        (handoff,) = self.server.create_match(PRACTICE_RANGE, [(1, "Alpha", 0, 0, False)])
+        game = PretendGame(self.server.port, handoff)
+        self.addCleanup(game.sock.close)
+        game.send(SYN)
+        game.receive()
+        game.send(ACK)
+        game.send_message(21601, {})
+        game.frames_until(lambda ids, count: count >= 6, acknowledge=True)
+        player = self.server.matches[0].players[0]
+        brigitte = 0x02E0000000000195
+        game.send_message(21616, pick(player.entity, brigitte))
+        game.frames_until(lambda ids, count: player.body_script is not None
+                          and player.body_script.hero == brigitte, acknowledge=True)
+        component = player.body_script.component
+        self.assertIsNone(component.fault)
+        self.assertIn(0x0EE3, {instance.graph.index for instance in component.instances.values()})
+
     def test_a_new_skin_on_the_same_hero_brings_a_new_body(self):
         skins = {REAPER: (0x0A5000000000160F, False)}
         self.server.skin_of = lambda account, hero: skins.get(hero, (0, False))

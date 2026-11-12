@@ -9,18 +9,13 @@ import hashlib
 import json
 import math
 from functools import cache
+from types import MethodType
 
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, Command, frame_distance
 from ow174.game.content import SOLDIER
 from ow174.game.script import graph, runtime
-from ow174.game.script.driver import (
-    HUD_MAX_HEALTH,
-    OWNER_HEALTH,
-    WHEEL_LOADOUT_TYPES,
-    BodyScript,
-    valid_wheel_slots,
-)
-from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA, GREETING_DURATION_DATA, ROOT
+from ow174.game.script.driver import HUD_MAX_HEALTH, OWNER_HEALTH, WHEEL_LOADOUT_TYPES, BodyScript, BodyWorld, valid_wheel_slots
+from ow174.paths import DATA_DIR, EMOTE_DURATION_DATA, GREETING_DURATION_DATA, ROOT
 
 SCHEMA = "ow174.native-body-replay.v2"
 BUILD = "1.74.0.0.104319"
@@ -136,6 +131,21 @@ def _variables(values: dict, encode=_stored) -> list:
     ]
 
 
+def _world_snapshot(world: BodyWorld) -> dict:
+    fields = {key: value for key, value in vars(world).items() if key != "match"}
+    callbacks = (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query, BodyWorld._poll_entity_query)
+    for key in ("_body_owner_context", "_entity_query_context"):
+        context = fields.get(key)
+        if context is None:
+            continue
+        values = vars(context).copy()
+        for name, value in values.items():
+            if type(value) is MethodType and value.__self__ is world and value.__func__ in callbacks:
+                values[name] = {"world_callback": value.__func__.__qualname__}
+        fields[key] = {"type": type(context).__name__, "fields": values}
+    return fields
+
+
 def _snapshot(script: BodyScript, encode) -> dict:
     """Read key execution state without evaluating a variable, state payload or graph callback."""
     component = script.component
@@ -165,9 +175,10 @@ def _snapshot(script: BodyScript, encode) -> dict:
         "hero": script.hero, "entity": script.entity, "frame": script.frame,
         "frame_ms": script.frame_ms, "buttons": script.buttons, "retired": script.retired,
         # Cross-body routing belongs to the full match replay, outside this command trace.
-        "world": encode({key: value for key, value in vars(script.world).items() if key != "match"}),
+        "world": encode(_world_snapshot(script.world)),
         "server_only": sorted(script.server_only),
-        "ult_seconds": encode(script.ult_seconds), "instances": instances,
+        "ult_seconds": encode(script.ult_seconds), "passive_charge_ms": script.passive_charge_ms,
+        "instances": instances,
         "component": {
             "frame": component.frame, "now": component.now, "held": list(component.held),
             "button": component.button, "owner_dead": component.owner_dead,
@@ -213,14 +224,12 @@ def shot_summary(script: BodyScript) -> list[dict]:
 @cache
 def model_hash() -> str:
     manifest = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in MODEL_FILES}
-    data_sources = {name: DATA_DIR / name for name in MODEL_DATA}
-    data_sources["game_graphs_174.json.gz"] = graph.GRAPHS_PATH
-    for filename in (EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA, GREETING_DURATION_DATA):
-        optional_source = DATA_DIR / filename
-        if optional_source.is_file():
-            data_sources[filename] = optional_source
-    manifest.update({f"data/{name}": hashlib.sha256(path.read_bytes()).hexdigest()
-                     for name, path in data_sources.items()})
+    manifest.update({f"data/{name}": hashlib.sha256((DATA_DIR / name).read_bytes()).hexdigest()
+                     for name in MODEL_DATA})
+    for filename in (EMOTE_DURATION_DATA, GREETING_DURATION_DATA):
+        duration_data = DATA_DIR / filename
+        if duration_data.is_file():
+            manifest[f"data/{filename}"] = hashlib.sha256(duration_data.read_bytes()).hexdigest()
     return _digest(manifest)
 
 

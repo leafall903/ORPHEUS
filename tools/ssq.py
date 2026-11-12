@@ -46,7 +46,8 @@ from functools import cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.game import content  # noqa: E402
 from ow174.game.script import expr, nodes, runtime  # noqa: E402

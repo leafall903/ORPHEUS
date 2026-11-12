@@ -36,7 +36,7 @@ class Console:
         if key == 'Escape':
             self.menu_open = False
             return {'handled': True, 'action': 'close_menu', 'menu_open': False}
-        if key not in ('-', '0', '{') and not (self.menu_open and key in self.catalog):
+        if key not in ('-', '0', '{', '}') and not (self.menu_open and key in self.catalog):
             return {'handled': False, 'menu_open': self.menu_open}
         if (match.ended or player not in match.players or player.gone or not player.spawned
                 or player.client is None or not player.has_body):
@@ -49,6 +49,8 @@ class Console:
             raise ValueError('NPC spawning and engagement require a living player')
         if key == '0':
             return {'handled': True, 'action': 'start', 'entity': npc_control.start(match, player)}
+        if key == '}':
+            return {'handled': True, 'action': 'strike', 'entity': npc_control.strike(match, player)}
         definition = self.catalog[key]
         position = self.spawn_position(match, player, definition.body)
         team = 1 if player.team == 0 else 0

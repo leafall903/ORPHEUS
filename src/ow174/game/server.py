@@ -455,6 +455,9 @@ class Client:
             snapshot = script.live
             script.live = None
             if self._queue_bot_snapshot(script, snapshot):
+                queued, _ = stream.pending[stream.last]
+                if snapshot.next_callout(queued.callout) is not None:
+                    script.live = snapshot
                 return
         if script.death_frames:
             while script.death_frames:
@@ -585,17 +588,17 @@ class Client:
         in_flight = (batch[0][0] for batch, _ in self.in_flight.values() if batch)
         return min(queued, min(in_flight, default=queued))
 
-    def body_id_available(self, entity: int) -> bool:
-        """Whether a previous player body can no longer be referenced by this peer."""
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
+        """Whether this peer's body reservation had ended at the allocation time."""
         if entity not in self._player_body_reuse_after:
             return True
         ready = self._player_body_reuse_after[entity]
         tail = self._combat_notice_tail.get(entity)
-        return (
-            ready is not None
-            and (tail is None or self._oldest_pending_reliable() > tail)
-            and self.server.environment.monotonic(callsite="client.body_id_available") >= ready
-        )
+        if ready is None or (tail is not None and self._oldest_pending_reliable() <= tail):
+            return False
+        if at is None:
+            at = self.server.environment.monotonic(callsite="client.body_id_available")
+        return at >= ready
 
     def _body_destroy_pending(self, entity: int, oldest: int) -> bool:
         if any(body == entity for body, _, _ in self._display_notices):
@@ -773,8 +776,11 @@ class Client:
     def _track_body_create(self, entity: int) -> None:
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
-        host = match.scene_host
+        host = getattr(match, "scene_host", None)
         script = getattr(bot, "body_script", None)
+        if script is None and match.combat is not None:
+            mine = match.combat.ball_mines.devices.get(entity)
+            script = mine.body_script if mine is not None else None
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
         if bot is None and script is None:
@@ -1147,12 +1153,14 @@ class GameServer:
         emote_aliases_of=no_emote_aliases,
         emote_blend_trees_of=None,
         wheel_cosmetics_of=no_wheel_cosmetics,
+        combat_profiles=None,
     ) -> None:
         self.environment = SystemEnvironment() if environment is None else environment
         # None preserves the default per-match asynchronous provider. Explicit factories support
         # controlled server replay and isolated scenes without patching global collision state.
         self.collision_provider_factory = collision_provider_factory
         self.scene_host_factory = scene_host_factory
+        self.combat_profiles = combat_profiles
         self.host = host
         self.port = port
         self.on_leave = on_leave  # called with each player who leaves a match
@@ -1226,6 +1234,8 @@ class GameServer:
                 ),
                 scene_host_factory=scene_factory,
             )
+            if self.combat_profiles is not None:
+                self.combat_profiles.configure(match.combat)
             handoffs = [self._add_player(match, entry) for entry in players]
             self.matches.append(match)
         names = ", ".join(player.describe() for player in match.players)

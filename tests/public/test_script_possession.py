@@ -28,6 +28,23 @@ def caller(result, entity=123):
 
 
 class PossessionQueryTests(unittest.TestCase):
+    def test_component44_body_query_uses_the_declared_field(self):
+        result = world()
+        config = {"$": "STU_00707E1E", "m_00903303": OWNER}
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            caller(result).evaluate(config)
+        self.assertEqual(caller(result, 456).evaluate(config), expr.Entity(0))
+        result.set_component44_body_id(123, 0xB0102002)
+        self.assertEqual(caller(result).evaluate(config), expr.Entity(0xB0102002))
+        self.assertEqual(caller(result).evaluate(query()), expr.Entity(123))
+        result.set_component44_body_id(123, 0)
+        self.assertEqual(caller(result).evaluate(config), expr.Entity(0))
+        result.set_possessor(123, False)
+        self.assertEqual(caller(result).evaluate(config), expr.Entity(0))
+        result.set_possessor(123, True)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            caller(result).evaluate(config)
+
     def test_direct_component_wins_and_reverse_lookup_returns_the_possessor_entity(self):
         result = world()
         active = caller(result)
@@ -115,6 +132,27 @@ class PossessionQueryTests(unittest.TestCase):
                           lambda: unknown.set_primary_possessor(123, None)):
             with self.assertRaises(ValueError):
                 operation()
+
+    def test_watched_component44_body_query_polls_field_changes_and_removal(self):
+        result = world()
+        result.set_component44_body_id(123, 0)
+        condition = {"$": "STU_00707E1E", "m_00903303": OWNER}
+        model = graph([node(0, 'STUStatescriptEntry', m_outPlug=plug((1, 'm_inPlug'))),
+                       node(1, 'STUStatescriptStateBooleanSwitch', state=0, m_2BBEEAB8=1,
+                            m_condition=condition, m_onTruePlug=plug((2, 'm_inPlug')),
+                            m_onFalsePlug=plug((3, 'm_inPlug'))), setter(2, 1), setter(3, 0)],
+                      entries=[0])
+        component = runtime.Component(123, world=result, strict=True)
+        active = component.create(model)
+        component.run_now()
+        self.assertEqual(active.find_var(0, 7).value(), 0)
+        self.assertTrue(active.states[0].polled)
+        result.set_component44_body_id(123, 456)
+        component.run_frame(1)
+        self.assertEqual(active.find_var(0, 7).value(), 1)
+        result.set_possessor(123, False)
+        component.run_frame(2)
+        self.assertEqual(active.find_var(0, 7).value(), 0)
 
     def test_watched_query_polls_live_relation_changes(self):
         result = world()

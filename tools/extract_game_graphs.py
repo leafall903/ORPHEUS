@@ -37,10 +37,14 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.paths import DATA_DIR
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
+
 OUT = ROOT / "data" / "game_graphs_174.json.gz"
 HEROES = DATA_DIR / "game_heroes_174.json"
 NS = "{https://yretenai.com/dragonml/v1}"
@@ -466,6 +470,7 @@ def target_tags(xml: StuXml) -> list[int]:
 
 def body_record(
     path: Path, enums: EnumTables, hero: str | None, name: str, *, include_ai_weapons: bool = False,
+    include_ai_profiles: bool = False,
 ) -> tuple[dict, set[int]]:
     """A body definition (003): its statescript component's initial graphs in order, with their schema
     overrides, its full script component definition, and its weapon scripts."""
@@ -492,8 +497,23 @@ def body_record(
         associated = _ai_association(path, xml)
         if associated is not None:
             record["ai_association"] = full_guid(f"{associated:012X}.003")
+            record["controller"] = f"0x{record['ai_association']:016X}"
             if buttons := _ai_weapon_buttons(path.with_name(f"{associated:012X}.003.xml"), enums):
                 record["ai_weapon_buttons"] = buttons
+    if include_ai_profiles:
+        profiles = {}
+        for row in xml.root.iter("STUAIDifficultyProfile"):
+            key_ref = xml.field(row, "m_13E9E420")
+            profile_ref = xml.field(row, "m_AFEEA472")
+            key = xml.value(key_ref) if key_ref is not None else None
+            profile = xml.value(profile_ref) if profile_ref is not None else None
+            if (not isinstance(key, str) or not key.startswith("0x0D80")
+                    or not isinstance(profile, str) or not profile.startswith("0x0B50")
+                    or key in profiles):
+                raise ValueError(f"{path.name}: invalid or duplicate AI difficulty profile")
+            profiles[key] = profile
+        if profiles:
+            record["ai_difficulty_profiles"] = profiles
     used = {entry["graph"] for entry in graphs} | {manager, *weapons} | component_refs
     return record, {graph for graph in used if graph is not None}
 
@@ -790,9 +810,12 @@ def map_script_instances(path: Path, enums: EnumTables) -> tuple[list[dict], set
 
 def collect(
     xml_dir: Path, enums: EnumTables, entity_indexes: tuple[int, ...] = (), mode_xml: Path | None = None,
-    *, ai_spawners: Path | None = None, hero_table: Path | None = None,
-    map_entities: dict[int, Path] | None = None,
+    *, ai_spawners: Path | None = None, map_entities: dict[int, Path] | None = None,
+    status_xml: Path | None = None,
+    heroes_json: Path | None = None,
 ) -> dict:
+    if status_xml is not None and not status_xml.is_dir():
+        raise ValueError(f"status XML directory does not exist: {status_xml}")
     variables = mode_variables(mode_xml, enums) if mode_xml is not None else None
     mode_roots = mode_graph_roots(mode_xml) if mode_xml is not None else set()
     ai_roots = ai_graph_roots(ai_spawners) if ai_spawners is not None else set()
@@ -801,7 +824,7 @@ def collect(
         records, used = map_script_instances(path, enums)
         map_scripts[f"0x{0x0800000000000000 | map_index:016X}"] = records
         map_roots.update(used)
-    heroes = json.loads((hero_table or HEROES).read_text(encoding="utf-8"))
+    heroes = json.loads((heroes_json or HEROES).read_text(encoding="utf-8"))
     bodies, reason, queue = {}, {}, []
     for hero, entry in heroes.items():
         body = int(entry["body"], 16)
@@ -811,11 +834,29 @@ def collect(
         for graph in sorted(used):
             queue.append((graph, entry["name"]))
     entities = {}
-    for index in sorted(set(entity_indexes)):
+    selected_entities = set(entity_indexes)
+    pending_entities = sorted(selected_entities)
+    while pending_entities:
+        index = pending_entities.pop(0)
+        key = f"0x{0x0400000000000000 | index:016X}"
+        if key in entities:
+            continue
         path = xml_dir / "003" / f"{index:012X}.003.xml"
         name = f"entity {index:04X}"
-        record, used = body_record(path, enums, None, name, include_ai_weapons=ai_spawners is not None)
-        entities[f"0x{0x0400000000000000 | index:016X}"] = record
+        record, used = body_record(path, enums, None, name,
+                                   include_ai_weapons=ai_spawners is not None and index in selected_entities,
+                                   include_ai_profiles=True)
+        entities[key] = record
+        queue.extend((graph, name) for graph in sorted(used))
+    associations = sorted({row["ai_association"] for row in entities.values() if "ai_association" in row})
+    for definition in associations:
+        key = f"0x{definition:016X}"
+        if key in entities:
+            continue
+        index = definition & 0xFFFFFFFFFFFF
+        name = f"AI entity {index:04X}"
+        record, used = body_record(xml_dir / "003" / f"{index:012X}.003.xml", enums, None, name)
+        entities[key] = record
         queue.extend((graph, name) for graph in sorted(used))
     associations = sorted({row["ai_association"] for row in entities.values() if "ai_association" in row})
     for definition in associations:
@@ -832,6 +873,7 @@ def collect(
     queue.extend((index, "game mode scripts") for index in sorted(mode_roots))
     queue.extend((index, "placed map scripts") for index in sorted(map_roots))
     graphs, missing = {}, set()
+    statuses, missing_statuses = {}, set()
     while queue:
         index, why = queue.pop(0)
         if index in graphs or index in missing:
@@ -849,6 +891,9 @@ def collect(
         for problem in sorted(set(xml.problems)):
             print(f"  {index:04X}: {xml.problems.count(problem)} x {problem}")
         queue += [(child, why) for child in sorted(xml.graph_refs())]
+        if status_xml is not None:
+            used = status_closure(xml, status_xml, enums, statuses, missing_statuses)
+            queue.extend((child, "status definition from " + why) for child in sorted(used))
     data = {
         "version": 1,
         "roots": {"bodies": sorted(bodies),
@@ -860,12 +905,60 @@ def collect(
     }
     if entities:
         data["entities"] = entities
+    if status_xml is not None:
+        data["status_definitions"] = statuses
+        data["missing_statuses"] = sorted(missing_statuses)
     if map_scripts:
         data["map_scripts"] = map_scripts
     if variables is not None:
         data["mode_variables"] = variables
         data["mode_scripts"] = mode_scripts(mode_xml, enums)
     return data
+
+
+def status_closure(xml, folder, enums, records, missing):
+    """Follow reachable .053 definitions to their graphs without inventing a host.
+
+    A hero's graphs reference .053 assets rather than the .01B child directly.
+    Preserve the definition and every nested status/graph reference; absent
+    status files remain explicit rather than silently removing their effects.
+    """
+    pending = [xml]
+    graphs = set()
+    while pending:
+        current = pending.pop()
+        for element in current.root.iter():
+            reference = element.get("GUID")
+            if reference is None:
+                continue
+            if reference.endswith(".01B"):
+                graphs.add(guid_index(reference))
+            elif reference.endswith(".053"):
+                key = guid_text(reference)
+                if key in records or key in missing:
+                    continue
+                path = folder / (reference + ".xml")
+                if not path.is_file():
+                    missing.add(key)
+                    continue
+                status = StuXml(path, enums)
+                records[key] = status.value(status.root)
+                pending.append(status)
+    return graphs
+
+def status_supplement(data: dict, base: dict) -> dict:
+    """Keep only new status-linked graphs; never replace a base graph."""
+    if "status_definitions" not in data:
+        raise ValueError("status supplement requires --status-xml extraction")
+    originals = {record["index"]: record for record in base["graphs"]}
+    for record in data["graphs"]:
+        original = originals.get(record["index"])
+        if original is not None and original != record:
+            raise ValueError(f"status supplement conflicts with base graph {record['index']:04X}")
+    return {"status_supplement_version": 1, "target_build": "1.74.0.0.104319",
+            "graphs": [record for record in data["graphs"] if record["index"] not in originals],
+            "status_definitions": data["status_definitions"],
+            "missing": data["missing"], "missing_statuses": data["missing_statuses"]}
 
 
 def entity_index(text: str) -> int:
@@ -890,6 +983,7 @@ def map_source(text: str) -> tuple[int, Path]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--xml", type=Path, required=True, help="DataTool XML dump")
+    parser.add_argument("--heroes", type=Path, help="external hero catalog, instead of repository data")
     parser.add_argument("--owlib", type=Path, required=True, help="the OWLib checkout that made the dump")
     parser.add_argument("--entity", action="append", type=entity_index, default=[],
                         help="additional 003 asset index such as 1403, repeatable")
@@ -897,14 +991,23 @@ def main() -> None:
                         help="directory of .0C5 XML files for mode variables and script roots")
     parser.add_argument("--ai-spawners", type=Path,
                         help="include local map spawner graph roots and AI weapon controls")
+    parser.add_argument("--status-xml", type=Path,
+                        help="follow reachable .053 status definitions and their child graphs")
+    parser.add_argument("--status-supplement-base", type=Path,
+                        help="emit only new status graphs against this immutable gzip JSON bundle")
     parser.add_argument("--map-entities", action="append", type=map_source, default=[],
                         help="placed script roots/overrides as HEX_MAP_INDEX=ENTITIES_XML, repeatable")
     parser.add_argument("--output", type=Path, help="destination bundle")
     args = parser.parse_args()
     output = args.output or OUT
+    if args.status_supplement_base is not None and args.status_xml is None:
+        parser.error("--status-supplement-base requires --status-xml")
+    if args.status_supplement_base is not None and output.resolve() == args.status_supplement_base.resolve():
+        parser.error("status supplement output must not overwrite its base")
     if args.entity and output.resolve() == OUT.resolve():
         parser.error("--entity requires --output outside the canonical hero bundle")
-    for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners)):
+    for option, source in (("--mode-xml", args.mode_xml), ("--ai-spawners", args.ai_spawners),
+                           ("--status-xml", args.status_xml)):
         if source is not None and (args.output is None or output.resolve().is_relative_to(ROOT)):
             parser.error(f"{option} requires --output outside the repository")
     if args.map_entities:
@@ -917,6 +1020,8 @@ def main() -> None:
         data = collect(
             args.xml, enums, tuple(args.entity), mode_xml=args.mode_xml, ai_spawners=args.ai_spawners,
             map_entities=dict(args.map_entities),
+            status_xml=args.status_xml,
+            heroes_json=args.heroes,
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
@@ -930,9 +1035,13 @@ def main() -> None:
         print(f"{why}: {' '.join(f'{index:04X}' for index in sorted(indexes))}")
     if data["missing"]:
         print("referenced but not in the dump: " + " ".join(f"{index:04X}" for index in data["missing"]))
-    write_bundle(output, data)
+    if args.status_supplement_base is not None:
+        base = json.loads(gzip.decompress(args.status_supplement_base.read_bytes()))
+        data = status_supplement(data, base)
+    text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+    output.write_bytes(gzip.compress(text.encode("utf-8"), compresslevel=9, mtime=0))
     nodes = sum(len(graph["nodes"]) for graph in data["graphs"])
-    print(f"{len(data['graphs'])} graphs, {nodes} nodes, {len(data['bodies'])} hero bodies, "
+    print(f"{len(data['graphs'])} graphs, {nodes} nodes, {len(data.get('bodies', {}))} hero bodies, "
           f"{len(data.get('entities', {}))} additional entity definitions -> {output}")
     print(f"{output.stat().st_size / 1e6:.2f} MB compressed")
 

@@ -1,5 +1,115 @@
 # Restoration roadmap
 
+- [x] Reconcile the full local Python delivery with public main package paths; preserve external data and existing implementation.
+- [ ] Close the preserved compatibility and original-client verification limits listed in [the integration record](PYTHON_UPSTREAM_INTEGRATION.md).
+
+- [x] Reconcile the full local Python delivery with public main package paths; preserve external data and existing implementation.
+- [ ] Close the preserved compatibility and original-client verification limits listed in [the integration record](PYTHON_UPSTREAM_INTEGRATION.md).
+
+Ana delivery scope and cross-hero interaction notes are in `docs/ANA_COMBAT.txt`.
+
+- [ ] Moira full combat acceptance (hero01A2): partial server repair preserves
+  healing volley allegiance, Fade lifecycle/immunity, grasp and ultimate health
+  effects, orb flight/tethers/energy, trailing heal, authored fuel and Fade
+  movement;203 actor-stage full-suite checks cover
+  partial effects, authored Moira/McCree eye/low-cover interaction, launch-body death identity
+  and active Fade interactions. Combat charge is a declared reconstruction.
+  Both actual orb casts reach targets behind live enemy Cryo and spend energy
+  only on the applied effect. Native candidate admission copies the full record
+  for nonzero flags. Downstream attack interpretation remains open.
+  Coalescence heal and damage use independent authored volumes and the
+  native-backed capsule predicate. Static visibility follows the generic
+  capsule-height fallback. Native origin, aim, hardpoint/special visibility
+  and indirect TrackRay influence remain open.
+  Finite-width piercing spray is reconstructed; native exact shape remains open.
+  Actual spray/both orb normalized launch output and causal spread_ramp
+  now pass full186 Moira and14 server snapshot checks; angular sampling
+  and optional decay remain separate unaccepted work.
+  Selected real McCree Fan rays now cover enemy Moira hit/miss/offset,
+  wall/ally/Fade and channel death; native seed/mode identities remain
+  declared reconstruction. Full filter context orchestration remains open.
+  Selected actual Flashbang now resolves launch lift and gravity, with
+  reconstructed fixed steps and expiry blast. Enemy off-axis damage/control,
+  Fade and wall/ally/radius exclusions pass. Full cross-hero scope remains open.
+  Actual Matrix protects Moira from both incoming control projectiles.
+  Wall priority and both Sleep Dart Matrix/Reinhardt orders pass with
+  reconstructed Matrix attachment and authored tag input.
+  Active Sigma Grasp also protects Moira from both projectiles. The authored
+  shield conversion runs from reconstructed nominal absorption amounts.
+  Actual Matrix/Grasp nearest ordering passes in both directions.
+  Genji Deflect redirects both control projectiles, retaining flight budget
+  and Genji's attribution. Actual player and five-NPC impacts, Fade and
+  post-reflection Matrix/Grasp cases pass with reconstructed contact.
+  Wraith, Cryo-Freeze and Transcendence now reject the four Moira damage
+  paths during the actual active phase. Reconstructed contact tests separate
+  Wraith bypass from the retained Mei and Zenyatta bodies.
+  Scoped ice contact also reaches above crouched Mei and protects against
+  Grasp, Sleep Dart and Flashbang until cancel or expiry. Actual 05FE
+  Pet now owns the server 090B actor and starts 0623. Native receiver,
+  movement/attachment and client presentation remain open. Actual 05FE
+  self-heal restores Grasp damage and stops on cancel.
+  The same selected protection gates reject actual grenade anti-heal and
+  Assassin pin. Moira allied spray remains effective after rejected anti-heal.
+  Actual Coalescence reaches ally and enemy through live ice under the
+  current reconstruction and stops at static cover. Native B3 override
+  lookup and nonzero admission execute under declared inputs. Attack
+  consumers' individual flag meanings remain open.
+  Declared host input now executes the real 224E start filter branch.
+  BDE overrides populate member26550 on the declared host. The admitted
+  path reaches unsupported node150. On a declared host, node180 sends1682
+  to the real Freezethaw Elimination body receiver 1A5A and binds instigator.
+  The admitted node150 operation and live provisioning remain open.
+  Native mask/tag primitives pass9920/10624 comparisons; full entity-filter
+  host, runtime tag provisioning and watcher lifetime remain open.
+  DB2C10 collection passes1062 comparisons; actual224E tag group
+  evaluates, while complete effect-host admission remains open.
+  Both orb operations transfer through reconstructed actual Genji Deflect,
+  including five-NPC allegiance/death credit. Full defense/control matrix remains open.
+  Actual Reinhardt mesh/raise/resource reconstruction gates spray/grasp and
+  tests beam/orb bypass. Native close melee/attachment and other defenses remain open.
+  Actual Ana grenade block/boost now covers six Moira healing consumers and
+  four ally-heal paths across five actual NPCs; native filters/budget semantics
+  remain open. Selected actual Nano release/heal250, damage boost/reduction now
+  covers Moira/player/five-NPC consumers; native targeting/modifier/projectile
+  timing, full lifecycle and defense combinations remain open.
+  AC829876's native-backed evaluator entry now delegates to an explicit filter
+  host service (360 instruction comparisons); actual engine filtering remains
+  unavailable, with no guessed strict result. Ending-state notification cleanup
+  and server cleanup-before-arbitration ordering pass183 current Moira checks;
+  native ordering equivalence and full filter/host acceptance remain open.
+  Strict224E's DA54F8F7 array-removal frontier now executes past node176 using
+  original-image-backed unkeyed semantics (105 comparisons); keyed/linked storage
+  stays explicit. Next strict boundary is STU_AC829876 entity filtering; full
+  effect admission/message binding/animation and original static goal remain open.
+  Executed actual224E wake branches now replace instantaneous wake with initial
+  0.5 protection and a0.5 recovery clamp. Real melee/movement/Fade and five-NPC
+  damage recovery checks pass; actual224E zero-throttle scopes use the selected
+  parent mover fix with four-direction/exit/next-frame checks. Native effect host,
+  animation and message binding remain open.
+  Selected Sleep Dart gate now interrupts Moira input/channels, rejects active
+  Fade and preserves emitted orbs. Four damage wake/four heal nonwake paths,
+  actual five-NPC routes/weapons and Assassin release/reacquisition pass focused
+  checks. Raised Rein mesh intercepts Sleep before owner/protected Moira; native
+  wake/recovery/filter/absorption/reflection and full status matrix remain open.
+  Actual Flashbang control interrupts Moira channels, cancels selection, blocks
+  input and respects active Fade; five-NPC health/control cases pass. Native
+  status/cleanse/stacking and the complete control/defense matrix remain open.
+  Sigma Grasp consumes both orb kinds; selected accumulator/tagged shield
+  reconstruction and five-NPC active/expired comparisons pass. Native filtering,
+  Matrix and the full absorb/control/reflect matrix remain open.
+  Actual0407 Matrix consumes both Moira orb operations with authored resources;
+  five-NPC protected recipients and simultaneous defense order now pass;
+  eye/aim boxes and tag filter are reconstructed; native and full defense/NPC
+  acceptance remain open.
+  Trooper/Enforcer/Sniper/Heavy declared manual weapon release and Moira incoming paths pass;
+  Manual Assassin target/pin/health execution covers Moira health/control and
+  post-recovery stop/stun/allegiance reselection;2s timing is declared policy;
+  native Enforcer context/pellets and Assassin controller/contact/clock semantics, all NPC AI,
+  full skills, interactions and client acceptance remain
+  open. See [Moira combat lane](MOIRA_COMBAT.txt).
+
+The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range are the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
+
 The target is Overwatch 1 retail **1.74.0.0.104319**. Soldier: 76 and the Practice Range training bots form the first acceptance group. Record the source version and the smallest repeatable test for each claim. A milestone stays open until its stated exit criteria have been verified. The [verification record](STATE.md) and [changelog](../CHANGELOG.md) describe completed work and remaining limits. The [issue tracker](https://github.com/leafall903/ORPHEUS/issues) holds individual tasks.
 
 This branch starts from the community-maintained Python `main` and tracks Doomfist and Wrecking Ball restoration on `leafall`. The project-wide milestones below retain the shared requirements. Native server architecture and parity are tracked on the separate [Rust branch](https://github.com/leafall903/ORPHEUS/tree/rust).
@@ -28,19 +138,110 @@ verification reported by the contributor in PR #16. The changelog records integr
 
 | Milestone | Exit criteria | Current evidence |
 | --- | --- | --- |
-| M0 · Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
-| M1 · Body and weapon initialization | Soldier: 76 keeps the expected model, weapon and ammo HUD for 60 seconds, with ten successful switch-and-return cycles and ten exits and rejoins. | Automated body, weapon and lifecycle scenarios pass. Encrypted startup tests cover ownership and controller initialization under loss. Original-client stability and presentation still need acceptance. |
-| M2 · Rifle and prediction | Hold and release fire, empty the magazine and reload repeatedly. Client ammo and effects agree with the server, including with lost and repeated input. | Selected shot, ammo, reload and loss scenarios have automated evidence. Original-client prediction and recovery still need verification. |
-| M3 · Single-player combat | Repeatedly hit, miss, kill and reset a training target. Its visible health, identity and combat feedback agree with the server. | Headless Practice Range scenarios cover damage, health, death and respawn. Encrypted replay verifies per-viewer nameplate ordering. Original-client HUD, names, kill feed and sound remain pending. |
-| M4 · Movement and two-client combat | Two clients agree on movement, line of sight, combat and respawn. Loss, delay and reordering recover without extra damage. | Collision-backed movement and selected two-peer protocol checks exist. Two-original-client agreement is pending. |
-| M5 · Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. Full ability target and speed resolution, timing and client acceptance remain open. |
-| M6 · Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
+| M0 路 Research and replay | Reproduce a known baseline with shared entity, time, input, event and state contracts. Track unsupported protocol and graph behavior. | Target build and sources are pinned. Controlled encrypted sessions and stored-state comparisons exist. Full coverage and reproducibility from public inputs remain open. |
+| M1 路 Body and weapon initialization | Soldier: 76 keeps the expected model, weapon and ammo HUD for 60 seconds, with ten successful switch-and-return cycles and ten exits and rejoins. | Automated body, weapon and lifecycle scenarios pass. Encrypted startup tests cover ownership and controller initialization under loss. Original-client stability and presentation still need acceptance. |
+| M2 路 Rifle and prediction | Hold and release fire, empty the magazine and reload repeatedly. Client ammo and effects agree with the server, including with lost and repeated input. | Selected shot, ammo, reload and loss scenarios have automated evidence. Original-client prediction and recovery still need verification. |
+| M3 路 Single-player combat | Repeatedly hit, miss, kill and reset a training target. Its visible health, identity and combat feedback agree with the server. | Headless Practice Range scenarios cover damage, health, death and respawn. Encrypted replay verifies per-viewer nameplate ordering. Original-client HUD, names, kill feed and sound remain pending. |
+| M4 路 Movement and two-client combat | Two clients agree on movement, line of sight, combat and respawn. Loss, delay and reordering recover without extra damage. | Collision-backed movement and selected two-peer protocol checks exist. Two-original-client agreement is pending. |
+| M5 路 Match rules and heroes | Complete a full match in one mode on one map and return to the lobby. Verify the declared abilities for each supported hero. | Shared hero mechanisms and partial match flow exist. A fixed world-target movement control covers two authored ability graphs. Full ability target and speed resolution, timing and client acceptance remain open. |
+| M6 路 Fidelity and reliability | Compare timing and behavior against versioned references. Verify long sessions, recovery, performance and repeatable deployment. | Server-only deployment with prepared data and selected replay and loss checks exist. Wider comparisons and end-to-end acceptance remain open. |
 
 ## Project-wide checklist
 
 - [ ] Integrate and reverify the individual hero lanes. The
   [combined server acceptance matrix](HERO_SERVER_ACCEPTANCE.md) separates
   verified partial handoffs, remaining implementation and original-client acceptance.
+
+- [ ] Verify Baptiste's complete player/five-NPC combat and original-client
+  presentation. The selected Reinhardt Barrier Field host intercepts Baptiste
+  primary, both direct-only Sniper slots and Soldier Helix with the verified
+  model. Helix shield damage and same-impact splash cover are reconstructed.
+  Native attachment, regeneration, authoritative explosive damage and LOS,
+  general projectile/area routing and shield presentation remain open.
+  Selected Sigma1D02/1D03 absorption, authored0.6/400 shield
+  conversion/decay, verified player eyes and notification cleanup add partial
+  evidence. Native pool/filter/clock/replication, complete cross-hero and NPC
+  incoming behavior remain open. The old generic-eye Assassin horizontal miss
+  is superseded by the verified1.35-eye horizontal70 hit. The private lane
+  includes shared normalized Volley spread state and an isolated authored
+  Enforcer controller startup diagnostic and optional data-driven controller
+  namespace/lifetime host. The selected 25-projectile Enforcer launch covers
+  damage, range, cover, teams, Field and Matrix. Heavy Assault's selected
+  140E melee and Trooper's selected 1422 melee execute damage, range, cover,
+  teams and Field with explicit input. The selected 1408 side hit also
+  applies its 50 damage under reconstructed selection. The 300-point 1408
+  primary damage node runs after a reconstructed capsule sweep hits a
+  solid wall. Explicit input selects a visible hostile player, mounts 1407,
+  carries the victim and starts the authored 15-second cooldown after
+  timeout or impact. The impact phase ends after the two-second operand.
+  The selected 1254 animation branch clears its high-priority stack after
+  the impact reaction. Immortality Field leaves 20 HP. Native animation
+  variant selection, attachment, steering and collision filters remain
+  open. The 50-point side stage has reconstructed player knockback.
+  Seeded 961 contact reaches 175 damage and seeded 3692 reaches phase two
+  without damage in the fixture. The start and timeout release stages
+  apply their reconstructed player impulses without damage. The carried
+  victim is excluded from the moving body tracker. A distinct hostile
+  player with opposing 596 or seeded 9161 can end carry in the impact
+  phase. Actual Reinhardt Charge supplies 596 and both contact bodies
+  receive the two-second 224E override through the reconstructed stun
+  host. Actual Orisa Fortify supplies 9161 before expiry and selects the
+  branch without the two control actions. The moving close trackers
+  apply the 175-point stage and two-second control to seeded 961 targets.
+  Mei Cryo-Freeze supplies 3692 through a reconstructed startup gate and
+  triggers the carried impact while active. Graph 0636 writes 961 on
+  Mei Ice Wall pillars. Ordinary placement, cancellation and expiry run
+  with reconstructed ground sampling and pillar capsules. The Heavy
+  can hit a placed pillar during carry, and Baptiste primary damages
+  a hostile pillar. The selected capsule model also blocks shots through
+  either team's wall. It occludes grenade healing, quick melee, Field
+  eligibility and initial Burst selection. Reconstructed pillar capsules
+  also support player movement, Exo Boots landings and blocking on
+  explicit routes for five NPC bodies. Native navigation, pillar geometry
+  and 224E execution remain open. Timeout release
+  now evaluates the position and facing expressions with a reconstructed
+  capsule size and sweeps against cover. Native pose and size semantics
+  remain open. Baptiste's primary now uses the 1932 cone before hitscan,
+  with reconstructed seed identity and a verified nonzero-bound input case.
+  The grenade applies 1932's vertical launch offset. Grenade and Field
+  canister read the verified 9573 motion scale. Input checks cover direct
+  versus splash-only healing and wall deployment with zero and signed
+  acceleration. The ballistic sweep advances from the updated velocity,
+  as in the verified native motion step. Grenade and Field canister
+  preserve independent path distance and time limits and retire their
+  predicted copies at expiry. Original terminal report delivery, clock
+  subdivision, native collision and launch options, plus
+  NPC seed, controller, AI and transport
+  correspondence remain open. It
+  restores the weapon health-operation polarity
+  with offline damage/healing, grenade splash, Burst/Boots and reconstructed
+  Field deployment evidence, plus Matrix placement/charge/crossing/lifetime tests
+  with skipped-tick crossing-time checks, shared native input-join support and
+  effective-damage and eligible ally-healing charge through0B8B's authored
+  expressions/modifiers/cap, including earned2310-to-Matrix-spend input chains;
+  its default passive now uses authenticated0B8B values with an explicit stored
+  input-frame clock, while native qualification/phase remain open;
+  known2426/842 charge vetoes and explicit five-NPC mover data are required;
+  an optional Ana0267 profile exercises ordinary player-source antiheal and
+  received-healing amplification against player/five-NPC grenade/Burst intake,
+  including eligible charge and Field top-up. Native status ownership, source
+  predicates, stacking and presentation remain open;
+  reviewed shared Ability press-age retention has actual Burst/Field/melee
+  expiry, held and legal-buffer checks, without a claimed Baptiste reproduction
+  of the parent's reported McCree defect;
+  selected Genji E now returns primary24/healing70 with explicit003 admission,
+  five-NPC returned-shot fixtures and Matrix48/140 retention, while Field0145
+  bypasses that host. Native pose/filter/response/callbacks/charge and complete
+  barrier/absorb/control relationships remain open;
+  complete abilities, native deployable geometry and amplification,
+  cross-hero states and client acceptance remain open.
+  The reconstructed Field canister uses the authored 0.15-meter static
+  auxiliary sweep. Practice Range cases cover hits and misses at range and
+  lifetime boundaries. The sampled sidewall now rebounds through the
+  remainder of the step. Native deployment, special materials and moving
+  target response remain open.
+  Details are in the [Baptiste combat lane](BAPTISTE_COMBAT.txt).
+
 
 - [ ] Verify the Rialto McCree PvE combat sandbox: manual five-enemy spawning,
   navigation, acquisition, attacks and specials, bidirectional combat, skills and
@@ -82,6 +283,10 @@ verification reported by the contributor in PR #16. The changelog records integr
     Bone-level blend fidelity and a matched original PvE marker comparison
     remain open. See [McCree combat](MCCREE_COMBAT.txt) for the rendered and audio evidence.
 
+  McCree melee has player/NPC static-wall checks; see [McCree combat](MCCREE_COMBAT.txt)
+  for the partial attack frontier and open Flashbang/Deadeye requirements.
+
+
 A checked item records evidence for that specific scope. Its parent remains open while other requirements are outstanding.
 
 - [ ] **Research and replay.** Rebuild required data from documented sources, resolve protocol and graph semantics, and reproduce complete sessions from recorded inputs and events.
@@ -91,6 +296,8 @@ A checked item records evidence for that specific scope. Its parent remains open
 - [ ] **Lobby and match lifecycle.** Verify queues, team assignment, game setup, hero selection, match handoff, joining, leaving, reconnecting and returning to the lobby.
 - [ ] **Network synchronization.** Verify authoritative movement, prediction and correction, input timing, and state consistency for players and observers under delay, loss, reordering and repeated connections.
 - [ ] **Heroes and abilities.** Cover weapons, reloads, aiming, movement abilities, passives, cooldowns, resources, ultimates, transformations and deployables with shared mechanics.
+  - [ ] Complete Brigitte104319 static combat and original-client acceptance. Actual input drives reconstructed flail/whip/Inspire/Repair/shield and Rally with graph-owned resources. Five passive Talon targets pass damage/heal/armor/pool/death tests; four manual NPC primary attacks and their shield interceptions pass (Enforcer controller allocation is reconstructed). Actual Assassin1157 manual pin now damages/controls Brigitte and allied Bash frees the victim; contact/context/clock remain reconstructed. The corrected43-row mover table and ordinary capsule aim now pass20 NPC methods, including range/LOS/team and flail boundary cases; prior generic-mover results do not accept original geometry. Actual Bash damage, hosted0.75s control and reconstructed Rocket/splash shielding pass. Original Brigitte1.58/1.2 and enemy McCree1.425/.9975 FirstPerson fields now drive player origin/target/history; standing/crouched center-ray low-cover cases pass. Native17/18/19 throttle split replaces the prior axis guess; actual Bash constraint/restore pose boundaries and raw input preservation pass. Actual Orisa/Zarya Shift rejects contacted Bash control and reopens it after native expiry; Fortify now reduces flail/Whip/Bash via live8243 with declared before-armor server ordering; absorption/other defenses remain open. Authored Bash degree-cone conversion is corrected. Inspire now follows authored cross-caster replacement and recipient-owned lifetime through caster body replacement; old effects cannot charge a new body. Repair now extends one recipient stream across casters through the authored reuse/message policy; numeric source-loss handling now preserves initial controller/pick and pending3s cleanup through same-hero replacement/refresh; native controller/registry phase and stop/recipient transport remain open. Flashbang/Bash now cancel pending Repair without delayed healing, while launched packs persist; Rally armor pulses continue during actual pin/Bash control. Brigitte early-input checks now cover actual Whip/Bash/Repair/Rally windows and held/new-press routes; Bash requires a new LogicalButton down edge after cooldown. Whip reads live authored knockback-rule amplitudes at contact; player and five-NPC external capsule motion now reconstruct lift/team-or-FFA collision/landing, retain momentum through controls and resume route intent. Native vector/resistance services remain open. 0B8B now supplies Brigitte passive/damage/healing charge amounts, live scalars and cap; the60s default is removed. Native charge controller/event/clock fidelity, Bash record/filter/immunity/contact/route/gap, native temporary pools, full projectile/explosion matrix, geometry/status, cross-hero controls and bidirectional enemy AI/specials remain open. See [Brigitte combat](BRIGITTE_COMBAT.txt). Zarya personal barrier now absorbs real Flail, Whip and Bash with default 0256 capacity, authored 0244 expiry and break cooldown. Real Fan verifies the breaking shot and later exposed hits. Real Genji Deflect blocks front flail/quick melee/Whip, allows rear hits and Bash, and redirects Soldier rifle hitscan to Brigitte or her raised shield in the reconstructed body-contact path. Real Wraith, Fade, Cryo-Freeze and Transcendence phases protect against Flail/Whip/Bash after a scoped server handoff. Authored expiry and Wraith re-press restore damage. Actual Ana grenade modifies Repair Pack and Inspire using the normal hero 0B99/0C72 values. Expiry and Wraith cleanse restore healing. Actual reflected Helix and Ana grenade verify redirected damage, shield interception, anti-heal, lifetime and body ownership.
+  - [ ] Verify Orisa's complete static combat matrix and original-client combat separately. Fusion Driver/manual+auto reload, authored Orisa/McCree player eye heights and actual low-cover shots, and actual firing/reload movement penalties, five NPC damage/deaths/corpses, Fortify lifecycle/Flashbang control and scoped cast interruption, same-hero charge restoration through original14F2, actual0BD8 barrier initialization/scope clock, natural ending Wait and live deployable storage, barrier cooldown/replacement/death and retirement boundaries, scoped Halt command/filter/cooldown/collision, original0CCC configured visibility-success paths with explicit root-yaw/static-ray services and a partial fallback, original0CCE startup/20m/s MoveTo/650ms post-slow, four Talon pulls and Heavy1254/6601 immunity, real-mesh direct/blast barrier interception, and Supercharger authored deployment/status/ally damage boost have partial execution evidence. Actual Trooper/Sniper/Heavy/Enforcer primary hits against Orisa, including authored25-pellet Enforcer ring scatter with generated native random tables, Fortify/barrier/boost mitigation, input release and death/respawn reacquisition now have bounded execution evidence. Manual Assassin input36 now reaches original1157 contact, damage clock and pin cleanup against Orisa under a declared 3 m policy. Current NPC geometry checks require the explicit43-row mover profile; earlier38-row results used generic fallback capsules. Native force/continuous tracking/transport, full barrier interaction/replication, native Supercharger status/charge/transport, cross-hero immunity and NPC attacks/specials remain open. See docs/ORISA_COMBAT.txt.
 - [ ] **Combat and health.** Reproduce hit detection, projectiles, explosions, damage, healing, armor, shields, barriers, status effects, eliminations, assists and respawns.
   - [ ] Verify projectile and hitscan penetration by weapon and impact surface, including stacked targets, barriers and map geometry.
 - [ ] **Maps and world interactions.** Verify collision, movement surfaces, spawn rooms, doors, health packs, destructible objects and environmental deaths for applicable maps and modes.
@@ -270,3 +477,9 @@ A checked item records evidence for that specific scope. Its parent remains open
   - [ ] Validate the local play setup on a clean Windows machine. Document how each authorized runtime input is prepared and track the inputs that still require separate preparation before game-folder-only setup is possible.
   - [ ] Measure server tick tail latency, world packet gaps, delivered owner corrections, and original-client frame time during sustained fire. Repeat with two clients before widening the playtest scope.
   - [ ] Compare first and repeated hero selections on the same map. Separate pick processing, body creation and binding, initial script delivery, and the original client's first playable frame.
+
+Brigitte velocity-action research (2026-11-09, partial): FF3471E9 is an action,
+not a state. Original104319 scalar dispatch tails pass18 offline cases with
+expression/service adapters. This establishes parameter forwarding only;
+full service behavior, NPC impulse/resistance and Whip equivalence stay open.
+No milestone or original-client acceptance is completed by this probe.

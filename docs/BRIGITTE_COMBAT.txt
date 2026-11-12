@@ -1,0 +1,1361 @@
+Brigitte combat restoration -- target 1.74.0.0.104319
+
+Full static acceptance: OPEN. Original-client combat acceptance: OPEN.
+Do not mark the hero or roadmap complete from the tests in this file.
+
+Acceptance policy: functional server reconstruction from build104319 resources
+is permitted, with original-client differences and unproved details recorded.
+The dated evidence below is cumulative history; later corrections supersede
+earlier limitations/results. Current functional gaps include applicable
+cross-hero absorption/invulnerability/reflection and healing/status modifiers, plus
+the complete executed requirement-by-target matrix. Native-fidelity unknowns
+are recorded separately and do not substitute for testing missing effects.
+
+Resource-backed observations
+- Hero02E0000000000195/body0400000000001B1B, health150+armor50.
+- Flail1248: ModifyHealth st7/st8, dynamic476=35, loadout01A6.
+- Inspire12D8: proc cooldown1, radius20, duration6, amount90. It requests
+  recipient graph11B9; that graph's st2 is timed ModifyHealth, duration215.
+- Whip1259: damage70, speed80, range20, cooldown4; hit loadout01A3.
+- Barrier/bash0EE3, repair0EDD, Rally12BE retain separate authored graphs.
+- Barrier250 max and broken-health sentinel1 are authored0EE3 values; Switch31
+  checks exactly1 and node99 rejects<=1.0EE4 Wait18 delays regeneration2s;
+  ModifyHealth20 supplies85/s.0EE3 cooldown472=5 and bash13063=7.
+  Missing pet2284's XML/children were inspected read-only; no assets were copied.
+- Rally12BE's live cost is2800 (body2000 default is modified by the actual graph),
+  phase10s, radius8, rate30 armor/s, pulse interval0.5s and target cap100.
+  Recipient12C1/Wait6 retains each armor cohort30s. Its source movement mod
+  is native STU_316CFEF2 index0/add0.3, handled by the existing mover.
+
+Implemented reconstruction
+- Consume actual active flail damage states from ordinary body input. Read
+  damage/loadout/reach from the live graph, share health/armor/hit/death paths.
+  Cleave living enemies, one hit per target per state activation. The forward
+  120-degree volume at reach6 is a reconstruction, not the original swept
+  hardpoint volume. Static line of sight uses existing collision geometry.
+- Correct the legacy Switch consumer for explicitly indexed/null-valued cases.
+  This allows1248's combo counter59 to select successive branches instead of
+  defaulting after swing1. Index coercion is resource-inferred; no new native
+  differential comparison is claimed. Value-matching cases retain their path.
+- Reconstruct Inspire from successful flail damage, snapshot living self/allies
+  in range/LOS, heal90 over6 seconds, proc at most once each second, refresh
+  existing source/recipient effects without stacking, stop on recipient death
+  or expiry and discard body-local effects on body retirement. FFA allows self
+  only. Uses shared health synchronization/stat counters. Visual aura/status
+  graph11B9 playback is not integrated. Cross-source stacking, anti-heal,
+  healing modifiers and exact target-filter geometry still require evidence.
+- Consume1259's actual outgoing-phase st6 once per activation. Reconstruct a
+  swept0.5m head, flight80m/s for20m, first enemy contact, static obstruction,
+  damage70/loadout01A3 and Inspire. Native ability graph owns windup and4s
+  cooldown; death/body retirement cancels in-flight reconstruction. Player
+  impulse uses resource25m/s horizontal and3m/s vertical terms. Both players
+  and actual NPCs now enter airborne capsule motion; NPC route intent resumes
+  after settling. Native direction/resistance/control-lock fidelity remains open.
+- Preserve the original buffered-press timestamp when Ability.can_start is
+  false. Previously each retry rewrote it to now, preserving early cooldown
+  clicks indefinitely and automatically casting when ready. Test actual1259
+  early rejection, expiry readiness and accepted press inside its150ms window.
+- Add a pre-input service for living allied Repair Pack target375 within the
+  live30m range and reconstructed10-degree aim cone/LOS. Actual0EDD locks536,
+  consumes charge11 and owns0.25s use lockout/6s refill. Consume its actual
+  charge change after cast instead of implementing another resource counter.
+  Reconstruct60m/s homing delivery; read110 from live420 and duration2 from
+  0EE1's setter, heal55/s and extend duration for repeated packs without rate
+  stacking. Source death during cast still follows authored Wait20 onEnd to
+  Chase28's charge decrement; pending delivery is canceled without a refund.
+  Exact native ranking/homing/modifiers and recipient visual State remain open.
+- Supply an exact-scope reconstructed0EE3 pet-HP query to its existing Stack32,
+  synchronize damage/recovery and use its existing Switch31/Ability30 cooldown.
+  The Pet is not actually spawned/replicated. Reconstruct a2x2.2m directional
+  plane at resource offset(0,1,0)+forward*0.5. Enemy hitscan and Whip Shot stop
+  at its first face; friendly fire and melee pass. No hero damage/Inspire is
+  awarded for damaging shields. Correct front/body/wall ordering, ally cover,
+  death/release, break/no spill,5s lockout, held prevention and85/s recovery
+  have executable tests. Shared Rocket sweeps now stop at the shield. Splash
+  damages visible front rectangles and resolves cover before any shield breaks;
+  rear/friendly attacks pass. Real Helix40+80, front floor splash, side exposure
+  and static splash occlusion pass. The contact is offset1e-4m toward the flight
+  origin to keep sight rays out of the collision triangle. Exact sampling,
+  overlap/edge/lag behavior and the broader projectile matrix remain open.
+- Consume actual Rally phase0 and repeat-Wait20 activations for reconstructed
+ 15-point armor cohorts, allied/self filtering and a100 extra-armor cap. Keep
+  temporary armor separate from base armor; damage consumes it first using one
+  armor reduction per combined armor type. Healing cannot refill it, and each
+  cohort expires independently after30s. Emit/clear an explicit extra armor
+  component51 slot; native allocation, flags and cohort priority remain open.
+  Existing native movement modification gives30% source speed. Caster death
+  aborts its independent aura while previously issued ally armor keeps expiry.
+- Use actual0B8B expressions for effective damage/healing charge, live9532/
+  13022 multipliers and the cost cap. Overhealing, barrier damage and armor
+  grants give no credit. Default passive charge consumes0B8B's one-second,
+  five-point expression with9532/12918 multipliers; remove Brigitte's60s fill.
+  Entire10s Rally aura/death/known charge gates suppress the reconstructed
+  clock/credit host. Native controller/event eligibility and exact scheduling
+  remain open; these expressions alone do not accept the complete system.
+- Extend strict passive server snapshots to register the bridge and all cohort/
+  flight/cast state without getter execution. Shield timestamps use finite
+  optional values. Expiry and shield-health mutations change stored hashes.
+
+Executable evidence
+tests/test_game_brigitte.py uses the actual extracted1248 and ordinary player
+commands, not fabricated weapon state activations. It checks numerical health,
+hit messages, sustained combos, cleave/misses, static wall block, armor, body
+retirement, generic allied/enemy Bot semantics, terminal retained corpse and
+timed self/allied healing with expiry, proc cooldown/refresh and death.
+Whip execution adds delayed flight before health loss, actual70 damage and
+player displacement, range/aim/team misses, wall occlusion, native cooldown,
+early-window acceptance/rejection, source death during windup/flight and lethal
+generic NPC contact with retained corpse. Repair adds9 real-input tests for110
+timed healing, cast/travel delay, lock/LOS/range/team/FFA, use lockout, charge
+exhaustion/refill, duration extension and source/target death.
+The original generic Bot fixtures use training bodies. Additional explicit
+tests read the parent's external pve_npcs_174 catalog and graph bundle:
+Trooper1D40, Enforcer2279, Sniper1E7D, Assassin1EBD and Heavy Assault1EBB.
+All five actual body scripts initialize and receive flail35, whip70 and allied
+repair110. Enforcer/Assassin's100-point pool is type2 shields, not armor.
+All five actual bodies execute terminal death events and remain as corpses
+beyond3s without automatic respawn. These are passive targets with fixture
+collision/transport and permissive VMs. Difficulty/conditional pools and enemy
+AI/attacks/specials are not covered by these target tests.
+Pass443 combat/input/movement/NPC/driver/record/array tests in104.263s, including90 Brigitte methods, plus15 strict snapshot/replay tests in414.482s:458 total. Rally checks actual cost/undercharge, capped pulses, armor damage,
+healing exclusion, partial/full expiry, death, radius/team/FFA/wall behavior,
+movement speed and effective charge credit. Ruff/diff checks pass.
+Fixture teleports now invalidate cached CharacterBody
+contacts; target-lock tests were rerun after a real move outside the aim cone.
+These do not establish whole-hero static acceptance or original-client combat.
+
+Full remaining matrix (each against players and all five requested NPCs)
+- Flail exact sweep, cancellation, interruption, invulnerability and input gaps.
+- Whip exact native head geometry/return/client target-state replication,
+  NPC knockback, defense/status/immunity interactions and all target archetypes.
+- Barrier broader projectile matrix and exact splash/overlap/edge/shape/lag,
+  native Pet/HP/network representation and visible HUD/animation states.
+- Bash exact travel/contact/prediction, general native record/filter/tag services,
+  actual hero/boss immunity/cleanse, route/gap and full defense/cancel matrix.
+- Repair exact native aim ranking/cone/homing, healing modifiers, interruptions
+  beyond death and recipient native visual State/complete defense interactions.
+- Inspire exact filters/healing modifiers/multiple-source policy/presentation.
+- Rally native charge controller/event eligibility and exact clock, aura filters, temporary
+  pool allocation/flags/priority, native recipient visual State and controls.
+- Applicable shields/reflect/absorb/invulnerability/control/death interactions.
+- Bidirectional actual NPC weapon/special attacks, corpse lifetime and clients.
+
+Reviewed dependencies: parent c2d3ae1/a15d554/fbcaf76/33a634d/d1286b7 were
+applied in this lane as b5bb4c2/2dc7439/fdfd749/5aff7f0/1d8891e, retaining
+authors/trailers. Parent6debff3/7cd1ed7 were subsequently applied as192e6a5/
+85dfc47 after code/test review. Parent64bf71c was applied as7283305; additive
+combat/snapshot/changelog conflicts retain shared Flashbang and Bash state.
+Brigitte changes remain separate uncommitted WIP.
+Parent manual engagement control and mounted weapon roots now execute actual
+Trooper20, Sniper100 and Heavy Assault5 attacks against Brigitte's armor:
+first-hit totals185/105/197.5. Stop prevents additional damage for80frames.
+Trooper/Sniper/Heavy fire hits held shield for20/100/5 with no owner damage. Observer projectile
+transport is omitted in this fixture; no native visual claim is made.
+Enforcer's self-health query now reads the shared owner health variable, scoped
+to explicit self only. After combat updates it includes total health pools;
+bootstrap still starts from the existing base-health input. Enforcer's13EB
+weapon remains gated on unsupported owner/member predicates. Assassin13B8's
+button has no damage output: its special attack needs other behavior graphs.
+Neither is accepted as attacking. No autonomous navigation/specials accepted.
+
+Shield Bash input reaches actual Wait15 for0.15s and starts native13062's7s
+cooldown. MovementMod14 already supplies speed+5, acceleration x10, friction
+x0.4 and forced throttle17=1/18=0/19=0. The mover now applies104319's native
+positive-forward17, backward-magnitude18 and unsigned-lateral19 split before
+acceleration, restores the lateral sign and clamps. This replaces the former
+17=signed-forward/18=signed-right guess, which ignored19. Raw replicated
+command bytes remain separate; full predicted-state byte fidelity stays open.
+Real held-shield+primary input moves the idle owner over4m in9frames, decays
+to rest, cannot restart during cooldown and collides with a wall via the
+existing capsule solver. Opposite-input override and mod retirement also pass.
+Actual375 -> BooleanSwitch11 now begins ModifyHealth10 for5/loadout01DB.
+Reconstructed nearest enemy/radius9149/cone/static LOS feeds the actual graph.
+One activation hits one target once; armor2.5, effective charge, player/five
+NPC targets, lethal NPC events, miss/team/range/LOS/death and recast pass.
+Finish the one-shot damage state after consuming its stored targets. Recheck
+base completion after CHANGED dependency hooks: authored488 now aborts dash14
+on contact, clears488 and permits the next native cast after7s cooldown.
+This shared runtime repair is exercised by actual early stop and repeated Bash.
+Node13 resolves embedded224E with0.75s duration/loadout/source/effect overrides.
+A bounded copy-on-write record adapter now handles its pending31528[39].member
+assignments. It preserves typed row values, evaluates current indices and rejects
+malformed/computed/sparse/foreign/linked-root writes. It is scoped to224E;
+no general native-address-evaluator equivalence is claimed.
+Host the actual PlayScript resource on the living hit recipient. Only224E's
+exact ordinary-actor predicate is reconstructed for that explicit lease;
+its2547 immunity input and native stack-priority gate still select the branch.
+Actual Chase20 owns0.75s duration, movement/jump mods and888/3772 control stacks.
+The shared control hook consumes the active phase, clears input/buffers and
+stops existing Ability channels through authored paths. No parallel Bash
+countdown or forced control-state activation is used. Input cancellation is
+reconstructed policy; complete native tag/modifier semantics remain open.
+Pending31528/selected26550 records stay private to this reconstructed host:
+neither is an authored sync variable or remote-state input. Native record-map
+wire transport remains open. Other control variables/states continue through
+the normal owner/observer snapshot and encoding paths. Complete component VM
+capture also supports the pending record maps without evaluating getters;
+BotWorld.match is registered/excluded there like BodyWorld.match, with the
+enclosing server snapshot preserving Match. Inject it through construction.
+Retire leases at phase end, target death/body replacement or NPC removal.
+Caster death preserves issued control. Two actual casters keep independent
+graphs and control ends when the last expires. Existing Rally aura survives.
+Real quick-melee0x800 runs flail35 at1.5m/3m, misses7m, and respects static
+wall/death-before-contact. Flashbang now interrupts Brigitte Whip windup and
+suppresses movement/actions until expiry, then actual flail input recovers.
+Bash also interrupts a target Brigitte's active Whip windup. All five NPC bodies
+execute/expire control; actual Trooper/Sniper/Heavy primaries cease and recover.
+These permissive base-body fixtures do not prove boss/difficulty immunity,
+cleanse/general stacking, route pause or skipped-clock fidelity, or complete
+status/HUD/animation/audio presentation. Full static acceptance stays open.
+
+All of these stay open until independently executed and evidenced. No new
+client was launched or controlled for these changes. A pre-existing Overwatch
+window was observed without this lane's lease and was left untouched.
+
+2026-11-09 conditional timer, control defenses and Bash cone correction
+Reviewed parent2ca9178 distinct-input join in the private source checkout as
+3677cf0. No shared development source or runtime data was modified.
+Actual Orisa Shift0CF4 and Zarya Shift0244 set immunity2547. Bash contact
+(state10 executes once) then refuses control without stopping the defense.
+After the authored defense duration and native Bash cooldown, control applies
+again. Fortify exposes resource8243=0.6000000238 and retires it to1; damage
+reduction/armor ordering and bubble absorption remain open. These control
+checks establish neither damage immunity nor full hero-defense acceptance.
+Mei/Zenyatta actual inputs stall at54FEB21C authority wrappers. Original
+native timer execution proves absent/false completion must remain waiting;
+no artificial completion is installed. See CONDITIONAL_TIMER_54FEB.txt for
+the bounded implementation, private five-case proof and unhosted services.
+Bash TrackTargets12 uses an opcode49 atan2 expression returning degrees
+(69.852005 for the authored cone). Convert its half-angle to radians before
+cosine comparison. The prior direct cosine widened the accepted cone;
+near-lateral and rear-diagonal negative cases now reject contact. Native
+tracker shape/capsule/cone boundary fidelity remains an open requirement.
+Corrected-source484 regression tests PASS136.566s plus15 strict server
+snapshot/replay tests PASS382.314s:499 total, including94 Brigitte methods.
+Ruff and diff checks pass. The preceding
+483+15 pass belongs to the source before this angle correction, not this
+version. No final acceptance, commit, merge or original-client claim.
+
+2026-11-09 manual Enforcer controller and fourth primary (partial)
+Read-only shared WIP npc_context.py/test_npc_context.py reused in this private
+source tree; exact SHA256 provenance is outside Git in enforcer-reused-source.json.
+No edits were made to the shared checkout. The adapter declares component4B
+present/5C absent only for explicitly manual Enforcer spawns. This allocation
+policy is reconstructed, not native NPC controller creation or autonomous AI.
+B96D3A98's originalCC9F61 predicate tail and182C470 bit reader execute in eight
+private comparisons: missing/empty,4B,5C,both and unrelated bits all agree.
+Controller lookup/boolean output are adapters. Full entity namespace/selector
+path, encrypted component43 resolution and allocation policy remain open.
+Scoped queries apply only to Enforcer13EB and an evaluated owner entity;
+foreign/other graph/other hero queries retain unknown native services.
+Manual input now reaches actual13EB node24 WeaponFire and launches resource
+projectiles. First raw2 hit costs Brigitte1 with armor, or shield2 with owner
+untouched. Stop prevents later fire; restart resumes. The authored0.75s Bash
+control interrupts this fourth primary and attacks resume after expiry.
+A wall inserted after actual launch blocks that projectile before damage;
+placing a wall before launch merely exercises manual-controller LOS gating.
+NPC spawn now syncs the full created pools into shared owner health (Enforcer350,
+Assassin500), avoiding stale base-only values before the first combat update.
+Controller components are included in both passive VM and server snapshots.
+Full frozen-source491 regression PASS189.186s plus15 strict snapshot/replay
+PASS491.135s:506 total including95 Brigitte methods. Ruff/diff checks pass.
+After the runs, a test-only line-format fix passed its focused shield test
+(1 PASS1.317s). No source package changed after frozen validation.
+Assassin13B8's primary button still has no damage output. Read-only body probe
+finds trackers53/68/87/118 in13C3 and ModifyHealth112 (state44) reading14584;
+this special behavior is not accepted as an actual attack. All five archetypes'
+complete attacks/specials/navigation and full static acceptance remain open.
+
+2026-11-09 Inspire recipient replacement and caster lifetime correction
+Actual12D8 PlayScript node2 sets m_AA4DE426=3 and targets375 with11B9. The
+existing64D2C0/64CD10 loaded-graph core replaces every matching graph on the
+recipient, irrespective of source. Replace every existing recipient Inspire
+stream when an eligible new proc arrives; settle accrued healing first.
+Previously the reconstructed consumer keyed streams by caster+target and
+stacked two casters' healing. Actual two-caster hits now replace source/expiry
+and produce one15/s stream. A distant caster's proc cannot replace a target
+outside its actual reconstructed acquisition radius.
+Issued11B9 is owned by its recipient. Retiring the caster component now keeps
+that recipient's issued stream until its own expiry, while retiring a target
+still removes its stream. Healing stats retain the healer; ultimate credit
+requires the original source body, so switching away and back cannot credit
+the new body from the old effect. Repair's separate refresh/lifecycle policy
+is not accepted by this change. Exact native filters/heal modifiers stay open.
+Two new regressions fail against the preceding private review snapshot and
+pass with the correction;54 focused healing/loaded-graph tests PASS48.149s
+and the new distant-source case PASS7.388s. Full frozen regression494
+PASS227.511s plus15 strict snapshot/replay PASS583.355s:509 total, including
+98 Brigitte methods. Ruff/diff pass. Both original run handles were followed
+to terminal; no source/test edits occurred during frozen full validation.
+
+Assassin research boundary correction:
+13C3 is the AI orchestration graph; its inactive ModifyHealth112 addresses
+self, not proof of a victim attack. Actual pin graph1157 uses logical button36
+and recipient-health nodes15/25. The shared manual bridge's target context,
+contact and damage clock are reconstructed and were not imported here.
+Existing native registry has826613B7 metadata(typeinfo2DEB050) but zero runtime
+constructor registrations in the captured client. This does not establish a
+server ModifyHealth timing contract. Private boundary report retained outside
+Git; no native server damage/timer equivalence or original-client claim.
+
+2026-11-09 Repair cross-source recipient reuse correction
+Actual0EDD node23 uses PlayScript policy2 for0EE1. Node42 reads recipient
+22726: when active, node43 sends024/0F6F instead. Recipient0EE1 entry12
+binds caller into40 and adds22716(2s) to remaining22729. Thus multiple
+casters extend one recipient stream; they do not add parallel55/s streams.
+Settle existing accrued healing, keep its remaining duration, then move the
+stream to the latest source key and extend by the new pack duration.
+Actual recipient graph plus existing ordered message receiver in a bound
+SceneWorld proves one instance, remaining-time+2 and latest-source40 binding.
+This fixture proves resource/message control behavior, not the unhosted native
+health service or complete world delivery/recipient visual integration.
+The actual two-caster command test now gives55/s and220 total from two packs,
+with updated healer; old review snapshot reproduces the parallel-stream error.
+Death during cast spends the charge and prevents launch. A launched pack
+can arrive after source death while the old body still exists. Retiring
+that body before arrival clears the pending pack. Death after delivery
+preserves the issued heal. Healing from a dead source earns no ultimate credit.
+Issued Repair now keeps an initial controller/pick anchor, latest source-body
+presence edge and pending cleanup deadline. The numeric host follows0EE1's
+same-pick3s wait/different-pick stop requests through body replacement, while
+refresh preserves the first controller and any pending wait. This is distinct
+from Inspire's lifetime. Native entity/controller lookup, exact notification
+phase and full recipient operation7/transport still require acceptance, along
+with homing geometry, heal modifiers and recipient presentation.
+An already delivered Repair Pack resumes on actual Fade or Cryo-Freeze
+cleanse. Its original deadline remains in effect and Brigitte earns
+healing credit only for the remaining unblocked interval.
+
+Focused82 healing/loaded-graph/ordered-message tests PASS75.619s and separate
+post-delivery death1 PASS3.286s. Full frozen regression522 PASS244.883s plus
+15 strict snapshot/replay PASS552.172s:537 total,101 Brigitte methods. Ruff
+and diff pass; both original handles followed to terminal with source frozen.
+
+Repair source-generation evidence boundary:
+Graph288B writes entity13161 at40/238/263;238 reads93DCDDFD. Original native
+BC9AE0 mask helper selects component75 andCDF5B1 forwards its+D0 resource
+unchanged in three private tests (zero and two hero-resource values). F67090
+output collection is an adapter. This is resource-field evidence, not full
+entity lookup/decryption, F7262B36 controller mapping or source-cleanup proof.
+The private report/probe/capture remain outside Git. No client access.
+
+2026-11-09 manual Assassin1157 integration (partial, native AI still open)
+Reuse the shared read-only uncommitted assassin.py/test_assassin_pin.py in
+this private source tree; exact hashes remain outside Git in
+assassin-reused-source.json. No edits to shared source/runtime/client.
+Explicit manual Assassin context maps slot0 to actual logical button36 and
+binds its selected player body into1157's target536 through a private1650
+context. It does not invent/replicate a native controller entity. Contact3m,
+static LOS and target context are declared reconstruction policy.
+The actual1157 graph owns the branch,25 initial damage and1s Wait24 before
+ModifyHealth15's authored11984=100. Scoped ModifyHealth world hooks consume
+those active phases: reconstructed per-second clock or one-shot on entry.
+No native server ModifyHealth clock is claimed (see prior registration proof).
+A pin map supplies reconstructed victim input/channel interruption; active
+phases and explicit engagement transitions retire it. Integrate with existing
+Flashbang and hosted Bash without replacing either independent control source.
+Actual held-shield Brigitte loses20 through armor on contact, drops shield
+and cannot act while pinned. No sustained damage before the authored wait.
+Actual allied Bash frees the victim and controls Assassin; no damage during
+that pause, then native Bash expiry permits renewed manual engagement.
+Stop, actual source death and explicit removal release control immediately
+and prevent later damage. Eight shared synthetic-contract cases additionally
+cover duplicate frames, one-shot scope, Flashbang, range/wall/team and target
+body replacement; those fixtures are not original native AI acceptance.
+Manual removal now detaches World.match/manual_target after destroying script
+instances. Remove stale pin identities on death, replacement and target loss.
+Both VM and server causal captures register ModifyHealth.last_applied,
+BotWorld.manual_target and Combat.pins; getter-free capture distinguishes
+recipient/control-context changes. No animation/voice/HUD/lag/pin immunity or
+autonomous selection/navigation/special policy acceptance.
+Focused66 integration/control/VM tests PASS54.919s; new causal-capture/context
+7 PASS32.267s and extended actual rescue/recovery1 PASS2.448s. Ruff PASS.
+Frozen old-input full regression534 PASS285.059s plus16 strict snapshot/replay
+PASS690.986s:550 baseline tests. Original handles followed to terminal.
+Afterward, test-pose-only changes and new capsule-boundary tests were checked
+against the parent-prepared actual NPC mover table, as recorded below.
+Full Brigitte static acceptance remains open, with original-client acceptance
+separate; no final hero commit/merge/push.
+
+2026-11-09 NPC mover-input correction and geometry revalidation
+Parent audit found the normal runtime has38 mover rows, with no five Talon
+body rows. Earlier NPC fixture geometry therefore used generic defaults, not
+original per-body geometry. Historical behavioral passes do not close that
+geometry requirement. Use the separate read-only npc-navigation-runtime;
+its43-row table SHA256 is e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c.
+Preparation manifest links the original104319 XML hashes. Other metadata in
+that runtime are shared hardlinks and were not modified. No real map cache
+is prepared there; collision tests continue to use declared static fixtures.
+Actual capsule height/radius/speed:
+Trooper1.7/0.5/5.75; Enforcer1.9/0.5/5; Sniper1.75/0.5/4.5;
+Assassin1.5/0.5/14; Heavy2.3/0.7/2.2. Private report confirms these values
+reach Combat targets, rather than silently falling back to generic movers.
+The initial18-test rerun caught five Assassin selection errors and one
+allied Repair miss: horizontal1.6m eye aim passed over the1.5m capsule.
+Correct the fixture to aim through ordinary input at its actual capsule,
+preserving held-shield input where required. No gameplay hit predicate changed.
+All18 existing NPC cases then PASS37.561s. Two added methods PASS16.832s:
+15 body/boundary scenarios exercise45 actual flail/whip/Bash activations
+against range, wall and friendly exclusion, with activation counters checked;
+10 body/range-edge scenarios distinguish +/-0.05m capsule boundaries.
+Thus20 actual-mover NPC methods pass, including the new25 boundary scenarios.
+Ruff/diff pass. Source packages remain exactly those used for the550-test
+baseline; only test poses/coverage changed after frozen full runs. This is
+per-body capsule-input and declared fixture evidence, not original skeletal
+hitbox geometry, prediction/lag, real map deployment or navigation acceptance.
+
+2026-11-09 controlled-cast cancellation and persistent Rally pulse fixes
+Actual Flashbang during Repair windup reproduced a deferred heal: the native
+abort consumed charge but the unlaunched repair_casts entry survived control.
+After expiry, the next command observed its decreased charge and launched it.
+Centralize control interruption through Combat._interrupt, invalidating that
+pending record before authored Ability.stop/end paths run. Hosted Bash and
+manual Assassin already use this entry point. Keep launched deliveries and
+issued recipient heals separate, so control after launch preserves the pack.
+Actual Flashbang before launch now gives no heal, preserves the authored spent
+charge and allows a new cast after expiry; actual Bash during cast also drops
+the unlaunched record. Actual Flashbang after launch completes the issued110.
+No cooldown/charge refund or replacement timer is added.
+Actual Assassin pin also reproduced a Rally bug: resource phase0 and Wait20
+continued, but Combat.command returned for controlled input before consuming
+the armor pulses. Consume living source aura pulses before the input-control
+gate; attacks/active casts remain behind it. Remove the old duplicate pulse
+consumer from the active-action loop. Actual pin and Bash cases now observe
+armor increase during control, rather than only checking that phase0 survives.
+Source death still suppresses aura consumption through the existing alive gate.
+Private before-fix report plus archived prior review patch reproduces both
+failures. Focused Flashbang cases PASS6.576s and pin/Bash Rally cases PASS3.616s;
+Ruff passes. Actual43-row input full mechanism run:540 attempted in164.229s,
+531 passed and9 real-map mover checks skipped for absent collision caches.
+Those9 pass8.632s under the original read-only runtime/cache. The common38
+mover rows are identical (UTF-8 comparison), and these map tests exercise
+those existing player bodies. Thus540 mechanism cases pass across documented
+inputs. Four selected snapshot/replay checks PASS65.722s on43-row input.
+Both original handles followed to terminal; source/tests frozen during runs.
+No snapshot field layout changed in this turn; the previous16-test contract
+run remains historical evidence, and current selected checks cover getter-free
+VM/control capture plus stored creation/spawn/replay. Full static stays open.
+
+2026-11-09 Whip live knockback-rule consumption (partial)
+Knockback investigation confirms1259 node32's m_E33EFEE1=25*ruleset14131
+and m_583C208B=3*ruleset14131. The former player impulse consumer hardcoded
+25/3. It now evaluates those actual resource expressions at contact, including
+a ruleset change while the outgoing head is already in flight. Zero disables
+that impulse without touching damage; no extra flight fields/timers are added.
+Three actual-input cases (zero before launch, zero during flight, double
+during flight) all failed against the archived prior consumer and now pass.
+Observe velocity immediately after flight contact, before mover damping:
+zero/zero and50 horizontal +6 vertical respectively; damage remains70.
+The existing player-impulse application model is still reconstructed. Native
+target417/vector433 branch, ring/resistance semantics, NPC external-velocity
+integration, immunity and original-client presentation remain unaccepted.
+The shared manual navigation bridge uses pursuit/stop policy and is not a
+substitute for these unknown external-impulse services. No NPC motion claim.
+Focused2 tests PASS2.186s after repair. Targeted flight/barrier/actual NPC
+contact/generic combat/projectile/movement169 PASS123.027s; selected
+getter-free/stored replay2 PASS36.378s:171 targeted checks on43-row input.
+Ruff/diff pass. Original handles followed to terminal with source/tests frozen.
+Earlier full540 mechanism/four snapshot checks remain historical evidence.
+Full static/native matrix and original-client acceptance stay open.
+
+2026-11-09 Native velocity-action boundary (research only)
+TankLib FF3471E9 derives from STUStatescriptAction, with embedded B024BE51
+array m_BC5E91CF at144. Correct the mover overview's mistaken state label.
+The104319 capture registers ctorD38050, vtable266E528, slot48 handlerD2B350.
+That handler reads the array and dispatches to movement services; it does not
+establish that Whip ModifyHealth uses the same mechanism. The subordinate
+parameter types have no independent runtime constructor registration here.
+An offline Unicorn probe enters scalar tailsD2B762/D2B853 after type checks:
+18 cases cover modes0/1, axis enum0/1/2 and value/priority pairs0/0,25/10,
+-3/-100. Original instructions evaluate and forward each pair and a zero
+term to serviceC32860. Expression evaluation and the service itself are
+adapters. Entity/component lookup, subtype checks, service effects, exact
+mode/axis semantics and NPC resistance/impulse remain unaccepted. Do not
+substitute a direct NPC velocity write based on this limited tail proof.
+Private probe/report remain outside Git; no runtime behavior or state layout
+changed. Earlier171 targeted checks apply to unchanged executable behavior;
+this research probe is a separate18-case result, not a full suite rerun.
+
+2026-11-09 Rally charge expressions and passive host (partial)
+Actual Brigitte initial0B8B instance15 contains passive Wait3 (one second),
+SetVar4 (min(cost, charge +5*valueOr(9532,1)*valueOr(12918,1))), damage23
+and healing32 (same cap with effective amount*9532*13022). Previous hardcoded
+60s fill yielded46.2933 points in62 frames, where the new host has no pulse
+before a full1000ms. Actual flail35 with2x3 scalars previously credited35
+instead of210. Both regressions reproduced under archivedb540a88f patch.
+Default Brigitte now uses those actual expressions; other heroes retain their
+existing fallback and explicit0/positive passive overrides remain available.
+A reconstructed accepted-command clock supplies pending milliseconds only
+while no actual0B8B Wait is active, avoiding duplicate graph credit. Reset it
+for dead/retired/full/Rally and known disabled2426/active842 gates. Unset2426
+and nativeF726 controller lookup are still an unaccepted host boundary; this
+change does not force a guessed controller query or globally enable the graph.
+Damage and healing evaluate distinct actual expressions using a local context
+for the supplied effective amount, without mutating live instance variables.
+Real flail/Repair with2x3 scalars credit210 and660, preserve no-overheal credit,
+and cap at2800. Float32 accumulation is observed (870.001953 total), not hidden
+behind a replacement high-precision accumulator. Live passive scalars2x3
+produce30 at the next pulse; zero suppresses it and the live cost caps it.
+Known gates suppress both passive and actual-flail charge; resetting the host
+interval prevents an immediate catch-up burst on re-enable. Actual death and
+full Rally aura suppress default passive charge. Gap125 and old/duplicate
+command frames do not double-count simulated time. This does not accept
+native idle-clock/gap/controller/event-tag eligibility or complete charge gates.
+The added passive_charge_ms causal field is registered in independent body VM
+and server storage. Getter-free mutation tests cover both exporters. The
+expression/instance lookup pattern is adapted from read-only Bastion lane WIP
+with private SHA256 provenance; that lane was not modified.
+Initial Rally17 plus new body-VM clock test18 PASS35.484s before adding actual
+flail checks to the disabled-gate scenario. Current full mechanism and complete
+server snapshot/replay suites are running on the read-only43-row NPC input.
+
+Seventeenth-turn follow-up evidence: actual Rally activation followed750 frames
+keeps charge0 throughout the aura; after phase0 ends it resumes at5 then10.
+The actual resource842 gate is true during the aura and null afterwards.
+A separately begun real0B8B Wait loop produces10 over125 frames while the
+adapter's pending clock resets to0, proving this bridge does not double-credit
+an already executing resource loop. These are private repeatable probes, not
+proof of native controller/gate initialization or exact idle scheduling.
+Full mechanism run84385 terminal:548 attempted255.565s,9 real-map skips,
+and two failed subcases of one new gate-test method. The fixture teleported a
+previously simulated target without updating its existing mover capsule; actual
+flail consequently missed. Reset only that test capsule after teleport, matching
+other established fixtures. Exact gate method75605 now PASS4.286s (both
+subcases); no production code changed. Server snapshot suite83171 continues
+against the same frozen production source. Do not call the first run all-green.
+
+Charge gate follow-up: resource scan finds only01C7 node39 SetVar and node77
+Stack as2426 writers.39 tests #59 against identifiers16/18 and #1927's7775
+entry; #1927 comes from9622CAD6 at40. The known4A101787 false branch at78
+instead arms message states75/76 (0694/0700), whose scoped subgraphs stack
+2426=true via77. Native source/lifetime of these messages and context-map query
+remain open. Do not initialize2426=true merely because its current value is null.
+The nine previously skipped real-map checks PASS11.503s on the original
+read-only runtime/cache; original38 mover rows were already verified identical.
+This supplements43-row mechanism coverage without claiming a single all-green
+548-case run. Production behavior remained frozen throughout these checks.
+
+Seventeenth-turn terminal validation: full server snapshot/replay83171 PASS17
+in637.318s, original handle followed to completion, no restart. Mechanism548
+coverage combines the full548 attempt (one fixture method corrected), the
+exact corrected gate method PASS and original-input real-map9 PASS; this is
+not a single all-green invocation. Both runs used unchanged production source;
+test-only capsule correction does not alter source-manifest/clock behavior.
+Total548 mechanism cases covered across documented inputs plus17 complete
+server storage/replay checks. Native controller/event/clock acceptance and the
+entire original static/client objective remain open. No final hero commit.
+
+2026-11-09 Shared early-input audit and Repair existence boundary (partial)
+Parent reported Ability readiness re-inserting consumed presses with a fresh
+now timestamp, causing a released early input to fire at cooldown completion.
+Private lane already retains the original timestamp via take_press(consume=False)
+and consumes only after readiness succeeds; parent's retain=True API expresses
+the same policy. No parent WIP/production source was copied or modified.
+New actual resource/input matrix covers Whip4s, Bash7s, exhausted Repair3-charge
+recharge, and Rally charge readiness after the actual first aura has ended.
+For1259/12BE,150ms near-ready input is accepted; old early input expires;
+held/new input works when ready.0EDD has no authored early window: short
+near-refill input expires, held input casts after recharge, a new press works.
+Bash routes LogicalButton22's going-down edge through98 (!#13062) to21;
+Ability170 only owns cooldown13062 and has no activation output. Therefore
+holding primary through expiry does not auto-Bash: release/new down edge is
+required. Its near-ready short input also expires. Do not impose buffered or
+held-repeat activation from other resources onto this distinct graph route.
+The initial64-method test invocation imported60 existing tests and exposed one
+incorrect held-Bash expectation; those60 existing methods passed. Correct that
+expectation from the actual22->98 graph route and use module imports so only
+the new4 methods load. Four methods/13 subscenarios then PASS53.947s. Replaying
+baseline3677cf0 Ability methods in an isolated process reproduces two real-input
+failures: Whip and Rally early released input auto-casts when readiness opens.
+No test override touches the current production class or source files.
+Repair cleanup research:0EE1 node50 callsE72F6348 on source40, then node49
+compares controller21709's13161 to captured940; mismatch terminates, otherwise
+Wait48 lasts3s before termination. Native ctorD07550/vtable2663070/scalarCE4A60
+is now identified.64 original scalar cases confirm invalid0 and low29-all-ones
+handles are filtered; a valid handle returns true only for a nonzero registry
+lookup. World/context/config conversion/cleanup/output and registry services
+are adapters. The scalar itself does not inspect health, but the real lookup's
+death/lifetime policy is unproved. Do not equate this predicate to alive status,
+or infer complete Repair cleanup from this probe. F726 controller mapping and
+21709/13161 generation/lifetime handling still need their actual services.
+
+Eighteenth-turn terminal validation: final4 input methods/13 subscenarios
+PASS81.666s (51903), original handle followed to terminal. Only lambda binding/
+formatting and test expectations/imports changed since the first new-input run;
+production source/state layout remains identical to prior548-mechanism plus17
+server snapshot/replay validation. No broad suite rerun is claimed or needed
+for this test/research-only turn. Ruff/diff pass.122 Brigitte test methods now
+exist. Full original static/native and client acceptance remain open.
+
+2026-11-09 Native throttle split and actual Bash boundary (partial)
+Parent's native mover evidence corrected the private lane's earlier two-axis
+mapping. Shared modified_throttles was reused by exact function source/SHA256
+with provenance. Apply17 to max(forward,0),18 to -min(forward,0),19 to abs(right),
+restore right sign and clamp. Four previous actual-mover cases fail: forward
+restriction erroneously stopped backward movement; backward restriction stopped
+lateral movement instead; both lateral directions ignored19. All four now pass.
+Shield Bash happened to mask the bad mapping by setting all17/18/19 to1/0/0.
+Use that complete resource tuple in the existing forced-movement mod test.
+Actual shield+primary then backward with left/no-lateral/right input observes the
+executed acceleration wish: idle on the activation pose, forced(0,1) on the
+next pose through the scope's last pose, and raw lateral/backward on the first
+pose after expiry. Three actual-input subcases preserve mover raw throttles,
+last-input throttles and BodyWorld input values throughout. No new state fields.
+Focused four ModTests plus actual Bash boundary1 PASS4.188s. Private native
+C33960..C33A8D120 comparisons pass; old mapping mismatches113. Scalar-mod
+lookup is an explicit add/multiply/set stub: original instructions own property
+selection, split/sign/clamp; full modifier service/physics is not accepted.
+Frozen full mechanism20098 and selected getter-free/stored replay/clock3
+30905 started on actual43-row input. Selected3 terminal PASS92.608s. Full
+17-test source schema run from the charge turn remains historical evidence;
+no state layout changed here, so selected checks are the current contract scope.
+Repair follow-up: F726's D15520 uses BD4680's component43 mask. Its BD42D0
+reader's BD4576 tail loads cipher+D8, decodes the handle at+E0 viaBAD060,
+XORs and writes low32 controller EntityID. Original mask1/read15/missing-tail1
+checks PASS17; key decode is an adapter. Missing component tail writes invalid0
+and succeeds. Entry return-address guards, real key ownership, entity/component
+lookup/decryption and complete controller/source-generation lifetime remain open.
+Do not replace those services with guessed player mappings from tail evidence.
+
+Nineteenth-turn terminal validation: full mechanism20098 finishes554 tests in
+455.806s:545 PASS and9 real-map SKIP for absent43-row-runtime collision caches.
+Those exact9 PASS12.635s on original read-only runtime/cache; original38 mover
+rows are identical. Thus554 mechanism cases are covered across documented
+inputs; this does not invent one554-PASS invocation. Current selected server
+export getter-free/stored replay/charge-clock3 PASS92.608s.123 Brigitte methods
+now exist. Native prefix120 PASS (old mapping113 mismatches), focused5 PASS,
+original controller selector/read/missing-tail17 PASS with explicit adapters.
+Source/tests stayed frozen throughout current mechanism and selected snapshot
+runs; no state fields added. All original handles terminal, no restart. Ruff and
+diff checks pass. main3677cf0, parent base2ca9178, no hero commit/merge/push or
+client access. Full static/native matrix and original-client acceptance stay open.
+
+2026-11-09 Repair source lifetime and canceled notification ownership (partial)
+Native22926252 ctor1B6E3D0/vtable27AC3C8/action1B6C8F0 reads null selectors
+in all145 matching resources. Three null-selector action cases request current
+instance at time-1 then follow output;24 original1B92C30 request cases construct
+type7 with current time/instance16, clear bit10 and set bit8. Allocator/enqueue,
+network predicate and output are adapters. Dispatcher1B91690 table7 calls
+instance vtable170. Destructor1B90A70 pins base vtable27AEE28, whose170 is
+1B95240. Four dispatch targets,256 parentless stop-loop and2 stopped-noop
+cases PASS262: stopped bit set before slot-order state iteration, active abort,
+conditional registration release, hooks, component guard restoration/count
+clears. Parent/network/derived/state abort/release services remain unaccepted;
+this does not authorize replacing the action with synchronous Component.destroy.
+Actual0EE1 with explicit registry/controller inputs and a request collector now
+executes four cases: same picked-hero loss starts Wait13 for3000ms; changed
+pick requests stop immediately; refresh after loss updates40 but retains21709,
+940 and existing deadline; refresh before loss watches the new body and starts
+no wait. The probe observes loss at527ms and request at3527ms; these exact
+compatibility-poll times do not establish native dependency/notification phase.
+The old numeric bridge then reproduced a concrete gap: an actual delivered
+pack followed by same-hero Match.switch_hero lost its remaining1.718667s,
+healing15.473333 instead of110. It deleted repairs whenever a source body
+retired, unlike the controlled0EE1 source-loss path. The prior review patch and
+private report retain the old behavior.
+RepairHeal now owns first controller/picked hero, latest-source presence and
+optional cleanup_at. A same-pick disappearance schedules the authored node48
+wait using the current server roster; a changed/missing controller stops at its
+first observation. Refresh changes healer/source but preserves that anchor and
+pending deadline. A later false edge may shorten, never postpone, the deadline.
+Healing settles only to min(duration,cleanup deadline); original duration stays
+separate. Recipient retirement/death still clears its effect. Old-body issued
+healing updates stats but cannot give ultimate credit to a replacement body.
+Actual input tests verify110 completion after same-hero replacement, ending on
+changed hero,3s cap for a longer three-pack stream, and a later caster refresh
+which keeps the initial controller/deadline even when that controller changes
+hero while the latest source remains present. Server-roster/poll reconstruction,
+real controller13161/entity lifetime and full native stop/transport remain open.
+RepairHeal's controller/pick/presence/deadline are registered in server causal
+storage; a getter-free mutation test distinguishes both deadline and controller.
+Parent also identified canceled-notification coalescing bits surviving state end.
+Both old CHANGED cases and an added Join CHECK reentry case fail privately.
+After cancel, clear flags_check/flags_changed and suppress variable notifications
+for ending states. No VM fields added. Exact parent test/source provenance is
+saved privately. Ability.stop cleanup/arbitration reorder was reviewed but not
+changed here: native inter-object order and a material Brigitte-specific case
+still need evidence.
+Initial resource/helper76 PASS30.268s is historical before production edits.
+Current notification/resource7 PASS1.938s and all Repair/resource/notification26
+PASS44.750s. Full frozen mechanism87536 and complete server snapshot46470
+are running; original-input real-map63767 terminal9 PASS11.731s. Source/tests
+remain frozen until terminal validation; full static/client acceptance stays open.
+
+Twentieth-turn terminal validation: full mechanism87536 terminal565 tests in
+336.467s:556 PASS and9 real-map SKIP for missing43-row collision caches.
+Exact9 PASS11.731s under original read-only runtime/cache; original38 mover rows
+are identical. Thus565 mechanism cases covered across documented inputs, not
+one565-PASS invocation. Complete server snapshot/replay46470 terminal18 PASS
+610.994s, including getter-free pending deadline/controller mutations. All handles
+followed to completion without restart, source/tests frozen across runs. Current
+131 Brigitte methods. Ruff/diff pass. The original delivered-pack replacement
+failure is corrected; roster/poll, actual controller/registry, same-time delivery
+versus cleanup, general operation7/parent/release services and recipient transport
+remain unaccepted. No final hero commit/merge/push or original-client access.
+
+2026-11-09 FirstPerson field-based eye origins (partial)
+Hero0195.075 names gameplay body1B1B.003, whose FirstPerson fields explicitly
+set E29993A5=1.58 standing and816B830F=1.2 crouched. Enemy McCree02A3.003
+sets1.425/.9975. Preserve XML path/hash and parent helper source provenance in
+private firstperson-eye-evidence.json. Player shot origins and Target.eye now
+share eye_height; history/seen stores those per-body values. Unlisted bodies
+and NPC origins retain their previous fallbacks; do not claim those heights.
+Before correction, eight subcases fail: both Brigitte Whip center rays hit low
+cover at heights1.565/1.175 that the authored-height ray clears; enemy McCree
+shoots over1.48/1.05 cover and damages Brigitte65 instead of remaining blocked;
+four standing/crouched own/enemy origin/target-record checks use generic values.
+After correction,3 methods/10 subscenarios PASS8.746s. Tests use actual ability/
+primary/crouch input and a paired unobstructed McCree shot, plus historical eye
+records. The Whip static-world adapter traces its center ray: head-radius/cover
+sweep, animated camera/muzzle/hardpoints and original skeletal critical zones
+remain unproved. No McCree owned-primary critical multiplier policy was copied.
+Initial full mechanism7364 terminal568 in348.726s exposed6 Assassin contact
+failures (including two removal/death subcases): an old fixture placed it at
+horizontal3m exactly, but recorded Brigitte eye1.58 versus NPC fallback1.55
+makes actual3D distance slightly greater than3m. Production range is unchanged.
+Use2.9m for the Assassin contact fixture and add actual1157 input cases at
+2.99m (pin20 damage/control) and3m (no pin/damage). Focused NPC+eye25 PASS
+33.311s. Corrected frozen full569 handle65838 terminal in319.445s:560 PASS,9 SKIP. Original-map9
+supplement66026 terminal PASS12.199s. Selected getter-free/
+stored replay/Repair controller-deadline3 terminal PASS89.342s. No state schema
+changed. Prior full18 storage checks are historical, with current selected
+checks appropriate to this source/data change.
+Real tool goal was checked after the parent's user-scope delegation: ACTIVE,
+original complete Brigitte objective retained, no token budget. Server behavior
+may be reconstructed from104319 resources with differences/unproved points
+recorded. This does not waive missing functional effects or the full player/
+five-NPC/cross-defense matrix. No partial hero commit or merge-ready claim.
+
+Turn21 terminal evidence:569 mechanism cases covered across declared inputs:
+560 PASS319.445s under43-row NPC metadata,9 real-map SKIP there; the exact9
+PASS12.199s on original read-only runtime/cache. Selected server snapshot/replay
+3 PASS89.342s; prior complete18 historical, no schema change this turn. Current
+135 Brigitte methods (prior131 +3 eye +1 NPC range). Source/test freeze retained
+through terminal run. Full static/client acceptance remains open; no hero commit.
+
+2026-11-09 Whip external NPC motion (partial server reconstruction)
+Before correction, actual Whip hit/damage input against all five catalog bodies
+removed70 health but never moved or lifted any body (five reproduced failures).
+Bot now owns a lazy external Mover only while displaced. It uses the extracted
+body MoverData and existing collision capsule solver, no archive/runtime copy.
+At living damaging contact, live1259/node32 supplies horizontal25/vertical3 and
+ruleset14131. Player and Bot share Mover.impulse. Positive requested lift marks
+the body airborne before the next pose, otherwise the grounded mover projects
+velocity along the floor and erases lift. Direction follows the reconstructed
+Whip ray, existing upward speed is preserved, repeated impacts reuse physics.
+Bot route intent waits through external motion and resumes from its displaced
+position after landing/rest; control pauses do not erase physical momentum.
+Dead bodies clear the mover, never start a new impulse; respawns start clean.
+NPC movement records expose flags/air_ticks, while position/velocity remain
+ordinary body fields. Server snapshots register impulse_mover and its existing
+read-only physics adapter; pending last_tick and hidden physics are causal.
+No autonomous NPC navigation, native force/resistance, exact direction417/433,
+Heavy resistance or original-client motion/transport acceptance is claimed.
+Missing collision uses the existing mover flat-floor fallback; real-map/nav
+acceptance must not be inferred from synthetic capsule scenes.
+New actual-input checks cover all five bodies lifting/moving/landing/rest,
+wall capsule clearance per radius, allied filtering, lethal contact, zero/one/
+double live rule, and player lift/landing. Three Bot lifecycle checks cover
+control pause/duplicate ticks, repeated impact/death/respawn and route resumption.
+Initial nine new checks PASS14.450s. Motion+Bot+parent spread+full body VM39
+PASS52.959s. Full mechanism584 handle42009 and full server snapshots19 handle
+91106 are running frozen source. Exact original-map9 terminal PASS17.902s.
+
+Parent shared WeaponVolley normalized spread update was reviewed class-only
+and copied into this private lane. Add causal spread_ramp and snapshot layout;
+copy six exact state tests. Private volley-spread-parent-provenance.json stores
+source/class/test hashes. Null decay239B571E output follows native ramp evidence;
+other/decaying cases retain the old behavior. Actual Combat rays still do not
+sample spread; this is not a complete enemy Fan acceptance claim. No inherited
+Ability.stop ordering or unrelated parent WIP was silently copied.
+
+2026-11-09 NPC team proxies, Fortify damage and incoming Fan (partial)
+The additional team-mask diagnostic found TEAM1-only wall stopping both teams:
+NPC external motion defaulted to combined MOVER. Match the player's team0/1
+proxy policy and combined FFA; repeated impact after changed team invalidates
+cached capsule. Eleven motion/Bot checks PASS14.016s. Full schema19 from the
+preceding revision terminal949.912s, before category/damage/Fan integration.
+The async hash collector at transition may include category changes; its file
+explicitly disclaims exact pre-change hash proof. No layout field changed after
+the19-run. Current selected getter-free/hidden Bot physics/pending tick/stored
+replay3 PASS75.669s verifies current code; do not label full19 as current.
+
+Actual0CF4 Fortify sets incoming8243 to0.6 and retires it to1 on expiry. Old
+flail/Whip/Bash damage remains35/70/5 without armor or30/65/2.5 with armor,
+reproducing six missing-reduction failures. Combat now reads an existing real
+Var without allocation, multiplies incoming amount before the shared armor
+consumer, and gives charge/stats only for effective damage. The pre-armor order
+is a declared server reconstruction, not recovered native combat-mod ordering.
+Active numerical outcomes21/42/3 without armor and16/37/1.5 with armor, actual
+expiry returning flail30, plus existing control immunity/expiry are tested.
+A synthetic Mock death-script regression from treating a mocked service as a
+real zero-valued variable was caught and fixed by accepting actual Var slots.
+Fortify knockback resistance, other combat mods and Zarya absorption remain
+open; this scalar bridge must not be described as all defense acceptance.
+
+The parent's exact critical_default/fan_direction functions and generated
+weapon_spread helper were reviewed and copied privately, with function/helper
+hashes and four exact table/math tests. Only explicit zip strictness was added
+for lint. Other Roll/Deadeye bridges were not copied. Incoming primary's2x
+implicit critical policy is the parent's declared McCree reconstruction, not a
+new global default. Fan uses actual resource cone0..6 degrees and deterministic
+body/instance/node/counter seed mapping; native identity and uniform-radius
+binding remain documented differences. Pure immutable caches add no causal
+state. Six distinct actual enemy Fan rays hit Brigitte; each stays in the cone.
+Actual held-front-shield per-shot observation proves the breaking shot does
+not spill into the owner; later burst shots hit the now-unshielded body. An
+initial whole-burst no-damage expectation was wrong and corrected, not a game
+bug. No fixed six-hit center-ray assumption is used for spread accuracy.
+
+Add actual hostile flail contact healing90 over6 seconds and recipient expiry
+for all five injured allied catalog NPCs, complementing existing Repair110 and
+Rally100 actual-NPC cases. The current combined defense/Inspire/Fan/math/Bot17
+PASS68.786s; previous incoming/math/defense/Bot16 PASS25.497s. Current frozen
+mechanism595 handle78641 is running; selected snapshot3 PASS75.669s and exact
+original-map9 PASS17.194s are terminal. Full static/client scope remains OPEN.
+
+Turn23 full-run correction: first595 handle78641 terminal526.047s with8
+errors and9 map skips. All8 are AttributeError from legacy lightweight NPC
+TimedScript/SyntheticScript/NameplateScript without a VM component; the new
+incoming8243 reader assumed one. Accept an actual runtime.Component and Var
+only, otherwise preserve the pre-existing damage amount. Dedicated Bot-state/
+defense/Fan30 PASS27.104s. Corrected frozen595 handle58464 is running; the
+original failed handle was followed to terminal before editing/restarting.
+No state field/layout changed in this compatibility guard. Current code has
+146 Brigitte methods; Ruff/diff pass. Current patch export remains pending.
+
+Personal barrier defense
+
+0244 node8 activates Pet13F4. Node9 links it to 0256, whose node0
+HealthPool expression evaluates to 200 with the default controller inputs.
+Combat stores remaining capacity by body, instance and Pet activation.
+The original Chase controls natural expiry. Ending the depleted Pet uses
+0244 node13 to stop the ability and node7 to enter cooldown. Body retirement
+and death clear stored capacity. Snapshot export records capacity without
+executing VM getters.
+
+Actual inputs cover Flail35, Whip70, Bash5, pool expiry, and Fan overkill.
+The breaking shot consumes the pool without touching the owner. Later
+shots damage the exposed owner. Current checks cover default personal
+barrier body contact. Projected barriers, energy gain, projectile status
+ordering, exact Pet geometry and original-client presentation remain open.
+Defense7 and getter-free snapshot1 passed. Full597 runs on handle75033.
+
+Genji Deflect interaction
+
+Original hero body 0225 and graph 03A3 are already in the prepared player
+bundle. Ability input bit16 starts state10, node18. The host uses the node
+angle at body contact. Real flail, quick melee and Whip are blocked in front
+and hit from the rear. Bash still deals damage and applies stun. Natural
+phase expiry restores front damage.
+
+Actual Soldier rifle loadout 0B9000000000008D redirects along Genji aim
+with Genji as the shooter. A third player test hits Brigitte or consumes
+20 of her raised shield. Ray intersection uses the ordinary body capsule,
+and the host permits one redirect. Authored boxes, tag filters, other
+weapons and physical projectile ownership still need verification.
+Combat and defense41 passed. Updated Deflect4 passed. Full601 handle14624
+is running. The preceding Zarya revision full597 passed with nine map skips.
+
+Invulnerable phase interactions
+
+Real Wraith, Fade, Cryo-Freeze and Transcendence input enters the authored
+phase after a scoped scene-side handoff for its zero-delay wrapper. The
+server reconstructs this handoff timing. The generic timer keeps the original
+condition rule. Real Flail35, Whip70 and Bash5 reach damage resolution
+without changing protected body health or motion or applying control or
+Inspire. Phase expiry reopens Flail. Reaper re-press also restores damage.
+Native handoff, projectile passage, cleanse and healing behavior remain open.
+Focused21 and Wraith cancel1 passed. Full604 handle50315 is running.
+
+Ana healing modifiers
+
+Real input bit16 drives 0B97 state0 and its grenade. Impact0267 links
+to 0C71, which selects friendly0B99 or hostile0C72. The normal profile
+uses a 100-point heal or 60 damage and a four-second modifier. Friendly
+amplification starts after 0.05 seconds and multiplies healing by 1.5.
+Anti-heal takes precedence. 0C72 node8 cleanse variables terminate it.
+The server also reconstructs self-barrier cleansing from Zarya's active
+0244 Pet state. An already delivered Repair Pack resumes at 55 HP/s
+for its remaining duration, before the original anti-heal expiry.
+The server uses the effect branch amount once and preserves existing
+capsule collision and LOS rules. Native gravity, filters and mode/AI profiles
+remain open. Resource cross-checks are recorded privately.
+
+Real Repair Pack tests verify 165, 0 and 110, and Inspire tests verify
+weighted healing across expiry. Actual Wraith clears anti-heal before
+the deadline and a pack then heals110. Getter-free snapshot captures the
+modifier windows. Full607 handle37266 is running.
+
+Physical reflection
+
+The active Genji phase checks front body contact and changes projectile
+owner and team. The projectile keeps its payload and uses the remainder
+of the same update slice. Lifetime is accounted across redirects. The
+original Helix prediction releases at contact. The reflected flight
+persists when the original launcher retires and ends when its new body
+retires. Actual Helix hits Brigitte for110 after armor or removes120
+shield HP. Rear Helix retains Genji as the victim. Actual reflected Ana
+grenade hits Brigitte for55 after armor and applies anti-heal. The grenade
+has no predicted projectile record in the test runtime.
+
+Projectile/shield regression73 passed. Full610 handle6897 runs. Authored
+box tracing, tag policy, reflected client objects and DVa absorption
+remain open.
+
+Authored Genji interception volume
+
+Supported hitscan and physical shots now test the live 03A3 box fields.
+Corners are evaluated in a reconstructed eye and aim frame. Walls, body
+capsules and Brigitte shield contacts participate in nearest-hit ordering.
+Actual Helix at a lateral 0.65 m misses the body capsule and still
+reflects. A nearer wall stops the volley. The combat and projectile group
+passed78 tests. Full native tags and reflected client objects remain open.
+
+DVa Matrix activation dependency
+
+An isolated probe overlays the prepared 0407 mech body, graph and mover
+rows. The 02CC capacity initializer follows the body's direct owner to the
+controller's current possessed body, then resolves the ruleset default on
+that live VM. The ruleset evaluator preserves typed overrides and captures
+the last referenced VM identity for fallback. The query contexts and the
+fallback identity are registered in causal snapshots.
+
+Ordinary secondary input activates 02CC state3. Capacity starts at 100,
+reaches 52.05 after 60 held frames, and release ends state3 with a 0.985 s
+cooldown. Capacity returns to 100 and a later press activates state3 again.
+
+DVa Matrix contact
+
+Live state3 boxes participate in nearest-hit ordering for tagged incoming
+volleys and physical projectiles. An absorbed projectile retires its
+deliveries without direct damage, splash or impact effects. The actual
+Soldier rifle is intercepted ahead of Brigitte's raised shield. Releasing
+Matrix lets the rifle damage that shield. Actual Helix is absorbed in the
+volume, hits when Matrix faces away, and hits a nearer wall first.
+
+Actual Brigitte Flail, quick melee, Whip Shot and Bash reach the mech through
+active Matrix. The tests verify armored damage of 30, 30, 65 and 2.5,
+respectively, with Whip displacement and Bash stun. Mei's actual Frost
+Stream also reaches the mech while Matrix remains active.
+
+Run the focused suite with ORPHEUS_TEST_MATRIX_INPUTS set to the prepared
+0407 graph/mover directory and ORPHEUS_PROJECTILE_TAGS set to the read-only
+build104319 .003 tag catalog. The fixture overlays the authored rows for an
+explicit mech spawn. The reconstruction uses tag0145 and reconstructed
+eye/aim geometry. Full native .097 filters and client behavior remain open.
+
+Zarya projected barrier
+
+Actual E selects a live allied body through the 025C tracker. The hosted
+search reads the 30 m resource radius, applies the 10 degree cone scaled
+by 9595 and checks authored variables 6600 and 11264, team and static LOS.
+Selection ranks eligible targets by aim alignment, distance and entity ID.
+Pet10 and effect18 issue a 200-point recipient pool for the authored
+remaining duration. An issued pool keeps its original source identity
+after caster replacement and retires with the recipient.
+
+Real Flail, Whip Shot and Shield Bash consume 35, 70 and 5 pool points.
+Tests verify no recipient HP loss, Whip impulse, Bash stun or Inspire.
+Natural expiry reopens damage. Enemy, FFA, out-of-range and occluded
+casts fail to acquire the recipient. The reconstructed pool loss feeds
+the authored 0242 energy consumer via 0146, producing 7, 14 and 1 energy
+for those hits. The new body receives no energy from the old caster's
+issued shield.
+
+Actual projections protect all five NPC bodies from Flail. Each loses
+35 barrier points, keeps its health, and gives Zarya 7 energy. After
+expiry a new Flail removes 35 HP. On a player, projection cleanses
+actual Ana anti-heal and allows a Repair Pack to deliver 110 healing
+before the original anti-heal deadline.
+
+One rocket keeps a record of bodies whose Particle Barrier it broke.
+Actual rifle fire chips a personal or projected pool to 40 or less,
+then a real Helix breaks it on direct impact. The same explosion leaves
+that body's health intact, damages an exposed neighbour, and gives
+energy only for the remaining pool. The next rifle hit damages the
+unprotected body.
+
+The reconstructed overlap policy keeps the first Particle Barrier pool.
+With personal first, actual 0244 sets variable6600 and the authored 025C
+predicate excludes its holder. With projection first, the host gate on
+0244 state0 prevents a new personal Pet while the projected pool remains.
+Actual rifle fire consumes one 200-point pool and credits its caster 40
+energy. Damage then reaches the body, and a new personal press after
+projected depletion starts normally. The native recipient tag/effect
+implementation and Pet geometry remain open.
+
+Actual quick melee uses the 35-point Brigitte contact on all five NPC
+bodies and triggers Inspire. The same input at range, into a wall, or
+against an allied NPC neither damages the NPC nor triggers Inspire.
+
+Sigma Kinetic Grasp
+
+Actual Shift enters 1D02 state1. Its authored box shares the ray sweep
+with Matrix, Deflect, Barrier Shield and static collision. For the
+supported Soldier rifle and Helix, the nearest Grasp contact feeds
+the authored 6584 output and 21312 accumulator. A rifle contact adds
+20 and a Helix adds 120 while ending flight without impact or splash.
+A nearer wall prevents an absorption credit.
+
+Actual Brigitte Flail, quick melee, Whip Shot and Shield Bash hit Sigma
+through frontal Grasp for 35, 35, 70 and 5. Bash applies stun. None
+of these contacts feeds the accumulator. The current reconstruction
+uses eye-relative geometry and a scoped attack policy.
+
+At the authored exit, 1D02 requests 1D03 and supplies the amount and cap.
+The body host converts 60 percent of the absorbed damage into a distinct
+temporary shield. Actual Helix yields 72, and an actual Flail consumes
+35 from that pool before base shields. Ordinary healing leaves the
+temporary pool unchanged. The resource's three-second grace period and
+five-point-per-second decay restore the base pools without damage credit.
+Six actual Helix contacts accumulate 720 and reach the 400-point cap.
+Native pool allocation, client presentation and broader filters remain open.
+
+An actual Shield Bash after a 120-point absorption ends Grasp and starts
+its cooldown. The interrupted activation leaves no temporary shield.
+A lethal Whip Shot also leaves no delayed grant after death.
+
+An actual Hypersphere pair deals 95 effective damage to unshielded
+Brigitte. With Barrier Shield raised, the same pair consumes 110 shield
+points and leaves Brigitte at 200 HP. A shield face and its wearer's
+capsule can meet at the same distance. The ray sweep treats numerical
+rounding at that contact as a tie, so the face takes the shot.
+
+Actual Sigma Accretion supplies its tagged direct hit to 1BBB. The
+graph emits its 224E request, which runs on Brigitte through the
+existing recipient control host. An unshielded hit deals 60 effective
+damage and controls Brigitte for about 0.8 seconds. An exposed
+neighbour takes splash damage without the direct control request.
+Raised Barrier Shield takes 70 damage and leaves its owner unhurt
+and uncontrolled.
+
+The Accretion launch reads the graph's upward bias, 37 launch speed
+and 18 gravity. The server sweeps the trajectory after each fixed
+gravity update. Direct contact supplies the authored 6 horizontal
+and 3 vertical impulse. Splash uses the resource's separate radial
+strengths and rings. The direct recipient receives one impulse.
+Brigitte's control blocks input while external momentum carries her
+through the mover, and landing clears that momentum flag. The flag
+is captured with the physics state. Native force resistance and
+projectile collision geometry remain open.
+
+With a static wall immediately behind Brigitte, the actual Accretion
+impact moves her toward the wall while her capsule stays outside it.
+The same control interrupts an actual Repair Pack windup. The authored
+abort consumes one charge and the intended ally receives no delayed
+heal. After recovery a fresh pack heals that ally for 110.
+When the rock lands after launch, the pack remains in flight through
+the stun and delivers the full 110 healing to the selected ally.
+
+Sigma Experimental Barrier
+
+With ORPHEUS_SIGMA_BARRIER_MODEL set to the verified build104319
+C015 model, actual secondary input deploys the 1B55 Pet and issues
+its 1A2A request. The host uses the model's 120 dynamic triangles
+and a 700-point pool. Whip sweeps against this mesh before a farther
+body contact. An actual Whip removes 70 shield points, leaves Sigma
+at 400 HP, and applies neither impulse nor Inspire.
+
+Actual recall removes protection, starts its cooldown, rejects an
+early press and allows recharge to 700. A subsequent Whip deals 70
+and pushes Sigma. After cooldown a fresh press redeploys the barrier.
+The cooldown link now notifies dependent conditions as time changes
+its value, including the transition back to zero. The last observed
+cooldown is part of the passive VM snapshot.
+
+Soldier's actual rifle and Helix also stop on a nearer Experimental
+Barrier. The host resolves cover before applying shield damage, so a
+Helix that breaks the barrier cannot damage Brigitte behind it with
+the same explosion. A closer body takes the rifle hit first. A nearer
+wall stops it first, and an allied barrier lets the shot pass.
+An explosion beside the shield samples the closest visible point on
+its physical triangles. Actual Helix deals 80 to an exposed inner-ring
+surface, falls off in the outer ring, and leaves the mesh untouched
+outside the radius or behind a wall. Native Pet transport and native
+blast sampling remain open.
+
+Barrier Shield covering an ally against NPC attacks
+
+Real Trooper, Enforcer, Sniper and Heavy Assault primary attacks
+targeted an ally outside Brigitte's capsule. A raised shield took
+20, 2, 100 and 5 points respectively, with both players at 200 HP.
+Lowering the shield let the same NPCs damage the intended ally by
+the same amounts. Actual Assassin contact bypassed the shield,
+pinned that ally and took 25 HP. Brigitte and her shield kept their
+health. Stopping the Assassin released the pin.
+
+Assassin contact during a protected phase
+
+Manual contact from the actual Assassin 1157 graph checks Wraith Form,
+Fade and Cryo-Freeze before applying the recipient pin or interruption.
+Each active phase survives the contact with health unchanged. A fresh
+engagement after each phase ends pins the player and deals 25 damage.
+The gate uses the live graph states for those three phases. The 13C3
+self-health node remains outside the manual victim path.
+
+Shield Bash against enemy barriers
+
+The 104319 C015 Experimental Barrier stops posed Bash travel and the
+enemy target behind it takes no damage or stun. After recall, or with a
+friendly Experimental Barrier, Bash crosses the same plane and deals
+5 damage with stun. An enemy Barrier Shield facing the incoming Bash
+also protects its wearer. The host limits dash displacement using the
+tracker-height ray and mover capsule clearance and uses barrier LOS
+for target acquisition. An enemy held Barrier Shield lowered before
+contact lets the same active Bash advance, deal 2.5 damage to armor
+and stun. Contact against a still-raised shield ends the dash.
+Lowering the shield afterward leaves damage, stun and position unchanged.
+Native edge and sweep geometry remain open.
+
+NPC support and lethal contact matrix
+
+Trooper, Enforcer, Sniper, Assassin and Heavy Assault each reject
+Repair Pack when hostile, beyond range, outside the aim cone or
+behind a wall. These inputs leave all three charges available.
+When a valid pack is in flight, the recipient's terminal death
+prevents healing or revival. The fixture supplies the lethal event
+through the combat damage path after confirming charge consumption.
+A hostile NPC flail hit starts Inspire for Brigitte without healing
+the hostile recipient. A subsequent actual Rally grants Brigitte
+armor without granting any to that NPC. Lethal Rocket Flail, quick
+melee and Whip Shot each emit the NPC terminal event, retain the
+corpse and leave the respawn queue empty for that body.
+
+Allied NPC Inspire and Rally boundaries
+
+Each of the five allied NPC bodies receives neither aura at 25m,
+only Inspire at 10m, and only Rally behind a nearby static wall.
+Moving the NPC into clear Rally range allows later armor pulses.
+The earlier Inspire proc keeps its original recipient set. In the
+Rally lifetime fixture each body reaches 100 bonus armor. The active
+phase ends with the existing cohort deadlines intact. Advancing the
+match clock across the first and last deadlines reduces bonus armor
+to 85 and then zero while retaining the body's base health and shields.
+
+Ana healing modifiers on NPC recipients
+
+Actual Ana grenade input applies its hostile block and friendly
+boost to each of the five NPC recipient bodies. Repair Pack arrives
+and expires in both cases, healing zero under the block and 165
+under the boost. Inspire healing uses the measured overlap between
+its six-second lifetime and the grenade status, then resumes the
+ordinary rate. The fixture aims at each NPC capsule centre and
+seeds sufficient missing health to observe the full healing amount.
+
+NPC Repair Pack relation and body retirement
+
+A valid cast consumes one charge and locks the exact NPC entity.
+For all five NPC archetypes, changing the recipient to the enemy
+team or enabling FFA while the pack is in flight prevents delivery.
+Removing the NPC immediately clears either the pending delivery or
+the already active heal. A new NPC of the same archetype and team
+at the same position receives neither effect. The relation cases
+mutate the fixture state after confirming an actual graph launch.
+The body-retirement cases use the manual NPC removal and spawn APIs.
+
+Manual NPC engagement and static cover
+
+Trooper, Enforcer, Sniper and Heavy Assault cannot be selected
+through a static wall. Each hits exposed Brigitte once for its
+expected damage after armor. Inserting the wall releases attack
+input while keeping the manual target. Clearing the wall lets the
+same engagement resume actual damage. Inserting a wall during an
+Assassin pin releases control on the next tick and prevents further
+damage. Explicit restart after clearance can pin and damage again.
+The wall is inserted by switching the fixture collision world.
+
+Cryo-Freeze and Shield Bash travel
+
+Active Cryo stops actual Shield Bash travel whether Mei is an ally or
+enemy. After allied Cryo expires, the dash crosses the former casing
+position. The travel bound uses the active 05FE phase and the ordinary
+body capsule with mover clearance. Native casing edges remain open.
+Quick melee now has direct coverage alongside flail, Whip and Bash:
+Wraith, Fade, Cryo and Transcendence reject damage with no movement or
+stun from the contact.
+
+Shield Bash termination on a blocked pose
+
+A blocked dash pose queues the authored 488 stop and lets the existing
+body-script advance retire movement state 14. A held enemy barrier
+dropped immediately after contact does not restart the same Bash or
+allow delayed damage and stun. The fixture covers the release within
+the old dash window. Existing Experimental Barrier, Cryo and cooldown
+tests pass with the same travel bound.
+
+Shield Bash recipient displacement
+
+ModifyHealth10 evaluates horizontal 3 and vertical 1 at the default
+14130 ruleset multiplier. A damaging hit that hosts active Bash
+control passes those amplitudes along the horizontal Bash aim to
+the existing player or NPC impulse consumer. A forward Bash issues
+one (0,1,3) player impulse, and all five NPC bodies move while stunned.
+Active Fortify and Particle Barrier reject displacement in the tested
+cases. Native force direction, ordering and other resistance remain open.
+
+Shield Bash control attribution
+
+A hit receives Bash displacement only if its own 224E child reaches
+control. In the two-caster fixture the second cast deals damage but
+is rejected by the authored immunity input, while the first stun
+remains active. The second cast does not issue another impulse.
+Stunned command input matches the idle recipient's impulse trajectory.
+An Assassin pushed beyond pin reach stays released after stun expiry
+and pins again when the victim returns to range in the fixture.
+
+Shield Bash live knockback scalar
+
+For all five NPC bodies, setting the source 14130 value after the
+activation input and before the contact pose scales knockback from
+zero to (0,1,3) and (0,2,6). Damage stays at 5, and the recipient
+stun remains active and expires on the same tested frames. A lethal
+Bash emits the terminal event without starting an impulse or stun.
+
+Fortify and Whip Shot displacement
+
+Orisa's active 0CF4 movement state 8 sets property 26 to zero. The
+Whip consumer checks this live phase before applying its impulse.
+Actual Whip during Fortify deals 37 after armor and leaves Orisa
+in place. After Fortify expires and the next Whip becomes available,
+the next hit deals 65 after armor and displaces her. This scoped
+check leaves generic native property interpretation and ordering open.
+
+Fortify transitions while Whip Shot is in flight
+
+At 18m, both traces observe the actual flight and unchanged health
+at the Fortify transition. Fortify started after launch reduces the
+later hit to 37 after armor and stops displacement. Fortify expiring
+before the hit permits 65 after armor and ordinary displacement.
+
+Particle Barrier transitions while Whip Shot is in flight
+
+At 18m, personal and projected Particle Barrier each start or expire
+while the Whip is still in flight and recipient health is unchanged.
+A barrier starting before contact spends 70 of its 200 capacity and
+prevents body damage, displacement and Inspire. Expiry before contact
+allows 70 body damage, displacement and the Inspire proc.
+
+Shield Bash counter-charge contact
+
+A resolved enemy Bash contact checks the live opposing charge flag
+596 and facing before ordinary damage. The counter branch hosts
+0EE3's self and opponent 224E children from nodes 119 and 121.
+Actual Charge and released Rocket Punch inputs clear both charging
+flags, deal zero damage and apply two-second knockdowns in either
+command order. The body-command scan uses a stable instance list
+because the self knockdown creates a child on the same component.
+The standalone tracker75 geometry and contacts initiated beyond
+Bash reach remain open.
+
+Shield Bash counter tracker reach
+
+The counter query uses active state 75 before the ordinary state 12
+query. Both use their own evaluated centre, radius and cone against
+the server capsules and occlusion. At the default configuration
+their radii are approximately 2.98m and 2.48m respectively. Actual
+input produces the dual knockdown at a contact beyond ordinary Bash
+reach and inside the counter radius. Opponent-first contact outside
+the counter query remains open.
+
+Shield Bash counter exclusions and recast
+
+Actual same-facing Charge and held, unreleased Rocket Punch receive
+ordinary Bash damage and 0.75s control. Friendly, static wall,
+lateral and outside-range cases do not hit on the tested pose.
+After a dual knockdown expires, Bash still rejects input during
+cooldown. A new Bash and Charge after readiness knock down both
+actors again.
+
+Counter knockdown immunity override
+
+Both 0EE3 counter children supply 7312 to 224E. Two actual Bash and
+Charge tests set the 2547 immunity input on one actor after ability
+activation. Both actors still enter the two-second counter knockdown
+with health unchanged. The fixture directly supplies the immunity
+input to isolate the authored override.
+
+Reinhardt-initiated counter contact
+
+The Charge 007D state 74 query can see an opposing Bash outside
+Brigitte's forward cone. It reads its own radius and angle and
+routes the pair through Reinhardt's nodes 153 and 161. The ray
+ignores the participating Bash shield and retains static and other
+barrier occlusion. Actual diagonal inputs in both processing orders
+host two-second knockdowns with Reinhardt as the source and zero
+damage. Doomfist-first and general Charge transport remain open.
+
+Doomfist-initiated counter contact
+
+The released 0D06 state 6 query can find a charging Brigitte
+outside her own tracker75 cone. The host uses the evaluated radius
+and angle and reconstructs node14's eye-relative centre with its
+-0.18m bias. Actual diagonal release in either input order hosts
+Doomfist's counter nodes 165 and 164 for two seconds of control
+on both actors with health unchanged. General Punch movement
+and impact remain separate from this counter path.
+
+Experimental Barrier transitions during Whip flight
+
+At 18m, actual C015 deployment or recall resolves while the Whip
+is still flying. A kept or newly deployed barrier absorbs 70,
+leaving Sigma unhurt and unmoved with no Inspire. A recalled
+barrier keeps its health and the flying Whip hits Sigma for 70,
+displaces him and procs Inspire. The fixture waits for the graph
+to resolve the barrier input before checking the contact.
+
+Manual NPC relation, reach and lethal incoming hits
+
+All five actual NPCs stop input when the retained target becomes
+friendly or exceeds manual engagement range. Restoring the relation
+or reach resumes real damage without a new target selection. Assassin
+also releases and restores its pin. A lethal actual hit from each
+archetype attributes the death to the NPC and queues one player
+respawn while dropping attack input and any pin. The fixtures mutate
+team or position and pre-injure Brigitte for the lethal scenarios.
+
+Incoming ordinary Rocket Punch
+
+The 0D06 movement phase already drives real player poses. The server now
+sweeps each admitted segment against hostile capsules while states 6 and 7
+are active. Existing Bash counter resolution precedes the ordinary sweep.
+The 0D07 helper supplies charge-scaled damage and impulse and the control
+timeout. A contact requests state 5's authored exit. The swept shape and
+control host are reconstructed. The target pose checks for a wall along
+the impulse heading at capsule contact distance. A hit consumes the
+pending 0D07 wall damage once. Body retirement and the control deadline
+retire the pending hit. On a confirmed direct hit, 0DDD supplies the
+Doomfist temporary shield gain, cap, delay and decay. The same pool
+implementation serves Sigma Grasp. Native tagged-pool transport,
+grazing geometry and ordinary Reinhardt Charge remain open.
+
+Incoming Reinhardt Charge
+
+007D state 37 has no configured completion condition. The combat host
+requests its authored finish while the Charge phase is live. The following
+0.6-second wait then enters state 3, whose existing velocity modifier moves
+the player for the authored phase. The generic conditional timer keeps its
+observed behavior for missing conditions. The server sweeps the admitted
+Charge segment for ordinary contacts after the counter check. Player
+capture uses the authored width and carries the target through the capsule
+mover. A blocked carry applies the resource wall damage once. A natural
+expiry uses state 49 for one forward release impulse. Death releases
+the capture immediately. Native contact geometry remains open.
+
+Reinhardt Barrier Field
+
+The server consumes the prepared 104319 mesh descriptor selected by
+ORPHEUS_REINHARDT_COLLISION or installed in the runtime data directory.
+The active 0095 Pet state enables contact at a reconstructed aim pose.
+Bash stops before the mesh. Whip spends 70 shield HP before body contact.
+Lowering the shield exposes the wearer and starts the recovery delay.
+
+Winston Barrier Projector
+
+The actual 00FA PlayScript action supplies the 700 HP and nine-second
+lifetime for the server dome. Bash stops at the hostile shell. Whip checks
+for a shell crossing before the target or a more distant obstacle. It
+damages the shell once, including when the hit breaks it. An attack inside
+the dome can hit a target inside it, and friendly domes allow passage.
+The server reconstructs shell placement and collision from the resource
+radius. Native actor replication and presentation remain open.

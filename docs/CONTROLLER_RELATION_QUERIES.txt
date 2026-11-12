@@ -1,0 +1,83 @@
+Component43 relationship queries: partial104319 host binding
+
+F7262B36 constructorD07460 / scalarCDBDE0 selects m_801B298F through the
+ordinary scalar Entity interface and callsD15520. A known entity without43
+writes typed Entity0. A missing entity, including input0, is no-output failure:
+the caller's destination remains intact. This differs from the health getter's
+invalid-input numeric0. A present43 returns its related ID without requiring
+that target to exist. The raw uint32 is preserved, including invalid IDs.
+
+BD42D0 validates its native return site, then decrypts component43+D8 with the
+key selected by+E0. BD3F50 looks up that ID in the component owner's entity
+manager. DA5FA0 first selects input component43. If present, it follows exactly
+one relation and selects component44 on the target. It never falls back to
+input44 when this relation is missing or target44 is absent. Only input43
+absence selects input44 directly. DA6910 returns the selected44's owning entity.
+
+B96D3A98 constructorD09110 / scalarCC9BF0 eventually callsDA6910(input,false).
+CC9F61 requires component75 and excludes92 on that selected entity. Missing
+entity/controller/44/75, or present92, producesfalse.182C470 reads a component
+bitmap, not an ability-state flag. Component75 is independently identified as
+MECCharacterController; the complete meaning of92 remains open. These queries
+are distinct from DB742151's primary-possessor reverse registry.
+
+Executed native evidence
+controller-relations-native-validation.json contains60 passing offline cases:
+12 input/relationship scenarios each execute originalD15520, DA6910/DA5FA0,
+CC9F61 and both original scalar entry wrappersCDBDE0/CC9BF0.
+OriginalBD3F50/BD42D0, descriptor helpers, pointer decode instructions,
+return-site guards and182C470 execute unchanged. Entity input records remain
+unchanged. Cases cover43+44 precedence, dangling/zero links, target without44,
+75/92 membership, direct44, known no-component and missing/invalid input.
+Explicit adapters supply component/field crypto keys, world environment/entity
+lookup, authored config values/Entity conversion and result collection. Native
+allocation, crypto key distribution, authored config evaluation/Entity conversion
+and engine result storage are not established by this
+probe. The immutable image is hashed; no running client is read or controlled.
+
+Implemented service
+World.controller_record(entity) returns an explicit controller_queries.Record,
+None for a known missing entity, or NotImplemented when availability is unknown.
+Record declares the relevant membership and component43's uint32 related ID.
+Malformed records and lookup callbacks that retire the evaluating instance fail
+strictly. Existing native dependency polling observes record replacement. Neither
+class is added to owner prediction's trusted native set. No observation callback
+equivalence is claimed. The service adds no persistent VM fields.
+
+Match's player binding is reconstructed: a picked player's controller declares
+the same44/75 pair emitted by _possession; its existing body declares43 linked
+to that controller. Death retains the relation, hero/body replacement removes
+the old body and retains the controller, and leaving removes both despite the
+Player remaining in match history. A temporary missing network client leaves
+existing identities intact. Waiting controllers before first body stay unknown.
+Native component92 allocation and full native world/namespace policy remain open.
+
+NPC controller records deliberately remain unknown. Both NPC and player hosts
+can query known player relations, but no synthetic controller or43 relationship
+is assigned to an NPC to pass its attack. The shared parent's uncommitted manual
+controller policy and Assassin bridge are not imported or accepted by this lane.
+Enforcer's health gate passes; its next relation/controller context is still
+unknown. Enforcer and Assassin incoming acceptance continue to fail normally.
+
+Tests exercise the native contract, typed scalar arrays/fields, nonrecursive and
+dangling relations, explicit unknown services, dependency polling, callback
+lifetime, real players' death/replacement/leave, health lookup retirement, no
+world-service snapshot mutation, and all five NPC hosts' unknown/known boundary.
+Full Ana static and original-client acceptance remain open.
+
+Final code regression:386 tests PASS in779.717s; Ruff/diff PASS. NPC12 methods
+in37.145s:11 passing methods, incoming Enforcer/Assassin2 ordinary failed subcases.
+No original client was controlled. Expanded code remains uncommitted.
+
+Associated controller input frontier
+An external inventory finds five associated AI definitions via m_8B9A461F;
+none of their initial graphs is in the original NPC fixture. A separate53KB
+supplement preserves5 definitions and18 new graphs with0 missing references/
+parser errors. Original bundle/XML hashes are checked unchanged. A strict VM
+probe uses canonical graph allocation and actual overrides, stopping all five
+at common142A/C3619A38 in frame1 without any predicate overrides. This establishes
+a missing input and an executed startup frontier, not native controller
+allocation, AI or combat acceptance. The supplement is not mounted in Match.
+Its hashes/preparation/startup reports stay outside Git. C361 has exported STU
+metadata but no matching record in the available evaluator registration table;
+its resource-extension/factory path remains to be proved, not defaulted to null.

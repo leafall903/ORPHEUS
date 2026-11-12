@@ -1,0 +1,40 @@
+Ana against D.Va Defense Matrix on build 104319
+
+An explicit 0407 form selection uses Match.switch_hero with the prepared mech
+definition. It checks the graph and mover inputs before replacing the body.
+0407 has 300 health and 300 armour, 0.7m radius, and 1.74m standing and crouched
+eye offsets. The standard public pick remains the 040A pilot. Ordinary Q
+possession and pilot/mech transitions remain a separate work item.
+
+The actual secondary input starts 02CC state3 and drains resource87. Its
+initialization and recharge consume the authored ruleset values. A scoped
+expression adapter recognizes the exact ruleset member expressions and uses
+the mech ruleset when the member is absent. The graph retains responsibility
+for activation, minimum active time, drain, release and recharge.
+
+Matrix box intersection was adapted from the read-only 0020 implementation.
+The four authored bounds are evaluated at the mech's current eye and aim.
+Enemy, wall and nearer body ordering are checked in the normal combat sweep.
+Consumed finite projectiles retire without direct damage, status, splash or
+explosion release. The projectile resource identity is stored with the flight
+even when it lacks an owner prediction lease. Scoped rifle uses the same box
+policy on its instantaneous trace. Melee and allied support remain eligible.
+
+The verified Ana definitions are 15B7 hip rifle and 1615 scoped rifle with
+tag02F9, 15E8 Sleep Dart and 1426 grenade with no target-tag component, and
+15E9 Nano visual with tags0145 and0412. Known tags come from the build104319
+003 XML. The 0145 exclusion, eye attachment, current-pose ordering and scoped
+ray handling are reconstructed. Generic native097 filtering and client
+effects remain open.
+
+Tests use the prepared 0020 runtime read only, with static collision and
+transport fixtures. They cover actual attack and defense commands, both rifle
+modes, grenade, dart, damage and charge credit, rear and release behavior,
+wall ordering, allied rifle and Nano, melee, sleep interruption, depletion,
+recovery and pilot replacement. The acknowledged hip-round copy is a
+transport fixture around an actual Volley flight. The grenade and dart
+flights in this runtime have no predicted owner copy.
+
+The final Matrix group passed all10 methods in31.675s. The normal-runtime
+shared group passed all109 methods in116.264s. Resource and input hashes are
+recorded in the external ana-matrix-resource-evidence.json.

@@ -13,6 +13,18 @@ SPEC.loader.exec_module(probe)
 
 
 class ProbeTests(unittest.TestCase):
+    def test_null_initial_graph_reports_blocker_instead_of_crashing(self):
+        from ow174.game.script.research_runtime import BodyRuntime
+
+        body = 0x0400000000000001
+        runtime = BodyRuntime(body, body_catalog={body: {"graphs": [{"graph": None}]}},
+                              graph_loader=lambda number: self.fail("null must not reach loader"))
+        snapshot = runtime.initialize(100)
+        self.assertFalse(snapshot["complete"])
+        self.assertEqual(len(snapshot["diagnostics"]), 1)
+        self.assertEqual(snapshot["diagnostics"][0]["feature"], "missing-graph")
+        self.assertIn("null graph reference", snapshot["diagnostics"][0]["message"])
+
     def test_partial_weapon_experiment_does_not_claim_a_complete_hero(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / "probe.json"

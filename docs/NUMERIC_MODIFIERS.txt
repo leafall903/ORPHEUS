@@ -62,7 +62,18 @@ retains its existing passive policy for this class.
 State storage includes its per_frame flag. SceneWorld and the component service
 remain outside the body-VM world whitelist. A strict component fault asks its
 world to discard external effects; SceneWorld clears that entity's numeric
-records. This is reconstruction failure containment, not an invented native hook.
+records. This is reconstruction failure containment.
+
+Vector rows
+D3C65E, D3C723 and D3C7B2 dispatch 56F54BF7 add, 09441550 multiply
+and 09F9B1FE replace. They evaluate the vector before scalar priority.
+C33FC0 publishes a 0x40-byte record to the separate +7D0 array. C2ED10
+and C2FCC0 use the same identity and ordering rules as the numeric array.
+C35720 marks exclusive expiry. The vector reader applies the three
+operations component by component to matching fields within their frame
+window. SceneWorld keeps numeric and vector records separate and clears
+both on strict failure. The strict host takes an explicit source clock and
+base vector. Movement binding and typed filter rows are still open.
 
 Evidence and limits
 - Isolated original x64 emulation agrees on 3,030 arithmetic cases and 4,900

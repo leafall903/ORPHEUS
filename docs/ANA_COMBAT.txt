@@ -1,0 +1,672 @@
+Ana combat lane -- 1.74.0.0.104319 -- OPEN
+
+Hero 02E000000000013B; body 0400000000001424. Partial server evidence only.
+Runtime-104319 is read-only input. No runtime copies or original source changes.
+
+Asset evidence:
+- Ordered initial graphs: 0033 004B 0043 0B97 0B9E 0BDD 0C6B 08B6.
+- Manager 0015, weapon slot 1 graph 0B94. Its states 5/44 carry amount 70,
+  critical scalar 1 and range 100; hip fire supplies projectile speed.
+- Grenade 0B97/state0: direct 0, explosion 50, radius 4.
+- Sleep dart 0BDD/state6: direct 5. Nano 0B9E/state1 has no direct health amount.
+- Indirect combat resources now inspected read-only: 0266/027B/0267/026F.053.
+  0267 -> C71 -> B99/C72 defines ally heal100, healing scalar1.5/0 and duration4.
+  Body reference traversal did not include this indirect edge. New research tool
+  exports four effects/eight graphs with no missing graph references, externally.
+- Reference closure: 54 graphs, referenced 0F9C missing. Static references are
+  not proof of execution reachability or missing-graph necessity.
+
+Reconstructed behavior in this patch:
+- The two rifle volleys include living injured teammates in actual ray/projectile
+  selection and heal the evaluated amount; synchronize health and healing stats.
+- Full-health allies are transparent. The source and corpses are excluded.
+- Player/NPC team semantics are shared; FFA has no friendly targets.
+- Grenade collides with living allies (including full-health allies), heals allies
+  and self100, amplifies healing1.5 for4s, damages enemies50 and blocks healing4s.
+  Blast LOS prevents damage/status behind static walls; incoming-side wall impacts
+  retain self-healing. Expiry uses authoritative world time. Anti-heal takes priority
+  over boost; repeated instances refresh rather than multiply the scalar.
+  This reconstructs native-resource values; combat-filter/effect hosting, gravity,
+  cleanse/immunity/defense interactions and native status visuals remain open.
+- Sleep darts deal5 then install an explicit reconstructed5s sleep gate. Voluntary
+  movement/attack/ability input and NPC route advancement are suppressed; physics,
+  body clocks/cooldowns and pre-existing projectiles continue. Effective damage
+  shortens the gate to the later of 1.5s from dart contact and 0.5s from damage,
+  capped by the current deadline. Healing and zero damage preserve the gate.
+  A weaker Flashbang leaves the wake deadline in place. A longer stun replaces it.
+  Death, replacement, and Projected Barrier cleansing discard the wake floor.
+  Actual rifle damage exercises both wake branches against players and five NPCs.
+  Actual grenade damage can wake after recovery while its healing denial persists.
+  The floor, wake recovery and stun arbitration follow the 0040 server reconstruction.
+  Native hit reaction, timing, and general interrupt/immunity coverage remain open.
+- Nano targeting has an explicit owner service for0B9E's actual TrackTargets States.
+  Living allies,40m range and static LOS feed the authored target variables/entries.
+  The reconstructed base cone10/ranking does not claim native zoom/filter/age semantics.
+  The original charge gate and0.13s release volley drive healing250 and an8s target
+  deadline: damage x1.5, incoming x0.5, healing unaffected. Expiry survives caster
+  death and retires with the target body. A later charged release refreshes the effect;
+  repeated uncharged input cannot heal. Effect routing consumes each actual native
+  release volley, not the Q button or a single long-lived source effect group.
+  Native effect hosting/visual group lifetime remains unaccepted. Native generator
+  scalars and correct passive charge remain open.
+- Other weapon graphs retain enemy-only damage. This explicit rifle policy does
+  not decode native filters/effects. Rifle70 damage/healing now spans0.6s using
+  linear world-clock dosing on a1/1024-health grid. Exact native cadence/feedback
+  remains unaccepted. Hit body/original source identity remain stable across caster
+  retirement; target retirement/death drops remaining doses.
+- Rifle DoT bypasses armor. Projectile boosts are captured when fired; Nano gained
+  or lost in flight does not retroactively change that projectile. Primary evidence:
+  https://eu.forums.blizzard.com/en/overwatch/t/overwatch-retail-patch-notes-march-19-2019/15547/3
+  Current104319 resources still supply amount/duration/geometry. Actual1424.003
+  first-person standing1.25/crouched0.875 offsets drive Ana's ray origin; these are
+  component offsets, not a claim of native damage hitboxes.
+- Effective Ana damage/healing credits native-cost charge with clamping and active,
+  dead and retired-body gates. One health unit per charge unit is reconstructed,
+  not a decoded generator scalar. Passive fill remains approximate. Same-hero Ana
+  respawn preserves unspent charge; hero switches reset. Self-healing participates;
+  official2016-07 patch establishes self-healing charge participation:
+  https://overwatch.blizzard.com/en-us/news/patch-notes/live/2016/07/
+
+Matrix: P enemy player; N enemy NPC; A allied player/NPC. All client rows OPEN.
+Action         P                       N                       A
+Hip rifle      70 damage model pass    five actual bodies pass 70 heal model pass
+Scoped rifle   70 damage model pass    five actual bodies pass 70 heal model pass
+Melee          30 damage model pass    five actual bodies pass no damage model pass
+Sleep dart     5/sleep/input gate pass five actual bodies pass no damage/sleep pass
+Grenade        50 damage/antiheal pass five actual bodies pass heal100/boost/self-heal pass
+Nano Boost     hostile target rejected five allied bodies pass heal250/boost/reduction pass
+Incoming       Soldier rifle pass      3/5 weapon paths pass   OPEN other heroes
+Death          OPEN client             five retained bodies    no heal revival model pass
+
+Actual NPC fixture uses the parent's read-only prepared pve_npcs_174.json and
+supplemental graph bundle. Set ORPHEUS_NPC_FIXTURE_DIR to their data directory.
+Trooper, Enforcer, Sniper, Assassin and Heavy Assault each pass both rifle modes,
+grenade damage/antiheal, allied rifle/grenade healing and retained-death/no-revival
+checks. Actual held rifle commands now kill each of the five from full declared
+health, including Heavy Assault4000, through magazine depletion and auto reload.
+Effective damage totals, Ana killer identity, kill/death notices, drained doses
+and retained non-revivable corpses pass. Near melee30,4m misses and allied
+immunity pass for all five. Declared base pools are not difficulty-scaled totals.
+The body VM remains permissive; stand-in collision/transport does not accept AI.
+All five attack paths damage Ana through injected weapon input or explicit
+Assassin contact. In a separate opt-in stationary acquisition test, each
+NPC chooses and kills a one-HP Ana without injected fire or a manual target.
+The mode respawns Ana with 200 HP. After fixture repositioning, static cover
+protects the replacement body until removed, then the same NPC VM reacquires
+and damages it. The authored controller acquisition and full special behavior
+coverage remain open.
+
+Validation:
+- Eleven test_game_ana unittest tests pass: actual command execution, authoritative
+  deltas, statistics, scoped/unscoped flight/rays, FFA, full-health ally penetration,
+  no corpse revival, incoming Soldier fire, enemy player/NPC melee and ally immunity;
+  grenade hit/miss, heal/boost/antiheal/self-heal, expiry and wall occlusion.
+- Actual Soldier Biotic Field restores 0.56 per tick. Enemy grenade prevents
+  all pulses until antiheal expires and the first new pulse heals 0.56.
+  Allied grenade boosts the first pulse to 0.84. This is reconstructed
+  server field timing with actual ability commands.
+- Six test_script_ana_abilities tests execute cooldown rejection/expiry for sleep12s
+  and grenade10s, repeated-edge/held-input rejection, rifle12-ammo depletion/automatic
+  reload, manual reload/fire rejection, uncharged nano, dead-owner action gates and
+  death cancellation during the sleep-dart windup before projectile release.
+- 93 tests pass in test_game_combat, test_game_projectiles, test_game_health and
+  test_game_bot_statescript. Ruff passes for changed Python files.
+- Fixed-source expanded regression passes123 tests, including stored replay checks.
+  This run preceded the later shared NPC helper/standard NPC weapon-loader extension.
+- test_game_ana_npcs executes9 tests with two failed incoming-attack subcases
+  (Enforcer/Assassin); the other eight matrix tests pass for all five actual bodies.
+  Standard weapon catalog allocation is restored for NPC bodies such as Sniper.
+- Later shared dependency review reuses parentd1286b7 body/weapon allocation,
+  parent6debff3 native array item selection and parent7cd1ed7 melee static LOS.
+  The current NPC suite has10 methods: nine pass, one incoming method retains
+  two ordinary failing subcases. Combined with12 general Ana and5 array methods,
+  ana-shared-melee-npc-tests.txt records27 methods,26 pass and one failed method.
+  Actual player plus five-body melee wall rejection passes. No native hitbox claim.
+- Permanent rifle matrix tests now cover hip/scoped, friend/enemy,99m hit/101m
+  miss, aim misses, static walls and actual crouched shots.
+- Seven test_game_ana_sleep checks pass, plus actual five-body sleep/movement/attack
+  suppression/wake coverage.176 regressions passed before the Nano extension.
+- Fourteen Nano checks pass, including exact250 healing on Roadhog, actual Soldier
+  damage30/reduced10 and restored20 after expiry, healing/antiheal combinations,
+  death/replacement, uncharged/recharged repeats and an actual enemy dart interrupt
+  inside the native0.13s release window. Five allied NPC Nano/heal/reduction cases pass.
+- Live target State bindings export through the read-only VM snapshot without
+  querying the world. TrackTargets causal fields are explicitly registered.
+- Latest fixed-source broad regression passes260 tests, including all new sleep/Nano
+  checks, movement/weapon regressions, body VM storage/aliases and server snapshot checks.
+- Later38-check run passes timing/armor/range/source/charge plus sleep/Nano cases.
+  Eleven rifle and seven charge tests include effective-health fill -> actual Nano,
+  overkill/overheal, source/target retirement, skipped ticks and in-flight boost
+  transitions. Fixed-source broad regression passes282 tests in433.219s. An added
+  real-server pending-dose snapshot check passes separately; repeated capture has
+  a stable digest and differs from the same server before the dose was queued.
+- After the shared dependencies,290 fixed-source regressions pass in601.610s,
+  including full server snapshot/stored replay checks and the pending-dose test.
+- Actual Reaper Shift inputs start0020/state10 but execution remains atstate1
+  STU_54FEB21C through200 frames; protective states0/3 are never created. External
+  wraith-research-frontier.txt records native constructors/vtable/timer research.
+  No guessed unconditional completion or immunity mapping was installed. Native
+  host/output semantics and every invulnerability/cleanse acceptance row stay open.
+- Genji03A3/state10 is named DeflectProjectiles and actually starts through E.
+  Eleven test_game_ana_deflect checks pass for two rifle modes, sleep return,
+  grenade return/antiheal, melee block, back/expired rejection, allies, existing
+  rifle dose, ground splash, static wall and retired reflector killer identity.
+  The model uses the existing capsule, interprets authored90 as a facing half-angle,
+  returns a ray from the current eye with remaining range, and resumes reflected
+  flight on the next tick. Ownership changes to Genji; existing firing-time damage
+  remains captured. Exact native boxes/scale/filters/angle meaning/range/boost and
+  contact timing stay open. No new reflected projectile observer/lease is created;
+  original-client acceptance is entirely open. Basic behavior is consistent with
+  the official Classic description (not evidence for104319 geometry/timing):
+  https://news.blizzard.com/en-gb/article/24146047/a-blast-to-the-past-begins-with-overwatch-classic
+- Latest fixed-source regression:301 PASS in545.230s, including all11 Deflect checks
+  and full server stored snapshots/replay. Current NPC-only run:10 methods in27.947s,
+  nine pass; incoming Enforcer/Assassin subcases fail. No expected-failure masking.
+- External ana-projectile-physics-field-evidence.json records1426.003 grenade
+  A0D912A2=-30 versus15E8.003 sleep0, with XML hashes. CORRECTION: nativeD6A940/
+  D6A9D0 readD0/D4/D8, multiply by pi/180 and build a rotation matrix in69E980.
+  These fields are angle data; the earlier gravity-candidate interpretation is rejected.
+- Parent64bf71c control foundation is ported with HitDef.effect, exclusive body
+  stun deadlines, actual held-input release/Ability.stop/buffer clearing, command
+  and movement gates, paused NPC route ticks and death/retirement/removal cleanup.
+  stuns is registered in the stored domain; its mutation changes snapshot hashes.
+  Parent npc_control controller is still not mounted in this lane. Sleep also
+  stops actual running player Ability channels; NPC full input recovery stays open.
+- Ten test_game_ana_control methods pass through actual Flashbang release/hit:
+ 25 damage;50-tick0.8s and107-tick1.7s exclusive deadlines; repeated-hit refresh;
+  scope input/subgraph release; voluntary action and future-frame suppression;
+  expiration/movement/fire recovery; Nano interruption before its0.13s release;
+  already-released grenade continuation; damage waking sleep then applying stun;
+  ally/wall rejection; death/replacement cleanup. Actual rear sleep dart stops
+  Genji's active Deflect. Native immunity/cleanse/stacking/unstoppable remain open.
+- Latest fixed-source run ana-control-regressions.txt:345 PASS in548.345s, including
+  all control checks, route tests and complete stored server snapshot/replay tests.
+  ana-real-npc-acceptance.txt:10 methods in31.655s;9 pass, Enforcer/Assassin incoming
+  subcases fail normally. Flashbang external closure:1 effect,2 graphs, no missing
+  references; raw resource inventory is kept distinct from executed acceptance.
+- Native health-query research located9B7648C3 constructorD073A0/scalarCEB6C0
+  and60146072 constructorD073D0/scalarCF12A0. HelpersD177C0/D17AE0 select
+  component51 (BCC870's index0x33/mask0x8000000000000), then virtual+40/+50.
+  Match current/maximum pool totals supply an explicit reconstructed binding;
+  native engine aggregation and callback implementation remain unexecuted.
+  Invalid Entity and known entity without health yield numeric0; a missing valid
+  entity preserves the caller's destination. Entity scalar selection and existing
+  dependency polling remain active; queries are not owner-prediction trusted.
+  Read-only lookup covers player/NPC body identity independently of collision or
+  network eligibility. Tests cover damage/healing, shields, death/replacement,
+  detached client, no pool allocation, server snapshot and five actual NPCs from
+  both player and NPC hosts. Full expression evaluation changes the normal VM
+  work budget; the underlying world service leaves the server snapshot identical.
+  Enforcer13EB/state12 now reads true;13EB/state1 and13EF/state2 still require
+  unresolved F7262B36/B96D3A98 component43 queries. Assassin1460/state10 remains
+  false. Neither missing controller predicate is substituted or forced true.
+  Final health-query code:370 regressions PASS in602.689s; NPC11 methods in
+  32.263s with10 passing methods and2 ordinary incoming failed subcases. Ruff and
+  diff checks pass. Full hero/static/client acceptance is still incomplete.
+- Subsequent controller query implementation is described in
+  CONTROLLER_RELATION_QUERIES.txt.60 original-function cases establishF726's raw
+  component43 relation, DA6910's one-step43/44 precedence and B96's75/92 tests.
+  Explicit engine-key/lookup/output adapters remain separate from that proof.
+  Match binds existing picked player identities only; all NPC controller records
+  stay unknown and incoming Enforcer/Assassin failures remain. Real leave now
+  removes both health and relationship lookups despite retained Player history.
+  Final386 code regressions pass in779.717s; NPC12 methods in37.145s still have
+  two ordinary incoming failed subcases. Five associated AI definitions/18
+  missing graphs are prepared externally, with strict common142A/C3619A38
+  startup frontier; no controller allocation/autonomous acceptance is implied.
+- Real gravity comes from0B97/state0 m_projectileMotions E1A5B579, whose scalar
+  instance#7389 is set to9.8. NativeD88E9E stores it at runtime motion+20, and
+  D71ACD..D71ADE subtract f32(gravity*dt) from vertical velocity. D7042A applies
+  motions before D70477/D704A8 advance position. Twelve offline executions of the
+  original handler/RTTI match exact expected state bytes, including conditional
+  gates. This proves the selected local branch, not the whole engine pipeline.
+- Four test_game_ana_ballistics methods pass via actual commands: measured drop
+  over20 frames versus straight hip-rifle/dart flight,20m lofted damage/healing
+  versus straight misses, floor/low-wall collision and fixed-step catch-up equality.
+  Server collision uses one world-tick chord; conditional/contact motion, engine
+  gravity multipliers, native subdivisions/rollback/muzzle/range/bounce stay open.
+- A 20 m fixture exercises the released detached dart and grenade after
+  Ana dies or switches body. They preserve the original source ID and
+  still apply 5 damage and sleep or 50 damage and antiheal. Death is
+  driven by the authoritative damage call and the projectile release is
+  driven by the actual ability input.
+- Parent2ca9178 input joins are reused with join_inputs/plug_source causal storage
+  and ten imported checks. Reaper's actual Shift trace still stops at0020/state1;
+  no immunity behavior is inferred from that shared dependency.
+- Latest fixed-source run ana-ballistics-join-regressions-final.txt:359 PASS in
+  486.277s. Earlier359 run had one Hanzo delivery fixture failure: original arrow
+  1022 landed1057 and retired1063 under authored gravity. The upward-input fixture
+  preserves all delivery identity checks; two focused delivery methods pass.
+  Current NPC-only10 methods in29.252s:9 pass, two ordinary incoming subcase failures.
+  Evidence: ana-gravity-native-evidence.json, gravity-native-validation.json and
+  hanzo-volley-gravity-fixture-probe.json, all external to source.
+- No pytest in reused venv; unittest is available. Use explicit clone cwd,
+  PYTHONPATH=clone;clone/tests and ORPHEUS_RUNTIME_DIR=external runtime.
+
+Original client: none in this lane. Overwatch PID12292/window was observed;
+no lane-owned lease was held and that existing session was not controlled.
+No service was stopped/reconfigured. No VM result is visual/native acceptance.
+
+Later personal-barrier work: see ANA_PERSONAL_BARRIER.txt. Actual0244/Pet2 and
+duration drive reconstructed personal-body protection, with12 focused methods
+passing. Capacity200/cleansing/geometry are not native damage-handler proof;
+full native projected bubbles and energy remain open. The explicit five-NPC suite now requires
+authored mover data from the parent's independent navigation runtime. Earlier
+NPC geometry claims used fallback envelopes and are superseded for that scope.
+Forty added grazing/range scenarios use the actual five body envelopes.
+C361's20 original client fallback cases do not establish its server meaning.
+Final personal-barrier code:398 regressions PASS in888.433s, Ruff/diff PASS.
+Authored-mover NPC14 methods in59.855s:13 pass; two incoming subcases still fail.
+Later reconstructed projected targeting now reaches025C/Pet10/effect18 through
+actual E and the production service, with explicit selection/geometry/lifecycle
+limits. See ANA_PROJECTED_BARRIER.txt; the older declared-target diagnostic is
+historical research. Thirteen projected plus twelve personal methods pass.
+Prior projected411-method code regression PASS in734.274s; Ruff/diff PASS. NPC18 methods
+in79.220s retain only the two incoming failures;55 new projected NPC scenarios
+pass.0256 has authored200 literal/config fallback, and12 original D3EB8D87
+conditional-query cases pass under explicit adapters. Native capacity modifiers,
+Pet health/energy and all remaining full-goal limits below stay OPEN.
+
+Later energy bridge: ANA_BARRIER_ENERGY.txt records35 passing focused methods
+and10 five-NPC rifle impact scenarios. Actual0242 graph owns energy accumulation,
+cap/delay/decay;0241 secondary samples that energy for actual return fire. Native
+Pet event/capacity/feedback and primary beam contacts remain open. Full regression
+for this code must also include test_game_ana_barrier_energy.
+Parent-reported press refresh is reproduced on personal0244 and fixed through
+reviewed Ability retention;64 related methods pass. See ANA_ABILITY_BUFFER.txt
+for actual resource-window differences and the interrupted broad run. Include
+test_game_ana_barrier_buffer in the replacement full regression.
+That energy/buffer baseline passes429 methods in1279.942s with full stored
+replay. A later shared throttle17/18/19 port has separate validation; see
+ANA_THROTTLE_MODIFIERS.txt. Primary Zarya remains unsupported at empty TrackRay
+outputs despite actual held input; secondary return fire is accepted separately.
+Final post-throttle207 movement/control/barrier/VM/server-snapshot methods pass
+in440.149s, no skips, excluding stored journal replay. Current NPC19 in92.909s
+retains only2 incoming failed subcases;65 new projected/energy scenarios pass.
+Full current-code stored replay and all remaining full-goal gates remain open.
+
+Later TrackRay output restoration and declared continuous-beam service now resolve
+actual0241 target536 and damage Ana through held primary input. See ANA_ZARYA_BEAM.txt
+for24 original output/cleanup cases,21 focused methods,32 storage checks and an
+actual encrypted stored replay. Earlier empty-TrackRay claims above describe the
+historical frontier. Native query geometry/aggregate outputs/continuous cadence,
+full defenses and original-client acceptance remain open. Shared notification
+lifetime and cleanup-before-arbitration repairs are reproduced and privately ported.
+Later FirstPerson audit preserves Ana1.25/.875 and corrects Zarya1.6/1.12,
+Genji1.2/.84 and McCree1.425/.9975 in origins and player target descriptors.
+Forty eye/beam/Deflect/control/ballistic methods pass; original camera/muzzle
+equivalence remains open. The interrupted510 broad run is not acceptance.
+Replacement current-source regression passes514 methods in1253.633s, no skips,
+including full stored replay; all Python source hashes remain stable. Current
+NPC20 in92.243s retains only Enforcer/Assassin2 incoming failed subcases;19
+methods and five new beam plus65 projected/energy scenarios pass. Ruff/diff pass.
+External ANA_STATIC_MATRIX.json inventories18 static areas and separates declared
+reconstruction checks from missing behavior/native limits. Goal stays active;
+all expanded code uncommitted and integration not ready.
+
+Later manual Enforcer gate work retires its incoming no-contact failure while
+keeping native controller relations unsupported.109 current shared/query/bot/
+VM/server snapshot methods pass in372.192s. Full Enforcer quantity/amount is
+still open: original13EB configures25 ring projectiles, but current combat emits
+one ray/2 damage.100 original ring-prefix cases do not prove complete emission.
+Assassin incoming and complete defenses/specials remain open. See
+ANA_ENFORCER_CONTEXT.txt. The514 full replay is now a pre-context baseline;
+current full stored replay must be rerun before final acceptance.
+Final current NPC22 in122.506s has21 passing methods and only Assassin incoming
+failing. This contact check does not accept the missing Enforcer25-pellet behavior.
+
+Later actual Enforcer25-projectile generation and80m/s individual flight now
+produce50 point-blank damage per round.162 production/native ring transforms,
+24 scalar-baking cases and32768 generated table values pass. Configured ballistic
+falloff uses causal path distance; manual NPC pitch reaches aim/movement. See
+ANA_ENFORCER_RING.txt for actual barrier/Nano/Deflect/lifetime/range checks and
+native identity/hardpoint/geometry limits. Full current regression and NPC matrix
+are separate; earlier514/109 are historical. Full Ana goal remains active.
+
+An actual Ana Dart kills a one-HP Heavy Assault while its 1408 charge
+carries the authored D.Va mech. The death releases the mech without a
+late wall hit. A separate receiver replacement used to allow the old
+sweep to deal 45 post-armour damage to the new mech. Retiring the latched
+body now ends the charge and starts its cooldown before the replacement
+joins combat. The replacement keeps 600 health. The fixture uses the
+combined 0020 NPC and 0407 runtime.
+
+Roadhog Chain Hook now consumes actual 01C8 node12. Its authored sweep
+uses 20 m reach, 60 m/s speed, and a 0.5 m radius. The 01C9 graph supplies
+40 m/s pull speed, 3 m minimum separation, 1 m capsule gap, 0.3 s recovery,
+and a 2 s pull limit. Tests cover one 30-point hit, input suppression, pull to three
+metres, recovery, Nano interruption before release, Sleep Dart cancellation
+after launch, allied targets, static cover, Projected Barrier breaking on
+contact, and release on either body's death or replacement. New cover and
+an allied Projected Barrier break the active link. The rescue leaves the
+barrier at 200 and preserves the initial 30 damage to Ana. Capsule sweep,
+surface rays, movement and control arbitration are reconstructed.
+
+Roadhog Take a Breather uses the 0240 node4 lifetime and node33 stack on
+#8243. Node18 supplies a one-second, 300-point self-heal. Both Ana rifles
+deal 35 during the channel and 70 after it ends. An enemy grenade deals
+25 and blocks the full self-heal. A friendly grenade heals 100 and raises
+the self-heal to 450. Projected Barrier absorbs the full 70 before body
+reduction. Sleep Dart deals 2.5 and interrupts healing and reduction.
+An enemy Chain Hook now deals 15 and interrupts the channel.
+
+013B meters an entered node18 on the combat clock through the existing
+heal boost and antiheal gates. A started heal finishes once during command
+loss and retires on death or body replacement. The neighboring Roadhog
+suite expects an owner command to catch up healing after a gap, which
+differs from this server reconstruction. Native timing is open.
+
+Mei's Ice Wall uses the existing reconstructed oriented boxes as live movement
+contacts. The mover combines static map motion with a pillar sweep and uses
+pillar tops for ground support. Actual Mei placement lifts an overlapping
+Ana, and actual Ana movement can jump from, land on, and walk off the top.
+Side contacts stop forward motion until recall. Placement omits an occupied
+column when the static capsule sweep cannot raise the occupant into clear
+space. The test ceiling is above the column and intersects the raised capsule.
+Collision, lift clearance, and top support are server reconstructions. Native
+placement and corner behavior, NPC lifting, and original-client correction
+remain open.
+
+An allied Ice Wall blocks both Ana rifle healing modes. A grenade aimed
+at the wall heals and amplifies the near ally while the wall occludes
+the far ally. The allied pillars retain 400 health each. After recall,
+the next rifle hit heals the far ally for 70.
+An enemy Ice Wall protects Baptiste's Immortality Field device from scoped
+rifle and grenade. A grenade that destroys the centre pillar still leaves
+the device at 150. A subsequent Sleep Dart crosses the opening or the
+recalled wall and reduces the device to 145.
+
+Junkrat's actual Steel Trap input reports 09BA position7, RID5 in this
+clone. The 11A9 carrier uses speed 10 and gravity 20 and names landed body
+103A with graph 09BB. That graph declares a 0.5 s arming delay, radius 1,
+damage 80 and a normal duration of 3 s. Body 103A overrides 0033 health
+to 100. The extracted supplement provides both entity definitions and
+the 09BC victim graph. The server now carries one reconstructed identity
+through flight and landing and publishes #5875. Actual contact removes 80
+health and blocks voluntary movement and jump while preserving attack.
+Both Ana rifle modes, dart, grenade and melee damage the hostile device.
+Two rifle hits free captured Ana early. Team and static cover gate capture.
+Projected Barrier spends 80 and prevents the root. The landed trap persists
+on owner death. Owner or victim body replacement retires the active device.
+The server snapshot records health and arming time. Repeated updates at
+the same world tick leave flight position, velocity and lifetime intact.
+Geometry, phase order and the shared flight/landing identity are reconstructed.
+An isolated permissive 09BC instance sets #23154 on explicit 000F
+delivery. Explicit 0FC1 delivery leaves it set and instance teardown
+clears it. With the extracted supplement supplied, a separate actual
+capture starts the status and owner replacement clears its contribution.
+The native carrier and landed entity transport remain open.
+
+Mei's 05FE state14 writes #2575 and remains active through node34's 0.25s
+exit wait. The server now checks that stack for protection. Node27 healing
+ends with the active Cryo phase. An existing Ana rifle dose consumes its
+scheduled ticks during immunity and deals only the damage scheduled outside
+that window. Actual Mei commands exercise the 0.2s cancel gate and 12s
+cooldown. The authored movement lock suppresses input while frozen.
+Catch-up Cryo healing uses the recorded world deadlines at each sampled pulse.
+Actual allied grenades apply amplification only while it is effective,
+including when it begins or expires while Mei's command frames are missing.
+The protection flag and timers come from 05FE. Pulse sampling, command-gap
+alignment, and capsule cover are server reconstructions.
+
+The five associated NPC definitions now export their difficulty identifier
+and corresponding profile asset separately. SceneWorld resolves C3619A38
+only for an explicitly bound selection that is present in the definition.
+Unbind clears the selected difficulty. For the startup diagnostic, the
+actual 100B node263 writes #6751 to the bound mode component. The NPC VMs
+run strict. The mode component runs permissively after the selected setter
+because strict execution of its downstream links stops at node159
+STU_8839933A. The five definitions with default 195F reach 142A node3
+STU_B61E6681. Their fifteen other authored choices reach node26 STU_9F3FE778.
+This verifies the extracted keys, scene service and authored comparison.
+Native evaluator behavior, full mode and controller startup, and autonomous
+combat remain separate gates.
+
+142A's B61E6681 and 600E3C59 now have an explicit SceneWorld registry.
+The original vtables share begin C7DCE0, cleanup C7E030, and update
+C7E2D0. The extended record uses C81870. Its original packing was
+checked in 18 cases with config, evaluator, conversion and cleanup
+adapters. The model matches 264 recorded native registry operations.
+The actual nodes register and remove separately in five controlled
+lifecycle probes. Unchanged strict default startup reaches node12
+STU_724DFBC6 and the mismatched keys still reach node26 STU_9F3FE778.
+The scene owner supplies the registry and explicit priority descriptors.
+Native host discovery and registry consumers remain open.
+
+The original 1B94286 state-factory suffix was run against a cache rebuilt
+from pinned registrations. It left empty slots for 142A's 724DFBC6,
+531AA630 and 14611C1B and for 100B's 8839933A. Other inspected classes
+resolved actual runtime constructors. SceneWorld now accepts an explicit
+catalog of such misses and the strict VM leaves those slots empty. With
+that catalog, the selected 100B node263 chain completes in strict mode.
+Five default 142A runs reach the 09DB receiver, then the entity query when
+an explicit empty message host is supplied. With diagnostic possession and
+entity lookup also supplied, they each register both priority records and
+reach CF8C7CC5 at node24. Ten original-instruction cases exercise the
+component86 record lifecycle, including the missing-target abort request,
+source and runtime-node key, equal-priority ordering and cleanup. A strict
+SceneWorld with an explicitly supplied registry on the possessed target now
+runs past node24 in all five default configurations. Four reach 918B3FA9
+in their behavior graphs and Enforcer reaches query 783B4CF0 in 0C83.
+The fifteen mismatched configurations originally stopped at 9F3FE778 in 142A.
+The original action's D34A80 returns true without reading its configs, and
+1B6EBA0 runs the generic observer and output path. All fifteen now continue
+into their behavior graphs under the same explicit scene inputs.
+Five additional behavior-state classes leave empty slots in the same
+reconstructed native factory cache. With those misses and explicit health
+pool amounts, Enforcer passes 783B4CF0 and reaches 4FC9D3E1 in 0C83.
+The original 297E1A30 literal evaluator writes the integer pool kind.
+The 012F original getter comparison binds 783B4CF0 to CDFCC0 and slot +70.
+The next branch in 0C83 node4 compares two self queries, 4FC9D3E1 against
+2 and 7DCA538E against 5. Offline execution verifies the original raw config
+placement functions for both. Unlike the 783B4CF0 control, their exact
+absolute type-token references lead only to the raw reflection records
+and token table in this capture. Relative and dynamic registration routes
+and server numeric semantics remain unresolved. The original PC graph loader
+using the reconstructed registry inventory selects base ConfigVar vtable
+26292E0 for both queries. The 783B4CF0 control selects its exact evaluator.
+Forty scalar and array wrapper calls leave their destinations unchanged and
+report failure. The diagnostic server scene adapts that no-output behavior
+only in 0C83. Each of the four Enforcer difficulty rows then reaches 13E9
+node19 on frame one. The original state factory resolves 473549CA to exact
+placement C822F0 in the reconstructed cache. Offline execution installs
+runtime vtable 265B808. The original begin inserts a kind 1 record on the
+target's component86 and end removes and frees it. The two authored inputs
+are 3 and 3. Missing or failed values use float32 pi. The fixture supplies
+the related entity, keys, priority and encoded component slots. Toggling
+related component70 preserves registration in this case. Removing
+component86 queues abort operation 2. Live resolution and record consumers
+remain open.
+The strict server state reuses the existing possession query and primary
+component86 list. Four isolated node19 executions register both values on
+the fixture body and remove the record at end. With the 13E9 node1
+priority supplied from its authored asset, all four controller starts
+advance to node13 on frame one. The reconstructed native factory cache
+leaves D52B9026 empty. Applying that miss only to the diagnostic advances
+the four rows to D379F515. Fault cleanup removes controller-owned records
+while other component owners can retain theirs.
+The existing target-record service modeled on CE7EA0 handles authored node7
+after actual node17 copies a fixture target from instance #7151 to entity
+#1650. Missing component46 or record preserves the output. Missing or
+zero values queue node29. Typed positive and negative values skip that
+subgraph. In the full startup diagnostic all lookups use target zero.
+Offline the original PC loader selects its base no-output evaluator for
+node29's 47077281 with the reconstructed registry. Twenty original calls
+verify no output. With that explicit adaptation, all four difficulty rows
+run controller and body through frame120. After frame one the diagnostic
+runs the controller before the body and polls voice after the body frame.
+Two controller records and one body voice registration stay live per row.
+Real target acquisition and original-client frame order remain open.
+The extracted Rialto graph inventory has 44 literal references to 0079.025.
+All are receiver entries, including the five Talon controllers. The
+explicit packet diagnostic exercises Enforcer node16 in all four difficulty
+rows. A valid packet publishes its entity in #1650 and #536. An unrelated
+message does not dispatch. Nonzero reason and numeric zero target leave
+the prior published target intact. A second valid packet retargets node7,
+and changing its fixture record to zero makes the switch false. Controller
+and body complete frame120. The diagnostic provides both target identities,
+record scalars and delivery timing.
+The isolated receiver comparison executes six packets on each of the five
+controller graphs. Trooper, Sniper and Heavy Assault publish a nonzero
+entity target even with nonzero reason. They preserve the prior published
+target for numeric and entity zero. Enforcer requires zero reason and
+can publish typed Entity(0), while numeric zero preserves the prior
+target. Assassin binds instance #536 and leaves entity #1650 untouched.
+Those differences are observed in the reconstructed evaluator.
+With the component44 body field explicitly supplied, the other four
+controller graphs reach their reads of entity variable 888. The five real
+body definitions carry stack producers for 888, but strict startup stops
+before those producers. CB4905E9 in 0E62 node118 was the first unsupported
+state before the managed state was implemented.
+All five node118 instances select 0E5E through their authored variable9707.
+The native CD05B0/D05A80 config emits a resource array when its override
+lists are empty. D05510 selects the first resource only if it is a graph.
+The D4C080/D4CA80 probe reaches the self-target launch boundary and releases
+the loader handle during cleanup. Four original D51200 cases cover keeping,
+dropping and compacting target records with final child release adapted.
+The strict scene now starts a ready local child and retires only that
+instance when the state ends or changes resource. A repeated begin retains
+the existing child. Remote targets, pending loads and alternate lifetime
+flags remain strict boundaries.
+The isolated 0E5E diagnostic exercises both known-absent and present
+component43 records. With an explicit relation, 142A node20 supplies 10147
+through its authored stack. Native 9A75B0 evaluates the boolean before the
+entity, resolves component1, and calls 1B049E0 to write model24E bit0.
+The six-case comparison exercises lookup and the bit write with engine
+notifications observed at their boundary. With the scene scope and a
+model-gate recorder, 0E5E completes frame1. Explicitly running the authored
+10F6 node1 sender delivers 078A. The D07EBF01 factory miss leaves its native
+state slot empty, and 0E5E node7 publishes 888 in frame2. All twenty
+isolated child runs clear 888 when the child instance is destroyed.
+With the ready loader and two additional empty slots from the reconstructed
+factory cache, all twenty actual body roots create and initialize 0E5E.
+Node13's registered 066B4605 resolves component86 and qualifies its selector
+through the related component70. Its kind1 records use a separate list
+from the kind2 records of CF8C7CC5. Fourteen native cases cover both
+successful registration and the queued abort when the required selection
+is absent. The scene supplies eligibility explicitly. It does not discover
+the live component70 catalog or handle the native payload refresh slot.
+With the explicit selection and the verified 90C3BCEA empty slot, all
+twenty body roots pass 0E62 and reach the AC829876 filter in 0C18.
+Ten original filter cases verify the classification masks, including the
+authored 0x100 exclusion. Three original cases confirm that 4A101787 writes
+typed false, and six confirm that A77AC2AC compares the selected or fallback
+mode against Tutorial. The strict diagnostic supplies the Retribution mode
+from the 100B resource binding and an explicit primary possession relation.
+All twenty allowed-mask cases allocate one 0D24 child and reach DC80F7E6
+in 0C18. All twenty excluded-mask cases allocate no 0D24 child. Eleven
+original 1A3FA5B0 cases verify the resource writer and generation-checked
+entity definition handle. The scene supplies the authored body definition
+for each case. An isolated run of the actual 143A switch verifies all five
+definition-specific output links. Trooper begins its selected state in the
+full run, while the four HealthPool links use the previously documented
+empty slot in the reconstructed cache. The five bodies then reach distinct
+startup stops. Both mask values and the extension decision are fixture
+inputs. The separate combat-host run keeps all twenty 0D24 children absent.
+It supplies the component43/44 records and explicit maximum pool totals
+equal to the authored starting amounts. Thirteen original CE5890 runs
+verify 25ECB55F's typed Boolean result, component76 lookup and low-word key.
+A primary hit can be suppressed even when the fallback list also has the
+key. With explicit empty component76 keys, manual scope registration and
+a model-gate recorder, all four Trooper cases pass 2535 and 0E5E. The
+model gate receives false once. The 1231 node6 F3104738 state has an
+empty factory slot in the reconstructed registration cache.
+Live component76 providers and native subscription delivery remain open.
+Enforcer passes the current health query and 13EF node6 B5C87F3D. Its
+local mapping and model-gate run encounters the same empty factory slot
+at 142F node4.
+Sniper remains at 0015's AnimCategory. Twelve original D3EB8D87 cases
+verify component92 membership on the source. Assassin passes that query
+and registers three authored 1157 mappings before reaching 13C3 node144
+42578342. The mapping registry records local registration only.
+Heavy Assault passes the 1254 modifier entry with a fixture frame-one
+clock, then passes the indexed target and component46 scalar queries
+with an empty target index and explicitly absent component46. It reaches
+1254 node30 B5C87F3D and passes it with the explicit scheduler. Three
+114F mappings register before 1408 node77 96333BBE. Four original
+constructor and owner-absent scope cases confirm passive ordinary hooks,
+so the diagnostic reaches 1408 node143 UXPresenter. A present auxiliary
+owner still requires the native binding service. Original evaluator runs
+cover eight D379F515 cases
+and eight A37A910D argument cases plus twelve typed entity-output cases.
+The adapted lookup services and live target selection remain separate.
+Twenty-four original B5C87F3D runs cover slot47 registration and removal,
+the 80 ms update gate, the service and controller exits, component45
+decoding, radius and half-angle decisions and both result writes.
+A radius equality rejects. A matching sample writes the authored result
+before checking the optional positive rate, whose component45 increment
+uses the entire elapsed interval and clears its +2C field in the original.
+Separate server executions of actual 13EF node6 and 1254 node30 produce
+1000 and 4000 at 80 ms. Both clear at the authored radius on the next
+update. The server host supplies eligible samples after relationship and
+component resolution, plus the optional accumulation service. The VM
+uses sqrt for vector normalization and its own update clock. Exact cone
+threshold parity, native dispatch and live downstream consumers remain open.
+Nine original D275A0 CombatModFilter cases cover exact event resources,
+allow and deny lists, and output writes. The two authored filters at
+1231 node29 and 142F node7 return resource zero, operand 2, mode 1 and two
+true flags for resource 0318 and tag 19C4. Eight strict isolated node runs
+verify matching, rejection and removal. The VM implements the tag-only
+profile with local state registration and explicit events. Native cached
+initialization, live combat dispatch and entity filters remain open.
+With empty indexed-target inputs, all four Trooper and four Enforcer
+bodies complete the first frame. Four original 274FF373 cases verify the
+ordinary linked-list insertion and removal hooks. The VM reuses its local
+registry and link payload. Its authored value consumer remains open.
+The reconstructed factory cache leaves AF1A4047, 78F71BED and 200B27C5
+empty. All four Trooper controllers reach 11E3 node10 E834E718.
+Six original 680F6816 cases verify component1 model-gate clearing,
+including namespace, entity and component absence, failed evaluation and
+idempotent notification. The VM reuses its existing model-gate consumer.
+With that service supplied, both matching difficulty rows pass 143A
+node37, record three false requests in total and reach frame8. Nine
+original 8502CA73 cases verify float32 prefix weights, the strict boundary
+and weighted output before ordinary output. The strict VM uses its seeded
+component RNG. With local data-flow registration the authored 102E node63
+path advances Trooper to 1034 node38 0A6BE10E.
+Seven original 064D4DE7 cases verify component51 +4EC increments and
+decrements, no write on component absence, and uint32 wrap. Four isolated
+runs of the authored 0E20 node112 exercise 0 to 1 to 0. The server retires
+the acquired storage on abort, destruction or fault. Twelve original
+AC29FFB9 cases verify component82 snapshot creation, scalar and typed
+conversion, free-slot reuse and single-record removal. Multi-record
+removal and live readers remain open. Four isolated 0E20 node70 runs
+explicitly enter and exit the auxiliary scope and publish 0628 as
+numeric 1. The ordinary startup uses manual scope registration.
+The matching Enforcer run passes frame8 and activates node112 once.
+1436 node49 begins on frame16 and registers for the explicit voice poll.
+It looks up the declared absent manager at begin and on every poll through
+frame120. The body VM reaches frame120 without a fault, retaining one voice
+registration and one component51 contribution. Four isolated executions
+of the actual 1436 node49 use the authored 09EE stimulus and self target.
+The supplied manager and clock exercise submission, a 125 ms duration,
+part checks, finish and unregister. Audio, native manager lookup, clock
+mapping, live consumers of component51 +4EC and native RNG parity remain
+open. The other six rows fault on controller variables at frame2. The captured
+factory cache points to heap storage outside the module dump. Empty slots
+are established using the reconstructed cache only.
+Live classification, nested filters and HealthPool behavior remain open.
+In a separate diagnostic, actual node13 inserts and removes its authored
+selection, and actual node118 plus the explicitly started 10F6 sender
+publish 888 and clear it by aborting node118.
+Live model and relation discovery, the complete HealthPool lifecycle, real
+message scheduling and autonomous startup stay open.
+
+An allied Winston dome allows Ana's grenade to heal Winston for 100.
+Its amplification raises the next hip rifle heal from 70 to 105. Ana
+receives 205 healing credit and the dome retains its 700 health. The
+Winston and Photon Barrier fixtures and VM snapshot suite pass together.
+With the pinned barrier meshes, allied Sigma and Orisa barriers also pass
+the 100-point grenade heal and the subsequent 105-point boosted scoped
+heal. Ana receives 205 healing credit in each case. The barriers keep
+their full pools of 700 and 600, respectively.
+Strict-only NPC state models use the existing passive class in compatible
+body VMs, preserving their snapshot layouts.
+
+Remaining: native rifle sub-tick cadence/feedback; native sleep/wake recovery and full interruption;
+complete grenade defense/cleanse/immunity/gravity; complete native Nano targeting/effect policy; combat
+native charge scalars/passive rate; barrier/reflect/absorb/immunity/cleanse interactions; interruption,
+complete death/interrupt lifecycles and all five NPC bidirectional/special behaviors;
+native corpse presentation;
+original-client weapon/HUD/audio/animation/status presentation. All remain OPEN.
+Do not claim complete Ana combat from this partial patch.

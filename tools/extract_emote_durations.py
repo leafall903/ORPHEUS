@@ -11,7 +11,8 @@ from pathlib import Path
 
 from extract_game_graphs import StuXml, guid_text
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 from ow174.paths import EMOTE_ANY_CATEGORY, EMOTE_DURATION_DATA, GREETING_CLIP_DATA, GREETING_DURATION_DATA
 
 CATEGORY_TYPE = 0x0280000000000000

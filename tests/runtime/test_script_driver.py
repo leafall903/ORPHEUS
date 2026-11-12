@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from ow174.game import statescript
 from ow174.game.bits import BitReader, BitWriter
-from ow174.game.script import decode, runtime
+from ow174.game.script import decode, expr, runtime
 from ow174.game.script import driver as driver_module
 from ow174.game.script import graph as graphs
 from ow174.game.script.driver import POLLED_SWITCHES, SETTLE_FRAMES, TRUSTED_NATIVES, BodyScript
@@ -389,7 +389,19 @@ class BodyTests(unittest.TestCase):
         took the 32 bits after st120 as its frame, so instance 14's (02C5) variable mask picked an
         m_syncVars entry without an id, whose own-instance binding read the bag of a null variable
         (0x7FF78991D6DB, 'reading 0x90' at payload bit 2842 in both crash dumps)."""
-        with mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}):
+        evaluate = expr.evaluate
+
+        def evaluate_at_capture(config, context, *, initial=None):
+            # The server at capture time sent this query through the native fallback.
+            if isinstance(config, dict) and config.get("$") == "STU_58AA0A3B":
+                result = context.native(config)
+                return initial if result is expr.EVALUATION_FAILED else result
+            return evaluate(config, context, initial=initial)
+
+        with (
+            mock.patch.dict(runtime.STATE_CLASSES, {"STU_D74D4F47": runtime.State}),
+            mock.patch.object(expr, "evaluate", evaluate_at_capture),
+        ):
             body, client = spawned(9198)
             body.command(9199, 0)
             with without_payloads("STU_D74D4F47"):
@@ -429,9 +441,9 @@ class BodyTests(unittest.TestCase):
         """Dump J of the second live crash (2026-10-02 00:52:18): CmFD 4094, a 977-bit frame, the client's
         reader at bit 857 with bits 832-895 = 0x2098989898989898, crashed in the variable store
         (0x7FF789E761E4 <- 0x7FF78AAB78DF <- one_var 0x7FF78991D484). With these commands (the
-        best fit: fire, release at 4093, running) the encoder as it was live (Effect 0254 st21 without its 2
-        bits) makes exactly that frame, and the client's table reads it to an id-less variable of instance 12
-        whose store crashes, its reader at bit 857. Now the frame reads whole."""
+        best fit: fire, release at 4093, running), the old encoder and old stack notification policy make
+        exactly that frame. The client's table reads it to an id-less variable of instance 12 whose store
+        crashes, its reader at bit 857. The current frame reads whole."""
 
         def frame_at_4094():
             body = BodyScript(SOLDIER, 0xA0000101, 3880)
@@ -454,7 +466,17 @@ class BodyTests(unittest.TestCase):
                         apply_instance_list(client, update)
                     body.stream.arrived(update.chunk_last)
 
-        with without_payloads("STU_691BFA55"):
+        changed = runtime.Component.changed
+
+        def captured_stack_notifications(component, var, before, *, stack_source=None, structural=False):
+            # The later priority-watch fix changes an instance14 timer, even
+            # when the effective value of a stack variable stays equal.
+            return changed(component, var, before, stack_source=stack_source, structural=False)
+
+        with (
+            without_payloads("STU_691BFA55"),
+            mock.patch.object(runtime.Component, "changed", captured_stack_notifications),
+        ):
             update, client = frame_at_4094()
         bits, size = chunk_payload(update)
         self.assertEqual((size, bits >> 832 & (1 << 64) - 1), (977, 0x2098989898989898))

@@ -9,7 +9,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ow174.game import collision, contacts
+from ow174.game import collision, contacts, props
 from ow174.game.collision_fingerprint import CollisionFingerprintError, WorldRegistry, world_fingerprint
 
 
@@ -41,6 +41,22 @@ def warm(world):
 class FingerprintTests(unittest.TestCase):
     def test_fresh_objects_with_the_same_complete_asset_have_the_same_fingerprint(self):
         self.assertEqual(world_fingerprint(scene()), world_fingerprint(scene()))
+
+    def test_initial_dynamic_spheres_change_asset_identity(self):
+        world = scene()
+        empty = world_fingerprint(world)
+        world.initial_dynamic_spheres = (
+            props.PlacedDynamicSphere(3, 4, 0, (1.0, 2.0, 3.0), 0.5, initial_inverse_mass=0.0),
+        )
+        seeded = world_fingerprint(world)
+        self.assertNotEqual(empty["sha256"], seeded["sha256"])
+        equivalent = scene()
+        equivalent.initial_dynamic_spheres = world.initial_dynamic_spheres
+        self.assertEqual(seeded, world_fingerprint(equivalent))
+        equivalent.initial_dynamic_spheres = (
+            props.PlacedDynamicSphere(3, 4, 0, (1.0, 2.0, 3.0), 0.5, initial_inverse_mass=0.25),
+        )
+        self.assertNotEqual(seeded["sha256"], world_fingerprint(equivalent)["sha256"])
 
     def test_query_cache_occupancy_is_validated_without_changing_the_asset_identity_or_caches(self):
         world = scene()

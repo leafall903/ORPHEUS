@@ -19,7 +19,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.jam.cipher import Jam  # noqa: E402
 from ow174.jam.codec import DecodeError, Schemas  # noqa: E402

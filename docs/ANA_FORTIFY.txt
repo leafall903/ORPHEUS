@@ -1,0 +1,23 @@
+Ana against Orisa Fortify on build 104319
+
+Actual Orisa Shift activates graph0CF4's CombatModFilter state4. The
+live state's m_50530EAB value is -0.4. The combat service reads that
+resource value at each damage application and applies it before armour.
+Sleep Dart and Flashbang control consult the active filter and authored
+entity flag9161. This is a scoped server interpretation of those inputs.
+
+Both Ana rifle modes deal42 while the filter stays active. Dart deals
+1.5 against armour without sleep. Grenade deals25 against armour and
+still installs antiheal. Melee deals13 against armour. Existing sleep
+suppresses the activation input, while allied healing is unaffected.
+Actual dart again applies sleep after expiry. A rifle dose spanning the
+expiry sees reduction only while the filter remains live.
+
+Four dedicated methods exercise these cases using actual commands.
+Exact native damage ordering, effect filters and presentation remain
+open. The resource graph owns activation and state lifetime. Combat
+does not create a separate Fortify flag or timer.
+
+The32-method Fortify/control/sleep/timed-rifle group passed. Normal-runtime
+full stored replay and the separate external fixture runs are tracked in
+the verification directory.

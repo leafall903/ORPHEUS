@@ -298,6 +298,22 @@ class MessageReceiveTests(unittest.TestCase):
         self.assertFalse(instance.params)
         self.assertFalse(instance.queue)
 
+    def test_queued_message_on_dormant_instance_waits_for_initialization(self):
+        model = graph([entry(m_params=[binding(KEY, 41)])], entries=[0])
+        component = runtime.Component(OWNER, strict=True)
+        instance = component.create(model, init=False)
+        self.assertEqual(receive.deliver(component, packet([(KEY, (1,))])), 1)
+
+        component.run_frame(1)
+        self.assertIsNone(component.fault)
+        self.assertIsNone(instance.find_var(expr.INSTANCE, 41, create=False))
+        self.assertTrue(instance.queue)
+
+        instance.init()
+        component.run_frame(2)
+        self.assertEqual(instance.vars[41].value(), (1,))
+        self.assertFalse(instance.queue)
+
     def test_pending_bindings_disabled_entries_and_scope_export_without_execution(self):
         model = graph([entry(m_params=[binding(KEY, 41)], m_FDBDCB70=1)], entries=[0])
         component = runtime.Component(OWNER, strict=True)

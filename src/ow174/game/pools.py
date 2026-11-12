@@ -4,8 +4,8 @@
 is set, st3 (type 1, armour) with #1736 when it is set, and st0 (type 0, health) with #199. The values are
 0033's schema defaults (#199 1000, #1736 0, #221 0) or the body's overrides of them (the initial graph
 0033 of its STUStatescriptComponent): Soldier 200, Reinhardt 300 and 200 armour, Zarya 200 and 200
-shields, Wrecking Ball 500 and 100 armour, Zenyatta 50 and 150 shields. D.Va's 150 is her pilot's; the mech's
-pools come from her own graphs (0109), which only her body statescript would add.
+shields, Wrecking Ball 500 and 100 armour, Zenyatta 50 and 150 shields. D.Va's 150 is her pilot's;
+an explicitly prepared0407 mech definition supplies its own0033 overrides:300 health and300 armour.
 """
 
 import logging
@@ -42,14 +42,35 @@ def authored_pools(record: dict | None) -> tuple[float, float, float] | None:
     return values.get(HEALTH_VAR, 0.0), values.get(ARMOUR_VAR, 0.0), values.get(SHIELDS_VAR, 0.0)
 
 
-@cache
-def hero_pools(hero: int) -> tuple[float, float, float] | None:
-    """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
-    record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+def record_pools(record, hero: int) -> tuple[float, float, float] | None:
     result = authored_pools(record)
     if result is None:
         log.warning("[game] no 0033 in the body data of the hero %016X: no health pools", hero)
     return result
+
+
+@cache
+def hero_pools(hero: int) -> tuple[float, float, float] | None:
+    """(health, armour, shields) of a hero's body, or None when its data has no 0033."""
+    record = next((item for item in graph.bodies().values() if int(item["hero"], 16) == hero), None)
+    return record_pools(record, hero)
+
+
+def active_pools(hero: int, definition: int) -> tuple[float, float, float]:
+    """Use an explicitly selected form's0033, including a separate mech body."""
+    record = graph.bodies().get(definition) or graph.entity_body(definition)
+    if record is not None:
+        if record.get("hero") not in (None, f"0x{hero:016X}"):
+            raise ValueError("selected body pools belong to another hero")
+        values = authored_pools(record)
+        if values is None:
+            raise ValueError(f"selected body {definition:016X} has no0033 health pools")
+        return values
+    # Preserve the existing unknown-body policy only for the canonical hero body.
+    canonical = next((body for body, row in graph.bodies().items() if int(row["hero"], 16) == hero), None)
+    if canonical is not None and canonical != definition:
+        raise ValueError(f"selected body {definition:016X} has no prepared definition")
+    return body_pools(hero)
 
 
 def body_pools(hero: int) -> tuple[float, float, float]:

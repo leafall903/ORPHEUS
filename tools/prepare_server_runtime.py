@@ -11,26 +11,22 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
+
+from ow174.paths import (
+    EMOTE_ALIAS_DATA, EMOTE_BLEND_TREE_DATA, EMOTE_CLIP_DATA, EMOTE_DURATION_DATA, EMOTE_SCALAR_DATA,
+    EMOTE_TAGGED_DATA, GREETING_DURATION_DATA, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA,
+    VOICE_EFFECT_DATA, WHEEL_POSE_DATA,
+)
 
 from ow174.game.casc import CascError, game_root
 from ow174.game.content import PRACTICE_RANGE
 from ow174.game.props import PropError
 from ow174.paths import (
     CLIENT_CATALOGS,
-    EMOTE_ALIAS_DATA,
-    EMOTE_BLEND_TREE_DATA,
-    EMOTE_CLIP_DATA,
-    EMOTE_DURATION_DATA,
-    EMOTE_SCALAR_DATA,
-    EMOTE_TAGGED_DATA,
-    GREETING_DURATION_DATA,
-    LOBBY_RUNTIME_DATA,
-    MATCH_RUNTIME_DATA,
     ROOT,
     ULT_CHARGE_OVERRIDE,
-    VOICE_EFFECT_DATA,
-    WHEEL_POSE_DATA,
 )
 from tools.prepare_client_catalogs import prepare_catalogs, require_target_build
 from tools.prepare_client_gameplay import XML_TYPES, export_xml, prepare_gameplay

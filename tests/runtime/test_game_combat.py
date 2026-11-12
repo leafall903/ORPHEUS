@@ -30,6 +30,15 @@ KANEZAKA_DM = PRACTICE_RANGE.__class__(**{**PRACTICE_RANGE.__dict__, "mode_guid"
                                          "free_for_all": True, "team_sizes": (8,)})  # fmt: skip
 
 
+def first_canister_sweep(canister):
+    """Expected first gravity sweep for a just-admitted Field cast."""
+    assert canister.flown == 0 and canister.gravity is not None
+    vx, vy, vz = (axis * canister.speed for axis in canister.direction)
+    vy -= canister.gravity * combat.TICK
+    speed = math.hypot(vx, vy, vz)
+    return canister.position, (vx / speed, vy / speed, vz / speed), speed * combat.TICK
+
+
 class FakeClient:
     controller_ready = True
 
@@ -44,7 +53,7 @@ class FakeClient:
     def bot_create_acked(self, entity: int) -> bool:
         return True  # this model acknowledges every create immediately
 
-    def body_id_available(self, entity: int) -> bool:
+    def body_id_available(self, entity: int, *, at: float | None = None) -> bool:
         return True  # this model retains no retired entities
 
     def queue_possession(self, update: world.EntityUpdate, body: int) -> None:
@@ -60,10 +69,10 @@ class FakeClient:
         pass  # the combat model leaves NPC body decoding to the link tests
 
     def queue_bot_death(self, entity: int, snapshot) -> None:
-        self.queue_bot_live(entity, snapshot)
+        pass
 
     def queue_bot_death_update(self, entity: int, snapshot) -> None:
-        self.queue_bot_live(entity, snapshot)
+        pass
 
     def queue_combat_notice(self, entity: int | None, msg_id: int, value: dict) -> None:
         self.queue_reliable(msg_id, value)
@@ -100,6 +109,19 @@ def aim(origin, target) -> tuple[int, int]:
     yaw = round(math.atan2(dx, dz) * 65536 / (2 * math.pi))
     pitch = round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi))
     return (yaw + 32768) % 65536 - 32768, pitch
+
+
+def dva_pilot_input(player) -> None:
+    """Use the authored return message in fixtures that specifically exercise the pilot."""
+    from ow174.game.script import nodes
+
+    mech = player.controlled_mech
+    if mech is None:
+        return
+    instance = next(i for i in mech.body_script.component.instances.values() if i.graph.index == 0x276)
+    nodes.send(instance, instance.graph.node(5), None)
+    player.match.deliver_body_messages()
+    assert player.controlled_mech is None
 
 
 class Run:

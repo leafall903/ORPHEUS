@@ -1,0 +1,70 @@
+Ana contacts, Zarya barrier energy and return fire: partial104319 restoration
+
+Resource path and executed behavior
+0256 Pet graph receives effective damage0011 and forwards amount337 and
+instigator392 through0146 to its source27.0242 Entry5 receives that message.
+Action6 writes entity87=min(100,energy+amount499*.2), restarts Wait7 for1s and
+interrupts the decay branch. After that wait, BooleanSwitch10 permits ChaseVar12
+to approach0 at1.8/s while the authored entity232 condition allows it. Actual
+graph execution now owns the energy arithmetic and timers; Combat does not
+maintain a duplicate energy value, clamp or decay clock.
+
+Combat bridge and limits
+Both personal and projected reconstructed BodyBarrier contacts forward
+min(incoming scaled amount,remaining pool) to the still-living original caster
+body's0146 receiver, with the immutable damage instigator in parameter0012.
+The contact that breaks a200-point pool can therefore supply at most40 energy;
+later unshielded health damage supplies none. Friendly heals, misses and expiry
+give no energy. Offensive Nano scales contact loss first; recipient Nano's
+body-health reduction is applied after interception. Both pools feed the same87.
+
+This bridge substitutes the caster body for the unallocated Pet sender. Exact
+native Pet health loss/event ordering, damage-tag exclusions (including191F),
+source namespace, capacity modifiers, feedback/stats and dead-owner policy are
+not proved. The bridge rejects a dead/retired/replaced caster; released protection
+can still absorb without crediting a replacement body. These are explicit
+reconstructed host policies, not native Pet or original-client acceptance.
+
+Return fire
+0241 projectile Action113 samples entity87 into amount476 before Volley41.
+The loaded schema values are47 minimum and95 maximum, producing
+47+energy*.01*(95-47), with VM f32 rounding. Ana's real rifle contact supplies14
+energy and Zarya's actual subsequent secondary hits Ana for53.720001220703125.
+A projectile already in flight retains its firing-time amount when another
+contact adds energy. This restores a tested bidirectional interaction through
+the existing weapon expression; no extra outgoing multiplier is added.
+The primary beam also reads87 with75/170 endpoints, but its continuous contact
+targeting, geometry and cadence are still unsupported and remain OPEN.
+
+Verification
+ana-barrier-energy-expanded.txt:35 methods PASS in137.808s (10 energy,12 personal,
+13 projected), including actual inputs, both rifle modes, sleep/grenade/melee,
+friendly healing/miss, breaking loss/cap, delay restart/decay-to-zero, Nano,
+caster death/replacement, simultaneous pools, expiry, actual return fire and
+in-flight resampling rejection. The real server snapshot is sensitive to energy
+itself with the barrier pool held fixed. NPC impact check:one method PASS
+in7.992s with all five authored NPC bodies and both rifle modes (10 scenarios).
+Earlier411-method regression is the pre-energy baseline; current full regression
+must include test_game_ana_barrier_energy and test_game_ana_barrier_buffer. The
+first energy broad run was stopped for the parent-reported shared press bug;
+it is not an acceptance result. ANA_ABILITY_BUFFER.txt records the reproduction,
+reviewed fix and64 passing related checks. Full static/client acceptance remains
+incomplete; expanded code stays uncommitted and not merge-ready.
+
+External zarya-energy-resource-evidence.json records selected0256/0242/0241
+nodes and SHA256 of read-only XML/bundle inputs. It is bounded resource evidence,
+not a complete native graph/engine execution claim.
+
+Energy/buffer baseline:429 methods PASS in1279.942s with complete stored replay
+and snapshots; NPC19 methods in117.419s retain only2 original incoming failures.
+A later shared throttle consumer changes mover.py and has separate validation;
+see ANA_THROTTLE_MODIFIERS.txt. Do not claim full current-source replay from the
+earlier429 result. Zarya primary held-input probe enters TrackRay43/81 and
+ModifyHealth10, consumes ammo100->74.41812896728516 over80 frames, but leaves
+target536 empty and Ana health200. Primary remains an ordinary open frontier:
+external zarya-primary-executed-frontier.json records inputs/resources/native
+static paths; no target or unknown predicate is overridden.
+Final post-throttle207-method movement/control/barrier/VM/server-snapshot group
+passes in440.149s without skips. It includes all10 energy methods and current
+barrier snapshots, but excludes stored journal replay. Current NPC19 in92.909s
+retains only2 incoming failures and passes all65 added projected/energy scenarios.

@@ -225,23 +225,14 @@ class Collection:
                 slots[slot] = _parse_guids(value)
         return slots
 
-    def emote_aliases(
-        self, profile: Profile, hero: int, *, body_definition: int | None = None,
-    ) -> tuple[int, ...]:
+    def emote_aliases(self, profile: Profile, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
         return self._equipped_emote_assets(profile, hero, body_definition, blend=False)
 
-    def emote_blend_trees(
-        self, profile: Profile, hero: int, *, body_definition: int | None = None
-    ) -> tuple[int, ...]:
+    def emote_blend_trees(self, profile: Profile, hero: int, *, body_definition: int | None = None) -> tuple[int, ...]:
         return self._equipped_emote_assets(profile, hero, body_definition, blend=True)
 
     def _equipped_emote_assets(
-        self,
-        profile: Profile,
-        hero: int,
-        body_definition: int | None,
-        *,
-        blend: bool,
+        self, profile: Profile, hero: int, body_definition: int | None, *, blend: bool,
     ) -> tuple[int, ...]:
         equipped = self.loadout(profile, hero).get(LIST_SLOT_BY_TYPE["Emote"])
         if not isinstance(equipped, list):
@@ -272,7 +263,8 @@ class Collection:
         spray_unlocks = ()
         if isinstance(sprays, list):
             spray_unlocks = tuple(
-                unlock if 0x0250000000000000 < unlock <= 0x0250FFFFFFFFFFFF else 0 for unlock in sprays[:4]
+                unlock if 0x0250000000000000 < unlock <= 0x0250FFFFFFFFFFFF else 0
+                for unlock in sprays[:4]
             )
         voice_effects = ()
         if isinstance(voices, list):
@@ -342,20 +334,11 @@ class Collection:
         for hero in sorted(self.items.npc_heroes):
             if hero in self.default_loadouts:
                 continue
-            catalog["+0x80"].append(
-                {
-                    "+0x0": [],
-                    "+0x18": [],
-                    "+0x30": hero,
-                    "+0x38": 0,
-                    "+0x40": 0,
-                    "+0x48": 0,
-                    "+0x50": 0,
-                    "+0x58": [],
-                    "+0x70": [],
-                    "+0x88": [],
-                }
-            )
+            catalog["+0x80"].append({
+                "+0x0": [], "+0x18": [], "+0x30": hero,
+                "+0x38": 0, "+0x40": 0, "+0x48": 0, "+0x50": 0,
+                "+0x58": [], "+0x70": [], "+0x88": [],
+            })
             catalog["+0x98"].append({"+0x0": [], "+0x18": hero})
 
     def unlock_granted(self, guid: int) -> tuple:

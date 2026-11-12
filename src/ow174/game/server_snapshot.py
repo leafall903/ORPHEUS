@@ -13,35 +13,93 @@ import random
 import struct
 import types
 import weakref
+import uuid
 from collections import deque
 from pathlib import Path
 
+from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, sombra_charge, npc_controller_storage
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld, PinEffectServices
+from ow174.game.script.controller_filter import ControllerFilterInputs
+from ow174.game.script.npc_context import NpcContext
+from ow174.game.script import assassin_movement, scene, message_state, message_manager, modifiers
 from ow174.game import (
+    assassin_controller,
+    enforcer_controller,
+    combat_profiles,
+    junkrat,
+    junkrat_charge,
+    junkrat_tire,
+    venom,
+    hanzo_movement,
+    sonic,
+    dragon,
+    absorption,
+    actors,
+    baptiste,
+    ball,
+    ball_mines,
+    hook,
+    whole_hog,
+    barrier,
+    assassin_victim,
+    ashe,
+    barriers,
+    breather,
     bots,
+    brigitte,
     combat,
     contacts,
     correction,
+    dynamic_spheres,
+    echo_duplicate,
+    genji,
+    deflection,
+    earthshatter,
+    healing,
+    graviton,
+    health_packs,
     heroselect,
+    mei_wall,
+    moira,
     notices,
     npc_navigation,
     observers,
+    orisa,
+    orisa_barrier,
+    orisa_halt,
+    orisa_supercharger,
+    photon_barrier,
     projectiles,
+    props,
+    reinhardt_barrier,
+    reinhardt_charge,
     replay_values,
+    sigma_barrier,
     statescript,
     stats,
+    tracer_recall,
+    pulse_bomb,
+    zenyatta,
     voicelines,
+    winston_barrier,
     world,
+    zarya_barriers,
 )
+from ow174.game.script import healing_status, entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
+from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
-from ow174.game.collision import LoadState, World
+from ow174.game.collision import LayeredWorld, LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
-from ow174.game.commands import CommandQueue
+from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
-from ow174.game.match import Match, Player, ShownController
+from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import driver, expr, runtime
-from ow174.game.script.bot import BotScript, BotWorld
+from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
+from ow174.game import volskaya
+from ow174.game.script import scene_host, startup
+from ow174.game.script import graph as script_graph
+from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
 from ow174.paths import ROOT
 
@@ -69,45 +127,148 @@ def _names(text):
 
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
+from ow174.game.script import component86, distance_constraints, possession_requests
+
 FIELDS = {
-    GameServer: _names(
-        "environment collision_provider_factory scene_host_factory host port on_leave on_join on_clock_ready "
-        "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients "
-        "_dropped matches tick _next_conn _left_players _joined_players _reporting_players "
-        "_clock_ticks_left _clock_ready_pending _sent_home running"
-    ),
+    volskaya.LiftScene: volskaya.SCENE_FIELDS,
+    volskaya.LiftHost: _names("world frame_ms seed graph_loader units weapons objective_approaches "
+                              "spawn_searches combatants body_projections frame prepared closed error "
+                              "play_requests_configured _play_acquire lift"),
+    volskaya.Lift: _names("match base origin position scale rotation models offsets route_length "
+                         "segment velocity blocked_riders attached_walls collider"),
+    startup.ComponentStartup: _names("component definition instance_data graph_loader created"),
+    component86.Registry: _names("descriptors accepted_selections entries selection_entries"),
+    possession_requests.Registry: _names("inputs accepted_selections _requests _selections"),
+    distance_constraints.Registry: _names("_entries _sequence"),
+    NpcContext: _names("body controller definition body_component controller_component position retired target_entity target_host"),
+    PinEffectServices: _names("registry messages"),
+    message_state.Host: _names("contexts current manager"),
+    message_state.Context: _names("component host policy frame priority timer_notify receiver_policy "
+                                 "receiver_generation receiver_filter retired states"),
+    message_manager.Manager: _names("notify consume_work validate channels frame next_sequence "
+                                   "retired _busy _discard_revision"),
+    modifiers.NumericModifiers: _names("_source_frame ready records vector_records"),
+    ControllerVM: _names("definition retired component reserved_wire_ids"),
+    ControllerFilterInputs: _names("owner component_masks current_bits replicated_bits primary_status health_status flags28 provenance revision retired bound_host"),
+    ControllerWorld: _names("hero mode readers filter_inputs pin_services linked_target_inputs numeric_modifiers"),
+    sombra_charge.Charge: _names("combat data_path data data_digest paused retained"),
+    translocators.Translocators: _names("combat entries recall_poses data_path data_record data_graphs data_digest"),
+    mei_blizzard.Blizzard: _names("combat flights areas"),
+    symmetra_portals.Portals: _names("combat pairs transits"),
+    symmetra_portals.PortalPair: _names("owner endpoints instance_id owner_body ready_at"),
+    symmetra_turrets.Turrets: _names("combat sentries"),
+    symmetra_turrets.Sentry: _names("owner bot direction speed last_tick attached_at target slow support_pillar"),
+    scopes.Registry: _names("states"),
+    scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
+    GameServer: _names("environment collision_provider_factory scene_host_factory host port "
+                       "on_leave on_join on_clock_ready combat_profiles "
+                       "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
+                       "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
+                       "_sent_home running"),
     Client: _names("server address conn cipher player window seq open closed heard next_reliable "
                    "_ownership_ordinal reliable "
                    "unreliable entities in_flight _npc_idle _combat_notices _body_health _combat_notice_tail "
                    "_body_destroy_wait _player_body_reuse_after _bot_scripts expected_in parked_in "
                    "leaving_since _own_controller_acked _mode_create_acked _pending_mode_frame "
-                   "_mode_fragments _display_notices _pending_possessions _confirmed_possessions"),
-    _BotScriptDelivery: _names(
-        "stream source live volleys death_frames death_snapshot nameplate_update historical_death"
-    ),
-    Match: _names(
-        "environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick "
-        "controller assemble_ends assembled players _body_messages started on_leave ended bots "
-        "_npc_planning_turn "
-        "_pending_bot_scripts bots_shown notices combat collision_provider collision_state collision_world "
-        "_collision_failed scene_host_factory scene_host scene_host_started scene_host_error"
-    ),
-    Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
+                   "_mode_fragments _display_notices _pending_possessions _confirmed_possessions _npc_idle"),
+    _BotScriptDelivery: _names("stream source live volleys death_frames death_snapshot nameplate_update historical_death"),
+    Match: _names("environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick controller assemble_ends assembled players "
+                  "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
+                  "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
+                  "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
+    Player: _names("turret_cooldown_until overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
-                   "body_script body_script_failed seen shown script mode_script next_countdown "
-                   "select_open controller_hero "
+                   "body_script controlled_mech body_script_failed retained_ult_charge genji_mobility seen shown script mode_script "
+                   "next_countdown select_open controller_hero controller_vm controller_effect_key "
                    "stats stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks rockets respawns next_bot now tick melee_seen "
-        "model_pose_for wheel_actor_admits defender_damage_scale tesla_frames "
-        "projectiles observers voice stuns npc_hit_reactions pins deadeye_notices"
+        "hooks zarya_charge_tick zarya_charge_ready zarya_melee_ready zarya_secondary_ready ball_mines sombra_charge translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns early_projectile_respawns pharah_airborne next_bot now tick melee_seen hammer_hits tesla_frames "
+        "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
+        "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
+        "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen beam_seen zarya_beam_world_ms reaper_blossoms reaper_shadows echo_duplicates barriers "
+        "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples grapple_seen ball_contacts pile_air_locks orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
-    combat.Vitals: _names(
-        "entity most now temporary_shields ids wave_health wave_health_id changed died_at death_tick killer"
-    ),
+    hook.Hooks: _names("combat flights seen player_pose_ticks player_command_cutoffs command_clocks"),
+    ball_mines.Mines: _names("fight devices volleys seen"),
+    ball_mines.MineWorld: _names("hero mode manager mine"),
+    ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),
+    doomfist.Punches: _names("combat dashes impacts controls"),
+    doomfist.Slams: _names("combat casts impulses"),
+    winston.JumpPack: _names("combat seen flights"),
+    winston.PrimalPunches: _names("combat seen frames"),
+    meteor.Meteors: _names("combat casts"),
+    tracer_recall.Recalls: _names("fight history phases"),
+    ashe.Companions: _names("combat active unavailable_reason"),
+    ashe.Impulses: _names("combat"),
+    ashe.Dynamite: _names("combat grenades burns last_tick"),
+    junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
+    junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
+    junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
+    entity_relation.Context: _names("owner context_present lookup relate watch_context retired"),
+    junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
+    venom.Mines: _names("combat flights mines poison next_number last_tick"),
+    pulse_bomb.PulseBombs: _names("combat anchors poses context"),
+    zenyatta.Zenyatta: _names("combat owners last_tick"),
+    breather.Breathers: _names("fight channels"),
+    sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
+    sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
+    lucio.Auras: _names("combat leases healing last_tick"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion launches launch_sources body_epochs replayed_frames"),
+    support_effects.Effects: _names("match attachments boost_frames"),
+    support_effects.EffectWorld: _names("hero mode match source owner"),
+    sombra_control.DeviceWorld: _names("hero mode fight body tags"),
     combat.WaveHealthPool: _names("capacity current"),
+    orisa_barrier.Barriers: _names("fight geometry active retiring pending"),
+    orisa_barrier.BarrierWorld: _names("hero mode match entity location"),
+    sigma_barrier.BarrierWorld: _names("hero mode barrier"),
+    health_packs.PackWorld: _names("hero mode match entity"),
+    orisa_barrier.Geometry: _names("world triangles source"),
+    mei_wall.Walls: _names("combat pieces inputs anchors"),
+    combat.Vitals: _names(
+        "last_damage_at shield_accounted_at entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
+        "healing_block healing_boost temporary_shield ult_healing_deficit healing_damage health_changes extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation adaptive_until conditional_pools"),
+    brigitte.BrigitteCombat: _names(
+        "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
+        "repairs barriers rally_seen stuns"
+    ),
+    echo_duplicate.Duplicates: _names("combat states held busy"),
+    barriers.Barriers: _names("fight live scripted seen next_entity world reinhardt expiries cooldown_deadlines"),
+    barriers.BarrierExpiry: _names("owner duration generation frame tick started ended_ahead"),
+    barriers.reinhardt_barrier.ReinhardtBarriers: _names("fight geometry actors next_id"),
+    barriers.world_bubbles.WorldBubbles: _names("fight actors next_id pending"),
+    combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
+    barriers.Barrier: _names(
+        "entity parent parent_body source instance state activation component "
+        "mesh geometry_digest vitals retired recipient recipient_body recipient_component "
+        "application_tick cleanse_applied"),
+    assassin_victim.Lease: _names(
+        "source source_instance sender_state activation target source_component target_component instance"),
+
+    dynamic_spheres.DynamicSpheres: _names("_bodies"),
+    orisa_halt.PullQuery: _names("hero mode explosion_sink origin caster context instance track radius"),
+    orisa.Orisa: _names("fight charge_metadata halt_graph halt_query_graph orbs pulls results "
+                        "barriers superchargers"),
+    orisa_supercharger.Superchargers: _names("fight active buffs graphs geometry"),
+    orisa_supercharger.DeviceWorld: _names("hero mode fight entity location"),
+    script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
+                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+    script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
+
+    baptiste.BaptisteEffects: _names(
+        "combat seen regeneration protection_seen fields field_bindings matrices"
+    ),
+    healing.HealingEffects: _names("match applied filter_history combat spec anti amp"),
+    healing_status.StatusWorld: _names("hero mode match source owner source_team"),
+    absorption.Grasp: _names("combat converted decay_clocks last_tick"),
+    barrier.BarrierField: _names("combat health children model_sha256"),
+    graviton.Gravitons: _names("fight fields pulled npc_movers"),
+    winston_barrier.DomeWorld: _names("hero mode manager actor"),
+    photon_barrier.Barriers: _names("fight geometry actors casts"),
+    photon_barrier.Geometry: _names("world triangles source"),
+    photon_barrier.BarrierWorld: _names("hero mode actor"),
     projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
@@ -123,19 +284,33 @@ FIELDS = {
     driver._CreateArrived: _names("script"),
     driver.BodyScript: _names(
         "hero entity record frame_ms world component frame buttons stream create_arrived "
-        "retired first_owner_frame server_only ult_seconds ultimates reports report_count"
+        "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick winston_charge_ms winston_charge_tick winston_primal_clock ult_gain_bonus ultimates reports report_count self_healing support_healing "
+        "self_repairs control_windows sleep_windows frost_windows"
     ),
-    driver.BodyWorld: _names(
-        "hero mode body body_definition throttles match velocity_requests communication_wheel wheel_callouts "
-        "emote_aliases emote_blend_trees spray_unlocks voice_effects"
-    ),
+    driver.BodyWorld: _names("hero mode body body_definition beam_barrier throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
+                             "_body_owner_context _entity_query_context _possessor_query"),
     BotScript: _names(
-        "component frame server_only latest_live _initial_frame death_frame _produced behavior"
+        "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
+        "flashbang_weapon_stack control_context"
     ),
     BotWorld: _names(
-        "hero mode weapon_buttons owner_position controller_components match manual_target manual_nameplate"
+        "hero mode weapon_buttons owner_position controller component controller_inputs "
+        "heavy_counter_stuns match controller_components manual_target manual_nameplate control_context sniper_target sniper_retry_at"
     ),
+    AssassinControllerWorld: _names(
+        "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
+        "recovery_pending recovery_started"
+    ),
+    entity_link.Context: _names("owner instance_present environment_present lookup watch_environment watch_link retired"),
+    spatial_queries.Context: _names("owner instance_present namespace_present query retired"),
+    body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
+                               "watch_owner retired"),
+    entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
+                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant watch_possessor"),
     runtime.World: _names("hero mode"),
+    enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
+    assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
+    assassin_controller.Phase2World: _names("hero mode fight body") | frozenset(npc_controller_storage.SCENE_WORLD_FIELDS),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -146,39 +321,85 @@ FIELDS = {
     world.Movement: _names("position yaw pitch velocity flags throttles input_frame input_throttles "
                            "air_ticks gravity frame crouch_frame spring spring_speed fall"),
     bots.Bot: _names(
-        "entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
+        "combat_owner combat_geometry entity spawner hero_data hints dead body_script records_from hero name body team health speed accel "
         "brake pace direction position yaw velocity firing route index wait target start keys turning held "
-        "last_held input_tick moved_tick last_tick free_for_all category radius capsule_top pogo physics "
-        "physics_world waypoints retain_corpse attack_target attack_input pitch navigation"
-    ),
-    npc_navigation.Search: _names(
-        "start target queue points parents costs visited done path blocked_by_teammate"
+        "last_held input_tick moved_tick last_tick retain_corpse attack_target attack_input attack_mode reposition_body pitch navigation impulse_mover "
+        "owner pet_owner source_body control_mover control_buttons clock_offset detached_bomb movement_data free_for_all category radius capsule_top pogo physics physics_world waypoints"
     ),
     npc_navigation.Navigator: _names("mover path target goal next_plan last_tick stuck search"),
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
-    Client: _names(
-        "_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"
-    ),
-    Player: _names("impulse_correction"),
-    driver.BodyScript: _names("_ult_passive_blocked _ult_stall"),
+    assassin_controller.Phase2World: _names("auto_scene auto_target sample"),
+    venom.Mines: _names("properties"),
+    BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
+    driver.BodyWorld: _names("healing_tick passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
+    driver.BodyScript: _names("charge_clock passive_ult_deadline passive_ult_last_command_tick orisa_pose_anchor orisa_fortify_pending grapple_interrupt_frame ball_birth cryo_birth"),
+    knockback.Knockbacks: _names("pending_npc pending_victims"),
+    Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
+    Player: _names("impulse_correction valkyrie_pose"),
     npc_navigation.Navigator: _names("charge_contact"),
+    bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    volskaya.LiftFactory, scene_host.Unit,
+    component86.Entry, component86.Selection, component86.NumericPair,
+    possession_requests.Inputs, possession_requests.Selection, possession_requests.Request,
+    distance_constraints.Entry,
+    message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
+    hook.Flight, whole_hog.Spec, whole_hog.Motion,
+    ball_mines.Mine,
+    assassin_movement.Sample,
+    ashe.Grenade, ashe.Burn, ashe.Bob,
+    Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
+    entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
+    scene.SceneEntity, scene.Placement,
+    combat_profiles.Profiles,
+    junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
+    entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,
+    entity_tags.Context, entity_tags.Target, entity_tags.Tags,
+    sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
+    runtime.RaycastResult, venom.Flight, venom.Mine, venom.Poison,
+    hanzo_movement.Climb,
+    combat.ConditionalPool,
+    fold.Scope,
+    doomfist.Dash, doomfist.Impact, doomfist.Slam,
+    meteor.Cast,
+    combat.InputLock,
+    zenyatta.Owner, zenyatta.Orb,
+    pulse_bomb.CommandPoseAnchor,
+    support_effects.Attachment, combat.Soundwave, sombra_control.Lock, sound_barrier.Shield, sound_barrier.Landing, sound_barrier.Wave, sound_barrier.Grant, lucio.Lease,
     driver.WheelCallout, driver.WheelSprayEvent,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
-    heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
+    heroselect.Controller, notices.Switch, combat.RangedContact, combat.MeleeContact, combat.PendingAttack, combat.HitDef, combat.Target, combat.Rocket, pulse_bomb.Bomb, combat.SplitVolley, combat.TimedHit,
+    combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
+    winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
+    npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
+    combat.molten_core.Pool, combat.molten_core.Arrival, combat.molten_core.Burn, combat.torbjorn_mark.Mark, combat.hero_torbjorn.Turret, combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
+    brigitte.RepairDelivery, brigitte.Barrier,
+    brigitte.BashStun,
+    echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
+    reinhardt_barrier.RaisedBarrier,
+    genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
+    earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
+    actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
+    healing.Spec, healing.Modifier, healing_status.Applied,
+    deflection.ProjectileTags,
+    moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
+    RetainedFlight, scopes.History, scopes.Edge,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,
     statescript.InstanceWire, expr.Asset, expr.Entity, expr.Vec3, expr.Handle, expr.Map, expr.PairArray,
+    dynamic_spheres.SphereBody, props.PlacedDynamicSphere, play.InvocationContext,
+    orisa.Orb, orisa.Pull, orisa_supercharger.Device, script_graph.SyncVar,
 )
 
 
 class _Graph:
-    def __init__(self, boundaries, assets):
+    def __init__(self, boundaries, assets, definition_digests):
         self.boundaries = {}
         for name, obj in boundaries.items():
             if obj is None:
@@ -188,6 +409,7 @@ class _Graph:
                 _fail("one external object has conflicting boundary names")
             self.boundaries[id(obj)] = (obj, name)
         self.assets = assets
+        self.definition_digests = definition_digests
         self.asset_descriptors = {}
         self.asset_worlds = {}
         self.objects = []
@@ -204,6 +426,10 @@ class _Graph:
         self.values += 1
         if self.values > MAX_VALUES:
             _fail("stored graph value budget exhausted")
+        if obj is NotImplemented:
+            return ["sentinel", "NotImplemented"]
+        if type(obj) is uuid.UUID:
+            return ["uuid", format(obj.int, "032x")]
         if obj is None or type(obj) in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
         boundary = self.boundaries.get(id(obj))
@@ -333,7 +559,13 @@ class _Graph:
         elif kind in (set, frozenset):
             # Registered game sets here are membership sets of immutable plain keys.
             # Causal VM watcher/state sets are handled by the component adapter.
-            encoded = [replay_values.encode(value) for value in obj]
+            if obj and all(type(value) is message_state.Context for value in obj):
+                encoded = [self.value(value) for value in sorted(obj, key=lambda item: item.component.entity)]
+            elif obj and all(isinstance(value, runtime.State) for value in obj):
+                encoded = [self.value(value) for value in sorted(
+                    obj, key=lambda item: (item.instance.component.entity, item.instance.id, item.index))]
+            else:
+                encoded = [replay_values.encode(value) for value in obj]
             data = sorted(encoded, key=_json)
         elif kind in (weakref.WeakKeyDictionary, weakref.WeakSet):
             values = list(obj.items()) if kind is weakref.WeakKeyDictionary else list(obj)
@@ -341,9 +573,14 @@ class _Graph:
             data = []
         elif kind is types.MethodType:
             data = {"self": self.value(obj.__self__), "function": self.value(obj.__func__)}
+        elif kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
+            data = {"self": self.value(obj.__self__), "method": "get"}
+        elif kind is runtime.Var and npc_controller_storage.is_scene_revision(obj):
+            data = {name: self.value(object.__getattribute__(obj, name))
+                    for name in ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")}
         elif kind is types.FunctionType:
             data = self._function(obj)
-        elif kind is World:
+        elif kind in (World, LayeredWorld):
             data = {"asset": self._asset(obj)}
         elif kind is Mover:
             from ow174.game.physics_snapshot import snapshot_mover_with_identities
@@ -395,6 +632,50 @@ class _Graph:
             _fail(f"unregistered stored domain type: {label}")
         self.nodes[number] = {"id": number, "type": label, "state": data}
 
+    def _controller_storage_refs(self, component):
+        """Keep declared controller services in this enclosing causal graph."""
+        world = component.world
+        if type(world) not in (ControllerWorld, BotWorld):
+            return {}
+        objects = []
+        contexts = ([world.control_context] if type(world) is BotWorld and world.control_context is not None
+                    else list(world.readers) if type(world) is ControllerWorld else [])
+        if len({id(item) for item in contexts}) != len(contexts):
+            _fail("duplicate NPC controller coupling")
+        for context in contexts:
+            if type(context) is not NpcContext:
+                _fail("invalid NPC controller coupling")
+            pair = (context.body_component, context.controller_component)
+            for peer, entity in zip(pair, (context.body, context.controller), strict=True):
+                if (type(peer) is not runtime.Component or peer.entity != entity
+                        or type(peer.world) is not BotWorld or peer.world.control_context is not context):
+                    _fail("invalid coupled NPC identity or world")
+            host = context.target_host
+            target = host.component if host is not None else None
+            if host is not None and (type(host) is not ControllerVM or host.retired
+                                     or type(target.world) is not ControllerWorld
+                                     or target.entity != context.target_entity
+                                     or target.world.readers.count(context) != 1):
+                _fail("invalid coupled target controller")
+            if component not in pair and component is not target:
+                _fail("NPC coupling does not own this component")
+            objects.append(context)
+        if type(world) is not ControllerWorld:
+            return {id(item): (item, self.value(item)) for item in objects}
+        services = world.pin_services
+        if services is not None:
+            if (type(services) is not PinEffectServices or type(services.registry) is not scopes.Registry
+                    or type(services.messages) is not message_state.Context
+                    or services.messages.component is not component):
+                _fail("invalid controller pin service ownership")
+            objects.extend((services, services.registry, services.messages))
+        backend = world.numeric_modifiers
+        if backend is not None:
+            if type(backend) is not modifiers.NumericModifiers:
+                _fail("invalid controller modifier ownership")
+            objects.append(backend)
+        return {id(item): (item, self.value(item)) for item in objects}
+
     def finish(self):
         index = 0
         while index < len(self.objects):
@@ -403,10 +684,19 @@ class _Graph:
         from ow174.game.body_vm_snapshot import export_component_vm_with_identities
 
         owners = {}
+        graph_definitions = {}
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
-            document, identities = export_component_vm_with_identities(component, extra_roots=extras)
+            enclosing = self._controller_storage_refs(component)
+            def external_reference(obj):
+                entry = enclosing.get(id(obj))
+                return entry[1] if entry is not None and entry[0] is obj else None
+            document, identities = export_component_vm_with_identities(
+                component, extra_roots=extras, _graph_definitions=graph_definitions,
+                _definition_digests=self.definition_digests,
+                external_reference=external_reference if enclosing else None,
+            )
             bridges = []
             for storage_id, obj, scope in identities:
                 core = self.memo.get(id(obj))
@@ -441,7 +731,7 @@ class _Graph:
         return self.nodes
 
 
-def export_server_state(server, *, archives=(), collision_provider=None, assets=None):
+def export_server_state(server, *, archives=(), collision_provider=None, assets=None, _definition_digests=None):
     """Export all registered stored fields; unknown fields/types fail instead of being skipped.
 
     Only stopped controlled servers are accepted. Every match must use the same
@@ -458,7 +748,9 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     for match in matches:
         if type(match) is not Match:
             _fail("unregistered archived match type")
-        if match.scene_host_factory is not None:
+        if match.scene_host_factory is not None and type(match.scene_host_factory) is not volskaya.LiftFactory:
+            _fail('shared scene script runtime storage is not implemented')
+        if match.scene_host is not None and type(match.scene_host) is not volskaya.LiftHost:
             _fail('shared scene script runtime storage is not implemented')
         if (match.environment is not server.environment or match.skin_of is not server.skin_of
                 or match.emote_aliases_of is not server.emote_aliases_of
@@ -475,7 +767,7 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
         "clock_ready_callback": server.on_clock_ready,
         "collision_factory": server.collision_provider_factory, "collision_provider": collision_provider,
     }
-    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets)
+    graph = _Graph(boundaries, WorldRegistry() if assets is None else assets, _definition_digests)
     with server.lock:
         roots = {"server": graph.value(server), "archived_matches": graph.value(archives),
                  "canonical_movers": graph.value(loaded_mover_table())}

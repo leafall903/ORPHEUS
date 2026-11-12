@@ -99,11 +99,19 @@ VM fault state are part of the representation.
 BodyScript fields covered by the VM adapter:
 
   hero entity record frame_ms world component frame buttons retired server_only
-  ult_seconds ultimates
+  ult_seconds ultimates passive_charge_ms
 
 record identifies the body definition covered by the source/data signature.
 ultimates is an ordered list of State references: future charge updates depend
 on those states and cannot reconstruct it merely by inspecting active states.
+passive_charge_ms is the input-frame host clock's integer remainder. Baptiste's
+default ult_seconds=None selects authored0B8B passive values through that explicit
+host; zero disables passive gain and positive numeric values retain a sandbox
+time-to-full override. Other heroes normalize the constructor default to the
+existing60-second policy. Native ownership/2426 eligibility and scheduler phase
+are not established by this storage contract. Native body-only trace replay
+remains limited to its existing Soldier baseline; full-match stored replay can
+observe Baptiste's None policy, remainder and resulting charge.
 
 Five known BodyScript fields belong to a later owner-transport adapter and are
 explicitly excluded from this VM storage document:
@@ -132,6 +140,7 @@ Component required fields:
 
   entity frame_ms world rng frame now instances vars held button disabled seq
   next_id destroyed shots owner_dead fault strict code_states code_pending code_observers
+
   state_registries parameter_scopes startup_entity_values damage_reports
   _operation_depth _follow_depth _work_left
 
@@ -353,3 +362,16 @@ same-time/nested FIFO, cross-instance sequence use and failure progression.
 The existing eight VM budget tests and sixteen native replay tests also pass.
 No game, UI or service is started by these checks; existing native trace code and
 the actual event dispatch/FIFO insertion call sites are unchanged.
+
+WeaponVolley's baked spread_ramp participates in its explicit causal state
+layout, alongside spread0. Both body and server export consume that layout.
+The normalized output's ramp is an input to future firing state; it is not a
+claim that combat rays sample the native launch pattern.
+
+The optional NPC controller host stores only local scalar input mirrors inside
+the body Component. BotWorld's external controller object is excluded from the
+single-component capture; the outer server adapter captures its separate
+Component/clock/graph state and the strong binding. Local mirrored values and
+their ID mapping remain stored. This preserves the existing rejection of
+cross-component Var/state sharing and does not claim one-component snapshots
+include all external services or native controller callback timing.

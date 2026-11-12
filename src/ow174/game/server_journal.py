@@ -11,8 +11,10 @@ import hashlib
 import json
 from collections import deque
 from contextlib import nullcontext
+from weakref import WeakKeyDictionary
 
-from ow174.game import replay_values
+from ow174.game import replay_values, sonic, dragon
+from ow174.game.combat_profiles import Profiles
 from ow174.game.collision import CollisionProvider, LoadState
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.collision_tape import RecordingCollisionProvider, ReplayCollisionProvider
@@ -36,9 +38,13 @@ OPERATIONS = {
     "datagram": {"data", "address", "now"},
     "tick": {"now", "missed"},
     "switch_hero": {"account", "hero"},
+    "configure_hanzo_profiles": {"match_id", "sonic", "dragon"},
     "skin_changed": {"account", "hero"},
     "send_home": {"account"},
     "take_out": {"player", "reason"},
+    "spawn_manual_npc": {"match_id", "definition", "position", "team", "yaw"},
+    "manual_npc_key": {"account", "key"},
+    "state_checkpoint": set(),
     "report_callbacks": set(),
     "run_loop": {"receives", "callback_actions"},
 }
@@ -165,6 +171,7 @@ class _Session:
         self._effects = []
         self._sends = 0
         self._state_profile = "wire-only"
+        self._definition_digests = WeakKeyDictionary()
         self._callback_actions = deque()
 
     @property
@@ -265,12 +272,45 @@ class _Session:
             if hero is None:
                 self._fail("unknown hero")
             return self.server.switch_hero(args["account"], hero)
+        if operation == "configure_hanzo_profiles":
+            fight = self._match(args["match_id"]).combat
+            sonic_data, dragon_data = args["sonic"], args["dragon"]
+            if sonic_data is None and dragon_data is None:
+                self._fail("a Hanzo profile must be supplied")
+            if (fight.rockets or (sonic_data is not None and (fight.sonic_profile or fight.sonars))
+                    or (dragon_data is not None and (fight.dragon_profile or fight.dragons))):
+                self._fail("Hanzo profiles must be configured once before projectiles")
+            try:
+                profiles = Profiles(
+                    sonic.profile_from_data(sonic_data) if sonic_data is not None else None,
+                    dragon.profile_from_data(dragon_data) if dragon_data is not None else None,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as error:
+                self._fail(f"invalid Hanzo profile: {error}")
+            profiles.configure(fight)
+            return None
         if operation == "skin_changed":
             return self.server.skin_changed(args["account"], args["hero"])
         if operation == "send_home":
             return self.server.send_home(args["account"])
         if operation == "take_out":
             return self.server.take_out(self._player(args["player"]), args["reason"])
+        if operation == "spawn_manual_npc":
+            from ow174.game import npc
+
+            definition = args["definition"]
+            _fields(definition, {f.name for f in dataclasses.fields(npc.Definition)}, "NPC definition")
+            if type(args["position"]) is not tuple:
+                self._fail("invalid manual NPC position")
+            bot = npc.spawn(self._match(args["match_id"]), npc.Definition(**definition),
+                            args["position"], team=args["team"], yaw=args["yaw"])
+            return bot.entity
+        if operation == "manual_npc_key":
+            if args["key"] not in ("0", "{"):
+                self._fail("manual NPC root only starts or stops attacks")
+            return self.server.npc_key(_integer(args["account"], "NPC console account"), args["key"], {})
+        if operation == "state_checkpoint":
+            return self._state_digest()
         if operation == "run_loop":
             return self._run_loop(args["receives"], args["callback_actions"])
         return self.server._report_leaves()
@@ -368,11 +408,14 @@ class _Session:
     def _stored_hash(self):
         if self._state_profile == "wire-only":
             return None
+        return self._state_digest()
+
+    def _state_digest(self):
         from ow174.game.server_snapshot import export_server_state, snapshot_digest
 
         return snapshot_digest(export_server_state(
             self.server, archives=self._matches.values(), collision_provider=self._collision_reads,
-            assets=self._state_assets,
+            assets=self._state_assets, _definition_digests=self._definition_digests,
         ))
 
     def _check_boundary(self, before, state_before):

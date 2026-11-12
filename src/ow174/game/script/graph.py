@@ -40,6 +40,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -52,6 +53,8 @@ from ow174.paths import DATA_DIR
 
 _graph_bundle = os.environ.get("ORPHEUS_GRAPH_BUNDLE")
 GRAPHS_PATH = Path(_graph_bundle).resolve() if _graph_bundle else DATA_DIR / "game_graphs_174.json.gz"
+_supplement_path = os.environ.get("ORPHEUS_GRAPH_SUPPLEMENT")
+GRAPH_SUPPLEMENT_PATH = Path(_supplement_path).resolve() if _supplement_path else None
 INSTANCE, ENTITY = 0, 1  # variable scopes: sync var m_56341592, STUConfigVarDynamic.m_60DB8F99
 GUID_TEXT = re.compile(r"0x[0-9A-F]{16}$")
 GRAPH_TYPE = 0x0580  # a 01B GUID's type bits, bits 48..63
@@ -288,7 +291,166 @@ def _collect_graphs(value, found: set) -> None:
 
 @cache
 def _data() -> dict:
-    return json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    data = json.loads(gzip.decompress(GRAPHS_PATH.read_bytes()))
+    if GRAPH_SUPPLEMENT_PATH is not None:
+        extra = json.loads(gzip.decompress(GRAPH_SUPPLEMENT_PATH.read_bytes()))
+        data = add_supplement(data, extra)
+    return data
+
+
+def load_bundle(path: Path, extension=None) -> dict:
+    """Read one explicit base plus an optional non-replacing fingerprint-bound extension."""
+    raw = path.read_bytes()
+    data = json.loads(gzip.decompress(raw))
+    if extension:
+        extra = json.loads(gzip.decompress(Path(extension).read_bytes()))
+        if (extra.get("format_version") != 1
+                or extra.get("base_sha256") != hashlib.sha256(raw).hexdigest()):
+            raise ValueError("graph extension does not match the selected base bundle")
+        present = {record["index"] for record in data["graphs"]}
+        additions = extra.get("graphs")
+        entities = extra.get("entities")
+        if not isinstance(additions, list) or not isinstance(entities, dict):
+            raise ValueError("invalid graph extension tables")
+        for record in additions:
+            index = record["index"]
+            if type(index) is not int or not 0 <= index <= 0xFFFF or index in present:
+                raise ValueError("graph extension repeats or replaces a graph")
+            present.add(index)
+        current = data.setdefault("entities", {})
+        if any(key in current for key in entities):
+            raise ValueError("graph extension replaces an entity definition")
+        references = set()
+        _collect_graphs([additions, entities], references)
+        for entity in entities.values():
+            references.update(row["graph"] for row in entity.get("graphs", ()))
+        if not references <= present:
+            raise ValueError("graph extension has unresolved graph references")
+        data["graphs"].extend(additions)
+        current.update(entities)
+        controllers = data.setdefault("npc_controllers", {})
+        additions = extra.get("npc_controllers", {})
+        if (not isinstance(controllers, dict) or not isinstance(additions, dict)
+                or any(key in controllers for key in additions)):
+            raise ValueError("graph extension replaces NPC controller associations")
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not GUID_TEXT.fullmatch(body)
+                    or int(body, 16) >> 48 != 0x0400 or not int(body, 16) & 0xFFFFFFFFFFFF
+                    or body not in (data.get("bodies", {}) | current)
+                    or not isinstance(definition, str) or not GUID_TEXT.fullmatch(definition)
+                    or int(definition, 16) >> 48 != 0x0400 or definition == body
+                    or definition not in current):
+                raise ValueError("unresolved NPC controller definition")
+        controllers.update(additions)
+        data["missing"] = [index for index in data.get("missing", ()) if index not in present]
+    return data
+
+
+def add_supplement(data: dict, extra: dict) -> dict:
+    """Add prepared entity/graph/effect inputs without overriding base data.
+
+    Supplements live outside the read-only runtime pack. Conflicting definitions
+    are errors rather than silent changes to already accepted mode/hero inputs.
+    """
+    if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
+            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables", "npc_controllers"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables/npc_controllers")
+    graphs = {record["index"]: record for record in data["graphs"]}
+    supplied = set()
+    for record in extra.get("graphs", []):
+        index = record["index"]
+        if type(index) is not int or not 0 <= index <= 0xFFFF or index in supplied:
+            raise ValueError("invalid or duplicate supplemental graph index")
+        supplied.add(index)
+        if index in graphs and graphs[index] != record:
+            raise ValueError(f"supplement conflicts with graph {index:04X}")
+        graphs[index] = record
+    entities = dict(data.get("entities") or {})
+    for key, record in extra.get("entities", {}).items():
+        identifier = guid(key)
+        if identifier is None or identifier >> 48 != 0x0400 or not isinstance(record, dict):
+            raise ValueError("supplement requires full003 entity definitions")
+        if key in entities and entities[key] != record:
+            raise ValueError(f"supplement conflicts with entity {key}")
+        entities[key] = record
+    result = {**data, "graphs": list(graphs.values()), "entities": entities}
+    if "effect_scripts" in extra:
+        supplied_effects = extra["effect_scripts"]
+        if not isinstance(supplied_effects, dict):
+            raise ValueError("supplement effect_scripts must be a mapping")
+        effects = dict(data.get("effect_scripts") or {})
+        for key, record in supplied_effects.items():
+            identifier = guid(key)
+            if (identifier is None or identifier >> 48 != 0x04A0 or not isinstance(record, dict)
+                    or type(record.get("graph")) is not int or record["graph"] not in graphs):
+                raise ValueError("supplement requires full04A effect bindings to supplied graphs")
+            if key in effects and effects[key] != record:
+                raise ValueError(f"supplement conflicts with effect {key}")
+            effects[key] = record
+        result["effect_scripts"] = effects
+    if "deployables" in extra:
+        supplied_deployables = extra["deployables"]
+        if not isinstance(supplied_deployables, dict):
+            raise ValueError("supplement deployables must be a mapping")
+        deployables = dict(data.get("deployables") or {})
+        for key, record in supplied_deployables.items():
+            if not isinstance(key, str) or (key == "format_version" and (type(record) is not int or record != 1)):
+                raise ValueError("invalid supplemental deployables metadata")
+            if key != "format_version" and not isinstance(record, dict):
+                raise ValueError("supplement deployable entries must be mappings")
+            if key in deployables and deployables[key] != record:
+                raise ValueError(f"supplement conflicts with deployable {key}")
+            deployables[key] = record
+        result["deployables"] = deployables
+    if "npc_controllers" in extra:
+        controllers = dict(data.get("npc_controllers") or {})
+        additions = extra["npc_controllers"]
+        if not isinstance(additions, dict):
+            raise ValueError("supplement NPC controller associations must be a mapping")
+        bodies = data.get("bodies", {}) | entities
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not re.fullmatch(r"0x0400[0-9A-F]{12}", body)
+                    or not int(body, 16) & 0xFFFFFFFFFFFF or body not in bodies
+                    or not isinstance(definition, str)
+                    or not re.fullmatch(r"0x0400[0-9A-F]{12}", definition)
+                    or definition == body or definition not in entities):
+                raise ValueError("unresolved NPC controller definition")
+            if body in controllers and controllers[body] != association:
+                raise ValueError(f"supplement conflicts with NPC controller {body}")
+            controllers[body] = association
+        result["npc_controllers"] = controllers
+    return result
+
+
+def merge_extra_bundle(base: dict, extra: dict) -> dict:
+    """Read-only graph/entity shards may add missing records, never replace known ones."""
+    if not isinstance(extra, dict) or extra.get("version", 1) != 1:
+        raise ValueError("unsupported supplementary graph bundle")
+    if any(extra.get(key) for key in ("bodies", "mode_scripts", "mode_variables", "map_scripts")):
+        raise ValueError("supplementary bundles may add only graphs and entity definitions")
+    if not isinstance(extra.get("graphs", []), list) or not isinstance(extra.get("entities", {}), dict):
+        raise ValueError("supplementary graph/entity sections have invalid types")
+    records = {row["index"]: row for row in base["graphs"]}
+    seen = set()
+    for row in extra.get("graphs", []):
+        index = row.get("index") if isinstance(row, dict) else None
+        if type(index) is not int or not 0 <= index <= 0xFFFF or index in seen:
+            raise ValueError("invalid or duplicate supplementary graph identity")
+        seen.add(index)
+        if index in records and records[index] != row:
+            raise ValueError(f"supplementary graph conflicts with canonical graph {index:04X}")
+        records[index] = row
+    entities = dict(base.get("entities", {}))
+    for key, row in extra.get("entities", {}).items():
+        if not re.fullmatch(r"0x0400[0-9A-F]{12}", key) or not isinstance(row, dict):
+            raise ValueError("invalid supplementary entity definition")
+        known = entities.get(key, base.get("bodies", {}).get(key))
+        if known is not None and known != row:
+            raise ValueError(f"supplementary entity conflicts with canonical entity {key}")
+        entities[key] = row
+    return {**base, "graphs": list(records.values()), "entities": entities}
 
 
 @cache
@@ -300,6 +462,12 @@ def _records() -> dict[int, dict]:
 def graph(index: int) -> Graph | None:
     """The graph with a 16-bit index (0x13C1), or None when the server does not have it."""
     record = _records().get(index)
+    if record is None:
+        from ow174.game.script import status_data
+
+        supplement = status_data.configured()
+        if supplement is not None:
+            record = next((item for item in supplement["graphs"] if item["index"] == index), None)
     return Graph(record) if record is not None else None
 
 
@@ -311,6 +479,11 @@ def bodies() -> dict[int, dict]:
     """Hero body (003 GUID) -> {"hero", "name", "graphs": [{"graph", "m_1EB5A024", ...}], "manager",
     "weapons"}; new bundles also retain "script_component" (definition or known absence)."""
     return {int(key, 16): record for key, record in _data()["bodies"].items()}
+
+
+def effect_script(definition: int) -> dict | None:
+    """An extracted .053 gameplay-effect binding, when present in the runtime pack."""
+    return (_data().get("effect_scripts") or {}).get(f"0x{definition:016X}")
 
 
 def entity_body(body: int) -> dict | None:
@@ -331,6 +504,11 @@ def junkenstein_entity(definition: int) -> dict | None:
 def junkenstein_player_tags(body: int) -> list[int] | None:
     """Return authored tags for the player body, or unknown for older bundles."""
     return _data().get('junkenstein', {}).get('player_target_tags', {}).get(f'0x{body:016X}')
+
+
+def npc_controller(body: int) -> dict | None:
+    """Optional authored AI-entity association; no implicit controller allocation."""
+    return (_data().get("npc_controllers") or {}).get(f"0x{body:016X}")
 
 
 def entity_script_component(definition: int, *, junkenstein: bool = False):
@@ -384,6 +562,25 @@ def mode_scripts(mode: int) -> dict | None:
     return _data().get("mode_scripts", {}).get(f"0x{mode:016X}")
 
 
+def snowball_body_graph(mode: int, body: int | None) -> Graph | None:
+    """Read Snowball Deathmatch's Mei body-scoped graph registration."""
+    if mode != 0x0230000000000059 or body != 0x04000000000008BA:
+        return None
+    binding = mode_scripts(mode)
+    if binding is None or guid(binding.get("graph")) != 0x0580000000002250:
+        return None
+    owner = graph(0x2250)
+    node = owner.node(0) if owner is not None else None
+    if node is None or node.cls != "STU_12F037C4":
+        return None
+    for entry in node.field("m_entries") or ():
+        if (entry.get("$") == "STU_4082287A"
+                and guid((entry.get("m_F026D40E") or {}).get("m_entityDef")) == body
+                and guid((entry.get("m_29C4583C") or {}).get("m_graph")) == 0x05800000000022F0):
+            return graph(0x22F0)
+    return None
+
+
 def mission_script(mode: int, map_guid: int) -> dict | None:
     """A map's configured mission script, keyed by both map and supported mode.
 
@@ -391,3 +588,17 @@ def mission_script(mode: int, map_guid: int) -> dict | None:
     the configured graph. Older bundles have no dynamic mission bindings.
     """
     return _data().get("mission_scripts", {}).get(f"0x{map_guid:016X}", {}).get(f"0x{mode:016X}")
+
+
+def status_definition(definition: int):
+    """A known .053 definition, or NotImplemented when its data is unavailable."""
+    if type(definition) is not int or definition >> 48 != 0x04A0 or not definition & 0xFFFFFFFFFFFF:
+        raise ValueError("expected a nonzero .053 resource GUID")
+    key = f"0x{definition:016X}"
+    found = (_data().get("status_definitions") or {}).get(key)
+    if found is not None:
+        return found
+    from ow174.game.script import status_data
+
+    supplement = status_data.configured()
+    return supplement["status_definitions"].get(key, NotImplemented) if supplement else NotImplemented

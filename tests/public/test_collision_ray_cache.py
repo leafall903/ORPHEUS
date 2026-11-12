@@ -10,8 +10,10 @@ from unittest.mock import patch
 
 from ow174.game import collision, props
 from ow174.game.collision_fingerprint import world_fingerprint
-from ow174.paths import CLIENT_CATALOGS, LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA, ULT_CHARGE_OVERRIDE
+from ow174.paths import LOBBY_RUNTIME_DATA, MATCH_RUNTIME_DATA
 from tools.prepare_server_runtime import prepare
+
+from ow174.paths import CLIENT_CATALOGS, ULT_CHARGE_OVERRIDE
 
 MAP = 0x0800000000000688
 OTHER_MAP = 0x0800000000000CD3
@@ -141,9 +143,7 @@ class RayCacheTests(unittest.TestCase):
         header = json.loads(original[16:16 + header_size])
         del header["meshes"]
         malformed = json.dumps(header).encode()
-        missing_meshes = (
-            original[:12] + struct.pack("<I", len(malformed)) + malformed + original[16 + header_size:]
-        )
+        missing_meshes = original[:12] + struct.pack("<I", len(malformed)) + malformed + original[16 + header_size:]
         for data in (b"invalid sidecar", missing_meshes):
             expanded.write_bytes(data)
             with self.assertLogs("ow174.game", "WARNING"):

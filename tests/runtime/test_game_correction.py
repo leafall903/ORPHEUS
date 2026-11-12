@@ -11,6 +11,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[0]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+
 from ow174.game import correction, mccree, world
 from ow174.game.bits import BitReader
 from ow174.game.collision import StaticCollisionProvider, flat_world

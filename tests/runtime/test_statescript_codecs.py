@@ -262,9 +262,7 @@ class EncoderTests(unittest.TestCase):
     def test_spray_placement_survives_owner_and_observer_frames(self):
         spray = graphs.graph(0x02CF)
         cls = spray.state(1).cls
-        instance = statescript.InstanceWire(
-            7, spray, states={1: statescript.StateWire(cls, True, SPRAY_PAYLOAD)},
-        )
+        instance = statescript.InstanceWire(7, spray, states={1: statescript.StateWire(cls, True, SPRAY_PAYLOAD)})
         known = {7: spray}
         owner = statescript.owner_delta(1000, True, [instance], {}, known)
         remote = statescript.remote_full_frame([instance], {}, known)

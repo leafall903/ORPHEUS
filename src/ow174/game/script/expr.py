@@ -143,9 +143,7 @@ def valid_entity(entity_id: int) -> bool:
     return entity_id != INVALID_ENTITY and (entity_id & 0x1FFFFFFF) != 0x1FFFFFFF
 
 
-def truthy(value) -> bool:
-    if value is None:
-        return False
+def truthy(value, *, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
@@ -161,10 +159,10 @@ def truthy(value) -> bool:
     if isinstance(value, Entity):
         return valid_entity(value.id)
     if isinstance(value, tuple):
-        return truthy(value[0]) if value else False
+        return truthy(value[0], default=default) if value else default
     if isinstance(value, Map):
         return bool(value.items)
-    return False
+    return default
 
 
 def to_float(value, default: float = 0.0) -> float:
@@ -307,12 +305,33 @@ class Context:
         """`entity.#var`: another entity's entity-scope variable."""
         return None
 
+    def resolved_member(self, entity: int, var: int):
+        self.mark_ruleset_target(entity)
+        return self.member(entity, var)
+
     def position(self, entity: int) -> Vec3:
         return Vec3(0.0, 0.0, 0.0)
 
     def ruleset(self, key: int):
         """GetGameRulesetValue: the hero's or mode's ruleset value for a key (an identifier)."""
         return None
+
+    def reset_ruleset_target(self):
+        self._ruleset_target = INVALID_ENTITY
+
+    def mark_ruleset_target(self, entity: int):
+        self._ruleset_target = entity & 0xFFFFFFFF
+
+    def ruleset_target(self):
+        return getattr(self, "_ruleset_target", INVALID_ENTITY)
+
+    def ruleset_default(self, key: int, entity: int):
+        if not valid_entity(entity) or entity == to_entity(self.owner()):
+            return self.ruleset(key)
+        return None
+
+    def ruleset_expression(self, config):
+        return NotImplemented
 
     def would_stack_to_top(self, var: tuple[int, int], priority: tuple[float, bool]):
         return True
@@ -324,6 +343,11 @@ class Context:
         unimplemented queries; strict runtime worlds reject unknown services.
         """
         return default_native(cfg)
+
+    def fold(self, cfg: dict, *, initial=None):
+        """Contexts without a VM provider retain their ordinary native-query policy."""
+        result = self.native(cfg)
+        return initial if result is EVALUATION_FAILED else result
 
 
 _warned: set[str] = set()
@@ -381,8 +405,10 @@ CONSTANTS = {
     "STUConfigVarInt": lambda cfg: _number(cfg, i32),
     "STUConfigVarFloat": lambda cfg: _number(cfg, lambda v: f32(float(v))),
     "STUConfigVarLogicalButton": lambda cfg: int(cfg.get("m_logicalButton") or 0),
+    "STU_073FFE4A": lambda cfg: i32(cfg.get("m_86DFF239") or 0),  # Original assist classifier.
     "STU_BD6CC023": lambda cfg: i32(cfg.get("m_6CE7A900") or 0),  # TeamIndex, native 1B860F0.
-    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),
+    "STU_297E1A30": lambda cfg: i32(cfg.get("m_7E8B666C") or 0),  # Health-pool kind, native 1B860F0.
+    "STU_4A101787": lambda cfg: False,  # 104319 CEF730 writes typed false without reading config.
 }
 # Resource config vars: their value is the resource's id.
 RESOURCES = {
@@ -421,6 +447,7 @@ KEYED_RESOURCES = {
     "STU_43CF7A79", "STUConfigVarSkinTheme", "STUConfigVarAnimAlias", "STUConfigVarModelLook",
     "STU_8556841E", "STUConfigVarTexture", "STU_08305297",
     "STUConfigVarDataFlow", "STU_B70476F3",
+    "STUConfigVarAnimCategory",
 }
 EXPRESSIONS = {"STU_919FD47C", "STUConfigVarExpression"}
 
@@ -437,6 +464,8 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if not isinstance(cfg, dict):
         return cfg
     cls = cfg.get("$")
+    if cls == "STU_A6B80C63":
+        return ctx.fold(cfg, initial=initial)
     if cls == "STU_4A101787":
         return False  # 104319 CEF730 writes a successful boolean false.
     if cls in ("STU_B40ACFBA", "STU_1232F9A3", "STU_AA7C7E9F", "STU_383710EE"):
@@ -459,9 +488,26 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls in EXPRESSIONS:
         return run(cfg, ctx)
     if cls == "STU_0762B33A":
-        return _clamp_direction(cfg, ctx)
+        special = ctx.native(cfg)
+        return special if isinstance(special, Vec3) else _clamp_direction(cfg, ctx)
+    if cls == "STU_6DF07EE5":
+        definition = cfg.get("m_36F7B64C")
+        if (isinstance(definition, dict) and not definition.get("m_17BB822A")
+                and not definition.get("m_CB2634D7")):
+            # CD05B0/D05A80 with no override rows returns a single asset in an array.
+            value = evaluate(definition.get("m_C974E369"), ctx)
+            while isinstance(value, tuple) and value:
+                value = value[0]
+            return (value,) if isinstance(value, Asset) and value.guid else initial
+    if cls == "STU_58AA0A3B":
+        # 1B778E0 starts the child destination with the unset tag (0xFF).
+        # Typed zero and false values replace that tag just like other values.
+        return evaluate(cfg.get("m_value"), ctx) is not None
     if cls == "STU_45EDF12D" and cfg.get("m_key") is None:
-        container = evaluate(cfg.get("m_814F8EC3"), ctx)
+        source = cfg.get("m_814F8EC3")
+        if isinstance(source, dict) and source.get("$") == "STU_06610EBC":
+            return ctx.native(cfg)  # A config group needs the host's collecting interface.
+        container = evaluate(source, ctx)
         value = evaluate(cfg.get("m_value"), ctx)
         return contains_value(container, value)
     if cls in RESOURCES:
@@ -474,9 +520,33 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if cls == "STU_B5A0CAF0":  # GetOwner
         return ctx.owner()
     if cls == "STU_3832D36C":  # GetGameRulesetValue
+        # CCFAC0: preserve a successful non-null value. Only a null/failed
+        # selector falls back through its variable metadata and last entity.
+        ctx.reset_ruleset_target()
         key = cfg.get("m_value")
+        result = ctx.ruleset_expression(key)
+        if result is not NotImplemented:
+            return result
+        value = EVALUATION_FAILED if key is None else evaluate(key, ctx, initial=EVALUATION_FAILED)
+        if value is not EVALUATION_FAILED and value is not None:
+            return value
+        # F672D0 changes the result to int only on fallback failure. An
+        # already-int destination survives when selector evaluation did not write.
+        fallback = initial if value is EVALUATION_FAILED and type(initial) is int else 0
+        target = ctx.ruleset_target()
         found = dynamic(key)
-        return ctx.ruleset(found[1] if found else to_int(evaluate(key, ctx)))
+        if found is not None:
+            if found[0] != ENTITY:
+                return fallback
+        elif isinstance(key, dict) and key.get("$") == "STU_919FD47C":
+            variables = (key.get("m_expression") or {}).get("m_dynamicVars") or ()
+            found = dynamic(variables[0]) if variables else None
+            if found is None or (found[0] != ENTITY and not valid_entity(target)):
+                return fallback
+        else:
+            return fallback
+        default = ctx.ruleset_default(found[1] & 0xFFFF, target)
+        return fallback if default is None or default is NotImplemented else default
     if cls == "STU_91EFD5B1":  # ValueOrDefault
         value = evaluate(cfg.get("m_value"), ctx)
         return value if value is not None else evaluate(cfg.get("m_default"), ctx)
@@ -657,7 +727,9 @@ def _index(obj, index):
 def _member(obj, key: int, ctx: Context):
     if isinstance(obj, Entity) or (isinstance(obj, tuple) and obj and isinstance(obj[0], Entity)):
         entity = to_entity(obj)
-        return ctx.member(entity, key) if valid_entity(entity) else None
+        if valid_entity(entity):
+            return ctx.resolved_member(entity, key)
+        return None
     if isinstance(obj, Map):
         return obj.get(key)
     return None

@@ -27,11 +27,21 @@ from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from ow174.game import animation_pose, pools, ult_charge
+from ow174.game import ult_charge, animation_pose, baptiste, barrier, ice_wall, immunity, pools, ultimate
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_HALF, FRAME_MASK, frame_distance
 from ow174.game.content import SOLDIER
-from ow174.game.script import expr, graph, nodes, runtime, spray_placement
+from ow174.game.script import (
+    body_owner,
+    entity_queries,
+    expr,
+    graph,
+    nodes,
+    play,
+    regeneration,
+    runtime,
+    spray_placement,
+)
 from ow174.game.script.codecs import stec_classes
 from ow174.game.script.expr import INSTANCE, Asset, Entity, Vec3, f32
 from ow174.game.statescript import (
@@ -131,7 +141,8 @@ ACTION_BUTTONS.update({17: 97, 18: 98, 19: 99})
 ACTION_BUTTONS.update({action: 81 + action for action in range(10, 16)})  # 10..15 -> 91..96
 # Entity variables no graph of the body writes: the server's own code sets them.
 WEAPON_SLOTS, DEFAULT_SLOT, OWNER_HEALTH, HUD_HEALTH, HUD_MAX_HEALTH = 29, 16515, 253, 1732, 1737
-NOT_SENT = {OWNER_HEALTH}  # the client derives it itself (never sent)
+OWNER_MAX_HEALTH = 1762  # authored 0071/node89 input
+NOT_SENT = {OWNER_HEALTH, OWNER_MAX_HEALTH}  # derived from component 51
 BODY_SCALE_OVERRIDE = 31210  # the common body graph's size modifier input
 # The world's config vars whose server answer is the client's for a human player's own body (computed, or
 # answered null/false). A BooleanSwitch that reads any other one is uncertain and is not sent.
@@ -214,15 +225,51 @@ WHEEL_PLAY_GRAPHS = {
 }
 MAX_WHEEL_CALLOUTS = 32
 WHEEL_CALLOUT_MS = 2000
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. Combat credits it (combat.py through ult_charge.py);
-# the passive fills the rest in ULT_SECONDS (0: never) so a server with no combat rule still charges, and
-# nothing charges while the ultimate runs.
+# Ultimate charge #342e and cost #338e are initialized by the body graphs.
+# Brigitte uses 0B8B expressions with reconstructed combat/clock host inputs.
+# Other heroes retain the unverified 60s passive fallback. Explicit 0 disables
+# passive charging; a positive override retains the legacy test/GM curve.
 ULT_CHARGE, ULT_COST = 342, 338
+ULT_GENERATION, ULT_COMBAT_GENERATION, ULT_PASSIVE_GENERATION = 0x253C, 0x32DE, 0x3276
+ULT_GAIN_ENABLED = 2426
+ULT_GAIN_GRAPH = 0x0B8B
 ULT_SECONDS = 60.0
+BASTION = 0x02E0000000000015
+GENJI = 0x02E0000000000029
+GENJI_IN_AIR, GENJI_ON_GROUND = 417, 545
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
+
+
+def charge_ultimate(component, seconds, running):
+    if seconds <= 0 or running:
+        return
+    cost = expr.to_float(component.entity_var(ULT_COST).value())
+    charge = expr.to_float(component.entity_var(ULT_CHARGE).value())
+    if cost > 0 and charge < cost:
+        step = f32(cost * component.frame_ms / (1000.0 * seconds))
+        component.set(ULT_CHARGE, min(cost, f32(charge + step)))
+
+
+def project_movement_flags(world, instance, node):
+    """Delivered two-predicate query on an actual known physical flag source."""
+    from ow174.game.mover import IN_AIR
+
+    if node.cls != "STU_96F1DBCF" or node.field("m_entity") is None:
+        return None
+    other_outputs = ("m_56AC7B36", "m_16BC4759", "m_F620FC2A", "m_6306AA29", "m_103A8581",
+                     "m_958FF5C0", "m_4C55BB03", "m_2EB48682", "m_45EB431F", "m_BF152E27", "m_A10CC74B")
+    if (any(node.field(name) is not None for name in other_outputs)
+            or any((node.field(name) or {}).get("links") for name in ("m_2102C541", "m_E37BC6C2"))):
+        return None
+    if not any(node.field(name) is not None for name in ("m_105DF1D6", "m_49F4B33C")):
+        return None
+    entity = expr.to_entity(instance.evaluate(node.field("m_entity")))
+    flags = world.movement_flags(entity) if entity else None
+    if flags is NotImplemented:
+        return None
+    return 3, 0 if flags is None else (1 if flags & IN_AIR else 2)
 
 
 def button_edges(previous: int, buttons: int, action: int = 0) -> list[tuple[int, bool]]:
@@ -276,6 +323,9 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.body_definition = body_definition
+        if hero == 0x02E0000000000040:
+            self.healing_tick = None
+        self.beam_barrier = None
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
         self.emote_blend_trees: tuple[int, ...] = ()
@@ -284,7 +334,313 @@ class BodyWorld(runtime.World):
         self.wheel_callouts: list[WheelCallout] = []
         self.velocity_requests = []  # sampled one-frame changes for the next posed frame
         self.throttles = (0, 0)  # the command being run: (forward, right), -127..127
+        self.zenyatta_charge_ammo = None
+        if hero == 0x02E0000000000005:
+            self.hanzo_climb = None
         self.match: Match | None = None
+        if hero == 0x02E000000000007A:
+            from ow174.game.script import spatial_queries
+
+            self._spatial_query_context = spatial_queries.Context(body, True, True, query=self._query_spatial)
+        self._body_owner_context = body_owner.Context(
+            body, True, True, lookup=self._lookup_body_owner,
+            watch_environment=self._poll_entity_query, watch_owner=self._poll_entity_query,
+        )
+        # Server warm-up constructs a script with the null entity sentinel.
+        self._possessor_query = None
+        self._entity_query_context = None
+        if expr.valid_entity(body):
+            self._entity_query_context = entity_queries.Context(
+                body, True, True, True, lookup=self._lookup_entity_query,
+                watch_environment=self._poll_entity_query, watch_possession=self._poll_entity_query,
+            )
+
+    def _query_spatial(self, cls, entity):
+        from ow174.game.mover import mover_data
+        from ow174.game.script.spatial_pose import match_vector
+
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone or not player.has_body or player.body != entity:
+                continue
+            mover = player.mover
+            return match_vector(cls, mover.position, mover.yaw, mover.pitch,
+                                mover._pogo(), mover.spring)
+        for bot in match.bots:
+            if bot.entity == entity:
+                return match_vector(cls, bot.position, round(bot.yaw), round(bot.pitch),
+                                    mover_data(bot.body).stand_pogo)
+        return None
+
+    def _poll_entity_query(self, *_):
+        """Native dependency consumers are re-evaluated by the frame poll."""
+
+    def _lookup_entity_query(self, entity):
+        match = self.match
+        if match is None:
+            return None
+        for player in match.players:
+            if player.gone:
+                continue
+            if player.entity == entity:
+                current = player.body if player.has_body else 0
+                return entity_queries.Target(entity, entity_queries.Possession(current))
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, None)
+        if entity == runtime.GAME_MODE_ENTITY or any(bot.entity == entity for bot in match.bots):
+            return entity_queries.Target(entity, None)
+        junkrat = getattr(match.combat, "junkrat", None)
+        if junkrat is not None and junkrat.lookup(entity) is not None:
+            return entity_queries.Target(entity, None)
+        ability = getattr(match.combat, "orisa", None)
+        if ability is not None and (entity in ability.orbs or entity in ability.superchargers.active):
+            return entity_queries.Target(entity, None)
+        return None
+
+    def _lookup_body_owner(self, entity):
+        if self.match is None:
+            return None
+        for player in self.match.players:
+            if not player.gone and player.has_body and player.body == entity:
+                return body_owner.Target(entity, player.entity)
+        for bot in self.match.bots:
+            if bot.entity == entity and bot.owner:
+                return body_owner.Target(entity, bot.owner)
+        if self._lookup_entity_query(entity) is not None:
+            return body_owner.Target(entity, None)
+        return None
+
+    def state_clock(self, state):
+        if self.match is None or self.hero != 0x02E0000000000068:
+            return None
+        if state.instance.graph.index == 0x0241 and state.node.pos in (22, 30, 93):
+            return self.match.tick, 16
+        if state.instance.graph.index == 0x0242 and state.node.pos in (7, 12):
+            return self.match.combat.tick, 16
+        return None
+
+    def chase_clock(self, state):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0109 and state.node.pos == 25
+                and state.instance.component.entity == self.body):
+            return self.match.combat.tick * 16
+        return NotImplemented
+
+    def external_wait(self, state):
+        return (self.match is not None and self.hero == 0x02E0000000000009
+                and not state.instance.component.strict
+                and state.instance.graph.index == 0x0B8B and state.node.pos == 3
+                and state.instance.component.entity == self.body)
+
+    def compatibility_elapsed_condition(self, instance, node):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not instance.component.strict and instance.graph.index == 0x010A
+                and node.pos in (13, 64)):
+            flight = self.match.combat.winston_jump.flights.get(self.body)
+            if flight is not None and flight[0] is instance:
+                # The delivered collision host owns this flight's end. Do not
+                # also retire its movement modifiers on the narrower timer.
+                return False
+        return NotImplemented
+
+    def linked_tracked_targets(self, state):
+        if state.hostile_body_profile() is not None:
+            return NotImplemented
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 9)):
+            from ow174.game import doomfist_passive
+
+            return tuple(expr.Entity(entity) for entity in doomfist_passive.targets(self, state))
+        if (self.hero == 0x02E000000000006E and self.match is not None
+                and not state.instance.component.strict and state.instance.graph.index == 0x0259
+                and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
+            return self.track_targets(state)
+        if self.hero == regeneration.MERCY and self.match is not None and not state.instance.component.strict:
+            targets = self.match.combat.script_targets(self.body, state)
+            if targets is not NotImplemented:
+                return tuple(expr.Entity(entity) for entity in targets)
+        from ow174.game import sound_barrier
+
+        if (self.hero == sound_barrier.HERO and self.match is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (sound_barrier.GRAPH, 16)):
+            return self.match.combat.sound_barriers.tracked_targets(state)
+        if self.hero == 0x02E000000000012E and self.match is not None and not state.instance.component.strict:
+            controls = self.match.combat.sombra_controls
+            player = controls.player(self.body)
+            if player is not None:
+                targets = controls.targets(player, state)
+                if targets is not NotImplemented:
+                    return targets
+        if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x025C
+                and state.index in (4, 7)):
+            return () if self.match is None else self.match.combat.projected_barrier_targets(self.body, state)
+        if self.hero == 0x02E00000000001A2:
+            entry = state.instance.graph.index, state.index
+            if entry in ((0x1007, 17), (0x1007, 19)):
+                return None  # Coalescence publishes from posed command frames.
+            if entry == (0x0F76, 106):
+                from ow174.game import moira
+
+                return moira.grasp_targets(self, state)
+        if self.hero == 0x02E000000000013B and state.instance.graph.index == 0x0B9E and state.index in (3, 6):
+            from ow174.game import nano
+
+            return () if self.match is None else nano.targets(self.match.combat, self.body, state)
+        return immunity.transcendence_targets(self, state)
+
+    def respawn_body(self, instance, node):
+        if (self.match is None or self.hero != regeneration.MERCY or instance.component.strict
+                or (instance.graph.index, node.pos) != (0x00CA, 20)):
+            return NotImplemented
+        target = instance.evaluate(node.field("m_targets"))
+        while isinstance(target, tuple):
+            target = target[0] if target else None
+        caster = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        if caster is None or not isinstance(target, Entity):
+            return False
+        return self.match.combat.resurrect_player(caster, target.id, instance)
+
+    def subgraph_scopes(self, entity):
+        if entity == self.body and hasattr(self, "scope_host"):
+            return self.scope_host
+        return NotImplemented
+
+    def ability_resource_available(self, state) -> bool:
+        if self.hero != regeneration.MERCY or state.instance.graph.index != 0x10DA or state.index != 9:
+            return True
+        if getattr(self, "advancing_valkyrie_clock", False):
+            return False
+        pending = getattr(self, "pending_ult_credits", ())
+        return not pending or state.now >= pending[-1][0]
+
+    def entity_value(self, instance, state, identifier: int, value):
+        from ow174.game.script import charge
+
+        if identifier != 842:
+            return value
+        index = instance.graph.index
+        if state is None and index == charge.PASSIVE_GRAPH and getattr(self, "historical_boost_award", False):
+            return True
+        if state is None or (index != 0x006D and (index, state.node.pos) != (0x006B, 169)):
+            return value
+        expiry = self.historical_valkyrie_deadline()
+        if expiry is None or state.now >= expiry:
+            return value
+        # An observer first bound by late input missed the original 842 change.
+        # Queue the same rebind at expiry without changing the live entity slot.
+        if not any(event.kind == runtime.CHANGED and event.state is state and event.time == expiry
+                   for event in state.instance.queue):
+            state.instance.post(runtime.Event(expiry, 0, runtime.CHANGED, state=state))
+        return True
+
+    def historical_valkyrie_deadline(self):
+        if self.hero != regeneration.MERCY or self.match is None:
+            return None
+        player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+        history = getattr(player, "valkyrie_pose", None)
+        return history.expires_ms if history is not None else None
+
+    def ability_start_allowed(self, state) -> bool:
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and state.instance.graph.index == 0x1536 and state.index == 1
+                and self.match.combat.companions.active_for(self.body)):
+            return False
+        if not self.ability_resource_available(state):
+            return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and not self.match.combat.barriers.ability_start_allowed(state)):
+            return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and state.instance.graph.index == 0x0043 and state.node.pos == 14):
+            return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
+        return True
+
+    def ability_cooldown_floor(self, state):
+        if (self.match is None or self.hero != 0x02E0000000000068
+                or state.cur <= 0 or state.cooldown_rate <= 0):
+            return 0.0
+        from ow174.game.combat import TICK
+
+        if state.instance.graph.index == 0x0043 and state.node.pos == 14:
+            ready = self.match.combat.zarya_melee_ready.get(self.body, 0)
+        else:
+            ready = self.match.combat.barriers.cooldown_ready_tick(state)
+        return min(state.cur, max(0, ready - self.match.tick) * TICK * state.cooldown_rate)
+
+    def body_owner_context(self, entity):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self._body_owner_context
+
+    def spatial_query_context(self, entity):
+        if self.match is not None and entity == getattr(self, "body", None):
+            return getattr(self, "_spatial_query_context", NotImplemented)
+        return NotImplemented
+
+    def entity_query_context(self, entity):
+        if self.match is None or entity != self.body or self._entity_query_context is None:
+            return NotImplemented
+        return self._entity_query_context
+
+    def _body_component(self, entity):
+        if self.match is None:
+            return None
+        registered = self.match.body_components.get(entity)
+        if registered is not None:
+            return registered
+        for player in self.match.players:
+            if not player.gone and player.has_body and player.body == entity:
+                script = player.body_script
+                return script.component if script is not None and not script.retired else None
+        for bot in self.match.bots:
+            if bot.entity == entity:
+                return getattr(bot.body_script, 'component', None)
+        return None
+
+    def script_component_present(self, entity):
+        if self.match is None:
+            return NotImplemented
+        return self._body_component(entity) is not None
+
+    def entity_var_slot(self, entity, var, *, create=False):
+        """Resolve the live foreign slot from the delivered Brigitte body host."""
+        if self.match is None or entity == runtime.GAME_MODE_ENTITY:
+            return NotImplemented
+        component = self._body_component(entity)
+        return component.entity_var(var, create=create) if component is not None else None
+
+    def entity_var(self, entity, var):
+        from ow174.game import hero_torbjorn
+
+        value = hero_torbjorn.foreign_turret_var(self, entity, var)
+        if value is not NotImplemented:
+            return value
+        from ow174.game import orisa_charge
+
+        value = orisa_charge.foreign_var(self, entity, var)
+        if value is not None:
+            return value
+        if self.match is None or entity == runtime.GAME_MODE_ENTITY:
+            return super().entity_var(entity, var)
+        # Foreign reads are sampled by the body frame poll. The other VM
+        # owns its slots and must not acquire watchers from this component.
+        component = self._body_component(entity)
+        slot = component.entity_var(var, create=False) if component is not None else None
+        value = slot.value() if slot is not None else None
+        if (self.hero == regeneration.MERCY and var == 653 and value is None
+                and component is not None and entity != self.body):
+            return component.owner_dead
+        return value
+
+    def entity_ruleset(self, entity, key):
+        if self.match is None:
+            return NotImplemented
+        component = self._body_component(entity)
+        return component.world.ruleset(key) if component is not None else None
 
     def position(self, entity: int) -> Vec3:
         if self.match is not None:
@@ -293,66 +649,819 @@ class BodyWorld(runtime.World):
                 return position
         return super().position(entity)
 
-    def movement_sample(self) -> int | None:
-        if self.match is not None:
-            return self.match.script_owner_movement_sample(self.body)
-        return None
+    def component76_keys(self, entity):
+        if self.match is None:
+            return NotImplemented
+        binding = self.match.combat.junkrat.charge.bindings.get(self.body)
+        if binding is not None and binding.owned():
+            record = binding.record(entity)
+            if record is not None:
+                tags = record[3].tags
+                return entity_queries.Component76Keys(frozenset(tags.base), frozenset(tags.added), frozenset(tags.removed))
+        from ow174.game import health_packs
 
-    def static_ray(self, origin: Vec3, direction: Vec3, length: float) -> runtime.RaycastResult | None:
-        match = self.match
-        if match is None or match.collision_world is None:
-            return None
-        mover = match._script_body_mover(self.body, self.body)
-        norm = math.hypot(*direction)
-        if (mover is None or not math.isfinite(norm) or norm == 0 or not math.isfinite(length)
-                or length <= 0 or not all(math.isfinite(axis) for axis in origin)):
-            return None
-        hit = match.collision_world.cast_ray(tuple(origin), tuple(axis / norm for axis in direction),
-                                             length, mover.category)
-        if hit is None:
-            return runtime.RaycastResult(False, None, None, None)
-        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
+        return health_packs.tag_keys(getattr(self.match.combat, "health_packs", {}).get(entity))
 
-    def raycast(self, request: runtime.RaycastRequest) -> runtime.RaycastResult | None:
-        # The authored 002C ground query uses the static collision service.
-        config = request.filter_config or {}
-        resource = config.get("m_C1903771")
-        if (not isinstance(resource, dict) or resource.get("$") != "STU_20DB8AB5"
-                or expr.guid_of(resource.get("m_C1903771")) != 0x069000000000002C
-                or resource.get("m_resourceKey") is not None
-                or request.radius != 0 or request.ignored_entities):
-            return None
-        fields = {"$", "m_C1903771", "m_EE729DCB"}
-        if any(value not in (None, 0) for key, value in config.items() if key not in fields):
-            return None
-        return self.static_ray(request.origin, request.direction, request.length)
+
+    def body_health(self, entity):
+        lookup = getattr(self.match.combat, "body_health", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+
+    def controller_record(self, entity):
+        lookup = getattr(self.match, "controller_record", None) if self.match is not None else None
+        return lookup(entity) if lookup is not None else NotImplemented
+
+
+    def confirm_portal(self, state):
+        portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
+        if portals is not None and (state.instance.graph.index, state.node.pos) == (0x1571, 69):
+            portals.confirm(state)
+            return True
+        return NotImplemented
+
+
+    def relocate_through_portal(self, instance, node):
+        from ow174.game import symmetra
+
+        result = symmetra.teleport_body(self, instance, node)
+        if result is not NotImplemented:
+            return result
+        portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
+        return portals.relocate(instance, node) if portals is not None else NotImplemented
+
+
+    def body_button_allowed(self, component, button):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        return component.strict or controls is None or controls.button_allowed(component, button)
+
+    def skill_locked(self, state):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if self.match is not None and self.match.combat.punches.controlled(state.instance.component.entity):
+            return True
+        return controls is not None and not state.instance.component.strict and controls.blocked(state)
+
+
+    def tracked_ray(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012E
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B1B, 59)):
+            controls = getattr(self.match.combat, "sombra_controls", None)
+            player = controls.player(self.body) if controls is not None else None
+            if player is not None:
+                return controls.ray(player, state)
+        if (self.hero == 0x02E0000000000068 and state.instance.graph.index == 0x0241
+                and state.index in (43, 81)):
+            service = getattr(self.match.combat, "zarya_beam_ray", None) if self.match is not None else None
+            return service(self.body, state) if service is not None else NotImplemented
+        return NotImplemented
+
+
+    def play_script_selected(self, instance, node):
+        from ow174.game import doomfist_passive
+
+        if self.match is None or instance.component.strict:
+            return NotImplemented
+        fight = self.match.combat
+        if (self.hero == doomfist_passive.HERO and hasattr(fight, "doomfist_decay")
+                and (instance.graph.index, node.pos) == (doomfist_passive.PASSIVE, 4)):
+            return doomfist_passive.grant(self, instance, node)
+        controls = getattr(fight, "sombra_controls", None)
+        return controls.play(instance, node) if controls is not None else NotImplemented
+
 
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:
             return self.match.resolve_body_spray(self.body, length)
         return None
 
-    def queue_velocity_changes(
-        self, frame: int, source: tuple[int, int], changes: tuple["VelocityChange", ...],
-    ) -> None:
+    def play_compatible_script(self, instance, node) -> None:
+        if self.match is None:
+            return
+        from ow174.game import sigma_flux
+
+        if sigma_flux.play_flux_request(self, instance, node):
+            return
+        fight = self.match.combat
+        if self.hero == 0x02E0000000000009 and instance.graph.index == 0x00FA and node.pos == 2:
+            world_barriers = fight.barriers.world
+            if any(actor.source_component is instance.component for actor in world_barriers.actors.values()):
+                self.play_static_actor(instance, node)
+                return
+            from ow174.game import winston_barrier
+
+            winston_barrier.deploy(fight, self.body, instance, node)
+            return
+        if self.hero != 0x02E000000000023B:
+            return
+        if instance.graph.index == 0x1B55 and node.pos == 8:
+            from ow174.game import sigma_barrier
+
+            sigma_barrier.play_barrier_request(fight, self.body, instance, node)
+        if instance.graph.index == 0x1BBB and node.pos == 18:
+            caster = next((player for player in self.match.players
+                           if player.has_body and not player.gone and player.body == self.body), None)
+            if caster is None:
+                return
+            entity = expr.to_entity(instance.evaluate(node.field("m_targets")))
+            target = next((target for target in fight._enemies(caster) if target.entity == entity), None)
+            if target is not None:
+                fight.brigitte.host_control(caster, target, instance, node)
+
+    def create_compatible_pet(self, state):
+        from ow174.game import sigma_barrier
+
         if self.match is not None:
-            self.match.queue_body_velocity_changes(self.body, frame, source, changes)
+            return sigma_barrier.create_barrier(self.match.combat, self, state)
+        return NotImplemented
+
+    def retire_compatible_pet(self, state, entity: int) -> None:
+        if self.match is not None:
+            barrier_actor = self.match.combat.sigma_barriers.pop(entity, None)
+            if barrier_actor is not None:
+                barrier_actor.retire_child()
+
+    def create_body(self, instance, node):
+        from ow174.game import body_entities
+
+        if self.match is None or instance.component.entity != self.body:
+            return NotImplemented
+        return body_entities.create_mech(self.match, instance, node)
+
+    def body_health_pool(self, state):
+        if self.match is not None:
+            self.match.combat.translocators.health_pool(state)
+
+    def body_recall_target(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.select_recall(state)
+
+    def body_recall_move(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.recall(state)
+
+    def destroy_entity(self, instance, node):
+        if self.match is not None and instance.graph.index == 0x0C1A:
+            self.match.combat.translocators.destroy_authored(instance.component.entity)
+            return True
+        return NotImplemented
+
+    def create_world_entity(self, instance, node):
+        if self.match is not None:
+            fight = self.match.combat
+            result = fight.barriers.world.create(self, instance, node)
+            if result is not NotImplemented:
+                return result
+            if instance.graph.index == 0x1571:
+                result = fight.portals.factory(instance, node)
+                if result is not NotImplemented:
+                    return result
+            portals = getattr(fight, "symmetra_portals", None)
+            if portals is not None:
+                return portals.create(instance, node)
+        return NotImplemented
+
+    def play_static_actor(self, instance, node):
+        if self.match is not None:
+            return self.match.combat.barriers.world.host(self, instance, node)
+        return NotImplemented
+
+    def compatibility_play_script(self, instance, node):
+        from ow174.game import barriers, symmetra
+
+        result = symmetra.play_transit_script(self, instance, node)
+        if result is not NotImplemented:
+            return result
+        if self.hero == 0x02E000000000023B and self.match is not None:
+            if instance.graph.index == 0x1D02 and node.pos == 34:
+                from ow174.game import interception
+
+                if not interception.play_shield_script(self, instance, node):
+                    self.match.combat.grant_grasp_shield(instance, node)
+                return
+        barriers.play_script(self, instance, node)
+
+    def create_pet(self, state):
+        from ow174.game import barriers
+
+        if state.instance.component.strict:
+            return super().create_pet(state)
+        from ow174.game import photon_barrier
+
+        if (self.match is not None and state.instance.graph.index == photon_barrier.GRAPH
+                and state.node.pos == 17):
+            entity = self.match.combat.photon_barriers.create(self, state)
+            return 0 if entity is NotImplemented else entity
+        return barriers.create(self, state)
+
+    def track_targets(self, state):
+        if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 8), (0x026A, 35)):
+            self.match.combat.dva_ultimate_targets(state)
+            return True
+        if (self.hero == 0x02E000000000006E and self.match is not None
+                and state.instance.graph.index == 0x0259
+                and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
+            return self.match.combat.visor_targets(state)
+        from ow174.game import barriers
+
+        barriers.track_projected_target(self, state)
+        return barriers.track_transcendence(self, state)
+
+    def move_ended(self, state, finished):
+        if (self.match is not None and self.hero == 0x02E000000000000A
+                and state.instance.graph.index == 0x005A and state.index == 1):
+            # Delivered terminal reconstruction for the unhosted typed-request
+            # phase: run the graph's own stop action, preserving its cooldown.
+            state.instance.run_node(state.instance.graph.node(93), state)
+
+    def grapple_cast(self, state):
+        if self.match is not None:
+            return self.match.combat.grapple_cast(state)
+        return None
+
+    def assignment_value(self, instance, node, value):
+        from ow174.game.zenyatta import weapon_assignment
+
+        return weapon_assignment(self, instance, node, value)
+
+    def heal_self(self, entity, amount):
+        """Apply original0240 timed healing to this same live body only."""
+        if self.match is not None and entity == self.body:
+            self.match.combat.heal_self(entity, amount, tick=getattr(self, "healing_tick", None))
+
+    def modify_health(self, state, elapsed_ms):
+        tracked = self._tracked_modify_health(state, elapsed_ms)
+        if tracked is not NotImplemented:
+            return tracked
+        from ow174.game import barriers
+
+        from ow174.game import sigma_flux
+        flux = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if flux is not NotImplemented:
+            return flux
+
+        if self.match is not None and (state.instance.graph.index, state.node.pos) == (0x007D, 125):
+            from ow174.game import reinhardt_charge
+            return reinhardt_charge.deployable_impact(self.match.combat, state, elapsed_ms)
+
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 10)):
+            if elapsed_ms == 0:
+                from ow174.game import doomfist_passive
+
+                doomfist_passive.hit(self, state)
+            return True
+
+        if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 22), (0x026A, 36)):
+            if not elapsed_ms:
+                self.match.combat.dva_ultimate_damage(state)
+                state.request_finish()
+            return True
+
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        if (controls is not None and not state.instance.component.strict
+                and (state.instance.graph.index, state.node.pos) == (0x0B32, 9)):
+            if elapsed_ms == 0:
+                controls.drain(state)
+                state.request_finish()
+            return True
+        if self.match is not None and self.hero == 0x02E0000000000020 and state.instance.graph.index == 0x017B:
+            owner = self.match._message_player(self.body)
+            if owner is not None and owner.hero.guid == self.hero and state.index == 6:
+                return True  # The delivered Zenyatta service owns the world-clock healing budget.
+        value = immunity.transcendence_heal(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
+        value = barriers.cryo_heal(self, state, elapsed_ms)
+        if value is NotImplemented:
+            value = barriers.transcendence_heal(self, state, elapsed_ms)
+        return self._tracked_modify_health(state, elapsed_ms) if value is NotImplemented else value
+
+    def end_health(self, state):
+        elapsed = max(0, state.now - state.last_applied)
+        if elapsed:
+            self.modify_health(state, elapsed)
+
+    def compatibility_message_receiver(self, state):
+        from ow174.game import assassin_victim
+
+        return assassin_victim.receiver(self, state)
+
+    def compatibility_stop_script(self, instance, node):
+        from ow174.game import assassin_victim
+
+        return assassin_victim.stop_script(self, instance, node)
+
+    def retire_pet(self, entity):
+        if self.match is not None:
+            from ow174.game import barriers
+
+            barriers.retire(self.match.combat, entity)
+
+    def entity_relation_context(self, entity, *, component=None):
+        if self.match is None or entity != self.body:
+            return NotImplemented
+        return self.match.combat.junkrat.charge.context(self.body, "hostility")
+
+    def entity_filter_host(self, instance):
+        if self.match is None or instance.component.entity != self.body:
+            return NotImplemented
+        return self.match.combat.junkrat.charge.context(self.body, "filtered")
+
+    def entity_possessor_context(self, entity: int):
+        if self.match is not None and entity == self.body:
+            context = self.match.combat.junkrat.charge.context(self.body, "relation")
+            if context is not NotImplemented:
+                return context
+        if self.match is None or entity != self.body or self.hero != barrier.REINHARDT:
+            return NotImplemented  # retain other heroes' existing dedicated native adapters
+        if self._possessor_query is None:
+            self._possessor_query = entity_queries.Context(
+                entity, True, True, True, lookup=self._lookup_possessor,
+                watch_environment=None, watch_possession=None, watch_possessor=self._watch_possessor,
+            )
+        return self._possessor_query
+
+    def _lookup_possessor(self, entity):
+        # The Match owns these controller/body identities. No relation is
+        # inferred from team, health or the ability's running state.
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, possessor=entity_queries.Possession(player.entity))
+            if player.entity == entity:
+                return entity_queries.Target(entity, possessor=None)
+        if any(bot.entity == entity for bot in self.match.bots):
+            return NotImplemented  # NPC component43/controller ownership is not installed here.
+        return None
+
+    def _watch_possessor(self, watcher, target):
+        # InstanceContext already records this config in native_dependency.
+        # Match relation changes are polled at command boundaries; native
+        # component43 callback allocation/phase order is not reconstructed.
+        return None
+
+    def movement_flags(self, entity):
+        resolver = getattr(self.match, "script_movement_flags", None)
+        return resolver(entity, getattr(self, "body", 0)) if callable(resolver) else NotImplemented
+
+    def movement_flag_projection(self, instance, node):
+        # Keep the existing scoped crouch consumer; delivered known-bit flags
+        # below read actual physics and leave other projections unsupported.
+        if (self.match is not None and self.hero == 0x02E0000000000221
+                and instance.graph.index == 0x1983 and node.state == 8):
+            for player in self.match.players:
+                if player.has_body and player.body == self.body:
+                    crouched = player.mover.crouched and not instance.component.owner_dead
+                    return 0x40, 0x40 if crouched else 0
+        if self.hero == barrier.REINHARDT:
+            return project_movement_flags(self, instance, node)
+        return None
+
+    def linked_target_sample(self, entity: int):
+        match = self.match
+        if (match is None or entity != self.body or entity in match.combat.pins.values()
+                or match.script_player_body(entity, self.body) is None):
+            return NotImplemented
+        # The reconstructed Match owns this unparented player pose. Pin links
+        # need the native linked transform rather than this unlinked sample.
+        return None, 0.0
+
+    def sample_sleep_view(self):
+        """Evaluate the authored 224E view branch using the current Match pose."""
+        definition = graph.graph(0x224E)
+        if definition is None or self.linked_target_sample(self.body) is NotImplemented:
+            return None
+        component = runtime.Component(self.body, strict=True, world=self)
+        instance = component.create(definition, init=False)
+        instance.initialized = True
+        try:
+            # Node 29's wait is scheduled by the combat clock. Its output
+            # enters 30, evaluates both owner queries and starts node 34.
+            instance.run_node(definition.node(30), None)
+            component.run_now()
+            return instance.node_state(definition.node(34)).mover_angles
+        except runtime.UnsupportedScriptError as error:
+            expr.warn_once("sleep-view-resource", "%s", error)
+            return None
+        finally:
+            component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import mccree
+        if instance is not None and self.match is not None:
+            from ow174.game import sigma_flux
 
+            for resolve in (sigma_flux.flux_caster_native, sigma_flux.flux_effect_native,
+                            sigma_flux.flux_position_query, sigma_flux.flux_actor_point_query):
+                result = resolve(self, cfg, instance)
+                if result is not NotImplemented:
+                    return result
+
+        if (self.match is not None and instance is not None and instance.graph.index == 0x224E
+                and cfg.get("$") in ("STU_CC53F52B", "STU_7BE6D76D")):
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.EVALUATION_FAILED)
+            if expr.to_entity(value) == self.body:
+                player = self.match.script_player_body(self.body, self.body)
+                if player is not None:
+                    units = player.mover.yaw if cfg["$"] == "STU_CC53F52B" else player.mover.pitch
+                    return expr.f32(units * (360.0 / 65536))
+            return expr.EVALUATION_FAILED
+        if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
+                and instance.graph.index == 0x1513 and not instance.component.strict):
+            value = instance.graph.node(45).field("m_value")
+            if cfg is value["m_configVars"][0]:
+                from ow174.game import ashe
+
+                for player in self.match.players:
+                    if player.has_body and not player.gone and player.body == self.body:
+                        return Vec3(*ashe.coach_shove_direction(cfg, player))
+
+        from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
+
+        cls = cfg.get("$")
+        if self.match is not None and instance is not None:
+            if cls == "STU_8CBDD81C":
+                position = self.match.script_body_position(expr.to_entity(instance.evaluate(cfg.get("m_entity"))), self.body)
+                if position is not None:
+                    return position
+            if cls in {"STU_2200A66D", "STU_021D01CD", "STU_C8C4C20D"}:
+                facing = self.match.script_body_facing(expr.to_entity(instance.evaluate(cfg.get("m_entity"))), self.body, pitched=cls == "STU_2200A66D")
+                if facing is not None:
+                    return f32(f32(math.atan2(facing.x, facing.z)) * 57.295780181884766) if cls == "STU_C8C4C20D" else facing
+        if self.hero == 0x02E00000000001CA and instance is not None:
+            from ow174.game import ball
+            owner = ball.passive_owner(self, cfg, instance)
+            if owner is not NotImplemented:
+                return owner
+            if cls in {"STU_8CBDD81C", "STU_71A87E92"}:
+                entity = instance.evaluate(cfg.get("m_entity"))
+                if isinstance(entity, Entity) and self.match is not None:
+                    return self.match.script_body_position(entity.id, self.body)
+                return None
+            if (cls == "STU_309B0570" and cfg.get("m_5B94EDB8") is None
+                    and self.match is not None
+                    and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+                player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                if player is not None:
+                    return Vec3(*player.mover.velocity)
+
+        if self.match is not None and instance is not None:
+            from ow174.game.script import entity_relation
+
+            if cfg.get("$") == entity_relation.CLASS:
+                value = entity_relation.evaluate(runtime.InstanceContext(instance, None), cfg)
+                if value is not NotImplemented:
+                    return value
+            value = self.match.combat.junkrat.query(cfg, instance)
+            if value is not NotImplemented:
+                return value
+
+        if instance is not None:
+            from ow174.game import symmetra_placement
+            for query in (symmetra.placement_direction_query, symmetra_placement.static_transform):
+                value = query(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
+            value = symmetra.transit_position_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero == symmetra_charge.HERO:
+            value = symmetra_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if self.hero in (symmetra.HERO, 0x02E0000000000068, 0x02E000000000023B):
+            value = symmetra.pool_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+
+        if self.hero == torbjorn_charge.HERO and instance is not None:
+            value = torbjorn_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+
+        result = hero_torbjorn.turret_native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
+        from ow174.game import lucio, lucio_movement, mccree, sombra_control
+        from ow174.game import hanzo_movement
+
+        if instance is not None:
+            movement = hanzo_movement.native(self, cfg, instance)
+            if movement is not NotImplemented:
+                return movement
+
+        if self.hero == 0x02E000000000007A and self.match is not None:
+            from ow174.game import body_entities
+
+            primary = body_entities.primary_query(self, cfg, instance)
+            if primary is not NotImplemented:
+                return primary
+            if cfg.get("$") == "STU_71A87E92" and instance is not None and instance.graph.index == 0x026A:
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                point = self.match.script_body_position(entity, self.body)
+                if point is not None:
+                    return point
+
+        if (self.hero == 0x02E0000000000003 and self.match is not None and instance is not None
+                and instance.graph.index == ultimate.CHARGE_GRAPH and cfg.get("$") == "STU_F7262B36"):
+            # Original Tracer0B8B uses this as its passive-owner eligibility query.
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_801B298F")))
+            owner = next((player for player in self.match.players
+                          if player.has_body and player.body == entity), None)
+            script = getattr(owner, "body_script", None)
+            return (entity == self.body and script is not None
+                    and script.component is instance.component and not script.component.owner_dead
+                    and script.ult_seconds == ULT_SECONDS)
+
+        if instance is not None and instance.graph.index == ultimate.CHARGE_GRAPH and ultimate.practice_timer(self):
+            result = ultimate.tagged_damage_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+            if (cfg.get("$") == "STU_F7262B36" and instance.component.entity == self.body
+                    and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
+                player = next((p for p in self.match.players if p.has_body and p.spawned and not p.gone
+                               and p.body == self.body and p.hero.guid == self.hero), None)
+                return Entity(player.entity) if player is not None else None
+
+        if (self.hero == 0x02E0000000000007 and self.match is not None and instance is not None
+                and instance.graph.index == 0x48
+                and cfg.get("$") in ("STU_71A87E92", "STU_021D01CD", "STU_C8C4C20D", "STU_66F3B89E", "STU_2200A66D")
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                cls = cfg.get("$")
+
+                yaw = player.mover.yaw * math.tau / 65536
+                if cls == "STU_71A87E92":
+                    return Vec3(*player.mover.position)
+                if cls == "STU_021D01CD":
+                    return Vec3(math.sin(yaw), 0., math.cos(yaw))
+                if cls == "STU_C8C4C20D":
+                    return player.mover.yaw * 360. / 65536
+                if cls == "STU_66F3B89E":
+                    return Vec3(math.cos(yaw), 0., -math.sin(yaw))
+                from ow174.game.combat import aim
+                return Vec3(*aim(player.mover.yaw, player.mover.pitch))
+
+        if (cfg.get("$") == "STU_021D01CD" and self.hero == 0x02E000000000012F
+                and self.match is not None and instance is not None):
+            from ow174.game.combat import aim
+
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            owner = next((p for p in self.match.players if p.has_body and p.body == entity), None)
+            if owner is not None:
+                return Vec3(*aim(owner.mover.yaw, owner.mover.pitch))
+            bot = next((b for b in self.match.bots if b.entity == entity), None)
+            if bot is not None:
+                return Vec3(*aim(round(bot.yaw), 0))
+        if (cfg.get("$") == "STU_021D01CD" and instance is not None and instance.graph.index == 0x0257
+                and self.match is not None and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+            if player is not None:
+                angle = player.mover.yaw * math.tau / 65536
+                return Vec3(f32(math.sin(angle)), 0.0, f32(math.cos(angle)))
+
+        if self.hero == regeneration.MERCY and self.match is not None and instance is not None:
+            cls = cfg.get("$")
+            if instance.graph.index == 0x01C7:
+                if cls == "STU_4A101787":
+                    return True
+                if cls == "STU_9622CAD6":
+                    return Entity(runtime.GAME_MODE_ENTITY)
+                if cls == "STU_ABB6C23E":
+                    return Asset(0)
+            if cls == "STU_F7262B36" and instance.graph.index in (0x0B8B, 0x006B):
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_801B298F")))
+                owner = next((p for p in self.match.players
+                              if p.has_body and not p.gone and p.body == entity), None)
+                return Entity(owner.entity if owner is not None else 0)
+            from ow174.game.script import charge
+
+            result = charge.damage_native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+
+        if (self.match is not None and self.hero == regeneration.MERCY and instance is not None
+                and instance.graph.index == 0x00CA and not instance.component.strict):
+            cls = cfg.get("$")
+            if cls == "STU_4A101787":
+                return True
+            if cls in ("STU_9B7648C3", "STU_E72F6348", "STU_71A87E92", "STU_21A13145",
+                       "STU_F7FD94F9", "STU_FDBB0B67"):
+                value = instance.evaluate(cfg.get("m_entity"))
+                while isinstance(value, tuple):
+                    value = value[0] if value else None
+                entity = expr.to_entity(value)
+                target = next((t for t in self.match.combat._targets() if t.entity == entity), None)
+                if cls == "STU_E72F6348":
+                    return target is not None
+                if cls == "STU_9B7648C3":
+                    return self.match.combat.vitals_of(target).total if target is not None else 0.0
+                if target is not None:
+                    if cls == "STU_71A87E92":
+                        return Vec3(*target.feet)
+                    if cls == "STU_21A13145":
+                        return Vec3(target.feet[0], target.feet[1] + target.eye, target.feet[2])
+                    if cls == "STU_F7FD94F9":
+                        return f32(target.radius)
+                    script = target.owner.body_script
+                    override = script.component.entity_var(BODY_SCALE_OVERRIDE, create=False) if script else None
+                    scale = override.value() if override is not None else None
+                    return UNIT_ENTITY_SCALE if scale is None else scale
+        if self.hero == lucio.HERO:
+            charge_value = lucio.damage_charge_query(self, cfg, instance)
+            if charge_value is not NotImplemented:
+                return charge_value
+
+        movement_value = lucio_movement.query(self, cfg, instance)
+        if movement_value is not NotImplemented:
+            return movement_value
+
+        if (self.match is not None and self.hero == sombra_control.HERO
+                and instance is not None and not instance.component.strict
+                and instance.graph.index == sombra_control.HACK):
+            result = self.match.combat.sombra_controls.native(self.body, cfg, instance)
+            if result is not NotImplemented:
+                return result
         result = mccree.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
+        if self.match is not None and instance is not None and instance.graph.index == 0x1B55:
+            from ow174.game import sigma_barrier
+
+            health = sigma_barrier.barrier_health_query(self, cfg, instance)
+            if health is not NotImplemented:
+                return health
+        if (self.match is not None and self.hero == 0x02E000000000023B
+                and instance is not None and instance.graph.index == 0x1BBB):
+            caster = next((player for player in self.match.players
+                           if player.has_body and not player.gone and player.body == self.body), None)
+            if caster is not None and cfg == instance.graph.node(16).field("m_condition"):
+                entity = expr.to_entity(instance.evaluate(cfg["m_entity"]))
+                return any(target.entity == entity for target in self.match.combat._enemies(caster))
+            if caster is not None and cfg == instance.graph.node(19).field("m_value"):
+                return Vec3(*caster.mover.position)
+        from ow174.game import orisa_charge, orisa_halt
+
+        halt = orisa_halt.native(self, cfg, instance)
+        if halt is not NotImplemented:
+            return halt
+
+        charge = orisa_charge.native(self, cfg, instance)
+        if charge is not NotImplemented:
+            return charge
         cls = cfg.get("$")
-        if cls == "STU_8CBDD81C" and self.match is not None and instance is not None:
-            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
-            return self.match.script_body_position(entity, self.body)
+        if (self.hero in (0x02E0000000000003, barrier.REINHARDT) and instance is not None
+                and instance.graph.index == ULT_GAIN_GRAPH
+                and cls in ("STU_AC829876", "STU_A58C1E63")):
+            from ow174.game.ultimate_charge import match_admission
+
+            value = match_admission(instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if instance is not None and instance.graph.index == 0x156B:
+            from ow174.game import photon_barrier
+
+            result = photon_barrier.native(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
+        if cls == "STU_DB742151" and self.match is not None:
+            match = self.match
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=Entity(0))
+            instance.component.ensure_valid()
+            if (self.match is not match or instance.stopped or instance.teardown
+                    or instance.component.instances.get(instance.id) is not instance):
+                instance.component.unsupported(instance, "primary possessor query retired context", cls)
+            entity = expr.to_entity(value) & 0xFFFFFFFF
+            for player in match.players:
+                if not player.gone and (
+                    player.entity == entity or (player.has_body and player.body == entity)
+                ):
+                    return Entity(player.entity)
+            return Entity(0)
+        if cls in ("STU_9B7648C3", "STU_AC829876") and self.match is not None:
+            result = self.match.combat.brigitte.native(cfg, instance)
+            if result is not NotImplemented:
+                return result
         if (cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
                 and instance.component.entity == self.body
                 and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
             health = instance.component.entity_var(OWNER_HEALTH, create=False)
             return expr.to_float(health.value()) if health is not None else 0.0
+        if (cls == 'STU_8CBDD81C' and self.match is not None and instance is not None
+                and self.hero == 0x02E0000000000009 and instance.graph.index in (0xFA,0xFC)
+                and instance.component.entity == self.body):
+            entity = expr.to_entity(instance.evaluate(cfg.get('m_entity')))
+            if entity == self.body:
+                return self.position(entity)  # scoped authoritative creation position
+        if cls == "STU_9B7648C3" and instance is not None:
+            from ow174.game import assassin_victim
+
+            value = assassin_victim.health(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
+        if (cls == "STU_295F1CDE" and self.hero == 0x02E0000000000007 and instance is not None
+                and instance.graph.index in (0x95, 0x96)):
+            return 1.0  # reconstructed normal-mode health scale; native/mode mapping remains open
+        if cls == "STU_783B4CF0" and instance is not None:
+            from ow174.game import barriers, interception
+
+            value = interception.shield_amount(self, instance, cfg)
+            if value is NotImplemented:
+                value = barriers.health_query(self, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if (self.hero == GENJI and self.match is not None and instance is not None
+                and cls in {"STU_21A13145", "STU_2200A66D"}
+                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
+            # Reconstructed Genji cast inputs. The native engine query's full
+            # transform/attachment rules remain unverified; only own live body.
+            owner = next((p for p in self.match.players
+                          if p.body == self.body and p.body_script is not None), None)
+            if owner is not None:
+                from ow174.game.combat import Combat, aim
+
+                return Vec3(*(Combat._eye(self.match.combat, owner) if cls == "STU_21A13145"
+                              else aim(owner.mover.yaw, owner.mover.pitch)))
+        if (self.hero == GENJI and self.match is not None and instance is not None
+                and instance.graph.index == 0x0B8B and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"
+                and instance.component.entity == self.body):
+            # Explicit normal-player server profile. Native association details
+            # are OPEN; scope this related-entity gate to owned Genji0B8B only.
+            owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+            return Entity(owner.entity if owner is not None and owner.spawned and owner.has_body
+                          and not instance.component.owner_dead and not self.match.ended else 0)
+        if self.match is not None and cls in ("STU_E72F6348", "STU_2B2E2F6D"):
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity") or cfg.get("m_81A364DE")))
+            orb = self.match.combat.orisa.orbs.get(entity)
+            device = self.match.combat.orisa.superchargers.active.get(entity)
+            if device is not None:
+                if cls == "STU_E72F6348":
+                    return True
+                if cfg.get("m_7BDB02D1") == 0:
+                    return Entity(device.source_body)
+            if orb is not None:
+                if cls == "STU_E72F6348":
+                    return True  # actual currently registered server ability entity
+                if cfg.get("m_7BDB02D1") == 0:
+                    # Reconstruct only the declared pet-owner relation used by
+                    # Halt's own-body gate, never arbitrary entity ownership.
+                    return Entity(orb.rocket.source_body)
+        if (cls == "STU_C8C4C20D" and self.match is not None
+                and self.hero == 0x02E0000000000008 and instance is not None):
+            # Delivered body-yaw consumer for Jump Jet's authored horizontal vector.
+            entity = instance.evaluate(cfg.get("m_entity"))
+            if entity == Entity(self.body):
+                player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                if player is not None:
+                    return f32(player.mover.yaw * 360.0 / 65536.0)
+        if (self.match is not None and self.hero == barrier.REINHARDT and instance is not None
+                and instance.component.entity == self.body and instance.graph.index == 0x00BE):
+            # Reconstructed owner pose services for the authored Earthshatter release expressions.
+            if cls == "STU_71A87E92":
+                return self.position(self.body)
+            if cls in ("STU_C8C4C20D", "STU_021D01CD"):
+                owner = next((player for player in self.match.players if player.body == self.body), None)
+                if owner is not None:
+                    yaw = owner.mover.yaw
+                    if cls == "STU_C8C4C20D":
+                        return yaw * 360.0 / 65536
+                    from ow174.game.combat import aim
+
+                    return Vec3(*aim(yaw, 0))
+        if self.match is not None and self.hero == 0x02E0000000000007 and instance is not None:
+            value = self.match.combat.barrier.native(instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if self.match is not None and self.hero == 0x02E000000000023B and instance is not None:
+            value = self.match.combat.absorption.pool_amount(instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if self.match is not None and self.hero == 0x02E0000000000221 and instance is not None:
+            value = self.match.combat.baptiste.matrix_native(instance, cfg)
+            if value is not NotImplemented:
+                return value
+        if self.match is not None and self.hero == ice_wall.MEI and instance is not None:
+            value = ice_wall.native(self.match.combat, instance, cfg)
+            if value is not NotImplemented:
+                return value
+        victim_health = cls == "STU_9B7648C3" and instance is not None and instance.graph.index == 0x1177
+        if instance is not None and (victim_health or cls in {"STU_32E6E4D8", "STU_7D7D2470"}):
+            # Data-derived current/max-health queries used by Burst and1763.
+            target = instance.evaluate(cfg.get("m_entity"))
+            if target == Entity(self.body):
+                if cls == "STU_7D7D2470":
+                    return getattr(instance.component, "maximum_health", None)
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                return f32(value) if victim_health and type(value) in (int, float) else value
+        if cls == "STU_082FA44E":
+            from ow174.game import pulse_bomb
+
+            value = pulse_bomb.resource_float(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if cls == "STU_1FF67CA6":  # GetLocalPlayerPossessedView: the owner's client views its body
             return Entity(self.body)
         if cls == "STU_310D6529":  # GetThrottle (0x7FF789BDA130): the command's throttle bytes * f32(1/127)
@@ -360,14 +1469,18 @@ class BodyWorld(runtime.World):
             return Vec3(f32(right * THROTTLE_UNIT), f32(forward * THROTTLE_UNIT), 0.0)
         if cls == "STU_37F20D24":  # GetGameMode: the match's mode (what component 114 announces)
             return Asset(self.mode)
-        if cls in {"STU_2200A66D", "STU_021D01CD", "STU_C8C4C20D"} and self.match is not None:
-            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
-            if expr.valid_entity(entity):
-                facing = self.match.script_body_facing(entity, self.body, pitched=cls == "STU_2200A66D")
-                if facing is not None:
-                    if cls == "STU_C8C4C20D":
-                        return f32(f32(math.atan2(facing.x, facing.z)) * 57.295780181884766)
-                    return facing
+        if cls == "STU_9B7648C3":
+            # Native CEB6C0 -> D177C0 resolves component51 (BCC870) and its
+            # numeric getter at vtable+40. Reconstructed aggregate-health
+            # consumer, using the same authoritative input as the body HUD.
+            # Unknown/foreign entities retain the ordinary unsupported path.
+            target = cfg.get("m_entity")
+            if (instance.component.entity == self.body and isinstance(target, dict)
+                    and instance.evaluate(target) == Entity(self.body)):
+                health = instance.component.entity_var(OWNER_HEALTH, create=False)
+                value = health.value() if health is not None else None
+                if type(value) in (int, float):
+                    return f32(value)
         if cls == "STU_FDBB0B67":  # entity size used by the authored movement and effect graphs
             target = cfg.get("m_entity")
             component = instance.component
@@ -377,10 +1490,24 @@ class BodyWorld(runtime.World):
                     and instance.evaluate(target) == Entity(self.body)):
                 override = component.entity_var(BODY_SCALE_OVERRIDE, create=False)
                 scale = override.value() if override is not None else None
+                if scale is not None and (type(scale) not in (int, float) or scale != UNIT_ENTITY_SCALE):
+                    return None
+                if not component.strict and self.match is not None:
+                    owner = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                    if owner is not None:
+                        return owner.mover.body_scale
                 if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false
             return False
+        if instance is not None and self.hero == 0x02E00000000001A2 and instance.graph.index == ULT_GAIN_GRAPH and cls in {
+            "STU_AC829876", "STU_A58C1E63", "STU_25ECB55F",
+        }:
+            from ow174.game import moira
+
+            result = moira.damage_charge_query(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
         if (cls == "STU_F7262B36" and self.match is not None and instance is not None
                 and instance.graph.index == 0x0276 and self.body_definition == 0x0400000000000407
                 and instance.evaluate(cfg.get("m_801B298F")) == Entity(self.body)):
@@ -455,7 +1582,56 @@ class BodyWorld(runtime.World):
                         # The match does not attach a pet owner to these player bodies.
                         # Node 120 short-circuits before its component43 comparison.
                         return Entity(0)
+        if (self.hero == 0x02E00000000001A2 and self.match is not None
+                and instance is not None and instance.graph.index == 0x0F76 and cls in {"STU_E72F6348", "STU_AC829876"}):
+            selected = cfg.get("m_entity") or {}
+            fight = self.match.combat
+            if cls == "STU_E72F6348" and expr.lvalue(selected) == (expr.INSTANCE, 375):
+                entity = expr.to_entity(instance.evaluate(selected))
+                return bool(entity and any(target.entity == entity for target in fight._targets()))
+            if cls == "STU_AC829876":
+                signature = {k: v for k, v in (cfg.get("m_filter") or {}).items() if v not in (None, 0)}
+                source = (selected.get("m_expression") or {}).get("m_dynamicVars") or []
+                # State 99 wraps its tracked entity in an expression before applying the body filter.
+                if (signature == {"$": "STUConfigVarFilter", "m_84065FD1": 1}
+                        and len(source) == 1 and expr.lvalue(source[0]) == (expr.INSTANCE, 375)):
+                    entity = expr.to_entity(instance.evaluate(selected))
+                    owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+                    return bool(entity and owner is not None
+                                and any(target.entity == entity for target in fight._enemies(owner)))
+        if (self.hero == 0x02E0000000000016 and self.match is not None
+                and instance is not None and instance.graph.index == 0x157C and cls in {"STU_E72F6348", "STU_AC829876"}):
+            # Reconstruct node 48's live-body branch. Barrier/tag membership
+            # and the alternate target source remain outside this binding.
+            selected = cfg.get("m_entity") or {}
+            if selected.get("$") == "STUConfigVarDynamic" and selected.get("m_identifier") in (38, 536):
+                entity = expr.to_entity(instance.evaluate(selected))
+                if cls == "STU_E72F6348":
+                    return bool(entity and any(target.entity == entity for target in self.match.combat._targets()))
+                target_filter = cfg.get("m_filter") or {}
+                if (selected["m_identifier"] == 536 and target_filter.get("m_84065FD1") == 64
+                        and target_filter.get("m_4EA686DB") == 128):
+                    owner = next((p for p in self.match.players if p.body == self.body and not p.gone), None)
+                    return bool(entity and owner is not None
+                                and any(target.entity == entity for target in self.match.combat._enemies(owner)))
         if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+            cfg_filter = cfg.get("m_filter") or {}
+            signature = {k: v for k, v in cfg_filter.items() if v not in (None, 0)}
+            if (self.hero == 0x02E0000000000029 and self.match is not None
+                    and instance.graph.index == 0x01DB
+                    and signature == {"$": "STUConfigVarFilter", "m_84065FD1": 1}):
+                # Scoped reconstruction of the elimination target's hero/body
+                # predicate. Do not generalize unknown filters or tag masks.
+                target = instance.evaluate(cfg.get("m_entity"))
+                if isinstance(target, Entity) and target.id != self.body:
+                    return any(p.has_body and p.body == target.id for p in self.match.players) or any(
+                        b.entity == target.id for b in self.match.bots
+                    )
+            from ow174.game.lucio import barrier_owner_filter
+
+            result = barrier_owner_filter(self, cfg, instance)
+            if result is not NotImplemented:
+                return result
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -500,9 +1676,20 @@ class BodyWorld(runtime.World):
     def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
         from ow174.game.script import play, play_queue
 
+        if self.match is not None:
+            from ow174.game import body_entities
+
+            result = body_entities.play_cleanup(self.match, instance, node)
+            if result is not NotImplemented:
+                return
+
         index = WHEEL_PLAY_GRAPHS.get((instance.graph.index, node.pos))
         if not self.communication_wheel or index is None:
-            super().play_script(instance, node)
+            if instance.component.strict:
+                super().play_script(instance, node)
+            else:
+                self.play_compatible_script(instance, node)
+                self.compatibility_play_script(instance, node)
             return
         resource = play.resolve_resource(instance, node)
         if resource is None or resource.guid != ((graph.GRAPH_TYPE << 48) | index):
@@ -675,12 +1862,94 @@ class BodyWorld(runtime.World):
         self.wheel_callouts.append(event)
         del self.wheel_callouts[:-MAX_WHEEL_CALLOUTS]
 
-    def velocity_action(self, instance, node):
-        from ow174.game import mccree
+    def blink(self, instance, node):
+        from ow174.game import tracer
 
-        return mccree.velocity_action(self, instance, node)
+        return tracer.blink(self, instance, node)
+
+    def _pharah_velocity_action(self, instance, node):
+        # Reconstructed adapter for Pharah's authored Jump Jet only. Other
+        # velocity modes must not accidentally inherit this subset's semantics.
+        match = self.match
+        if match is None or self.hero != 0x02E0000000000008 or instance.graph.index != 0x27:
+            return NotImplemented
+        player = next((p for p in match.players if p.has_body and p.body == self.body), None)
+        if player is None or instance.component.owner_dead:
+            return False
+        mods = node.field("m_BC5E91CF") or []
+        if len(mods) != 2:
+            return NotImplemented
+        reset, impulse = mods
+        if (reset.get("$") != "STU_9AF0FA80" or reset.get("m_A9561CA0") != 2
+                or impulse.get("$") != "STU_4635C5E2" or impulse.get("m_CFEC5F76") != 1):
+            return NotImplemented
+        vertical = instance.evaluate(reset.get("m_9B7A63EA"))
+        vector = instance.evaluate(impulse.get("m_9B7A63EA"))
+        if type(vertical) not in (int, float) or not isinstance(vector, Vec3):
+            return NotImplemented
+        from ow174.game.mover import FELL
+
+        mover = player.mover
+        vx, _, vz = mover.velocity
+        mover.velocity = (f32(vx + vector.x), f32(vertical + vector.y), f32(vz + vector.z))
+        mover.fall = 0.0
+        if mover.velocity[1] > 0:
+            mover.flags_word |= FELL
+            mover.air_ticks = 0
+        return True
+
+    def velocity_action(self, instance, node):
+        from ow174.game import lucio_movement, mccree
+
+        from ow174.game import sigma_flux
+        if sigma_flux.flux_velocity(instance, node):
+            return True
+
+        if (not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4):
+            return True  # Original reset is queued by the actual uppercut movement host.
+
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and instance.graph.index == 0x1513 and node.pos == 21):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                self.match.combat.impulses.recoil(player, instance)
+            return True
+
+        if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) == (0x0DD8, 1):
+            return NotImplemented  # Use the upstream scalar/vector queue on the next movement frame.
+        if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) == (0x0B27, 75):
+            from ow174.game.combat import aim
+
+            if instance.component.owner_dead:
+                return True
+            owner = self.match._message_player(self.body) if self.match is not None else None
+            if owner is None:
+                return True
+            speed = float(node.field('m_BC5E91CF[2].m_9B7A63EA.m_expression.m_D99EF254[0]'))
+            velocity = (0., speed, 0.)
+            if instance.graph.index == 0x0B27:
+                scalar = float(instance.evaluate(node.field('m_BC5E91CF[2].m_9B7A63EA.m_configVars[1]')))
+                dx, _, dz = aim(owner.mover.yaw, 0)
+                velocity = tuple(v * speed * scalar / math.sqrt(1 + .3 * .3) for v in (dx, .3, dz))
+            instance.component.motion_reports.append(((self.body,), velocity, instance.component.now))
+            return True
+        if self.hero == 0x02E0000000000008:
+            return self._pharah_velocity_action(instance, node)
+        if self.hero == lucio_movement.HERO:
+            return lucio_movement.action(instance, node)
+        result = mccree.velocity_action(self, instance, node)
+        if result is NotImplemented:
+            from ow174.game import hanzo_movement
+
+            return hanzo_movement.velocity_action(self, instance, node)
+        return result
 
     def tracked_targets(self, state):
+        from ow174.game import sigma_flux
+        selected = sigma_flux.flux_targets(self, state)
+        if selected is not NotImplemented:
+            return selected
         if (self.communication_wheel and self.match is not None
                 and state.instance.graph.index == 0x05AD and state.node.pos in (113, 115)):
             collision_filter = state.node.field("m_3D667CE3") or {}
@@ -710,11 +1979,204 @@ class BodyWorld(runtime.World):
             )
             return state.targets + new_targets
 
-        from ow174.game import mccree
+        from ow174.game import mccree, widowmaker
 
+        if self.hero == widowmaker.HERO:
+            selected = widowmaker.tracked_targets(self, state)
+            if selected is not NotImplemented:
+                return selected
         return mccree.targets(self, state)
 
-    def modify_health(self, state, elapsed_ms):
+
+    def target_effects(self, state):
+        from ow174.game import mccree
+
+        return mccree.effects(self, state)
+
+    def raycast(self, request):
+        result = self._static_profile_raycast(request)
+        if result is not None:
+            return result
+        """Reconstruct Genji's static dash cast using current collision geometry.
+
+        Only the authored 0029 filter and own-body ignore list are supported.
+        Dynamic barriers and the native filter resource semantics remain open.
+        """
+        cfg = request.filter_config or {}
+        resource = cfg.get("m_C1903771") or {}
+        if (self.hero != 0x02E0000000000029 or self.match is None
+                or self.match.collision_world is None
+                or resource.get("m_C1903771") != "0x0690000000000029"
+                or request.ignored_entities != (self.body,)):
+            return None
+        hit = self.match.collision_world.cast_ray(
+            tuple(request.origin), tuple(request.direction), request.length,
+        )
+        if hit is None:
+            return runtime.RaycastResult(False, None, None, None)
+        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
+
+    def assassin_capture_sender(self, instance):
+        if self.match is not None and self.hero == baptiste.HERO:
+            return self.match.combat.assassin_capture_sender(instance)
+        return None
+
+    def play_script_host(self, instance, node):
+        from ow174.game import photon_barrier
+
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and not instance.component.strict and instance.graph.index == 0x1536 and node.pos == 3
+                and node.field("m_6D7701B7") is None
+                and (node.field("m_script") or {}).get("m_graph") == "0x0580000000001537"):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                charge = expr.to_float(instance.evaluate({"$":"STUConfigVarDynamic", "m_identifier":14668, "m_60DB8F99":0}))
+                duration = 10.0 * expr.to_float(self.ruleset(13032), 1.0)
+                instance.write((expr.INSTANCE, 14669), duration)
+                inherited = instance.source_entity()
+                self.match.combat.companions.summon(player, charge_seconds=charge, gun_seconds=duration,
+                    charge_instigator=inherited if expr.valid_entity(inherited) else self.body)
+            return True
+
+        if self.match is not None and self.hero == photon_barrier.HERO:
+            return self.match.combat.photon_barriers.play(instance, node) is True
+        if self.match is not None and self.hero == 0x02E000000000023B:
+            return self.match.combat.absorption.play(instance, node)
+        if self.match is not None and self.hero == ice_wall.MEI:
+            return ice_wall.play_pillar(self.match.combat, instance, node)
+        return False
+
+    def completes_empty_marker(self, state: runtime.State) -> bool:
+        # Reconstructed completion for the selected ability gates.
+        instance = state.instance
+        if (self.match is None or instance.component.entity != self.body
+                or any(state.node.field(name) is not None for name in (
+                    "m_ED97A97C", "m_7C8AD485", "m_C7A42E2A", "m_F8CE386A", "m_C46403A5",
+                ))):
+            return False
+        if self.hero == ice_wall.MEI:
+            return (instance.graph.index, state.node.pos) == (0x05FE, 64)
+        if self.hero != barrier.REINHARDT:
+            return False
+        if (instance.graph.index, state.node.pos) in ((0x00E2, 10), (0x007D, 89)):
+            return True
+        if (instance.graph.index, state.node.pos) != (0x00BE, 92):
+            return False
+        player = next((player for player in self.match.players if player.body == self.body), None)
+        world = self.match.collision_world
+        if player is None or world is None or player.mover.airborne:
+            return False
+        x, y, z = player.mover.position
+        return world.ground(x, z, y + 0.05, y - 1.5, player.mover.category) is not None
+
+    def pet_lifecycle(self, state, entering):
+        if self.match is not None and self.hero == 0x02E0000000000007:
+            self.match.combat.barrier.pet(state, entering)
+
+    def body_placement(self, state):
+        from ow174.game.script import placement
+
+        if self.match is None or state.instance.component.entity != self.body:
+            return NotImplemented
+        return placement.place(self.match, state)
+
+    def placement_probe(self, state):
+        return self.match is not None and ice_wall.probe(self.match.combat, state)
+
+    def uses_delivered_placement(self, state):
+        if (self.hero != 0x02E0000000000016 or self.match is None
+                or (state.instance.graph.index, state.node.pos) not in ((0x156B, 57), (0x1571, 69))):
+            return False
+        return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
+
+    def confirm_placement(self, state):
+        if self.match is not None:
+            if state.instance.graph.index == 0x1571:
+                return self.match.combat.portals.confirm(self, state)
+            if state.instance.graph.index == 0x156B:
+                return self.match.combat.photon_barriers.confirm(self, state)
+        return NotImplemented
+
+    def placement_clock(self, state):
+        from ow174.game import symmetra
+        from ow174.game.script import placement
+
+        if (self.hero == symmetra.HERO and self.match is not None
+                and (state.instance.graph.index, state.node.pos) in ((0x156B, 57), (0x1571, 69))):
+            frame = state.instance.component.frame
+            # Explicit authoritative forward-server policy: one VM frame per
+            # update. Native render/prediction clock reconciliation is separate.
+            return placement.Clock(frame & 0xFFFFFFFF, frame, 1)
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        if self.placement_clock(state) is not NotImplemented:
+            return False  # This server has no admitted client placement history.
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        if self.placement_clock(state) is not NotImplemented:
+            return True  # Explicit forward-server policy: no admitted prediction storage.
+        return NotImplemented
+
+    def placement_geometry(self, state):
+        from ow174.game import symmetra_placement
+
+        return symmetra_placement.preview(self, state)
+
+    def refresh_compatible_placement(self, state, *, confirm):
+        from ow174.game import photon_barrier, sigma_flux
+
+        flux = sigma_flux.place_flux(self, state, confirm=confirm)
+        if flux is not NotImplemented:
+            return flux
+
+        if self.match is None or self.match.combat.photon_barriers.geometry is None:
+            return NotImplemented
+        return photon_barrier.placement(self, state, confirm=confirm)
+
+    def placement_confirmation(self, state):
+        if self.match is not None:
+            if self.hero == ice_wall.MEI:
+                return ice_wall.confirm(self.match.combat, state)
+            return self.match.combat.baptiste.matrix_confirm(state)
+        return NotImplemented
+
+    def spawn_deployable(self, instance, node):
+        if self.match is not None:
+            if self.hero == ice_wall.MEI:
+                return ice_wall.spawn(self.match.combat, instance, node)
+            return self.match.combat.baptiste.matrix_spawn(instance, node)
+        return NotImplemented
+
+    def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        from ow174.game import hero_torbjorn
+
+        if hero_torbjorn.turret_message(self, target, message, sender):
+            return
+        from ow174.game import barriers
+
+        if barriers.relay_bubble_energy(self, target, message, params, sender):
+            return
+        match = self.match
+        if (match is not None and sender == self.body
+                and match.combat.orisa.receive(target, message, sender)):
+            return
+        if match is not None and sender == self.body:
+            actor = match.combat.translocators.entries.get(target)
+            if actor is not None:
+                runtime.send_message(actor.body_script.component, message, params, sender)
+                return
+            if match.combat.junkrat.message(target, message, sender):
+                return
+            if self.hero == ice_wall.MEI and ice_wall.cancel(match.combat, target, message, params, sender):
+                return
+            if match.queue_body_message(target, message, params, sender):
+                return
+        super().send_message(target, message, params, sender)
+
+    def _tracked_modify_health(self, state, elapsed_ms):
         """Queue one hit per body for the supported tracked damage configuration."""
         config = state.node.field("m_modifyHealth") or {}
         if (self.match is None or state.node.field("m_DD792FF0") != 3
@@ -746,17 +2208,50 @@ class BodyWorld(runtime.World):
                 )
         return True
 
-    def target_effects(self, state):
-        from ow174.game import mccree
+    def movement_sample(self) -> int | None:
+        if self.match is not None:
+            return self.match.script_owner_movement_sample(self.body)
+        return None
 
-        return mccree.effects(self, state)
-
-    def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+    def static_ray(self, origin: Vec3, direction: Vec3, length: float) -> runtime.RaycastResult | None:
         match = self.match
-        if (match is not None and sender == self.body
-                and match.queue_body_message(target, message, params, sender)):
-            return
-        super().send_message(target, message, params, sender)
+        if match is None or match.collision_world is None:
+            return None
+        mover = match._script_body_mover(self.body, self.body)
+        norm = math.hypot(*direction)
+        if (mover is None or not math.isfinite(norm) or norm == 0 or not math.isfinite(length)
+                or length <= 0 or not all(math.isfinite(axis) for axis in origin)):
+            return None
+        hit = match.collision_world.cast_ray(tuple(origin), tuple(axis / norm for axis in direction),
+                                             length, mover.category)
+        if hit is None:
+            return runtime.RaycastResult(False, None, None, None)
+        return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
+
+    def queue_velocity_changes(
+        self, frame: int, source: tuple[int, int], changes: tuple["VelocityChange", ...],
+    ) -> None:
+        if self.match is not None:
+            self.match.queue_body_velocity_changes(self.body, frame, source, changes)
+
+    def _static_profile_raycast(self, request: runtime.RaycastRequest) -> runtime.RaycastResult | None:
+        # The authored 002C ground query uses the static collision service.
+        config = request.filter_config or {}
+        resource = config.get("m_C1903771")
+        if (not isinstance(resource, dict) or resource.get("$") != "STU_20DB8AB5"
+                or expr.guid_of(resource.get("m_C1903771")) != 0x069000000000002C
+                or resource.get("m_resourceKey") is not None
+                or request.radius != 0 or request.ignored_entities):
+            return None
+        fields = {"$", "m_C1903771", "m_EE729DCB"}
+        if any(value not in (None, 0) for key, value in config.items() if key not in fields):
+            return None
+        return self.static_ray(request.origin, request.direction, request.length)
+
+
+
+
+
 
 
 @dataclass
@@ -887,6 +2382,7 @@ class ReplicatedBody:
     def set_health(self, health: float, most: float) -> None:
         """Update the shared health input. Player bodies also use the maximum for their HUD."""
         self.component.set(OWNER_HEALTH, float(health))
+        self.component.maximum_health = float(most)  # server query input, not a guessed entity variable
 
     def initial_exclusions(self) -> set[int]:
         """Collect the existing entity-scope exclusions from the initialized graph tree."""
@@ -917,12 +2413,25 @@ class ReplicatedBody:
         else:
             variables = instance.vars
             excluded = _server_only_vars(instance.graph)
+            if instance.graph.index == 0x224E:
+                # Reconstructed host owns the pending/selected status records.
+                # Neither is an authored sync variable or remote-state input.
+                # Native record-map wire transport is not implemented.
+                excluded |= {31528, 26550}
         return ((var_id, var) for var_id, var in variables.items() if var_id not in excluded)
 
 
 class BodyScript(ReplicatedBody):
     """The statescript of one hero body: `spawn_frames()` once the body exists on the client, then
     `command()` for every new client command frame and `frames()` every server tick."""
+
+    def replicated_vars(self, instance=None):
+        values = super().replicated_vars(instance)
+        if instance is not None and instance.graph.index == 0xFA and self.world.match is not None:
+            # Private static actor38 has no native creation transport yet. Keep it
+            # in the authoritative VM/snapshot, never send a dangling client ID.
+            return ((key,var) for key,var in values if key != 38)
+        return values
 
     def __init__(
         self,
@@ -932,7 +2441,7 @@ class BodyScript(ReplicatedBody):
         quanta: int = 16000,
         mode: int = PRACTICE_RANGE_MODE,
         health: float | None = None,
-        ult_seconds: float = ULT_SECONDS,
+        ult_seconds: float | None = None,
         *,
         match: "Match | None" = None,
         communication_wheel: bool = False,
@@ -958,6 +2467,9 @@ class BodyScript(ReplicatedBody):
         if record is None or (record.get("hero") is not None and int(record["hero"], 16) != hero):
             raise ValueError(f"no statescript data for hero {hero:016X} and body {body_definition!r}")
         self.hero = hero
+        if hero == 0x02E000000000013E:
+            self.orisa_pose_anchor = None
+            self.orisa_fortify_pending = False
         self.entity = entity
         self.record = record
         self.frame_ms = max(1, quanta // 1000)
@@ -970,17 +2482,75 @@ class BodyScript(ReplicatedBody):
                 raise ValueError(f"{name} must contain up to four matching asset GUIDs or empty slots")
             setattr(self.world, name, slots)
         self.component = runtime.Component(entity, self.frame_ms, self.world)
+        if hero == regeneration.MERCY:
+            from ow174.game.script import scopes
+
+            self.world.scope_host = scopes.ForwardHost(self.component)
+            self.world.scope_host.set_frame(start_frame)
         self.frame = start_frame  # the last command frame run
         self.buttons = 0
         self.stream = BodyStream(entity)
         self.create_arrived = False  # the client has the body (see `created`)
         self.retired = False
         self.first_owner_frame: int | None = None
+        self.world_frame_anchor: tuple[int, int] | None = None
+        if hero == 0x02E00000000000DD and match is not None:
+            self.cryo_birth = (match.tick, start_frame)  # immutable body epoch; no input lease
+        if hero == 0x02E00000000001CA and match is not None:
+            self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
+        if hero in (0x02E0000000000002, 0x02E0000000000008, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
+            self.world_frame_anchor = match.tick, start_frame
+        if ult_seconds is None and hero == 0x02E000000000023B and match is not None:
+            from ow174.game import sigma_charge
+
+            ult_seconds = sigma_charge.PASSIVE_FULL_CHARGE_SECONDS
+        if ult_seconds is None and hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            ult_seconds = mei_ultimate.DEFAULT_SECONDS
+        if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
+                                               0x02E0000000000005, 0x02E00000000001CA, 0x02E0000000000040):
+            ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
+        if ult_seconds is None and hero == 0x02E00000000001CA and match is None:
+            ult_seconds = ULT_SECONDS
         self.ult_seconds = ult_seconds
+        self.passive_charge_ms = 0
+        self.reaper_charge_ms = 0
+        self.reaper_charge_tick = match.tick if hero == 0x02E0000000000002 and match is not None else None
+        self.winston_charge_ms = 0
+        self.winston_charge_tick = match.tick if hero == 0x02E0000000000009 and match is not None else None
+        self.winston_primal_clock = None
+        self.ult_gain_bonus = 0.0
         self.ultimates: list = []  # the Ability states that start on #342e (not charged while they run)
         self.reports: list[OwnerReport] = []
         self.report_count = 0  # owner frames sent so far
-        self._spawn(start_frame, sum(pools.body_pools(hero)) if health is None else health)
+        self.self_healing = 0.0
+        self.self_repairs: list[float] = []
+        self.control_windows: list[tuple[int, int]] = []
+        self.sleep_windows: list[tuple[int, int]] = []
+        self.frost_windows: list[tuple[int, int]] = []
+        self.support_healing = []
+        initial_pools = (pools.body_pools(hero) if body_definition is None
+                         else pools.active_pools(hero, body_definition))
+        if match is not None:
+            match.register_body_component(self.component)
+        try:
+            self._spawn(start_frame, sum(initial_pools) if health is None else health)
+        except Exception:
+            if match is not None:
+                match.unregister_body_component(self.component)
+            self.component.disconnect_foreign_watchers()
+            self.world.match = None
+            raise
+        if (hero == 0x02E00000000001CA and self.ult_seconds is None
+                and not any(i.graph.index == 0x0B8B for i in self.component.instances.values())):
+            self.ult_seconds = ULT_SECONDS
+        if hero == 0x02E0000000000016 and match is not None:
+            self.charge_clock = match.tick, self.component.now
+        if hero == 0x02E00000000000DD:
+            from ow174.game import mei_ultimate
+
+            mei_ultimate.initialize(self)
 
     def __repr__(self) -> str:
         return f"<BodyScript {self.entity:08X} {self.record.get('name')} frame {self.frame}>"
@@ -996,9 +2566,49 @@ class BodyScript(ReplicatedBody):
         component.now = frame * self.frame_ms
         self.set_health(health, health)
         component.set(ULT_CHARGE, 0.0)
-        for instance in create_body_graphs(component, self.record):
+        if self.hero == regeneration.MERCY:
+            # The delivered targeting graphs multiply their authored cones by these inputs.
+            component.set(9583, 1.0)
+            component.set(9582, 1.0)
+        from ow174.game import lucio
+
+        if self.hero == lucio.HERO and self.world.match is not None:
+            for identifier, value in lucio.SETTING_DEFAULTS.items():
+                component.set(identifier, value)
+            if self.world.ruleset(lucio.ULTIMATE_ENABLED) is False:
+                component.set(lucio.ULTIMATE_ENABLED, False)
+            for key in (lucio.ULTIMATE_GENERATION, lucio.PASSIVE_GENERATION, lucio.COMBAT_GENERATION):
+                value = self.world.ruleset(key)
+                if value is not None and value != 1:
+                    component.set(key, value)
+        if self.hero == GENJI and self.world.match is not None:
+            # Normal server profile, not a claim about original server-only
+            #01C7 initialization/mode flags. Authored mode/ultimate gates still run.
+            component.set(2426, self.ult_seconds <= 0 and health > 0)
+            component.set(842, False)
+            component.set(11942, False)
+        created = create_body_graphs(component, self.record)
+        mode_graph = graph.snowball_body_graph(self.world.mode, self.world.body_definition)
+        if mode_graph is not None and all(instance.graph.index != mode_graph.index for instance in created):
+            created.append(component.create(mode_graph, init=False))
+        for instance in created:
             instance.init()
-        component.run_frame(frame)
+            if self.hero == lucio.HERO and self.world.match is not None and instance.graph.index == ULT_GAIN_GRAPH:
+                # init queues ordinary entries. The world clock owns the passive
+                # entry, while combat, restore and spawn messages stay available.
+                instance.queue[:] = [
+                    event for event in instance.queue
+                    if not (event.kind == runtime.ENTRY and event.node.pos == 2)
+                ]
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.run_frame(frame)
+        else:
+            component.run_frame(frame)
+        if self.hero == BASTION and component.entity_var(2426).value() is None:
+            component.set(2426, True)
+            component.run_now()
+        if self.hero == lucio.HERO and self.world.match is not None:
+            lucio.stop_passive_timer(component)
         self.server_only = self.initial_exclusions()
         for instance in component.instances.values():
             for node in instance.graph.states:
@@ -1006,21 +2616,36 @@ class BodyScript(ReplicatedBody):
                     continue
                 if _reads(node.field("m_150F0D92"), ULT_CHARGE):  # the ultimate: starts on its charge
                     self.ultimates.append(instance.state(node.state))
+        if self.world.match is not None and self.hero == 0x02E000000000012E:
+            self.world.match.combat.sombra_charge.initialize(self)
 
     def set_health(self, health: float, most: float) -> None:
         """The owner's health: #253e for the graphs (01CF st13: 0 or less is dead), #1732e/#1737e for the
         HUD panel's number (no graph writes them: current and maximum). The
         body's pools added up, health, armour and shields (unverified: as OW1's HUD showed one number)."""
         super().set_health(health, most)
+        if self.hero == regeneration.MERCY:
+            self.component.set(OWNER_MAX_HEALTH, float(most))
         self.component.set(HUD_HEALTH, float(health))
         self.component.set(HUD_MAX_HEALTH, float(most))
+        if self.hero == GENJI and health <= 0:
+            self.component.set(2426, False)  # retire this body's authored passive wait on death
         self.component.owner_dead = health <= 0  # as the client sees its owner (comp 51, 0x7FF789ADBF00)
+        if health <= 0 and getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
+        if self.component.owner_dead and hasattr(self, "self_repairs"):
+            self.self_repairs.clear()
+            self.control_windows.clear()
+            self.sleep_windows.clear()
+            self.frost_windows.clear()
+        ultimate.sync_practice_timer(self)
 
     # --- running -----------------------------------------------------------------------------------
 
     def command(
         self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
-        *, grounded: bool | None = None,
+        *, grounded: bool | None = None, airborne: bool | None = None, healing_tick: int | None = None,
     ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
@@ -1038,39 +2663,226 @@ class BodyScript(ReplicatedBody):
             return
         if frame < self.frame:
             raise CommandEpochError(self.frame, frame)
+        def run_frame(at, edges):
+            if self.hero != 0x02E0000000000040:
+                return self._run(at, edges)
+            previous = self.world.healing_tick
+            self.world.healing_tick = None if healing_tick is None else healing_tick - (frame - at)
+            try:
+                return self._run(at, edges)
+            finally:
+                self.world.healing_tick = previous
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
-            self._run(missing, [])
+            run_frame(missing, [])
+        if self.hero == GENJI and airborne is not None:
+            # 01C7 state 4 publishes the IN_AIR mask and its inverse (D3D7EA/D3D9D6/D3D9EF).
+            # Its initial packed state is zero, so an initially false output has no write.
+            for var, value in ((GENJI_IN_AIR, airborne), (GENJI_ON_GROUND, not airborne)):
+                previous = self.component.entity_var(var).base
+                if (value or previous is not None) and previous is not value:
+                    self.component.set(var, value)
         self.world.throttles = (forward, right)
         if self.world.communication_wheel:
             # 01C7:7 reads the mover's flags and the command axes separately.
             if grounded is not None:
                 self.component.set(545, grounded)
             self.component.set(2070, bool(forward or right))
-        self._run(frame, button_edges(self.buttons, buttons, action))
+        from ow174.game import tracer
+
+        previous, current = self.buttons, buttons
+        if self.hero == 0x02E0000000000007 and self.world.match is not None:
+            # Delivered alias policy: merge physical controls before finding edges.
+            previous |= bool(previous & 0x800)
+            current |= bool(current & 0x800)
+        run_frame(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
+        if self.hero == 0x02E0000000000079 and self.world.match is not None:
+            self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
         self.frame = frame
+        regeneration.prune_healing_scales(self)
+
+    def finish_idle_reload(self, wait: nodes.Wait) -> None:
+        """Finish a due world wait without consuming the next command frame."""
+        buttons = self.buttons & ~3
+        self.component.edges(button_edges(self.buttons, buttons, 0))
+        self.buttons = buttons
+        wait.request_finish()
+        self.component.run_now()
+
 
     def _run(self, frame: int, edges: list) -> None:
-        self.component.run_frame(frame, edges)
+        from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
+
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            from ow174.game import ball
+            ball.prepare_passive(self)
+        if self.hero == mei.HERO:
+            edges = mei_ultimate.command_edges(self, mei.command_edges(self, edges))
+        authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+
+        if self.hero in (0x02E0000000000003, barrier.REINHARDT) and self.world.match is not None:
+            enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+            if enabled is None or enabled.value() is None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None:
+                    # Original completed-body capability binding, not a forced gate.
+                    common.run_node(common.graph.node(39), None)
+        if self.hero == torbjorn_charge.HERO:
+            torbjorn_charge.prepare(self)
+        ultimate.sync_practice_timer(self)
+        from ow174.game import lucio
+
+        if self.hero == BASTION:
+            # Bastion's delivered accepted-frame bridge owns passive cadence,
+            # including an explicit zero-rate override. Keep message entries live.
+            lucio.stop_passive_timer(self.component)
+        if self.hero == lucio.HERO:
+            lucio.stop_passive_timer(self.component)
+            player = lucio.charge_player(self.world, self.component)
+            if player is not None:
+                common = next((i for i in self.component.instances.values() if i.graph.index == 0x01C7), None)
+                if common is not None and not common.node_state(common.graph.node(77)).active:
+                    runtime.send_instance_message(common, lucio.CHARGE_ACTIVE, {}, player.entity)
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.set_frame(frame)
+            self.world.scope_host.run_frame(frame, edges)
+        else:
+            charge = self.world.match.combat.sombra_charge if self.world.match is not None else None
+            if charge is not None:
+                charge.sync(self)
+            self.component.run_frame(frame, edges)
+            if charge is not None:
+                charge.sync(self)
+        self.self_healing += regeneration.report(self, frame)
+        for windows in (self.control_windows, self.sleep_windows, self.frost_windows):
+            windows[:] = [(low, high) for low, high in windows if high > frame]
+        self._report_self_repair()
+        from ow174.game.script import support
+
+        self.support_healing.extend(support.healing_reports(self, frame))
+        immunity.advance_startup(self.component)
         self._report_shots()
-        self._charge_ult()
+        if authored_symmetra:
+            symmetra_charge.sync(self)
+        else:
+            self._charge_ult()
+
+    def apply_control(self, start: int, end: int, *, sleep: bool = False) -> None:
+        """Keep control intervals until delayed simulation has passed them.
+
+        Combat's live deadline disappears at expiry; a later command can still
+        backfill frames inside it. Accepted command frames can lag the current
+        world tick, so only the owner's simulation cursor can retire a window.
+        """
+        self.self_repairs.clear()
+        windows = self.sleep_windows if sleep else self.control_windows
+        self._record_control(windows, start, end)
+
+    def apply_frost(self, start: int, end: int) -> None:
+        self.self_repairs.clear()
+        self._record_control(self.frost_windows, start, end)
+
+    def shorten_frost(self, end: int) -> None:
+        if self.frost_windows:
+            low, high = self.frost_windows[-1]
+            self.frost_windows[-1] = low, min(high, end)
+
+    def _record_control(self, windows, start: int, end: int) -> None:
+        windows[:] = [(low, high) for low, high in windows if high > self.component.frame]
+        if windows and windows[-1][1] >= start:
+            low, high = windows[-1]
+            windows[-1] = low, max(high, end)
+        else:
+            windows.append((start, end))
+
+    def shorten_sleep(self, end: int) -> None:
+        if self.sleep_windows:
+            low, high = self.sleep_windows[-1]
+            self.sleep_windows[-1] = low, min(high, end)
+
+    def controlled_at(self, frame: int) -> bool:
+        if self.component.input_suppressed:
+            return True
+        local = any(low <= frame < high
+                   for windows in (self.control_windows, self.sleep_windows, self.frost_windows)
+                   for low, high in windows)
+        match = self.world.match
+        if local or match is None:
+            return local
+        actor = match._message_player(self.entity)
+        return (actor is not None and match.combat.is_stunned(actor)
+                or any(lock.start <= frame and (lock.end is None or frame < lock.end)
+                       for lock in match.combat.input_locks.get(self.entity, ())))
+
+    def _report_self_repair(self) -> None:
+        """Reconstruct Bastion's 0153/st0 continuous self heal from its authored rate.
+
+        This is deliberately not a generic ModifyHealth implementation. Targeting,
+        rate semantics and combat modifiers for other health states remain open.
+        Sampling here preserves every simulated frame, including a release inside
+        a command gap; combat consumes each report once.
+        """
+        if self.hero != BASTION or self.component.owner_dead:
+            return
+        frame = self.component.frame
+        if self.controlled_at(frame):
+            return
+        for instance in self.component.instances.values():
+            state = instance.states.get(0) if instance.graph.index == 0x0153 else None
+            if state is None or not state.active:
+                continue
+            modify = state.node.field("m_modifyHealth") or {}
+            if (modify.get("m_93CDFD2F") != 0
+                    or state.evaluate(state.node.field("m_FA3ECC43"), watch=False) != Entity(self.entity)):
+                continue
+            rate = expr.to_float(state.evaluate(modify.get("m_amount"), watch=False))
+            if math.isfinite(rate) and rate > 0:
+                self.self_repairs.append(rate * self.frame_ms / 1000.0)
+        del self.self_repairs[:-MAX_GAP]
+
+    def _ult_charge_allowed(self) -> bool:
+        if (self.retired or self.component.owner_dead
+                or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates)):
+            return False
+        if self.hero == BASTION:
+            gate = self.component.entity_var(2426).value()
+            # Preserve the numeric bridge for an unbound runtime value.
+            # Explicit graph gates still control damage and passive gains.
+            return ((gate is None or expr.truthy(gate))
+                    and not expr.truthy(self.component.entity_var(842).value())
+                    and self.component.entity_var(1216).value() not in (4, 5, 6, 7))
+        return True
+
+    def report_self_healing(self, amount: float) -> None:
+        """Reconstruct Self-Repair's0044 notification; the graph owns qualification.
+
+        Supply actual restored HP and the authored tags. Qualification uses
+        the current gate and 0B8B's suppression, tag and target tests.
+        """
+        if (self.hero != BASTION or self.retired or self.component.owner_dead
+                or not math.isfinite(amount) or amount <= 0):
+            return
+        instance = next((item for item in self.component.instances.values()
+                         if item.graph.index == 0x0153), None)
+        if instance is None:
+            return
+        config = instance.graph.state(0).field("m_modifyHealth")
+        tags = tuple(instance.evaluate(item.get("m_EE3055BD"))
+                     for item in config.get("m_148F3152") or [])
+        params = {0x40: f32(amount), 0x41: tags, 0x3F: Entity(self.entity)}
+        if runtime.send_message(self.component, 0x0240000000000044, params, self.entity):
+            self.component.run_now()
 
     def set_ult_charge(self, points: float) -> None:
         """Set the ultimate's charge (#342e; the cost is #338e)."""
         self.component.set(ULT_CHARGE, f32(points))
 
-    def credit_ult(self, kind: str, amount: float) -> None:
-        """A combat event of this body (combat.py): dealt damage or done healing in HP, or an elimination
-        (amount unused). The hero's rule in ult_charge.py turns it into points of the meter's own scale;
-        a rule that does not charge gives nothing, and the meter never passes its cost."""
-        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
-        points = ult_charge.points(kind, self.hero, amount, cost)
-        if points <= 0.0:
-            return
-        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
-        self.set_ult_charge(max(0.0, min(cost, f32(charge + points))))
-
-    def add_ult_charge(self, points: float) -> None:
+    def add_ult_charge(self, points: float) -> float | None:
+        if self.hero == 0x02E00000000001CA:
+            from ow174.game import ball
+            return ball.add_ult_charge(self, points)
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -1078,45 +2890,332 @@ class BodyScript(ReplicatedBody):
         if cost > 0 and charge < cost:
             self.set_ult_charge(min(cost, charge + points))
 
-    def _charge_ult(self) -> None:
-        blocked = self.ult_seconds <= 0 or any(
-            state.flags & nodes.Ability.RUNNING for state in self.ultimates
+    def award_ult_charge(self, points: float) -> None:
+        """Apply an original absolute health/world award after its host eligibility gate."""
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if points > 0 and cost > 0 and charge < cost:
+            self._gain_ult_points(cost, charge, f32(points))
+
+    def credit_ult_charge(self, points: float) -> None:
+        """Apply an authored absolute award with the retained Duplicate bonus."""
+        if self.ult_gain_bonus:
+            charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+            points = min(cost, f32(points + f32(max(0.0, points - charge) * self.ult_gain_bonus)))
+        self.set_ult_charge(points)
+
+    def gain_ult(self, amount: float) -> float:
+        """Reconstructed health-event conversion: one point per actual HP, scaled by2819.
+
+        Cost/cap and the ruleset scalar are authored inputs. The one-point conversion
+        is explicit server reconstruction. Ultimate-sourced damage/heal tag policy
+        still requires a native-backed service.
+        """
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("ultimate health-event amount must be finite and nonnegative")
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
+        if not amount or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        scalar = expr.to_float(self.world.ruleset(0x2819))
+        if cost <= 0 or scalar <= 0 or not math.isfinite(scalar) or charge >= cost:
+            return 0.0
+        after = self._gain_ult_points(cost, max(0.0, charge), f32(amount * scalar))
+        return after - charge
+
+    def _gain_ult_points(self, cost: float, charge: float, points: float) -> float:
+        after = min(cost, f32(charge + points))
+        if self.ult_gain_bonus:
+            after = min(cost, f32(after + f32((after - charge) * self.ult_gain_bonus)))
+        self.set_ult_charge(after)
+        return after
+
+    def ult_fraction(self) -> float:
+        """Capture the current unspent fraction before this body is retired."""
+        if self.retired or self.component.fault is not None:
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if not math.isfinite(cost) or cost <= 0 or not math.isfinite(charge):
+            return 0.0
+        return f32(max(0.0, min(1.0, charge / cost)))
+
+    def restore_genji_ult(self, fraction: float, controller: int) -> None:
+        """Send the authored 14F2/0951 fraction to the new Genji body."""
+        if self.hero != GENJI or not 0 < fraction <= 1:
+            return
+        charge = next((i for i in self.component.instances.values() if i.graph.index == 0x0B8B), None)
+        if charge is not None:
+            runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
+            self.component.run_now()
+
+    def infra_window(self):
+        from ow174.game import widowmaker
+
+        return widowmaker.infra_window(self)
+
+    def ultimate_active(self, *, at_time=None):
+        from ow174.game import widowmaker
+
+        return (widowmaker.ultimate_active(self, at_time=at_time)
+                if self.hero == widowmaker.HERO else self.ultimate_running())
+
+    def award_damage_charge(self, damage):
+        return self.gain_ult_charge(damage)
+
+    def ultimate_running(self) -> bool:
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.ultimate_active(self)
+        if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
+            return True
+        # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
+        # an Ability state. Its own charge-reset plug does not populate ultimates.
+        return self.hero == 0x02E0000000000008 and any(
+            state.active and state.node.cls == VOLLEY
+            for instance in self.component.instances.values() if instance.graph.index == 0x2B
+            for state in instance.states.values()
         )
-        if blocked != getattr(self, "_ult_passive_blocked", None):
-            log.info(
-                "[game] %X: ultimate passive %s", self.entity, "paused" if blocked else "running"
-            )
-            self._ult_passive_blocked = blocked
-        if blocked:
+
+    def gain_ult_charge(self, points: float, *, kind="damage", target_definition=None, recipient=None) -> float:
+        """Reconstructed one-point-per-effective-damage credit, capped at cost.
+
+        The active ultimate generates no charge. Passive debug fill remains a
+        separate configured policy; this does not establish native charge rates.
+        """
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+                return 0.0
+            return self._gain_roadhog_points(roadhog_charge.combat_points(self, points, kind))
+        if self.hero == 0x02E00000000001CA:
+            from ow174.game import ball
+            return ball.add_ult_charge(self, points)
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
+        if self.world.match is not None and (self.hero == 0x02E0000000000065
+                or self.world.match.combat.junkrat.tire.busy(self.entity)):
+            return 0.0
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.award_damage_charge(self, points)
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if (self.ult_seconds is not None or self.retired or self.component.owner_dead
+                    or hanzo_control.casting(self) or type(points) not in (int, float)
+                    or not math.isfinite(points) or points <= 0):
+                return 0.0
+            before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            hanzo_charge.damage(self, points)
+            return expr.to_float(self.component.entity_var(ULT_CHARGE).value()) - before
+        if self.hero == BASTION:
+            if (type(points) not in (int, float) or not self._ult_charge_allowed()
+                    or not math.isfinite(points) or points <= 0):
+                return 0.0
+            points = ultimate.combat_points(self, points, kind, target_definition)
+        if (self.retired or self.component.fault is not None
+                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A, 0x02E0000000000040) and self.component.owner_dead)
+                or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
+                or self.ultimate_running()):
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        before = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if not math.isfinite(cost) or not math.isfinite(before) or before < 0 or cost <= 0 or before >= cost:
+            return 0.0
+        if self.hero == 0x02E000000000006E:
+            if recipient is not None and ultimate.practice_timer(self.world):
+                if kind == "healing":
+                    return ultimate.field_healing_points(self, points, recipient)
+                result = ultimate.tagged_damage_points(self, points, recipient, target_definition)
+                if result is not None:
+                    return result
+            points = ultimate.combat_points(self, points, kind, target_definition)
+        after = min(cost, f32(before + min(points, cost - before)))
+        self.set_ult_charge(after)
+        return after - before
+
+    def _gain_roadhog_points(self, points: float) -> float:
+        if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost <= 0 or charge >= cost:
+            return 0.0
+        after = min(cost, f32(charge + points))
+        self.set_ult_charge(after)
+        return after - charge
+
+    def interrupt_control(self) -> None:
+        """Scoped Barrage abort for the reconstructed authoritative control service.
+
+        Graph002B's #33 stack aborts itself when a higher control stack wins,
+        unwinding its #7605 stack, duration Wait, volley and movement mods. The
+        persistent ultimate button listener stays alive for a later activation.
+        This does not host the native status/priority manager or other heroes.
+        """
+        if self.hero != 0x02E0000000000008 or self.component.owner_dead:
+            return
+        for instance in list(self.component.instances.values()):
+            if instance.graph.index != 0x2B:
+                continue
+            for state in list(instance.states.values()):
+                if (state.active and state.node.cls == "STUStatescriptStateStack"
+                        and expr.lvalue(state.node.field("m_out_Var")) == (graph.ENTITY, 33)):
+                    state.end(False)
+
+    def _charge_ult(self) -> None:
+        from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E0000000000068:
+            from ow174.game import zarya
+
+            if (self.world.match is None and self.ult_seconds > 0
+                    and not self.retired and not self.component.owner_dead
+                    and not self.ultimate_running()):
+                self.award_ult_charge(zarya.ULT_PASSIVE_PER_SECOND * self.frame_ms / 1000)
+            return  # Actual Match world admission owns its existing charge host.
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                roadhog_charge.passive_points(self)
+                return
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            from ow174.game import ball
+            ball.diagnostic_charge(self)
+            return  # Natural0B8B owns its original passive cadence; explicit numeric fill is separate.
+        if self.world.match is not None and self.world.match.combat.sombra_charge.enabled(self):
+            return  # Original Sombra0B8B now owns passive cadence and arithmetic.
+
+
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return
+
+        if self.world.match is not None and (self.hero == 0x02E0000000000065
+                or self.world.match.combat.junkrat.tire.busy(self.entity)):
+            return
+
+        if self.hero == mei.HERO:
+            if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):
+                return
+            cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+            charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+            if cost > 0 and charge < cost:
+                step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                step = f32(step * mei_ultimate.generation(self, passive=True))
+                self.set_ult_charge(min(cost, f32(charge + step)))
+            return
+        if self.hero == torbjorn_charge.HERO and torbjorn_charge.enabled(self):
+            if self.ult_seconds != torbjorn_charge.SANDBOX_SECONDS and self.ult_seconds > 0 and not self.ultimate_running():
+                cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+                charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+                if cost > 0 and charge < cost:
+                    step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                    self.set_ult_charge(min(cost, f32(charge + step)))
+            return  # Original0B8B timer owns normal Torb charge; retain explicit sandbox override.
+        if self.hero == 0x02E0000000000009:
+            from ow174.game import winston
+
+            winston.charge_passive(self, self.component.frame_ms if self.world.match is None else 0)
+            return
+        if self.hero == 0x02E0000000000005:
+            from ow174.game import hanzo_charge, hanzo_control
+
+            if self.retired or self.component.owner_dead or self.ultimate_running() or hanzo_control.casting(self):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                hanzo_charge.passive(self)
+                return
+        if self.hero == BASTION:
+            if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                ultimate.passive_points(self)
+                return
+        if self.hero == 0x02E0000000000002:
+            from ow174.game import reaper
+
+            if self.world.match is None:
+                reaper.charge_passive(self)
+            return
+        if self.hero == 0x02E000000000006E:
+            if (self.retired or self.component.owner_dead
+                    or self.ultimate_running()):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                if not ultimate.practice_timer(self.world):
+                    ultimate.passive_points(self)
+                return
+            if self.ult_seconds > 0:
+                cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+                charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+                if cost > 0 and charge < cost:
+                    step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                    self._gain_ult_points(cost, charge, step)
+            return
+        if self.hero == regeneration.MERCY and self.world.match is not None:
+            return  # The delivered 0B8B graph owns Mercy passive charge.
+        if self.hero == 0x02E0000000000079 and self.world.match is not None:
+            return
+        if self.hero == baptiste.HERO and self.ult_seconds is None:
+            if self.retired or self.component.owner_dead or self.ultimate_running():
+                self.passive_charge_ms = 0
+            else:
+                baptiste.passive_charge(self)
+            return
+        if self.hero == 0x02E0000000000195:
+            from ow174.game.brigitte import BrigitteCombat
+
+            if not BrigitteCombat.charge_allowed(self):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                ultimate.passive_points(self)
+                return
+        if self.hero == GENJI and expr.truthy(self.component.entity_var(2426).value()):
+            return  # The authored profile owns passive charge; never add debug fill on top.
+        from ow174.game import orisa_charge
+
+        if orisa_charge.activate(self):
+            return
+        blocked = self.component.entity_var(842, create=False)
+        if (self.ult_seconds <= 0 or (blocked is not None and expr.truthy(blocked.value()))
+                or self.ultimate_running()):
+            return
+        if self.hero == 0x02E00000000001A2 and self.world.match is not None and self.world.match.assembling():
+            return
+        if self.hero == barrier.REINHARDT and self.world.match is not None:
+            return  # delivered0B8B owns cadence; no diagnostic cost/60 fill
+        # A supplied shared-graph gate owns passive charge, even when disabled.
+        # The fallback only covers hosts that have not supplied that gate.
+        enabled = self.component.entity_var(ULT_GAIN_ENABLED, create=False)
+        if (enabled is not None and enabled.value() is not None
+                and any(instance.graph.index == ULT_GAIN_GRAPH
+                        for instance in self.component.instances.values())):
             return
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
         charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
         if cost > 0 and charge < cost:
             step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
-            self.set_ult_charge(min(cost, f32(charge + step)))
-        self._note_ult_stall(charge)
-
-    _ULT_STALL_SECONDS = 10.0
-
-    def _note_ult_stall(self, charge: float) -> None:
-        """A stalled meter with a running rule means the meter's frames do not reach the client (or the
-        client's commands stop the script); say so once per interval instead of leaving it silent."""
-        now = self.component.now / 1000.0
-        seen = getattr(self, "_ult_stall", None)
-        if seen is None:
-            self._ult_stall = seen = [charge, now]
-        elif charge > seen[0]:
-            seen[0], seen[1] = charge, now
-        elif seen[1] + self._ULT_STALL_SECONDS < now:
-            base = self.stream.base
-            acked = next((v for (owner, var), (v, _) in base.vars.items() if var == ULT_CHARGE), None)
-            log.info(
-                "[game] %X: ultimate meter stuck at %.1f for %.0f s (client has %s; frames %d acked %d,"
-                " pending %d, cmfd %d, commands %d)",
-                self.entity, charge, now - seen[1], acked, self.stream.last, self.stream.base_last,
-                len(self.stream.pending), self.stream.cmfd, self.frame,
-            )
-            seen[1] = now  # report again after the next interval if it stays stuck
+            if self.world.hero == 0x02E0000000000020 and self.ult_seconds == ULT_SECONDS:
+                # Retain the Zenyatta delivery's five-point passive rate.
+                step = f32(5.0 * self.frame_ms / 1000.0)
+            self._gain_ult_points(cost, charge, step)
 
     # --- what the client gets ----------------------------------------------------------------------
 
@@ -1313,13 +3412,28 @@ class BodyScript(ReplicatedBody):
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
         self.retired = True
-        if self.world.match is not None:
-            self.world.match.combat.clear_temporary_shields(self.entity)
+        if getattr(self.world, "hanzo_climb", None) is not None:
+            self.world.hanzo_climb.active = False
+            self.world.hanzo_climb.mantle = None
+        self.self_repairs.clear()
+        self.control_windows.clear()
+        self.sleep_windows.clear()
+        self.frost_windows.clear()
+        from ow174.game.script import charge
+
+        charge.set_pending_credits(self.world, ())
+        if hasattr(self.world, "scope_host"):
+            self.world.scope_host.clear()
         self.world.velocity_requests.clear()
         for instance in list(self.component.instances.values()):
             for state in list(instance.states.values()):
                 if isinstance(state, nodes.TargetEffects):
                     state.clear_children()
+        if self.world.match is not None:
+            self.world.match.unregister_body_component(self.component)
+        self.component.disconnect_foreign_watchers()
+        if self.world._possessor_query is not None:
+            self.world._possessor_query.retire()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False
@@ -1443,22 +3557,56 @@ class BodyScript(ReplicatedBody):
             # After send, retain its original chunk and report through transport retries.
             stream.initial_owner.resend = True
 
+    def credit_ult(self, kind: str, amount: float) -> None:
+        """A combat event of this body (combat.py): dealt damage or done healing in HP, or an elimination
+        (amount unused). The hero's rule in ult_charge.py turns it into points of the meter's own scale;
+        a rule that does not charge gives nothing, and the meter never passes its cost."""
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        points = ult_charge.points(kind, self.hero, amount, cost)
+        if points <= 0.0:
+            return
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        self.set_ult_charge(max(0.0, min(cost, f32(charge + points))))
+
+    def _note_ult_stall(self, charge: float) -> None:
+        """A stalled meter with a running rule means the meter's frames do not reach the client (or the
+        client's commands stop the script); say so once per interval instead of leaving it silent."""
+        now = self.component.now / 1000.0
+        seen = getattr(self, "_ult_stall", None)
+        if seen is None:
+            self._ult_stall = seen = [charge, now]
+        elif charge > seen[0]:
+            seen[0], seen[1] = charge, now
+        elif seen[1] + self._ULT_STALL_SECONDS < now:
+            base = self.stream.base
+            acked = next((v for (owner, var), (v, _) in base.vars.items() if var == ULT_CHARGE), None)
+            log.info(
+                "[game] %X: ultimate meter stuck at %.1f for %.0f s (client has %s; frames %d acked %d,"
+                " pending %d, cmfd %d, commands %d)",
+                self.entity, charge, now - seen[1], acked, self.stream.last, self.stream.base_last,
+                len(self.stream.pending), self.stream.cmfd, self.frame,
+            )
+            seen[1] = now  # report again after the next interval if it stays stuck
+
+
+
 
 def create_body_graphs(
-    component: runtime.Component, record: dict, *, include_initial: bool = True,
+    component: runtime.Component, record: dict, *, include_initial: bool = True, resolve_graph=None,
 ) -> list[runtime.Instance]:
     """Allocate the weapon manager and slots, plus any initial graphs not already mounted."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     weapons = record.get("weapons") or []
     component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
     component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
-    created = create_initial_graphs(component, record) if include_initial else []
-    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    created = create_initial_graphs(component, record, resolve_graph=lookup) if include_initial else []
+    manager = lookup(record["manager"]) if record.get("manager") is not None else None
     if component.strict and record.get("manager") is not None and manager is None:
         raise ValueError("body weapon manager graph is unavailable")
     if manager is not None:
         created.append(component.create(manager, init=False))
     for slot, item in enumerate(weapons):
-        weapon = graph.graph(item) if item is not None else None
+        weapon = lookup(item) if item is not None else None
         if component.strict and item is not None and weapon is None:
             raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
@@ -1466,11 +3614,12 @@ def create_body_graphs(
     return created
 
 
-def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+def create_initial_graphs(component: runtime.Component, record: dict, *, resolve_graph=None) -> list[runtime.Instance]:
     """Allocate the definition's instances in asset order, before running their entries."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     created = []
     for number, item in enumerate(record["graphs"], 1):
-        definition = graph.graph(item["graph"])
+        definition = lookup(item["graph"])
         if definition is None:
             continue
         values = {}
@@ -1478,6 +3627,22 @@ def create_initial_graphs(component: runtime.Component, record: dict) -> list[ru
             var = expr.guid_of(entry.get("m_0D09D2D9")) & 0xFFFF
             values[(INSTANCE, var)] = expr.evaluate(entry.get("m_value"), expr.Context())
         created.append(component.create(definition, number, values=values, init=False))
+    return created
+
+
+def create_weapon_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+    """Allocate an entity's declared manager/weapon slots before running any entries."""
+    weapons = record.get("weapons") or []
+    component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
+    component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
+    created = []
+    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    if manager is not None:
+        created.append(component.create(manager, init=False))
+    for slot, number in enumerate(weapons):
+        weapon = graph.graph(number) if number is not None else None
+        if weapon is not None:
+            created.append(component.create(weapon, values={(INSTANCE, 28): slot}, init=False))
     return created
 
 

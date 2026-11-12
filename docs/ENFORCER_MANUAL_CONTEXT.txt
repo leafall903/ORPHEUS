@@ -153,3 +153,59 @@ node15 has m_95F1FB0B=1 and amount#11984, while node25 uses amount#13230.
 The later scoped health clock/target bridge is documented separately in
 docs/ASSASSIN_PIN_BRIDGE.txt; that reconstruction does not upgrade these earlier
 context-injected diagnostics into production acceptance.
+
+Moira delivery notes
+
+Lane01A2 intake note: parent WIP source/evidence selected by hashes.
+Parent native and console captures below are reported, not rerun in this lane.
+This lane has separate actual Moira input evidence in MOIRA_COMBAT.txt.
+
+Manual Enforcer combat context: partial104319 server reconstruction
+
+The user-authorized manual sandbox declares a controller component set with4B
+present and5C absent for manual Enforcer01CE bodies. BotWorld stores that set
+explicitly. Other NPCs and stock placements retain unknown controller services.
+This is a server policy; it does not allocate a native NPC controller entity,
+restore its wire components, or establish the complete possession relationship.
+
+Scoped queries:
+Only13EB owner queries on a declared Enforcer context are resolved.9B7648C3
+reads the authoritative aggregate input maintained by ReplicatedBody.set_health.
+NPC spawn synchronizes that input after health, armour and shields are created.
+Later combat changes already synchronize it; death sets it to zero. B96D3A98
+checks that the declared set contains4B and excludes5C. Foreign entities, other
+graphs/heroes, absent service and F7262B36 continue through the unknown service.
+The controller's foreign variables and full native entity selection remain open.
+
+Native evidence:
+Eight component sets match the actual CC9F61 predicate tail and182C470 bitset
+reader in offline Unicorn execution. DA6910 controller lookup and F66AF0 result
+collection are adapters. The original code and capture are unmodified. This
+establishes the tail's4B/5C test, not the native allocator or the choice of the
+sandbox's declared components. The probe is based on the bounded evidence from
+the Reinhardt hero lane; no full hero lane or incomplete lane commit was merged.
+
+Combat evidence:
+An external actual-data probe uses console=,2,0,{,- and the real13EB graph
+without native-query overrides in the probe. Four scenarios verify open combat,
+an actual static triangle wall, ally rejection, and McCree Flashbang control
+followed by attack recovery. Open300-frame input reduces McCree225 to221;
+the wall permits no damage while present and attacks resume after removal.
+Stopping suppresses all further damage over100 frames; reengagement works.
+Actual McCree primary input kills the Enforcer, its corpse remains through100
+additional frames, and explicit console removal retires it. Transport remains an
+adapter, the body VM is permissive, and no original client was run.
+
+Six source tests cover the component predicate, policy scope, health updates,
+foreign/unknown queries, causal snapshot input and Match preparation. A separate
+spawn regression checks initial aggregate health synchronization. BotWorld's
+declared context is included in VM and server causal snapshots.
+
+Still open:
+Native controller/namespace/component creation and complete predicate evaluation;
+NPC difficulty, pellet count/spread, projectile and animation/muzzle equivalence,
+complete firing/reload/interrupt timing, autonomous acquisition/navigation and
+specials, client presentation and full cross-hero interactions. Assassin's
+primary20 graph has no damage outlet; pin1157 uses button36, DB742151 possessor
+context plus target variable1650, and StateModifyHealth15/25, which needs its own
+authoritative target, lifetime, damage and victim-control integration.

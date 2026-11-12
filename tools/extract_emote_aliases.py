@@ -8,7 +8,8 @@ from pathlib import Path
 
 from extract_game_graphs import guid_text
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / "src"),
+                str(Path(__file__).resolve().parents[1])]
 
 from ow174.paths import EMOTE_BLEND_TREE_DATA, EMOTE_TAGGED_DATA
 

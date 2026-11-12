@@ -8,10 +8,11 @@ from functools import partial
 from ow174.game import assassin, bots, combat, heavy_assault
 from ow174.game.collision import NOT_GROUND
 from ow174.game.commands import Command
-from ow174.game.mover import Mover, mover_data
+from ow174.game.mover import Mod, Mover, modded, mover_data, statescript_mods
 from ow174.game.script import expr, nodes, runtime
 
 GRID, MAX_NODES, PLAN_INTERVAL, PLAN_SLICE = 1.0, 2048, 30, 4
+RETRY_FRAMES = PLAN_INTERVAL
 RIALTO_MAP = 0x080000000000079F
 # Server-authored connection through the southern opening in the upper railing.
 RIALTO_LEDGE = (-139.081, 3.75, -103.052)
@@ -418,7 +419,7 @@ def start_reposition(match, state, world, bot, target, tick):
     x, y, z = bot.position
     dx, dz = x - target.feet[0], z - target.feet[2]
     distance = math.hypot(dx, dz)
-    data = mover_data(bot.body)
+    data = (bot.movement_data or mover_data(bot.body))
     for angle in (0, math.pi / 4, -math.pi / 4):
         cos, sin = math.cos(angle), math.sin(angle)
         nx = x + (dx * cos - dz * sin) * 4 / distance
@@ -464,6 +465,35 @@ def step(match, bot, tick, seconds, *, plan_budget=PLAN_SLICE):
 
 
 def _step(match, bot, tick, seconds, search_budget):
+    if match.combat.junkrat.rooted(bot.entity, tick):
+        stop(bot)
+        bot._pause(tick)
+        return
+    if bot.impulse_mover is not None and not bot.dead:
+        bot._impulse_step(tick, seconds, match.collision_world)
+        return
+    if bot.attack_mode == "melee":
+        return
+    if bot.spawner.get("acquire_targets") and bot.spawner.get("acquire_specials"):
+        from ow174.game import sniper_retreat
+
+        if sniper_retreat.controls_motion(bot):
+            return  # Original automatic host owns this motion, rather than manual pursuit.
+    from ow174.game import sniper_reposition
+
+    primary = sniper_reposition.reposition_state(bot) if sniper_reposition.primary_scoped(bot) else None
+    if primary is not None and (primary.active or sniper_reposition.retreat_phase(primary) in (1, 2)):
+        return  # Same142C primary host advances after aim/input in Combat._bot_weapons.
+    if bot.attack_mode == "reposition":
+        from ow174.game import sniper_reposition
+
+        if (bot.dead or match.ended or not bot.firing or match.combat.is_stunned(bot, tick=tick)
+                or match.combat.is_asleep(bot, tick=tick)
+                or bot.entity in match.combat.sombra_controls.locks):
+            sniper_reposition.stop(bot, tick)
+        else:
+            sniper_reposition.advance(match.combat, bot, tick=tick, seconds=seconds)
+        return
     target = next((t for t in match.combat._targets() if getattr(t.owner, 'entity', None) == bot.attack_target
                    and getattr(t.owner, 'client', None) is not None and not match.combat.vitals_of(t).dead
                    and not getattr(t.owner, 'gone', False)
@@ -511,7 +541,7 @@ def _step(match, bot, tick, seconds, search_budget):
             stop(bot)
             return
         if nav is None or nav.mover.world is not world or math.dist(nav.mover.position, bot.position) > 0.1:
-            nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, mover_data(bot.body)))
+            nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body))))
         nav.path, nav.goal, nav.search = (), None, None
         destination, speed = motion
         x, y, z = bot.position
@@ -540,13 +570,15 @@ def _step(match, bot, tick, seconds, search_budget):
             heavy_assault.stop_charge(bot.body_script.component, ability)
             stop(bot)
             return
-        outcome = _drive(bot, nav, tick, seconds, destination, speed)
+        outcome = _drive(match, bot, nav, tick, seconds, destination, speed)
         if outcome is False or nav.stuck >= 8:
             heavy_assault.stop_charge(bot.body_script.component, ability)
             stop(bot)
         elif clipped_to_target and math.hypot(bot.position[0] - tx, bot.position[2] - tz) <= radius + 0.002:
             nav.charge_contact = (tick, target.entity)
         return
+    if bot.attack_mode == "charge":
+        return  # Explicit charge waits for its authored MoveTo instead of pursuing.
     if current_mover and movement is None and not nav.path and nav.mover.airborne:
         _settle_step(bot, nav, tick, seconds)
         return
@@ -560,11 +592,11 @@ def _step(match, bot, tick, seconds, search_budget):
         stop(bot)
         return
     if nav is None:
-        nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, mover_data(bot.body)))
+        nav = bot.navigation = Navigator(Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body))))
     if nav.last_tick is not None and tick <= nav.last_tick:
         return
     if nav.mover.world is not world or math.dist(nav.mover.position, bot.position) > 0.1:
-        nav.mover = Mover(bot.position, round(bot.yaw), world, mover_data(bot.body))
+        nav.mover = Mover(bot.position, round(bot.yaw), world, (bot.movement_data or mover_data(bot.body)))
         nav.path, nav.goal, nav.search = (), None, None
     nav.last_tick = tick
     if movement is not None:
@@ -580,7 +612,7 @@ def _step(match, bot, tick, seconds, search_budget):
                 request_reposition(reposition, tick, runtime.ABORT)
                 stop(bot)
                 return
-        outcome = _drive(bot, nav, tick, seconds, tuple(destination), speed)
+        outcome = _drive(match, bot, nav, tick, seconds, tuple(destination), speed)
         if outcome is not None:
             request_reposition(reposition, tick, runtime.FINISH if outcome else runtime.ABORT)
         return
@@ -651,7 +683,7 @@ def _step(match, bot, tick, seconds, search_budget):
         bot.velocity, bot.held, bot.keys = (0.0, 0.0, 0.0), (0, 0), False
         nav.mover.velocity = (0.0, 0.0, 0.0)
         return
-    _drive(bot, nav, tick, seconds, destination, bot.pace)
+    _drive(match, bot, nav, tick, seconds, destination, bot.pace)
 
 
 def teammate_clear(match, bot, start, end, data):
@@ -707,7 +739,23 @@ def _avoid_teammates(match, bot, nav, destination, seconds):
     return None
 
 
-def _drive(bot, nav, tick, seconds, destination, speed):
+def _movement_speed(match, bot, nav, tick, speed):
+    # MoveTo has an explicit speed, so the same frost modifier must scale that
+    # request as well as the existing mover's prepared values.
+    script = bot.body_script
+    active = statescript_mods(script.component) if script is not None else {}
+    nav.mover.track_mods(match.combat.movement_mods(bot, active, tick=tick), tick-1)
+    imposed = match.combat.movement_mods(bot, {}, tick=tick)
+    if imposed:
+        mods = [Mod(index, op, value, tick, priority=priority, key=key)
+                for key, (index, op, value, priority) in imposed.items()]
+        values = modded(nav.mover.data, sorted(mods, key=Mod.order))
+        speed *= values.run_forward / nav.mover.data.run_forward
+    return speed
+
+
+def _drive(match, bot, nav, tick, seconds, destination, speed):
+    speed = _movement_speed(match, bot, nav, tick, speed)
     yaw = bots.turned(
         bot.yaw,
         bots.heading(destination[0] - bot.position[0], destination[2] - bot.position[2]),
@@ -754,13 +802,71 @@ def _drop_step(bot, nav, tick, seconds):
         return
     released = drop.released or before[0] <= RIALTO_DEPARTURE[0] + 0.015 or tick - started >= 55
     nav.path = (LedgeDrop(started, released),)
-    nav.mover.step_pose(
-        Command(tick, yaw=round(bot.yaw), pitch=round(bot.pitch)),
-        seconds,
-        tick,
-        move_to=None if released else (RIALTO_DEPARTURE, 4.0),
-    )
+    component = getattr(bot.body_script, "component", None)
+    match = getattr(getattr(component, "world", None), "match", None)
+    speed = 4.0 if match is None else _movement_speed(match, bot, nav, tick, 4.0)
+    nav.mover.step_pose(Command(tick, yaw=round(bot.yaw), pitch=round(bot.pitch)), seconds, tick,
+                        move_to=None if released else (RIALTO_DEPARTURE, speed))
     bot.position, bot.velocity = tuple(nav.mover.position), nav.mover.velocity
     bot.held = (0, 0) if released else bots.throttles(bot.yaw, (-1.0, 0.0))
     bot.last_held, bot.input_tick, bot.keys = bot.held, tick, not bot.dead
     bot.moved_tick = tick
+
+
+@dataclass
+class Pursuit:
+    search: Search | None = None
+    retry_at: int = 0
+    wall_entities: tuple = ()
+
+
+def stop_pursuit(bot):
+    pursuit = bot.pursuit
+    if pursuit.search is None and not bot.route:
+        return
+    pursuit.search = None
+    bot.route, bot.target, bot.keys = [], None, False
+    bot.turning = 0.0
+    bot.pace, bot.velocity, bot.held = 0.0, (0.0, 0.0, 0.0), (0, 0)
+
+
+def refresh_obstacles(bot, pieces):
+    pursuit = getattr(bot, 'pursuit', None)
+    if pursuit is None:
+        return
+    entities = tuple(pieces)
+    if entities != pursuit.wall_entities:
+        stop_pursuit(bot)
+        pursuit.wall_entities = entities
+        pursuit.retry_at = 0
+
+
+def update(fight, bot, target, reach):
+    pursuit = bot.pursuit
+    if (getattr(bot, "wall_mover", None) is not None or fight.is_stunned(bot)
+            or fight.junkrat.rooted(bot.entity, fight.tick)):
+        stop_pursuit(bot)
+        return
+    if target is None:
+        stop_pursuit(bot)
+        pursuit.retry_at = 0
+        return
+    search = pursuit.search
+    if search is not None and (target.entity != search.target.entity
+                               or math.dist(target.feet, search.target.feet) > GRID):
+        stop_pursuit(bot)
+        search = None
+        pursuit.retry_at = 0
+    if search is None:
+        if fight.tick < pursuit.retry_at:
+            return
+        search = pursuit.search = begin(bot.position, target, reach)
+    if search.done:
+        if bot.target is None and (not bot.route or bot.index == len(bot.route) - 1):
+            stop_pursuit(bot)
+            pursuit.retry_at = fight.tick + RETRY_FRAMES
+        return
+    if advance(search, fight.match.collision_world, (bot.movement_data or mover_data(bot.body)), reach, PLAN_SLICE,
+               contact=bot.hero == assassin.HERO) and search.path:
+        bot.route = list(search.path)
+        bot.index, bot.wait, bot.last_tick = -1, 0.0, fight.tick

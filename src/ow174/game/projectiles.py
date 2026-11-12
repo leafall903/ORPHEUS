@@ -32,11 +32,12 @@ The release (reader chain: ch2 0x7FF789A4A490 -> state 0x7FF789A34600 -> record 
 import logging
 import math
 from dataclasses import dataclass, field
+from functools import cache
 
 from ow174.game import bots, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
-from ow174.game.script import expr
+from ow174.game.script import expr, nodes
 from ow174.game.script import graph as graphs_data
 from ow174.game.script.driver import OwnerReport, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, Stream, remote_full_frame
@@ -119,11 +120,16 @@ SHOTS_ONLY = 2
 MAX_PELLETS = 64  # limit the server's collision work for one authored shot
 FRAME_MS = 16
 LEASE_FIRST = 0x00100000  # the first lease id; the server's own ids stay below
-LEASE_SPAN = 1 << 22  # frames (= ids) of one window: 18.6 hours
+LEASE_SPAN = 1 << 21  # frames (= ids) of one window: 9.3 hours
 LEASE_WINDOWS = 2
-# Every window's exclusive stop must fit in a u32, including the last future window.
-MAX_LEASE_FRAME = FRAME_MASK - LEASE_WINDOWS * LEASE_SPAN
-DEFINITIONS_PER_BODY = 4  # leased definitions per slot (Soldier: 072C, 1C86, 072D)
+# Keep the original four block bases per slot. Use the upper half of
+# the first block for the fifth definition, with the same window length.
+LEASE_BLOCK_STRIDE = 2 * LEASE_SPAN
+LEASE_SLOT_STRIDE = 4 * LEASE_BLOCK_STRIDE
+LEASE_SLOTS = 32  # slot 31's final window ends below the 29-bit entity index limit
+DEFINITIONS_PER_BODY = 5
+# Keep the clock drain boundary and leave room for every advertised window.
+MAX_LEASE_FRAME = FRAME_MASK - LEASE_WINDOWS * LEASE_BLOCK_STRIDE
 REPORT_WINDOW = 64  # frames after the shot in which an owner frame may report it
 CONFIRM_TICKS = 3  # at least this after the report (0.05 s)
 UNREPORTED_TICKS = 32  # a shot no owner frame reported gets lease(f) after this
@@ -301,8 +307,48 @@ class Shot:
     observers: list = field(default_factory=list)  # per-viewer launches of this projectile
     field_due: int | None = None
     field_tick: int | None = None
+    field_airborne: bool = False
     faded: bool = False
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
+
+
+@dataclass(frozen=True)
+class _FieldProfile:
+    ticks: int
+    fade_ticks: int
+    radius: float
+    heal_value: float
+
+class _PlayerFieldInputs(expr.Context):
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+
+    def var(self, scope: int, var: int):
+        return self.values.get((scope, var))
+
+    def native(self, cfg):
+        if cfg.get("$") == "STU_D3EB8D87":
+            return False  # this host deploys fields from player input
+        return super().native(cfg)
+
+@cache
+def _field_profile(field_graph) -> _FieldProfile:
+    """Resolve 0258's player parameters and two sequential authored waits."""
+    inputs = _PlayerFieldInputs()
+    for position in (2, 3, 4):
+        node = field_graph.node(position)
+        key = expr.lvalue(node.field("m_out_Var"))
+        inputs.values[key] = expr.evaluate(node.field("m_value"), inputs)
+    fade = expr.to_float(expr.evaluate(field_graph.node(5).field("m_timeout"), inputs))
+    tail = expr.to_float(expr.evaluate(field_graph.node(9).field("m_timeout"), inputs))
+    radius = expr.to_float(expr.evaluate(field_graph.node(1).field("m_radius"), inputs))
+    heal = expr.to_float(inputs.var(expr.INSTANCE, 420))
+    if not all(math.isfinite(value) and value >= 0 for value in (fade, tail, radius, heal)):
+        raise ValueError("invalid player Biotic Field resource values")
+    fade_ms = nodes.seconds_to_ms(fade)
+    lifetime_ms = fade_ms + nodes.seconds_to_ms(tail)
+    return _FieldProfile(math.ceil(lifetime_ms / FRAME_MS), math.ceil(fade_ms / FRAME_MS), radius, heal)
 
 
 class Projectiles:
@@ -318,27 +364,25 @@ class Projectiles:
 
     # --- the lease ------------------------------------------------------------------------------------
 
-    def _base(self, player, definition: int) -> int | None:
-        script = player.body_script
-        if script is None:
-            return None
-        defs = definitions(script)[:DEFINITIONS_PER_BODY]
-        if definition not in defs:
-            return None
-        return LEASE_FIRST + (player.slot * DEFINITIONS_PER_BODY + defs.index(definition)) * LEASE_SPAN
+    @staticmethod
+    def _base(slot: int, index: int) -> int:
+        start = LEASE_FIRST + slot * LEASE_SLOT_STRIDE
+        if index == DEFINITIONS_PER_BODY - 1:
+            return start + LEASE_SPAN
+        return start + index * LEASE_BLOCK_STRIDE
 
     def lease(self, player) -> list | None:
         """The body's lease blocks (component 90): two windows from the current frame for each predicted
         definition, with the slot's own ids."""
         script = player.body_script
-        if script is None:
+        if script is None or not 0 <= player.slot < LEASE_SLOTS:
             return None
         newest = player.commands.last_frame
         frame = self.match.tick if newest is None else newest
         start = frame - frame % LEASE_SPAN
         blocks = []
-        for guid in definitions(script)[:DEFINITIONS_PER_BODY]:
-            base = self._base(player, guid)
+        for index, guid in enumerate(definitions(script)[:DEFINITIONS_PER_BODY]):
+            base = self._base(player.slot, index)
             for index in range(LEASE_WINDOWS):
                 window = start + index * LEASE_SPAN
                 blocks.append((guid, window, window + LEASE_SPAN, base, 1))
@@ -346,8 +390,14 @@ class Projectiles:
 
     def lease_id(self, player, definition: int, frame: int) -> int | None:
         """The id the client's allocator gives the first projectile of `definition` in `frame`."""
-        base = self._base(player, definition)
-        return None if base is None else 0xA0000000 | (base + frame % LEASE_SPAN)
+        script = player.body_script
+        if script is None or not 0 <= player.slot < LEASE_SLOTS:
+            return None
+        available = definitions(script)[:DEFINITIONS_PER_BODY]
+        if definition not in available:
+            return None
+        base = self._base(player.slot, available.index(definition))
+        return 0xA0000000 | (base + frame % LEASE_SPAN)
 
     # --- shots ----------------------------------------------------------------------------------------
 
@@ -422,6 +472,14 @@ class Projectiles:
                 delivery.pending_create = create
             else:
                 viewer.client.queue_entities([create])
+
+    def absorbed(self, shot: Shot) -> None:
+        """Retire an intercepted projectile without impact release or spawned field."""
+        if isinstance(shot.player, bots.Bot):
+            for delivery in shot.observers:
+                delivery.finish(self.match.tick, False)
+            return
+        self._end(shot, self.match.tick, explode=False)
 
     def flown(self, shot: Shot, seconds: float) -> None:
         """Finish an authoritative NPC copy or schedule the predicted player's release."""
@@ -540,6 +598,10 @@ class Projectiles:
             " ".join(f"{entity:08X}" for entity in new),
         )
 
+    def intercepted(self, shot: Shot, tick: int) -> None:
+        """Retire the original prediction without an explosion release."""
+        self._end(shot, tick, explode=False)
+
     def _end(self, shot: Shot, tick: int, explode: bool) -> None:
         """End the shot, release its owner copies and field entities, and retire observer deliveries."""
         if shot in self.shots:
@@ -561,13 +623,32 @@ class Projectiles:
             updates.append(update)
         client.queue_entities(updates)
 
+    def retire_fields(self, player) -> None:
+        """Release the retiring body's canisters and deployed field entities."""
+        for shot in tuple(self.shots):
+            if shot.player is player and shot.body == player.body and shot.spawn == FIELD_ENTITY:
+                self._end(shot, self.match.tick, explode=False)
+
     # --- the Biotic Field -----------------------------------------------------------------------------
+
+    def finish_field_flight(self, shot: Shot, tick: int, ground_point=None) -> None:
+        """Resolve host placement before the field can heal or send a create."""
+        if not shot.field_airborne:
+            return
+        shot.field_airborne = False
+        shot.field_due = max(tick, shot.field_due if shot.field_due is not None else tick + FIELD_DELAY)
+        if ground_point is not None:
+            shot.where = tuple(expr.f32(axis) for axis in ground_point)
 
     def _field(self, shot: Shot, tick: int, first_tick: int) -> None:
         if shot.field_due is None:
             shot.field_due = tick + FIELD_DELAY
+        if shot.field_airborne:
+            self._confirm(shot, tick)
+            return
+        profile = _field_profile(graphs_data.graph(FIELD_GRAPH))
         start = shot.field_due
-        expires = start + FIELD_TICKS
+        expires = start + profile.ticks
         if tick < expires:
             self._confirm(shot, tick)
         if tick < start:
@@ -575,21 +656,58 @@ class Projectiles:
         if shot.field_tick is None:
             shot.field_tick = start
             log.info("[game] %s: %s's Biotic Field opened", self.match.label(), shot.player.name)
-        # The opening tick has no heal, and the field ends before the expiry tick.
-        # As with skipped NPC frames, only the most recent body poses are available.
-        steps = min(tick, expires - 1) - max(first_tick - 1, start)
-        if steps > 0:
-            amount = HEAL_PER_SECOND * FRAME_MS / 1000 * steps
-            self.combat.heal_area(shot.player, field_centre(shot), HEAL_RADIUS, amount)
+        self._heal_field(shot, profile, start, first_tick, tick)
         if tick >= expires:
             self._end(shot, tick, explode=False)
             return
-        seconds = (tick - start) * FRAME_MS / 1000
-        if not shot.faded and seconds >= FADE_SECONDS:
+        if not shot.faded and tick - start >= profile.fade_ticks:
             shot.faded = True
             for arrival in shot.arrivals:
                 arrival.send()
         self._deliver_field(shot)
+
+    @staticmethod
+    def last_field_heal_tick(fields) -> int:
+        profile = _field_profile(graphs_data.graph(FIELD_GRAPH))
+        return max(shot.field_due for shot in fields) + profile.ticks - 1
+
+    def heal_fields(self, first_tick: int, last_tick: int) -> None:
+        """Settle healing before replayed combat without advancing field delivery."""
+        fields = []
+        for shot in self.shots:
+            player = shot.player
+            start = shot.field_due
+            if (shot.spawn == FIELD_ENTITY and not shot.field_airborne and start is not None and start < last_tick
+                    and player.client is not None and player.has_body and player.body == shot.body
+                    and player.body_script is not None):
+                fields.append((shot, start))
+        if not fields:
+            return
+        profile = _field_profile(graphs_data.graph(FIELD_GRAPH))
+        if len(fields) == 1:
+            shot, start = fields[0]
+            self._heal_field(shot, profile, start, first_tick, last_tick)
+            return
+        # Each field takes its turn on every tick. Batching per field lets
+        # the first caster claim wounds that another field healed earlier.
+        first = max(first_tick, min(start for _, start in fields) + 1)
+        last = min(last_tick, max(start for _, start in fields) + profile.ticks - 1)
+        for tick in range(first, last + 1):
+            for shot, start in fields:
+                self._heal_field(shot, profile, start, tick, tick)
+
+    def _heal_field(
+        self, shot: Shot, profile: _FieldProfile, start: int, first_tick: int, last_tick: int,
+    ) -> None:
+        # The opening and expiry ticks have no heal. Replay uses the latest poses.
+        first = max(first_tick, start + 1)
+        last = min(last_tick, start + profile.ticks - 1)
+        steps = last - first + 1
+        if steps > 0:
+            amount = profile.heal_value * FRAME_MS / 1000 * steps
+            self.combat.heal_area(
+                shot.player, field_centre(shot), profile.radius, amount, ticks=(first, last), source_body=shot.body,
+            )
 
     def _deliver_field(self, shot: Shot) -> None:
         """Create each field once. Owner copies wait for their canister parent to arrive."""

@@ -1,0 +1,30 @@
+Ana against Reinhardt Barrier Field on build 104319
+
+Actual secondary input raises the 0095 node51 Pet scope. The host reads
+capacity587, recovery Wait17, Chase16's regeneration rate and break
+cooldown472. Current barrier health writes to the authored variable586.
+The actual form starts with 1600 barrier health and 500 body health.
+
+The ray mesh and its hashes are verified on load. Tests read the prepared
+0020 mesh through ORPHEUS_BARRIER_DATA. The host positions the mesh at the
+front of the current body capsule and rotates it with aim. Native animated
+hardpoint29, generic Pet transport and native raycast filters remain open.
+
+Ana's two rifle modes, Sleep Dart and Biotic Grenade damage the barrier
+for70,70,5,50 respectively. A nearer wall or body still wins. Matrix and
+Sigma interception participate in the same sweep ordering. A grenade
+detonates on the incoming side and uses the hit shield for that explosion's
+line of sight even when the impact breaks it. This permits self-healing
+on the near side and prevents antiheal on the far side. Shield damage
+grants no Ana health damage or charge. Rear sleep interrupts deployment,
+while melee and allied rifle/Nano remain eligible.
+
+Current health, regeneration clocks, break deadline and mesh are stored
+in the server snapshot. The snapshot test uses a storage-only fixture.
+Gameplay tests use actual input, static collision and transport fixtures.
+Barrier attachment, explosion occlusion and health routing are explicit
+server reconstructions. Original-client acceptance remains open.
+
+Five dedicated methods passed in the39-method defense group. Ten Matrix,
+50 NPC and one server snapshot method passed separately. The resource
+evidence file records192 triangles plus the mesh, model and file hashes.

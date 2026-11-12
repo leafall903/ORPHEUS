@@ -8,10 +8,11 @@ world owner supplies source/read frames and property base values explicitly.
 import math
 from dataclasses import dataclass, replace
 
-from ow174.game.script.expr import f32
+from ow174.game.script.expr import Vec3, f32
 
 UINT32_MAX = (1 << 32) - 1
 PRIORITY_EPSILON = f32(0.004)
+_VECTOR_BASE_OMITTED = object()
 
 
 def _uint(value, bits, name):
@@ -77,6 +78,50 @@ class Record:
             object.__setattr__(self, name, _number(getattr(self, name)))
 
 
+@dataclass(frozen=True)
+class VectorReplacement:
+    """A C33FC0 operation-2 row, stored separately from scalar modifiers."""
+
+    kind: int
+    key: int
+    start: int
+    field: int
+    value: tuple[float, float, float]
+    priority: float = 0.0
+    end: int = UINT32_MAX
+
+    def __post_init__(self):
+        for name in ("kind", "start", "field", "end"):
+            _uint(getattr(self, name), 32, name)
+        _uint(self.key, 64, "key")
+        x, y, z = self.value
+        object.__setattr__(self, "value", (_number(x), _number(y), _number(z)))
+        object.__setattr__(self, "priority", _number(self.priority))
+
+
+@dataclass(frozen=True)
+class VectorRecord:
+    kind: int
+    key: int
+    start: int
+    field: int
+    operation: int
+    value: Vec3
+    priority: float = 0.0
+    end: int = UINT32_MAX
+
+    def __post_init__(self):
+        for name in ("kind", "start", "field", "end"):
+            _uint(getattr(self, name), 32, name)
+        _uint(self.key, 64, "key")
+        if type(self.operation) is not int or self.operation not in (0, 1, 2):
+            raise ValueError("unknown vector modifier operation")
+        if not isinstance(self.value, Vec3):
+            raise ValueError("expected a vector modifier value")
+        object.__setattr__(self, "value", Vec3(*map(_number, self.value)))
+        object.__setattr__(self, "priority", _number(self.priority))
+
+
 def _less(a: Record, b: Record) -> bool:
     difference = abs(f32(a.priority - b.priority))
     if difference > PRIORITY_EPSILON:
@@ -84,7 +129,7 @@ def _less(a: Record, b: Record) -> bool:
     return (a.start, a.key) < (b.start, b.key)
 
 
-def insertion_index(records: list[Record], record: Record) -> int:
+def insertion_index(records, record) -> int:
     """The native search, including its nontransitive epsilon comparison."""
     if not records:
         return 0
@@ -99,7 +144,7 @@ def insertion_index(records: list[Record], record: Record) -> int:
 
 
 class NumericModifiers:
-    """The numeric subarray of a known component 31, with an explicit clock.
+    """Numeric and vector records of a known component 31, with an explicit clock.
 
     ready mirrors the native definition pointer gate on mutations. A missing
     component is represented separately by the world's None result. This store
@@ -112,6 +157,7 @@ class NumericModifiers:
             raise ValueError("modifier readiness must be bool")
         self.ready = ready
         self.records: list[Record] = []
+        self.vector_records: list[VectorRecord] = []
 
     @property
     def source_frame(self) -> int:
@@ -121,35 +167,52 @@ class NumericModifiers:
     def source_frame(self, value: int) -> None:
         self._source_frame = _uint(value, 32, "source frame")
 
-    def _find(self, kind, key):
+    @staticmethod
+    def _find(records, kind, key):
         _uint(kind, 32, "kind")
         _uint(key, 64, "key")
-        return next((index for index in reversed(range(len(self.records)))
-                     if (self.records[index].kind, self.records[index].key) == (kind, key)), None)
+        return next((index for index in reversed(range(len(records)))
+                     if (records[index].kind, records[index].key) == (kind, key)), None)
 
-    def upsert(self, record: Record) -> None:
-        if type(record) is not Record:
-            raise ValueError("expected a numeric modifier record")
+    def upsert(self, record: Record | VectorRecord) -> None:
+        if type(record) not in (Record, VectorRecord):
+            raise ValueError("expected a modifier record")
         if not self.ready:
             return
+        records = self.vector_records if type(record) is VectorRecord else self.records
         record = replace(record, end=UINT32_MAX)
-        index = self._find(record.kind, record.key)
+        index = self._find(records, record.kind, record.key)
         if index is not None:
-            if self.records[index].start == record.start:
+            if records[index].start == record.start:
                 # Native updates in place, even when priority changes.
-                self.records[index] = record
+                records[index] = record
                 return
-            self.records.pop(index)
-        self.records.insert(insertion_index(self.records, record), record)
+            records.pop(index)
+        records.insert(insertion_index(records, record), record)
 
-    def retire(self, kind: int, key: int, end: int) -> None:
+    def upsert_vector(self, record: VectorReplacement) -> None:
+        """Retain the original replacement API on the same general vector store."""
+        if type(record) is not VectorReplacement:
+            raise ValueError("expected a vector replacement record")
+        self.upsert(VectorRecord(record.kind, record.key, record.start, record.field,
+                                 2, Vec3(*record.value), record.priority, record.end))
+
+    def retire_vector(self, kind: int, key: int, end: int) -> None:
+        self.retire(kind, key, end, vector=True)
+
+    def clear(self) -> None:
+        self.records.clear()
+        self.vector_records.clear()
+
+    def retire(self, kind: int, key: int, end: int, *, vector=False) -> None:
         end = _uint(end, 32, "end")
-        index = self._find(kind, key)
+        records = self.vector_records if vector else self.records
+        index = self._find(records, kind, key)
         if self.ready and index is not None:
-            self.records[index] = replace(self.records[index], end=end)
+            records[index] = replace(records[index], end=end)
 
     def erase(self, kind: int, key: int) -> None:
-        index = self._find(kind, key)
+        index = self._find(self.records, kind, key)
         if self.ready and index is not None:
             self.records.pop(index)
 
@@ -160,6 +223,22 @@ class NumericModifiers:
         for record in self.records:
             if record.field == field and record.start <= frame < record.end:
                 value = apply(record.operation, value, record.value, record.upper)
+                found = True
+        return found, value
+
+    def resolve_vector(self, field: int, base=_VECTOR_BASE_OMITTED, *, frame: int):
+        _uint(field, 32, "field")
+        _uint(frame, 32, "read frame")
+        if base is _VECTOR_BASE_OMITTED:
+            # Original API asks for the last replacement, without a caller's base.
+            # General ADD/MULTIPLY rows remain available through the base API.
+            return next((tuple(record.value) for record in reversed(self.vector_records)
+                         if record.operation == 2 and record.field == field
+                         and record.start <= frame < record.end), None)
+        value, found = Vec3(*map(_number, base)), False
+        for record in self.vector_records:
+            if record.field == field and record.start <= frame < record.end:
+                value = Vec3(*(apply(record.operation, a, b) for a, b in zip(value, record.value, strict=True)))
                 found = True
         return found, value
 
