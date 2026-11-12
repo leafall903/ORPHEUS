@@ -143,6 +143,12 @@ state check through `1B71220`. The first-person anchor evaluator at `D1AB95` use
 and mover spring. Doomfist's heights come from body `1235.003`. The static
 selector write at `CB76C7` identifies the world-point form of MoveTo.
 
+The local 104319 graph `0B27` supplies the close impact target and damage
+states. The timer schedule at RVA `8E5A90` and the lower-priority callback at
+`C880C0` inform the reconstructed server finish. The owner-relative centre
+transform at `C9AFB0` and visibility fallback at `CAF254` inform the shared
+capsule query.
+
 ## The Best Defense
 
 The local 104319 graph export supplies the damage-dealt listener in `0DDD`,

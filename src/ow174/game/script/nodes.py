@@ -1904,6 +1904,20 @@ class Wait(State):
             self.request_finish()
 
 
+@state_class("STU_54FEB21C")
+class TimedGraphState(State):
+    """Use the 104319 priority-1 timer finish for the unguarded Slam impact state."""
+
+    def on_enter(self) -> None:
+        if (self.instance.graph.index, self.node.pos) == (0x0B27, 87):
+            duration = self.evaluate(_field(self, "m_ED97A97C"), watch=False)
+            self.timer_at(max(0, seconds_to_ms(duration)), 1)
+
+    def timer(self, param: int) -> None:
+        if param == 1 and (self.instance.graph.index, self.node.pos) == (0x0B27, 87):
+            self.request_finish()
+
+
 @state_class("STU_E3CEF6B9")
 class WaitForServerFrames(State):
     """Finishes after its number of server frames (unverified: one frame = one command frame)."""
@@ -3391,16 +3405,17 @@ class TrackTargets(State):
         self.refresh()
 
     def impact_sphere(self) -> bool:
-        """The supported owner-relative sphere writes paired distances on impact."""
-        if (self.instance.graph.index, self.node.pos) != (0x160A, 19):
+        """Recognize the authored owner-relative impact spheres."""
+        node_key = (self.instance.graph.index, self.node.pos)
+        if node_key not in ((0x160A, 19), (0x0B27, 152)):
             return False
         fields = self.node.fields
         origin = fields.get("m_D59188D5") or {}
         primary = fields.get("m_filter") or {}
         masks = tuple(primary.get(name) for name in ("m_4EA686DB", "m_84065FD1", "m_89831602"))
-        return (
-            fields.get("m_DD792FF0") == 3
-            and fields.get("m_95FFC3C5") == 1
+        target = lvalue(fields.get("m_8A2905A0"))
+        if not (
+            fields.get("m_95FFC3C5") == 1
             and fields.get("m_3D667CE3") is None
             and primary.get("$") == "STUConfigVarFilter"
             and masks == (20, 64, 1)
@@ -3408,10 +3423,23 @@ class TrackTargets(State):
                 "$", "m_4EA686DB", "m_84065FD1", "m_89831602",
             ))
             and (fields.get("m_8DCA77B6") or {}).get("$") == "STU_B5A0CAF0"
+            and target is not None
+        ):
+            return False
+        if node_key == (0x0B27, 152):
+            return (
+                fields.get("m_DD792FF0") == 0
+                and fields.get("m_43478CAD") == 0
+                and fields.get("m_0297060F") == 0
+                and not origin
+                and lvalue(fields.get("m_CEE20F6F")) is None
+                and target == (0, 1182)
+            )
+        return (
+            fields.get("m_DD792FF0") == 3
             and origin.get("$") == "STU_21A13145"
             and (origin.get("m_entity") or {}).get("$") == "STU_B5A0CAF0"
             and lvalue(fields.get("m_CEE20F6F")) is not None
-            and lvalue(fields.get("m_8A2905A0")) is not None
         )
 
     def hostile_body_profile(self) -> int | None:

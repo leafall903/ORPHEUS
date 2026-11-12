@@ -782,20 +782,36 @@ class BodyWorld(runtime.World):
         category = TRACK_TARGET_RAY_CATEGORIES.get(state.hostile_body_profile())
         if self.match is not None and category is not None:
             centre = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
-            origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
+            origin_config = state.node.field("m_D59188D5")
+            origin = state.evaluate(origin_config, watch=False)
             radius = state.evaluate(state.node.field("m_radius"), watch=False)
             if state.impact_sphere():
                 source = self.match._message_player(self.body)
                 if not (source is not None and source.mover is not None
-                        and nodes._finite_vector(centre) and nodes._finite_vector(origin)
+                        and nodes._finite_vector(centre)
+                        and (origin_config is None or nodes._finite_vector(origin))
                         and nodes._finite_number(radius) and radius > 0):
                     return runtime.TrackedBodySamples(())
-                centre = tuple(
-                    f32(base + offset) for base, offset in zip(source.mover.position, centre, strict=True)
+                from ow174.game.combat import aim
+
+                mover = source.mover
+                right = aim(mover.yaw + 16384, 0)
+                forward = aim(mover.yaw, 0)
+                # C9AFB0 transforms the local volume centre by the owner's body basis.
+                x, y, z = mover.position
+                centre = (
+                    f32(x + centre.x * right[0] + centre.z * forward[0]),
+                    f32(y + centre.y),
+                    f32(z + centre.x * right[2] + centre.z * forward[2]),
                 )
-                rows = self.match.combat.track_hostile_bodies(
-                    self.body, centre, radius, tuple(origin), category,
-                )
+                # CAF254 defaults an omitted sight origin to the transformed centre.
+                origin = centre if origin_config is None else tuple(origin)
+                rows = self.match.combat.track_hostile_bodies(self.body, centre, radius, origin, category)
+                limit = state.node.field("m_2A0FB8BB")
+                if limit is not None:
+                    count = state.evaluate(limit, watch=False)
+                    if type(count) is int:
+                        rows = rows[:max(0, count)]
                 return runtime.TrackedBodySamples(rows)
             if not (nodes._finite_vector(centre) and nodes._finite_vector(origin)
                     and nodes._finite_number(radius) and radius > 0):
@@ -815,21 +831,34 @@ class BodyWorld(runtime.World):
         config = state.node.field("m_modifyHealth") or {}
         if state.instance.graph.index == DOOMFIST_PASSIVE_GRAPH and state.node.field("m_DD792FF0") == 2:
             return self._decay_temporary_shield(state, config, elapsed_ms)
-        if (self.match is None or state.node.field("m_DD792FF0") != 3
-                or config.get("m_93CDFD2F") != 1):
+        if self.match is None or config.get("m_93CDFD2F") != 1:
             return NotImplemented
         instance = state.instance
+        node_key = (instance.graph.index, state.node.pos)
+        mode = state.node.field("m_DD792FF0")
         target_config = state.node.field("m_FA3ECC43")
-        if (instance.graph.index, state.node.pos) == (0x160A, 16) and state.node.field("m_8B707686") == 1:
+        discrete = (
+            (node_key == (0x160A, 16) and mode == 3)
+            or (node_key == (0x0B27, 154) and mode == 1 and expr.lvalue(target_config) == (0, 1182))
+        )
+        if discrete and state.node.field("m_8B707686") == 1:
             if state.evaluate(config.get("m_instigator"), watch=False) != Entity(self.body):
                 return NotImplemented
             if not elapsed_ms:
-                victim = state.evaluate(target_config, watch=False)
-                if isinstance(victim, Entity) and expr.valid_entity(victim.id):
-                    self._queue_tracked_damage(state, config, (victim.id,), activation=None)
-                # This discrete hit has been committed by the graph and can advance its victim loop.
+                selection = state.evaluate(target_config, watch=False)
+                if mode == 3:
+                    selection = (selection,)
+                if isinstance(selection, tuple):
+                    victims = tuple(
+                        victim.id for victim in selection
+                        if isinstance(victim, Entity) and expr.valid_entity(victim.id)
+                    )
+                    self._queue_tracked_damage(state, config, victims, activation=None)
+                # The graph has committed the discrete hit and can advance its victim loop.
                 state.request_finish()
             return True
+        if mode != 3:
+            return NotImplemented
         target = expr.lvalue(target_config)
         paired = expr.lvalue(state.node.field("m_B12BFE8B"))
         if target is None or paired is None:

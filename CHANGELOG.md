@@ -6,6 +6,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Seismic Slam close impact
+
+- Finish the authored impact delay using the 104319 timer schedule and ordinary
+  finish callback as a server reconstruction.
+- Reuse the hostile capsule query for the owner-relative close sphere. Check
+  static sight from its centre and respect the authored five-target limit.
+- Apply the authored landing damage once per selected opponent through the
+  shared combat path. A grounded-cast regression checks both health and hit
+  notices for multiple targets and rejects allies, occluded and distant bodies.
+- Passed Ruff, the public Python and dashboard suites, and focused
+  prepared-runtime checks for Slam, movement, temporary shields, Piledriver,
+  and the state VM. Ground shockwave damage, displacement, dynamic visibility,
+  native candidate order at the target limit, live air targeting and
+  original-client acceptance remain open.
+
 #### Player weapon spread seed
 
 - Use the authored state-table index in the shared Quad Cannons and Fan the
