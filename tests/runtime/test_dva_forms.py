@@ -79,6 +79,20 @@ class PilotTests(unittest.TestCase):
         self.assertFalse(graph.state(graph.graph.node(193).state).active)  # its presenter
 
 
+class CannonTests(unittest.TestCase):
+    def test_a_shot_hits_with_every_pellet_and_kills_once(self):
+        # 050A node 6: 11 pellets of 2 a shot, rings of 1, 4 and 6 in a 4 degree spread (var 243).
+        field = Field((False, (0.0, GROUND, 6.0)))
+        enemy = field.others[0]
+        real = combat.Combat._damage
+        with patch.object(combat.Combat, "_damage", autospec=True, side_effect=real) as damage:
+            field.steps(9, FIRE)  # the first shot and only it
+        self.assertEqual([call.args[3] for call in damage.call_args_list], [2.0] * 11)
+        field.steps(120, FIRE)
+        self.assertTrue(field.match.combat.is_dead(enemy))
+        self.assertEqual(field.owner.stats.values.get(stats.ELIMINATIONS, 0), 1)
+
+
 class EjectTests(unittest.TestCase):
     def test_a_wrecked_mech_leaves_the_pilot_alive_where_it_stood(self):
         field = Field((False, (0.0, GROUND, 30.0)), at=(3.0, GROUND, 4.0))

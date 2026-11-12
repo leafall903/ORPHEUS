@@ -1565,6 +1565,8 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
+        elif not npc:
+            directions = projectiles.launch_directions(state, direction)  # every authored pellet
         targets = tuple((target, shown) for target in self._shot_targets(shooter, direct)
                         if (shown := self.seen(target, view_tick)) is not None)
         for pellet in directions:

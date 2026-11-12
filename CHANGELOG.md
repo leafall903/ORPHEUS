@@ -6,6 +6,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### A player's hitscan shotgun fires every pellet
+
+- D.Va's Fusion Cannons hit with one pellet a shot, and 12 s of held fire did not kill a Training
+  Bot. A player's hitscan volley fired one ray, whatever its pellet count; only some NPC shots
+  were spread.
+- A player's hitscan volley with authored pellet rings (`STU_613BDDB0`) now fires each pellet,
+  with the directions `projectiles.launch_directions` already gives the player's pellet
+  projectiles. That covers the cannons (graph `050A` node 6: 11 pellets of 2 in rings of 1, 4
+  and 6 within a 4° spread, which node 38 writes to `#243`), Reaper's shotguns (`0019` node 10:
+  20 pellets, 6°), and `01C6` node 33 and `1513` node 41 when a player fires them. NPC shots keep
+  their own layout.
+- Reconstructed: where the pellets sit around each ring (evenly spaced from a fixed start, no
+  turn from shot to shot). The count, the rings' radii and the spread are the data's.
+- Unchanged: hitscan volleys with more than one pellet and no rings (`0016` node 12, `0044` node
+  36, `114F` node 47) still fire one ray.
+- Each pellet that hits sends its own hit notice, as the pellet projectiles already did. Whether
+  the client wants one a pellet or one a shot was not checked.
+- Measured on the server: 11 hits of 2 at 6 m; 2 pellets on a body at 15 m (1.37 each) and at
+  25 m (0.6 each), the falloff from 10 m to 0.3 at 20 m applying; a 200-health enemy 6 m away
+  dies after 85 frames of held fire.
+- Seen in the client: held fire at a Training Bot 6 m away kills it about 1.3 s after the fire
+  begins: "ELIMINATED TRAINING BOT", the kill feed line, and the bot falls apart.
+- Ruff and the 928 public tests passed. The D.Va tests (11, one new) passed; the new one fails
+  without the change. The runtime suite ran 1718 tests with the same 27 failures as before.
+
 #### D.Va leaves her mech and calls a new one
 
 - Decoded her two forms in `docs/research/dva-forms.md`. The hero's body is always the pilot: her
@@ -48,7 +73,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Why the cannons are that weak, measured on the server afterwards: a shot of the Fusion Cannons
   hits with one pellet of 2 damage, about 14 a second, at 6 m and at 25 m alike. A player's
   hitscan shotgun fires a single ray here, Reaper's too (6 a shot); only some NPC shots are
-  spread. That is older than this change and is not fixed by it.
+  spread. That is older than this change and is not fixed by it. Fixed later the same day: see
+  "A player's hitscan shotgun fires every pellet".
 - No shared fixture: the forms are decided by her graphs, which come from the runtime pack, so
   the cases cannot be given as data alone. The runtime tests hold them.
 

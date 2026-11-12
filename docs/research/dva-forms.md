@@ -153,6 +153,13 @@ below is a **reconstruction** where it leaves the data.
 8. **A dead pilot** returns in her mech after the mode's respawn time.
 9. **Charges.** A new mech starts at 0. The pilot's copy of the mech's charge (`#2511e`) is not
    carried across.
+10. **The Fusion Cannons.** Graph `050A` node 6 is a hitscan volley of 11 pellets of 2 a shot,
+    in rings of 1, 4 and 6 at radius 0, 0.5 and 1 of a 4° spread (`#243`, which node 38 sets),
+    damage falling from 10 m to 0.3 of it at 20 m, 6.7 shots a second on the server. A player's
+    hitscan volley with authored rings now fires each pellet (`Combat._shoot` with
+    `projectiles.launch_directions`, as the player's pellet projectiles already did). The count,
+    radii and spread are the data's; the pellets' places around a ring (evenly spaced from a fixed
+    start, no turn from shot to shot) are a reconstruction.
 
 ## Seen live against ORPHEUS
 
@@ -174,8 +181,10 @@ Original client, Practice Range, one player, five runs on 2026-11-12.
 - **Seen and not settled.** From a ledge by the spawn room's exit the blast found nobody, with a
   Training Bot 8.8 m away in view from the cockpit. The search's point is 1.3 m above the mech's
   feet, and the server's rays from there were blocked. Whether the client's are is not known.
-- **Seen and not right.** 12 s of the mech's held fire at a Training Bot 6 m away showed its
-  health bar and did not kill it. Not looked into.
+- **The cannons.** In those runs 12 s of held fire at a Training Bot 6 m away did not kill it: the
+  server fired one ray a shot, one pellet of 2. With every pellet fired (point 10), a sixth run
+  killed one 6 m away about 1.3 s after the fire began: "ELIMINATED TRAINING BOT", the kill feed
+  line, the bot falling apart.
 
 ## Not decoded, not done
 
