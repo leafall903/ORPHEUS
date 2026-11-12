@@ -29,9 +29,28 @@ class OrisaPresentationTests(unittest.TestCase):
                 with patch.object(world, "create", return_value=None) as build:
                     create.build(0)
                 self.assertEqual(build.call_args.args[1], definition)
+                run.step({})
+                self.assertTrue(delivery.launch_queued)
+                self.assertTrue(delivery.launch_arrival.received)
                 run.match.combat.projectiles.flown(shot, .1)
                 self.assertTrue(delivery.finished)
                 self.assertTrue(delivery.explode)
+                run.match.combat.projectiles.update(run.frame + 1)
+                self.assertTrue(any(u.entity == delivery.record.ids[0] and u.op == world.OP_DESTROY
+                                    for u in player.client.entities))
+
+    def test_authoritative_delivery_timeout_destroys_unlaunched_entity(self):
+        run, player, _ = OrisaCombatTests().arena()
+        for frame in range(40):
+            run.step({player: (0, 0, 2 if frame == 0 else 0)})
+            if run.match.combat.rockets:
+                break
+        shot = run.match.combat.rockets[0].shot
+        delivery = next(d for d in shot.observers if d.viewer is player)
+        self.assertFalse(delivery.launch_queued)
+        self.assertFalse(delivery.advance(delivery.deadline))
+        self.assertTrue(any(u.entity == delivery.record.ids[0] and u.op == world.OP_DESTROY
+                            for u in player.client.entities))
 
     def test_deployed_barrier_publishes_original_definition_vm_and_destroy(self):
         run, player, _, _, shield = BarrierTests().deploy()

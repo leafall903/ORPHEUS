@@ -36,6 +36,13 @@ Existing authored hammer damage/hit notices, penetrating Fire Strike damage and
 charge movement probes also pass. Shared input-clock repair is integrated
 separately; original-client shield/projectile visuals still require a live check.
 
+## Orisa owner projectile activation delivery
+
+Owner frames omit the remote volley snapshot states. Gate the server-authored
+owner shot record on its acknowledged owner stream, rather than waiting for an
+absent remote-only volley state. Focused checks now verify create, actual launch
+ACK and impact destroy for all three Orisa projectile definitions.
+
 ## Orisa client presentation restoration
 
 Publish the existing 0BD8 Protective Barrier VM as its original 14A1 entity,

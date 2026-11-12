@@ -964,6 +964,10 @@ class _ObservedProjectile:
         return state if key == (self.record.activation, self.record.volleys) else None
 
     def _volley_arrived(self) -> bool:
+        # The owner executes its volley locally. Owner frames deliberately omit
+        # remote-only volley states, so their Snapshot cannot acknowledge one.
+        if self.viewer.body == self.launch.entity:
+            return self.stream.base is not None
         return self.matching_volley(self.stream.base) is not None
 
     def _release_volley(self) -> None:
