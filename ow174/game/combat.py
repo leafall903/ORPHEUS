@@ -4561,8 +4561,8 @@ class Combat:
             return ()
         if (self.respawns or self.photon_barriers.actors or self.barriers.world.actors
                 or self.blizzard.areas
-                or any(barrier.component.world.hero == barriers.ZARYA and barriers._live(self, barrier)
-                       for barrier in self.barriers.scripted.values())
+                or any(barrier.component.world.hero == barriers.ZARYA and barrier.recipient is None
+                       and barriers._live(self, barrier) for barrier in self.barriers.scripted.values())
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()

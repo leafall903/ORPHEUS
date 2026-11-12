@@ -2639,3 +2639,84 @@ Next C61: actualTrooper melee target/native consumer (threezero-damage failures)
 then Heavy capture mode/timing using the real existing1407/1408 host. Retained
 heavy_charge support functions are not a second gameplay driver. Remaining
 4–10 C activehours lowconfidence; no client/network/publication action.
+
+
+## C61 Trooper gate audit and producer regression (no production rewrite)
+
+Actual1422 tracker5 already publishes real375=(Entity(Bastion),), its capsule
+candidate search hits and nomination succeeds. Health4 never starts at2m because
+its ONLY input edge is38.m_truePlug. Original node38 evaluates real target/self
+STU_71A87E92 positions with authored1.5 distance condition. Actual1m yields25
+armour-adjusted damage/health4.counter1/gateTrue;1.5/2m yield0/counter0/gateFalse.
+Do not bypass that input edge, invoke a fake health state or relax the data.
+
+Frozen0015 runtime.World.position returns Vec3(0,0,0), and its BotWorld lacks the
+current explicit1422 real-position consumer. That explains the original2m test
+expectation's dependence on a less complete position host; this source limitation
+is preserved as evidence, not translated to a new physical-range rule. A confirms
+A65 touched only1177/224E LinkedTarget scopes, not general mode3. This was not a
+lost linked-array initial notification or missing health driver.
+
+New actual Trooper1m/2m producer regression keeps authored graph unchanged and
+verifies real hit counter, damage and no movement; with C60 Heavy test2/2pass
+7.571s (../worker-c-c61-trooper-gate-check.log). Original3Trooper25/19/19-vs0
+assertion failures at2m remain untouched in the source and documented C60 log.
+No production change is needed for this audit. Sync56557266 already brought A's
+real NPC projected-recipient host; root requests next sync5ca8f867 with strict
+NPCPet boundary before C62 actual projected replay admission.
+
+Root audit also found retained oldprototype _hitscan kwargs in
+symmetra_sentry.py:237(source_entity/beam) and torbjorn_turret.py:190(source_entity).
+These are not the actual damage consumers: sole current Symm uses
+symmetra/symmetra_turrets with native Bots/Vitals; sole Torb uses original
+hero_torbjorn/Turret actor path. nodes imports oldTorb HAMMER constant only.
+Do not report these prototype kwargs as current gameplay bugs or install duplicate
+managers. Root six actual geometry families are now verified readonly under raw
+Server identity/splash/hash; no duplicate rerun requested from C.
+
+Next C62 actual NPCProjected frozen-support guard, then Heavycapture source
+boundary with real existing drive/1407; estimates4–10 activeC hours lowconfidence.
+No client/network/publication action.
+
+
+## C62 actual projected-NPC frozen-support replay admission
+
+Synced root5ca8f867, including original native NPC recipient and strict Pet
+boundary (777e1c9c), into clean tree dfaea595 before this batch. The existing
+single-projection proof now identifies actual native NPC recipient/Pet/Vitals.
+Ten original projected-talon/Helix setup cases (all5NPC primary/nextNPC receiver,
+capacities200/30) proved realrecipientTrue, sourceproofTrue, readonly inputs, but
+the outer Combat.frozen_sentry_replay blanket Zarya guard still rejected each.
+Baseline ../worker-c-c62-projected-admission-baseline.log (10/10driverFalse).
+
+Narrow only that outer guard to personal actors (recipient isNone). Projected
+actors now reach the existing original single-projection/support impact proof;
+multiple/unproven projections still decline there. Preserve personal/respawn/
+other-defense guards and the same world/NPC driver. No new actor, health pool,
+projection manager, scheduler or lifetime. The real native Pet driver alone
+handles damage/expiry/removal, including root strict storage changes.
+
+Actual producer comparison then ran each original setup in contiguous and single
+accepted gap schedules. All10 cases have EXACTLY equal12-field outcomes:
+primary/recipient HP,position,dead;actual samePet pool;support/sentry existence;
+ownerHERO_DAMAGE;bothbodyfaultNone. Terminal10sameTrue/no exceptions, log
+../worker-c-c62-projected-causal-check.log, reproducer
+../parallel-merge/worker-c-projected-support-causal-probe.py. Original setup's
+constant Hero maps realbarriers.ZARYA; contact observation maps actual
+barriers.authored_for(caster.body).parent/Pet; remaining uses actual.vitals.total
+and explicit same pool capacity write. No fake legacy manager or pool view.
+
+This is original-setup plus actual-world causal evidence, NOT a claim that the
+entire original huge observation fixture passes. Original full observer still
+uses absent oldbody-impact and oldcontact signatures/absolute destruction
+expectations; some current stepped outcomes retain support in this complex
+projection scene. Keep those boundaries for further source consumer audit.
+Normal shared Sentry/nativePet-query/Damage:25/25pass33.732s,
+../worker-c-c62-projected-shared-check.log. No source assertion/literal expectation
+modified, no client/network/publication action.
+
+Next C63 original projected full-observer/retarget impact consumers and remaining
+player/respawn phase windows; Heavy capture still original source boundary.
+Remaining estimate4–10activeC hours, lowconfidence. Actor/service uniqueness and
+actual current no-fault/causal outcomes take precedence over ancestry/testcounts
+when recording integration completeness.

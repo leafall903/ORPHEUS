@@ -305,6 +305,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Seven formerly blocked source methods pass; lethal slam reveals delayed
   Grasp owner cleanup, retained for the next fix. No client acceptance run.
 
+
+### Admit proven projected-NPC Sentry history through the existing driver
+
+- Replace the blanket projected-barrier rejection with the original strict
+  single-projection/support proof, preserving personal and other unproven guards.
+- Ten actual NPC/Pet scenarios have identical contiguous and gap outcomes;
+  25 shared checks pass. Full older observer/absolute-outcome differences and
+  client acceptance remain open without blocking the consumer integration.
+
+### Preserve the authored Trooper melee position gate
+
+- Add actual producer coverage for valid close contact and rejected farther
+  contact over the current real position host; two NPC/Bastion checks pass.
+- Keep the original older 2m expectations as recorded differences, without
+  widening graph conditions or creating another damage path. No runtime behavior
+  was changed by this audit; client acceptance remains open.
+
 ### Preserve original explicit filter and cache APIs
 
 - Restore the original caller-bound SDK and checks, reusing existing kernels.
@@ -399,6 +416,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Actual unbound-pillar80 splash and whole-server readonly state checks pass;
   actual Winston query checks now pass with its real world/input clock driven.
 
+
+### Restore shared original Sentry geometry queries
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
 
 ### Restore Grasp world decay from actual grant receipt
 
@@ -11528,3 +11553,26 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+### Preserve actual NPC projection private storage boundaries
+
+- Copy each BotWorld button lookup and cross-component barrier Entity parameter
+  values while retaining actual actor/component/context identities. Strict
+  snapshot rejection remains unchanged.
+- Actual projected NPC causal storage, unknown-field rejection and shared
+  damage/runtime20 checks pass; original gameplay assertions are retained.
+
+### Verify remaining actual prediction geometry families
+
+- Actual Orisa, Sigma and Photon shields pass surface/object/service identity,
+  splash inclusion/impact exclusion and readonly whole-server digest checks.
+  Correct raw world-flight and ground-aim input completes the existing fixture.
+- Combined with prior actual Mei/Reinhardt/Winston receipts, all six existing
+  geometry families now have scoped query evidence. No gameplay/runtime change.
+
+### Restore original horizontal speed modifier consumer
+
+- Restore delivery023B's field33 kernel unchanged on the existing normal mover
+  pose path. Original Flux impulse3 and preserved vertical speed now pass.
+- Actual/shared20 checks and modifier/state/floor16 checks pass. No new mover,
+  persistent field or altered original gameplay assertion.

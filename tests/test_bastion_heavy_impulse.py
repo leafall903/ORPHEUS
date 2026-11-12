@@ -32,3 +32,25 @@ class HeavyImpulseTests(unittest.TestCase):
         case.step(0,30)
         self.assertEqual(health.total,after)
         self.assertFalse(case.player.mover.velocity_changes)
+
+
+    def test_actual_trooper_melee_keeps_authored_position_gate(self):
+        for distance,damage in ((1,25),(2,0)):
+            with self.subTest(distance=distance):
+                case=bastion.BastionCombatTests()
+                case.fixture(enemy_position=(10,1,0))
+                catalog=npc.load_catalog(Path(os.environ['ORPHEUS_NPC_DATA_DIR'])/'pve_npcs_174.json')
+                bot=npc.spawn(case.run.match,catalog['1'],(0,1,distance),team=1,yaw=-32768)
+                target=case.target(bot)
+                case.command_aim=aim(case.fight._eye(case.player),
+                                     (bot.position[0],bot.position[1]+target.height/2,bot.position[2]))
+                case.step(0,8)
+                before=case.health(case.player).total
+                position=tuple(case.player.mover.position)
+                self.assertEqual(npc_control.start(case.run.match,case.player,melee=True),bot.entity)
+                case.step(0,65)
+                self.assertEqual(before-case.health(case.player).total,damage)
+                instance=next(i for i in bot.body_script.component.instances.values() if i.graph.index==0x1422)
+                self.assertEqual(instance.states[instance.graph.node(4).state].counter,int(bool(damage)))
+                self.assertEqual(tuple(case.player.mover.position),position)
+                self.assertEqual(npc_control.stop(case.run.match),1)
