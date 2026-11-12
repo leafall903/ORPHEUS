@@ -8579,8 +8579,8 @@ class Combat:
                 self._tell_hit(shooter, target, dealt, flags, frame)
                 shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
-                orisa_charge.damage(shooter, target, dealt, loadout, adaptive_shield_loss=adaptive_loss)
                 if source_body is None or source_body == shooter.body:
+                    orisa_charge.damage(shooter, target, dealt, loadout, adaptive_shield_loss=adaptive_loss)
                     lucio.charge_damage(shooter, target, base_before - vitals.base_total, loadout)
                 moira.gain_combat_charge(
                     shooter, dealt, body=source_body, damage_target=target, damage_tags=hit_tags,

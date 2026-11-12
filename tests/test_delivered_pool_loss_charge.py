@@ -95,3 +95,27 @@ class DeliveredPoolLossChargeTests(unittest.TestCase):
                         run.step({})
                 self.assertTrue(pool.removed or ("adaptive", TAG) not in hp.extra)
                 self.assertFalse(any(call.args[1].message == orisa_charge.DEALT for call in receive.call_args_list))
+
+    def test_retired_source_and_suppressed_award_do_not_credit_new_body(self):
+        for hero in (GENJI, ORISA):
+            for retired in (False, True):
+                with self.subTest(hero=hero, retired=retired):
+                    run, source, _, target, hp = self.arena(ORISA if hero == GENJI else GENJI)
+                    old_body = source.body
+                    self.assertTrue(run.match.switch_hero(source, heroes()[hero]))
+                    source.body_script.ult_seconds = 0
+                    run.step({})
+                    source.body_script.set_ult_charge(0)
+                    self.assertNotEqual(old_body, source.body)
+                    self.assertEqual(hp.grant_temporary_shields(TAG, 50, 50), 50)
+                    before = hp.total
+                    with patch.object(message_receive, "receive", wraps=message_receive.receive) as receive:
+                        self.assertTrue(run.match.combat._damage(
+                            source, target, 70, False, None, run.frame,
+                            source_body=old_body if retired else source.body,
+                            award_ult=retired,
+                        ))
+                    self.assertEqual(before - hp.total, 70)
+                    self.assertEqual(hp.extra[("adaptive", TAG)].now, 0)
+                    self.assertEqual(self.charge(source), 0)
+                    self.assertFalse(any(call.args[1].message == orisa_charge.DEALT for call in receive.call_args_list))

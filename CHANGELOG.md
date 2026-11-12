@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Keep retired-body damage out of the new Orisa charge meter
+
+- Apply the existing current source-body guard to Orisa's012 alongside Lucio's
+  existing guard. Damage, stats and detached foreign-flight survival retain their
+  current paths; retired Genji-source damage cannot charge a newly selected Orisa.
+- Reproduce with real bodies and the same Adaptive Shield extra pool; preserve
+  actual50shield+20base loss while suppressing new-body credit and duplicate012.
+  Added retired-source/award-disabled cases alongside the existing real-pool
+  checks. All26 pool/source, original Orisa critical, Genji passive and Damage
+  methods pass without skips. No original assertion or observer changed.
+
 ### Restore delivered Adaptive Shield loss deduction for Genji and Orisa
 
 - Reuse the actual same-hit Vitals.extra3EBB before/after loss already measured
