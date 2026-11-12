@@ -540,3 +540,66 @@ against canonical actor scheduler; unmounted sentry/portal/placement services
 and their retained-history interactions remain. Core9 charge passing does not
 prove those cross-owner branches. Continue actual sentry deployment/beam/slow
 and preserved original source checks next; no full-journal gate or client use.
+
+C22 SHA5beccbdc delivered. Clean boundary sync root6ef42b61 preserves B18 BotScript polymorphism/nontransportability, A25/26 Widow and source reconciliation map. Server registry retains root passive_charge_due plus own charge_clock and one beam_barrier field. Coordination only; continue C23 sentry.
+
+
+## C23 actor-backed original sentry core checkpoint
+
+Actual2658 NPC/Vitals/BotScript owner core mounted in symmetra_turrets.Turrets,
+Combat.sentries. Source157E/12 shot hands off before generic projectile; exact
+source157F boot/1590 live beam/range and01E7 aura inputs. Generic bot gun skips
+these actors, no second gun or pool. Existing Bot.combat_geometry retains source
+1m/0.2m capsule; zero-locomotion summoned actors are driven solely by this owner
+flight/attach logic (source Definition.mover constructor is not a second NPC API).
+NPC.remove_body does exact existing cleanup. Source death persists, switch/leave
+retire owned actors; source target change/destroy/retire destroys only its aura.
+Mei pillar removal calls actualmanager.retire_attached_to; old unused prototype
+module remains preserved, no fake .devices/.sentries health view.
+
+Original test_symmetra_turrets.py copied byte-identically. First3 checks exposed
+source Definition.mover positional mismatch; adapt to existing Definition pools
+and actual geometry rather than replacing NPC/nav. Next3pass2.226s; full14pass
+17.417s, worker-c-symmetra-sentry-core-check.log. Environment v4 + original
+ORPHEUS_EXTRA_GRAPH_BUNDLES skip input. Actual source summon-graphs3graphs and
+4entities composed in memory using existing graph.add_supplement(graph._data(),
+{version,graphs,entities}); patch only _data to return that real composed data.
+No fake health/geometry/assertions, no runtime pack writes. This is not yet the
+final root explicit-profile rerun. Root notified complete minimal input diff:
+base+v4 additions graphs01E7/157F/1590, actors2658/26B0/26F2/272D, zero shared
+record conflicts/identicals. Source topmetadata only version/source_sha256.
+Shared DamageTests + test_game_npc + test_symmetra_combat36pass15.682s (v4).
+
+Exact unmounted retained boundary: source frozen_history_candidates,
+_ice_support_rocket and related history/route isolation functions preserved;
+not called from current Combat gap replay. Their original phase_defenses and
+zarya projected-history helper protocols are not mounted. Normal update currently
+passes empty damage_starts/cryo_expiries/barrier_cover_ends; therefore original
+cross-owner phase/thaw/barrier-expiry omitted intervals remain unfinished.
+Do not infer them from core14 pass. Source supporting-ice basic retire is mounted.
+Next: explicit profile rerun, storage probe if useful, then mount these retained
+consumers against existing defense/clock owners or proceed portal placement in
+an independent actual batch. Keep all original checks and no acceptance matrix.
+
+
+C23 SHA c31524d4 delivered, explicit0016 input composer profile still pending.
+
+## C24 actual15F5/1647 transit checkpoint
+
+Original symmetra.play_transit_script and teleport_body mounted through existing
+compatibility_play_script/relocate_through_portal handlers. Existing legacy
+portal fallback preserved. Only owned15F5/nonstrict BodyWorld position query
+runs before typed spatial dispatch; unknown IDs remain None, other graphs and
+strict paths retain their current services. Original World.teleport_body default
+NotImplemented protocol restored, no pretend relocation for generic worlds.
+
+Original test_symmetra_teleport_action.py byte-identical, first9:7pass/onefail/
+oneerror (knownbody position missing; base protocol absent). Corrected source
+consumers, final9pass1.836s, worker-c-symmetra-transit-final-check.log.
+Original test_script_body_owner+DamageTests15pass2.027s,
+worker-c-symmetra-transit-shared-check.log. Actual mover physics instance remains
+same, position/history updates; old hit traces cannot interpolate teleport.
+No client execution, no pair/placement/admission implementation claimed.
+Next: original stateless placement_geometry/clock helpers and sourcePortalPair
+actor factory/confirm/interaction against existing NPC/actor pool; preserve
+canonical Photon barrier and DVa CallMech placement. No generic service overwrite.

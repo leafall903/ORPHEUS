@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Synchronize worker A for reassigned Junkrat delivery
+
+- Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
+  checks; missing grenade physics/clock fields reproduced before integration.
+
 ### Restore both CombatModFilter consumers through one state registration
 
 - Remove the duplicate strict registration that overwrote the original tag-only
@@ -64,6 +69,38 @@ This log records tested changes and their acceptance status. Entries are grouped
   Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
 
 ### Record worker A seven-owner reconciliation boundaries
+### Restore delivered Earthshatter clipped ground and native shield contacts
+
+- Route the existing Wave through source0007's101-ray wall/terrain clipping,
+  retaining blocked rays and clipped endpoints. Exposed bodies can be hit in
+  the same step that reaches a wall; far-side capsules remain excluded. Reuse
+  current native held-shield actors and their actual damage service, with
+  generation/activation dedup. Retain legacy helpers without a second driver.
+- Apply the source near-hit occlusion policy against actual shields and Ice
+  Walls. Keep existing Wave constructor positions and add stored blocked rays.
+- All44 focused original wall/front/terrain/recycled-shield/late-drop, Charge,
+  runtime and causal snapshot checks pass. Full original Shatter31 improves
+  from1fail11errors to1fail3errors: old control/barrier getters and writing the
+  legacy shield cache instead of its native pool remain. Preserve expectations.
+  Main source1399 assertions retain counts/order and unchanged Constants.
+- Original-client acceptance remains open.
+
+### Mount delivered explicit possession query contexts
+
+- Add source0007's typed POSSESSOR/BODY lookups and subscriptions, append their
+  record/context fields after existing fields, and preserve linked/participant,
+  Component76, definition and target-record consumers. Only explicit possessor
+  providers take precedence; Reinhardt binds actual Match controller identities.
+  Other heroes and NPC/DVa retain their existing native query adapters.
+- Retire the original context with its body and register both snapshot schemas.
+  All16 original possessor and Reinhardt Passive cases pass. Earlier76 shared
+  economy/Genji/query/snapshot checks passed; the expanded repeat continues.
+- Preserve complete original query suites. Two unrelated source observations
+  retain existing body_health call-shape/error-text differences. Body-VM29
+  retains four existing schema/factory expectation failures, including the newly
+  stored possessor context alongside existing beam/ammo fields; no checks edited.
+- Original-client acceptance remains open.
+
 ### Preserve delivered Reinhardt charge across body replacement
 
 - Capture source0007's earned charge only after securing a replacement ID,
@@ -171,11 +208,33 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
+### Mount delivered Symmetra transit action consumers
 
-- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
-  completed hero-core integration from root-owned cross-owner/history admission.
-  Preserve every known source/native observation and pending frozen replay result;
-  no production code, feature or check changed in this documentation batch.
+- Connect original15F5 own-body PlayScript and1647 relocation to existing
+  body/script handlers. Preserve physical body identity, velocity/orientation,
+  current mover history and combat discontinuity; reject dead/ended/bad targets.
+- Supply original15F5 known-body position query narrowly ahead of typed spatial
+  dispatch and preserve the original base World relocation protocol as unknown.
+  Existing portal fallback and other graph/strict dispatch remain intact.
+- All9 original teleport action checks pass1.836s; body-owner/Damage15 pass
+  2.027s. Original checks byte-preserved. Pair placement/admission/interaction
+  remain unmounted, so this does not claim a complete teleporter or client check.
+
+### Connect delivered actor-backed Symmetra sentry core
+
+- Launch actual2658 NPCs through existing spawn/health/replication/retirement;
+  original157F boot and1590 beam read their authored rate/range/slow graph01E7.
+  One owner manager drives flight and beam; the generic bot gun path skips these
+  same actors. Existing combat geometry supplies the source1m/0.2m capsule.
+- Preserve owner death, owner credit, charge limit, exact cleanup and independent
+  slow aura teardown. Connect actual Mei supporting-pillar removal; keep the
+  existing prototype module and other owner cleanup intact.
+- All14 original sentry core checks pass17.417s with actual source3graphs/4actors
+  added to base+v4 in memory through add_supplement; source assertions unchanged.
+  Shared Damage/NPC/Symmetra36 pass15.682s. Explicit root composed input profile
+  rerun is still pending. Original frozen/ice-support/phase/barrier expiry replay
+  functions remain preserved but their source service/caller protocols still
+  need mounting; no whole0016 or client acceptance claimed.
 
 ### Mount delivered Widowmaker weapon launch cone policy
 
@@ -263,6 +322,49 @@ This log records tested changes and their acceptance status. Entries are grouped
   or original-client acceptance is claimed.
 
 ### Mount delivered Torbjorn original charge and owner gates
+### Record worker A seven-owner reconciliation boundaries
+
+- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
+  completed hero-core integration from root-owned cross-owner/history admission.
+  Preserve every known source/native observation and pending frozen replay result;
+  no production code, feature or check changed in this documentation batch.
+
+### Mount delivered Widowmaker weapon launch cone policy
+
+- Connect source000A weapon_launch.directions at actual001B/node9/19 weapon
+  emission, scoped to Widowmaker. Retain current McCree and optional Enforcer
+  geometry consumers. Preserve recovered native emitted-index sampling instead
+  of the source's older post-count spread view; scoped zero cone stays exact.
+- Actual20-frame launch trace emits indexes0/1/2/3 with authored0/1/2/3-degree
+  cones and one ammo per ray. Original scoped-zero-angle test passes. Three
+  original spread checks retain first-shot/old eye-cover expectations and fail;
+  assertions preserved. Original rifle12 plus Damage/runtime21 all33 pass.
+- Preserve complete original spread and actual-NPC fixtures with only current
+  body/hero identity imports; no NPC acceptance claim or source asset copy.
+
+### Restore delivered world-clock guard queries and Widow reveal filtering
+
+- Port source000A pure countdown/state/world-active/Matrix-deadline queries.
+  Selected-player0407 Matrix now reads its retained native budget on world time,
+  including the existing absorption trace route; preserve owned-mech clock logic.
+  Gate Genji fallback body/trace/melee queries through the existing authored Wait
+  window, so future or stalled expired native states do not keep intercepting.
+- Preserve Infra's original living-target observation search across phase/Recall,
+  retaining current owned-pet exclusions instead of changing shared damage filters.
+- Original Infra clock/buffer12 pass. Original MatrixClock6 pass; DeflectClock2
+  pass and2 retain cadence expectations (current26 versus old13 damage after the
+  guard ends). Broader original edge23 audit preserves residual ammo and authored
+  eye-offset differences. Existing Genji/Blade/TracerMatrix/Damage/runtime56 has
+  6fail/2error; AnaDeflect/Damage/runtime34 has2fail/3error, including old health
+  field/catalog APIs and old damage expectations. No assertions changed.
+- Preserve original replay fixture. Its first run was invalidated by source edits
+  during manifest verification; rerun only at a frozen committed boundary.
+
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
+
 ### Integrate delivered Widowmaker Venom Mine and poison consumers
 
 - Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
@@ -322,6 +424,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Mount delivered Torbjorn original charge and owner gates
 
+
+### Mount delivered Torbjorn original charge and owner gates
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
 
@@ -8441,3 +8545,22 @@ client operations performed. Whole nonappearance integration remains active.
   Evidence: parallel-root-widow-catalog-storage-check.log and
   parallel-a25-venom-shared-check.log. Do not count partial owner intake as
   all-source completion. Original client/publication operations not performed.
+
+
+### Preserve explicit original summon input shards
+
+- The existing input composer now accepts original plain JSON graph shards as
+  well as gzip packs, selecting by bytes instead of copying a runtime. Original
+ 0016 summon records add exactly3 graphs and4 entities without shared conflicts.
+  External v5 equals v4 plus those exact original records:18 added graphs,
+ 7 entities,4 Mercy effects and all3528 projectile definitions. Existing v4
+ gzip output is byte-identical after parser extension; source hashes unchanged.
+- Preserve explicit Hanzo startup flags/profiles and record source-only metadata
+ unselected. Source summon shard provenance stays in its original JSON and the
+ generated manifest; no original input modified. NPC aliases remain hardlinks.
+- Frozen canonical6ef42b61 original Widow encrypted-input/stored-state replay1
+ passed438.966s with no code edits during capture/replay. Separate original
+ B18/C20/A26+Genji/body-owner core57 all pass. New committed batches were
+ received in the separate intake tree while that source tree stayed frozen.
+ Evidence: parallel-widow-frozen-replay-check.log and
+ parallel-b18-c20-a26-core-check.log. No original-client or publication action.

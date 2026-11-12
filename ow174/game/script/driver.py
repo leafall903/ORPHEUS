@@ -338,6 +338,7 @@ class BodyWorld(runtime.World):
             watch_environment=self._poll_entity_query, watch_owner=self._poll_entity_query,
         )
         # Server warm-up constructs a script with the null entity sentinel.
+        self._possessor_query = None
         self._entity_query_context = None
         if expr.valid_entity(body):
             self._entity_query_context = entity_queries.Context(
@@ -635,6 +636,11 @@ class BodyWorld(runtime.World):
 
 
     def relocate_through_portal(self, instance, node):
+        from ow174.game import symmetra
+
+        result = symmetra.teleport_body(self, instance, node)
+        if result is not NotImplemented:
+            return result
         portals = getattr(self.match.combat, "symmetra_portals", None) if self.match is not None else None
         return portals.relocate(instance, node) if portals is not None else NotImplemented
 
@@ -745,8 +751,11 @@ class BodyWorld(runtime.World):
         return NotImplemented
 
     def compatibility_play_script(self, instance, node):
-        from ow174.game import barriers
+        from ow174.game import barriers, symmetra
 
+        result = symmetra.play_transit_script(self, instance, node)
+        if result is not NotImplemented:
+            return result
         if self.hero == 0x02E000000000023B and self.match is not None:
             if instance.graph.index == 0x1D02 and node.pos == 34:
                 from ow174.game import interception
@@ -855,6 +864,37 @@ class BodyWorld(runtime.World):
 
             barriers.retire(self.match.combat, entity)
 
+    def entity_possessor_context(self, entity: int):
+        if self.match is None or entity != self.body or self.hero != barrier.REINHARDT:
+            return NotImplemented  # retain other heroes' existing dedicated native adapters
+        if self._possessor_query is None:
+            self._possessor_query = entity_queries.Context(
+                entity, True, True, True, lookup=self._lookup_possessor,
+                watch_environment=None, watch_possession=None, watch_possessor=self._watch_possessor,
+            )
+        return self._possessor_query
+
+    def _lookup_possessor(self, entity):
+        # The Match owns these controller/body identities. No relation is
+        # inferred from team, health or the ability's running state.
+        for player in self.match.players:
+            if player.gone:
+                continue
+            if player.has_body and player.body == entity:
+                return entity_queries.Target(entity, possessor=entity_queries.Possession(player.entity))
+            if player.entity == entity:
+                return entity_queries.Target(entity, possessor=None)
+        if any(bot.entity == entity for bot in self.match.bots):
+            return NotImplemented  # NPC component43/controller ownership is not installed here.
+        return None
+
+    @staticmethod
+    def _watch_possessor(watcher, target):
+        # InstanceContext already records this config in native_dependency.
+        # Match relation changes are polled at command boundaries; native
+        # component43 callback allocation/phase order is not reconstructed.
+        return None
+
     def movement_flags(self, entity):
         resolver = getattr(self.match, "script_movement_flags", None)
         return resolver(entity, getattr(self, "body", 0)) if callable(resolver) else NotImplemented
@@ -904,6 +944,10 @@ class BodyWorld(runtime.World):
     def native(self, cfg: dict, instance):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
+        if instance is not None:
+            value = symmetra.transit_position_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
         if self.hero == symmetra_charge.HERO:
             value = symmetra_charge.native(self, cfg, instance)
             if value is not NotImplemented:
@@ -2861,6 +2905,8 @@ class BodyScript(ReplicatedBody):
         if self.world.match is not None:
             self.world.match.unregister_body_component(self.component)
         self.component.disconnect_foreign_watchers()
+        if self.world._possessor_query is not None:
+            self.world._possessor_query.retire()
         self.world.match = None
         if self.stream.full_update is not None:
             self.stream.full_update.resend = False

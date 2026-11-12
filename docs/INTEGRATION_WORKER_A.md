@@ -867,3 +867,17 @@ those normal-module baselines then restored byte-for-byte in try/finally; no
 other worktree touched, no AST/assertion bypass and no original check weakened.
 Next exact action: root receive independent A32 and its sync; remain available
 for concrete cross-owner registry/consumer gaps rather than changing old checks.
+
+### 0065 Junkrat reassigned by root after A32
+
+Root exclusively transferred0065 from worker C to A; C confirms noWIP and no
+steel_traps protocol invented. Keep source Junkrat.Trap as the one intended actor/
+pool, adapt actual _targets so Torb hammer's normal body loop can damage it once.
+Clean sync intake ed400249. Frozen ref c31d926214d74bbb6d5f308cabce92c65d8a48fc.
+Current server has no junkrat/junkrat_tire/junkrat_charge consumer; steel_trap.py
+is a separate unmounted older module, not a reason to create a duplicate manager.
+Original primary baseline3:2fails/2subcaseerrors (gravity0vs12.25, missing world
+launch cursor, missingterrain_bounces). Original full test module preserved;
+only sigma_grasp import points to current absorption provider. Next: actual
+source Frag Launcher gravity/range/fuse/terrain response on current single Rocket
+pipeline, then Mine/SteelTrap/Tire/charge and explicit necessary external inputs.

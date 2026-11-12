@@ -16,6 +16,7 @@ import weakref
 from collections import deque
 from pathlib import Path
 
+from ow174.game import symmetra_turrets
 from ow174.game import (
     combat_profiles,
     venom,
@@ -109,6 +110,8 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    symmetra_turrets.Turrets: _names("combat sentries"),
+    symmetra_turrets.Sentry: _names("owner bot direction speed last_tick attached_at target slow support_pillar"),
     scopes.Registry: _names("states"),
     scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
@@ -135,7 +138,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs venom zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -224,7 +227,7 @@ FIELDS = {
         "self_repairs control_windows sleep_windows frost_windows"
     ),
     driver.BodyWorld: _names("hero mode body body_definition beam_barrier throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
-                             "_body_owner_context _entity_query_context"),
+                             "_body_owner_context _entity_query_context _possessor_query"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
         "flashbang_weapon_stack"
@@ -242,7 +245,7 @@ FIELDS = {
     body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
                                "watch_owner retired"),
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
-                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant"),
+                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant watch_possessor"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
