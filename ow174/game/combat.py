@@ -2020,6 +2020,15 @@ class InputLock:
     aim: tuple[int, int] | None = None
 
 
+def _tick_at_or_after(now, tick, deadline):
+    """Map a deadline to the first world tick whose reconstructed time reaches it."""
+    at = tick - math.floor((now - deadline) / TICK)
+    if now - (tick - at) * TICK < deadline:
+        return at + 1
+    if now - (tick - at + 1) * TICK >= deadline:
+        return at - 1
+    return at
+
 class Combat:
     """The match's health, hits, deaths and respawns."""
 
@@ -2258,6 +2267,7 @@ class Combat:
         self.photon_barriers = photon_barrier.Barriers(self)
         self.zarya_gravitons = graviton.Gravitons(self)
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
+        self.early_projectile_respawns: set[int] = set()  # actual historical projectile deaths
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.next_barrier = barriers.FIRST_ENTITY
@@ -2431,6 +2441,7 @@ class Combat:
         self.support_effects.retire(entity)
         self.healing.retire(entity)
         self.respawns[:] = [(when, owner) for when, owner in self.respawns if owner is not target.owner]
+        self.early_projectile_respawns.discard(target.entity)
         self.record_replacement(entity)
         self.stuns[entity] = self.tick + math.ceil(control_seconds / TICK)
         self._sync_body_health(target.owner, vitals)
@@ -2595,6 +2606,7 @@ class Combat:
                 )
             ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
+        self.early_projectile_respawns.discard(player.body)
 
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
@@ -4325,6 +4337,9 @@ class Combat:
             from ow174.game.script import charge
 
             charge_context = charge.damage_context(script, state, modify) if isinstance(script, BodyScript) else None
+            if script.hero == mei.HERO:
+                scale = player.mover.body_scale
+                reach, radius = reach * scale, radius * scale
             origin, direction = self._eye(player), aim(*command.aim())
             ring = knockback.quick_melee_ring(state) if hero == lucio.HERO else None
             centre = _along(origin, direction, reach)
@@ -4593,7 +4608,24 @@ class Combat:
         # admission still feeds the sole world/NPC update loop.
         return self.sentries.frozen_history_candidates(tick)
 
-    def update(self, now: float, tick: int, frames: bool = True) -> None:
+    def replays_orb_flights(self, tick: int) -> bool:
+        return self.tick + 1 < tick and any(
+            rocket.definition == symmetra.ORB_PROJECTILE and rocket.last_tick is not None
+            for rocket in self.rockets
+        )
+
+    def replays_orb_routes(self, tick: int) -> bool:
+        return any(bot.route for bot in self.match.bots) and self.replays_orb_flights(tick)
+
+    def _step_route_poses(self):
+        # Reuse the current sole route/control/impulse driver, without preparing
+        # another pending body or advancing unrelated endpoint NPCs again.
+        self.match._advance_bots(self.tick, routes_only=True)
+
+    def _step_impulse_poses(self):
+        self.match._advance_bots(self.tick, impulses_only=True)
+
+    def update(self, now: float, tick: int, frames: bool = True, *, replay_routes=False) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
         other players' body frames only on the ticks that send (`frames`)."""
         if self.match.collision_world is None:
@@ -4602,6 +4634,18 @@ class Combat:
 
         # Original0016 beam integration consumes cover that ended inside the
         # accepted gap, using the existing actors and their actual clock pairs.
+        allocation_clock = None
+        if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
+            allocation_clock = self.match.environment.monotonic(callsite="combat.respawn_clock")
+        # Original retained replacements keep live summoned sentries on their
+        # owner while the owner's actual body/charge clock changes at its deadline.
+        retained_owners = {sentry.owner for sentry in self.sentries.sentries
+                           if sentry.bot.moved_tick is not None}
+        retained_owners.update(who for _, who in self.respawns
+                               if not isinstance(who, bots.Bot)
+                               and who.body in self.early_projectile_respawns)
+        retained_owners.intersection_update(who for _, who in self.respawns
+                                            if not isinstance(who, bots.Bot))
         sentry_damage_starts, cryo_expiries = {}, {}
         for player in self.match.players:
             phase_end = immunity.phase_world_deadline(self, player)
@@ -4624,7 +4668,8 @@ class Combat:
                 if self.photon_barriers.actors.get(actor.source_body) is not actor:
                     photon_cover_ends.append((actor, min(self.now, now - (tick - actor.expires) * TICK)))
             for actor, expiry in old_spheres:
-                if self.barriers.world.actors.get(actor.entity) is not actor:
+                if (self.barriers.world.actors.get(actor.entity) is not actor
+                        and not any(old is actor for old, _ in sphere_cover_ends)):
                     ended = self.now if expiry is None else min(self.now, now - (tick - expiry) * TICK)
                     sphere_cover_ends.append((actor, ended))
             old_photon = tuple(self.photon_barriers.actors.values())
@@ -4667,6 +4712,15 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        sphere_respawns = any(
+            actor.owner is who and when < now
+            and when < now - (tick - expiry) * TICK
+            for when, who in self.respawns if not isinstance(who, bots.Bot)
+            for actor in self.barriers.world.actors.values()
+            if (expiry := self.barriers.world.expiry_tick(actor)) is not None
+        )
+        if self.tick and tick > self.tick + 1 and (retained_owners or sphere_respawns):
+            first = retained
         if self.tick and (self.junkrat.tire.actors or self.junkrat.tire.recovery):
             first = retained
         for player in self.match.players:
@@ -4695,6 +4749,9 @@ class Combat:
             self.now, self.tick = now - (tick - first + 1) * TICK, first - 1
             self.zenyatta.update()
             self.now, self.tick = previous_time, previous_tick
+        if retained_owners and first > self.tick + 1:
+            self._respawn_owners_before_window(
+                retained_owners, now, tick, first, sentry_damage_starts, allocation_clock)
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         self.junkrat.advance_before(first, now, tick)
@@ -4735,18 +4792,33 @@ class Combat:
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
         scheduled_flights = [
             (rocket, range(max(self.tick, rocket.last_tick) + 1,
-                           min(tick, rocket.last_tick + math.ceil(rocket.left / TICK)) + 1))
+                           min(tick, rocket.last_tick + math.ceil(
+                               (min(rocket.left, symmetra.ORB_LIFETIME)
+                                if rocket.definition == symmetra.ORB_PROJECTILE else rocket.left) / TICK)) + 1))
             for rocket in self.rockets if rocket.last_tick is not None
-            and _zarya_world_timed_flight(rocket.definition, rocket.spawn)
+            and (_zarya_world_timed_flight(rocket.definition, rocket.spawn)
+                 or rocket.definition == symmetra.ORB_PROJECTILE)
         ]
         flight_ticks = {at for _, flight in scheduled_flights for at in flight}
+        orb_ticks = {at for rocket, flight in scheduled_flights
+                     if rocket.definition == symmetra.ORB_PROJECTILE for at in flight}
         graviton_flights = [flight for rocket, flight in scheduled_flights
                            if flight and rocket.spawn == graviton.FIELD_ENTITY]
         field_ticks = self.zarya_gravitons.clock_ticks(self.tick, tick, graviton_flights)
         for at in sorted(normal_ticks | flight_ticks | field_ticks):
+            if at == first and retained_owners and first > self.tick + 1:
+                # Omitted flights may have introduced a death after the initial
+                # prewindow scan. Apply its due replacement before retained hits.
+                self._respawn_owners_before_window(
+                    retained_owners, now, tick, first, sentry_damage_starts, allocation_clock)
             if at not in normal_ticks and not (
                 any(rocket in self.rockets and at in flight for rocket, flight in scheduled_flights)
                 or any(field.last_tick < at <= field.end_tick for field in self.zarya_gravitons.fields)
+                or (replay_routes and at in orb_ticks)
+                or (at in orb_ticks and any(
+                    bot.impulse_mover is not None and not bot.dead
+                    and (bot.impulse_mover.airborne or any(bot.impulse_mover.velocity)
+                         or bot.impulse_mover.velocity_changes) for bot in self.match.bots))
             ):
                 continue
             if field_first < at:
@@ -4757,6 +4829,10 @@ class Combat:
                     self._charge_zarya_passive(self.zarya_charge_tick + 1, at)
                 self.zarya_charge_tick = at
             self.now, self.tick = now - (tick - at) * TICK, at
+            if replay_routes:
+                self._step_route_poses()
+            if orb_ticks:
+                self._step_impulse_poses()
             for player, script, release in bubble_releases.get(at, ()):
                 if (player.body_script is not script or self.is_dead(player)
                         or winston.HostedBarriers(self).pending_release(player, round(TICK * 1000)) != release):
@@ -4816,9 +4892,15 @@ class Combat:
             moira.advance_orbs(self)
             moira.advance_spray_heals(self)
             self._flush_pending_attacks()
+            pending_respawns = set(self.respawns) if at < first else None
             for rocket in list(self.rockets):
                 if at == tick or rocket.last_tick is not None:
                     self._fly(rocket)
+            if pending_respawns is not None:
+                victims = {who for when, who in self.respawns
+                           if not isinstance(who, bots.Bot) and (when, who) not in pending_respawns}
+                self.early_projectile_respawns.update(who.body for who in victims)
+                retained_owners.update(victims)
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
@@ -4872,9 +4954,15 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             observe_sentry_cover_ends()
-            if at < tick and replay_ice_sentries:
+            if at < tick and (replay_ice_sentries or retained_owners):
                 self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends,
-                                     replay_ice=True)
+                                     replay_ice=replay_ice_sentries, replay_owners=retained_owners)
+            # Same ordering as a contiguous tick: attacks precede replacement.
+            # Ordinary endpoint respawns remain in the existing final queue loop.
+            if at < tick and (retained_owners or sphere_respawns):
+                self._respawn_retained_owners(
+                    retained_owners, sentry_damage_starts, allocation_clock,
+                    sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -5084,6 +5172,22 @@ class Combat:
             self.photon_barriers.melee(shooter, origin, centre, radius, amount)
             sigma_barrier.melee(self, shooter, origin, centre, radius, amount)
 
+    def _particle_projectile_damage(self, rocket):
+        """Combine one native particle contact before continuing its splash."""
+        from ow174.game import nano
+
+        amount = 0.0
+        if rocket.direct is not None:
+            amount = rocket.direct.amount
+            if rocket.scale_direct:
+                amount *= rocket.direct.scale(rocket.flown * rocket.speed)
+        if rocket.blast is not None:
+            amount += rocket.blast.amount
+        amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
+        if rocket.offense_scale is None:
+            amount *= nano.offense(self, rocket.source_entity)
+        return amount
+
     def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None, source_scaled=False):
         from ow174.game import nano
 
@@ -5226,10 +5330,10 @@ class Combat:
                 continue
             if player.controlled_mech is not None:
                 continue
-            data = mover_data(player.hero.body)
+            data = player.mover.values
             crouched = player.mover.crouched
             height = data.crouch_height if crouched else data.stand_height
-            eye = eye_height(player.hero.body, crouched)
+            eye = eye_height(player.hero.body, crouched) * player.mover.body_scale
             head_offset = None
             if player.hero.body == TRACER_BODY and not crouched:
                 hx, hy, hz = TRACER_HEAD
@@ -6042,7 +6146,7 @@ class Combat:
             return x, y + height, z
         x, y, z = player.mover.position
         crouched = player.mover.crouched
-        height = eye_height(player.hero.body, crouched)
+        height = eye_height(player.hero.body, crouched) * player.mover.body_scale
         return (x, y + height, z)
 
     def damage_scale(self, shooter) -> float:
@@ -7958,8 +8062,15 @@ class Combat:
                               native_impact_body=native.parent_body, incident_direction=heading)
                 self._landed(rocket, continuation_point=point)
                 return 0.0
-            amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
+            particle_contact = (native.component.world.hero == barriers.ZARYA
+                                and rocket.sticky_delay is None)
+            recipient = native.recipient_body or native.parent_body
+            amount = (self._particle_projectile_damage(rocket) if particle_contact else
+                      sum(hit.amount for hit in (rocket.direct, blast) if hit is not None))
             barriers.damage(self, native, amount, attacker=_source_entity(rocket.shooter))
+            if particle_contact:
+                # Capture the receiver before damage can retire the native Pet.
+                self._explode(rocket, point, protected=(recipient,))
             if rocket.sticky_delay is not None:
                 self._stick(rocket, point, duration - contact_time)
             else:
@@ -7967,7 +8078,12 @@ class Combat:
             return 0.0
         if echo_shield is not None:
             actor = echo_shield[1]
-            if rocket.direct is not None:
+            particle_contact = (isinstance(actor, barriers.Bubble)
+                                and rocket.sticky_delay is None
+                                and self.barriers.authored_for(actor.caster_body, actor.phase) is not None)
+            if particle_contact:
+                self.barriers.damage(actor, self._particle_projectile_damage(rocket), rocket.shooter)
+            elif rocket.direct is not None:
                 self.barriers.damage(actor, rocket.direct.amount, rocket.shooter)
             if rocket.sticky_delay is not None:
                 rocket.attached_entity = actor.entity
@@ -8589,7 +8705,7 @@ class Combat:
             excluded=() if native_impact_body is None else (native_impact_body,),
         ))
         for bubble in self.barriers.enemies(rocket.shooter):
-            if not isinstance(bubble, barriers.Bubble):
+            if not isinstance(bubble, barriers.Bubble) or bubble.body in protected:
                 continue
             distance = max(0.0, math.dist(point, bubble.centre()) - barriers.RADIUS)
             scalar = blast.splash(distance)
@@ -9348,8 +9464,7 @@ class Combat:
         candidates = []
         for target in self._targets():
             if (target.owner is caster or target.team != caster.team or self.vitals_of(target).dead
-                    or not barriers._projection_recipient_ready(self, target.owner)
-                    or self._active_projected_barrier(target.entity)):
+                    or not barriers._projection_recipient_ready(self, target.owner)):
                 continue
             script = target.owner.body_script
             if script is not None:
@@ -9426,6 +9541,8 @@ class Combat:
         pet = self._personal_barrier_pet(target.owner)
         if pet is None:
             return None
+        if isinstance(pet, nodes.CompatiblePet) and pet.pet_entity is not None:
+            return None  # this actual native factory owns its sole finite pool, even during break handoff
         activation = pet.instance.id, pet.counter
         prior = self.personal_barriers.get(target.entity)
         if prior is not None and prior[:2] == activation:
@@ -10919,7 +11036,59 @@ class Combat:
         self.brigitte.died(victim)
         self.respawns.append((self.now + respawn_seconds(self.match), victim))
 
-    def _respawn(self, who) -> None:
+    def _respawn_owners_before_window(self, owners, now, tick, first, damage_starts, allocation_clock):
+        """Apply due replacements without replaying attacks from the omitted ticks."""
+        previous_now, previous_tick = self.now, self.tick
+        try:
+            while pending := min(
+                (entry for entry in self.respawns if entry[1] in owners),
+                key=lambda entry: entry[0], default=None,
+            ):
+                when, player = pending
+                at = max(previous_tick + 1, _tick_at_or_after(now, tick, when))
+                if at >= first:
+                    break
+                self.now, self.tick = now - (tick - at) * TICK, at
+                # Allocation failure schedules another deadline relative to this attempt.
+                self._replace_retained_player(when, player, damage_starts, allocation_clock)
+        finally:
+            self.now, self.tick = previous_now, previous_tick
+
+    def _respawn_retained_owners(
+        self, owners, damage_starts, allocation_clock, *, sphere_cover_ends=None,
+        include_sphere_owners=True,
+    ):
+        for when, player in tuple(self.respawns):
+            if when > self.now or isinstance(player, bots.Bot):
+                continue
+            spheres = tuple((actor, expiry) for actor in self.barriers.world.actors.values()
+                            if actor.owner is player and actor.source_body == player.body
+                            and not actor.retired
+                            and (expiry := self.barriers.world.expiry_tick(actor)) is not None
+                            and self.tick < expiry)
+            if player not in owners and not (include_sphere_owners and spheres):
+                continue
+            replaced = self._replace_retained_player(when, player, damage_starts, allocation_clock)
+            if replaced and sphere_cover_ends is not None:
+                # The original covers the replacement tick; next-tick beam
+                # integration sees the same shell identity and its ended time.
+                for actor, expiry in spheres:
+                    ended = min(self.now + TICK, self.now - (self.tick - expiry) * TICK)
+                    sphere_cover_ends.append((actor, ended))
+
+    def _replace_retained_player(self, when, player, damage_starts, allocation_clock):
+        old_body = player.body
+        self._send_health(body=old_body)
+        self.respawns.remove((when, player))
+        self._respawn(player, allocation_clock=allocation_clock)
+        if player.body == old_body:
+            return False
+        # Contiguous combat runs before respawn in the same tick.
+        self.replacement_ticks[player.body] = self.tick
+        damage_starts[player.body] = self.now
+        return True
+
+    def _respawn(self, who, *, allocation_clock=None) -> None:
         if isinstance(who, bots.Bot):
             self._respawn_bot(who)
             return
@@ -10941,8 +11110,13 @@ class Combat:
         if (old_script is not None and player.hero.guid == 0x02E000000000023B
                 and old_script.entity == player.body):
             points = max(0.0, expr.to_float(old_script.component.entity_var(ULT_CHARGE).value()))
-        switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
-                    if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
+        allocation_at = None
+        if allocation_clock is not None:
+            allocation_at = allocation_clock - max(0, self.match.tick - self.tick) * TICK
+        options = {} if allocation_at is None else {"body_id_at": allocation_at}
+        switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True, **options)
+                    if player.hero.guid == sombra_charge.SOMBRA
+                    else self.match.switch_hero(player, player.hero, **options))
         if not switched:
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
@@ -10990,10 +11164,10 @@ class Combat:
 
     # --- what the clients get ----------------------------------------------------------------------
 
-    def _send_health(self) -> None:
+    def _send_health(self, *, body=None) -> None:
         """Send the latest complete pool snapshot for each body that changed."""
         for entity, vitals in list(self.vitals.items()):
-            if not vitals.changed:
+            if not vitals.changed or (body is not None and entity != body):
                 continue
             # A replacement covers prior unacknowledged changes in any pool.
             components = vitals.component(vitals.most)

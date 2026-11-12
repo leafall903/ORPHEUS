@@ -549,11 +549,6 @@ class BodyWorld(runtime.World):
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and state.instance.graph.index == 0x0043 and state.node.pos == 14):
             return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
-        # The hosted projection supplies its overlap gate while the native
-        # 025C recipient effect/tag system is unimplemented.
-        if (self.match is not None and self.hero == 0x02E0000000000068
-                and state.instance.graph.index == 0x0244 and state.index == 0):
-            return self.match.combat._active_projected_barrier(self.body) is None
         return True
 
     def ability_cooldown_floor(self, state):
@@ -1473,6 +1468,10 @@ class BodyWorld(runtime.World):
                     and instance.evaluate(target) == Entity(self.body)):
                 override = component.entity_var(BODY_SCALE_OVERRIDE, create=False)
                 scale = override.value() if override is not None else None
+                if not component.strict and self.match is not None:
+                    owner = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
+                    if owner is not None:
+                        return owner.mover.body_scale
                 if scale is None or (expr.kind(scale) in ("int", "float") and scale == UNIT_ENTITY_SCALE):
                     return UNIT_ENTITY_SCALE
         if cls == "STU_4A101787":  # its evaluator (0x7FF789BFF730) always answers false

@@ -1439,20 +1439,24 @@ class Match:
 
     # --- lifetime ------------------------------------------------------------------------------
 
-    def _advance_bots(self, tick: int) -> None:
+    def _advance_bots(self, tick: int, *, routes_only=False, impulses_only=False, defer_routes=False, defer_impulses=False) -> None:
         if not self.bots:
             return
         from ow174.game import npc_navigation
 
-        if self._pending_bot_scripts:
+        if not (routes_only or impulses_only) and self._pending_bot_scripts:
             # Keep graph setup within the loading window and off the world-create burst.
             self._prepare_bot_script(self._pending_bot_scripts.popleft())
-        manual = [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
+        manual = [] if routes_only or impulses_only else [bot for bot in self.bots if bot.spawner.get('manual_spawn') is True]
         budgets = npc_navigation.planning_budgets(self, manual, self._npc_planning_turn)
         if budgets:
             self._npc_planning_turn += 1  # server ticks can skip under load
         pillars = ice_wall.pillar_actors(self.combat)
         for bot in self.bots:
+            if ((routes_only and not bot.route) or (impulses_only and bot.impulse_mover is None)
+                    or (defer_routes and bot.route)
+                    or (defer_impulses and bot.impulse_mover is not None)):
+                continue
             if self.combat.companions.actor_for(bot.entity) is not None:
                 continue  # The original phase driver owns this same NPC/mover.
             if self.combat.junkrat.rooted(bot.entity, tick):
@@ -1512,19 +1516,21 @@ class Match:
         if ready:
             first = tick
             frozen_sentries = self.combat.frozen_sentry_replay(tick)
+            orb_history = not frozen_sentries and self.combat.replays_orb_flights(tick)
+            replay_routes = orb_history and self.combat.replays_orb_routes(tick)
             if frozen_sentries:
                 # The delivered lock proof admits only one freeze plus the
                 # normal retained window. Reuse this same route/nav driver.
                 first = self.combat.tick + 1
-            elif (self.combat.tick and tick > self.combat.tick + 1
+            elif (not orb_history and self.combat.tick and tick > self.combat.tick + 1
                     and self.combat.lucio_auras.has_moving_npc_recipients()):
                 first = max(self.combat.tick + 1, tick - combat.COMBAT_CATCH_UP + 1)
             for at in range(first, tick + 1):
                 self.tick = at
                 self.combat.slams.advance_impulses(at)
-                self._advance_bots(at)
+                self._advance_bots(at, defer_routes=replay_routes, defer_impulses=orb_history)
                 self.combat.update(now - (tick - at) * combat.TICK, at,
-                                   frames=frames and at == tick)
+                                   frames=frames and at == tick, replay_routes=replay_routes)
             self.tick = tick
         if self.assemble_ends is not None and not self.assembled and now >= self.assemble_ends:
             self._end_assemble(now)
@@ -2089,19 +2095,20 @@ class Match:
             player.loaded_at = now
             log.info("[game] %s: %s loaded the map", self.label(), player.name)
 
-    def _next_body_id(self, player: Player) -> int | None:
+    def _next_body_id(self, player: Player, *, at: float | None = None) -> int | None:
         """Walk the player's ID ring, excluding bodies any connected peer still retains."""
         clients = [viewer.client for viewer in self.players if viewer.client is not None]
         suffix = player.body & 0xFF
         for offset in range(254):
             entity = player.entity | ((suffix + offset) % 255 + 1)
-            if all(client.body_id_available(entity) for client in clients):
+            if all((client.body_id_available(entity) if at is None else client.body_id_available(entity, at=at))
+                   for client in clients):
                 return entity
         return None
 
     def switch_hero(
         self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None,
-        preserve_ultimate: bool = False,
+        preserve_ultimate: bool = False, body_id_at: float | None = None,
     ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
@@ -2135,7 +2142,8 @@ class Match:
         retained_torb_charge = passive_torb_due = None
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
-            entity = self._next_body_id(player)
+            entity = (self._next_body_id(player) if body_id_at is None
+                      else self._next_body_id(player, at=body_id_at))
             if entity is None:
                 return False
             if old_hero != hero.guid or hero.guid != 0x02E0000000000007:

@@ -17,6 +17,7 @@ from typing import ClassVar
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, STEP, Snapshot
 from ow174.game.script import (
+    ai_behavior,
     animation_alias,
     array_actions,
     assassin_movement,
@@ -2495,17 +2496,26 @@ class ActiveInputRelay(State):
 
 @state_class("STU_91EF24A9")
 class AIBehavior(State):
-    """A behavior candidate. The world decides when its selected subgraph runs."""
+    """Original component87 callbacks with the existing optional manual policy."""
 
     def __init__(self, *args):
         super().__init__(*args)
         self.selected = False
+        self.ai_previous = 0
 
     def on_enter(self) -> None:
+        self.ai_previous = 0
         self.refresh_selection()
 
     def refresh_selection(self):
-        selected = bool(self.instance.component.world.selects_ai_behavior(self.instance))
+        component = self.instance.component
+        # An explicitly supplied native callback context owns selection. The
+        # default host retains its existing manual-NPC selection policy.
+        supplied = component.world.ai_behavior_context(component.entity, component=component)
+        if supplied is not NotImplemented:
+            ai_behavior.context(self)
+            return
+        selected = bool(component.world.selects_ai_behavior(self.instance))
         if not self.active or selected == self.selected:
             return
         self.selected = selected
@@ -2514,10 +2524,24 @@ class AIBehavior(State):
         else:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
 
+    def timer(self, param: int) -> None:
+        ai_behavior.timer(self, param)
+
     def on_end(self, finished: bool) -> None:
         if self.selected:
             self.instance.exit_subgraph(self.node, "m_6F92F4BD")
         self.selected = False
+
+    def on_cleanup(self) -> None:
+        component = self.instance.component
+        if component.world.ai_behavior_context(component.entity, component=component) is not NotImplemented:
+            ai_behavior.cleanup(self)
+
+    def on_failed(self) -> None:
+        ai_behavior.detach(self)
+
+    def on_destroyed(self) -> None:
+        ai_behavior.detach(self)
 
 
 @state_class("STU_D3CDCF04")

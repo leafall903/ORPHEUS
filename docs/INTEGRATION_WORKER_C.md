@@ -2597,6 +2597,65 @@ Any source support still unmounted remains explicit. C58 phase integration and
 C57 wall-source consumers already committed; no live check at this checkpoint.
 No client/network/publication action.
 
+## C64 — bounded source-consumer closeout after C63
+
+This audit supersedes the C44 remaining-work inventory above; those historical
+estimates and gaps are retained as history, not a current implementation queue.
+No production change or new acceptance requirement is introduced by this batch.
+
+00DD original body_scale has four production consumers: Combat quick melee,
+target sampling, eye origin, and BodyWorld FDBB. C63 mounts all four on the same
+Mover.values/property. The current actual Matrix paths in deflection.matrix_contact,
+deflection.matrix_distance and matrix.active_boxes evaluate authored box corners
+through their existing state.evaluate; the same BodyWorld FDBB answers their size
+expressions. A missing old dva_matrix fixture/module name is not evidence for
+another Matrix provider. The original third Matrix scale method remains a
+verification tail, not a known missing implementation; it has not been claimed run.
+
+012E Translocator.team is the only missing method name in the compared source
+translocators API. Original returns owner.team; the current actual Deployable
+constructor stores that same owner.team. AST assignment audit of all ow174 Python
+production files found team writes only in Player/Bot constructors (match.py241,
+bots.py147 at this revision). Translocators.update retires on owner body/client/
+death changes. No same-body production team mutation was identified that would
+make this a missing consumer. Keep the existing actor/team/snapshot field rather
+than invent a computed-property backing field or another team service.
+
+BodyWorld still contains old optional symmetra_portals fallback names. Actual
+1571 delivered placement routes through confirm_placement to fight.portals.confirm,
+and create_world_entity to fight.portals.factory; actual1647 relocation first
+routes through symmetra.teleport_body. These are the current sole services. The
+unreached old fallback name alone does not justify a second portal manager.
+Source0016 Mover.body_at remains mapped by symmetra_portals._body_at as recorded
+in C63; its independent CharacterBody is a temporary geometric probe only.
+
+Bounded AST API comparisons found no missing top-level/class methods in original
+hero_torbjorn/molten_core/torbjorn_charge, symmetra/symmetra_charge/
+symmetra_turrets/symmetra_portals, mei/mei_frost/mei_blizzard/mei_ultimate,
+sombra_camo/sombra_replay. This is a naming aid, not proof of complete gameplay;
+0008/0015 original inline implementations are already recorded by C1–12/C60–61,
+and original012E inline lock/charge paths by C33–46. Do not infer module absence
+by looking for newly named pharah/bastion/sombra_control modules in frozen trees
+that implemented those functions inline in Combat/driver instead.
+
+Root completed original0016 orb/NPC route history in92626c86/mainf0a94cc1:
+current scheduled-flight ticks and sole Match driver are now the consumer for original Combat.replays_orb_routes/_step_route_poses/
+_fly_omitted_projectiles and original Match.update route consumer. Root has now handed C
+the equivalence review of _respawn_owners_before_window/_respawn_retained_owners/
+_replace_retained_player/_respawn(allocation_clock) against the current per-frame
+loop. C will sync root
+route changes before that review. No additional still-unmounted
+owner implementation has been established by this bounded audit. Old numeric/
+stance/fixture differences, retained assertions and unexecuted client acceptance
+are separate from this implementation handoff and must not block submitted code.
+
+Estimated remaining C-side source-boundary review is approximately1–3 active
+hours, low confidence; no new implementation hours are assigned without a
+concrete source consumer. The retained-respawn review is C
+next, with existing allocator and sole respawn loop; no second scheduler.
+No tests rerun for this documentation-only batch. C63's16 checks remain the latest
+functional evidence. All external input/source refs remain unchanged.
+
 
 ## C60 actual Heavy melee force on configured Bastion
 
@@ -2720,3 +2779,198 @@ player/respawn phase windows; Heavy capture still original source boundary.
 Remaining estimate4–10activeC hours, lowconfidence. Actor/service uniqueness and
 actual current no-fault/causal outcomes take precedence over ancestry/testcounts
 when recording integration completeness.
+
+
+## C63 original00DD body-size implementation and actual consumers
+
+Root's precise source-symbol audit exposed a REAL remaining production gap,
+not merely a missing private name. Original00DD Mover.BODY_SIZE_MOD12 and its
+modded size branch were absent: scale stand/crouch height/radius/pogo and ground
+circle by the source f32 formula, invalid/nonpositive size falls back1. Restore
+that branch while preserving current vectorSET/ADD handling and all other mods.
+Restore source body_scale=f32(values.stand_height/data.stand_height), a pure
+property with no new stored field. Original AND current _capsule use base data;
+do not change that physical policy based on a mistaken current-values claim.
+
+Connect all original consumers: Combat player_targets uses sameactualmover.values
+and scaled eye; _eye uses same scale; only Mei quick-melee reach/radius scales;
+BodyWorld FDBB nonstrict self-owner query returns same property, retaining its
+strict/default rules. Current Winston/Ball/critical/head/core/history tail logic
+stays in place. No alternate mover, geometry/health pool or scale cache.
+
+Original00DD MeiScale test_scaled_mei_melee_reaches_the_target_and_resets_to_unit_scale
+passes unchanged200/170/reset expectations2.332s. Restored tracked tests retain
+that complete method plus original scaledGenji real-icicle method; only old
+query genji_deflect.active(fight,actor) observation maps existing
+ defenses.deflect_state(actor). Both original methods/four scale subcases pass,
+plusMoverMod6+Damage8=16/16pass4.959s,
+../worker-c-c63-scale-shared-check.log. Original MatrixScale third method stays
+in frozen source with its old Player-mech/dva_matrix fixture API; this is not
+proof that current actual Matrix scale is missing and does not block this batch.
+
+Other source-name audit resolutions: source0016 Mover.body_at is already mapped
+by current symmetra_portals._body_at, which makes an independent TEMPORARY
+CharacterBody from the same _capsule/_lift/category/peer_mask/scene and probes
+fits/solid pillar placement. It does not allocate a persistent second mover.
+Source013B _wall_contacts is replaced by actualice_wall movement-world/mei_wall
+constrain; root owns that mapping. Do not resurrect duplicate physics providers.
+
+Heavy capture contract probe is preserved separately: actual1407 creation at
+contact changes original012F mode2→0 through its control stacks, then actual
+wall hit loses295 versus source0015 prototype235. 1407 writes33/2024/888/7539,
+not1216 directly; ordinary_interrupt alone preserves mode2. Both VMs faultNone.
+No missing consumer was established there; do not remove1407/stance or add a
+snapshot mitigation ledger for the old expectation. Log
+../worker-c-c63-bastion-capture-lifecycle-probe.log.
+
+Precise remaining production mapping versus validation: root now OWNS source0016
+Combat.replays_orb_routes/_step_route_poses/_fly_omitted_projectiles and Match's
+route-history consumer, comparing current _fly retention then reusing the same
+existing world/NPC loop. C will not edit that update/Match region concurrently.
+Also sent root original retained-respawn methods1855/1873/1890/1902 and update
+calls to compare against current ordinary_respawn/update endpoint: an existing
+per-frame loop may make them equivalent without another scheduler. That scope
+is not merely source-name absence; it needs actual time/identity mapping.
+
+All own core hero modules previously submitted remain mounted on their sole
+hosts. Old literal3.2vs3.84, Trooper2m fallback-vsreal1.5gate, Heavy235vs295,
+privateprototype/fixture names and unexecuted client groups are verification/
+contract differences, not newly invented host work or gates on code submission.
+Next C owner audit will report only a concrete still-unmounted source production
+consumer, or explicit equivalence, rather than indefinitely chasing old matrices.
+No client/network/publication action.
+
+
+## C65 — original retained Sentry-owner replacement and historical ID time
+
+Restored original0016 allocation_clock on the actual Combat._respawn ->
+Match.switch_hero(body_id_at) -> same _next_body_id ring -> Client.body_id_available(at)
+chain. Historical availability still checks the existing reservation and reliable
+notice tail; it does not query a second live monotonic time or allocate from a
+second ring. Default omitted-at callers keep their original call signatures and
+behavior. FakeClient fixtures accept the original optional at without changing
+any expected value. Sombra preserve_ultimate and all existing hero charge/birth
+branches remain intact.
+
+Actual moved Sentry owners with pending respawns now select the original bounded
+retained window. Original _respawn_owners_before_window/_replace_retained_player
+reuse the same respawns list and retry deadlines. During retained frames, existing
+Sentries.update(replay_owners=...) runs BEFORE replacement, then the same body
+switch supplies the new charge clock/replacement_ticks/damage_starts. Old-body
+dirty health is sent through _send_health(body=...) before retirement; the sole
+health writer preserves current complete-pool/vitals.most output. No second
+scheduler, persistent replay pool, health ledger or snapshot field.
+
+Actual summoned Sentry/real death/body VM tests: short-gap and contiguous complete
+outcomes match exactly, aura/owner identity persists, old VM retires. Prewindow
+failed allocation attempts occur at1093/1109/1125, both actual gap and contiguous;
+only the original64 retained attack ticks integrate in the long gap. Historical
+at values advance with those exact world retry intervals. A direct real Client
+method test also preserves the reliable-tail/pending reservation guard and rejects
+historically unavailable IDs without reading current time.
+
+Tests:3 new plus original DeathTests/DamageTests/SwitchTests =31/31pass11.118s,
+../worker-c-c65-retained-shared-check.log. Final narrowing to only the tested moved
+Sentry-owner scope (see next paragraph) reran3/3pass3.221s,
+../worker-c-c65-retained-final-check.log. Initial source-helper integration found
+missing _send_health(body=...), fixed by the exact original optional filter.
+The first new long-gap assertion wrongly compared64 retained ticks with102 full
+contiguous attack ticks; its failure log is preserved as
+../worker-c-c65-retained-prebounded-assert.log. New test now asserts original
+bounded damage and prewindow retry/charge deltas; no original assertion changed.
+
+Accurate remaining implementation: original Winston active-sphere owner selection
+and cover-end recording at retained respawn, plus original early-projectile death
+tracking across later calls, are NOT declared complete in C65. A provisional
+world_bubbles owner addition was removed before final commit: source sphere
+handling is deliberately distinct from prewindow Sentry owner replacement, and
+must preserve actual cover-end time. C66 will attach those consumers to the same
+source helpers/current world_bubbles, without a duplicate timer/ID pool. The full
+original source respawn fixture still remains to be imported/adapted as a separate
+verification tail;31 passing checks are not a claim of whole-source acceptance.
+
+
+## C66 — original omitted-flight and active-sphere respawn consumers
+
+Completed the two concrete C65 implementation remainders on the same retained
+loop and respawn list. An actual _fly death before first retained tick records the
+original early_projectile_respawns body set, adds that actual recipient to the
+local retained owners, and triggers the original prewindow replacement before
+retained attacks. The original set persists across later update calls and is
+cleared on same body retirement; integration also clears it when the actual Mercy
+resurrection cancels that body's pending respawn. Added exactly this original
+primitive set to strict Combat snapshot schema, not a second queue/ID allocator.
+
+Native Winston world_bubbles remains the only sphere host. A pending owner whose
+actual bubble is still within its observed timer selects retained updates. The
+replacement helper admits that owner only at the retained combat edge, not in the
+Sentry prewindow set. It retains the same actual FixedBubble identity and records
+min(actual timer expiry, replacement time+TICK). The existing cover observer skips
+an identity already explicitly ended by that source branch, preventing a later
+endpoint observation from extending its cover. No duplicate dome/timer/geometry.
+
+New production-path evidence: actual charged Symmetra orb kills an actual player
+inside omitted flight ticks; a single800-tick gap and a split100+700-tick gap both
+replace the actual body at death+mode respawn deadline before the retained window,
+retire the old VM and clear the original early-death set. Actual native Winston
+cast/700HP sphere, owner death, retained body replacement keeps source identity
+and ends cover exactly one tick after replacement. Raw whole-server export sees
+the set's nonempty state alter the causal digest and clearing restore it. Strict
+unknown-field/callback rejection still passes without widening schema checks.
+
+Initial focused6/6pass18.536s, ../worker-c-c66-projectile-sphere-check.log.
+Final6 (including both single/split actual orb subcases) + original DeathTests,
+DamageTests, SwitchTests and rawServer unknown-fields =35/35pass25.528s,
+../worker-c-c66-respawn-shared-check.log. No live handles remain. No original
+source expected value or assertion changed; new tests observe actual current
+hosts. The complete old source respawn fixture has not been claimed accepted.
+
+Current implementation handoff: root orb/NPC route92626c86 plus C65/C66 now map
+the concrete original0016 route/retained-respawn consumers identified by C63/C64.
+No further still-unmounted original producer has been established for C-owned
+0006/0008/0015/0016/00DD/012E. Existing preserved old absolute assertions, source
+private observation names and client verification tails remain documented and
+are not new host work. Continue only against a concrete demonstrated original
+producer/consumer, not repeated acceptance-matrix expansion. Original refs and
+prepared input bytes remain immutable; no client/network/publication action.
+
+
+## C67 — original explicit AI callbacks and target-search SDK
+
+Root's bounded missing-path audit exposed real retained APIs, not merely renamed
+hero hosts. Copied original0008 script.ai_behavior and script.target_search with
+all original arithmetic/lifetime checks. ai_behavior.Context/91EF24A9 timer1/2,
+previous-handle restoration, cleanup/failure/destroy now dispatch from the single
+existing nodes.AIBehavior. Its existing selected flag/manual selects_ai_behavior
+policy remains the default when no explicit native context is supplied; explicit
+component87 contexts own selection and use original callbacks. World provides the
+original optional ai_behavior_context query, default NotImplemented; no new NPC
+selector/targets/manager/context fabricated. Added exactly ai_previous to existing
+passive state snapshot layout, preserving selected as well.
+
+TargetSearch Route/Relationship/CandidateParameter/category/route/mask_matches/
+candidate_masks/condition/radial_capsule are restored as the original explicit
+public primitives. They validate known inputs, float32 geometry and parameter
+scopes without automatically enumerating candidates or selecting NPC targets.
+A pure SDK is not itself a second production search host.
+
+Copied original test_script_ai_behavior.py/test_script_target_search.py unchanged:
+35run34pass1fail0.021s, ../worker-c-c67-ai-search-check.log. Failure remains original
+AIBehaviorTests.test_unimplemented_strict_target_search_cannot_return_empty_success:
+current TrackTargets returns on NotImplemented rather than source's strict unknown
+error. No assertion was removed, no generic target policy changed to force green.
+Current manual/NPC/context/association and script runtime regression47/47pass6.809s,
+../worker-c-c67-manual-ai-shared-check.log. Exact command: unittest
+ test_game_npc_control test_npc_context test_npc_controller_associations
+ test_script_runtime -v. Body VM saved-native-handle causal test passes.
+
+Remaining path audit is specific: source0008 assassin.selects_search/search and
+mask/condition callers are not automatically proved equivalent by SDK restoration;
+current actual Assassin uses npc_context/controller-target hosts and requires an
+algorithm/caller comparison next. Source0015 combat_pose is transient ContextVar,
+whose actual Lucio Soundwave and Zarya primary are currently posed Combat.command
+consumers; exact public API preservation/mapping will be a separate batch.
+control_effect.apply_stun needs current protection/stun/actual224E mapping, not a
+copy with missing defenses.phase/_apply_stun names. Root explicitly took the real
+00DD Volskaya LiftHost/Match/Mei-wall production chain; C will not modify those
+physical/scene seams. No duplicate host or original input mutation.

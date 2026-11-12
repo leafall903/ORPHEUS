@@ -2228,3 +2228,188 @@ worker-a-zarya-early-break-cooldown-runtime-check.log. No serializer changes.
 Next A92: source silent ACTIVE break contact/body-gap/cooldown path audit (distinct
 from this already-ended-ahead branch), then final0068 source mapping handoff.
 Root owns A90 exact cross-VM value boundary; all original strict errors remain.
+
+## A92 — source silent active break and exact ctor/world pair
+
+Restored the distinct original0068 ACTIVE break branch on same duration's FINISH
+request/BarrierExpiry: label parent end with mapped actual contact, leave that
+frame available for real input, and use existing next-world-edge neutral gap.
+The actual child/Pet actor retires immediately. Native child cleanup can enqueue
+its original cooldown write at the idle parent cursor; after the contact-frame
+gap, the same Ability cur/rate gets the real contact-frame origin with its retained
+within-frame phase. A naturally reached duration keeps its ordinary end path;
+early child cleanup still supplies the original gap even if it already stopped
+the parent. No new pending ledger/state fields/timer/body VM or time override.
+
+Found A80 ctor binding off by one: BodyScript.frame is committed after command
+returns, but the native ctor is already in component.frame. _schedule_expiry now
+pairs the actual duration component ctor frame with actual Match.tick (they may
+be40frames apart), instead of the previous accepted BodyScript.frame. Original
+silent test exposed1067vs1068 after the first bridge; the actual ctor pair fixes
+that. This changes real expiry admission one tick as restored original causality;
+no source expected value changed and no frame==world assumption was introduced.
+
+Single native finite pool remains authoritative during that short break handoff:
+legacy personal absorption recognizes actual CompatiblePet.pet_entity, regardless
+of linked output mode; stale Barriers.Bubble references cannot synthesize a second
+pool without the scripted actor. Break clears only this activation's old personal/
+matching-source projected/live proxy caches. The next same-tick contact damages
+the body, while the breaking event has no overflow. No alias manager/observer.
+
+Normal module now also contains source silent-break whole method: fiveNPC
+projected plus personal, original script.frame/start/hit, energy2,8/10s cooldown,
+repress/generation assertions retained. All6cases baseline failed old bodyframe
+1001vs1068 (personal1002vs1069), then actual parent rawcooldown6.928vs8 traced to
+old-cursor queued native cleanup; both causality consumers are now restored.
+Final source2methods (includes A91) pass9.537s. Combined source no-overflow and exact
+capacity/40energy, nativeapplication2/lifetime2/worldenergy1 and actualNPC lifecycle3
+=12/12pass19.228s. Log worker-a-zarya-silent-break-ctor-lifetime-joint-check.log.
+Bounded original-cause evidence worker-a-zarya-native-break-causal-trace.log;
+source baseline worker-a-zarya-silent-active-break-baseline.log. No assertion or
+source numeric value was changed, and no serializer/shared runtime was changed.
+
+Remaining actual known implementation gap A93: legacy target overlap gates still
+reject second projected caster and personal+projected combination that original
+0068 candidates/interception support. Current unique actors/Vitals can already
+hold independent casts and choose one absorbing pool; restore admission consumers
+without changing C54 unique replay query. Root owns A90 value-copy boundary and
+has completed its strict whole-server verification. Verification tails (193 width,
+old private API, source geometry/contract differences, externalclient OPEN) are not
+production-merge blockers. Final source/shared mover replacement mapping follows
+A93; do not add legacy mover facades merely because names differ.
+
+## A93 — retain independent native casts without extra legacy gates
+
+Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup
+copy/typedEntity PlayScript value boundary and complete snapshot fixture restore;
+no serializer/runtime waiver. One append-only original test conflict retained all
+A92 silent-break assertions plus root's source header/fixture changes.
+
+Removed only two extra legacy host policies absent from original0068 candidates:
+projected target search no longer rejects a recipient merely because the old
+ProjectedBarrier cache exists; BodyWorld's TODO overlap placeholder no longer
+rejects personal casting solely from that legacy cache. Existing actual native
+Ability conditions/resource fields/cooldowns and025C target flags6600/11264,
+team/live/typed receiver gates are retained. Source resource audit explicitly
+found those flags in0244 n3/n19 and025C n11/n18; they were not deleted for oldtests.
+
+Original Genji two-caster full method now passes all original90/200→firstbreak40
+energy→second90/22energy/body200/nohit assertions. Actual native projected-first
+then personal yields distinct200/200 actual Vitals/actors, no extra pool host.
+Readonly resource-order evidence: personal-first sets6600=True so current declared
+025C filter rejects it; projected-first permits personal (11264 absent). This is a
+source reconstruction versus current resource ordering contract, not permission
+to drop declared flags. The old sequential self/projected cap fixture still has no
+Pet under its close horizontal input; its StopIteration/input is retained, no
+faked receiver. Log worker-a-zarya-overlap-resource-order-diagnostic.log.
+
+Original multi-projector +new actual actor-pair +A91/A92 original2 +whole-server
+projection causal capture/hash changes/restores/unknownreject =5/5pass60.442s
+(worker-a-zarya-overlap-whole-server-check.log). The whole-server proof includes
+the enclosing realNPC and actualnativePet, retaining root's exact parameter/value
+ownership boundary. No source expected numeric values or assertions were edited.
+
+Remaining actual code gap A94: original0068 personal-before-projected/roster-caster
+selection for one recipient is not fully mounted: current protect_body/ray tie
+and legacy area/explosion iterators can use creation order or consume multiple
+pools for one contact. Restore this existing source _candidates/_intercept policy
+on same actors/Vitals, keep closest-ray mathematics/cross-family order. Then final
+precise source mapping/handoff; source private API/geometry/resource conflicts and
+clientOPEN remain verification tails, not blockers to code admission. Shared mover
+old-symbol names will be mapped to actual current consumers rather than facades.
+
+## A94 — source personal-first interception and single contact per recipient
+
+Restored original0068 _candidates/_intercept ordering on the same native actors:
+protect_body selects personal then roster caster; native ray changes only exact
+same-distance/same-recipient Zarya ties, leaving nearest-ray math and cross-family
+ordering intact. Existing Zarya proxy iteration uses the same order. Area/melee
+and actual explosion loops consume at most one pool for each protected body in
+one event. Same-tick next event can reach the surviving projection after personal
+break. No new pool/observer/manager, no damage scalar or collision size changes.
+Resource-backed admission flags remain exactly as A93.
+
+Four genuine baselines from actual projected-first→personal casts: body50 went
+to projection instead of personal; equal ray chose projection; melee30 consumed
+both pools170/170; real emitted Helix80 blast consumed both120/120. New native
+checks preserve independent actual actors/Vitals and original priority policy,
+not an invented getter/second ledger. After fix all5 native overlap methods pass,
+including real same-tick50/150/50 handoff, caster40/10energy/body unchanged, exact
+ray tie and realHelix80/melee30 one-pool damage. Combined original multi-caster
+whole method, A91/A92 original2 and lifetime2 =10/10pass14.683s. Logs
+worker-a-zarya-pool-priority-contact-baseline.log and
+worker-a-zarya-native-pool-priority-contact-check.log. Source/core checks were not
+weakened and C57 wall/offense_scale paths remain untouched.
+
+Remaining precise production consumer A95 found in final _fly comparison:
+frozen0068 Combat._fly calls _explode(excluded=struck.entity) after bubble combined
+interception (source lines2252–2259). Current native Zarya scripted_shield branch
+consumes direct+blast and lands without invoking explosion, so adjacent exposed
+bodies lose original delivered splash. Restore that real continuation with the
+already-consumed recipient excluded, same Rocket/one explosion/one damage service;
+A94 protected-body loop now supplies the correct one-pool exclusion. This is an
+existing source behavior, not a new mechanic. Then complete exact source/shared
+mover mapping and handoff; validation/API/resource conflicts remain tails.
+
+## A95 — native particle projectile contact retains original splash continuation
+
+Restored frozen0068 Combat._fly lines2252–2259: one nonsticky particle
+contact consumes combined direct+blast on the existing native Pet/Vitals and
+continues exactly one explosion with the already intercepted actual recipient
+excluded. The native capsule branch previously landed without splash. Default
+sphere aliases reach the same actor: A94 dedup exposed their direct-only40 loss;
+this batch restores source combined120 before the protected-body explosion.
+Capture recipient before damage/retirement, so shield20 breaking cannot leak
+same-event health or impulse. Sticky/fuse, other native families, C56 Pharah
+prehealth impulse planning, C57 wall/source_scaled, B64 Accretion and A86 optional
+launch snapshot fields remain intact. Current team/supercharger/live Nano applies
+once; captured launch Nano skips live Nano, captured Mercy is not reapplied.
+No second pool, geometry change, new feature or serializer change.
+
+Actual new regression uses real Pharah emissions/personal and projected casts,
+capacity200/20 and both default sphere and isolated authored capsule geometry:
+8 subcases assert120 shield loss, no recipient health/pose/velocity change,
+one actual _explode call and actual exposed-neighbour splash. Native-capsule
+isolation suppresses only the competing sphere query, not actor/damage services.
+Baseline default capacity200 failed160 instead of80 (2 cases). Final newmethod,
+Pharah ImpactCover2 and native overlap5 =8/8pass8.086s; log
+worker-a-zarya-native-projectile-splash-check.log. Earlier Nano+overlap+new9methods
+had8pass/1 original projected Nano horizontal-input7.5 health-loss failure,
+previously recorded. Accretion two originalmethods retain one distance2.65 loss20
+vs<20 failure and two sigma.particle_barrier old-observer errors; assertions and
+numbers untouched, not claimed newly green or production-completion blockers.
+
+Next: exact remaining original-consumer mapping/handoff including0065
+pet_relation versus current entity_link (same F76C486C query), shared soleMover
+symbol replacements, and root-requested0004 healing_status dynamic filters,
+passive_healing_scales and status timers. Root independently owns any healing_status/
+projectile_defense/sleep_view implementation; do not create duplicate hosts.
+
+## A96 — retain original0065 component72 explicit query provider
+
+Source pet_relation is not merely the current entity_link filename: original
+Context has separate context/namespace availability and captures a mutable Pet
+pointer across watch_pet before reading its fresh uint32 field. Current decoded
+entity_link.Target is immutable; it remains the existing DVa host. Preserved
+source pet_relation.py and its12 originaltests byte-exact (SHA256 A43C9D14A12EF9EBB968249A488E24AAD64FCA79E370DFD511A1CB7D1B12FE13;
+2590CEA06D10C50078D65B787B90EB733ABF34882B6D137FBF72D7EC0BED2B62).
+Added original World.pet_relation_context defaultNotImplemented. The unique
+runtime F76C486C evaluation chain invokes this explicit provider before the
+current entity_link fallback. No manager, pool, inferred pet ownership, oldname
+facade or fabricated game context was added. Original0065 likewise declares
+only an explicit primitive provider, not a game-world override. Unknown services
+still reject strictly; namespace absence preserves output without selector;
+observer retirement poisons as original. Existing DVa actual decoded identity
+and direct-owner separation are retained.
+
+Original pure12 pass0.019s; original12 plus actualDVa BodyVariable12 =24/24pass
+56.307s, log worker-a-pet-relation-sdk-check.log. No source numeric/assert changes.
+This is an active runtime consumer, not just a retained unmounted module.
+
+Next A97: root transferred0004 healing_status actualStatusWorld/Applied0C71→
+0B99/0C72/dynamicCombatModFilter/history to A exclusively. ExistingHealingEffects
+already supplies ordinaryanti/amp/timers, tags, immunity and Mercy passive-scale
+history, but originaldynamicVM/filter state consumers are genuinely missing.
+Integrate them into that solemanager while preserving A75/A77 recovery/interval
+integration and exact whole-server storage. Do not instantiate originalStatuses
+as a second manager. Root owns Volskaya and Match/Lift seams; C owns AIBehavior.

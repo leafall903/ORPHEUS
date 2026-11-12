@@ -124,7 +124,7 @@ _STATE_LAYOUTS = {
     nodes.EncounterTargetTag: ((), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
-    nodes.AIBehavior: (("selected",), ()),
+    nodes.AIBehavior: (("selected", "ai_previous"), ()),
     nodes.AIBehaviorState: (("record", "remove_record"), ()),
     nodes.ActiveOutput: ((), ()),
     nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
