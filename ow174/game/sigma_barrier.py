@@ -381,10 +381,12 @@ def trace(combat, shooter, origin, direction, reach, radius=0.0):
     return nearest
 
 
-def melee(fight, shooter, origin, centre, radius, amount):
+def melee(fight, shooter, origin, centre, radius, amount, *, contacted=None):
     from ow174.game.combat import capsule_visible
 
     for barrier in enemies(fight, shooter):
+        if contacted is not None and barrier.entity in contacted:
+            continue
         local = barrier.local(centre)
         for index, mask in enumerate(barrier.geometry.masks):
             if not mask & MOVER:
@@ -396,5 +398,7 @@ def melee(fight, shooter, origin, centre, radius, amount):
             witness = tuple(value + sum(axis[k] * v for axis, v in zip(barrier.basis, point, strict=True))
                             for k, value in enumerate(barrier.position))
             if capsule_visible(fight._collision(), origin, witness, witness, 0., walls=fight.walls):
+                if contacted is not None:
+                    contacted.add(barrier.entity)
                 damage_barrier(fight, barrier, amount)
                 break

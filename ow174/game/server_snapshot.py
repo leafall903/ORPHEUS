@@ -17,6 +17,10 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import (
+    combat_profiles,
+    hanzo_movement,
+    sonic,
+    dragon,
     absorption,
     actors,
     baptiste,
@@ -106,7 +110,7 @@ def _names(text):
 FIELDS = {
     scopes.ForwardHost: _names("states component frame history dirty _processing _drain_depth"),
     GameServer: _names("environment collision_provider_factory scene_host_factory host port "
-                       "on_leave on_join on_clock_ready "
+                       "on_leave on_join on_clock_ready combat_profiles "
                        "skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of sock lock handoffs clients _dropped matches tick _next_conn _left_players "
                        "_joined_players _reporting_players _clock_ticks_left _clock_ready_pending "
                        "_sent_home running"),
@@ -121,7 +125,7 @@ FIELDS = {
                   "_body_messages body_components started on_leave ended bots _pending_bot_scripts bots_shown notices combat "
                   "dynamic_spheres collision_provider collision_state collision_world _collision_failed "
                   "scene_host_factory scene_host scene_host_started scene_host_error _npc_planning_turn"),
-    Player: _names("match slot account_lo name rank role card card_sent card_again hero team quanta entity "
+    Player: _names("overload_cooldown_until match slot account_lo name rank role card card_sent card_again hero team quanta entity "
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script controlled_mech body_script_failed genji_mobility seen shown script mode_script "
                    "next_countdown select_open controller_hero "
@@ -129,7 +133,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -160,7 +164,7 @@ FIELDS = {
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs"),
     combat.Vitals: _names(
-        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared "
+        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
@@ -258,7 +262,7 @@ FIELDS = {
 }
 OPTIONAL_FIELDS = {
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
-    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales"),
+    driver.BodyWorld: _names("scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
     driver.BodyScript: _names("passive_ult_deadline passive_ult_last_command_tick"),
     knockback.Knockbacks: _names("pending_npc"),
     Client: _names("_entity_lifecycles _entity_record_generations _frame_budget_warning _last_hit_notice_frame"),
@@ -267,6 +271,9 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    combat_profiles.Profiles,
+    sonic.Profile, sonic.Beacon, dragon.Profile, dragon.Flight,
+    hanzo_movement.Climb,
     combat.ConditionalPool,
     fold.Scope,
     doomfist.Dash, doomfist.Impact, doomfist.Slam,
@@ -281,7 +288,7 @@ DATACLASSES = (
     combat.PunchImpact, combat.ChargeContact, reinhardt_barrier.Geometry, reinhardt_barrier.Barrier,
     winston_barrier.Dome, orisa_barrier.Barrier, mei_wall.Pillar, mei_wall.Input,
     npc_navigation.Pursuit, tracer_recall.Sample, tracer_recall.Phase, breather.Channel, health_packs.HealthPack,
-    combat.TemporaryArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
+    combat.hero_torbjorn.HammerContacts, combat.TemporaryArmour, combat.OverloadArmour, combat.ProjectedBarrier, combat.TemporaryShield, sigma_barrier.Barrier,
     brigitte.InspireHeal, brigitte.RepairHeal, brigitte.WhipFlight, brigitte.RepairCast,
     brigitte.RepairDelivery, brigitte.Barrier,
     brigitte.BashStun,

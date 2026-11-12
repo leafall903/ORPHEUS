@@ -256,17 +256,23 @@ class Barriers:
             self.live.pop((bubble.caster_body, bubble.phase.instance.graph.index), None)
         return dealt
 
-    def area(self, shooter, centre, radius, amount):
+    def area(self, shooter, centre, radius, amount, *, contacted=None):
         """One pool hit per area event; no same-hit overflow onto its protected body."""
         from ow174.game.combat import capsule_visible
 
         protected = set()
         for bubble in self.enemies(shooter):
+            if contacted is not None and bubble.entity in contacted:
+                if isinstance(bubble, Bubble):
+                    protected.add(bubble.body)
+                continue
             if isinstance(bubble, reinhardt_barrier.RaisedBarrier):
                 origin = self.fight._eye(shooter)
                 def visible(point, origin=origin):
                     return capsule_visible(self.fight._collision(), origin, point, point, .001)
                 if bubble.near(centre, radius, visible):
+                    if contacted is not None:
+                        contacted.add(bubble.entity)
                     self.damage(bubble, amount, shooter)
                 continue
             if isinstance(bubble,world_bubbles.FixedBubble):
@@ -278,6 +284,8 @@ class Barriers:
             if not capsule_visible(self.fight._collision(), self.fight._eye(shooter), point, point, RADIUS):
                 continue
             protected.add(bubble.body)
+            if contacted is not None:
+                contacted.add(bubble.entity)
             self.damage(bubble, amount, shooter)
         return protected
 

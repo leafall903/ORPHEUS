@@ -246,6 +246,7 @@ class Player:
         self.loaded_at: float | None = None
         self.steps_done = 0
         self.spawned = False
+        self.overload_cooldown_until = 0.0
         # The n-th player of the team takes the team's n-th spawn point; in a free-for-all everyone is
         # on a team of his own, so the n-th player of the match.
         if match.game_map.free_for_all:
@@ -382,6 +383,7 @@ class Player:
                         self.mover.step(command, seconds, self.match.tick, simulate_pose=self._move_pose)
                     self._advance_body_frame(command)
                 self.match.combat.pulse_bombs.observe_command_pose(self, command.frame, first_pose == command.frame)
+                self.match.combat.observe_dragon_pose(self, command.frame, first_pose == command.frame)
                 script = self.body_script
                 if script is not None and script.hero == SOLDIER and script.frame == command.frame:
                     from ow174.game import defenses, ultimate
@@ -504,6 +506,12 @@ class Player:
             drive = reinhardt_charge.drive(fight, self, command, seconds)
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
+        from ow174.game import hanzo_movement
+
+        climb = hanzo_movement.climb_request(
+            self, command, seconds,
+            superseded=bool(requests) or self.mover.external_impulse or stunned or pulled or punch is not None,
+        )
         if pulled:
             self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
@@ -511,6 +519,10 @@ class Player:
             fight.punches.movement_result(self, outcome)
         elif drive is not None:
             self.mover.step_pose(command, seconds, tick, horizontal_drive=drive)
+        elif climb is not None:
+            start_y = self.mover.position[1]
+            outcome = self._move_pose(command, seconds, tick, move_to=climb, flight_profile=flight_profile)
+            hanzo_movement.climbed(self, start_y, outcome, command.frame)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(
@@ -1697,6 +1709,9 @@ class Match:
         script = player.body_script
         before_hash = bodytrace.before(script)
         try:
+            from ow174.game import hanzo_movement
+
+            hanzo_movement.sync(player)
             if posed and script.hero == 0x02E0000000000079:
                 from ow174.game import wall_ride
 
@@ -1893,10 +1908,11 @@ class Match:
             pose = (tuple(mover.position), mover.yaw, mover.pitch,
                     mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
-        from ow174.game import lucio
+        from ow174.game import hero_torbjorn, lucio
 
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
+        overload_cooldown = 0.0
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
@@ -1908,6 +1924,12 @@ class Match:
                 ult_fraction = player.body_script.ult_fraction()
             if old_hero == hero.guid == lucio.HERO:
                 charge_ratio = lucio.replacement_charge_ratio(player.body_script, hero.guid, entity)
+            if old_hero == hero_torbjorn.HERO:
+                overload_cooldown = hero_torbjorn.overload_cooldown_remaining(player)
+                if hero.guid != old_hero:
+                    player.overload_cooldown_until = self.combat.now + overload_cooldown
+            elif hero.guid == hero_torbjorn.HERO:
+                overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
             self.combat.retire_player_body(player)
         player.hero = hero
         if old is not None:
@@ -1924,6 +1946,8 @@ class Match:
             components = self._possession(player)
             player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction,
                                                                    charge_ratio=charge_ratio))
+            if hero.guid == hero_torbjorn.HERO and overload_cooldown > 0:
+                hero_torbjorn.set_overload_cooldown(player, overload_cooldown)
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,
