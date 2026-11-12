@@ -2350,3 +2350,37 @@ already-consumed recipient excluded, same Rocket/one explosion/one damage servic
 A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
+
+## A95 — native particle projectile contact retains original splash continuation
+
+Restored frozen0068 Combat._fly lines2252–2259: one nonsticky particle
+contact consumes combined direct+blast on the existing native Pet/Vitals and
+continues exactly one explosion with the already intercepted actual recipient
+excluded. The native capsule branch previously landed without splash. Default
+sphere aliases reach the same actor: A94 dedup exposed their direct-only40 loss;
+this batch restores source combined120 before the protected-body explosion.
+Capture recipient before damage/retirement, so shield20 breaking cannot leak
+same-event health or impulse. Sticky/fuse, other native families, C56 Pharah
+prehealth impulse planning, C57 wall/source_scaled, B64 Accretion and A86 optional
+launch snapshot fields remain intact. Current team/supercharger/live Nano applies
+once; captured launch Nano skips live Nano, captured Mercy is not reapplied.
+No second pool, geometry change, new feature or serializer change.
+
+Actual new regression uses real Pharah emissions/personal and projected casts,
+capacity200/20 and both default sphere and isolated authored capsule geometry:
+8 subcases assert120 shield loss, no recipient health/pose/velocity change,
+one actual _explode call and actual exposed-neighbour splash. Native-capsule
+isolation suppresses only the competing sphere query, not actor/damage services.
+Baseline default capacity200 failed160 instead of80 (2 cases). Final newmethod,
+Pharah ImpactCover2 and native overlap5 =8/8pass8.086s; log
+worker-a-zarya-native-projectile-splash-check.log. Earlier Nano+overlap+new9methods
+had8pass/1 original projected Nano horizontal-input7.5 health-loss failure,
+previously recorded. Accretion two originalmethods retain one distance2.65 loss20
+vs<20 failure and two sigma.particle_barrier old-observer errors; assertions and
+numbers untouched, not claimed newly green or production-completion blockers.
+
+Next: exact remaining original-consumer mapping/handoff including0065
+pet_relation versus current entity_link (same F76C486C query), shared soleMover
+symbol replacements, and root-requested0004 healing_status dynamic filters,
+passive_healing_scales and status timers. Root independently owns any healing_status/
+projectile_defense/sleep_view implementation; do not create duplicate hosts.

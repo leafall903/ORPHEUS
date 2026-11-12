@@ -5149,6 +5149,22 @@ class Combat:
             self.photon_barriers.melee(shooter, origin, centre, radius, amount)
             sigma_barrier.melee(self, shooter, origin, centre, radius, amount)
 
+    def _particle_projectile_damage(self, rocket):
+        """Combine one native particle contact before continuing its splash."""
+        from ow174.game import nano
+
+        amount = 0.0
+        if rocket.direct is not None:
+            amount = rocket.direct.amount
+            if rocket.scale_direct:
+                amount *= rocket.direct.scale(rocket.flown * rocket.speed)
+        if rocket.blast is not None:
+            amount += rocket.blast.amount
+        amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
+        if rocket.offense_scale is None:
+            amount *= nano.offense(self, rocket.source_entity)
+        return amount
+
     def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None, source_scaled=False):
         from ow174.game import nano
 
@@ -8020,8 +8036,15 @@ class Combat:
                               native_impact_body=native.parent_body, incident_direction=heading)
                 self._landed(rocket, continuation_point=point)
                 return 0.0
-            amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
+            particle_contact = (native.component.world.hero == barriers.ZARYA
+                                and rocket.sticky_delay is None)
+            recipient = native.recipient_body or native.parent_body
+            amount = (self._particle_projectile_damage(rocket) if particle_contact else
+                      sum(hit.amount for hit in (rocket.direct, blast) if hit is not None))
             barriers.damage(self, native, amount, attacker=_source_entity(rocket.shooter))
+            if particle_contact:
+                # Capture the receiver before damage can retire the native Pet.
+                self._explode(rocket, point, protected=(recipient,))
             if rocket.sticky_delay is not None:
                 self._stick(rocket, point, duration - contact_time)
             else:
@@ -8029,7 +8052,12 @@ class Combat:
             return 0.0
         if echo_shield is not None:
             actor = echo_shield[1]
-            if rocket.direct is not None:
+            particle_contact = (isinstance(actor, barriers.Bubble)
+                                and rocket.sticky_delay is None
+                                and self.barriers.authored_for(actor.caster_body, actor.phase) is not None)
+            if particle_contact:
+                self.barriers.damage(actor, self._particle_projectile_damage(rocket), rocket.shooter)
+            elif rocket.direct is not None:
                 self.barriers.damage(actor, rocket.direct.amount, rocket.shooter)
             if rocket.sticky_delay is not None:
                 rocket.attached_entity = actor.entity
