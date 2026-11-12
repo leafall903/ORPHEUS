@@ -8,7 +8,7 @@ the engine query mapping below are reconstructed; native presentation is open.
 import math
 from dataclasses import dataclass, replace
 
-from ow174.game import actors, bots, immunity
+from ow174.game import actors, barriers, bots, immunity
 from ow174.game.junkrat_charge import ChargeSystem
 from ow174.game.junkrat_tire import FIRST as TIRE_FIRST
 from ow174.game.junkrat_tire import Tire, TireSystem
@@ -129,11 +129,18 @@ class Junkrat:
         flight = Rocket(
             creator, creator.team, origin, direction, speed, lifetime, None, None,
             gravity=gravity, range_limit=max_distance, last_tick=launch_tick, definition=TRAP_PROJECTILE,
+            source_body=creator.body, source_graph=state.instance.graph.index, source_state=state,
+            matrix_absorbable=(TRAP_PROJECTILE in self.combat.matrix_definitions
+                if self.combat.matrix_definitions is not None else self.combat.projectile_tags.admitted(TRAP_PROJECTILE)),
         )
         trap = Trap(
-            entity, creator, creator.body, creator.body_script, state.instance,
-            expr.lvalue(state.node.field("m_505472EF")), flight, Vitals(entity, TRAP_HEALTH),
-            self.combat.now + lifetime, 0.0,
+            entity=entity, definition=TRAP_BODY, kind="junkrat-trap", team=creator.team,
+            position=origin, health=TRAP_HEALTH, radius=TRAP_HIT_RADIUS,
+            height=TRAP_HIT_RADIUS * 2, owner=creator, source_body=creator.body,
+            created_tick=self.combat.tick, expires_tick=math.ceil((self.combat.now + lifetime) / .016),
+            script=creator.body_script, instance=state.instance,
+            output=expr.lvalue(state.node.field("m_505472EF")), flight=flight,
+            vitals=Vitals(entity, TRAP_HEALTH), deadline=self.combat.now + lifetime, force=0.0,
             search_radius=float(state.evaluate(profile.node(2).field("m_radius"), watch=False)),
             duration=float(state.evaluate(profile.node(75).field("m_value"), watch=False)),
             short_duration=float(state.evaluate(profile.node(76).field("m_value"), watch=False)),
@@ -145,6 +152,8 @@ class Junkrat:
         )
         flight.mine = trap  # shared sticky-flight handling; planted state is separate below
         self.traps[entity] = trap
+        self.combat.vitals[entity] = trap.vitals
+        flight.velocity = tuple(axis * speed for axis in direction)
         self.combat.rockets.append(flight)
         if trap.output is not None:
             state.instance.write(trap.output, expr.Entity(entity))
@@ -199,7 +208,7 @@ class Junkrat:
             rocket.travelled += step
             rocket.left -= duration
             if range_ends or rocket.left <= 0:
-                self.retire(rocket.mine)
+                self.combat._expire(rocket)
         return 0.0
 
     def query(self, cfg, instance):
@@ -332,7 +341,11 @@ class Junkrat:
             _, _, target = min(candidates, key=lambda row: row[:2])
             # Reconstructed attached-barrier routing: consume the trigger,
             # but do not apply its body damage or root through the barrier.
-            bubble = fight.barriers.attached_enemy(trap.creator, target.entity)
+            remaining = barriers.protect_body(fight, target, trap.damage.amount, attacker=trap.source)
+            if remaining is not None:
+                self.retire(trap)
+                continue
+            bubble = fight.barriers.for_target(target.owner)
             if bubble is not None:
                 fight.barriers.damage(bubble, trap.damage.amount, trap.creator)
                 self.retire(trap)
@@ -357,8 +370,7 @@ class Junkrat:
             trap.release_flag_seen = self.target_flag(target, TRAP_RELEASE_VAR)
             self.roots.setdefault(target.entity, {})[trap.entity] = trap.release_tick
             if isinstance(target.owner, bots.Bot):
-                target.owner.rooted_until_tick = max(self.roots[target.entity].values())
-                target.owner.displacement = None
+                fight.knockbacks.retire(target.entity)
                 target.owner.velocity = (0.0, 0.0, 0.0)
             else:
                 target.owner.mover.velocity = (0.0, 0.0, 0.0)
@@ -433,8 +445,6 @@ class Junkrat:
                 mine.victim_status = None
             roots = self.roots.get(mine.victim_entity, {})
             roots.pop(mine.entity, None)
-            if isinstance(mine.victim, bots.Bot):
-                mine.victim.rooted_until_tick = max(roots.values(), default=0)
             if not roots:
                 self.roots.pop(mine.victim_entity, None)
         self.combat._landed(mine.flight)

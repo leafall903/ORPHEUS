@@ -2431,7 +2431,8 @@ class Combat:
         pull = self.match.tick + 1 if entity in self.zarya_gravitons.pulled else 0
         frost = self.frost_hits.get(entity)
         frozen_until = frost.frozen_until if frost is not None else 0
-        return max(sleep, pull, frozen_until, self.stuns.get(entity, 0), self.source_control_deadline(entity))
+        root = max(self.junkrat.roots.get(entity, {}).values(), default=0)
+        return max(sleep, pull, root, frozen_until, self.stuns.get(entity, 0), self.source_control_deadline(entity))
 
     def damage_immune(self, owner):
         vitals = self.vitals.get(_source_entity(owner))
@@ -4361,7 +4362,7 @@ class Combat:
             if vitals.sleep_until and tick >= vitals.sleep_until:
                 vitals.clear_sleep()
         for table in (self.history, self.vitals, self.dragon_pose_anchors, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
-            for entity in [key for key in table if key not in current]:
+            for entity in [key for key in table if key not in current and self.junkrat.lookup(key) is None]:
                 del table[entity]
         for source, victim in list(self.pins.items()):
             if source not in current or victim not in current:
@@ -5624,6 +5625,13 @@ class Combat:
                                           if m.get("$") == "STU_E1A5B579"), blast,
                                       max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
                     return
+                if definition == junkrat.TRAP_PROJECTILE:
+                    self.junkrat.cast_trap(shooter, state, origin, direction, speed, lifetime,
+                                          sum(max(0.0, _number(state.evaluate(m.get("m_599AB8D7"), watch=False), 0.0))
+                                              for m in node.field("m_projectileMotions") or ()
+                                              if m.get("$") == "STU_E1A5B579"),
+                                          max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
+                    return
 
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
@@ -6537,7 +6545,10 @@ class Combat:
 
     def _expire(self, rocket: Rocket) -> None:
         if rocket.mine is not None:
-            self.junkrat.retire(rocket.mine)
+            if rocket.detonate_on_expiry:
+                self.junkrat.detonate(rocket.mine)
+            else:
+                self.junkrat.retire(rocket.mine)
             return
         rocket.ended = "expired"
         self._landed(rocket)
@@ -9405,6 +9416,7 @@ class Combat:
         self.knockbacks.retire(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
+        self.junkrat.release_trap_victim(bot.entity)
         self.clear_pins(bot.entity)
         self.stuns.pop(bot.entity, None)
         self._end_npc_hit_reaction(bot.entity)
@@ -9510,6 +9522,7 @@ class Combat:
         self.soundwaves[:] = [wave for wave in self.soundwaves if wave.body != victim.body]
         wall_ride.cancel(victim)
         assassin_victim.retire_target(self, victim.body)
+        self.junkrat.release_trap_victim(victim.body)
         self.clear_pins(victim.body)
         self.stuns.pop(victim.body, None)
         self.recalls.retire(victim.body)
