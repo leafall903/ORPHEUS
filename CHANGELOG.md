@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original NPC evidence and status extraction tools
+
+- Restore the original optional NPC associated-entity evidence export and status
+  definition/child graph supplemental extraction CLI paths, preserving current
+  AI association, map/mode and difficulty-profile extraction.
+- Original/shared42 extractor checks and an actual immutable-base CLI probe pass.
+  Runtime packs and appearance extraction are unchanged; integration continues.
+
+
 ### Preserve three original-language integration checkpoints
 
 - Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
