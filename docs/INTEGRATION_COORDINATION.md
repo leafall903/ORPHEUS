@@ -752,3 +752,21 @@ and C36 Sombra charge WIP are worker-owned and not yet counted as merged.
 Current canonical/intake5796db50 before this checkpoint documentation commit.
 Remaining estimate30-60 continuous elapsed hours /3-5 calendar days remains
 low-confidence, with B's broad remaining owner audit the critical path.
+
+
+Root source-tool audit found32 missing original tools across source deliveries.
+All same-name variants are byte-identical. They are now preserved in their
+original Python/PowerShell with originals hashed in external parallel-merge/
+original-tool-intake-receipt.json. They include extraction/preparation and
+existing native placement/Sigma comparison CLIs; no new matrix or functionality.
+The real shard tool calls restored original pure graph.merge_extra_bundle;
+current runtime still uses add_supplement with its existing strict guards.
+Actor declaration CLI calls original definition_components/runtime_index and
+component_dependencies/declaration_mask rather than inventing effective state.
+All11 original declaration/dependency/shard tests pass0.042s,31Python ASTs parse,
+18CLIs start--help,PowerShell AST parses. Nine native CLI startup failures are
+missing optional Unicorn, not runtime feature claims; no network install.
+Four Sigma CLI startup failures are original missing test_sigma_*fixtures,
+assigned B for actual API integration, no fake module aliases. Initial startup
+results remain in parallel-merge/original-tool-startup-results.json; two helper
+failures there are superseded by the successful restored-helper checks.

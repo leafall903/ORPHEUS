@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original source preparation and native comparison tools
+
+- Preserve32 existing Python/PowerShell tools from the delivered lanes,
+  covering selective extraction, actor declarations, additive graph preparation,
+  original Hanzo/Junkrat/Ashe/NPC inputs and native placement/Sigma comparisons.
+  Duplicate source variants are byte-identical; no game archives are copied.
+- Restore original pure declaration schema lookup/dependency closure and the
+  graph-shard conflict validator used by these actual tools. Current runtime
+  supplement loading and its stricter effect/deployable validation stay intact.
+-31 Python tools parse,18 start with--help, and the PowerShell script parses.
+  Eleven original declaration/dependency/shard checks pass. Nine native tools
+  require the original optional Unicorn dependency absent from this environment;
+  four Sigma tools await original fixture integration owned by worker B.
+  Existing tool implementations are committed despite these explicit boundaries.
+
+
 ### Mount original Archives Thunderstorm per-target damage
 
 - Restore original graph2535 flag34924 target search and74/77/76/68 live ray
