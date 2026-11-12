@@ -2553,6 +2553,15 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
         regeneration.prune_healing_scales(self)
 
+    def finish_idle_reload(self, wait: nodes.Wait) -> None:
+        """Finish a due world wait without consuming the next command frame."""
+        buttons = self.buttons & ~3
+        self.component.edges(button_edges(self.buttons, buttons, 0))
+        self.buttons = buttons
+        wait.request_finish()
+        self.component.run_now()
+
+
     def _run(self, frame: int, edges: list) -> None:
         from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
 
