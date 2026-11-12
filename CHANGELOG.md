@@ -1,5 +1,50 @@
 # Changelog
 
+## A86 — original0068 launch Nano snapshot and causal storage
+
+Restored original Rocket.offense_scale optional launch snapshot for owned03DB/
+03E2 only, defaultNone preserves every other family's policy. Original source
+snapshot is Nano only: direct/blast HitDefs pre-multiply the launch scalar, and
+Field retains it. Body direct/splash and field DOT skip liveNano after that,
+while existing impact team/supercharger and captured Mercy credit remain. Native
+Pet/shield HitDef consumers receive the pre-scaled amount. The actual generic
+penetration contact helper has an optional source_scaled=False and snapshot
+Rocket passesTrue to prevent its additional Nano multiplication. Sigma/Orisa/
+Photon/Winston/Pet damage helpers were checked: no other liveNano multiplication.
+Deflect removes old captured staff*oldNano before applying new source staff*newNano;
+no accumulated boost, source ownership/flight lifecycle remain existing policy.
+No duplicate charge/field/defense service. Both fields use current exact dataclass
+storage; actualencrypted-peer whole GameServer launch and landing prove Rocket
+and Field scalar mutations change/restore digest and unknownField storage rejects.
+That causal method passes44.570s; initial out-of-journal direct switch was correctly
+rejected, replaced by session.apply and peer.commands, no strict bypass.
+
+Kept original0068 Nano secondary/Graviton checks as normal module with original
+assertions/numbers. Observation bridges: nano_until seconds->actual tick, original
+offense_scale observer->sole nano.offense, old pool->actual Pet.vitals. Original
+eye-aim Nano helper is incompatible with existing013B centre ranking at3m; recorded
+failed actual cast, then helper targets existing centre service without changing
+source assertions/range/cone or host Nano policy. Original secondary70.5 passed;
+Graviton unshielded/personal subcases preserve1.5 scalar after actualNano expiry,
+direct7.5+DOT30 total37.5, pool190.1/energy1.98. Projected subcase stillfails7.5
+initial health loss vs0: bounded diagnostic proves noPet existed,025C slot536
+absent/faultNone before projectile. It is an original horizontal projection input
+versus current actual target capsule/eye admission issue, not duplicate damage;
+original projected input and expectations retained. Diagnostic log
+worker-a-zarya-nano-projected-actual-diagnostic.log. First nullable536 diagnostic
+error retained and corrected; no fake slot/actor supplied. Current originalAna
+actual250heal/8s expiry and defaultGraviton/directweapon checks also passed.
+
+Logs worker-a-zarya-nano-launch-field-current-host-check.log (2methods oneprojected
+subfail, all othercases pass), worker-a-zarya-nano-actual-server-storage-check.log,
+worker-a-zarya-nano-snapshot-default-joint-check.log (3functional methods pass,
+initial controlled-root probe error before final fix). Remaining: original
+mobility-stop/ready gates, idle-reload/cadence, and C-reported trueNPC projected
+recipient admission on sameBarriers/Pet host. Do not create zarya_bubbles or old
+private recovery-ledger aliases. Original193 point/extent, oldAna50/native60 and
+all original assertions remain. Lowconfidence remaining3–7active hours.
+
+
 ## A85 — original Graviton eye-point cover consumer
 
 Cleanly absorbed root faec1f1c (worker merge652efbce) including five pure geometry

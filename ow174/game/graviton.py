@@ -32,6 +32,7 @@ class Field:
     last_tick: int
     end_tick: int
     radius: float
+    offense_scale: float = 1.0
 
 
 class Gravitons:
@@ -63,7 +64,8 @@ class Gravitons:
         radius = definition.node(5).field('m_value.m_value')
         tick = self.fight.tick
         self.fields.append(Field(rocket.shooter, rocket.source_body, rocket.team, point, tick,
-                                 tick + math.ceil(duration / tick_seconds), radius))
+                                 tick + math.ceil(duration / tick_seconds), radius,
+                                 rocket.offense_scale if rocket.offense_scale is not None else 1.0))
 
     def _includes(self, field, target):
         from ow174.game.combat import segment_distance
@@ -135,10 +137,12 @@ class Gravitons:
                 if not self._includes(field, target):
                     continue
                 if seconds:
-                    self.fight._damage(field.shooter, target, DAMAGE_PER_SECOND * seconds,
+                    amount = self.fight._team_damage(field.shooter, DAMAGE_PER_SECOND * seconds * field.offense_scale)
+                    amount *= self.fight.orisa.superchargers.scale(field.shooter)
+                    self.fight._damage(field.shooter, target, amount,
                                        False, LOADOUT, tick, world_tick=tick,
                                        source_body=field.source_body, hit_tags=DAMAGE_TAGS,
-                                       award_ult=False, armour_scalar=1.0)
+                                       award_ult=False, armour_scalar=1.0, source_scaled=True)
                 if self.fight.vitals_of(target).dead:
                     pulls.pop(target.entity, None)
                     continue

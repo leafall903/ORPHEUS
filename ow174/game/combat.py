@@ -1742,6 +1742,7 @@ class Rocket:
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
     barrage_source: tuple | None = None
+    offense_scale: float | None = None  # Original0068 launch Nano snapshot; other families keep impact policy.
 
 
     @property
@@ -5014,12 +5015,13 @@ class Combat:
             self.photon_barriers.melee(shooter, origin, centre, radius, amount)
             sigma_barrier.melee(self, shooter, origin, centre, radius, amount)
 
-    def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None):
+    def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None, source_scaled=False):
         from ow174.game import nano
 
         _, owner, actor = contact
         source = _source_entity(shooter) if source_body is None else source_body
-        amount *= nano.offense(self, source)
+        if not source_scaled:
+            amount *= nano.offense(self, source)
         if isinstance(actor, sigma_barrier.Barrier):
             sigma_barrier.damage_barrier(self, actor, amount)
         elif isinstance(actor, orisa_barrier.Barrier):
@@ -6534,6 +6536,15 @@ class Combat:
                 if not npc and _zarya_world_timed_flight(definition, spawn):
                     # Original0068 anchors actual world admission, never bare command time.
                     projectile_tick = self.match.tick
+                offense_scale = None
+                if not npc and _zarya_world_timed_flight(definition, spawn):
+                    from ow174.game import nano
+
+                    offense_scale = nano.offense(self, _source_entity(shooter))
+                    if direct is not None:
+                        direct = replace(direct, amount=direct.amount * offense_scale)
+                    if blast is not None:
+                        blast = replace(blast, amount=blast.amount * offense_scale)
                 for pellet, launch in enumerate(directions):
                     pellet_shot = (self.projectiles.fired(
                         shooter, state, shot_frame, definition, lifetime, origin, launch,
@@ -6548,6 +6559,7 @@ class Combat:
                         velocity=(velocity if velocity is not None else
                                   tuple(expr.f32(value * speed) for value in launch) if gravity is not None else None),
                         spray=moira.spray_trace(shooter, state, direct), dose_scalar=dose_scalar,
+                        offense_scale=offense_scale,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
                         detonate_on_expiry=flashbang_gravity is not None or pulse or junkrat_profile is not None,
@@ -7783,11 +7795,19 @@ class Combat:
             if rocket.is_barrage:
                 rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
+            if rocket.offense_scale is not None:
+                from ow174.game import nano
+
+                old_scale *= rocket.offense_scale
+                rocket.offense_scale = nano.offense(self, rocket.source_entity)
             for name in ("direct", "blast"):
                 definition = getattr(rocket, name)
                 if definition is not None:
                     definition = replace(definition, amount=definition.amount / old_scale, boost_credit=None)
-                    setattr(rocket, name, self._support_hit(rocket.shooter, definition))
+                    definition = self._support_hit(rocket.shooter, definition)
+                    if rocket.offense_scale is not None:
+                        definition = replace(definition, amount=definition.amount * rocket.offense_scale)
+                    setattr(rocket, name, definition)
             rocket.damage_charge = None
             rocket.boost_credit = (rocket.direct.boost_credit if rocket.direct is not None else
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
@@ -7895,13 +7915,15 @@ class Combat:
                         or (getattr(rocket.shooter.hero, "guid", None) == hero_torbjorn.HERO
                             and direct.projectile_headshot)):
                     amount *= direct.scale(rocket.flown * rocket.speed)
+                if rocket.offense_scale is not None:
+                    amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
                 before = self.vitals_of(struck).total if rocket.accretion_source is not None else 0.0
                 landed = self._damage(
                     rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                     world_tick=self.tick, hit_tags=direct.tags,
                     broken_particle_barriers=broken_particle_barriers, source_body=rocket.source_body,
                     damage_charge=rocket.damage_charge, boost_credit=rocket.boost_credit,
-                    award_ult=rocket.charge_eligible,
+                    award_ult=rocket.charge_eligible, source_scaled=rocket.offense_scale is not None,
                 )
                 if landed:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
@@ -8346,7 +8368,8 @@ class Combat:
                 if isinstance(actor, reinhardt_barrier.RaisedBarrier) and self.is_dead(owner):
                     continue  # a nearer body hit can retire its carried shield
                 rocket.penetrated.add(key)
-                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
+                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter,
+                                             source_body=rocket.source_body, source_scaled=rocket.offense_scale is not None)
             elif kind == 3:
                 rocket.penetrated.add(key)
                 self.brigitte.damage_barrier(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
@@ -8535,11 +8558,14 @@ class Combat:
                 self._biotic_impact(rocket.shooter, blast, victims, broken_particle_barriers)
         else:
             for target, amount in victims:
+                if rocket.offense_scale is not None:
+                    amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
                 landed = (not accretion or amount > 0) and self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
                     award_ult=rocket.charge_eligible and target.owner is not rocket.shooter,
+                    source_scaled=rocket.offense_scale is not None,
                 )
                 if (blast.loadout == SOLDIER_WEAPON_LOADOUT and not self.vitals_of(target).dead
                         and (landed or defenses.invulnerable(target.owner))):
