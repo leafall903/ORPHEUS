@@ -1491,6 +1491,7 @@ class Target:
     capsule: tuple | None = None
     head_offset: tuple | None = None
     sentry_yaw: int | None = None
+    construct: object = None
 
     def segment(self, feet=None):
         """The capsule's segment (from the feet to the top, a radius in from both ends)."""
@@ -1590,6 +1591,7 @@ class Rocket:
     segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
     matrix_absorbable: bool | None = None
+    mine: object = None
     terrain_bounces: int = 0
     terrain_bounce_limit: int = 0
     terrain_bounce: tuple | None = None
@@ -2039,6 +2041,9 @@ class Combat:
         from ow174.game import venom
 
         self.venom = venom.Mines(self)
+        from ow174.game import junkrat
+
+        self.junkrat = junkrat.Junkrat(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2160,6 +2165,10 @@ class Combat:
         )
 
     def destroy_deployable(self, entity):
+        construct = self.junkrat.lookup(entity)
+        if construct is not None:
+            self.junkrat.retire(construct)
+            return
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
@@ -2297,6 +2306,7 @@ class Combat:
         self.brigitte.retire(player.body)
         self.walls.retire(player.body)
         self.venom.retire(player.body)
+        self.junkrat.retire_body(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -4119,6 +4129,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.junkrat.update()
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
                 if earthshatter.advance(self, wave):
@@ -4474,6 +4485,7 @@ class Combat:
         for actor in self.deployables.values():
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
+        found.extend(self.junkrat.targets())
         return [self.pulse_bombs.sampled(target) for target in found]
 
     def _target_entity(self, entity):
@@ -4929,6 +4941,8 @@ class Combat:
             owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
         if owner is None:
             owner = self.deployables.get(entity)
+        if owner is None:
+            owner = self.junkrat.lookup(entity)
         if owner is not None:
             vitals = self.vitals.get(entity)
             if vitals is not None:
@@ -5510,6 +5524,17 @@ class Combat:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
             blast = hit_def(state, node.field("m_D2D11CE9"))
+            if not npc and shooter.hero.guid == junkrat_projectile.HERO:
+                from ow174.game import junkrat
+
+                if definition == junkrat.MINE:
+                    self.junkrat.cast(shooter, state, origin, direction, speed, lifetime,
+                                      sum(max(0.0, _number(state.evaluate(m.get("m_599AB8D7"), watch=False), 0.0))
+                                          for m in node.field("m_projectileMotions") or ()
+                                          if m.get("$") == "STU_E1A5B579"), blast,
+                                      max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
+                    return
+
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
             if biotic_grenade:
@@ -6248,6 +6273,8 @@ class Combat:
                 rocket.last_tick = at
                 self._fly_field_canister(rocket, min(TICK, rocket.left))
             return
+        if rocket.mine is not None and rocket.mine.parked:
+            return
         if not self.orisa.flying(rocket):
             return
         # Player input can arrive immediately before the scheduler accounts for a gap.
@@ -6419,6 +6446,9 @@ class Combat:
         return SplitVolley(directions, speed, min(lifetime, reach / speed), direct)
 
     def _expire(self, rocket: Rocket) -> None:
+        if rocket.mine is not None:
+            self.junkrat.retire(rocket.mine)
+            return
         rocket.ended = "expired"
         self._landed(rocket)
         if rocket.detonate_on_expiry:
@@ -6438,7 +6468,7 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.terrain_bounce is not None:
+        if rocket.terrain_bounce is not None or rocket.mine is not None:
             # Source0065's direction/speed pair is authoritative for each chord.
             rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
@@ -6450,7 +6480,7 @@ class Combat:
             hanzo_arrow = (rocket.source_graph == 0x00B9
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
             if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
-                    or hanzo_arrow or rocket.terrain_bounce is not None):
+                    or hanzo_arrow or rocket.terrain_bounce is not None or rocket.mine is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -6460,7 +6490,9 @@ class Combat:
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
         self._fly_slice(rocket, duration, self.tick, reflected=reflected)
-        if rocket.terrain_bounce is not None and rocket.velocity is not None and rocket in self.rockets:
+        if rocket.mine is not None:
+            self.junkrat.sync_pose(rocket.mine)
+        if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
             # The delivered grenade stores the end velocity after sweeping its
             # ballistic chord; the next frame and public direction share it.
             rocket.speed = math.hypot(*rocket.velocity)
@@ -6571,15 +6603,10 @@ class Combat:
             if remaining <= step:
                 duration *= remaining / step if step > EPSILON else 0.0
                 step, range_ends = remaining, True
-        if rocket.terrain_bounce is not None and rocket.range_limit is not None:
-            remaining = max(0.0, rocket.range_limit - rocket.travelled)
-            if step >= remaining:
-                duration *= remaining / step if step > EPSILON else 0.0
-                step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
-        candidates = self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
+        candidates = () if rocket.mine is not None else self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
@@ -6600,7 +6627,8 @@ class Combat:
                 t = ray_capsule(rocket.position, heading, a, b, target.radius + padding)
                 if t is not None and t <= step and (assisted is None or t < assisted[0]):
                     assisted = (t, target)
-        scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, heading, best[0] if best else step)
+        scene_barrier = (self._barrier_hit(rocket.shooter, rocket.position, heading, best[0] if best else step)
+                         if rocket.mine is None else None)
         if scene_barrier is not None:
             best = (scene_barrier[0], None)
         collision = self._collision()
@@ -6634,6 +6662,8 @@ class Combat:
             best = (ice[0], None)
         else:
             ice = None
+        if rocket.mine is not None:
+            return self.junkrat.flight_step(rocket, duration, heading, step, best, range_ends)
         if (assisted is not None and (best is None or (best[1] is None and assisted_rank < best[0]))
                 and (wall is None or assisted_rank < wall)):
             best = assisted
@@ -7366,7 +7396,8 @@ class Combat:
 
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
                  struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
-                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0), native_impact_body=None):
+                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0),
+                 native_impact_body=None, protected_out=None):
         damage_point = point if damage_point is None else damage_point
         incident_direction = rocket.direction if incident_direction is None else incident_direction
         blast = rocket.blast
@@ -7445,6 +7476,8 @@ class Combat:
                     and capsule_visible(self._collision(), visible_from, centre, centre, barriers.RADIUS)):
                 protected.add(bubble.body)
                 self.barriers.damage(bubble, blast.amount * scalar, rocket.shooter)
+        if protected_out is not None:
+            protected_out.update(protected)
         victims = []
         for target in candidates:
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
@@ -7984,7 +8017,7 @@ class Combat:
         return best
 
     def _trace_absorption(
-        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None,
+        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None, matrix_only=False,
     ):
         from ow174.game.interception import box_contact
 
@@ -7993,6 +8026,8 @@ class Combat:
                   else projectile_tags.absorbable(definition))
         if admitted is not None or self.matrix_definitions is not None:
             grasp = matrix
+        if matrix_only:
+            grasp = False
         if not matrix and not grasp:
             return None
         nearest = None
@@ -8727,7 +8762,15 @@ class Combat:
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
             if vitals.dead or vitals.now[HEALTH_POOL] <= EPSILON:
+                if self.junkrat.lookup(target.entity) is target.owner:
+                    vitals.died_at = self.now
+                    vitals.death_tick = self.tick if world_tick is None else world_tick
+                    vitals.killer = attacker
+                    if not isinstance(shooter, bots.Bot):
+                        self._tell_hit(shooter, target, dealt, KILLING, frame)
                 self.destroy_deployable(target.entity)
+            elif self.junkrat.lookup(target.entity) is target.owner and not isinstance(shooter, bots.Bot):
+                self._tell_hit(shooter, target, dealt, 0, frame)
             return True
         if (target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
