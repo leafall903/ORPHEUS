@@ -1959,6 +1959,9 @@ class Combat:
         from ow174.game.pulse_bomb import PulseBombs
 
         self.pulse_bombs = PulseBombs(self)
+        from ow174.game import venom
+
+        self.venom = venom.Mines(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2207,6 +2210,7 @@ class Combat:
         self.clear_pins(player.body)
         self.brigitte.retire(player.body)
         self.walls.retire(player.body)
+        self.venom.retire(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -3656,6 +3660,7 @@ class Combat:
 
         world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
         self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
+        self.venom.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
         """Reconstructed 1FBD/st17 health consumer, driven by the authored ability lifetime.
@@ -3970,6 +3975,7 @@ class Combat:
             self.sound_barriers.update()
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
+            self.venom.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
@@ -5375,6 +5381,8 @@ class Combat:
                 if moira.orb_fired(self, shooter, state, definition, speed, lifetime,
                                    origin, direction, shot):
                     return
+            if not npc and self.venom.throw(shooter, state, origin, direction, shot):
+                return
             damaging = (direct is not None and direct.amount > 0.0) or (
                 blast is not None and blast.amount > 0.0
             )
@@ -5636,6 +5644,9 @@ class Combat:
             if t is not None and t <= reach and (best is None or t < best[0]):
                 best = (t, target, shown)
         limit = min(reach, best[0] if best else reach)
+        mine_hit = self.venom.intersect(shooter, origin, direction, limit)
+        if mine_hit is not None:
+            limit = mine_hit[0]
         redirect = None
         tagged = state.instance.graph.index == 0x1932 and self.projectile_tags.blob is not None
         tagged_contact = (self._deflector(shooter, definition, origin, direction, limit, view_tick=view_tick)
@@ -5773,6 +5784,10 @@ class Combat:
                     definition=definition, travelled=travelled + distance,
                     matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
                 )
+            return
+        if mine_hit is not None and (wall is None or mine_hit[0] < wall):
+            distance, mine = mine_hit
+            self.venom.damage(mine, direct.amount * direct.scale(travelled + distance))
             return
         if best is None or (wall is not None and wall < best[0]):
             return
@@ -6482,6 +6497,9 @@ class Combat:
                 shield = echo_shield = deployed = absorption = defense = scripted_shield = scripted_absorption = None
 
         limit = best[0] if best else step
+        mine_hit = self.venom.intersect(rocket.shooter, rocket.position, heading, limit)
+        if mine_hit is not None:
+            limit = mine_hit[0]
         ability = self._orisa_deployable_hit(
             rocket.shooter, rocket.position, heading, limit, radius=padding,
         )
@@ -6499,6 +6517,20 @@ class Combat:
                 return 0.0
             self._landed(rocket, continuation_point=point)
             self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
+            return 0.0
+
+        if mine_hit is not None:
+            distance, mine = mine_hit
+            self._amplify_flight(rocket, heading, distance, self.tick - duration / TICK,
+                                 duration / (TICK * step) if step > EPSILON else 0.0)
+            rocket.travelled += distance
+            rocket.flown += duration * distance / step if step > EPSILON else 0.0
+            point = _along(rocket.position, heading, distance)
+            if rocket.direct is not None:
+                self.venom.damage(mine, rocket.direct.amount)
+            rocket.ended = "deployable"
+            self._landed(rocket, continuation_point=point)
+            self._explode(rocket, point, incident_direction=heading)
             return 0.0
 
         if (storm_normal is not None and best == (wall, None)
@@ -7108,6 +7140,7 @@ class Combat:
         )
         protected = set(protected)
         visible_from = _along(point, incident_direction, -0.0001)
+        self.venom.explode(rocket.shooter, point, blast, visible_from=visible_from)
         fixed = tuple(shield for shield in world_shields if isinstance(shield, world_bubbles.FixedBubble))
         raised = tuple(s for s in world_shields if isinstance(s, barriers.reinhardt_barrier.RaisedBarrier))
         protected.update(self.barriers.world.explosion(

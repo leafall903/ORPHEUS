@@ -594,3 +594,26 @@ Next exact action: source000A venom.py Flight/Mine/Poison/Mines, map current
 barrier/Deflect/absorption and transport APIs, mount throw/update/retire/hitscan/
 projectile/melee/explosion consumers and explicit snapshots. Do not fake old
 private pool views or replace newer native motion/deflection managers.
+
+### A25 delivered Widowmaker Venom (this commit)
+
+A24 committed2c112ec3. Source000A venom.py algorithms retained with current
+shield/deflection/absorption API adapters, frozen Matrix eligibility on Flight,
+current original transport _end API and invulnerability query name. No duplicate
+old Sigma/Matrix/barrier manager. All source Combat venom consumers now mounted:
+throw, tick, retire, owner reveal, hitscan/finite projectile/melee/splash damage;
+Wall removal also retires attached mines. Current Pulse Bomb uses shared explosion
+consumer, so its splash reaches the same source mine damage path.
+Normal original Venom9+wallattachment1 =>9pass/1 failure in Helix shooter-health
+expectation: mine destroyed and no poison, but current shared self-splash leaves
+160.0891428479803 vs old200. Keep newer native explosion behavior and original
+assertion. Log worker-a-widow-venom-fourth.log. Original reflected poison/flight
+retirement/transfer3 pass, shared Damage/ProjectileTiming/runtime28 pass (log
+worker-a-widow-venom-defense-shared.log; initial Matrix fixture old absorbable
+name changed only to actual catalog admitted). Matrix mine absorption and wall
+precedence2 + original full server snapshot transfer/remaining/poison1 all pass
+(worker-a-widow-venom-matrix-storage.log).
+Next exact action: inspect original Widow cross-owner control/defense/clock and
+replay consumers; audit remaining inline source000A body/weapon differences,
+keep original test modules/normal dependencies, and record owner reconcile.
+Do not mark whole ref admitted until root reconciles cross-owner content.
