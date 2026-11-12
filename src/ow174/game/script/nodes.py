@@ -3279,11 +3279,19 @@ class TrackTargets(State):
 
     family = "targets"
 
+    # m_DD792FF0: the frames from one search to the next (CA9460).
+    SEARCH_PERIODS = (1, 3, 6, 12, 30)
+    # The graphs whose searches from the eye along the aim are answered: Mercy's staff and Guardian
+    # Angel. Other heroes author the same shape (Zarya, Zenyatta, Ana); theirs are not checked yet.
+    AIMED_GRAPHS = (0x006B, 0x006E)
+
     def __init__(self, *args) -> None:
         super().__init__(*args)
         self.count_var: Var | None = None
         self.targets = ()
         self.managed = False
+        self.period = 1
+        self.searched = 0  # the frame of the last search
 
     def on_enter(self) -> None:
         fields = self.node.fields
@@ -3296,11 +3304,15 @@ class TrackTargets(State):
                 and target_filter.get("m_89831602") == 1):
             self.count_var = self.link(target)
             return
+        rate = fields.get("m_DD792FF0") or 0
+        if self.aimed_search() and 0 <= rate < len(self.SEARCH_PERIODS):
+            self.period = self.SEARCH_PERIODS[rate]
         self.refresh()
         if self.managed:
             self.ticks()
 
     def refresh(self) -> None:
+        self.searched = self.instance.component.frame
         values = self.instance.component.world.tracked_targets(self)
         if values is NotImplemented:
             return
@@ -3309,7 +3321,59 @@ class TrackTargets(State):
         self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(e) for e in self.targets))
 
     def tick(self) -> None:
-        self.refresh()
+        # shortcut: CA9460 also moves each state's search frame by a hash of the node and its owner,
+        # not reproduced; port it if two states must search on the client's own frames.
+        if self.period == 1 or self.instance.component.frame - self.searched >= self.period:
+            self.refresh()
+
+    def aimed_search(self) -> bool:
+        """Recognize a search from the owner's eye along the owner's aim: Guardian Angel's and the
+        Caduceus Staff's (docs/research/track-targets.md)."""
+        fields = self.node.fields
+
+        def of_owner(value, cls) -> bool:
+            return (isinstance(value, dict) and value.get("$") == cls
+                    and (value.get("m_entity") or {}).get("$") == "STU_B5A0CAF0")
+
+        yaw, pitch, follows = fields.get("m_D45E22FA"), fields.get("m_E46A19A3"), fields.get("m_08285CD6")
+        if pitch is None:
+            aimed = follows == 1
+        else:  # minus the owner's pitch (C61F70 in degrees) is the aim's own pitch
+            negated = (pitch.get("m_expression") or {}).get("m_opcodes") == [14, 0, 29, 0]
+            values = pitch.get("m_configVars") or ()
+            aimed = not follows and negated and len(values) == 1 and of_owner(values[0], "STU_40AC5AE4")
+        whole = (fields.get("m_A30B383E") or {}).get("m_value") == 360  # no cone: the direction is unused
+        search, score = fields.get("m_filter"), fields.get("m_84E5DE4E")
+        cast = (fields.get("m_3D667CE3") or {}).get("m_C1903771")
+        if score is None:  # the orders without a score are not decoded
+            ordered = not fields.get("m_43478CAD") and fields.get("m_C39691D9") is None
+        else:
+            terms = [term.get("m_84E5DE4E") or {} for term in score.get("m_503F0304") or ()]
+            ordered = ([term.get("$") for term in terms] == ["STU_2FD4C482", "STU_AD7331B0"]
+                       and [(terms[0].get(key) or {}).get("m_value") for key in ("m_ABC68B33", "m_2AFC083F")]
+                       == [0, 1])
+        unsupported = (
+            "m_3119AD61", "m_B9BEAC7F", "m_2F88C5F2", "m_544C3E6F", "m_8DCA77B6", "m_762A56C0",
+            "m_B3A77CD0", "m_16BDE607", "m_8862A75D", "m_E474FFD6", "m_D59188D5", "m_48837057",
+            "m_294660A6", "m_229DD034", "m_BA6C9F75", "m_9E1426F6", "m_E8474EE8", "m_C1B724B2",
+            "m_CEE20F6F", "m_24A4AB8A", "m_1B89EA79", "m_4A6E0895", "m_8CBE558B", "m_2A0FB8BB",
+            "m_47AB1887",
+        )
+        tags = (
+            "m_93FA1642", "m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3", "m_C1903771", "m_F61726FE", "m_B40362FC",
+        )
+        return bool(
+            self.instance.graph.index in self.AIMED_GRAPHS
+            and aimed and (of_owner(yaw, "STU_C8C4C20D") or (yaw is None and whole)) and ordered
+            and of_owner(fields.get("m_05BE62DD"), "STU_21A13145")
+            and isinstance(search, dict) and search.get("$") == "STUConfigVarFilter"
+            and all(search.get(name) is None for name in tags)
+            and (cast is None or guid(cast.get("m_C1903771")) == 0x069000000000002C)
+            and fields.get("m_95FFC3C5") == 1 and fields.get("m_32AFE9AA") == 1
+            and not fields.get("m_8D13DD07") and not fields.get("m_2F5FAF65")
+            and all(fields.get(name) is None for name in unsupported)
+            and lvalue(fields.get("m_8A2905A0")) is not None
+        )
 
     def hostile_body_profile(self) -> int | None:
         """Recognize the authored hostile capsule query with line-of-sight profile 002C."""

@@ -6,6 +6,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Target search for Guardian Angel and the Caduceus Staff
+
+- Decoded the client's `STUStatescriptStateTrackTargets` search in
+  `docs/research/track-targets.md`: the filter's six masks, the range and cone test for each body,
+  the order by composite score, how held, new and lost targets become the result, and what the
+  source point and pitch values on Mercy's nodes return. The note lists what stays undecoded.
+- Added `combat.track_targets`, which plays that search for the nodes of Mercy's graphs whose
+  source is her eye and whose direction is her aim. Guardian Angel (`006E` node 15) now finds the
+  ally she aims at within 30 m and a 30 degree cone, and her graph flies her to him. The staff's
+  nodes (`006B` 6, 7 and 121) lock an ally within 15 m. An enemy, a body outside the cone or the
+  range and a body behind a wall are no targets, and of several allies the one nearest the
+  crosshair wins.
+- These states now search at their authored rate (`m_DD792FF0`): Guardian Angel every frame, the
+  staff every 12 frames.
+- Reconstructed where the decode stops, each point named in the note: a body's filter bits (bit 0
+  for a hero's body, bit 4 while dead), the three target sensitivity variables at 1, sight against
+  the map alone, and no hash offset on the search frame. A lost target is not kept for the
+  staff's authored second. Sombra's Hack is not answered: its sight uses two hardpoint fields and
+  its condition evaluators that are not read.
+- Added 12 runtime tests in `tests/runtime/test_track_targets.py`: the authored masks, the range
+  and cone, Guardian Angel's flight and its five refusals, the wall, the choice between two
+  allies, and the staff's lock and its refusals.
+- Passed Ruff and 922 public Python tests. The runtime suite ran 1682 tests with the same 26
+  failures as before the change (11 failures, 15 errors), none new.
+- Original client, one Practice Range run: Guardian Angel flew Mercy to a Friendly Bot. The
+  client drew no target mark and no beam; the note records what was and was not seen.
+
 #### Strict World query behavior contract
 
 - Added eleven synthetic World query cases with fixed expected values and diagnostic categories, covering known positions and foreign variables, unavailable services and null entity reads.

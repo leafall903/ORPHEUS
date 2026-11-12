@@ -594,6 +594,53 @@ class Target:
         return (x, y + min(self.radius, middle), z), (x, y + max(self.height - self.radius, middle), z)
 
 
+ANY_ENTITY = 0x3FFFFFFF  # the any mask that every entity passes, with or without filter bits (D0DBEE)
+# reconstruction: the filter bits a body carries beside its team. No code that sets them was found
+# (docs/research/track-targets.md); the authored filters fit bit 0 as a hero's body and bit 4 as dead.
+HERO_BIT, DEAD_BIT = 0x1, 0x10
+SEARCH_MASK = 0x1FDF  # 002C.097's static mask; 002D.097's is taken to be the same
+
+
+@dataclass(frozen=True)
+class TargetSearch:
+    """An authored TrackTargets query from the owner's eye along its aim (docs/research/track-targets.md)."""
+
+    radius: float
+    aperture: float  # degrees, the whole cone
+    masks: tuple  # STUConfigVarFilter: any, all, excluded entity bits, then any, required, excluded relations
+    score: tuple | None  # screen weight, then the distance term's low bound, high bound and weight
+    limit: int | None
+
+
+def filter_admits(masks: tuple, bits: int, hostile: bool, own: bool) -> bool:
+    """STUConfigVarFilter's six masks (BCAAE0). A relation mask has 1 for not hostile, 2 for hostile and
+    4 for the owner itself; the owner is never hostile."""
+    any_bits, all_bits, excluded, any_relation, required, excluded_relation = masks
+    relation = (4 if own else 0) | (2 if hostile and not own else 1)
+    return bool(
+        (bits & any_bits or any_bits == ANY_ENTITY or any_relation & relation)
+        and bits & all_bits == all_bits and not required & ~relation & 7
+        and not (bits & excluded or excluded_relation & relation)
+    )
+
+
+def _in_search_volume(source, direction, radius: float, limit: float, target: Target) -> bool:
+    """C8E660: a body's capsule against a search's range and cone (limit: the cosine of half the aperture)."""
+    a, b = target.segment()
+    if segment_distance(source, a, b) > radius + target.radius:
+        return False
+    if limit <= -0.9999:
+        return True
+    start, end = _along(source, direction, -radius), _along(source, direction, radius)
+    point, axis = contacts.closest_segments(a, b, start, end)
+    gap = math.dist(point, axis)
+    if gap > target.radius:
+        point = _along(point, _sub(axis, point), target.radius / gap)
+    delta = _sub(point, source)
+    depth = _dot(delta, direction)
+    return (gap <= target.radius and depth > 0.0) or depth >= limit * math.hypot(*delta)
+
+
 @dataclass(frozen=True)
 class SplitVolley:
     directions: tuple
@@ -1061,6 +1108,55 @@ class Combat:
             if _communication_visible(rays, origin, target, category, pose):
                 found.append(target.entity)
         return tuple(found)
+
+    def track_targets(
+        self, entity: int, search: TargetSearch, held: tuple[int, ...], admits: Callable[[int], bool],
+    ) -> tuple[int, ...]:
+        """One refresh of a TrackTargets state whose source is the owner's eye and whose direction is its
+        aim: the bodies that pass the filter (and `admits`, its condition) inside the cone, in clear
+        sight, best first when the search has a limit (CAE3B0)."""
+        collision = self.match.collision_world
+        source = self.match._message_player(entity)
+        if collision is None or source is None:
+            return ()
+        mover = source.mover
+        eye = self._eye(source)  # D1A410: the root plus the first-person pivot's height
+        forward = aim(mover.yaw, mover.pitch)
+        right = aim(mover.yaw + 16384, 0)
+        up = aim(mover.yaw, mover.pitch - 16384)
+        limit = math.cos(math.radians(max(0.0, min(search.aperture, 360.0)) * 0.5))
+        free_for_all = self.match.game_map.free_for_all
+        scored = []
+        for target in self._targets():
+            bits = HERO_BIT | (DEAD_BIT if self.vitals_of(target).dead else 0)
+            hostile = free_for_all or target.team != source.team
+            if (not filter_admits(search.masks, bits, hostile, target.entity == entity)
+                    or not _in_search_volume(eye, forward, search.radius, limit, target)
+                    or not admits(target.entity)):
+                continue
+            score = 0.0
+            if search.score is not None:
+                screen, low, high, weight = search.score
+                # C9763C: from the source point to the candidate's root, over the term's range.
+                share = (math.dist(eye, target.feet) - low) / (high - low) if high > low else 0.0
+                score = (screen * _communication_screen_score(target, eye, forward, right, up)
+                         + weight * max(0.0, min(1.0, share)))
+            scored.append((score, target))
+        if search.limit is not None:
+            scored.sort(key=lambda row: row[0])
+        rays = collision.ray_geometry or collision
+        kept, new = [], []
+        for row in scored:
+            target = row[1]
+            fresh = target.entity not in held
+            if fresh and search.limit is not None and len(new) >= search.limit:
+                continue
+            if _communication_visible(rays, eye, target, SEARCH_MASK, self.model_pose_for(target.entity)):
+                (new if fresh else kept).append(row)
+        found = sorted(kept, key=lambda row: held.index(row[1].entity)) + new
+        if search.score is not None:
+            found.sort(key=lambda row: row[0])
+        return tuple(target.entity for _, target in found[:search.limit])
 
     def _wheel_model_pose(self, entity: int) -> ModelPose | None:
         player = self.match._message_player(entity)
