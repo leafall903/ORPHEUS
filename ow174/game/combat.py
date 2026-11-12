@@ -7513,6 +7513,19 @@ class Combat:
             key = (-actor.entity, None)
             if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
                 contacts.append((distance, 0, actor.entity, key, (distance, actor.owner, actor)))
+        for actor in self.photon_barriers.opponents(rocket.shooter, team=rocket.team):
+            distance = self.photon_barriers.contact(actor, rocket.position, direction, limit, rocket.penetration_radius)
+            key = (-actor.body, None)
+            if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        devices = self.orisa.superchargers
+        if devices.geometry is not None:
+            for actor in devices.opponents(rocket.shooter, rocket.team):
+                distance = devices.geometry.cast(actor.position, actor.yaw, rocket.position,
+                                                 direction, limit, rocket.penetration_radius)
+                key = (actor.entity, None)
+                if distance is not None and key not in rocket.penetrated and (distance < limit or not stops):
+                    contacts.append((distance, 2, actor.entity, key, actor))
         for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
             if entity in native_bodies:
                 continue
@@ -7536,6 +7549,9 @@ class Combat:
                     continue  # a nearer body hit can retire its carried shield
                 rocket.penetrated.add(key)
                 self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
+            elif kind == 2:
+                rocket.penetrated.add(key)
+                self.orisa.superchargers.damage(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
             else:
                 rocket.penetrated.add(key)
                 self._apply_hit(
