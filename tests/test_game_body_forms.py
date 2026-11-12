@@ -127,6 +127,24 @@ class GraphSupplementTests(unittest.TestCase):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 graph.add_supplement(self.base, extra)
 
+    def test_effect_binding_uses_added_graph_without_changing_base(self):
+        key = "0x04A0000000000016"
+        binding = {"graph": 2, "definition": {"m_5A4051BC": "0x0580000000000002"}}
+        result = graph.add_supplement(self.base, {
+            "version": 1, "graphs": [{"index": 2}], "effect_scripts": {key: binding},
+        })
+        self.assertEqual(result["effect_scripts"][key], binding)
+        self.assertNotIn("effect_scripts", self.base)
+        self.assertEqual(len(self.base["graphs"]), 1)
+
+    def test_effect_conflict_or_missing_graph_does_not_replace_existing_binding(self):
+        key = "0x04A0000000000016"
+        self.base["effect_scripts"] = {key: {"graph": 1, "definition": {}}}
+        for binding in ({"graph": 1, "definition": {"different": True}}, {"graph": 999}):
+            with self.subTest(binding=binding), self.assertRaises(ValueError):
+                graph.add_supplement(self.base, {"version": 1, "effect_scripts": {key: binding}})
+        self.assertEqual(self.base["effect_scripts"][key], {"graph": 1, "definition": {}})
+
     def test_file_loader_reads_external_supplement_without_writing_the_base(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

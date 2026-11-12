@@ -552,7 +552,7 @@ class BotWorld(runtime.World):
         return super().entity_var(entity, var)
 
     def native(self, cfg: dict, instance: runtime.Instance):
-        from ow174.game import assassin, npc_context, orisa_halt
+        from ow174.game import assassin, npc_context, npc_shields, orisa_halt
 
         if self.hero == 0x02E000000000007A and self.match is not None:
             from ow174.game import body_entities
@@ -584,8 +584,18 @@ class BotWorld(runtime.World):
         result = assassin.native(self, cfg, instance)
         if result is NotImplemented:
             result = npc_context.native(self, cfg, instance)
+        if result is NotImplemented:
+            result = npc_shields.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
+        profile = getattr(self, "pool_profile", None)
+        if profile is not None and instance is not None and instance.graph.index == 0x143A:
+            body, tier = profile
+            if cfg.get("$") == "STU_C3619A38":
+                return expr.Asset(0x0D80000000000000 | (0x195E, 0x195F, 0x26DF, 0x1960)[tier])
+            if (cfg.get("$") == "STU_1A3FA5B0"
+                    and instance.evaluate(cfg.get("m_entity")) == expr.Entity(instance.component.entity)):
+                return expr.Asset(body)
         halt = orisa_halt.native(self, cfg, instance)
         if halt is not NotImplemented:
             return halt
@@ -695,7 +705,11 @@ class BotWorld(runtime.World):
         return targets if targets is NotImplemented else tuple(target.id for target in targets)
 
     def modify_health(self, state, elapsed_ms):
-        from ow174.game import assassin, heavy_assault
+        from ow174.game import assassin, heavy_assault, npc_shields
+
+        value = npc_shields.modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
 
         if self.match is not None and self.hero == 0x02E000000000007A and (state.instance.graph.index, state.node.pos) == (0x0B2F, 22):
             if not elapsed_ms:
@@ -751,6 +765,23 @@ class BotWorld(runtime.World):
         assassin_victim.play_script(self, instance, node)
 
 
+    def set_health_pool(self, state, active):
+        instance = state.instance
+        if getattr(self, "pool_profile", None) is None or instance.graph.index != 0x143A:
+            return NotImplemented
+        from ow174.game.world import HEALTH_POOL, SHIELDS_POOL
+
+        owner = state.evaluate(state.node.field("m_FA3ECC43"), watch=False)
+        kind = state.node.field("m_7E8B666C")
+        if owner != expr.Entity(instance.component.entity) or kind not in (HEALTH_POOL, SHIELDS_POOL):
+            raise ValueError("unsupported conditional NPC pool")
+        vitals = self.match.combat.vitals[owner.id]
+        amount = expr.to_float(state.evaluate(state.node.field("m_amount"), watch=False)) if active else 0
+        vitals.set_conditional_pool(kind, amount if not vitals.dead else 0)
+        instance.component.set(OWNER_HEALTH, float(vitals.total))
+        return True
+
+
 class BotScript(ReplicatedBody):
     """Run the NPC's body and supported placement behavior on the server clock."""
 
@@ -761,6 +792,7 @@ class BotScript(ReplicatedBody):
         manual_nameplate: bool = False,
         nameplate_name: str | None = None,
         manual_rialto_spawn: bool = False,
+        difficulty_index: int | None = None,
     ) -> None:
         from ow174.game import heavy_assault
 
@@ -774,6 +806,8 @@ class BotScript(ReplicatedBody):
         world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
                          manual_nameplate=manual_nameplate)
         world.match = match
+        if difficulty_index is not None:
+            world.pool_profile = body, difficulty_index
         if hero == 0x02E000000000007A:
             from ow174.game.script import spatial_queries
 
@@ -823,6 +857,8 @@ class BotScript(ReplicatedBody):
                 instance.init()
                 if manual_rialto_spawn and hero == heavy_assault.HERO:
                     heavy_assault.skip_sandbox_intro(instance)
+            if difficulty_index is not None and not any(i.graph.index == 0x143A for i in component.instances.values()):
+                raise ValueError("NPC difficulty requires body graph 143A")
             component.run_frame(frame)
             self.server_only = self.initial_exclusions()
             self.flashbang_weapon_stack: runtime.Instance | None = None
@@ -1013,6 +1049,12 @@ class BotScript(ReplicatedBody):
         # frozen, so run the terminal event after the bootstrap simulation frame.
         self.frame = max(frame, self.frame + 1)
         component.owner_dead = True
+        if getattr(component.world, "pool_profile", None) is not None:
+            for instance in tuple(component.instances.values()):
+                if instance.graph.index == 0x143A:
+                    for state in tuple(instance.states.values()):
+                        if state.node.cls == "STUStatescriptStateHealthPool":
+                            state.end(False)
         assassin.bind(component.world, component, None)
         self.retire_controller()
         if self.behavior is not None:

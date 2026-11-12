@@ -159,3 +159,134 @@ Sentry displacement and captured Sentry wall-damage differences remain recorded
 in `parallel-root-manual-*-check.log`; the old heavy_drives observer also needs
 mapping to current charge state. Preserve the original assertions. Worker C
 owns Bastion stance/control follow-up; root retains NPC API/navigation scope.
+
+A7 `d4d3bc4c` is received as `1f2686ec`;75 shared checks passed, and the real
+NPC shield check passed separately with ORPHEUS_NPC_DATA pointing at the prepared
+runtime data. B6 `f694f758` is received as `791034c6`;35 original input/resource/
+runtime checks passed after submission. Original lifecycle assertions use the
+combined sleep/lock/vitals storage adapters, retaining their expected values.
+
+C8 `20598453` is received as `f3989db0`; all five original curve/reflection
+checks passed and five eye checks passed. Preserve the existing McCree hit-count
+subcase failure. B7 `6f7ef665` is received as `3dd5aa86`;37 focused checks passed,
+and the original endpoint budget check passed with the existing full projectile
+tags from hero-lanes/006E/prepared/projectile_tags_174.json explicitly selected.
+
+C9 `e9849f58` is received by the merge named `merge: receive worker C Pharah
+impulses and tagged curves`. The explicit is_barrage marker separates the
+seven-field sampler from unrelated sticky motion configuration. All30
+Pharah impulse/curve/reflection/physics checks and six Echo checks passed;
+preserve two original Echo damage/copied-charge differences. The parser
+exceptions are resolved, without deleting either motion implementation.
+
+Next root prepared-input audit: the external Mercy effect pack contains four
+effect bindings and three additional graphs absent from the base pack. Current
+graph supplements reject effect_scripts. Keep base inputs unchanged and connect
+those original prepared inputs through an explicit composition/loading path.
+The default projectile catalog is empty without ORPHEUS_PROJECTILE_TAGS; the
+full existing catalog must also be configured for the integrated server. Audit
+the remaining Echo differences as actual consumers rather than discarding them
+as baseline failures. A8 conditional NPC pools remains a ready independent batch.
+
+A8 `c6775daf` is received as `21c701bc`; all89 combined original four-tier
+NPC pool/hit/wire/healing/shield/runtime/basic-damage/navigation checks passed.
+Conditional capacity remains separate from ordinary, wave and temporary pools.
+
+## Prepared integration inputs
+
+The root now connects the existing effect bindings through graph supplements,
+with conflict/dangling-binding rejection. Base files are never overwritten.
+`tools/prepare_hero_inputs.py` composes the existing Mercy effect pack and D.Va
+supplement, validates the full projectile catalog, and writes only a small graph
+supplement plus an environment/provenance manifest outside the worktree.
+
+Current generated profile:
+`verification/parallel-merge/runtime-inputs-v1/environment.json`.
+It selects the existing combined runtime, derived hero-graphs supplement,
+original mech mover supplement and the original full3528-definition projectile
+catalog. The supplement adds10 graphs, one entity and four effect bindings.
+All shared graphs and other metadata in the Mercy pack exactly match the base.
+Source SHA256 values are checked before/after generation and retained in the
+manifest. Five loader checks passed; using the generated environment, all13
+original Mercy boost/charge/effects checks plus the original Deflect endpoint
+check passed without skips. These are server checks, not game-client acceptance.
+
+Reproduce from this worktree:
+
+```powershell
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-reproduced
+$profile = Get-Content ../parallel-merge/runtime-inputs-reproduced/environment.json -Raw | ConvertFrom-Json
+foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
+```
+
+Use the loaded process environment for the existing Python server entry point
+and checks. A new output directory is required when recomposing; original packs
+and prior generated profiles stay intact. The profile has no appearance input.
+
+Root's final composer code was rerun to runtime-inputs-v2; its supplement SHA256
+is identical to v1 (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1).
+C10 `c9b4f9e7` is received as `9b93d738`; all62 original Pharah/Helix checks
+passed using the integrated input profile. A9 `6be926ba` is received by the
+merge named `merge: receive worker A Mercy regeneration chronology`; all66
+combined original timing/passive/Valkyrie/runtime/boost/effect checks passed
+with that same profile, without skips. Retained anti/amp history joins snapshots.
+
+B8 `e67d0d8a` is received as `bbd9d3da`;49 of52 combined original Winston
+charge/Tesla/runtime checks passed. Preserve the pending Jump launch, old bubble
+observer and protected controlled-D.Va pilot differences; worker B continues the
+actual Jump/Primal punch consumers. Only one Tesla route remains active.
+A10 `b63da622` is received by the merge named `merge: receive worker A Zenyatta
+dependency interfaces`; all30 combined original cooldown/runtime/Mercy boost/
+effects checks passed with the integrated profile. Original constants/public
+tag queries use existing managers and the immutable projectile catalog.
+
+Worker C now owns the narrow original Bot impulse/mover helpers and necessary
+hook mover reuse, retaining root's attack_mode/reposition cleanup. Root keeps
+NPC input/navigation ownership. Do not mount a second Roadhog controller; B
+owns0040. This ownership change is explicitly coordinated to preserve existing
+shared behavior while the remaining NPC impulse checks are reconciled.
+
+## Root Echo reconciliation
+
+Actual damage tracing found six direct5 hits and six incorrectly halved12.5
+blasts. The normal reflection handoff updated source_body but only updated
+source_entity for Pulse Bomb. Root now transfers both for all normal reflectors,
+restoring the frozen Echo full hostile blast behavior. Separating curve_motion
+from the existing sticky gravity loop also removes the accidental config payload
+introduced when the new Barrage local reused the loop variable name. Echo's
+gravity implementation remains the original existing path; this was not an
+additional Echo curve sampler to retain. All29 original cross-hero reflection/
+Helix/curve checks pass after the repair; original assertions are unchanged.
+
+The remaining copied-Genji718 versus663 assertion has precise read-only evidence
+in `parallel-root-echo-copied-charge-audit.log`: damage awards331.5 twice and
+eleven neutral5-point grants. The original Genji profile uses ult_seconds0 as
+its authored-passive default and explicitly enables2426; it is not the older
+Echo fixture's generic debug-fill toggle. Keep both original implementations
+and the original assertion. This profile difference is not resolved by disabling
+the delivered Genji passive or weakening the Echo numeric expectation.
+
+Long StoredJournal/model-fingerprint checks must run against a frozen committed
+tree. Worker C's70-check full snapshot run retained2 failures/10 errors/3 skips,
+including three ManifestMismatch errors caused by continued code changes during
+the run; those three are not evidence of an implementation defect. Retain the
+rest for consumer audits, without treating this moving-tree run as full acceptance
+or blocking implementation commits. Root's focused immutable captures remain
+separate evidence; avoid rerunning the43-minute group on an actively edited tree.
+
+C11 `3e3aab4a` is received as `4ab2d0a0`;107 of108 original NPC impulse and
+shared bot/control/navigation checks passed. The sole error is the still-unmounted
+Combat.hooks consumer owned by0040. Keep the original hook reuse check and narrow
+future handoff adapter. A11 `a56f80cb` is received as `5f763939`; all48 original
+variable-transition/Shadow/button/runtime/held-fire/resource/Storm checks passed.
+The CHANGED path retains ending guards and CHECK button identity.
+
+C12 `d54f82bb` is received as `a65aee9d`; two original Grasp checks pass. The
+real Moira/Mei command probe includes Deployable targets and reduces the actual
+pillar400 to384 without a VM fault. Preserve the separate original barrier/ice
+suite's absent ORPHEUS_REINHARDT_COLLISION descriptor skip; do not fake a mesh.
+B9 `57e7dfe9` is received by the merge named `merge: receive worker B Winston
+Jump Pack and Primal strikes`; all78 original Winston/runtime checks and all19
+shared command/epoch/handoff checks passed after the generic transition merge.
+The source Jump/Primal controllers reuse existing collision, knockback and
+WorldBubble services; only Winston selects the source command horizon.

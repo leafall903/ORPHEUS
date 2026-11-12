@@ -74,12 +74,81 @@ submitted unchanged rather than left as an untracked fixture.
 C6 full shared run remains in session33339; poll the external log before deciding
 whether any new failure needs correction. Do not silently claim it passed.
 
+Seventh batch SHA: `2d2da024`.
+Eighth batch: `feat: integrate delivered Pharah curved reflections` mounts the
+source restart/eye/seed/fallback/catch-up consumer, spring-aware launch and
+point-wall/body-assistance policy. Five original curve/reflection cases pass.
+Original eye/Helix/channel run:18/19 (retained McCree double-hit expectation).
+Genji/Baptiste43 records6 failures/2 errors; all6 failures and Mei bubble error
+reproduce at the preceding commit; one NPC data configuration error remains.
+External logs: worker-c-pharah-{barrage-reflect-final,reflect-eye-shared-final,
+reflect-services,reflect-services-baseline}-check.log.
+Root received C5 asc254331d and C6 as37577fbd, with42 and14 focused checks passing.
+C6 full server_snapshot session33339 is still active; do not rerun or label green.
+
+Eighth batch SHA: `20598453`.
+Ninth batch: `feat: integrate delivered Pharah blast impulses` mounts actual
+Concussion/self-splash/ring/source force and modifier26/local ADD consumers.
+All34 impulse/Helix/Tank/physics checks pass and curve/reflection5 still pass.
+Explicit Rocket.is_barrage tags isolate the curve parser from Echo's motion
+payload; Echo8 complete without the reported parser exception (6 pass,2 payload/
+copied-charge differences in this pre-A7 tree). Root A7 must be synchronized
+before calling these two residual differences current canonical behavior.
+Logs: worker-c-pharah-{impulse-shared,motion-tag,echo-motion-tag}-check.log.
+Root's Bastion/NPC audit found two interlocks to retain: Heavy capture changes
+Sentry to Recon (wall295 versus235) and Heavy melee lacks displacement despite
+correct damage. Do not remove original stance/movement bridges or assertions.
+C6 full snapshot process53540/session33339 still runs; do not restart it.
+
+Ninth batch SHA: `e9849f58`, received by root as2378f2d7; explicit motion tag
+removed the Echo parser exception, with two original payload/charge differences
+retained. C8 received asf3989db0. Clean local synchronization:45830030.
+Tenth batch: `feat: retain delivered Pharah source sight and boundary behavior`
+mounts the original independent middle/nearest source sight consumer. All45
+original charge9/flight11/edges18/basic-combat7 checks pass; all17 impulse/Helix
+checks pass. Source checks are unchanged; whole-line equivalence remains open.
+C6 full server-snapshot process53540/session33339 remains active after26 CPU
+minutes, with buffered PowerShell output still empty. Do not label it green or
+start another copy; other concrete batches continue independently.
+
+Tenth batch SHA: `c9b4f9e7`, root received as9b93d738; integrated profile62 pass.
+Eleventh batch: `feat: integrate delivered prepared NPC impulse bodies` mounts
+root-delegated narrow Bot/manual physics and owned Mei/Pharah target adapters,
+plus the existing hook module's future shared-body handoff. Root attack_mode and
+reposition cleanup are preserved; npc_control/npc_navigation are unchanged.
+Original12 NPC cases:11 pass,1 Combat.hooks missing-consumer error remains.
+All96 Bot/control/navigation checks pass, three original wall/team scenarios pass,
+and explicit navigation resumes after settling in a direct handoff probe.
+NPC inputs: ../retribution/npc-runtime/data; ../hero-lanes/0008/asset-research/
+five-npc-ai-candidate.json.gz; ../hero-lanes/007A/mech-npc-movers.json.
+Logs: worker-c-pharah-npc-impulse-integrated-check.log,
+worker-c-npc-physics-shared-final-check.log, worker-c-pharah-npc-wall-focused-check.log,
+worker-c-npc-impulse-navigation-probe.log. No source assertion was changed.
+
+C6 full snapshot run is FINISHED:70/2615s,2 failures,10 errors,3 skips.
+Three journal errors are INVALID as implementation evidence because ongoing
+worker edits changed the captured model manifest; guards correctly rejected it.
+Other legacy observation errors and Zarya/Moira assertions remain in the log.
+Root explicitly requires any future long journal run on a frozen committed SHA
+in a detached worktree, never the actively edited worker tree, and never a gate.
+No running long test remains from session33339/process53540.
+
+Eleventh batch SHA: `3e3aab4a` (ready for root receipt).
+Twelfth batch: `fix: resolve Moira deployed target definitions` retains physical
+Deployable targets while selecting their body metadata instead of Player.hero.
+Actual Moira/Mei pillar probe:400->384, no VM fault. Two original Grasp checks
+pass; one combined barrier/pillar test lacks its external descriptor and skips.
+Logs: worker-c-moira-deployable-{contact-check,pillar-probe}.log.
+No long test remains active. Future journal checks use frozen committed trees.
+
 ## Exact next work
 
-1. Continue Pharah's original curve reflection eye/seed/lifetime restart
-   (scoped002B interruption is mounted), then splash/self-splash/impulse and remaining
-   charge/control consumers. Do not replace the combined projectile host.
-   Root owns NPC bots/navigation/snapshot edits while reconciling sniper helpers.
+1. Submit/reconcile C11/C12, synchronize latest canonical prepared-input entry
+   and preserve root Echo curve_motion/source_entity fixes. Review remaining
+   Pharah defense/barrier/control equivalence and continue the other six owner
+   families. Moira Deployable correction is mounted; do not remove those targets. Core charge/flight/edges45 pass; NPC physical11/12 pass.
+   Root/worker B still owns complete Roadhog hooks and root owns NPC input/nav;
+   preserve the C11 narrow physical-body adapter when bringing those implementations in.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
 3. Continue the other six deliveries. Substantial missing owner families include
@@ -96,3 +165,7 @@ Focused Self-Repair/resource/death/gap/Tank checks passed7/7 after this batch.
 Further charge and storage results belong to CHANGELOG.md and external logs.
 No complete Bastion or original-client acceptance is claimed. The other seven
 assigned deliveries are not yet reconciled by this worker.
+
+Canonical synchronization after C9: f3989db0; preserve all original worker A/B/root
+consumers. Only CHANGELOG required conflict resolution, retaining both entries.
+C10 must verify received NPC/sniper, Doomfist and retained movement bridges.

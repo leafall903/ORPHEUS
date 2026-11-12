@@ -135,3 +135,104 @@ condition rejects disabled primary, unlike old007A's held-only query. Preserve
 that semantic difference and the original check. Remaining owned-body difference
 also includes the original spread trace expecting the prior private call shape.
 Do not count those alone as an absent gameplay consumer or weaken their assertions.
+
+DVa launch/landing batch committed `9669c2f4`. Source007A core `dva.py`,
+`fusion_spread.py`, `weapon_aim.py`, `script/placement.py`, `script/entity_link.py`
+are unchanged. All body_entities functions are mounted; differences bridge the
+combined healing/barriers/pins/mover/factory context. Factory, foreign variables,
+possession, weapons, Matrix, Boosters, missiles, Self-Destruct, Call Mech, return
+and retirement have actual consumers. Root owns formal delivery ancestry and
+cross-owner Ana/hook/graviton/Sigma reconciliation; preserve all original checks.
+
+The0020 NPC-shield batch mounts0E62 queries, actual-damage rearm, authored
+recovery and combat catch-up using existing Vitals shields. All14 focused
+recovery/runtime checks passed with existing combined catalog/graphs/movers.
+`test_npc_shields_delivery.py` preserves the original actual-hit test assertions;
+its arena only omits difficulty_index=None. Nondefault `difficulty_index` and
+143A conditional NPC pools remain genuinely unmounted and are the next exact
+0020 consumer to reconcile. The source recovery module's pool access/restoration
+is adapted to canonical Vitals and the keyword-only timed healing factor.
+Data path: `verification/combined-server-runtime/data`; no copied archives.
+
+At the clean A7 boundary worker A absorbed canonical37577fbd. The75-check mixed
+boundary run passed74; Pharah motion retained a top-level old sigma_grasp import
+failure in its defense fixture. No A6/A7 or new Slam/fold/runtime regression was
+observed. Next exact action remains0020 difficulty/143A conditional NPC pools.
+
+The143A consumer is now mounted: source ConditionalPool, manual difficulty0..3,
+pool activation/deactivation, damage/healing/wire records, creation ordering and
+retirement. Base capacities stay separate; wave and temporary services remain.
+All27 focused tests passed (original five bodies/four tiers, actual hits/wire,
+healing, shield waits/recovery, basic DamageTests and runtime). Live server
+snapshots are getter-free/repeatable and sensitive to pool amount/profile.
+`worker-a-npc-pools-final.log` and `worker-a-npc-pools-snapshot.log` hold evidence.
+The broader53-check run retains four unrelated source storage expectations for
+new reports/input fields, Assassin classes/allocation and the Zen world field.
+Next exact action: audit the remaining0020 own weapon/support/charge consumers
+against its ref, then complete0003 Recall/Pulse reconciliation and0004 healing
+status/regeneration chronology, followed by0005/000A. Root's manual NPC attack
+entry9cad40e8 is a separate pending synchronization at the next clean boundary.
+
+143A batch committed `c6775daf`. Mercy chronology batch now retains original
+damage-wait anchoring, passive scale history/pruning and reads history per body
+frame. Combined HealingEffects records actual change/expiry boundaries instead
+of adding another status manager. All67 regeneration/Valkyrie/runtime checks
+passed; focused actual grenade cases match original140->143.52 delayed healing
+and180.24 amplified healing. Passive history is getter-free/repeatable/causal.
+
+Mercy original input reconciliation for root (worker did not edit runtime):
+`combined-server-runtime/data/game_graphs_174.json.gz` has702 graphs and no
+effect_scripts. `combined-server-runtime/mercy-effect-graphs.json.gz` has705
+graphs and four bindings:0019->0079,0016->006C,02CC->10DC,02CD->10DD (full04A0
+effect GUIDs);006C/10DC/10DD are the three additional graphs. In a separate
+Python process, set graph.GRAPHS_PATH to that existing pack before loading tests
+and clear graph._data/_records/graph caches; original
+`test_game_mercy_boost_charge` + `test_game_mercy_support_effects` passed13 with
+no skips. Set ORPHEUS_RUNTIME_DIR to the usual combined runtime; no new asset
+copy or network is needed. Root acknowledged and owns the explicit input union.
+
+The0020 owner audit found zenyatta.py differs from delivery only in combined
+barrier/healing adapters, safe NPC identity checks and a dead-owner guard. Its
+combat/support/FFA/cooldowns run passed68 of69; the remaining module import is
+the original public barriers.PROJECTED constant (025C), not missing gameplay.
+Next exact action: preserve the original barrier constants/import interface,
+then finish0020/0003 owner reconciliation and progress0005/000A.
+
+Mercy chronology committed `6be926ba`; final focused2 getter-free/history cases
+passed after removing imported fixture classes from test discovery. The prior67
+combined run included14 fixture checks (root's equivalent final command is53).
+The0020 original barrier/Flashbang constants and Matrix metadata interfaces now
+resolve the earlier import chain. Allfour cooldown checks passed; the original
+invalid/unknown Matrix catalog class also passed. Matrix reads the already
+captured immutable deflection catalog and retains verified Ana metadata fallback.
+The68 combat/support/FFA checks were already green; no assertion was weakened.
+Root still owns0020 formal source admission and cross-owner old defense managers.
+Next exact code work is0005's missing Hanzo charge/control/movement modules, with
+0003 Recall/Pulse reconciled against its already-mounted combined managers, then
+000A. Avoid copying old cross-owner managers merely to recover their names.
+
+At the clean A10 boundary worker A absorbed root9c842c3e. All32 mixed checks
+passed without skips using `parallel-merge/runtime-inputs-v1/environment.json`.
+Load that file's environment properties into the process, also set
+ORPHEUS_NPC_DATA=combined-server-runtime/data and PYTHONPATH=tests. The profile
+contains the explicit original Mercy bindings/graphs, DVa graph/movers and full
+3528-projectile tags; worker does not alter its files. Next work is Hanzo charge/
+control (modules absent), followed by lunge/climb/native pose consumers.
+
+Worker sync committed `60261ec3`. Current isolated runtime batch restores the
+source0005 generic CHANGED transition recheck with active/ending protection,
+keeping dependency_changed and A1 CHECK input context. Root explicitly approved
+the general route after the frozen source comparison. All31 Shadow/button/
+runtime checks and16 dynamic magazine/charge checks passed. Storm's stock5 now
+stops after5 emissions; the old scoped route emitted7 despite stock0.
+
+Pending uncommitted A12 work must be preserved: original hanzo_charge.py and
+hanzo_control.py; BodyWorld Hanzo climb placeholder/snapshot field; original
+control test file; Hanzo damage/passive charge and control interruption hooks;
+bow critical/gravity/lifetime consumers. Full draw/Fortify checks passed. The
+original Storm and control-recovery numerical expectations differ with current
+view_offsets.get (native camera values) versus frozen source's static camera
+fallback:140 vs70 Storm hit and lethal vs125 recovery arrow. Do not weaken those
+checks or delete native view offsets. Next exact action after the isolated
+runtime commit is finish/submit A12, then mount actual lunge/climb/Sonic/Dragon
+consumers. No whole0005 admission is claimed.

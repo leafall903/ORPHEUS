@@ -2103,6 +2103,7 @@ class BodyScript(ReplicatedBody):
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
         self.frame = frame
+        regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
         ultimate.sync_practice_timer(self)
@@ -2124,7 +2125,7 @@ class BodyScript(ReplicatedBody):
             self.world.scope_host.run_frame(frame, edges)
         else:
             self.component.run_frame(frame, edges)
-        self.self_healing += regeneration.report(self)
+        self.self_healing += regeneration.report(self, frame)
         for windows in (self.control_windows, self.sleep_windows, self.frost_windows):
             windows[:] = [(low, high) for low, high in windows if high > frame]
         self._report_self_repair()

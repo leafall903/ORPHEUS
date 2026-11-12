@@ -946,6 +946,7 @@ class Match:
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
                 controller_entity=controller_entity, match=self,
+                difficulty_index=bot.spawner.get("difficulty_index"),
             )
             component = getattr(bot.body_script, "component", None)
             if isinstance(component, runtime.Component):
@@ -1299,6 +1300,9 @@ class Match:
         for bot in self.bots:
             if self.combat.orisa.controls(bot.entity, tick):
                 continue
+            hooks = getattr(self.combat, "hooks", None)
+            if hooks is not None and hooks.controlled(bot.entity):
+                continue  # the retained hook consumer owns this tick's shared body mover.
             npc_navigation.refresh_obstacles(bot, self.combat.walls.pieces)
             if self.combat.walls.step_npc(bot, tick, RETAIL_QUANTA / 1e6):
                 continue
