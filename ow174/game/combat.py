@@ -128,7 +128,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, REPEAT, STEP, Mov
 from ow174.game.props import ModelPose
 from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
+from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, ULT_COST, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -4581,6 +4581,9 @@ class Combat:
         # accepted gap, using the existing actors and their actual clock pairs.
         sentry_damage_starts, cryo_expiries = {}, {}
         for player in self.match.players:
+            phase_end = immunity.phase_world_deadline(self, player)
+            if phase_end is not None and phase_end <= tick:
+                sentry_damage_starts[player.body] = now - (tick - phase_end + 1) * TICK
             deadline = mei.cryo_world_deadline(player)
             if deadline is not None and deadline <= tick:
                 ended = now - (tick - deadline + 1) * TICK
@@ -10225,9 +10228,15 @@ class Combat:
                     ready = self._zarya_charge_ready_tick(zarya_script)
                     if ready is not None and ready <= (self.tick if world_tick is None else world_tick):
                         zarya_script.award_ult_charge(dealt)
+            if award_ult and current_source and hero == 0x02E000000000023B:
+                from ow174.game import sigma_charge
+
+                selected = sigma_charge.damage_script(self, shooter, target, loadout)
+                if selected is not None:
+                    selected.gain_ult_charge(max(0.0, base_before - vitals.base_total))
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007, 0x02E0000000000068)
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007, 0x02E0000000000068, 0x02E000000000023B)
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
@@ -10890,6 +10899,9 @@ class Combat:
         if (isinstance(old_script, BodyScript) and old_script.hero == 0x02E0000000000068
                 and player.hero.guid == old_script.hero and old_script.component.fault is None):
             points = old_script.component.entity_var(ULT_CHARGE).value()
+        if (old_script is not None and player.hero.guid == 0x02E000000000023B
+                and old_script.entity == player.body):
+            points = max(0.0, expr.to_float(old_script.component.entity_var(ULT_CHARGE).value()))
         switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
                     if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
         if not switched:
@@ -10901,6 +10913,8 @@ class Combat:
             script = player.body_script
             from ow174.game import mei_ultimate
 
+            if player.hero.guid == 0x02E000000000023B:
+                points = min(expr.to_float(script.component.entity_var(ULT_COST).value()), points)
             if player.hero.guid != 0x02E00000000000DD or not mei_ultimate.spawn_ready(script):
                 script.set_ult_charge(points)
             if player.hero.guid == symmetra_charge.HERO:

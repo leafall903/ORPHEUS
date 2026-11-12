@@ -341,6 +341,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original Heavy melee force on configured Bastion
+
+- Reconnect the explicit original Heavy/Sentry interaction to the existing
+  physical action queue, retaining its authored damage/vector and configured
+  mode. Other targets retain their current modifier26 and force policy.
+- Nine focused checks pass; original Heavy melee cases pass in all three Bastion
+  forms. Three original Trooper zero-damage failures and capture timing remain
+  recorded for the next batch; no client acceptance was performed.
+
+### Keep retained Heavy damage calls compatible with the shared API
+
+- Preserve the original three support-module tag expressions using the current
+  hit_tags parameter. Three call contracts validate and eight damage checks pass.
+- This support module is not the current NPC damage driver; actual Heavy/Bastion
+  capture and motion differences remain under audit without a second manager or
+  claims of gameplay completion. Client acceptance remains open.
+
+### Integrate original phase expiry into Sentry history
+
+- Feed actual Wraith/Fade expiry from their existing clock pairs to the existing
+  Sentry damage-start integral, preserving their sole drivers and world deadlines.
+- Accepted gaps now match contiguous damage; 24 causal epoch/Sentry/damage checks
+  pass. The original older one-tick contiguous expectation remains recorded
+  unchanged, with full phase/retarget and client acceptance still open.
+
 ### Preserve projectile source scaling on the same Mei wall pools
 
 - Connect wall direct/splash damage to the existing source modifiers once,
@@ -389,6 +414,49 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Restore Grasp world decay from actual grant receipt
+
+- Existing pool groups consume the original declared delay/rate even without
+  body input, using the actual producer frame/subframe and world receipt.
+  Positive grants alone refresh the clock; retirement/exhaustion cleans it.
+- Full original shield checks plus shared32 pass. Unequal-epoch strict proof
+  follows separately; no VM advancement, new health pool or client run.
+
+### Preserve complete original Grasp shield consumers
+
+- Restore original shield checks over actual named pool groups, activation
+  ledger, entered waits and allocated wire slot, keeping every numeric assertion.
+- Fresh second cast/cap/health/death/replacement/wire pass; two original world
+  decay failures identify the next missing consumer. No client run.
+
+### Restore original Grasp source activation dedup
+
+- Existing registered Grasp ledger consumes each original absorption activation
+  once, including zero grants and replay after lease expiry; replacement clears it.
+  Native queue/callee primitives and health pools remain the existing services.
+- New/source/shared33 checks pass. Two older same-action repeated-grant tests
+  conflict with original023B idempotence and remain unchanged. No client run.
+
+### Preserve original Sigma Grasp interception checks
+
+- Restore all10 original023B actual-input interception checks byte-for-byte;
+  existing sole Grasp/interception services pass them without another host.
+- Shield request replay/lifecycle audit continues. No client acceptance run.
+
+### Preserve original Sigma charge across respawn
+
+- Existing respawn/replacement hook retains the same Sigma body's earned
+  charge, caps it to the new cost and preserves spent Flux and allocation retry.
+- Original respawn/replacement plus shared23 checks pass; no client run.
+
+### Restore Sigma source charging policy
+
+- Normal Sigma uses its original392s passive cycle. Its three authored hosted
+  damage loadouts credit effective base-pool damage on the existing charge path,
+  excluding temporary losses and duplicate generic credit.
+- Full original economy10 checks run8pass2 retained failures; shared21 pass.
+  Respawn charge retention and Field geometry remain next; no client run.
+
 ### Verify actual bounced Hypersphere storage
 
 - Raw HeroPick/input/wall contact proves same-body VM identity, separate epochs,
@@ -11474,3 +11542,11 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+### Preserve actual NPC projection private storage boundaries
+
+- Copy each BotWorld button lookup and cross-component barrier Entity parameter
+  values while retaining actual actor/component/context identities. Strict
+  snapshot rejection remains unchanged.
+- Actual projected NPC causal storage, unknown-field rejection and shared
+  damage/runtime20 checks pass; original gameplay assertions are retained.

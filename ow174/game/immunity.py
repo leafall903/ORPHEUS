@@ -199,3 +199,29 @@ def damage_immune(owner, entity):
     if untargetable(owner, entity) or cryo_active(owner, entity):
         return True
     return _active_state(owner, ZENYATTA, TRANSCENDENCE, 24, entity) is not None
+
+
+def phase_world_deadline(fight, owner):
+    """Read original Wraith/Fade expiry on their existing admitted clock pair."""
+    from ow174.game import combat
+
+    script = getattr(owner, "body_script", None)
+    hero = getattr(getattr(owner, "hero", None), "guid", None)
+    index = {0x02E0000000000002: 0x0020, 0x02E00000000001A2: 0x0F7C}.get(hero)
+    if (index is None or script is None or script.retired or script.component.owner_dead
+            or script.component.entity != owner.body or not phased_out(owner)):
+        return None
+    if index == 0x0020:
+        anchor = script.world_frame_anchor
+    else:
+        clock = fight.moira_clocks.get(owner)
+        anchor = clock[1:] if clock is not None and clock[0] is script.component else None
+    if anchor is None:
+        return None
+    instance = next((i for i in script.component.instances.values() if i.graph.index == index), None)
+    wait = instance.states.get(3) if instance is not None else None
+    if wait is None or not wait.active or wait.ms <= 0:
+        return None
+    world, body = anchor
+    elapsed = wait.start + wait.ms - body * script.frame_ms
+    return world + math.ceil(elapsed / round(combat.TICK * 1000))

@@ -280,7 +280,7 @@ def tracked_targets(world, state):
     return (target.entity,) if target is not None else ()
 
 
-def _push(source, target, state, settings):
+def _push(source, target, state, settings, *, defer=False):
     # Resource scalars 1257/1258 supply the horizontal and upward parts.
     # Their application as a velocity impulse is the sandbox reconstruction.
     horizontal = expr.to_float(state.evaluate(settings.get("m_E33EFEE1"), watch=False))
@@ -295,12 +295,19 @@ def _push(source, target, state, settings):
     else:
         dx, _, dz = combat.aim(source.yaw, 0)
     mover = target.owner.mover
-    vx, vy, vz = mover.velocity
-    mover.velocity = (expr.f32(vx + horizontal * dx), expr.f32(vy + upward),
-                      expr.f32(vz + horizontal * dz))
-    if upward > 0 and not mover.flags_word & IN_AIR:
-        mover.flags_word |= FELL
-        mover.air_ticks = 0
+    if defer:
+        # The original configured-Sentry force must join the next physical
+        # action phase after its persistent movement constraints.
+        fight = state.instance.component.world.match.combat
+        fight.knockbacks.apply(target, expr.Vec3(horizontal * dx, upward, horizontal * dz),
+                               impact_frame=fight.tick)
+    else:
+        vx, vy, vz = mover.velocity
+        mover.velocity = (expr.f32(vx + horizontal * dx), expr.f32(vy + upward),
+                          expr.f32(vz + horizontal * dz))
+        if upward > 0 and not mover.flags_word & IN_AIR:
+            mover.flags_word |= FELL
+            mover.air_ticks = 0
     if source.hero == HERO and (horizontal > 0 or upward > 0):
         correction.force_impulse(target.owner)
 

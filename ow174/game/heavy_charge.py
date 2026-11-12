@@ -156,7 +156,7 @@ def impact(fight, state):
         vitals = fight.vitals_of(target)
         before = vitals.total
         fight._damage(actor, target, amount, False, loadout, fight.tick,
-                      world_tick=fight.tick, damage_tags=tags)
+                      world_tick=fight.tick, hit_tags=tags)
         if not vitals.dead and vitals.total < before and target.entity in targets:
             fight._apply_stun(target, duration)
     return True
@@ -269,7 +269,7 @@ def crush(fight, state):
     loadout = state.evaluate(modify.get("m_loadout"), watch=False)
     loadout = loadout.guid if isinstance(loadout, expr.Asset) else None
     fight._damage(actor, target, amount, False, loadout, fight.tick, world_tick=fight.tick,
-                  damage_tags=combat.health_tags(state, modify))
+                  hit_tags=combat.health_tags(state, modify))
     return True
 
 
@@ -329,7 +329,7 @@ def finish_frame(fight, bot, instance):
         vitals = fight.vitals_of(target)
         before = vitals.total
         fight._damage(bot, target, amount, False, loadout, fight.tick,
-                      world_tick=fight.tick, damage_tags=tags)
+                      world_tick=fight.tick, hit_tags=tags)
         if not vitals.dead and vitals.total < before:
             fight._melee_impulse(target, bot.position, health)
 

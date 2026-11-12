@@ -7,7 +7,7 @@ Native pet/PlayScript hosting, bone pose, energy/credit/filter policy and wire
 replication remain open. This is a finite collision target, not body invulnerability.
 """
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ow174.game import barrier_geometry, bots, contacts, reinhardt_barrier, world_bubbles
 from ow174.game.reinhardt_barrier import Geometry, configured_geometry, frame, intersect, load_geometry, mesh
@@ -742,6 +742,11 @@ def play_script(world, instance, node):
         return
     component = barrier.component
     component.frame, component.now = instance.component.frame, instance.component.now
+    # Native parameter arrays carry Entity values into the separate component,
+    # rather than sharing the source variable's Python value-record storage.
+    request = replace(request, params=tuple(
+        (key, tuple(expr.Entity(value.id) if type(value) is expr.Entity else value
+                    for value in values)) for key, values in request.params))
     queue = play_queue.Queue(component, lambda guid: play_queue.Load("ready", definition))
     queue.submit(request)
     if queue.pending:

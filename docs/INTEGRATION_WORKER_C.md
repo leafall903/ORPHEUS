@@ -2522,3 +2522,120 @@ retarget/projected actual windows (NPC target mount owned A), remaining0008
 cross-owner source force and0015 Heavy Sentry stance/displacement. No client,
 network/publication action. Remaining C estimate5–12 activehours, lowconfidence;
 shared geometry/phase timing is the largest unknown.
+
+
+## C58 original phase expiry feeds the existing Sentry integral
+
+Original phase_defenses.advance_idle reports the first vulnerable world tick to
+Combat's damage_starts. The combined owners already advance Reaper/Fade through
+their sole existing world_frame_anchor/moira_clocks drivers, but that report was
+missing from Sentry integration. Actual source helper showed Reaper gap1=3.84,
+gap16=10.24,gap64/80=40.96; Fade gap1=3.84,gap16=10.24,gap40=25.6. Mei existing
+reported expiry already kept all gaps at3.84. These are real accepted gaps, not
+private observer failures; log ../worker-c-c58-phase-gap-probe.log.
+
+Add only pure immunity.phase_world_deadline: read actual Wraith/Fade Wait3 start/
+ms and their existing current-component clock pair, map that deadline to world
+time, never run a VM or create a ledger/driver. Combat.update feeds it to the
+existing sentry_damage_starts max integral, alongside existing Mei expiry. It
+does not delay protection globally or change current Reaper/Moira/Mei clocks,
+input admission, phase health rules or B50 Mine/Cryo deadlines.
+
+After restoration all11 source helper hero/gap scenarios produce identical3.84,
+../worker-c-c58-phase-gap-restored.log. Original full selected method remains
+3literal failures3.825s: its contiguous expected3.2 versus existing3.84 (one tick)
+occurs before gaps are compared. Original source assertions are unchanged and
+that boundary difference is not countedpass. The old phase_defenses.active
+observation was mapped externally to actual immunity.phased_out; original helper
+setup/assertions are retained, no production fake phase manager or alias.
+
+New tracked causal regression copies the original setup/helper and compares its
+accepted gap against actual contiguous behavior; it does not change the original
+literal check. A second actual producer test supplies body command frame+1000,
+uses the recorded original owner pair, verifies readonly deadline under run_now/
+run_frame rejection and actual protection on each side of that deadline. Both
+heroes pass; no guessed epoch offset is used. New2 + original Sentry14/Damage8:
+24/24pass39.233s, ../worker-c-c58-phase-history-check.log.
+
+Next: source retarget/projected windows, remaining defense/respawn transitions,
+then Bastion Heavy Sentry capture stance and displacement. Original0016 projected
+NPC native recipient is A-owned pending actual mount; no second manager. Keep
+remaining Pharah/Torb/Sombra source-consumer audits explicit. Remaining estimate
+4–11 C activehours, low confidence. No client/network/publication action.
+
+
+## C59 retained Heavy support damage keyword compatibility
+
+Root authorized narrow three damage_tags→hit_tags changes in retained
+heavy_charge.py impact/crush/finish_frame. Actual Combat._damage uses hit_tags;
+source tag expressions and mathematical amounts are unchanged. All three literal
+call contracts validate against its current signature, Damage8pass2.473s.
+
+Important boundary correction: this module is NOT the current NPC damage/drive
+host. Current BotWorld.modify_health delegates heavy_assault.modify_health and
+Combat.advance_heavy_capture drives the existing1407 victim. Sentry proof reads
+heavy_charge.active, but no current caller mounts this module's damage/advance
+functions. These keyword corrections retain compatible original implementation;
+they are not evidence of newly integrated Heavy gameplay or line completion.
+Do not add another Heavy pin/force manager to make old names resolve.
+
+Original source two-method Bastion/Heavy probe first ended14.442s with3old
+heavy_drives observer errors and4assertion failures. Mapping that observer to
+heavy_charge.active was too broad: it includes windup, so its velocity0 vs old
+expected-15 does not establish a drive regression. Second probe12.755s records
+3such premature velocity failures plus3Trooper melee0 damage failures and original
+Heavy Sentry no-displacement failure. These assertions remain unchanged. Actual
+regular _interrupt alone preserves configured Sentry mode2 and scalar.8 through
+the next pose, so do not globally alter that service to chase oldcapture235.
+Logs ../worker-c-c59-bastion-heavy-{baseline,tags}-check.log and reproducer
+../parallel-merge/worker-c-bastion-heavy-source-check.py. Source full-module
+imports still require old owner interfaces; no fake aliases installed.
+
+Next C60 audit existing heavy_assault/Combat capture and shared physical motion
+consumers, with actual drive admission rather than invented heavy_drives views.
+Any source support still unmounted remains explicit. C58 phase integration and
+C57 wall-source consumers already committed; no live check at this checkpoint.
+No client/network/publication action.
+
+
+## C60 actual Heavy melee force on configured Bastion
+
+Original0015 test_trooper_and_heavy_melee_hit_each_bastion_form_once_per_press
+requires Heavy80*Ironclad-5 damage and negativeZ displacement in each form.
+The actual manual BotWorld route intercepted Heavy140E/node5 before the original
+heavy_assault.modify_health/_push path, then called generic _radial_impulse.
+Its current modifier26 response is0 on configured Sentry, suppressing the source
+Heavy force. Original _push constructs the authored vector directly, without
+that generic response scalar. Preserve this explicit source mode behavior only:
+actualHeavy140E/node5 + actualBastion1216==2 consumes original _push vector through
+the already-owned Knockbacks queue at the recipient's next physical action.
+Other targets retain _radial_impulse/mod26/Fortify behavior; _push's default
+immediate behavior and its other callers remain unchanged. No global mod26 edit,
+new driver, impulse pool or helper manager. Correction remains original.
+
+Earlier SET-only diagnosis was an unproven and over-narrow hypothesis. Exact
+_has_velocity_set gating still failed the Sentry test; it was removed. Do not
+write that Sentry necessarily carries a visible tupleSET as established fact.
+The authoritative evidence is original configured-mode force plus the actual
+manual branch/mod26 suppression and successful same-existing-queue execution.
+
+New actual producer case verifies original59damage, preserved mode2, negativeZ
+movement, stop/no repeat damage and emptied action queue. Final newcase+Damage8:
+9/9pass5.219s, ../worker-c-c60-scoped-heavy-impulse-check.log. Original complete
+melee method now Heavy Recon/Sentry/Tank3subcases allpass12.193s; only the3known
+Trooper25/19/19expected-vs0 failures remain. No original assertion/numeric change.
+../worker-c-c60-original-melee-restored.log. Before scoped restoration source had
+those3 plusHeavySentry displacement failure (4fail12.146s).
+
+The superseded SET-gated broad run27241 naturally terminated46run45pass1newcase
+fail163.658s; it is not claimed fullgreen or current final-suite evidence. No
+process was killed: a later exact-command stop attempt found no running matching
+process because it had finished. Broad log
+../worker-c-c60-final-heavy-impulse-check.log. Initial only-_push edit had8Damage
+pass andtheSentryfailure4.132s because the actual manual route bypassed _push.
+These diagnostic outcomes are retained, not hidden by replacing assertions.
+
+Next C61: actualTrooper melee target/native consumer (threezero-damage failures),
+then Heavy capture mode/timing using the real existing1407/1408 host. Retained
+heavy_charge support functions are not a second gameplay driver. Remaining
+4–10 C activehours lowconfidence; no client/network/publication action.

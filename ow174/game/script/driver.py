@@ -2366,6 +2366,10 @@ class BodyScript(ReplicatedBody):
             self.ball_birth = (match.tick, start_frame)  # immutable actual epoch pair; not an input lease
         if hero in (0x02E0000000000002, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
+        if ult_seconds is None and hero == 0x02E000000000023B and match is not None:
+            from ow174.game import sigma_charge
+
+            ult_seconds = sigma_charge.PASSIVE_FULL_CHARGE_SECONDS
         if ult_seconds is None and hero == 0x02E00000000000DD:
             from ow174.game import mei_ultimate
 
