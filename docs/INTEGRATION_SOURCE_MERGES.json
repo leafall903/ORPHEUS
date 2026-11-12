@@ -211,5 +211,11 @@
   "all_source_parents_integrated": true,
   "tree_preserved": true,
   "new_source_record_merges": 24,
-  "recording_tree_identity_note": "Git tree object identity checked before/after every parent recording"
+  "recording_tree_identity_note": "Git tree object identity checked before/after every parent recording",
+  "functional_closure_state": "active final all-callers review; provenance reachability is complete but not implementation completion",
+  "final_all_callers_followup": [
+    "original DVa Booster push world consumption",
+    "original Heavy node35 and current NPC positive-up launch world consumption",
+    "original ShadowStep/Halt takeover retirement consumers"
+  ]
 }
