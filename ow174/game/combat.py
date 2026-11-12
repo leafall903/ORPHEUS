@@ -52,6 +52,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 
 from ow174.game import (
+    ashe,
     orisa_fortify,
     sonic,
     dragon,
@@ -2696,6 +2697,8 @@ class Combat:
         component = script.component
         from ow174.game import assassin, hanzo_control, photon_barrier
 
+        ashe.set_viper_reload_stunned(component, True)
+
         photon_barrier.interrupt(script)
         self.punches.interrupt(actor)
         hanzo_control.cancel_draw(script)
@@ -3068,6 +3071,7 @@ class Combat:
         if isinstance(script, BotScript):
             script.interrupt_attack()
         component = script.component
+        ashe.set_viper_reload_stunned(component, True)
         component.edges([(value, False) for value in tuple(component.held)])
         for instance in list(component.instances.values()):
             if instance.graph.index == 0x19A5:
@@ -4383,8 +4387,12 @@ class Combat:
                       and self._personal_barrier_pet(p) is not None}
             for body in self.personal_barriers.keys() - active:
                 del self.personal_barriers[body]
-        for entity in [key for key, deadline in self.stuns.items() if deadline <= tick]:
-            del self.stuns[entity]
+        expired_viper_controls = {key for key, deadline in self.stuns.items() if deadline <= tick}
+        expired_viper_controls.update(key for key, vitals in self.vitals.items()
+                                      if vitals.sleep_until and vitals.sleep_until <= tick)
+        for entity in expired_viper_controls:
+            if self.stuns.get(entity, tick + 1) <= tick:
+                del self.stuns[entity]
         for key, end in tuple(self.controls.items()):
             if end <= self.now or key[0] not in current:
                 del self.controls[key]
@@ -4402,6 +4410,11 @@ class Combat:
         for vitals in self.vitals.values():
             if vitals.sleep_until and tick >= vitals.sleep_until:
                 vitals.clear_sleep()
+        for entity in sorted(expired_viper_controls):
+            target = current.get(entity)
+            script = getattr(target.owner, "body_script", None) if target is not None else None
+            if script is not None and not self.is_stunned(target.owner):
+                ashe.set_viper_reload_stunned(script.component, False)
         for table in (self.history, self.vitals, self.dragon_pose_anchors, self.replacement_ticks, self.genji_assists, self.stuns, self.hammer_hits):
             for entity in [key for key in table if key not in current and self.junkrat.lookup(key) is None]:
                 del table[entity]

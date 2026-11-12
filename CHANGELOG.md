@@ -9216,3 +9216,7 @@ runtime-base edits, full assets, client run or publication. Full original contro
 BOB fixture dependencies saved; BOB itself remains unmounted, not counted complete.
 Next exact action: source Coach recoil/pellet impulse and reload interlocks on the
 existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/charge.
+
+### Worker A45 - Ashe Viper reload hard-control interlocks
+
+- Connect original reload-under/end and expiry recovery to actual shared control interruption, reusing current stack transitions. Original Flashbang reload and runtime checks: 15 passed; shell/held-input reload methods passed unchanged.
