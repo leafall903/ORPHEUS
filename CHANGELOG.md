@@ -8976,3 +8976,13 @@ Original input hero-lanes/0065/charge-entity-inputs.json configured by
 ORPHEUS_CHARGE_ENTITY_INPUTS. No client run/publication. Next: native filter
 constant, original Mayhem/death-volley on current bot/body hosts, normal fixture
 contract reconciliation and residual actual consumers. Root owns input/ref admission.
+
+
+## A40 - preserve native entity-filter wildcard constant
+
+Restored the missing WILDCARD=0x3FFFFFFF already used inline by native BCAAE0
+mask admission, and shared it with the existing record backend. This fixes three
+pre-existing missing-name errors, without new fallback/schema/graph exceptions.
+Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
+classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
+No client run/publication. Continue original0065 Mayhem/death-volley.
