@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reuse the NPC driver for proven frozen sentry history
+
+- Mount original bounded no-support frozen-lock proof through the existing
+  Match NPC/combat tick loop. Historical frost reads use the recorded frame;
+  current navigation/control/mover ownership stays intact.
+- All five actual Mei-freeze/Sentry/NPC producers match89 normal ticks to one
+  skipped update; the prior empty admission loses25 beam ticks. Original31
+  Frost/Sentry/Damage methods pass; old optional-NPC-mover fixture errors remain.
+- Observe barrier removals from final Torb turret attacks before beam settlement.
+  Ice-support/projected-impact/phase/respawn history consumers remain partial.
+
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the

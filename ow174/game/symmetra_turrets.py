@@ -182,7 +182,7 @@ class Turrets:
             ):
                 return ()
         hostile_support = support is not None and support.team != first.owner.team
-        if self.combat.zarya_barriers.projected and not hostile_support:
+        if _projected_barriers(self.combat) and not hostile_support:
             return ()
         if hostile_support or (others and self.combat.rockets):
             if not self._ice_support_rocket(support, target, first.last_tick, end_tick):
@@ -193,7 +193,7 @@ class Turrets:
             # A piercing allied shot that crossed the only enemy cannot
             # change the target or interrupt the beam during this gap.
             if any(
-                rocket.team != first.owner.team or rocket.blast is not None or rocket.concussion
+                rocket.team != first.owner.team or rocket.blast is not None or (rocket.source_graph == 0x007B)
                 or target.entity not in rocket.hit_entities
                 for rocket in self.combat.rockets
             ):
@@ -209,7 +209,7 @@ class Turrets:
             return False
         [rocket] = fight.rockets
         if (rocket.last_tick != previous_tick
-                or rocket.blast is None or rocket.motion or rocket.concussion
+                or rocket.blast is None or rocket.motion or (rocket.source_graph == 0x007B)
                 or rocket.shooter not in fight.match.players or rocket.team != rocket.shooter.team):
             return False
         # The authored Pharah launch marker survives Deflect.
@@ -655,7 +655,7 @@ class Turrets:
         actor = target.owner
         if not isinstance(actor, bots.Bot) or actor.impulse_mover is not None:
             return False
-        frost = self.combat.frost(actor)
+        frost = self.combat.frost(actor, tick=previous_tick)
         # A live full freeze records its activation time in milliseconds.
         if frost is None or not frost[2] or frost[1] > previous_tick * round(TICK * 1000):
             return False
@@ -665,6 +665,14 @@ class Turrets:
         history = self.combat.history.get(target.entity, ())
         return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
                    for sample in history)
+
+
+def _projected_barriers(fight):
+    from ow174.game import barriers
+
+    return tuple(actor for actor in fight.barriers.scripted.values()
+                 if actor.component.world.hero == barriers.ZARYA and actor.recipient is not None
+                 and barriers._live(fight, actor))
 
 
 def _attached_barrier(fight, owner):
