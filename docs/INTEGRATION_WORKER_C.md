@@ -332,3 +332,37 @@ no direct reader anywhere in frozen0006/source/ow174 (rg confirmed). Original
 Molten Core reads deployables.molten_core and directly resolves status_graph
 16DE and its scopes. Root preserves status_effects as unselected input evidence;
 do not silently import it into production or claim a consumer without evidence.
+
+## C18 Molten Core checkpoint
+
+C17 SHA0790f14f received7b921893. Rootlatestb6859d9b; C18 WIP was not interrupted
+for synchronization. Actual original molten_core module now lives in this tree;
+no production/source-package import fallback is used. Connect16DA spawn/gravity/
+point chord/segment rebound/reflection speed to actual projectile sweeps;
+16DD pool delivery/ack/FX,16DE status/scopes, overlap union, armour-only boundary
+settlement and lifecycle all have real consumers. Existing managers handle
+world cover, immunity, incoming scaling, legacy attached bubbles and damage.
+Combined pool ordering includes temporary/extra/conditional/wave/Rally rather
+than dropping their implementations. Exact scopes.Registry(states) is now
+passively registered in both storage exporters (source reader preserved).
+
+Original flight five pass9.426s: ceiling, double bounce, shallow/steep ramp,
+ten-shot held ultimate, same-tick hero switch. Area five behavior pass; original
+passive pool/status snapshot passes21.430s after Registry registration. Seven
+area/lifecycle + NPC/damage15 pass in6.567s; that23-check group additionally
+retains a Pharah fixture sigma_grasp import error, not an executed curve test.
+Actual three Barrage curve checks separately pass after the same previously
+recorded test-only0008 source package fallback. Logs:
+worker-c-torbjorn-molten-{area,area-final,flight,flight-final,shared,barrage-shared}-check.log.
+Initial source-constant adapter typo and exact Registry omission were corrected;
+two edit guards rejected stale shared-file text before changing combat.py, so
+those early flight errors are not final implemented behavior. No assertion was
+edited. Core original Molten checks no longer require the frozen Molten import
+fallback, and original turret fixture's formerly missing module is truly local.
+
+Next: submit C18 promptly, synchronize latest clean canonical at batch boundary,
+then mount original Torbjorn charge184-line host and reconcile Molten source
+barrier/phase/NPC/reflect/expiry edges against current combined managers. Those
+broader original checks are retained, not declared green by ancestry/imports.
+Original0008 impact-time cover and Bastion NPC capture/movement differences
+remain visible. The other six assigned families must continue afterward.

@@ -4,6 +4,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Molten Core projectiles, areas and status consumers
+
+- Connect original16DA input/ten-globule resource lifetime, point ballistic
+  chords, ground slope admission, ceiling/steep-surface rebounds, segment clock,
+  reflected instantaneous speed and remaining-slice continuation to the shared
+  projectile host. Keep other projectile samplers and received ownership fixes.
+- Mount original16DD ground areas, create-ack/FX delivery,16DE status instances
+  and explicit auxiliary scope registration, same-owner interval union,
+  different caster ownership, lifetime and hero-change cleanup. Preserve caster
+  death behavior and read original deployables metadata from prepared v4 inputs.
+- Preserve armour-only bonus and continuous periodic armour-reduction opt-out;
+  adapt boundary settlement to actual combined temporary/conditional/wave pools
+  and existing incoming/offense scaling. Register the exact source Registry
+  states field in passive VM/server storage without broadening unknown layouts.
+- Five original flight/rebound/ramp/ten-shot/switch checks pass. Five initial
+  area cases pass; the original pool/status passive snapshot passes after exact
+  Registry registration. Seven core/lifecycle plus15 NPC/damage checks pass;
+  the separately executed three original Barrage curve checks also pass using
+  the previously documented test-only Sigma fixture import fallback.
+- The initial area run exposed an adapter constant typo and missing exact
+  Registry serialization, both corrected. An early flight run did not apply
+  because its edit guard rejected a stale source pattern; final applied checks
+  pass. No source assertion or production guard was removed to pass these runs.
+- Full cross-owner barrier/status/phase/NPC and charge equivalence still need
+  original source checks. Source status_effects metadata has no direct reader;
+  this host resolves deployables.status_graph explicitly. Client acceptance
+  and whole-line completion remain unclaimed.
+
 ### Connect Torbjorn hammer to shared native barrier surfaces
 
 - Reuse the received stateless Reinhardt surface helper with Torbjorn's original

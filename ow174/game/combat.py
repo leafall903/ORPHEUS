@@ -68,6 +68,7 @@ from ow174.game import (
     health_packs,
     healing,
     hero_torbjorn,
+    molten_core,
     torbjorn_mark,
     ice_wall,
     reinhardt_charge,
@@ -1288,7 +1289,7 @@ def hit_def(state, cfg) -> HitDef | None:
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164, 0x1683) or (graph_index, node_index) == (0x0D0A, 2),
         knockback=_accretion_knockback(state, modify),
-        projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5) or (
+        projectile_extent=(0.0 if graph_index in (0x0BD4, 0x16C5, 0x16DA) or (
             state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
         ) else value("m_57DAE1B5", 0.0)),
         healing=modify.get("m_93CDFD2F") == 0,
@@ -1529,6 +1530,7 @@ class Rocket:
     charge_eligible: bool = True  # Tank suppression is frozen at emission, even after mode expiry.
     motion: tuple = ()
     motion_phase_offset: float = 0.0
+    segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
     matrix_absorbable: bool | None = None
     storm_ricochets: int = 0
@@ -1980,6 +1982,8 @@ class Combat:
         self.next_barrier = barriers.FIRST_ENTITY
         self.now = 0.0
         self.tick = 0
+        self.molten_pools = {}
+        self.molten_burns = {}
         self.torbjorn_marks = {}
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
@@ -2178,6 +2182,7 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
+            molten_core.retire_owner(self, player)
             hero_torbjorn.destroy_turret(self, player)
             for key, mark in tuple(self.torbjorn_marks.items()):
                 if mark.owner is player:
@@ -4029,6 +4034,7 @@ class Combat:
             if at < tick:
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
+        molten_core.update(self)
         for player in self.match.players:
             if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
                 player.body_script.orisa_fortify_pending = False
@@ -5375,6 +5381,11 @@ class Combat:
                     for motion in node.field("m_projectileMotions") or ()
                     if motion.get("$") == "STU_E1A5B579"
                 )
+            if source_graph == 0x16DA and molten_core.POOL in projectiles._defs(node.field("m_49CBA3BC")):
+                spawn = molten_core.POOL
+                gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
+                              for motion in node.field("m_projectileMotions") or ()
+                              if motion.get("$") == "STU_E1A5B579")
             if (source_graph == 0x025F
                     and graviton.FIELD_ENTITY in projectiles._defs(node.field("m_49CBA3BC"))):
                 spawn = graviton.FIELD_ENTITY
@@ -6167,7 +6178,7 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.velocity is not None:
+        if rocket.velocity is not None and not molten_core.is_globule(rocket):
             from ow174.game import mccree
 
             # Apply the recovered velocity update before this frame's sweep.
@@ -6262,6 +6273,14 @@ class Combat:
         step = rocket.speed * duration
         heading = rocket.direction
         range_ends = False
+        if molten_core.is_globule(rocket):
+            age = rocket.flown - rocket.segment_start
+            displacement = (rocket.speed * heading[0] * duration,
+                            rocket.speed * heading[1] * duration - rocket.gravity * (age * duration + .5 * duration * duration),
+                            rocket.speed * heading[2] * duration)
+            step = math.hypot(*displacement)
+            if step > EPSILON:
+                heading = tuple(axis / step for axis in displacement)
         if rocket.is_barrage:
             lateral = barrage_motion.displacement(
                 rocket.motion, heading, rocket.flown + rocket.motion_phase_offset, duration,
@@ -6494,6 +6513,11 @@ class Combat:
                 self.projectiles.flown(rocket.shot, rocket.flown)
                 rocket.shot = None
             point = _along(rocket.position, heading, t)
+            if molten_core.is_globule(rocket):
+                velocity = [axis * rocket.speed for axis in rocket.direction]
+                velocity[1] -= rocket.gravity * (rocket.flown - rocket.segment_start)
+                rocket.speed = math.hypot(*velocity)
+                rocket.segment_start = rocket.flown
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
@@ -6623,7 +6647,20 @@ class Combat:
                 rocket.attached_offset = _sub(point, struck.feet)
             self._stick(rocket, point, duration - contact_time)
             return 0.0
+        molten_surface = None
+        if (molten_core.is_globule(rocket) and struck is None and wall is not None
+                and abs(t - wall) <= EPSILON and ice is None and shield is None
+                and deployed is None and impact_barrier is None):
+            molten_surface = collision.cast_ray(rocket.position, heading, t + EPSILON)
+            if molten_surface is not None and molten_surface.normal[1] < molten_core.GROUND_NORMAL:
+                rocket.left -= contact_time
+                if rocket.left <= EPSILON:
+                    self._landed(rocket, continuation_point=point)
+                    return 0.0
+                molten_core.rebound(rocket, point, molten_surface.normal)
+                return min(max(0.0, duration - contact_time), rocket.left)
         self._landed(rocket, continuation_point=point)
+        molten_core.projectile_impact(self, rocket, molten_surface, struck)
         damage_point = (_along(point, heading, 1e-4)
                         if struck is None and rocket.direct is not None
                         and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
