@@ -834,3 +834,23 @@ reconciled BOB2533/25C3 entity/graph and strict current-bound mover, and retains
 full default projectile admission. No services or client were started. The first
 probe read loaded_mover_table before actual lazy loading; corrected probe calls
 existing mover_data first, with no implementation change.
+
+
+Root wires the prepared manifest into the existing START_SERVER_LOCAL.cmd via
+ORPHEUS_SERVER_PROFILE and ORPHEUS_PYTHON, with tools/start_prepared_server.py
+applying only runtime environment and original server_cli_arguments before CLI
+imports. No test_environment selectors, server/gameplay implementation, venv copy
+or package install is introduced. The existing non-profile path and port guard
+remain. Root entry/CLI29pass0.081s; actual prepared Python--help passes. Native
+CMD check reaches the existing occupied-port refusal and starts no services;
+this does not claim a boot/client pass. The initial CLI suite import without
+runtime selection lacked external descriptors; configured inputs repair startup
+without changing source expectations or copying descriptors into the repository.
+
+The exact workspace-root RUN_SERVER.cmd content is versioned as
+ tools/workspace_RUN_SERVER.cmd (a placement template, not a tools-folder runner).
+Root will back up the previous workspace wrapper outside source, copy this
+committed template after canonical fast-forward, and verify byte identity.
+It selects combined-server, runtime-inputs-v15 and existing ORPHEUS Python.
+The earlier manual invocation remains valid; default wrapper handoff below
+supersedes its statement that workspace RUN_SERVER still selects original main.

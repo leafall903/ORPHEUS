@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect prepared integration inputs to the existing local server entry
+
+- Existing START_SERVER_LOCAL.cmd can select the composed original runtime
+  manifest and existing Python through explicit environment paths, applying
+  runtime environment and original CLI profile arguments before server imports.
+  Prepared startup reuses Python without creating a venv or installing packages.
+- Keep the original no-profile path, local port guard and no-client-launch CLI.
+  Test-only manifest selectors are excluded. A tracked workspace launcher template
+  selects the combined worktree; all gameplay remains in the existing server.
+- Entry/CLI29 checks pass0.081s with external runtime configured. Actual prepared
+  Python CLI--help passes; native CMD entry correctly refuses an occupied local
+  port without starting services. Original unconfigured CLI test import lacked
+  external descriptors, fixed by selecting existing inputs rather than copying.
+
+
 ### Preserve Mercy scope execution during Sombra charge integration
 
 - Keep original Sombra charge sync inside the ordinary component-run branch;
