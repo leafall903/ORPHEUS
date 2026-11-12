@@ -105,6 +105,23 @@ def passive_wait_duration(state, duration):
     return duration
 
 
+def adaptive_shield_fold(instance, cfg, *, records=None):
+    """Reduce only the delivered012 tag/loss representation for3EBB."""
+    if cfg.get("$") != "STU_A6B80C63":
+        return NotImplemented
+    selectors = (cfg.get("m_C239F989") or {}).get("m_configVars") or ()
+    if len(selectors) != 1 or instance.evaluate(selectors[0]) != expr.Asset(0x0D80000000003EBB):
+        return NotImplemented
+    if records is None:
+        records = instance.evaluate(cfg.get("m_814F8EC3"))
+    if not isinstance(records, tuple) or any(
+        not isinstance(row, tuple) or len(row) != 2 or type(row[0]) is not int
+        or type(row[1]) not in (int, float) for row in records
+    ):
+        return NotImplemented  # Other collected native representations keep the original provider.
+    return sum(loss for tag, loss in records if tag == ADAPTIVE_SHIELD_TAG)
+
+
 def native(world, cfg, instance):
     player = owner(world, instance.component)
     if player is None or instance.graph.index != CONTROLLER:
@@ -117,12 +134,9 @@ def native(world, cfg, instance):
         return NotImplemented
     if cls == "STU_A6B80C63":
         records = instance.evaluate(cfg.get("m_814F8EC3"))
-        selectors = (cfg.get("m_C239F989") or {}).get("m_configVars") or ()
         if not records:
             return 0.0
-        if len(selectors) == 1 and instance.evaluate(selectors[0]) == expr.Asset(0x0D80000000003EBB):
-            return sum(loss for tag, loss in records if tag == ADAPTIVE_SHIELD_TAG)
-        return NotImplemented
+        return adaptive_shield_fold(instance, cfg, records=records)
     entity = expr.to_entity(instance.evaluate(cfg.get("m_entity" if cls == "STU_AC829876" else "m_target")))
     target = next((target for target in world.match.combat._targets() if target.entity == entity), None)
     if cls == "STU_AC829876":

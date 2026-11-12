@@ -8627,7 +8627,7 @@ class Combat:
                 self._tell_hit(shooter, target, dealt, flags, frame)
                 shooter.stats.add(stats.HERO_DAMAGE, dealt)
             if award_ult:
-                orisa_charge.damage(shooter, target, dealt, loadout)
+                orisa_charge.damage(shooter, target, dealt, loadout, adaptive_shield_loss=adaptive_loss)
                 if source_body is None or source_body == shooter.body:
                     lucio.charge_damage(shooter, target, base_before - vitals.base_total, loadout)
                 moira.gain_combat_charge(
@@ -8673,7 +8673,7 @@ class Combat:
                     and not reflected_reaper_shell
                     and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
-                points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
+                points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == 0x02E000000000006E:

@@ -375,6 +375,14 @@ class InstanceContext(Context):
             result = torbjorn_charge.native(component.world, cfg, self.instance)
             if result is not NotImplemented:
                 return result
+        if (not component.strict and component.world.hero == 0x02E000000000013E
+                and getattr(component.world, "body_definition", None) is not None
+                and self.instance.graph.index == 0x0B8B):
+            from ow174.game import orisa_charge
+
+            result = orisa_charge.pool_loss_fold(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
 
     def native(self, cfg: dict):

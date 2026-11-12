@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Adaptive Shield loss deduction for Genji and Orisa
+
+- Reuse the actual same-hit Vitals.extra3EBB before/after loss already measured
+  by Combat. Orisa's existing012 event now carries those records in0x624; only
+  its matching3EBB fold uses the delivered reducer, with original metadata and
+  native fallback retained. Genji subtracts the loss in its existing gain path.
+  No second event/charge host, profile/passive change or Fortify replacement.
+- Share the pure reducer with the existing Torb host without re-evaluating its
+  collected records; unrelated collected representations retain native folds.
+- Real-pool regression3 methods/10 subcases pass: shield-only/mixed/base loss,
+  unrelated tag, overkill, actual Adaptive cast/damage/expiry and single-host
+  event count. Original Torb/Orisa/Genji passive/Damage/runtime44 methods pass
+  without skips. Final focused4 pass after reducer factoring; no old checks or
+  observer views changed and no runtime assets copied.
+
+### Synchronize worker A for cross-owner charge handoff
+
+- Absorb canonical a7728f76 at a clean boundary before restoring the original
+  Adaptive Shield loss policy in existing Genji/Orisa charge consumers.
+
 ### Record worker A seven-owner reconciliation boundaries
 ### Mount delivered Reinhardt authored charge admission and cadence
 
