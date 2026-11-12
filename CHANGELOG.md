@@ -31,6 +31,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original controller effect wire emission, manual Assassin recipient/coupling
   and PinEffectServices stored callbacks remain the next root integration batch;
   the independent empty VM core is mounted without claiming that scope complete.
+### Reconcile delivered Recall protection contracts
+
+- Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
+- Current original both-phase immunity and actual Dart playback/expiry checks pass; full AnaRecall group7pass/2known conflicting failures. No runtime or client behavior changed in this audit.
+
 ### Bind original BOB no-launch checks to the real force host
 
 - Original corpse/head-on no-force assertions now inspect the existing Knockbacks active host, retaining assertion intent and original numerical checks without a compatibility queue.
