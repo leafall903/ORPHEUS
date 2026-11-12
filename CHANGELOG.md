@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Consume original Sombra ability and logical-button silence policies
+
+- Restore original weapon/passive/drawn-blade classification and logical input
+  gates in existing BodyWorld/BotWorld, Ability and LogicalButton consumers.
+  Existing hard control, strict execution and budgets remain intact.
+- Original66:64casepass plus two retained Pharah methods with4subcase differences.
+  Actual Hack blocks Tracer RMB while preserving fire and drawn Blade state.
+  Nonempty Portal component/whole-server stored export and existingVar causal
+  mutation probes pass; source-retirement/incoming-clock work remains recorded.
+
 ### Route original Sombra device effects into existing summoned actors
 
 - Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,

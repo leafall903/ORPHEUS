@@ -658,6 +658,10 @@ class BodyWorld(runtime.World):
         return portals.relocate(instance, node) if portals is not None else NotImplemented
 
 
+    def body_button_allowed(self, component, button):
+        controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
+        return component.strict or controls is None or controls.button_allowed(component, button)
+
     def skill_locked(self, state):
         controls = getattr(self.match.combat, "sombra_controls", None) if self.match is not None else None
         if self.match is not None and self.match.combat.punches.controlled(state.instance.component.entity):

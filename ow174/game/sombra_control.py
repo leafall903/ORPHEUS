@@ -146,9 +146,63 @@ class Controls:
     def player(self, body):
         return next((p for p in self.fight.match.players if p.has_body and not p.gone and p.body == body), None)
 
+    def component_locked_at(self, component, frame):
+        row = self.lock_history.get(component.entity)
+        return (row is not None and row[0] is component
+                and any(start <= frame * component.frame_ms < end for start, end in row[1]))
+
     def blocked(self, state):
-        return (state.instance.component.entity in self.locks
-                and any(button in SKILLS for button in state.buttons()))
+        """Original silence policy: retain weapons/passives and drawn Dragonblade."""
+        from ow174.game import npc_melee
+
+        instance = state.instance
+        component = instance.component
+        if component.entity not in self.locks and not self.component_locked_at(component, component.frame):
+            return False
+        if instance.graph.index == 0x0317 and state.flags & nodes.Ability.RUNNING:
+            return False
+        if instance.graph.index == 0x0043 or npc_melee.ability(component) is state:
+            return False
+        if instance.graph.index == HACK and state.index == 53:
+            return True
+        if instance.graph.index == 0x0095 and state.node.pos == 136:
+            return True
+        target = next((target for target in self.fight._targets()
+                       if target.entity == component.entity), None)
+        if target is None:
+            return True
+        body = target.owner.body if isinstance(target.owner, bots.Bot) else target.owner.hero.body
+        record = graph.entity_body(body) or graph.bodies().get(body, {})
+        weapons = set(record.get("weapons") or ()) - {None}
+        if (not isinstance(target.owner, bots.Bot) and target.owner.hero.guid == 0x02E000000000006E
+                and 29 in state.buttons()):
+            return True
+        parent = instance
+        while parent is not None:
+            if parent.graph.index in weapons:
+                return False
+            parent = parent.parent
+        return any(state.buttons())
+
+    def button_allowed(self, component, button):
+        """Original logical-button consumers on this recipient component clock."""
+        if (component.entity not in self.locks and not self.component_locked_at(component, component.frame)
+                or button in (14, 20, 31, 111)):
+            return True
+        if component.world.hero == 0x02E0000000000003 and button in (29, 35):
+            return False  # Original Tracer Blink bindings.
+        if component.world.hero == 0x02E0000000000008 and button in (37, 11, 29):
+            return False
+        if button == 29 and component.world.hero == 0x02E000000000023B:
+            return False
+        if button == 36 and component.world.hero == 0x02E00000000001BB:
+            return False
+        for instance in component.instances.values():
+            for state in instance.states.values():
+                if (isinstance(state, nodes.Ability) and state.active and button in state.buttons()
+                        and self.blocked(state)):
+                    return False
+        return True
 
     def interrupt(self, player, *, hack_only=False):
         script = getattr(player, "body_script", None)
