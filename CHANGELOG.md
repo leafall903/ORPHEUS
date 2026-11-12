@@ -103,6 +103,44 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Full source counter-charge, deployable collision, windup interruption and
   Earthshatter integration continue; original-client acceptance remains open.
 
+### Mount delivered Storm Arrow one-bounce flight
+
+- Capture00B9 Storm/Sonic-in-Storm's single bounce budget, honor the original
+  conditional gravity row, and reflect actual impact velocity on the selected
+  static surface. Continue unspent time through the current analytic sweep and
+  retain deflector exclusion history, original source/lease and travelled path.
+- Restore the original00B9 center-ray static contact policy and store its actual
+  terminal point. The combined projectile previously stopped at its last free
+  pose and used sphere padding against static walls. Preserve all other heroes'
+  collision policies. Map the original distance_flown write to stored travelled.
+- Retain complete original ricochet/owned-mech/Self-Destruct fixture files, with
+  import/constant adapters only. Allseven original core ricochet methods pass:
+  angled head/body, second-wall/ally/no-Storm controls, Sonic terminal field,
+  skipped path, Genji normal/final-Sonic return and shared range budget. Original
+  three Storm range/lifetime/stored-ledger methods plus42 projectile/Bastion
+  lifecycle checks pass45/45. The added Barrage module remains unimportable due
+  to its pre-existing missing sigma_grasp fixture dependency; record that error.
+- Full13 original ricochet audit preserves missing launch-frozen
+  matrix_absorbable/old Zarya private observations and the existing before-wall
+  Sonic70-versus140 contact result. The terminal-position failures are fixed by
+  the actual contact bridge; no assertion changed. Continue launch admission and
+  cross-owner reconciliation without blocking this implementation commit.
+
+### Restore normal-module entry for delivered Hanzo checks
+
+- Retain complete original NPC, Matrix, Winston and Experimental Barrier test
+  fixtures. Adapt legacy imports to the already mounted Sniper/Reinhardt hosts;
+  expose142C as the existing Sniper host's GRAPH constant. Retain the frozen
+  pure arrow contact helper as a tests-only fixture, and map old Grasp identity
+  names to the current host. No duplicate production drivers are installed.
+- Fill the current mock-lobby cosmetic callbacks in the original profile startup
+  fixture. All1781 original assertions across five adapted test files are AST-
+  identical. Existing movement/control/barrier modules now import normally.
+- Normal unittest entry (no AST loading): all32 Sonic/Dragon Player checks
+  passed together;11 focused Lunge/climb/contact/budget/strict/storage checks
+  passed; allnine profile/startup/journal checks passed. Keep the complete NPC
+  and cross-owner checks even where original private APIs or prepared inputs
+  still differ; successful module import does not claim whole-line completion.
 
 ### Preserve delivered projectile-family retirement boundaries
 
