@@ -9397,3 +9397,16 @@ existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/char
 ### Worker A45 - Ashe Viper reload hard-control interlocks
 
 - Connect original reload-under/end and expiry recovery to actual shared control interruption, reusing current stack transitions. Original Flashbang reload and runtime checks: 15 passed; shell/held-input reload methods passed unchanged.
+
+### Worker A46 - Ashe Coach recoil and pellet-aggregated shove
+
+- Mount original 15-ray Coach geometry, recoil, distance rings/limits, reflected source aggregation and modifier26 resistance on current single Knockbacks/player/NPC movement hosts. Register only the shared-host reference in stored state.
+- Original physical Coach checks and current shared checks passed as recorded; preserve old private pending-queue errors and approx0.002506m outer-boundary expectations. Actual five NPC and reflected15-pellet single-host probes passed. BOB remains next.
+
+### Worker A synchronization after A46
+
+Absorb committed intake afcec3b8 at a clean boundary before BOB integration; retain all parallel source consumers.
+
+### Worker A47 - strict original BOB mover-extension dependency
+
+- Restore original fingerprint-bound add-only mover bundle API and optional cached-table extension path while retaining current supplementary table/DVa movement. Original malformed-input and current body-form checks: 13 passed. Original/runtime base mismatch remains explicit; no source inputs altered.

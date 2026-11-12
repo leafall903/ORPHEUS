@@ -1828,6 +1828,7 @@ class RangedContact:
     state: object
     world_tick: int | None = None
     reaper_shell: dict | None = None
+    coach_rays: tuple | None = None
 
 @dataclass(frozen=True)
 class MeleeContact:
@@ -2067,6 +2068,7 @@ class Combat:
         from ow174.game import ashe
 
         self.dynamite = ashe.Dynamite(self)
+        self.impulses = ashe.Impulses(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -5642,9 +5644,19 @@ class Combat:
                 hit = replace(hit, amount=hit.amount * scale, boost_credit=boost)
             targets = tuple((target, shown) for target in self._shot_targets(shooter, hit)
                             if (shown := self.seen(target, payload.view_tick)) is not None)
-            self._hitscan(shooter, payload.state, payload.origin, payload.direction, payload.reach,
-                          targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
-                          definition=payload.definition, reaper_shell=payload.reaper_shell)
+            hits = {}
+            for direction in payload.coach_rays or (payload.direction,):
+                resolved = self._hitscan(shooter, payload.state, payload.origin, direction, payload.reach,
+                                        targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
+                                        definition=payload.definition, reaper_shell=payload.reaper_shell)
+                if payload.coach_rays is not None and resolved is not None:
+                    source, target, distance = resolved
+                    source_hits = hits.setdefault(_source_entity(source), (source, {}))[1]
+                    previous = source_hits.get(target.entity)
+                    source_hits[target.entity] = (target, distance, 1) if previous is None else (
+                        target, min(previous[1], distance), previous[2] + 1)
+            for source, source_hits in hits.values():
+                self.impulses.coach_targets(source, source_hits, payload.state, reflected=source is not shooter)
 
     def _support_hit(self, shooter, definition):
         if definition is None or definition.healing or self.match.game_map.free_for_all:
@@ -5695,8 +5707,6 @@ class Combat:
             direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
             if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
                     and state.instance.component is shooter.body_script.component):
-                from ow174.game import ashe
-
                 direction = ashe.viper_direction(direction, number, viper_launch)
         if not npc and self.blizzard.fired(shooter, state, shot_frame, origin, direction,
                                           activation=activation, snapshot=snapshot):
@@ -5800,8 +5810,6 @@ class Combat:
         pulse = not npc and pulse_bomb.is_pulse(shooter, state)
         speed = field("m_projectileSpeed")
         if not npc and shooter.hero.guid == 0x02E0000000000200 and (state.instance.graph.index, state.index) == (0x14FD, 12):
-            from ow174.game import ashe
-
             fuse = ashe.dynamite_fuse_seconds(state)
             delivery = self.projectiles.fired(shooter, state, shot_frame, definition, fuse,
                                                origin, direction, activation=activation, snapshot=snapshot) if definition else None
@@ -6125,6 +6133,12 @@ class Combat:
 
             reaper_shell = {"amount": direct.amount, "nano_bonus": nano.offense(self, shooter.body) - 1.0,
                             "returns": {}}
+        if not npc and shooter.hero.guid == 0x02E0000000000200 and (state.instance.graph.index, state.index) == (0x1513, 16):
+            self._submit_attack(shooter, shot_frame, RangedContact(
+                direct, origin, direction, reach, view_tick, charge_context, definition, state,
+                None, None, ashe.coach_directions(state, direction),
+            ))
+            return
         for pellet in directions:
             self._submit_attack(shooter, shot_frame, RangedContact(
                 direct, origin, pellet, reach, view_tick, charge_context, definition, state,
@@ -6366,7 +6380,7 @@ class Combat:
                         returns[owner.body] = reaper_shell["amount"] * scale, credit
                     amount, credit = returns[owner.body]
                     returned = replace(direct, amount=amount, boost_credit=credit)
-                self._hitscan(
+                return self._hitscan(
                     owner, state, _along(contact, facing, 1e-4), facing, reach - distance, targets, returned,
                     shot_frame, self.tick, view_tick=self.tick, reflected=reflected | {target.entity},
                     definition=definition, travelled=travelled + distance,
@@ -6419,6 +6433,7 @@ class Combat:
         )
         if landed:
             self._hit_effect(target, direct.effect, shooter=shooter)
+            return shooter, target, travelled + t
 
     def _soldier_visor_direction(self, shooter, volley, origin, direction, view_tick):
         """Reconstructed Soldier rifle acquisition using active 0259 search data.
