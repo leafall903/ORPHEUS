@@ -123,3 +123,21 @@ nor remove real cryo healing to satisfy the old health observation. Complete
 log: parallel-merge/root-flux-volume-source-current-check.log. OwnerB is informed
 about the shared Sigma caller adapters. No production changes accompany this
 receipt and these source discrepancies do not block committing or merging code.
+
+## Restore original horizontal speed field consumer
+
+The9.9880859-versus3 difference above exposed a missing original implementation:
+Mover.HORIZONTAL_SPEED_MOD33 and _modify_horizontal_speed were absent. Restore
+the original method AST-identically and call it in the existing normal pose
+path before collision, after current one-frame action velocity deltas. It
+consumes the existing active MovementMod list and preserves Y, gravity, force
+ownership and collision. No new stored field, mover, ledger or VM is added.
+No flight-profile/MoveTo policy is widened beyond the original normal path.
+
+The complete original horizontal impulse test now passes with its expected3
+and original vertical-ascent assertion unchanged. Vertical minimum/descent,
+actual Heavy/Trooper and damage/runtime checks20/20 pass8.735s; shared modifier,
+state and flat-floor checks16/16 pass0.051s. Other failures/errors in the41-test
+receipt remain recorded above and are not relabelled green. Source AST receipt:
+parallel-merge/root-field33-source-receipt.json; logs root-field33-original-
+consumer-check.log and root-field33-shared-mover-check.log.

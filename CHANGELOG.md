@@ -11553,3 +11553,10 @@ vs native60 assertions remain visible and do not block real code integration.
   Correct raw world-flight and ground-aim input completes the existing fixture.
 - Combined with prior actual Mei/Reinhardt/Winston receipts, all six existing
   geometry families now have scoped query evidence. No gameplay/runtime change.
+
+### Restore original horizontal speed modifier consumer
+
+- Restore delivery023B's field33 kernel unchanged on the existing normal mover
+  pose path. Original Flux impulse3 and preserved vertical speed now pass.
+- Actual/shared20 checks and modifier/state/floor16 checks pass. No new mover,
+  persistent field or altered original gameplay assertion.
