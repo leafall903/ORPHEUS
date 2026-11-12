@@ -12394,3 +12394,46 @@ motion exactpaced/gap tests retained. Must preservePharah frozenimpactplan and
 sameplayer/NPC mover ownership/clock/replay/strictstorage; sourceSDK adapters are
 now mounted, not acceptance-matrix gated. Estimatedremainingactivecode6–12h for
 newgenericforce integration +boundedsourceclosure, excludingoldnumeric/clienttails.
+
+
+## B95 — restore accepted force replay on sole existing Knockbacks host
+
+Clean sync root3c8e56ad at worker3b0de8a1 includesC68 Pharahreplay, A97–99 and
+B86–92/B94; only ownB93 ahead. Rootassigned original012E fight.impulses world-gap
+consumer toB, C provided actualPharahbudget and sourcefixture. Recover original
+play/test methods on currentSombraCombat arena with originalfloor/Tracer→Pharah
+preparation; everyoriginaldamage/shot/displacement/pose assertion AST unchanged.
+Baseline primary+concussive gap leavesrecipientz0. Diagnostictrace corrected an
+earlier incorrectSET inference: pacedalready movesnormally z-1.3535; actualplan
+(≈0,6.4,-4) reachesmover andpacedvelocity persists. Do NOT replace currentstronger
+force mathematics with oldparallelMotion merely to repair missingworldreplay.
+
+Add originalaccepted-launch tracking/replay to sameKnockbacks. Positive actual
+Pharah appliedimpulse records actualbody/worldtick only after native26 scaling;
+zeroresponse cannotactivateit. SourceREPLAY_LIMIT256 budget unions C68existing
+normal_ticks loop, no secondworldloop. Previous andinterior ticks call same
+Player._step_body_pose(replay_accepted=True) using existing declaredactualanchor,
+lastcommand/scriptframe dedup, samebodycapsule/history and clocksrestoration.
+Retirement clearsmarkers; exactlaunches field registered in strictserver. No
+newImpulsesmanager, sourceMotionclone, guessedepoch or inputlease. Existing
+NPCcontrol/impulse movers and Pharahfrozenforceplan/applyordering unchanged.
+
+CrossoriginalPharahImpulse/NPCImpulse/C68Replay/newrealServer causalstorage/runtime
+27run26pass1existingNPCskip54.991s, worker-b-force-replay-joint.log. ActualServer
+acceptedforce clock mutation/restoration changes/recoversexacthash andretire
+clearsmarker. Originalprimary/concussive gap now passes shots/health/<-1motion;
+remaining exactpose failures are one endpointpose: primarypacedz-1.353515625 vs
+gap-1.2890625; concussive-7.935546875 vs-7.76953125. SourceoldexternalMotion still
+displaced endpoint while currentinputreplay leavesendpoint for realcommand.
+Preserve originalexpectations and genuineendpointinput, do not consumeinput to
+forcegreen. Logs worker-b-force-gap-{baseline,trace,anchor-mounted}.log.
+
+Stillactualmissing consumers: endpointsameforce physicalcompletion and recipients
+without existingdeclaredanchor. Do not call these observerdifferences. Root
+approvedB96 sameKnockbacks actualconstructor/realpose observationpairs, distinguish
+replay, exactstorage andretire/bodyreplacement; no fakehero world_frame_anchor.
+Next exactaction: implement observedpair scope, prove burst/sparse/unequalepoch
+with samebodyphysics; endpointpolicy requires realcause evidence nextbatch.
+Later rootasked source0008 controller_query.matches/World.controller_components
+frozenset directSDK audit against B87same-name module/strongpluralRecord; preserve
+both explicitinterfaces, no automaticcontrollerhost. No allmatrix/clientgate.

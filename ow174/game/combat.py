@@ -4643,6 +4643,7 @@ class Combat:
         # accepted gap, using the existing actors and their actual clock pairs.
         previous = self.tick
         if tick > previous:
+            self.knockbacks.replay_launches(previous, TICK)
             pharah.replay(self, previous, TICK)
         allocation_clock = None
         if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
@@ -4797,7 +4798,8 @@ class Combat:
 
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
                          sombra_replay.application_replay_until(self, self.tick),
-                         pharah.replay_until(self, self.tick, TICK))
+                         pharah.replay_until(self, self.tick, TICK),
+                         self.knockbacks.replay_until(self.tick))
         early_end = min(first, replay_end + 1)
         normal_ticks = (set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
@@ -4975,6 +4977,7 @@ class Combat:
                     retained_owners, sentry_damage_starts, allocation_clock,
                     sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
             if at < tick:
+                self.knockbacks.replay_launches(at, TICK)
                 pharah.replay(self, at, TICK)
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -8912,7 +8915,9 @@ class Combat:
                 category = MOVER if self.match.game_map.free_for_all or target.team not in (0, 1) else (TEAM0, TEAM1)[target.team]
                 target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
             else:
-                target.owner.mover.add_impulse(impulse, self.tick)
+                applied = target.owner.mover.add_impulse(impulse, self.tick)
+                if any(applied):
+                    self.knockbacks.record_launch(target)
 
     def _pharah_source_impulse_path(self, origin, target, shooter):
         """Delivered source prediction independently tests middle and nearest sight points."""
