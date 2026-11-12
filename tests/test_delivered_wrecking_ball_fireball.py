@@ -10,7 +10,7 @@ import test_delivered_wrecking_ball_combat as ball_tests
 from test_delivered_wrecking_ball_grapple import hold, scene
 from test_delivered_wrecking_ball_piledriver import lift
 
-from ow174.game import ball, combat, deflection, mover, server_snapshot
+from ow174.game import ball, combat, deflection, absorption, mover, server_snapshot
 from ow174.game.collision import StaticCollisionProvider, World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -90,7 +90,7 @@ class FireballTests(unittest.TestCase):
     def test_active_deflect_and_grasp_leave_fireball_damage_and_knockback(self):
         for hero, graph, state, button in (
             (deflection.GENJI, 0x03A3, 10, 16),
-            (deflection.SIGMA, 0x1D02, 1, 8),
+            (absorption.SIGMA, 0x1D02, 1, 8),
         ):
             with self.subTest(hero=hero):
                 run, player, enemy, _, own = scene()
@@ -121,7 +121,7 @@ class FireballTests(unittest.TestCase):
                 self.assertEqual(player.body_script.component.entity_var(ULT_CHARGE).value(), 50)
                 self.assertEqual(own.total, 600)
                 self.assertFalse(enemy.client.messages(combat.HIT))
-                if hero == deflection.SIGMA:
+                if hero == absorption.SIGMA:
                     self.assertEqual(defense.vars[21312].value(), 0)
 
     def test_low_speed_roll_and_fast_targets_behind_or_outside_radius_do_not_hit(self):
@@ -235,7 +235,7 @@ class FireballTests(unittest.TestCase):
         run, player, enemy, _, _ = scene(airborne=8)
 
         def digest():
-            graph = server_snapshot._Graph({}, None)
+            graph = server_snapshot._Graph({}, None, None)
             root = graph.value(run.match.combat.ball_contacts)
             return server_snapshot.snapshot_digest({
                 'schema': server_snapshot.SCHEMA, 'scope': server_snapshot.SCOPE, 'restorable': False,
