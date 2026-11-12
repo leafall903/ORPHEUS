@@ -15,6 +15,14 @@ SUBSCRIPT_CLASS = "STU_37D754C8"
 SCRIPT_PATH = "m_36F7B64C.m_36F7B64C.m_C974E369.m_graph"
 MODE_UI = 0x0CB6
 
+# Uprising's phases as the client shows them: a director graph per phase draws that phase's objective
+# box when the mode entity carries it (docs/research/uprising-mission.md). The server plays no mission
+# behind them yet: the directors are sent by hand and their own server states never run.
+UPRISING = 0x0D28
+DEFEND, ESCORT = 0x0D4A, 0x0D4B
+DEFEND_SECONDS = 240.0
+CLOCK = 1303  # the mode entity's countdown variable; the defend box shows it as its time remaining
+
 
 @dataclass(frozen=True)
 class Entrance:
@@ -65,3 +73,19 @@ def entrance(mode_guid: int, map_guid: int | None = None) -> Entrance | None:
     if len(ui) != 1 or len(ready) > 1 or (mode.get("scripted_loading") and len(ready) != 1):
         return None
     return Entrance(primary, ui[0], ready[0] if ready else None, mode_graph)
+
+
+def defend_seconds(mode_guid: int, map_guid: int | None = None) -> float | None:
+    """How long the mode's defend phase is shown, or None for a mode without Uprising's directors."""
+    found = entrance(mode_guid, map_guid)
+    if found is None or found.graph.index != UPRISING or None in (graph.graph(DEFEND), graph.graph(ESCORT)):
+        return None
+    return DEFEND_SECONDS
+
+
+def director(found: Entrance, left: float | None) -> graph.Graph | None:
+    """The director of the phase an Uprising mission is in with `left` seconds of its defend phase to
+    go; None before the mission runs and in every other mode."""
+    if left is None or found.graph.index != UPRISING:
+        return None
+    return graph.graph(DEFEND if left > 0 else ESCORT)

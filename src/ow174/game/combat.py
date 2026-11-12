@@ -851,6 +851,7 @@ class Combat:
         if player.client is not None and not self.match.assembling() and not (host and host.client_ready):
             player.client.queue_mode_frame(mode_frame(
                 {}, player.match.game_map.mode_guid, player.match.game_map.map_guid,
+                mission=self.match.mission_left(self.now),
             ))
         self.voice.spawned(player, self.now)
 
@@ -2138,7 +2139,8 @@ def respawn_seconds(match) -> float:
     return PRACTICE_RESPAWN if match.controller is heroselect.PRACTICE else RESPAWN
 
 
-def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | None = None) -> BitWriter:
+def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | None = None,
+               mission: float | None = None) -> BitWriter:
     """A plain full frame of the game mode entity: the mode's client UI graph 0CB6 as instance 1 (its
     client-only Entries make the kill feed 0DEA and the notices 1FC0) and the entity variables given (the
     PvP countdown). Every full frame of this entity has to list 0CB6, or it would destroy it.
@@ -2146,7 +2148,10 @@ def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | 
     A mode in MODE_GRAPHS gets its own graph as instance 1 with the state on that lets the scoreboard
     open, and 0CB6 as that graph's child, as the game data nests them. 0CB6's own remote state stays off
     there: these are the frames seen working in the client. A pack without the mode's graph keeps the
-    plain frame."""
+    plain frame.
+
+    `mission` is the seconds left of Uprising's defend phase, 0 once it is over: the frame then lists
+    that phase's director and the clock its box shows (pve.director)."""
     ui = graph.graph(MODE_UI)
     values = {var: (value, ()) for var, value in entity_vars.items()}
     index, slot, host = MODE_GRAPHS.get(mode_guid, (None, None, None))
@@ -2181,4 +2186,12 @@ def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | 
     root_id = len(instances) + 1
     instances.append(InstanceWire(root_id, primary, states=states))
     graphs[root_id] = primary
+    director = pve.director(entrance, mission)
+    if director is not None:
+        # One index per phase: the next phase's frame no longer lists the last director, and the client
+        # destroys a network instance a full frame leaves out.
+        index = root_id + (1 if mission > 0 else 2)
+        instances.append(InstanceWire(index, director))
+        graphs[index] = director
+        values[pve.CLOCK] = (float(mission), ())
     return remote_full_frame(instances, values, graphs)

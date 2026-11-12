@@ -89,8 +89,8 @@ FIELDS = {
     ),
     Match: _names(
         "environment id game_map card skin_of emote_aliases_of emote_blend_trees_of wheel_cosmetics_of tick "
-        "controller assemble_ends assembled players _body_messages forms started on_leave ended bots "
-        "_npc_planning_turn "
+        "controller assemble_ends mission_ends assembled players _body_messages forms started on_leave ended "
+        "bots _npc_planning_turn "
         "_pending_bot_scripts bots_shown notices combat collision_provider collision_state collision_world "
         "_collision_failed scene_host_factory scene_host scene_host_started scene_host_error"
     ),
