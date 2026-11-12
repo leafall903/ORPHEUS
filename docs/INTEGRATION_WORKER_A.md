@@ -111,3 +111,14 @@ checks are retained as `_retained.py`, alongside the original source Descent and
 existing source Valkyrie. Their21-check run passed19; two historical pending
 Valkyrie immediate-passive expectations remain failed and unchanged. Continue
 actual0004 healing-status/regen chronology reconciliation after the DVa consumers.
+
+Mercy fold/preserved-check batch committed `7fbe5677`; root confirmed all49 fold
+checks. DVa next batch now mounts the original026A entry immunity and public
+protection query, old pilot Light Gun retirement and health-based owned-mech
+lethal hit flag. All31 focused checks passed, plus the lethal credit check for
+both forms. Logs: `worker-a-dva-entry-retirement.log`, `worker-a-dva-lethal-credit.log`.
+The96-check failures for those consumers are resolved. Next DVa action: inspect
+duplicate landing damage and missile extreme-angle policy against frozen source;
+legacy spread call/storage differences alone do not justify removing canonical
+services. Root's sniper integration8f5017b1 reports missing `npc_shields` at
+`test_zenyatta_npcs` import; retain this0020 consumer when that owner is audited.
