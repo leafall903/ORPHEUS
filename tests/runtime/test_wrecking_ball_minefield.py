@@ -10,6 +10,7 @@ from ow174.game import combat, projectiles, world
 from ow174.game.collision import RayWorld
 from ow174.game.commands import FIRE
 from ow174.game.content import find_hero
+from ow174.game.script import decode, graph
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 from ow174.game.server_snapshot import export_server_state, snapshot_digest
 from tests.runtime import test_server_journal as journal
@@ -181,7 +182,7 @@ class MinefieldTests(unittest.TestCase):
         self.assertNotIn(mine.entity, fight.vitals)
         self.assertFalse(enemy.client.messages(combat.KILL_NOTICE))
 
-    def test_mine_health_waits_for_create_and_destroy_cancels_old_records(self):
+    def connected_mine(self):
         case = journal.ServerJournalTests()
         session, wires = case.make()
         _, players = case.connected(session, wires, two=True)
@@ -195,7 +196,13 @@ class MinefieldTests(unittest.TestCase):
             (0.0, 0.0, 0.0), 30.0, tick, tick + 1200, 1200, armed_at=tick + 94,
         )
         store.mines[mine.entity] = mine
-        store._deliver_mine(mine)
+        store._deliver_mine(mine, tick)
+        return session, match, mine, enemy
+
+    def test_mine_health_waits_for_create_and_destroy_cancels_old_records(self):
+        session, match, mine, enemy = self.connected_mine()
+        tick, fight = match.tick, match.combat
+        store = fight.projectiles
         target, = store.combat._enemy_mines(enemy)
         viewer = enemy.client
         create, = (item for item in viewer.entities if item.entity == mine.entity)
@@ -231,3 +238,40 @@ class MinefieldTests(unittest.TestCase):
         self.assertFalse(any(item.entity == mine.entity for item in viewer.entities))
         self.assertNotIn(mine.entity, viewer._body_health)
         self.assertNotIn(mine.entity, viewer._player_body_reuse_after)
+
+    def test_armed_effects_wait_for_create_and_stop_with_mine_removal(self):
+        if any(graph.graph(index) is None for index in projectiles.MINE_GRAPHS):
+            self.skipTest("prepare 104319 runtime with the deployed Minefield graphs")
+        _, match, mine, enemy = self.connected_mine()
+        store, viewer = match.combat.projectiles, enemy.client
+        create, = (item for item in viewer.entities if item.entity == mine.entity)
+        sequence = max(viewer.in_flight, default=0) + 1
+        sent(viewer, sequence, [create])
+        store._deliver_mine(mine, mine.armed_at)
+        self.assertFalse(any(item.entity == mine.entity for item in viewer.entities))
+        viewer.acked(sequence + 1, 1)
+        store._deliver_mine(mine, mine.armed_at - 1)
+        self.assertFalse(any(item.entity == mine.entity for item in viewer.entities))
+
+        store._deliver_mine(mine, mine.armed_at)
+        effect, = (item for item in viewer.entities if item.entity == mine.entity)
+        wire = effect.chunk
+        frame = decode.read_chunk(wire.getvalue(), wire.count)
+        self.assertTrue(frame.full)
+        self.assertFalse(frame.owner)
+        self.assertEqual(tuple(item.graph for item in frame.instances.values()), projectiles.MINE_GRAPHS)
+        active = {index: state for index, state in frame.instances[1].states.items() if state[0]}
+        self.assertEqual(active, {
+            3: (True, {"counter": 1}),
+            17: (True, {"counter": 1}),
+        })
+        store._deliver_mine(mine, mine.armed_at + 1)
+        self.assertEqual([item for item in viewer.entities if item.entity == mine.entity], [effect])
+
+        sent(viewer, sequence + 1, [effect])
+        store.remove_mine(mine)
+        destroy, = (item for item in viewer.entities if item.entity == mine.entity)
+        self.assertEqual(destroy.op, world.OP_DESTROY)
+        sent(viewer, sequence + 2, [destroy])
+        viewer.acked(sequence + 3, 1)
+        self.assertFalse(any(item.entity == mine.entity for item in viewer.entities))

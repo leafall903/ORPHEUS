@@ -6,6 +6,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Wrecking Ball Minefield arming effects
+
+- Send the deployed mine's two authored armed effect states after its arming
+  delay and after each viewer acknowledges the entity create. The normal
+  entity lifetime prevents a lost effect frame from retrying after removal.
+- Include both deployed mine graphs in new local runtime exports.
+- Passed 923 public Python tests, Ruff and six Minefield runtime checks.
+  A normal graph export from local 104319 XML includes both mine graphs.
+- Explosion and expiry effects, airborne presentation and original-client
+  acceptance remain open.
+
 #### Wrecking Ball Piledriver target reaction
 
 - Send the authored `165A` reaction to each selected opposing player using

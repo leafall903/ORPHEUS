@@ -137,6 +137,8 @@ TALON_SNIPER_ROUND = 0x0400000000001E80
 FIELD_ENTITY = 0x04000000000003DC  # 03DC.003, the Biotic Field (0257 st1's m_projectileSpawn)
 FIELD_GRAPH = 0x0258  # its initial graph
 MINE_ENTITY = 0x0400000000002578
+MINE_GRAPHS = (0x151A, 0x261E)  # 2578.003 initial statescripts, in entity order
+MINE_ARMED_EFFECTS = ((3, 0x030000000000239B), (17, 0x0300000000002587))
 MINE_FIRST, MINE_SPAN = 0xA0040000, 0x00040000
 MINE_RADIUS = 1.5  # 151A #11861
 MINE_DAMAGE = 130.0  # 151A #476
@@ -322,6 +324,17 @@ class Shot:
 
 
 @dataclass
+class MineView:
+    client: object
+    stream: Stream
+    create_acked: bool = False
+    armed_sent: bool = False
+
+    def arrived(self, last: int) -> None:
+        self.create_acked = True
+
+
+@dataclass
 class Mine:
     entity: int
     owner: object
@@ -334,7 +347,7 @@ class Mine:
     expires: int
     lifetime: int  # deployed ticks
     armed_at: int | None = None
-    viewers: dict[int, object] = field(default_factory=dict)
+    viewers: dict[int, MineView] = field(default_factory=dict)
 
 
 class Projectiles:
@@ -645,7 +658,7 @@ class Projectiles:
         if tick >= mine.expires:
             self.remove_mine(mine)
         elif mine.armed_at is not None:
-            self._deliver_mine(mine)
+            self._deliver_mine(mine, tick)
             return tick >= mine.armed_at
         return False
 
@@ -672,37 +685,49 @@ class Projectiles:
             mine.position = tuple(a - b * 0.001 for a, b in zip(hit.point, direction, strict=True))
             mine.velocity = (0.0, min(0.0, mine.velocity[1]), 0.0)
 
-    def _deliver_mine(self, mine: Mine) -> None:
+    def _deliver_mine(self, mine: Mine, tick: int) -> None:
         viewers = {
             viewer.slot: viewer.client
             for viewer in self.match.players if viewer.client is not None and viewer.spawned
         }
-        if viewers == mine.viewers:
+        for slot in mine.viewers.keys() - viewers.keys():
+            del mine.viewers[slot]
+        joined = [(slot, client) for slot, client in viewers.items()
+                  if slot not in mine.viewers or mine.viewers[slot].client is not client]
+        if joined:
+            vitals = self.combat.vitals.get(mine.entity)
+            components = (world.health(MINE_HEALTH, MINE_HEALTH) if vitals is None
+                          else vitals.component(vitals.ids))
+            components[26] = [mine.owner.team_bit]
+            create = mine_create(mine.position, components)
+            for slot, client in joined:
+                view = MineView(client, Stream(mine.entity))
+                mine.viewers[slot] = view
+                update = EntityUpdate(mine.entity, OP_CREATE, create)
+                update.stream = view
+                client.queue_entities([update])
+        if mine.armed_at is None or tick < mine.armed_at:
             return
-        vitals = self.combat.vitals.get(mine.entity)
-        components = (world.health(MINE_HEALTH, MINE_HEALTH) if vitals is None
-                      else vitals.component(vitals.ids))
-        components[26] = [mine.owner.team_bit]
-        create = mine_create(mine.position, components)
-        for slot, client in viewers.items():
-            if mine.viewers.get(slot) is not client:
-                client.queue_entities([EntityUpdate(mine.entity, OP_CREATE, create)])
-        mine.viewers = viewers
+        waiting = [view for view in mine.viewers.values() if view.create_acked and not view.armed_sent]
+        if waiting and (frame := mine_armed_frame()) is not None:
+            for view in waiting:
+                view.armed_sent = True
+                view.client.queue_entities([view.stream.full_frame(frame)])
 
     def mine_damaged(self, mine: Mine, vitals) -> None:
         if vitals.total <= 0.0:
             self.remove_mine(mine)
             return
         components = vitals.component(vitals.ids)
-        for client in mine.viewers.values():
-            client.queue_body_health(mine.entity, components)
+        for view in mine.viewers.values():
+            view.client.queue_body_health(mine.entity, components)
         vitals.changed.clear()
 
     def remove_mine(self, mine: Mine) -> None:
         self.mines.pop(mine.entity)
         self.combat.vitals.pop(mine.entity, None)
-        for client in mine.viewers.values():
-            client.queue_entities([EntityUpdate(mine.entity, OP_DESTROY)])
+        for view in mine.viewers.values():
+            view.client.queue_entities([EntityUpdate(mine.entity, OP_DESTROY)])
         mine.viewers.clear()
 
     # --- the Biotic Field -----------------------------------------------------------------------------
@@ -795,6 +820,21 @@ def mine_create(where: tuple, components: dict):
         return world.create(origin, MINE_ENTITY, components, position=where)
 
     return build
+
+
+def mine_armed_frame() -> BitWriter | None:
+    """Project the two persistent effects entered after 151A's arming wait."""
+    mine, extra = (graphs_data.graph(index) for index in MINE_GRAPHS)
+    if mine is None or extra is None:
+        return None
+    primary = InstanceWire(1, mine)
+    for index, effect in MINE_ARMED_EFFECTS:
+        node = mine.state(index)
+        if (node is None or node.cls != "STU_691BFA55" or node not in mine.remote_states()
+                or expr.guid_of((node.field("m_effect") or {}).get("m_effect")) != effect):
+            return None
+        primary.states[index] = StateWire(node.cls, True, {"counter": 1})
+    return remote_full_frame([primary, InstanceWire(2, extra)], {}, {1: mine, 2: extra})
 
 
 def field_create(parent: int | None, where: tuple, theme: int = 0):

@@ -170,7 +170,7 @@ DATACLASSES = (
     play.Resource, play.InvocationContext, play.Request,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
-    projectiles.Mine, projectiles.Shot, projectiles.ShotRecord,
+    projectiles.Mine, projectiles.MineView, projectiles.Shot, projectiles.ShotRecord,
     projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,

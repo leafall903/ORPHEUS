@@ -59,6 +59,8 @@ ROOT_GRAPHS = {
     0x0EC2: "PvP mode",
     0x0C8E: "PvP mode body",
     0x0258: "Biotic Field (the initial graph of 03DC.003, which 0257's canister leaves where it lands)",
+    0x151A: "Minefield deployed mine",
+    0x261E: "Minefield deployed mine companion graph",
 }
 LAYOUT = {"m_pos", "m_displayName", "m_comment", "m_F008EA57"}  # STUGraphItem's editor fields
 NODE_KEYS = {
