@@ -261,6 +261,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve the authored Trooper melee position gate
+
+- Add actual producer coverage for valid close contact and rejected farther
+  contact over the current real position host; two NPC/Bastion checks pass.
+- Keep the original older 2m expectations as recorded differences, without
+  widening graph conditions or creating another damage path. No runtime behavior
+  was changed by this audit; client acceptance remains open.
+
 ### Restore original Heavy melee force on configured Bastion
 
 - Reconnect the explicit original Heavy/Sentry interaction to the existing
