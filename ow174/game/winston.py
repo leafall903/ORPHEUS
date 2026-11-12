@@ -412,11 +412,13 @@ def _wall_blocks(fight, origin, point, radius):
     return fight.walls.cast(origin, tuple(v / length for v in delta), length - radius) is not None
 
 
-def _hit_walls(fight, player, origin, a, b, radius, amount, *, falloff=False):
+def _hit_walls(fight, player, origin, a, b, radius, amount, *, falloff=False, excluded=()):
     from ow174.game import combat, mei_wall
 
     centre = tuple((x + y) * .5 for x, y in zip(a, b, strict=True))
     for piece in tuple(fight.walls.pieces.values()):
+        if piece.entity in excluded:
+            continue
         point = mei_wall.closest(piece, centre)
         distance = combat.segment_distance(point, a, b)
         if distance > radius:
@@ -432,12 +434,14 @@ def _hit_walls(fight, player, origin, a, b, radius, amount, *, falloff=False):
         fight.walls.damage(piece, player, amount * scalar)
 
 
-def tesla_walls(fight, shooter, origin, direction, reach, angle, amount, barriers, snapshot):
+def tesla_walls(fight, shooter, origin, direction, reach, angle, amount, barriers, snapshot, *, excluded=()):
     from ow174.game import combat, mei_wall
 
     admitted = []
     slope = math.tan(math.radians(angle))
     for piece in fight.walls.pieces.values():
+        if piece.entity in excluded:
+            continue
         offset = combat._sub(mei_wall.closest(piece, origin), origin)
         length = math.hypot(*offset)
         if length > reach:
@@ -565,6 +569,7 @@ class JumpPack:
         barriers = HostedBarriers(self.combat)
         barrier_snapshot = barriers.snapshot()
         damaged_barriers = set()
+        damaged_bodies = set()
         for target in self.combat._enemies(player):
             a, b = target.segment()
             distance = max(0.0, combat.segment_distance(centre, a, b) - target.radius)
@@ -595,10 +600,12 @@ class JumpPack:
             affected = self.combat._damage(player, target, amount * scalar, False,
                                           loadout.guid if isinstance(loadout, expr.Asset) else None, frame,
                                           hit_reaction=landing)
+            if affected:
+                damaged_bodies.add(target.entity)
             if affected and not self.combat.vitals_of(target).dead:
                 self.knockback(player, target, definition, scalar)
         _hit_walls(self.combat, player, origin, centre, centre, radius,
-                   amount * _outgoing(self.combat, player), falloff=landing)
+                   amount * _outgoing(self.combat, player), falloff=landing, excluded=damaged_bodies)
 
     def knockback(self, player, target, definition, scalar):
         from ow174.game import fortify
@@ -703,6 +710,7 @@ class PrimalPunches:
         radius = expr.to_float(search.evaluate(search.node.field('m_radius'), watch=False))
         definition = combat.hit_def(health, {'m_modifyHealth': health.node.field('m_modifyHealth')})
         origin = self.combat._eye(player)
+        damaged_bodies = set()
         for target in self.combat._enemies(player):
             bottom, top = target.segment()
             middle = (a[1] + b[1]) / 2
@@ -726,8 +734,10 @@ class PrimalPunches:
                 continue
             affected = self.combat._damage(player, target, definition.amount, False, definition.loadout,
                                           command.frame, hit_reaction=True)
+            if affected:
+                damaged_bodies.add(target.entity)
             if affected and not self.combat.vitals_of(target).dead:
                 self.combat.winston_jump.knockback(player, target, health, 1.0)
         HostedBarriers(self.combat).hit_capsule(player, a, b, radius, definition.amount, origin)
         _hit_walls(self.combat, player, origin, a, b, radius,
-                   definition.amount * _outgoing(self.combat, player))
+                   definition.amount * _outgoing(self.combat, player), excluded=damaged_bodies)

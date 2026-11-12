@@ -2292,7 +2292,15 @@ class Combat:
             return
         self.sombra_controls.retire(entity)
         self.baptiste.deployable_removed(entity)
+        piece = self.walls.pieces.get(entity)
+        if piece is not None and piece.actor is actor:
+            self.walls.remove(piece)
         ice_wall.retired(actor)
+        if actor.definition == ice_wall.PILLAR and isinstance(actor.body_script, actors.PillarScript):
+            component = actor.body_script.component
+            component.disconnect_foreign_watchers()
+            for instance in tuple(component.instances.values()):
+                component.destroy(instance)
         self.vitals.pop(entity, None)
         self.stuns.pop(entity, None)
         self._retire_source_controls(entity)
@@ -3700,6 +3708,7 @@ class Combat:
             bubble_queries = winston.HostedBarriers(self)
             bubbles = bubble_queries.snapshot()
             damaged_bubbles = set()
+            damaged_bodies = set()
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
@@ -3732,11 +3741,12 @@ class Combat:
                             bubble.damage(definition.amount * player.quanta / 1e6 * winston._outgoing(self, player))
                             damaged_bubbles.add(bubble.body)
                         continue
-                self._damage(player, target, definition.amount * player.quanta / 1e6,
-                             False, definition.loadout, command.frame, beam=True, armour_scalar=.8)
+                if self._damage(player, target, definition.amount * player.quanta / 1e6,
+                                False, definition.loadout, command.frame, beam=True, armour_scalar=.8):
+                    damaged_bodies.add(target.entity)
             winston.tesla_walls(self, player, origin, direction, reach, angle,
                                 definition.amount * player.quanta / 1e6 * winston._outgoing(self, player),
-                                bubble_queries, bubbles)
+                                bubble_queries, bubbles, excluded=damaged_bodies)
 
     def _weapon_beam(self, player, command, script) -> None:
         """Select a beam target and evaluate its authored ModifyHealth.
@@ -4094,6 +4104,8 @@ class Combat:
                 contacts.append(target)
         pillars = [piece for piece in self._melee_pillar_targets(origin, centre, radius)
                    if (self.match.game_map.free_for_all or piece.team != actor.team)]
+        pillar_ids = {piece.entity for piece in pillars}
+        contacts = [target for target in contacts if target.entity not in pillar_ids]
         if not health:
             return tuple(expr.Entity(target.entity) for target in (*contacts, *pillars))
         modify = state.node.field("m_modifyHealth")
@@ -8293,6 +8305,8 @@ class Combat:
             protected_out.update(protected)
         victims = []
         for target in candidates:
+            if ice is not None and target.entity == ice[1].entity:
+                continue  # same actual pillar is settled by the impact surface below
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
                 continue
             if target.owner is not None and self.vitals_of(target).dead:
@@ -8617,6 +8631,8 @@ class Combat:
         self._radial_impulse(target, point, blast.horizontal_impulse * scalar, blast.vertical_impulse * scalar)
 
     def _radial_impulse(self, target: Target, point, horizontal: float, vertical: float) -> None:
+        if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
+            return  # object pools receive the blast, not a character mover response
         if defenses.fortify_scale(target.owner) is not None:
             return
         dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
@@ -9606,6 +9622,9 @@ class Combat:
         if not armour_reduction:
             armour_scalar = 1.0  # delivered periodic damage bypasses per-tick armour reduction.
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
+            return False
+        if (isinstance(target.owner, actors.Deployable)
+                and self.deployables.get(target.entity) is not target.owner):
             return False
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
