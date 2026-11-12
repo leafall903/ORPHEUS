@@ -74,11 +74,22 @@ submitted unchanged rather than left as an untracked fixture.
 C6 full shared run remains in session33339; poll the external log before deciding
 whether any new failure needs correction. Do not silently claim it passed.
 
+Seventh batch SHA: `2d2da024`.
+Eighth batch: `feat: integrate delivered Pharah curved reflections` mounts the
+source restart/eye/seed/fallback/catch-up consumer, spring-aware launch and
+point-wall/body-assistance policy. Five original curve/reflection cases pass.
+Original eye/Helix/channel run:18/19 (retained McCree double-hit expectation).
+Genji/Baptiste43 records6 failures/2 errors; all6 failures and Mei bubble error
+reproduce at the preceding commit; one NPC data configuration error remains.
+External logs: worker-c-pharah-{barrage-reflect-final,reflect-eye-shared-final,
+reflect-services,reflect-services-baseline}-check.log.
+Root received C5 asc254331d and C6 as37577fbd, with42 and14 focused checks passing.
+C6 full server_snapshot session33339 is still active; do not rerun or label green.
+
 ## Exact next work
 
-1. Continue Pharah's original curve reflection eye/seed/lifetime restart
-   (scoped002B interruption is mounted), then splash/self-splash/impulse and remaining
-   charge/control consumers. Do not replace the combined projectile host.
+1. Continue Pharah's original splash/self-splash/impulse and remaining
+   charge/control consumers (curve reflection and scoped002B interruption are mounted). Do not replace the combined projectile host.
    Root owns NPC bots/navigation/snapshot edits while reconciling sniper helpers.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
