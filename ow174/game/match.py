@@ -435,13 +435,6 @@ class Player:
             self.mover.last_command = admitted
         command = admitted
         stunned = stunned or input_suppressed
-        if fight.junkrat.rooted(self.body, tick):
-            # Original restraint keeps aim/attacks and prevents MoveTo escape.
-            self.mover.velocity = (0.0, 0.0, 0.0)
-            movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
-            self.mover.step_pose(movement, seconds, tick)
-            self._advance_body_frame(command)
-            return
         frost = fight.frost_progress(self, tick=tick)
         command = fight.sombra_controls.input(self, command)
         command = fight.clamp_sleep_command(self, command)
@@ -450,6 +443,13 @@ class Player:
             from ow174.game import tracer
 
             tracer.hold_pose(self, command)
+            self._advance_body_frame(command)
+            return
+        if fight.junkrat.rooted(self.body, tick):
+            # Restrain movement after the existing status and Recall admission.
+            self.mover.velocity = (0.0, 0.0, 0.0)
+            movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
+            self.mover.step_pose(movement, seconds, tick)
             self._advance_body_frame(command)
             return
         if stunned or fight.recalls.locked(self):

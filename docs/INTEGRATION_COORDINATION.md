@@ -647,3 +647,23 @@ rejected by both exporters. Test fixture imported as module so discovery does
 not inadvertently re-run the entire unrelated snapshot class. Runtime assertions
 are unchanged. Next root boundary is full Phase2World scene/callback/revision
 storage, retaining original state rather than omitting it from snapshots.
+
+
+Root preserves the existing Sombra input/sleep-view filters and Recall hold before
+Trap's movement-only early return. The same restraint still keeps ordinary aim
+and attacks. The input suppressor already handles hard controls; its original
+logic is unchanged. Source order check25300 is terminal40run36pass3fail1skip,
+96.872s. Root movement/aim/fire/release and Sombra checks execute; retained
+Mei250vs170 follows the separately restored Cryo healing. Two source Ana/Tracer
+Recall failures (sleep before windup, lethal-contact old history) occur without
+Trap and remain unclassified source interoperability work assigned back to A,
+with original checks intact. Evidence root-trap-status-order-check.log.
+
+A35 source2585c856 received asdc09dd5d, A36 source0694099e as96190b4f, A37
+dbb9783f asd097ba29; B29 source4f480ed4 as2c6fb142. Movement pause conflict
+keeps both Frost and Trap deadlines. Original world-frame catchup, actual NPC
+restraint and source WorldBubble/Shatter consumers are preserved. Root created
+isolated verification/npc-controller-storage-root on integration/
+npc-controller-storage-root at2c6fb142 to continue Phase2 storage work while
+intake source stayed frozen for25300. No data/runtime copies. It currently has
+no code changes and must be inspected before reuse, not duplicated or removed.
