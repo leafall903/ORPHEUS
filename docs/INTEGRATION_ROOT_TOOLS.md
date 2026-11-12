@@ -68,3 +68,28 @@ parallel-merge/root-mover-append-cli-probe.py/.log.
 The remaining absent original option by path is0079 extract_map_world.py
 --animation-set, which is appearance extraction and excluded. Option names alone
 do not establish that every tool or nonappearance runtime consumer is complete.
+
+## Original status/lift input profile
+
+The new extend_hero_profile.py reproduces a fresh input profile from the existing
+v18 supplement plus original0004 0267 binding. It checks all three existing
+0C71/0B99/0C72 raw graph payloads, refuses conflicts and leaves all other graphs,
+entities, effect bindings, deployables and NPC controller associations unchanged.
+No original/runtime pack or previous profile is written. Existing output
+directories are refused. The original00DD lift bundle is validated and retained
+as an explicit immutable source path; its gameplay integration is separate.
+
+Executed recipe from the canonical server tree with the existing Python:
+
+```powershell
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/extend_hero_profile.py --profile ../parallel-merge/runtime-inputs-v18/environment.json --support-statuses ../hero-lanes/0004/research/game_graphs_support_status_174.json.gz --volskaya-platform ../hero-lanes/00DD/mei-911-volskaya-platform-assets/volskaya-platform-104319.json.gz --output ../parallel-merge/runtime-inputs-v19
+```
+
+The actual v19 import resolves0267 to0C71 with all three existing graphs; no
+graph additions are necessary. The supplement remains40 graphs/17 entities; the loaded namespace contains
+742 graphs/23 entities,
+including the exact preceding013B entity data. All other collections and
+previous effect bindings compare exactly. Original sources remain unchanged.
+The workspace launcher still selects v18 until the native status and lift
+consumers are integrated/reviewed; v19 is already available for scoped checks.
+Receipt: parallel-merge/root-v19-status-profile-receipt.json.
