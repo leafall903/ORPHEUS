@@ -16,6 +16,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   excluded by its real state/control owners. Original31 shared methods pass.
 
 
+### Retire released Roadhog pellets with their original body
+
+- Retiring an actual Hog removes its unleased01C6 pellets/fragments; death alone
+  retains released damage and original killer credit. Dead Hog no longer gains
+  ultimate from that damage. Preserve other projectile retirement policies.
+- Original lifecycle/runtime16 checks now retain only three final fresh-respawn
+  passive-charge differences; preceding cleanup and dead-source assertions pass.
+  Original natural Hog charge remains next; no client acceptance run.
+
 ### Restore original Roadhog secondary expiry fragments
 
 - The existing SplitVolley/Rocket host freezes and emits original25 fragments
