@@ -2068,6 +2068,7 @@ class Combat:
         self.ability_impacts: deque[Rocket] = deque(maxlen=64)
         self.shatters: dict[int, earthshatter.Wave] = {}
         self.charges: dict[int, reinhardt_charge.Charge] = {}
+        self.ball_grapples = {}
         self.moira_orbs: list[moira.Orb] = []
         self.moira_clocks = {}
         self.moira_hots: dict[int, moira.SprayHeal] = {}

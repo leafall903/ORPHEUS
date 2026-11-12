@@ -32,6 +32,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+### Mount delivered Ball movement and Piledriver feedback
+
+- Restore original ball.py and mount its feedback and motion through the same
+  authoritative Mover, after existing control/world requests. Restore its own
+  body-position/default-velocity query bindings; missing position previously
+  made the clearance ray origin scalar0 and prevented real activation.
+- Actual original10s cooldown/40tick hover and authored landing scope7 start
+  once. The scope uses the original3.5m ground ray: at90ticks bodyY4.9668 is
+  still airborne, so this is not completed ground-contact acceptance.
+- Ground/low-clearance rejection and Roll toggle pass; runtime17 and existing
+  wave/charge stored-state check pass. Full Ball/Roll/runtime35 retains7fails
+  and5errors: missing damage/airlock, original critical/form policy and fixtures.
+- Preserve full original source test assertions:combat110,grapple99,pile76,
+  roll17 AST unchanged. Grapple/control helpers are retained but not yet routed;
+  full Ball line completion and client acceptance remain open.
+
 ### Mount delivered Fire Strike contacts on the existing Brigitte shield
 
 - Expose all contacts from the existing shield-face query and let its original
