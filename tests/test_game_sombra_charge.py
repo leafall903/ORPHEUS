@@ -106,7 +106,7 @@ class SombraChargeTests(unittest.TestCase):
         self.assertEqual(self.charge(f), 0)
         match.update((at + 60) * combat.TICK, at + 60)
         effect, = match.combat.sombra_controls.locks[f.b.body]
-        self.assertEqual(round(effect.until / combat.TICK), at + 334)
+        self.assertEqual(math.ceil(effect.until / combat.TICK), at + 334)
         self.assertEqual(self.charge(f), 0)
 
     def test_actual_pistol_and_melee_credit_pool_loss_and_release_adds_no_charge(self):

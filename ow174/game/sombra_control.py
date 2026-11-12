@@ -5,7 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 
 from ow174.game import actors, bots, health_packs
-from ow174.game.script import entity_queries, expr, graph, nodes, play, runtime
+from ow174.game.script import entity_queries, expr, graph, nodes, play, play_queue, runtime
 from ow174.game.world import SHIELDS_POOL
 
 HERO = 0x02E000000000012E
@@ -237,6 +237,17 @@ class Controls:
                     device_tags = symmetra_portal.ENDPOINT_TAGS[index]
                 yield Target(device.body, None, (x, y - radius, z), 2 * radius, radius, radius, device), device_tags
 
+    @staticmethod
+    def invoke(component, definition, request):
+        """Start the actual loaded request with its authored start-entry context."""
+        before = {instance.id for instance in component.instances.values()}
+        queue = play_queue.Queue(component, lambda _: play_queue.Load("ready", definition))
+        queue.submit(request)
+        matches = [instance for instance in component.instances.values()
+                   if instance.graph.index == definition.index]
+        return next((instance for instance in matches if instance.id not in before),
+                    matches[0] if matches and request.policy == 2 else None)
+
     def apply_devices(self, instance, definition, resource, request, caster):
         from ow174.game import symmetra_sentry
 
@@ -258,10 +269,9 @@ class Controls:
             if component is not instance.component:
                 # Transfer values without sharing either component's private VM storage.
                 params, overrides = deepcopy((params, overrides))
-            application = component.play_loaded_graph(
-                definition, source=request.context.caller, params=params,
-                overrides=overrides, policy=request.policy, instigator=request.context.instigator,
-            )
+            transferred = replace(request, params=params,
+                                  resource=replace(request.resource, overrides=overrides))
+            application = self.invoke(component, definition, transferred)
             if application is None:
                 if target.entity not in self.locks:
                     self.device_receivers.pop(target.entity, None)
@@ -319,6 +329,23 @@ class Controls:
 
     def native(self, body, cfg, instance):
         cls = cfg.get("$")
+        if (instance.graph.index == EFFECT and cls == "STU_AC829876"
+                and cfg is instance.graph.node(21).field("m_condition")):
+            # Original receiver predicate: the actual body can receive Hack.
+            target = next((target for target in self.fight._targets()
+                           if target.entity == body), None)
+            script = getattr(getattr(target, "owner", None), "body_script", None)
+            if (script is None or getattr(script, "retired", False)
+                    or script.component is not instance.component or script.component.owner_dead):
+                return False
+            reject = script.component.entity_var(14679, create=False)
+            return reject is None or not expr.truthy(reject.value())
+        if (instance.graph.index == PULSE and cls == "STU_AC829876"
+                and cfg is instance.graph.node(8).field("m_condition")):
+            # Body receiver; attached barrier pools use the existing drain bridge.
+            return False
+        if instance.graph.index != HACK:
+            return NotImplemented
         if cls == "STU_AC829876" and cfg is instance.graph.node(204).field("m_condition"):
             player = self.player(body)
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
@@ -441,10 +468,7 @@ class Controls:
             script = getattr(target.owner, "body_script", None)
             if script is None:
                 continue
-            application = script.component.play_loaded_graph(
-                definition, source=request.context.caller, params=request.params,
-                overrides=resource.overrides, policy=request.policy, instigator=request.context.instigator,
-            )
+            application = self.invoke(script.component, definition, request)
             if application is not None and definition.index == EFFECT:
                 duration = expr.to_float(application.evaluate(application.graph.node(96).field("m_value")))
                 if math.isfinite(duration) and duration > 0:

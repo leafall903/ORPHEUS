@@ -1,5 +1,6 @@
 """Sombra's real extracted body in a modeled Match; no original-client acceptance implied."""
 
+import math
 import unittest
 
 from test_game_combat import KANEZAKA_DM, Run, aim
@@ -71,23 +72,23 @@ class SombraCombatTests(unittest.TestCase):
         self.assertEqual(owner.component.entity_var(342).value(), 0)
         self.assertTrue(emp.state(1).flags & nodes.Ability.RUNNING)
         self.run.match.update((cast + 21) * combat.TICK, cast + 21)
-        self.assertNotIn(self.b.body, fight.hacks)
+        self.assertNotIn(self.b.body, fight.sombra_controls.locks)
         self.run.match.update((cast + 22) * combat.TICK, cast + 22)
-        effect, = fight.hacks[self.b.body]
-        self.assertEqual(effect.until_tick, cast + 334)
+        effect, = fight.sombra_controls.locks[self.b.body]
+        self.assertEqual(math.ceil(effect.until / combat.TICK), cast + 334)
         self.assertEqual(target.frame, cast)
         self.assertEqual(target.component.entity_var(6396).value(), expr.Entity(self.a.body))
         self.assertEqual(self.health(self.b), 200)
 
-        self.run.match.update((effect.until_tick - 1) * combat.TICK, effect.until_tick - 1)
-        self.assertIn(self.b.body, fight.hacks)
+        self.run.match.update((math.ceil(effect.until / combat.TICK) - 1) * combat.TICK, math.ceil(effect.until / combat.TICK) - 1)
+        self.assertIn(self.b.body, fight.sombra_controls.locks)
         self.assertFalse(emp.state(1).flags & nodes.Ability.RUNNING)
-        self.run.match.update(effect.until_tick * combat.TICK, effect.until_tick)
-        self.assertNotIn(self.b.body, fight.hacks)
+        self.run.match.update(math.ceil(effect.until / combat.TICK) * combat.TICK, math.ceil(effect.until / combat.TICK))
+        self.assertNotIn(self.b.body, fight.sombra_controls.locks)
         self.assertEqual(target.frame, cast)
         self.assertFalse(target.component.entity_var(888).value())
         self.assertFalse(target.component.entity_var(6396).value())
-        after = effect.until_tick + 1
+        after = math.ceil(effect.until / combat.TICK) + 1
         self.run.match.update(after * combat.TICK, after)
         self.assertFalse(any(i.graph.index in (0x0B32, 0x0B1F)
                              for i in target.component.instances.values()))
@@ -108,9 +109,9 @@ class SombraCombatTests(unittest.TestCase):
                 support = SombraGrenadeTests().join_ally(f, SOMBRA, (3, 0, 0))
                 for _ in range(90):
                     f.press(2)
-                    if f.b.body in fight.hacks:
+                    if f.b.body in fight.sombra_controls.locks:
                         break
-                old, = fight.hacks[f.b.body]
+                old, = fight.sombra_controls.locks[f.b.body]
                 self.assertEqual(old.application.source_entity(), f.a.body)
                 f.press(0, 45)
                 support.body_script.set_ult_charge(1400)
@@ -122,9 +123,9 @@ class SombraCombatTests(unittest.TestCase):
                     f.run.frame = at
                 else:
                     f.press(0, 50)
-                new, = fight.hacks[f.b.body]
+                new, = fight.sombra_controls.locks[f.b.body]
                 self.assertTrue(old.application.stopped)
-                self.assertEqual(new.until_tick, cast + 334)
+                self.assertEqual(math.ceil(new.until / combat.TICK), cast + 334)
                 self.assertEqual(new.application.source_entity(), support.body)
                 self.assertTrue(match.switch_hero(support, f.b.hero))
 
@@ -133,16 +134,16 @@ class SombraCombatTests(unittest.TestCase):
                 yaw, pitch = aim(fight._eye(f.b), (0, 1, 0))
                 if gap:
                     match.update((ready - 1) * combat.TICK, ready - 1)
-                    self.assertIn(f.b.body, fight.hacks)
+                    self.assertIn(f.b.body, fight.sombra_controls.locks)
                     match.update(ready * combat.TICK, ready)
                     f.b.take_commands([Command(ready, yaw=yaw, pitch=pitch, buttons=2)])
                     f.run.frame = ready
                 else:
                     f.press(0, ready - f.run.frame - 1)
-                    self.assertIn(f.b.body, fight.hacks)
+                    self.assertIn(f.b.body, fight.sombra_controls.locks)
                     f.run.step({f.b: (yaw, pitch, 2)})
                 self.assertTrue(new.application.stopped)
-                self.assertNotIn(f.b.body, fight.hacks)
+                self.assertNotIn(f.b.body, fight.sombra_controls.locks)
                 self.assertFalse(f.b.body_script.component.entity_var(6396).value())
                 self.assertEqual(len(fight.rockets), 1)
                 f.press(0, 65)
@@ -159,27 +160,27 @@ class SombraCombatTests(unittest.TestCase):
                 f.press(32)
                 cast = f.run.frame
                 f.press(0, 75)
-                initial, = fight.hacks[f.b.body]
-                self.assertEqual(initial.until_tick, cast + 334)
+                initial, = fight.sombra_controls.locks[f.b.body]
+                self.assertEqual(math.ceil(initial.until / combat.TICK), cast + 334)
                 f.press(2, 100)
-                self.assertEqual(fight.hacks[f.b.body], [initial])
+                self.assertEqual(fight.sombra_controls.locks[f.b.body], [initial])
                 self.assertEqual(f.weapon().state(53).remaining(), 0)
                 f.press(0)
-                at = initial.until_tick
+                at = math.ceil(initial.until / combat.TICK)
                 if gap:
                     match.update(at * combat.TICK, at)
                     f.run.frame = at
                 else:
                     f.press(0, at - f.run.frame)
-                self.assertNotIn(f.b.body, fight.hacks)
+                self.assertNotIn(f.b.body, fight.sombra_controls.locks)
                 for _ in range(90):
                     f.press(2)
-                    if f.b.body in fight.hacks:
+                    if f.b.body in fight.sombra_controls.locks:
                         break
-                fresh, = fight.hacks[f.b.body]
+                fresh, = fight.sombra_controls.locks[f.b.body]
                 self.assertIsNot(fresh.application, initial.application)
                 self.assertEqual(fresh.application.source_entity(), f.a.body)
-                self.assertEqual(fresh.until_tick, f.run.frame + 313)
+                self.assertEqual(math.ceil(fresh.until / combat.TICK), f.run.frame + 313)
                 self.assertGreater(f.weapon().state(53).remaining(), 0)
 
     def test_hack_initializes_on_contact_without_consuming_recipient_input(self):
@@ -209,12 +210,12 @@ class SombraCombatTests(unittest.TestCase):
                         press(f, 0, idle)
                     for _ in range(90):
                         press(f, 2, idle)
-                        if f.b.body in fight.hacks:
+                        if f.b.body in fight.sombra_controls.locks:
                             break
-                    effect, = fight.hacks[f.b.body]
+                    effect, = fight.sombra_controls.locks[f.b.body]
                     cast = f.run.frame
                     self.assertEqual(effect.application.start // script.frame_ms, cast)
-                    self.assertEqual(effect.until_tick, cast + 313)
+                    self.assertEqual(math.ceil(effect.until / combat.TICK), cast + 313)
                     self.assertEqual(script.component.entity_var(6396).value(), expr.Entity(f.a.body))
                     self.assertEqual(script.frame, last_owner if idle else cast)
 
@@ -226,15 +227,15 @@ class SombraCombatTests(unittest.TestCase):
                     yaw, pitch = aim(fight._eye(f.b), (0, 1, 0))
                     if idle:
                         match.update((ready - 1) * combat.TICK, ready - 1)
-                        self.assertIn(f.b.body, fight.hacks)
+                        self.assertIn(f.b.body, fight.sombra_controls.locks)
                         self.assertEqual(script.frame, last_owner)
                         match.update(ready * combat.TICK, ready)
                         f.b.take_commands([Command(ready, yaw=yaw, pitch=pitch, buttons=2)])
                     else:
                         f.press(0, ready - f.run.frame - 1)
-                        self.assertIn(f.b.body, fight.hacks)
+                        self.assertIn(f.b.body, fight.sombra_controls.locks)
                         f.run.step({f.b: (yaw, pitch, 2)})
-                    self.assertNotIn(f.b.body, fight.hacks)
+                    self.assertNotIn(f.b.body, fight.sombra_controls.locks)
                     self.assertTrue(effect.application.stopped)
                     self.assertFalse(script.component.entity_var(6396).value())
                     self.assertEqual(len(fight.rockets), 1)
@@ -317,7 +318,7 @@ class SombraCombatTests(unittest.TestCase):
     def test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry(self):
         self.press(2, 100)
         application = self.hack_applications()[0]
-        deadline = self.run.match.combat.hacks[self.b.body][0].until_tick
+        deadline = math.ceil(self.run.match.combat.sombra_controls.locks[self.b.body][0].until / combat.TICK)
         self.assertGreater(deadline, self.run.frame)
         self.assertTrue(self.b.body_script.component.entity_var(888).value())
         self.press(2, shooter=self.b, target=self.a)
@@ -382,8 +383,8 @@ class SombraCombatTests(unittest.TestCase):
         self.b.mover.body = None
         self.press(0, 50)
         self.assertNotEqual(self.b.body, old_body)
-        self.assertNotIn(old_body, self.run.match.combat.hacks)
-        self.assertNotIn(self.b.body, self.run.match.combat.hacks)
+        self.assertNotIn(old_body, self.run.match.combat.sombra_controls.locks)
+        self.assertNotIn(self.b.body, self.run.match.combat.sombra_controls.locks)
         self.assertTrue(application.stopped)
         self.press(2, shooter=self.b, target=self.a)
         self.press(0, 65)
@@ -508,7 +509,7 @@ class SombraCombatTests(unittest.TestCase):
         match.update(at * combat.TICK, at)
         self.assertEqual(vitals.death_tick, cast + 2)
         self.assertEqual(vitals.killer, self.b.body)
-        self.assertNotIn(self.b.body, fight.hacks)
+        self.assertNotIn(self.b.body, fight.sombra_controls.locks)
         self.assertFalse(any(i.graph.index == 0x0B32
                              for i in self.b.body_script.component.instances.values()))
 
