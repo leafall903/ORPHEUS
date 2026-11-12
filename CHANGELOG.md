@@ -12307,3 +12307,35 @@ component86 backend without replacing strongerdefault nextbatch. Root notified.
 This batch does not claim all oldcomponent86 APIs are fullyreached. Next exact
 action: map sameGUID declaredcomponent86 path/strictcurrentVectorState lifecycle,
 then final012F58/b6positiveinventory. Do not wait allmatrix/clientacceptance.
+
+
+## B94 — retain frozen vector replacement API and recursive value consumer
+
+Frozen58 publicVectorReplacement/upsert_vector/retire_vector/no-base resolve/
+clear APIs were absent even though currentVectorRecord is a stronger runtime
+implementation. Retain originalvalueobject validation, convert originalwrite to
+sameVectorRecord operation2, delegate retire tosamevectorarray, clear same two
+arrays. Currentbase-provided resolve_vector contract/ADD/MULTIPLY operations and
+allcurrentnodes remain; omittedbase originalAPI returns lastactiveoperation2
+replacement tuple orNone, not an inventedbase for generaloperations. No parallel
+store or persistentfields. ActualdirectSDK smoke verified bothreadcontracts,
+newVectorRecord storage, expiry andclear; tooloutputrecorded.
+
+Original frozenvectorstate test then exposed a real additionalconsumer gap:
+currentNumericPropertyModifiers used only directVec3, discarding nestedtuple
+firstmembers. Restore originalreplacement_vector helper verbatim, including
+per-memberworkbudget, zero fallback and recursion, solely for original09F9B1FE
+operation2. CurrentnewADD/MULTIPLY row evaluation unchanged. Same generalupsert
+storage/priority/lifecycle is preserved. Restore originaltestmethod unchanged;
+first attempt failed expected(2,3,4) vs(0,0,0), afteractualconsumer restore all29
+original/currentmodifier/runtime checks pass1.895s. Logs worker-b-original-vector-
+api{,-mounted}.log. This was actual sourcecode gap, not an oldobserver rename.
+
+Final58→b6 positive-line audit found no independent newstaged-only production
+consumer: itslaunch signatures/LOS/midpoint/rank/waveorigin/queue removal/vector
+removal/tagcatalog removal/storage slimming are simplifications of frozen58.
+Currentlaunch/soleNPCmover plusB82–85/B94 retain these richer behaviors; current
+VectorRecord/nodes are not rolled back. Scene.unbind alreadyclearsbotharrays.
+Still pending explicitcomponent86 Registry sameGUID adapter (B93), not fulltest/
+clientvalidation. Rootasked to preserve strongerdefault pending precisebackend
+mode boundary; continue scopedadapter after this independentlyreceivable batch.

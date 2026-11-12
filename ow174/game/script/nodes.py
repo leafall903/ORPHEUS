@@ -1016,11 +1016,21 @@ class NumericPropertyModifiers(State):
         value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
         return default if value is failed else f32(expr.to_float(value, default))
 
+    def replacement_vector(self, cfg):
+        value = play.evaluate_scalar(self.instance, cfg, initial=None, watcher=self)
+        # F65E70 accepts Vec3 and recursively selects the first array member.
+        while isinstance(value, tuple) and value:
+            self.instance.component.consume_work("vector modifier array member")
+            value = value[0]
+        return (value.x, value.y, value.z) if isinstance(value, expr.Vec3) else (0.0, 0.0, 0.0)
+
     def record(self, row, key, start):
         cls = row["$"]
         if cls in _VECTOR_ROWS:
             operation, default = _VECTOR_ROWS[cls]
-            value = play.evaluate_scalar(self.instance, row.get("m_9B7A63EA"), initial=default, watcher=self)
+            value = (expr.Vec3(*self.replacement_vector(row.get("m_9B7A63EA")))
+                     if cls == "STU_09F9B1FE" else
+                     play.evaluate_scalar(self.instance, row.get("m_9B7A63EA"), initial=default, watcher=self))
             priority = self.number(row.get("m_priority"), 0.0)
             return modifiers.VectorRecord(1, key, start, row.get("m_CFEC5F76", 0), operation,
                                           value if isinstance(value, expr.Vec3) else default, priority)
