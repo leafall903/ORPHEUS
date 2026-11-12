@@ -2200,6 +2200,8 @@ class Combat:
         self.hammer_hits = {}
         self.zarya_charge_tick = 0
         self.zarya_charge_ready: dict[int, int] = {}
+        self.zarya_melee_ready: dict[int, int] = {}
+        self.zarya_secondary_ready: dict[int, int] = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
         self.matrix_definitions: frozenset[int] | None = None
@@ -2505,6 +2507,8 @@ class Combat:
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
         self.zarya_charge_ready.pop(player.body, None)
+        self.zarya_melee_ready.pop(player.body, None)
+        self.zarya_secondary_ready.pop(player.body, None)
         if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
             molten_core.retire_owner(self, player)
             hero_torbjorn.destroy_turret(self, player)
@@ -4278,6 +4282,13 @@ class Combat:
             counters[key] = state.counter
             if state.counter == seen or not state.active or command is None:
                 continue
+            if hero == 0x02E0000000000068 and instance.graph.index == 0x0043:
+                ability = instance.states.get(instance.graph.node(14).state)
+                if isinstance(ability, nodes.Ability) and ability.cur > 0 and ability.cooldown_rate > 0:
+                    cooldown_ms = max(1, expr.round_half_away(expr.f32(expr.f32(ability.cur * 1000.0) / ability.cooldown_rate)))
+                    ready_frame = (ability.last + cooldown_ms) // script.frame_ms
+                    elapsed = (ready_frame - command.frame) * script.frame_ms
+                    self.zarya_melee_ready[player.body] = self.match.tick + math.ceil(elapsed / (TICK * 1000))
             modify = state.node.field("m_modifyHealth") or {}
             amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0) if modify else 0.0
             loadout = (
@@ -6180,6 +6191,11 @@ class Combat:
         if (not isinstance(shooter, bots.Bot) and command is not None
                 and self.sentries.fired(shooter, command, state)):
             return
+        if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E0000000000068
+                and state.instance.graph.index == 0x0241 and state.index == 19):
+            from ow174.game import zarya
+
+            self.zarya_secondary_ready[shooter.body] = self.match.tick + zarya.SECONDARY_RECOVERY_TICKS
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
         if not isinstance(shooter, bots.Bot) and self.ball_mines.volley(shooter, state, number, shot_frame):

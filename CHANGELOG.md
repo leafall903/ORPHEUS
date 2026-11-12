@@ -1,5 +1,37 @@
 # Changelog
 
+## A89 — original melee/secondary recovery world admission
+
+Baseline real original future melee counter2vs1 and future secondary duplicate
+Rocket failure were verified (logs worker-a-zarya-idle-cadence-baseline.log and
+worker-a-zarya-secondary-future-admission-check.log); paced cadence alone was not
+evidence for future-clock protection. Restored original zarya_melee_ready and
+zarya_secondary_ready on current Combat, actual accepted body/world cast pair.
+Melee uses existing Ability.cur/last/rate and exact native f32/round-half-away
+cooldown conversion (current Ability has no old cooldown_ms method; no facade or
+global timer arithmetic was added). The existing BodyWorld start/floor hooks
+admit original0043/node14 only after mapped world deadline. Original0241/state19
+actual emission records original62tick recovery; current Match.body_command only
+masks secondary before same BodyScript input when world recovery is not complete.
+All other body/owner/controller, logical input gates, pose and resource paths stay
+current. Old-body retirement clears both maps; exact Combat storage admits both.
+No second ability/reload/charge scheduler or replacement component.
+
+Original future melee, paced/repress/held melee, close30HP, future secondary,
+held secondary, futureidle/reload and field-end melee charge:9/9pass7.298s.
+Original aimed-miss/static-wall methods passed in earlier8method4.902s run, no
+source numeric/assert/input changes. Final log worker-a-zarya-world-melee-secondary-
+clock-original-check.log; standalonefuturesecondary failed before admission was
+restored, showing this is a genuine missing consumer. Existing passive, cooldown,
+new actor and shield ledgers are not duplicated.
+
+Next: actual native025C projected recipients for eligible realNPCs on sole
+Barriers/scripted/Vitals (C54 original0016 consumer evidence), plus final0068 source
+consumer reconciliation. Original Nano projected horizontal ray miss,193 width
+boundary, original fallingY and old recovery/Ana observations remain visible.
+Estimated remaining2–5active hours low confidence, not a completion claim.
+
+
 ## A88 — original idle reload on existing world Wait/body VM
 
 Restored original0068 _advance_idle_zarya_reloads and BodyScript.finish_idle_reload

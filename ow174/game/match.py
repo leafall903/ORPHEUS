@@ -1938,8 +1938,12 @@ class Match:
             controls = getattr(self.combat, "sombra_controls", None)
             if posed and controls is not None:
                 controls.preselect(player, command)
+            buttons = command.buttons
+            if (script.hero == 0x02E0000000000068
+                    and self.tick < self.combat.zarya_secondary_ready.get(player.body, 0)):
+                buttons &= ~2
             script.command(
-                command.frame, command.buttons, command.action, command.forward, command.right,
+                command.frame, buttons, command.action, command.forward, command.right,
                 grounded=not player.mover.airborne,
                 airborne=player.mover.airborne if posed else None,
                 healing_tick=healing_tick if script.hero == 0x02E0000000000040 else None,
