@@ -505,3 +505,28 @@ existing projectile pipeline. Worker focused37 pass; remaining full original
 surface expectations stay documented without preventing submission. B21's
 long snapshot run82747 is now terminal (worker report:69 tests,3fail8errors,
 3skip,2325.838s); preserve the original retained differences, do not restart it.
+
+
+Root original support rerun99255 is terminal (79 tests149.890s,12fail20errors,
+2skips). Actual original Lucio aura and ultimate-rule paths now run with status
+resources; the prior missing-input failures are gone. Retained barrier checks
+still address old metadata helpers and deletion of wire-pool tombstones;
+current Vitals deliberately retains zero wire records until slot reuse. Do not
+remove that protocol state or manufacture helper aliases to obtain green tests.
+Assassin route-speed expectations and Bap Enforcer/Assassin total-health deltas
+remain unclassified pending exact actual per-pool evidence. Other three NPC
+body types pass the original status-boundary expectations.
+
+v7 environment.json additionally selects existing original
+ORPHEUS_NPC_CONTROLLER_SUPPLEMENT at013B/npc-controller-supplement/
+controller_graphs_174.json.gz for current enforcer_controller and
+assassin_controller consumers. It supplies17 unchanged original graphs. No
+legacy body association overlay or second controller is installed; loader/
+associated-body contracts require separate source tracing. Source hashes and
+v5 graph-payload bytes remain unchanged. All versions stay preserved.
+
+B21 long stored Genji fan error is specifically ManifestMismatch: the worker
+source tree changed15 model files during that long run. It is orchestration
+invalidation, not proof of a missing Genji implementation. Preserve rejection;
+long replay checks must run on frozen canonical. Canonical nowbdee0a39; root
+actual Bap per-pool/charge diagnostic66122 is live, source assertions unchanged.
