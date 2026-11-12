@@ -21,6 +21,72 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Autonomous navigator partial slow still needs its authorized narrow bridge;
   Blizzard, sampled Cryo history and full pending fixture imports remain open.
 
+### Mount delivered Junkrat grenade launch and terrain physics
+
+- Restore source0065 Frag/Mayhem launch metadata on the existing Rocket host:
+  authored gravity/collision radius, world launch cursor, independent cumulative
+  range/fuse, strict post-response terrain count and normal/tangent restitution.
+  Preserve single ballistic chord/end-velocity state, current defenses/source
+  identity, flight amplification and other hero paths. Rocket compatibility names
+  read/write actual existing fields, with no duplicate actor or pool.
+- Original primary baseline3 reproduced2 failures/2 subcase errors. Original
+  grenade physics7 and shared Damage/ProjectileTiming/runtime28 now all35 pass;
+  final direct+splash1 passes after matching source finite-gravity admission.
+  Full original projectile module retained with only current Grasp import name.
+- Mine/SteelTrap/Tire/charge and necessary external input consumers remain pending;
+  this batch does not claim whole0065 completion or original-client acceptance.
+
+### Synchronize worker A for reassigned Junkrat delivery
+
+- Absorb intake ed400249 and audit frozen0065 delivery. Preserve original primary
+  checks; missing grenade physics/clock fields reproduced before integration.
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
+
+### Restore delivered Fire Strike wide collision and native shield contacts
+
+- Mount original0007's static MOVER sphere sweep on the existing penetrating
+  flight path. A wide projectile now stops before the wall even at a ray endpoint.
+- Include actual RaisedBarrier pools in existing Fire Strike contact collection,
+  deduplicate owner/body generation and activation, resolve travel order with
+  shield-before-body ties, and skip a carried shield after an earlier lethal
+  body hit. Retain legacy contacts when no actual native actor owns that body.
+- All37 original focused wall/extent/multiple shields/later raise/reused body,
+  Hammer+Strike and runtime checks pass. Full original Barrier/Strike46 retains
+  11subfail6errors (previous17/9), including actual shield lifecycle/pool input,
+  explosion/Brigitte and frozen-team interface work; preserve all expectations.
+- Main1399 assertions retain original counts/order/Constants. Client acceptance
+  remains open. Long B21 snapshot69 finished with3fail8errors3skip, recorded.
+
+### Restore independent Earthshatter control lifetimes
+
+- Mount source0007's actual(victim, source, kind) hard-control clocks on existing
+  input, movement pause and interruption consumers. Earthshatter writes this
+  authoritative ledger instead of a second stuns deadline; independent sources
+  expire independently, caster departure preserves existing knockdown, and
+  victim death/replacement/retirement clears only that victim's records.
+- Pass existing HitDef damage tags. Restore original Charge admission: ordinary
+  knockdown does not forbid capture; existing captures and immunity do. Preserve
+  Punch, Brigitte, NPC and other native control owners.
+- All62 original Shatter31, ChargeContact21, Passive9 and causal snapshot checks
+  pass, including owner departure/team changes and pin outlasting knockdown.
+  Actual nonempty control probe verifies input/movement gating, no duplicate
+  stuns write, repeatable passive capture and causal deadline sensitivity.
+- Main original1399 assertions and expectations remain; client acceptance open.
 ### Connect original Mei input resources and ultimate settings
 
 - Mount original Mei05FE entry completion, automatic real reload/low-ammo
@@ -289,6 +355,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
+### Connect original Symmetra portal pair lifecycle
+
+- Original1571 confirmation/factory creates real272D/26F2 NPC endpoints with
+  existing health/replication/retirement; input edges dismiss/interact through
+  original eligibility, ready time, transit cooldown and1647 relocation.
+- Probe the exit using current capsule stance/peer mask and original temporary
+  pillar movement overlay over the immutable base world. Preserve current body
+  drivers, exact cleanup and configured Photon placement; no duplicate pool.
+- Restore source1571/30 cancel-animation finish only for its permissive match
+  owner. Preserve generic animation flags and strict behavior. Keep the original
+  Winston hero/body metadata constants, coordinated with the Winston owner.
+- Final21 original portal owner cases pass33.697s. First full29 run retains
+  eight old-owner observation errors and Cryo/projected-barrier differences;
+  assertions stay unchanged. Shared27:26 pass/one retained generic Anim flag
+  failure outside this batch's graph scope. Controlled real server input creates
+  the pair; endpoint shields and ready time independently change stored digest.
+  Full cross-owner behavior and client acceptance remain unfinished.
+
 ### Mount original Symmetra static placement preview
 
 - Connect delivered projection/sampling/surface math, typed result publication,

@@ -450,3 +450,118 @@ Remaining estimate is2–5 continuous days at low confidence. B estimates16–36
 active worker-hours; C16–32, executed concurrently with A and root integration.
 Remaining shared collisions, Ball motion, Sigma pools and Ashe consumers make
 an exact deadline unreliable. No appearance migration or Rust runtime cutover.
+
+
+Latest joint verification session52507 is now terminal: all97 original/shared
+checks passed in55.126s (parallel-merge/latest-joint-check.log). Canonical
+fast-forwarded tob3ca1ee2 after verification, including B25. No live root tests
+remain; all three workers continue their committed-boundary deliveries.
+
+
+C26 source152ea32d is received ase8adaf8a: real original PortalPair actors,
+confirm/factory/interact/cleanup and scoped original cancellation. Frozen root
+Shatter/Charge/passive/transit joint70 passed in83.076s, session44100 terminal
+(log ../parallel-merge/shatter-portal-joint-check.log). Original cross-owner
+portal observations/failures remain in C's record; no assertions weakened.
+A33 source9f959910 is received as15b5ac3b: original0065 projectile metadata,
+launch clock, gravity, cumulative range/fuse and terrain response on the shared
+Rocket host. Worker original physics/shared35 checks passed without skips.
+A estimates remaining0065 at4–8 active hours (low confidence), then continues
+its source boundary audit. Root has no live tests. A continues Mine/Trap/Tire,
+B original barrier/FireStrike and other seven-owner consumers, C original Mei.
+All three continue independently with committed durable records. Whole merge
+remains incomplete; overall remaining estimate2–5 continuous days unchanged.
+
+
+## Original status resource and support consumer audit
+
+Root inspected all ten previously merged owner module inventories, then traced
+changed helpers into current consumers. For example old Moira biotic.explode is
+preserved as source while current Ana HealingEffects owns grenade statuses;
+installing both would duplicate status/healing. The old Lucio BarrierLease/Grant
+implementation is represented by current SoundBarriers actual073B receiver and
+single Vitals temporary pool, pending grants, world clock and retirement.
+These mappings still require original executable evidence; module presence or
+Git ancestry alone is insufficient.
+
+Frozen611113f2 original support check97047 (57.958s) ran77 with6fails,1 missing
+NPC-fixture config error and41 external-resource skips. Inspection showed v5
+never selected the existing ORPHEUS_STATUS_BUNDLE loader. The unchanged original
+0079/lucio-status-mercy-006c.json.gz supplies0267/07C7/073B plus original other
+status children,6 graphs/4 definitions, no conflict with any base/v5 record.
+Prepared ../parallel-merge/runtime-inputs-v6/environment.json now selects that
+original resource through its existing loader. Its graph supplement is byte-
+identical to v5 and all original source hashes are unchanged. The original
+ORPHEUS_PVE_NPC_DATA fixture alias is explicitly configured to the prior hardlink
+fixture; all5 existing mover records are present. No copied full runtime or
+rewritten source data. Runtime environment and test_environment are separate.
+Root rerun99255 on frozen611113f2 is live; evidence goes to
+../parallel-merge/root-support-v6-source-check.log. Do not mutate canonical
+until terminal; intake remains available.
+
+B26 source4224404a is received as7ebe18f6 in intake: original Fire Strike
+MOVER sphere sweep and native RaisedBarrier pool/activation contacts on the
+existing projectile pipeline. Worker focused37 pass; remaining full original
+surface expectations stay documented without preventing submission. B21's
+long snapshot run82747 is now terminal (worker report:69 tests,3fail8errors,
+3skip,2325.838s); preserve the original retained differences, do not restart it.
+
+
+Root original support rerun99255 is terminal (79 tests149.890s,12fail20errors,
+2skips). Actual original Lucio aura and ultimate-rule paths now run with status
+resources; the prior missing-input failures are gone. Retained barrier checks
+still address old metadata helpers and deletion of wire-pool tombstones;
+current Vitals deliberately retains zero wire records until slot reuse. Do not
+remove that protocol state or manufacture helper aliases to obtain green tests.
+Assassin route-speed expectations and Bap Enforcer/Assassin total-health deltas
+remain unclassified pending exact actual per-pool evidence. Other three NPC
+body types pass the original status-boundary expectations.
+
+v7 environment.json additionally selects existing original
+ORPHEUS_NPC_CONTROLLER_SUPPLEMENT at013B/npc-controller-supplement/
+controller_graphs_174.json.gz for current enforcer_controller and
+assassin_controller consumers. It supplies17 unchanged original graphs. No
+legacy body association overlay or second controller is installed; loader/
+associated-body contracts require separate source tracing. Source hashes and
+v5 graph-payload bytes remain unchanged. All versions stay preserved.
+
+B21 long stored Genji fan error is specifically ManifestMismatch: the worker
+source tree changed15 model files during that long run. It is orchestration
+invalidation, not proof of a missing Genji implementation. Preserve rejection;
+long replay checks must run on frozen canonical. Canonical nowbdee0a39; root
+actual Bap per-pool/charge diagnostic66122 is live, source assertions unchanged.
+
+
+## Source frozen-affiliation query restoration
+
+B27 adfa9309 is received as69f8fbf7 (actual original shield control/death/leave
+retirement), C27 ac284345 as67825a29 (Mei reload/Cryo entry/original charge and
+player pillar lift/history synchronization). Frozen root67825a29 v7 check73992
+ran76 in77.545s:74pass,1skip,1 source team keyword error. Every source assertion
+is retained. Root took that explicit query contract after B confirmed no WIP.
+
+Original0007 _barrier_contact/_enemies accept a separately captured affiliation.
+Root carries optional team through current native/legacy Rein, Particle/world,
+Orisa, Sigma and Photon queries and actual Fire Strike contact selection. Source
+owner/body identities and current barrier-owner affiliation remain authoritative;
+no surrogate actor or second host. Default calls continue current affiliation.
+The actual two-Rein input probe proves a source team change makes default query
+miss while explicit captured affiliation still hits the same real enemy owner;
+FFA still excludes the source owner's own shield. No stored snapshot fields.
+
+Root60704 normal original FireStrike/geometry/Orisa/runtime/Damage checks are
+terminal61 in7.486s:26pass,34 old optional Orisa-env skips,1 retained geometric
+order failure. The former keyword exception is fixed; the original lethal-body
+case now reaches unchanged body10.815728 vs shield10.796955 ordering expectation.
+Keep that1.9cm discrepancy for source pose/shape audit, without moving geometry
+to force green. The actual changed-team/FFA probe passed separately in
+root-frozen-team-probe.log. Source method expectations and constants untouched.
+
+Actual Bap NPC diagnostic66122 is terminal: anti-health gain/charge18.12 matches
+its formula; additional81.6 total is native shield regeneration. Friendly-body
+health80/shield100 and actual charge101.879959 reflect ordinary overheal after
+shield recovery; source total103.44 assumes no concurrent shield recovery.
+Logs retain both original failing assertions and exact per-pool evidence.
+All five NPC controller hosts also ran40ticks on original v7 input: each has
+one body and its expected graph, no fault. Assassin uses1158, the other four
+11E3/13E9/1138/1251. No controller association override was installed.

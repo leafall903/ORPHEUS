@@ -1596,6 +1596,9 @@ class Rocket:
     segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
     matrix_absorbable: bool | None = None
+    terrain_bounces: int = 0
+    terrain_bounce_limit: int = 0
+    terrain_bounce: tuple | None = None
     storm_ricochets: int = 0
     continuation: dragon.Profile | None = None
     started_tick: float | None = None
@@ -1653,6 +1656,26 @@ class Rocket:
 
     def flight_cursor(self):
         return self.launch_tick if self.last_tick is None else self.last_tick
+
+    @property
+    def radius(self):
+        return self.collision_radius
+
+    @property
+    def max_distance(self):
+        return self.range_limit
+
+    @max_distance.setter
+    def max_distance(self, value):
+        self.range_limit = value
+
+    @property
+    def explode_on_expiry(self):
+        return self.detonate_on_expiry
+
+    @explode_on_expiry.setter
+    def explode_on_expiry(self, value):
+        self.detonate_on_expiry = value
 
     @property
     def collision_radius(self):
@@ -4335,28 +4358,29 @@ class Combat:
 
     # --- targets -----------------------------------------------------------------------------------
 
-    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False):
+    def _barrier_contact(self, shooter, origin, direction, length, radius=0.0, *, bubbles=False, team=None):
+        """Use an explicit launch affiliation without replacing the source owner."""
         candidates = []
-        native_raised = [actor for actor in self.barriers.enemies(shooter)
+        native_raised = [actor for actor in self.barriers.enemies(shooter, team=team)
                          if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
         native_bodies = {actor.body for actor in native_raised}
         for actor in native_raised:
             distance = actor.trace(origin, direction, length, radius)
             if distance is not None:
                 candidates.append((distance, actor.owner, actor))
-        raised = self.barrier.intersect(shooter, origin, direction, length)
+        raised = self.barrier.intersect(shooter, origin, direction, length, team=team)
         if raised is not None and raised[1] not in native_bodies:
             candidates.append((raised[0], raised[2], raised[1]))
         for hit in (
-            self.barriers.world.trace(shooter, origin, direction, length, radius),
-            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius),
-            sigma_barrier.trace(self, shooter, origin, direction, length, radius),
-            self.photon_barriers.trace(shooter, origin, direction, length, radius),
+            self.barriers.world.trace(shooter, origin, direction, length, radius, team=team),
+            self.orisa_barriers.trace(shooter, origin, direction, length, radius=radius, team=team),
+            sigma_barrier.trace(self, shooter, origin, direction, length, radius, team=team),
+            self.photon_barriers.trace(shooter, origin, direction, length, radius, team=team),
         ):
             if hit is not None:
                 candidates.append((hit[0], hit[1].owner, hit[1]))
         if bubbles:
-            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius)
+            hit = self.barriers.intercept(shooter, origin, direction, length, radius=radius, team=team)
             if hit is not None:
                 candidates.append((hit[0], None, hit[1]))
         return min(candidates, key=lambda hit: hit[0], default=None)
@@ -4694,8 +4718,9 @@ class Combat:
                 best, best_score = target.entity, score
         return best
 
-    def _enemies(self, shooter, *, damageable: bool = False) -> list[Target]:
+    def _enemies(self, shooter, *, damageable: bool = False, team=None) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
+        team = shooter.team if team is None else team
         source = _source_entity(shooter)
         owner = getattr(shooter, "combat_owner", None) if isinstance(shooter, bots.Bot) else shooter
         found = []
@@ -4710,7 +4735,7 @@ class Combat:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
                 continue
-            if not free_for_all and target.team == shooter.team:
+            if not free_for_all and target.team == team:
                 continue
             if (self.vitals_of(target).dead or reaper.intangible(target.owner) or self._has_protection(target, PHASE_STATES)
                     or self.pulse_bombs.recalling(target)):
@@ -5546,6 +5571,9 @@ class Combat:
                 return
             if not explicit_directions:
                 return
+        from ow174.game import junkrat_projectile
+
+        junkrat_profile = junkrat_projectile.profile(state) if not npc else None
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
@@ -5565,6 +5593,10 @@ class Combat:
             if (npc and shooter.hero == 0x02E0000000000065 and state.instance.graph.index == 0x022B
                     and node.pos == 31 and self._scene_component(shooter) is state.instance.component):
                 gravity = projectiles.unconditional_gravity(state)
+            if junkrat_profile is not None:
+                gravity = junkrat_profile[0]
+                if direct is not None:
+                    direct = replace(direct, projectile_extent=junkrat_profile[1])
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
             blast = hit_def(state, node.field("m_D2D11CE9"))
@@ -5588,7 +5620,7 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
-            if reach and range_left is None and not field_canister and not barrage and not (hanzo_bow and gravity):
+            if reach and range_left is None and not field_canister and not barrage and junkrat_profile is None and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
                            and state.instance.graph.index == 0x00E2 and node.pos == 3
@@ -5710,6 +5742,8 @@ class Combat:
                 projectile_tick = None
                 if npc:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
+                elif junkrat_profile is not None:
+                    projectile_tick = self.tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
                 elif (getattr(shooter.hero, "guid", None) == 0x02E0000000000020
@@ -5732,7 +5766,7 @@ class Combat:
                         spray=moira.spray_trace(shooter, state, direct), dose_scalar=dose_scalar,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
-                        detonate_on_expiry=flashbang_gravity is not None or pulse,
+                        detonate_on_expiry=flashbang_gravity is not None or pulse or junkrat_profile is not None,
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=(
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
@@ -5745,6 +5779,8 @@ class Combat:
                         matrix_absorbable=(definition in self.matrix_definitions
                                            if self.matrix_definitions is not None
                                            else projectile_tags.absorbable(definition)),
+                        terrain_bounce=junkrat_profile[2] if junkrat_profile is not None else None,
+                        terrain_bounce_limit=junkrat_profile[3] if junkrat_profile is not None else 0,
                         storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
@@ -5758,7 +5794,7 @@ class Combat:
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
-                        range_limit=reach if field_canister or barrage or hanzo_bow or continuation is not None else None,
+                        range_limit=reach if field_canister or barrage or hanzo_bow or continuation is not None or junkrat_profile is not None else None,
                         rebound_limit=rebound_limit if field_canister else None,
                         rebound_scale=rebound_scale,
                     )
@@ -6492,6 +6528,9 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
+        if rocket.terrain_bounce is not None:
+            # Source0065's direction/speed pair is authoritative for each chord.
+            rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
             from ow174.game import mccree
 
@@ -6500,7 +6539,8 @@ class Combat:
             velocity = rocket.velocity
             hanzo_arrow = (rocket.source_graph == 0x00B9
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
-            if (rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False)) or hanzo_arrow:
+            if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
+                    or hanzo_arrow or rocket.terrain_bounce is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -6510,6 +6550,13 @@ class Combat:
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
         self._fly_slice(rocket, duration, self.tick, reflected=reflected)
+        if rocket.terrain_bounce is not None and rocket.velocity is not None and rocket in self.rockets:
+            # The delivered grenade stores the end velocity after sweeping its
+            # ballistic chord; the next frame and public direction share it.
+            rocket.speed = math.hypot(*rocket.velocity)
+            if rocket.speed > EPSILON:
+                rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
+
 
     def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
@@ -6614,6 +6661,11 @@ class Combat:
             if remaining <= step:
                 duration *= remaining / step if step > EPSILON else 0.0
                 step, range_ends = remaining, True
+        if rocket.terrain_bounce is not None and rocket.range_limit is not None:
+            remaining = max(0.0, rocket.range_limit - rocket.travelled)
+            if step >= remaining:
+                duration *= remaining / step if step > EPSILON else 0.0
+                step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
@@ -6644,6 +6696,11 @@ class Combat:
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
         wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
+        terrain_normal = None
+        if rocket.terrain_bounce is not None:
+            from ow174.game import junkrat_projectile
+
+            wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
         storm_normal = None
         if rocket.storm_ricochets:
             hit = collision.cast_ray(rocket.position, heading, step)
@@ -6654,7 +6711,7 @@ class Combat:
                     storm_normal = tuple(-axis for axis in storm_normal)
                 if _dot(heading, storm_normal) >= -EPSILON:
                     storm_normal = None
-        if (padding > 0 and not assisted_contact and rocket.source_graph != 0x00B9
+        if (padding > 0 and rocket.terrain_bounce is None and not assisted_contact and rocket.source_graph != 0x00B9
                 and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT)):
             swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
@@ -6802,6 +6859,12 @@ class Combat:
             self._explode(rocket, point, incident_direction=heading)
             return 0.0
 
+        if (terrain_normal is not None and best == (wall, None)
+                and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
+                                                  redirect, absorption, scripted_shield))):
+            junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                      integrated_duration, reflected, range_ends)
+            return 0.0
         if (storm_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
                                                   redirect, absorption, scripted_shield))):
@@ -7095,6 +7158,12 @@ class Combat:
                 best = (t, target)
         collision = self._collision()
         wall = collision.cast_ray(rocket.position, direction, step)
+        if rocket.penetrated is not None:
+            # Source0007 uses the real static MOVER sphere sweep for wide Fire
+            # Strike, including contacts before an exact centre-ray endpoint.
+            swept = collision.cast_sphere(rocket.position, direction, step, rocket.penetration_radius, MOVER)
+            if swept is not None and (wall is None or swept.distance < wall.distance):
+                wall = swept
         if wall is not None and (best is None or wall.distance < best[0]):
             best = (wall.distance, None)
         field = rocket.deployment if isinstance(rocket.deployment, baptiste.FieldSpec) else None
@@ -7315,14 +7384,25 @@ class Combat:
                 rocket.blast = replace(rocket.blast, amount=rocket.blast.amount * factor)
 
     def _fire_strike_contacts(self, rocket, direction, limit, start_tick, tick_per_distance, *, stops):
-        """Reconstructed capsule contacts and mesh crossings in travel order."""
+        """Delivered native shield/body contacts in physical travel order."""
         contacts = []
-        meshes = self.barrier.intersections(rocket.shooter, rocket.position, direction, limit)
-        for distance, entity, health in meshes:
+        raised = [actor for actor in self.barriers.enemies(rocket.shooter, team=rocket.team)
+                  if isinstance(actor, reinhardt_barrier.RaisedBarrier)]
+        native_bodies = {actor.body for actor in raised}
+        for actor in raised:
+            distance = actor.trace(rocket.position, direction, limit, rocket.penetration_radius)
+            phase = actor.instance.states.get(17)
+            key = (-actor.body, (self.replacement_ticks.get(actor.body), phase.counter if phase is not None else None))
+            if (distance is not None and key not in rocket.penetrated
+                    and (distance < limit or not stops)):
+                contacts.append((distance, 0, actor.body, key, (distance, actor.owner, actor)))
+        for distance, entity, health in self.barrier.intersections(rocket.shooter, rocket.position, direction, limit, team=rocket.team):
+            if entity in native_bodies:
+                continue
             key = (entity, self.barrier.children[entity])
-            if key not in rocket.penetrated:
-                contacts.append((distance, key, None, health))
-        for target in self._enemies(rocket.shooter):
+            if key not in rocket.penetrated and (distance < limit or not stops):
+                contacts.append((distance, 0, entity, key, (distance, health, entity)))
+        for target in self._enemies(rocket.shooter, team=rocket.team):
             key = (target.entity, self.replacement_ticks.get(target.entity))
             if key in rocket.penetrated:
                 continue
@@ -7330,13 +7410,17 @@ class Combat:
             radius = target.radius + rocket.penetration_radius
             distance = ray_capsule(rocket.position, direction, a, b, radius)
             if distance is not None and (distance < limit or (distance == limit and not stops)):
-                contacts.append((distance, key, target, None))
-        for distance, key, target, health in sorted(contacts, key=lambda row: row[0]):
+                contacts.append((distance, 1, target.entity, key, target))
+        for distance, kind, _, key, target in sorted(contacts, key=lambda row: row[:3]):
             self._amplify_flight(rocket, direction, distance, start_tick, tick_per_distance)
-            rocket.penetrated.add(key)
-            if target is None:
-                self.barrier.damage(key[0], health, rocket.direct.amount)
+            if kind == 0:
+                _, owner, actor = target
+                if isinstance(actor, reinhardt_barrier.RaisedBarrier) and self.is_dead(owner):
+                    continue  # a nearer body hit can retire its carried shield
+                rocket.penetrated.add(key)
+                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
             else:
+                rocket.penetrated.add(key)
                 self._apply_hit(
                     rocket.shooter, target, rocket.direct, rocket.direct.amount, False, self.tick,
                     world_tick=self.tick, source_entity=rocket.source_entity,
@@ -9326,6 +9410,9 @@ class Combat:
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities
 
+        if victim.hero.guid == barrier.REINHARDT:
+            reinhardt_barrier.sync(self, victim)
+            self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:

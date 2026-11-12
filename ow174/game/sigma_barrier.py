@@ -363,18 +363,19 @@ def barrier_gap_buttons(script, buttons):
     return SECONDARY if phase is not None and phase.value() == 2 else 0
 
 
-def enemies(combat, shooter):
+def enemies(combat, shooter, *, team=None):
+    team = shooter.team if team is None else team
     for barrier in combat.sigma_barriers.values():
         barrier.update(combat)
         if (not barrier.active or barrier.owner is shooter
-                or (not combat.match.game_map.free_for_all and barrier.owner.team == shooter.team)):
+                or (not combat.match.game_map.free_for_all and barrier.owner.team == team)):
             continue
         yield barrier
 
 
-def trace(combat, shooter, origin, direction, reach, radius=0.0):
+def trace(combat, shooter, origin, direction, reach, radius=0.0, *, team=None):
     nearest = None
-    for barrier in enemies(combat, shooter):
+    for barrier in enemies(combat, shooter, team=team):
         distance = barrier.intersection(origin, direction, reach, radius)
         if distance is not None and (nearest is None or distance < nearest[0]):
             nearest = distance, barrier

@@ -125,6 +125,19 @@ def intersect(geometry: Geometry, feet, yaw, pitch, origin, direction, length, r
 HERO = 0x02E0000000000007
 
 
+def lower(instance):
+    """Original0095 interruption/retirement path over the existing native Pet."""
+    from ow174.game.script import nodes, runtime
+
+    ability = instance.states.get(59)
+    if isinstance(ability, nodes.Ability):
+        ability.stop()
+    pet = instance.states.get(17)
+    if pet is not None and pet.active:
+        pet.request(runtime.ABORT)
+    instance.component.run_now()
+
+
 def sync(combat, player):
     geometry = combat.reinhardt_geometry
     script = player.body_script
@@ -138,6 +151,13 @@ def sync(combat, player):
         state = Barrier(geometry.maximum, geometry.maximum, combat.now, combat.now)
         combat.reinhardt_barriers[player.body] = state
     pet = instance.states.get(17)
+    if combat.is_dead(player) or player.gone or not player.spawned or player.client is None:
+        if pet is not None and pet.active:
+            lower(instance)
+        state.active, state.last_update = False, combat.now
+        return
+    if combat.is_stunned(player) and pet is not None and pet.active:
+        lower(instance)
     raised = (pet is not None and pet.active and not pet.ending and not combat.is_dead(player)
               and not combat.is_stunned(player) and not player.gone)
     if not raised and state.active:
@@ -281,6 +301,14 @@ class ReinhardtBarriers:
         script = owner.body_script
         if (script is None or script.retired or script.component.strict or not owner.has_body
                 or not owner.spawned or owner.gone or owner.client is None):
+            state = self.fight.reinhardt_barriers.get(owner.body)
+            if state is not None:
+                state.active = False
+                state.last_update = self.fight.now
+            if script is not None and not script.retired and not script.component.strict:
+                instance = next((i for i in script.component.instances.values() if i.graph.index == 0x95), None)
+                if instance is not None:
+                    lower(instance)
             self.actors.pop(owner.body, None)
             return
         instance = next((i for i in script.component.instances.values() if i.graph.index == 0x95), None)
@@ -296,11 +324,12 @@ class ReinhardtBarriers:
             )
             self.next_id += 1
 
-    def enemies(self, shooter):
+    def enemies(self, shooter, *, team=None):
+        team = shooter.team if team is None else team
         for owner in self.fight.match.players:
             self.sync(owner)
         return [actor for actor in self.actors.values() if actor.active and actor.owner is not shooter
-                and (self.fight.match.game_map.free_for_all or actor.owner.team != shooter.team)]
+                and (self.fight.match.game_map.free_for_all or actor.owner.team != team)]
 
     def damage(self, actor, amount):
         if not actor.active or amount <= 0:

@@ -844,3 +844,5 @@ Next C29: in the same existing Photon host, mount actual originalQ/plane fallbac
 when no mesh configured and retain configuredmesh path, onecast/HP/lifecycle.
 No syntheticmesh, newwallmanager or fixture-only patch. Then continue authorized
 NPC bridge and original Mei Blizzard, sampled Cryo history, Sombra/Ashe remainder.
+
+C28 SHA4fd1d4f7 delivered. Clean sync root7e9de0af preserves affiliation capture and all accepted C27/A/B changes; coordination only. C29 Photon sourceplane/Q with original0040 exactmesh, existingonehost.
