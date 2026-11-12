@@ -1501,3 +1501,25 @@ Absorb explicit stablead673b00 before pair implementation, retaining C43/C44 bod
 - Original MoiraSleep view method's sampling/initial lock checks now pass, then it fails its unchanged while loop after real wake: cast returns integer sleep_until tick but loop compares fight.now seconds against it. Preserve this source fixture unit conflict/expectations, not a runtime view-hold gap. worker-a-sleep-view-authored-clock.log records initial2pass/1originalfail.
 - Full source-path mapping: original_ViewWorld.native -> current BodyWorld.native exact two owner queries; original unparented sample -> existing linked_target_sample/strict224E node34; sample() -> existing BodyWorld.sample_sleep_view actual Match world; delay_ticks() -> current Combat's authored Wait29 query. All original functionality has consumers without adding the absent source file/duplicate host.
 - Next root-requested final0003 Pulse direct5+blast350 ultimate-charge policy audit, then nine-owner/shared000E final handoff;0068 Zarya waits for root handoff confirmation.
+
+## A72 — Tracer authored damage-tag and charge entry reconciliation
+
+Restored original0003 damage credit through the existing sole `ultimate_charge`
+012/0B8B host, carrying actual resolved loss, recipient and original hit tags.
+Tracer is excluded from the generic points-only fallback, so Pulse contact5 and
+blast350 retain their original excluded-tag semantics. Original common-body
+node39 capability preparation runs before accepted Tracer frames and damage;
+existing false2426 is preserved. The original passive owner query is scoped to
+Tracer0B8B and delegated before the typed controller provider, preserving normal
+60-second policy vs explicit zero passive override. No second charge graph,
+manual suppression constant, new snapshot field or Flux lifecycle change.
+
+Original focused checks: six/six pass7.293s, covering passive5/s and cap, passive
+restart before Pulse retirement, excluded contact/blast, ordinary resolved pistol
+loss/cap, original72-point multipliers and2426 gate. Prior standalone actual
+armour/shield loss also passed. Log `worker-a-tracer-charge-source-six.log`.
+The old worker tree cannot import original Flux fixture due to missing old
+sigma_accretion dependency; root reports its current fixture is already adapted.
+Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
+TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
+All original assertions/failures retained. No client session/network/publication.
