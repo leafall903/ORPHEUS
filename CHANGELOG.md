@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore controller LinkedTarget alongside existing cinematic resources
+
+- Existing LinkedTarget now hosts original1177 activation order, angle cache,
+  network payload and cleanup. Exact resource scopes share the existing registry
+  with original four cinematic handlers; current sleep-view behavior is retained.
+- Real controller effects, missing-sample strict rejection and shared state/VM
+  checks29/29 pass. Match refresh/manual NPC recipient/storage consumers remain
+  subsequent work; no client acceptance run.
+
 ### Encode original controller effects in the existing owner full frame
 
 - Restore optional dynamic instances/bound variables and original LinkedTarget full payload mode in the sole state-script encoder. Preserve existing codec and fragment paths; reject overlapping instance/variable namespaces.

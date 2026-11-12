@@ -791,6 +791,17 @@ class AuxiliaryEffect(ScopedSubgraph):
         super().on_destroyed()
 
 
+def _next_registered_link(state, instance_ids=None):
+    states = state.instance.component.state_registries.get(state.node.cls, ())
+    if state in states:
+        for following in states[states.index(state) + 1:]:
+            instance_id = following.instance.id
+            if not following.node.server_only and (instance_ids is None or instance_id in instance_ids):
+                return instance_id, following.index
+    return None
+
+
+@state_class("STU_9935FBC8", strict_only=True)
 @state_class("STU_9935FBC8")
 class LinkedTarget(State):
     """CAC810 mode 1 resource with an explicitly supplied mover sample."""
@@ -798,6 +809,8 @@ class LinkedTarget(State):
     _LIMIT = 174532.90625
     _PITCH_LIMIT = 1.5533430576324463
     _RADIANS = 0.01745329238474369
+    state_scopes = ((0x1177, (9,)), (0x224E, (34,)))
+    _DEFAULTS = (0.0, 0.0, -_LIMIT, -_LIMIT, _LIMIT, _LIMIT, 0.0)
     _FIELDS = (
         ("m_A53161C8", 0.0), ("m_AB37A892", 0.0),
         ("m_D6119DFB", -9999999.0), ("m_C33684DE", -9999999.0),
@@ -807,6 +820,7 @@ class LinkedTarget(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.mover_angles = None
+        self.linked_cache = self._DEFAULTS
         self.linked_entity = None
         self.adjustment = 0.0
         self.local_yaw = 0.0
@@ -823,6 +837,9 @@ class LinkedTarget(State):
         component = self.instance.component
         if not component.strict:
             return
+        if self.instance.graph.index == 0x1177:
+            self._begin_controller_pin()
+            return
         if (self.instance.graph.index != 0x224E or self.node.pos != 34
                 or _field(self, "m_93CDFD2F") != 1 or _field(self, "m_4BE66EFF") is not None):
             component.unsupported(self.instance, "linked target resource", self.node.cls, self.node)
@@ -838,6 +855,52 @@ class LinkedTarget(State):
         self.adjustment = 0.0
         self.refresh(sample)
         self.ticks()
+
+    def _begin_controller_pin(self):
+        component = self.instance.component
+        sample = component.world.linked_target_sample(component.entity)
+        if (self.instance.graph.index != 0x1177 or self.node.pos != 9
+                or self.node.fields.get("m_4BE66EFF", NotImplemented) is not None
+                or sample is NotImplemented):
+            component.unsupported(self.instance, "linked target", self.node.cls, self.node)
+        self.linked_entity = None
+        self.linked_cache = self._DEFAULTS
+        states = component.state_registries.setdefault(self.node.cls, [])
+        states.append(self)
+        if sample is not None:
+            for state in states[:-1]:
+                if state.active and state in state.instance.ticking:
+                    state.update_mover(sample, refresh=False)
+            self.update_mover(sample, refresh=True)
+            self.ticks()
+
+
+    def update_mover(self, sample, *, refresh):
+        entity, angle, heading, packed = sample
+        delta, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch, last_angle = self.linked_cache
+        if refresh:
+            delta, pitch = (f32(f32(value or 0.0) * self._RADIANS) for value in (heading, packed))
+            lower_yaw = lower_pitch = upper_yaw = upper_pitch = last_angle = 0.0
+        if (None if refresh else self.linked_entity) != entity:
+            delta = f32(f32(last_angle - angle) + delta)
+        yaw = f32(angle + delta)
+        self.linked_entity = entity
+        self.linked_cache = (delta, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch, angle)
+        self.mover_angles = self.compose_angles(yaw, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch)
+
+
+    @classmethod
+    def compose_angles(cls, yaw, pitch, lower_yaw, lower_pitch, upper_yaw, upper_pitch):
+        def clamp_pitch(value):
+            return max(-cls._PITCH_LIMIT, min(cls._PITCH_LIMIT, value))
+
+        return (
+            yaw, pitch, f32(max(-cls._LIMIT, lower_yaw) + yaw),
+            clamp_pitch(f32(max(-cls._LIMIT, lower_pitch) + pitch)),
+            f32(min(cls._LIMIT, upper_yaw) + yaw),
+            clamp_pitch(f32(min(cls._LIMIT, upper_pitch) + pitch)),
+        )
+
 
     def refresh(self, sample):
         entity, adjustment = sample
@@ -858,6 +921,13 @@ class LinkedTarget(State):
         )
 
     def tick(self):
+        if self.instance.graph.index == 0x1177:
+            sample = self.sample()
+            if sample is None:
+                self.mover_angles = None
+            else:
+                self.update_mover(sample, refresh=False)
+            return
         sample = self.sample()
         if sample is None:
             self.mover_angles = None
@@ -867,6 +937,33 @@ class LinkedTarget(State):
 
     def on_cleanup(self):
         self.mover_angles = None
+        if self.instance.graph.index == 0x1177:
+            registries = self.instance.component.state_registries
+            states = registries.get(self.node.cls)
+            if states is not None and self in states:
+                states.remove(self)
+                if not states:
+                    del registries[self.node.cls]
+
+    def on_end(self, finished):
+        if self.instance.graph.index == 0x1177:
+            self.mover_angles = None
+
+    def payload(self, *, linked_instances=None):
+        if self.instance.graph.index != 0x1177:
+            return super().payload()
+        if not self.instance.component.strict:
+            return None
+        payload = {
+            "link": _next_registered_link(self, linked_instances),
+            "has_entity": self.linked_entity is not None,
+            "values": tuple({"set": False} if value == default else {"set": True, "value": value}
+                            for value, default in zip(self.linked_cache, self._DEFAULTS, strict=True)),
+        }
+        if self.linked_entity is not None:
+            payload["entity"] = self.linked_entity
+        return payload
+
 
     on_failed = on_destroyed = on_cleanup
 
