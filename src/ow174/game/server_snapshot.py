@@ -97,7 +97,7 @@ FIELDS = {
                    "body has_body skin client gone loaded_at steps_done spawned spawn mover commands "
                    "body_script body_script_failed seen shown script mode_script next_countdown "
                    "select_open controller_hero "
-                   "stats stats_sent next_stats"),
+                   "stats career career_from career_tick stats_sent next_stats"),
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(

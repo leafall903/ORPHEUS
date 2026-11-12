@@ -9,6 +9,7 @@ from ow174.accounts.registry import Account, Accounts, account_id_for
 from ow174.catalog.items import ItemDB
 from ow174.catalog.templates import RetailTemplates
 from ow174.content import Content, Identity
+from ow174.content.career import count_match
 from ow174.content.leaderboard import Player
 from ow174.jam.codec import Schemas
 from ow174.jam.groups import CHAT_IN, FRIENDS, GROUPS, LOBBY, MATCH_LOBBY
@@ -295,6 +296,10 @@ class LobbyServer:
         session = self.session_of(player.account_lo)
         with self.state_lock:
             leaving.game_left(self, session, player)  # and the match lobby
+            if player.match.card:  # a queue card's match counts for the career; the Practice Range has none
+                account = self.accounts.by_id(player.account_lo)
+                if account is not None and count_match(account.profile, player.career):
+                    account.save()
         if session is not None:
             with self.state_lock:
                 channel = self.social.leave_match_chat(session.account, player.match.id)

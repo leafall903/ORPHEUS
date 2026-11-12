@@ -59,6 +59,9 @@ class Profile:
     loadouts: dict = field(default_factory=dict)  # hero GUID hex -> {slot key: unlock hex or list}
     settings: dict = field(default_factory=dict)  # settings the client saves (22200-22204)
     ux_states: dict = field(default_factory=dict)  # interface states from 22207, "index" -> value
+    # What the player did in his matches, all modes together: hero GUID hex -> {stat GUID hex: total}.
+    # Empty until he plays one; the career profile then shows these (content/career.py).
+    career: dict = field(default_factory=dict)
     stats: dict = field(
         default_factory=lambda: {
             "boxes_opened": 0,

@@ -22,6 +22,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Career profile from played matches
+
+- A match from a queue card now counts for the player's career: time played, eliminations, deaths
+  and hero damage, per hero. The match splits the board's numbers by hero at each pick, and the
+  lobby adds them to the profile's new `career` field when the player leaves and saves it. The
+  Practice Range and the Tutorial count nothing. The player's new fields are registered in the
+  stored-state export.
+- The career profile shows these numbers once a profile has any, for each hero and as "All Heroes"
+  (a hero of its own in the stat lists, with stat ids of its own). A profile without a match of its
+  own keeps the showcase hours.
+- Added runtime tests: the split by hero across a switch and a leave, the profile's totals over two
+  matches and a save, the reply with and without a career, the captured stat catalogue listing every
+  stat sent, and the lobby saving a queue card's match only.
+- Added a public behavior contract: a synthetic fixture of two matches with the stored career and
+  the "All modes" stat lists it expects, and its Python consumer. `played_stats` holds the stat
+  lists of a profile's own matches so the consumer needs no runtime data. Ruff and the public
+  tests passed.
+- Original-client check on a copy of a profile holding known numbers for two heroes: under All
+  Heroes and All Modes the Statistics tab listed Time Played, Eliminations, Hero Damage Done and
+  Deaths with the two heroes' sums and its own Avg/10 Min. The Overview listed the two heroes under
+  Most Played and in Hero Comparison, by their time. After 28 s on Soldier: 76 in a Team Deathmatch
+  match the saved profile had 28 s more for him.
+- Limits: every mode goes into "All Modes", so the profile's Quick Play, Arcade and Competitive
+  views stay empty. Games played and won, final blows, healing, objective stats, time on fire and
+  the Best column are not counted. An elimination's row was not seen with a number from a real
+  match, since a lone player's match has no opponent.
+
 #### Tests for Sombra's Stealth and Mercy's Angelic Descent
 
 - Added runtime tests for two movement states the heroes' own graphs already run on the server.
