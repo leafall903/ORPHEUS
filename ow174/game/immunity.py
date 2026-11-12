@@ -188,3 +188,14 @@ def heavy_carry_active(owner, entity):
         return False
     flag = script.component.entity_var(2024, create=False)
     return flag is not None and flag.value() is True
+
+
+def untargetable(owner, entity):
+    """Original Wraith/Fade admission query on the current phase consumers."""
+    return phased_out(owner, entity)
+
+
+def damage_immune(owner, entity):
+    if untargetable(owner, entity) or cryo_active(owner, entity):
+        return True
+    return _active_state(owner, ZENYATTA, TRANSCENDENCE, 24, entity) is not None

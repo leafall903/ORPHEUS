@@ -1786,6 +1786,9 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if (not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4):
+            return True  # Original reset is queued by the actual uppercut movement host.
+
         if (self.match is not None and self.hero == 0x02E0000000000200
                 and instance.graph.index == 0x1513 and node.pos == 21):
             player = next((p for p in self.match.players if p.body == self.body

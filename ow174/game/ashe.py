@@ -213,8 +213,6 @@ class Impulses:
                        if target.owner is owner and target.entity == entity), None)
         if target is None or fight.vitals_of(target).dead:
             return False
-        if reset_velocity or victim_source is not None:
-            raise NotImplementedError("BOB victim action must use its actual body host")
         if apply_resistance:
             script = getattr(owner, "body_script", None)
             rows = statescript_mods(script.component) if script is not None else {}
@@ -222,7 +220,17 @@ class Impulses:
                            for key, (index, op, value, priority) in rows.items() if index == 26), key=Mod.order)
             scale = max(0.0, intent(mods, 26, 1.0))
             vector = tuple(axis * scale for axis in vector)
-        return fight.knockbacks.apply(target, expr.Vec3(*vector), impact_frame=fight.tick)
+        from ow174.game.bots import Bot
+
+        # Source requests act on the next pose, never the contact pose.
+        impact = fight.tick if isinstance(owner, Bot) else fight.tick + 1
+        applied = fight.knockbacks.apply(target, expr.Vec3(*vector), impact_frame=impact)
+        if victim_source is not None:
+            source, instigator = victim_source
+            fight.knockbacks.schedule_victim(target, source, instigator)
+            pose = fight.tick if isinstance(owner, Bot) else owner.body_script.frame
+            fight.knockbacks.prepare_victim(owner, pose)
+        return applied
 
     def recoil(self, player, instance):
         from ow174.game.combat import aim
@@ -535,6 +543,7 @@ class Companions:
         if actor.phase == "charge" and tick >= actor.charge_until:
             self._stop_charge(actor, tick, "timeout")
         before = tuple(mover.position)
+        fight.knockbacks.prepare_victim(bot, tick)
         mover.use(world=fight._collision())
         carry = _carry_move(fight, bot)
         charging = actor.phase == "charge" and carry is None
@@ -547,6 +556,7 @@ class Companions:
         mover.track_mods(fight.movement_mods(bot, active, tick=tick), tick)
         command = Command(tick, forward=127 if charging and not stunned and not rooted else 0,
                           yaw=actor.charge_yaw if charging else round(bot.yaw))
+        mover.last_command = command
         mover.step_pose(command, TICK, tick, move_to=carry, ground_override=fight.walls.ground(mover))
         fight.walls.move_mover(mover, before)
         bot.position, bot.velocity = tuple(mover.position), tuple(mover.velocity)
@@ -595,14 +605,7 @@ class Companions:
                         and not immunity.fortify_active(target.owner, target.entity)):
                     from ow174.game.bots import Bot
 
-                    reset, victim_source = False, None
-                    if isinstance(target.owner, Bot):
-                        reset = bob_victim.start(
-                            fight, bot.entity, target.owner, charge_graph, instigator=actor.charge_instigator,
-                        )
-                    else:
-                        # Start the victim graph on its contact pose, one pose before launch.
-                        victim_source = bot.entity, actor.charge_instigator
+                    reset, victim_source = False, (bot.entity, actor.charge_instigator)
                     launch = _bob_uppercut_launch(actor, target, modify)
                     if launch is not None or reset or victim_source is not None:
                         fight.impulses.queue(

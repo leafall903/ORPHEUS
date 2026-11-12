@@ -584,6 +584,11 @@ class BotWorld(runtime.World):
         vitals = self.match.combat.vitals.get(value.id)
         return vitals is not None and vitals.dead
 
+    def velocity_action(self, instance, node):
+        if not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4:
+            return True
+        return super().velocity_action(instance, node)
+
     def ai_weapon_button(self, slot: int) -> int | None:
         if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
             return 36
@@ -1069,6 +1074,11 @@ class BotScript(ReplicatedBody):
         else:
             self._release_flashbang_weapon_stack()
         self._abort_assassin_attack(frame, dead_target_only=True)
+        if world.match is not None:
+            from ow174.game import bob_victim
+            owner = next((bot for bot in world.match.bots if bot.entity == self.component.entity), None)
+            if owner is not None:
+                bob_victim.sample(owner, self.component)
         self.component.run_frame(frame, edges)
         if world.hero == HEAVY_ASSAULT_HERO and world.match is not None:
             world.match.combat.advance_heavy_capture(self.component)
