@@ -11,8 +11,11 @@ import json
 import marshal
 import random
 import types
+import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
+from ow174.game import npc_controller_storage
+from ow174.game.script import scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
@@ -169,6 +172,11 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    scene.SceneEntity: npc_controller_storage.SCENE_ENTITY_FIELDS,
+    scene.Placement: npc_controller_storage.PLACEMENT_FIELDS,
+    entity_queries.Target: ("entity", "possession", "possessor", "body_field"),
+    entity_queries.Possession: ("current",),
+    entity_queries.BodyField: ("entity",),
     scopes.Registry: ("states",),
     hanzo_movement.Climb: ("elapsed", "active", "blocked", "normal", "mantle"),
     scopes.ForwardHost: ("states", "component", "frame", "history", "dirty", "_processing", "_drain_depth"),
@@ -486,6 +494,8 @@ class _Export:
     def _set_key(self, obj):
         """Sort unordered members before registering any identity or reference."""
         kind = type(obj)
+        if kind is uuid.UUID:
+            return ["uuid", format(obj.int, "032x")]
         if obj is None or kind in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
         if kind is runtime.Instance:
@@ -512,6 +522,8 @@ class _Export:
         if obj is NotImplemented:
             return {"sentinel": "NotImplemented"}
         kind = type(obj)
+        if kind is uuid.UUID:
+            return {"class": "uuid.UUID", "value": format(obj.int, "032x")}
         if obj is None or kind in (bool, int, float, str, bytes):
             return obj
         if obj is self.component:
@@ -525,6 +537,13 @@ class _Export:
         if kind in _STATE_LAYOUTS:
             return {"ref": self._state(obj)}
         if kind is runtime.Var:
+            if (type(self.component.world) is assassin_controller.Phase2World
+                    and npc_controller_storage.is_scene_revision(obj)):
+                fields = {name: object.__getattribute__(obj, name) for name in _VAR}
+                _containers(fields, ("links",), list, "scene revision")
+                _containers(fields, ("watchers",), dict, "scene revision")
+                return {"class": _name(kind), "identity": self.identity(obj),
+                        "fields": [[name, self.value(value)] for name, value in fields.items()]}
             return {"ref": self._var(obj)}
         if kind is graph.Graph:
             return {"ref": self._graph(obj)}
@@ -532,7 +551,8 @@ class _Export:
             return {"ref": self._node(obj)}
         if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
                     PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld,
-                    enforcer_controller.TargetWorld, assassin_controller.TargetWorld):
+                    enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
+                    assassin_controller.Phase2World):
             if obj is not self.component.world:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
@@ -573,8 +593,23 @@ class _Export:
                 fields.update(("fight", "body", "selected"))
             if kind is assassin_controller.TargetWorld:
                 fields.update(("fight", "body", "candidates", "attack_target", "windup_target"))
+            if kind is assassin_controller.Phase2World:
+                fields.update(npc_controller_storage.SCENE_WORLD_FIELDS)
+                fields.update(("fight", "body"))
+                optional = ("auto_scene", "auto_target", "sample")
             return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
                     "fields": self.fields(obj, fields, optional, exclude={"match", "fight", "explosion_sink", "controller", "mover", "manager", "actor", "barrier"})}
+        if kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
+            return {"class": "builtins.dict.get", "identity": self.identity(obj),
+                    "owner": self.value(obj.__self__)}
+        if (kind is types.FunctionType and type(self.component.world) is assassin_controller.Phase2World
+                and obj.__code__ in npc_controller_storage.phase2_observer_codes()):
+            _layout(obj, set())
+            if obj.__closure__ is not None or obj.__defaults__ is not None or obj.__kwdefaults__ is not None:
+                raise BodyVMSnapshotError("unexpected scene observer closure or defaults")
+            code = obj.__code__.replace(co_filename="ow174/game/assassin_controller.py")
+            return {"class": "scene.observer", "identity": self.identity(obj),
+                    "code_sha256": hashlib.sha256(marshal.dumps(code)).hexdigest()}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
@@ -609,7 +644,8 @@ class _Export:
             fields = _layout(obj, _VALUE_LAYOUTS[kind])
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
-            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context, spatial_queries.Context, entity_link.Context):
+            if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context,
+                        entity_queries.Possession, entity_queries.BodyField, spatial_queries.Context, entity_link.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:
                     return {"ref": reference}
