@@ -1039,3 +1039,26 @@ Next exact action: original world-only phase/Cryo/Transcendence and shield-surfa
 Mine consumers; reconcile actual foreign script/ruleset semantics using current
 host APIs rather than adding old fake modules. Preserve the existing no-double-
 EMP path and C42 native NPC device changes at parent merge.
+
+B46 delivered SHA: `a53bc026`.
+
+### B47 — original Mine creator namespace on current typed host APIs
+
+- Restored original creator script presence and foreign ruleset default semantics
+  through the existing runtime.World.script_component_present/entity_ruleset
+  interfaces. Only the selected original creator body is declared known;
+  missing/replaced creator script yields explicit absence and no body alias.
+  Unknown other entity services retain strict behavior. No old helper-only API
+  or fake module was added to satisfy fixture names.
+- Restored the full original missing/replaced creator query test, mapping only
+  old getter names ruleset_for_entity/has_script_entity to the actual two host
+  interfaces above. Original query values and every expectation remain.
+- v17 original creator-absence/query, lifetime0/.5/2, livecreator knockback0/.5/1
+  and real-client tracked Mine/full-server causal health snapshot all4 pass
+  (24.607s). No original-client acceptance or full Ball completion claimed.
+
+Next exact action: clean merge parent6d51297b (including C42) or its newer
+explicit canonical SHA after this saved boundary; retain both Mine and actual
+NPC-device exclusion predicates and Mine-only expiry clock. Continue actual
+world-only phase/Cryo/Transcendence and barrier Mine consumers, keeping original
+single-EMP frame-end mismatch visible.
