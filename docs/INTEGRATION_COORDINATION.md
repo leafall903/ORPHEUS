@@ -187,3 +187,38 @@ The default projectile catalog is empty without ORPHEUS_PROJECTILE_TAGS; the
 full existing catalog must also be configured for the integrated server. Audit
 the remaining Echo differences as actual consumers rather than discarding them
 as baseline failures. A8 conditional NPC pools remains a ready independent batch.
+
+A8 `c6775daf` is received as `21c701bc`; all89 combined original four-tier
+NPC pool/hit/wire/healing/shield/runtime/basic-damage/navigation checks passed.
+Conditional capacity remains separate from ordinary, wave and temporary pools.
+
+## Prepared integration inputs
+
+The root now connects the existing effect bindings through graph supplements,
+with conflict/dangling-binding rejection. Base files are never overwritten.
+`tools/prepare_hero_inputs.py` composes the existing Mercy effect pack and D.Va
+supplement, validates the full projectile catalog, and writes only a small graph
+supplement plus an environment/provenance manifest outside the worktree.
+
+Current generated profile:
+`verification/parallel-merge/runtime-inputs-v1/environment.json`.
+It selects the existing combined runtime, derived hero-graphs supplement,
+original mech mover supplement and the original full3528-definition projectile
+catalog. The supplement adds10 graphs, one entity and four effect bindings.
+All shared graphs and other metadata in the Mercy pack exactly match the base.
+Source SHA256 values are checked before/after generation and retained in the
+manifest. Five loader checks passed; using the generated environment, all13
+original Mercy boost/charge/effects checks plus the original Deflect endpoint
+check passed without skips. These are server checks, not game-client acceptance.
+
+Reproduce from this worktree:
+
+```powershell
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-v2
+$profile = Get-Content ../parallel-merge/runtime-inputs-v1/environment.json -Raw | ConvertFrom-Json
+foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
+```
+
+Use the loaded process environment for the existing Python server entry point
+and checks. A new output directory is required when recomposing; original packs
+and prior generated profiles stay intact. The profile has no appearance input.

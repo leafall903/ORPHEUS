@@ -298,14 +298,14 @@ def _data() -> dict:
 
 
 def add_supplement(data: dict, extra: dict) -> dict:
-    """Add explicitly prepared entity/graph inputs without overriding base data.
+    """Add prepared entity/graph/effect inputs without overriding base data.
 
     Supplements live outside the read-only runtime pack. Conflicting definitions
     are errors rather than silent changes to already accepted mode/hero inputs.
     """
     if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
-            or set(extra) - {"version", "graphs", "entities"}):
-        raise ValueError("graph supplement requires version1 and only graphs/entities")
+            or set(extra) - {"version", "graphs", "entities", "effect_scripts"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts")
     graphs = {record["index"]: record for record in data["graphs"]}
     supplied = set()
     for record in extra.get("graphs", []):
@@ -324,7 +324,22 @@ def add_supplement(data: dict, extra: dict) -> dict:
         if key in entities and entities[key] != record:
             raise ValueError(f"supplement conflicts with entity {key}")
         entities[key] = record
-    return {**data, "graphs": list(graphs.values()), "entities": entities}
+    result = {**data, "graphs": list(graphs.values()), "entities": entities}
+    if "effect_scripts" in extra:
+        supplied_effects = extra["effect_scripts"]
+        if not isinstance(supplied_effects, dict):
+            raise ValueError("supplement effect_scripts must be a mapping")
+        effects = dict(data.get("effect_scripts") or {})
+        for key, record in supplied_effects.items():
+            identifier = guid(key)
+            if (identifier is None or identifier >> 48 != 0x04A0 or not isinstance(record, dict)
+                    or type(record.get("graph")) is not int or record["graph"] not in graphs):
+                raise ValueError("supplement requires full04A effect bindings to supplied graphs")
+            if key in effects and effects[key] != record:
+                raise ValueError(f"supplement conflicts with effect {key}")
+            effects[key] = record
+        result["effect_scripts"] = effects
+    return result
 
 
 @cache
