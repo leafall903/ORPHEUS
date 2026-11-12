@@ -9657,3 +9657,7 @@ Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain
 
 - Bind original Heavy fixture graph ID to actual1408 host. Restore BOB1407 release at same-frame wall impact and stop the actual carrier when its BOB body retires, preserving shared Player recovery and stop/cooldown states.
 - Original full carry/300HP/gun-resume and opposing capture passed; retain old static phase2 versus current stop phase0 assertions unchanged.
+
+### Worker A55 - preserve original Ashe status consumers and queries
+
+- Preserve14 remaining original fixtures and original native Sombra constants/read-only actual-VM queries; keep sole SombraControls host. Original status baseline exposed missing real receiver entry/Wait delivery, assigned to C; no fake compatibility state or weakened assertion. Shared player-controller delivery is owned by root.
