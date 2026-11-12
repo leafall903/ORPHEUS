@@ -22,6 +22,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Tab board in Deathmatch, Team Deathmatch and Control
+
+- `combat.MODE_GRAPHS` lists the mode graph and board state of nine more modes: Elimination,
+  Capture the Flag, Skirmish, Control, Deathmatch, both Team Deathmatch modes, mode `0x46` and the
+  Practice Range's other mode `0x5A`. Each frame turns on the one `STU_38EE1100` state that posts
+  `06DF.025`. The mode UI graph `0CB6` is listed as the child of the state that starts it. Control's
+  graph starts it through a client-only state, so its frame lists the mode graph alone.
+- A pack without a mode's graph keeps the plain frame.
+- Added runtime tests: every row decodes with one state on, of that class, and with the mode UI
+  under the state that names it. Ruff, the 922 public tests and the focused runtime tests passed.
+- Original-client check, Soldier: 76, one player: the board opens in Team Deathmatch (Black Forest),
+  Deathmatch (Petra) and Control (Busan), with each mode's tile layout and every stat named. Control
+  also draws its capture header (0%, lock, 0%). The server has no Control rules, so it stays locked.
+- Left out: Assault, Escort and Hybrid. With the attack phase's board state on alone, the board
+  opened on Volskaya Industries and an "UNSPECIFIED 0.0" objective header drew with it. These modes
+  need their phase states.
+- Not checked against ORPHEUS: Elimination, Capture the Flag, Skirmish, `0x46`, `0x5A` and `0x70`,
+  which were not on the Arcade that day. No elimination happened in these matches, so the kill feed
+  and the elimination notice under the new frames are unchecked, Control's above all, since its
+  frame no longer lists `0CB6`. The board's time still reads 0:00. Deathmatch lists the general
+  player stats, not Final Blows and Solo Kills.
+
 #### Graph extraction from the pinned DataTool's UUID fields
 
 - `tools/extract_game_graphs.py` now reads a `teUUID` field as its text, or as none when the dump

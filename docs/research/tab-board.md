@@ -121,8 +121,15 @@ also names the player's tile on the board and the label under the ultimate meter
   instance 1's state 21, with `0CB6`'s own remote state off. ORPHEUS's frame writer produces the
   same 96 bits the offline service sent (`08e00910b60c14a002003000`). The 14 stat GUID fields
   are declared `id`.
-- Other modes still carry `0CB6` alone, so their boards stay shut. Each needs its row of the
-  table above and a look in the client, since a mode graph also starts HUD states.
+- Changed 2026-11-11 for nine more modes: Elimination, Capture the Flag, Skirmish, Control,
+  Deathmatch, both Team Deathmatch modes, `0x46` and `0x5A` have their row. The state the mode UI
+  hangs from is the mode graph's SubScript state that names `0CB6`: `0CE8` 14, `0D0B` 3, `0D76` 15,
+  `0F60` 13, `0F73` 10, `1A59` 2, like `13C0` 21. Control's `0EC2` has no such state: its
+  client-only state 162 starts `1FEE`, whose state 8 starts `0CB6`, so the client nests the mode UI
+  itself and the frame lists `0EC2` alone. The objective modes' `0F4A` does the same through its
+  client-only state 11 and `1FEB` state 0.
+- Assault, Escort and Hybrid still carry `0CB6` alone. ORPHEUS runs no objective phases, and a
+  board state without its phase state draws a stray header (below).
 
 ## Seen live against ORPHEUS
 
@@ -141,10 +148,25 @@ also names the player's tile on the board and the label under the ultimate meter
   tiles. The board's time still read 0:00.
 - The elimination notice still drew with the bot's name under the new frame.
 
+2026-11-11, original client, Soldier: 76, one player, matches from the Arcade cards.
+
+| Mode | Map | Result |
+| --- | --- | --- |
+| Team Deathmatch `0x1E` | Black Forest | Board opens: 4 against 4 tiles, the player's tile with its ultimate charge, Final Blows and Solo Kills among the stats. The HUD is unchanged. |
+| Deathmatch `0x1D` | Petra | Board opens with the lone player's tile. It lists the general player stats, not Final Blows and Solo Kills. |
+| Control `0x17` | Busan | Board opens: 6 against 6 tiles. The capture header draws (0%, lock, 0%) and stays locked, as the server runs no Control rules. |
+| Assault `0x14`, trial row `0F4A` slot 10 alone | Volskaya Industries | Board opens, and an "UNSPECIFIED 0.0" objective header draws at the top of the screen. The row was not kept. |
+
+- No elimination happened in these matches. The kill feed and the elimination notice under these
+  frames are unchecked, Control's above all, since its frame does not list `0CB6`.
+- Elimination, Capture the Flag, Skirmish, `0x46`, `0x5A` and `0x70` were not on the Arcade that
+  day and are unseen against ORPHEUS.
+
 ## Open
 
 - The board's time, above. The tiles' ultimate charge is open for the offline service only.
-- The other modes' graphs in ORPHEUS's frames.
+- The objective modes: `0F4A` needs its phase states sent with their board states.
+- An elimination in Control and in the modes not yet seen against ORPHEUS.
 - Medals were gold for any counted stat above zero. Ranking among teammates was not tried.
 - The tools used for the live reads, a statescript tracer plugin and a script that lists every
   mode graph's posting slots, are not in this repository.

@@ -81,8 +81,22 @@ KILLER, CRIT, LOADOUT, ASSISTS = 0x0012, 0x0095, 0x03E6, 0x03E7
 MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notices 1FC0 (client-only)
 # A mode's own graph, where the server carries it on the game mode entity: (the graph, the remote slot
 # of its state that posts 06DF.025, the state the mode UI hangs from). The client holds its scoreboard
-# shut until that message is posted (docs/research/tab-board.md).
-MODE_GRAPHS = {0x0230000000000018: (0x13C0, 4, 21)}  # the Practice Range
+# shut until that message is posted (docs/research/tab-board.md). Control's graph has no such host
+# state: its client-only state 162 starts 1FEE, whose state 8 starts the mode UI, on the client alone.
+# Assault, Escort and Hybrid (0F4A) are left out: with a board state on and no phase state the client
+# draws an "UNSPECIFIED 0.0" objective header.
+MODE_GRAPHS = {
+    0x0230000000000007: (0x0CE8, 1, 14),  # Elimination
+    0x0230000000000009: (0x0D0B, 6, 3),  # Capture the Flag
+    0x0230000000000010: (0x0D76, 2, 15),  # Skirmish
+    0x0230000000000017: (0x0EC2, 1, None),  # Control
+    0x0230000000000018: (0x13C0, 4, 21),  # the Practice Range
+    0x023000000000001D: (0x0F60, 0, 13),  # Deathmatch
+    0x023000000000001E: (0x0F73, 0, 10),  # Team Deathmatch
+    0x0230000000000046: (0x1A59, 6, 2),
+    0x023000000000005A: (0x13C0, 4, 21),  # the Practice Range's other mode
+    0x0230000000000070: (0x0F73, 0, 10),  # Team Deathmatch's other mode
+}
 
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 #104319 STUFirstPersonComponent: m_E29993A5 standing, m_816B830F crouched.
@@ -1993,19 +2007,20 @@ def mode_frame(entity_vars: dict, mode_guid: int | None = None, map_guid: int | 
 
     A mode in MODE_GRAPHS gets its own graph as instance 1 with the state on that lets the scoreboard
     open, and 0CB6 as that graph's child, as the game data nests them. 0CB6's own remote state stays off
-    there: these are the frames seen working in the client."""
+    there: these are the frames seen working in the client. A pack without the mode's graph keeps the
+    plain frame."""
     ui = graph.graph(MODE_UI)
     values = {var: (value, ()) for var, value in entity_vars.items()}
-    own = MODE_GRAPHS.get(mode_guid)
-    if own is not None:
-        index, slot, host = own
-        script = graph.graph(index)
+    index, slot, host = MODE_GRAPHS.get(mode_guid, (None, None, None))
+    script = graph.graph(index) if index is not None else None
+    if script is not None:
         board = list(script.remote_states())[slot].state
-        instances = [
-            InstanceWire(1, script, states={board: StateWire(script.state(board).cls, True)}),
-            InstanceWire(2, ui, parent=(1, host)),
-        ]
-        return remote_full_frame(instances, values, {1: script, 2: ui})
+        instances = [InstanceWire(1, script, states={board: StateWire(script.state(board).cls, True)})]
+        graphs = {1: script}
+        if host is not None:
+            instances.append(InstanceWire(2, ui, parent=(1, host)))
+            graphs[2] = ui
+        return remote_full_frame(instances, values, graphs)
     # EntryClientOnlySharedVars starts the mode UI's sole remote state, st21.
     shared = ui.state(21)
     instance = InstanceWire(1, ui, states={21: StateWire(shared.cls, True)})
