@@ -325,6 +325,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Restore Grasp world decay from actual grant receipt
+
+- Existing pool groups consume the original declared delay/rate even without
+  body input, using the actual producer frame/subframe and world receipt.
+  Positive grants alone refresh the clock; retirement/exhaustion cleans it.
+- Full original shield checks plus shared32 pass. Unequal-epoch strict proof
+  follows separately; no VM advancement, new health pool or client run.
+
 ### Preserve complete original Grasp shield consumers
 
 - Restore original shield checks over actual named pool groups, activation
