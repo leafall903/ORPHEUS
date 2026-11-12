@@ -167,3 +167,14 @@ def cryo_active(owner, entity=None):
     if entity is not None and getattr(owner, "body", None) != entity:
         return False
     return defenses.cryo_protected(owner)
+
+
+def fortify_active(owner, entity):
+    """Read the original Fortify flag on its actual current body VM."""
+    script = getattr(owner, "body_script", None)
+    if (getattr(getattr(owner, "hero", None), "guid", None) != ORISA
+            or script is None or script.retired or script.component.owner_dead
+            or script.component.entity != entity):
+        return False
+    flag = script.component.entity_var(9161, create=False)
+    return flag is not None and flag.value() is True

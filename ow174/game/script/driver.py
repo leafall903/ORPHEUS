@@ -968,6 +968,16 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
+                and instance.graph.index == 0x1513 and not instance.component.strict):
+            value = instance.graph.node(45).field("m_value")
+            if cfg is value["m_configVars"][0]:
+                from ow174.game import ashe
+
+                for player in self.match.players:
+                    if player.has_body and not player.gone and player.body == self.body:
+                        return Vec3(*ashe.coach_shove_direction(cfg, player))
+
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         if self.match is not None and instance is not None:
@@ -1044,6 +1054,7 @@ class BodyWorld(runtime.World):
             player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
             if player is not None:
                 cls = cfg.get("$")
+
                 yaw = player.mover.yaw * math.tau / 65536
                 if cls == "STU_71A87E92":
                     return Vec3(*player.mover.position)
@@ -1736,6 +1747,14 @@ class BodyWorld(runtime.World):
 
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
+
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and instance.graph.index == 0x1513 and node.pos == 21):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                self.match.combat.impulses.recoil(player, instance)
+            return True
 
         if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) in ((0x0B27, 75), (0x0DD8, 1)):
             from ow174.game.combat import aim

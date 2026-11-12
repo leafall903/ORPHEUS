@@ -197,128 +197,32 @@ class NpcMotion:
 
 
 class Impulses:
-    """Reconstructed external momentum, integrated by the existing capsule mover.
-
-    Coach self recoil uses the authored magnitude and angular limit around
-    its raised rearward basis. Victim direction, distance rings and vertical
-    floor come from the health payload. Hit-distance sampling, pellet aggregation
-    and additive motion are reconstructed.
-    Authored Coach and B.O.B. health impulses reduce resistance rows on application.
-    """
+    """Authored Ashe requests on the server's existing impulse/mover host."""
 
     def __init__(self, combat):
         self.combat = combat
-        self.pending = {}
-        self.npcs = {}
-
-    def retire(self, entity):
-        self.pending.pop(entity, None)
-        self.npcs.pop(entity, None)
-
-    def npc_mover(self, bot):
-        """Get the current motion mover or build one without registering it."""
-        from ow174.game.mover import Mover, mover_data
-
-        companion = self.combat.companions.actor_for(bot.entity)
-        if companion is not None:
-            return companion.mover
-        motion = self.npcs.get(bot.entity)
-        if motion is not None:
-            return motion.mover
-        mover = Mover(bot.position, round(bot.yaw), self.combat._collision(), mover_data(bot.body))
-        mover.velocity = tuple(bot.velocity)
-        return mover
-
-    def track_npc(self, bot, mover):
-        if self.combat.companions.actor_for(bot.entity) is None:
-            self.npcs.setdefault(bot.entity, NpcMotion(bot, mover, self.combat.tick))
-
-    @staticmethod
-    def publish_npc(bot, mover, tick):
-        bot.position, bot.velocity = tuple(mover.position), tuple(mover.velocity)
-        bot.movement_flags = mover.flags
-        bot.movement_gravity = mover.gravity_scale
-        bot.moved_tick = tick
 
     def queue(self, owner, vector, *, apply_resistance=False, reset_velocity=False, victim_source=None):
-        from ow174.game import bots
+        from ow174.game.combat import _source_entity
+        from ow174.game.mover import Mod, intent, statescript_mods
+        from ow174.game.script import expr
 
-        entity = owner.entity if isinstance(owner, bots.Bot) else owner.body
-        vitals = self.combat.vitals.get(entity)
-        if vitals is not None and vitals.dead:
-            return
-        if isinstance(owner, bots.Bot):
-            if owner.dead:
-                return
-            if (not apply_resistance and not reset_velocity and entity not in self.npcs
-                    and self.combat.companions.actor_for(entity) is None):
-                self.track_npc(owner, self.npc_mover(owner))
-        impulse = Impulse(
-            tuple(vector), self.combat.tick + 1, apply_resistance, reset_velocity, victim_source,
-        )
-        self.pending.setdefault(entity, []).append(impulse)
-
-    def apply_player(self, player, tick, frame, *, carried=False):
-        if self.combat.is_dead(player):
-            self.retire(player.body)
-            return
-        from ow174.game import bob_victim
-        from ow174.game.script import graph
-
-        for impulse in self.pending.get(player.body, ()):
-            if impulse.victim_source is None or impulse.due_tick - 1 > tick:
-                continue
-            source, instigator = impulse.victim_source
-            impulse.reset_velocity = bob_victim.start(
-                self.combat, source, player, graph.graph(0x1537), instigator=instigator,
-            )
-            impulse.victim_source = None
-        if not carried:
-            self._apply(player.body, player.mover, tick, frame)
-
-    def apply_npc(self, bot, mover, tick):
-        component = getattr(bot.body_script, "component", None)
-        return self._apply(bot.entity, mover, tick, tick, component=component)
-
-    def _apply(self, entity, mover, tick, frame, *, component=None):
-        pending = self.pending.get(entity)
-        if not pending:
+        fight = self.combat
+        entity = _source_entity(owner)
+        target = next((target for target in fight._targets()
+                       if target.owner is owner and target.entity == entity), None)
+        if target is None or fight.vitals_of(target).dead:
             return False
-        from ow174.game.mover import KNOCKBACK_SCALE, Mod, knockback_scale, statescript_mods
-
-        waiting = []
-        scale = None
-        applied = False
-        # The captured mover applies 17F6 scalar rows before additive health rows.
-        if any(item.reset_velocity and item.due_tick <= tick for item in pending):
-            mover.velocity = (0.0, 0.0, 0.0)
-        for impulse in pending:
-            if impulse.due_tick > tick:
-                waiting.append(impulse)
-                continue
-            if not any(impulse.vector):
-                continue
-            vector = impulse.vector
-            if impulse.apply_resistance:
-                if scale is None:
-                    if component is None:
-                        mods = (mod for mod in mover.mods.values() if mod.acts(frame))
-                    else:
-                        # NPC body graphs advance after this pose in the static scheduler.
-                        rows = statescript_mods(component, category=KNOCKBACK_SCALE)
-                        mods = (Mod(index, op, value, frame, None, priority, key)
-                                for key, (index, op, value, priority) in rows.items())
-                    scale = knockback_scale(mods)
-                if scale == 0:
-                    continue
-                vector = tuple(axis * scale for axis in vector)
-            mover.add_impulse(vector)
-            applied = True
-        if waiting:
-            self.pending[entity] = waiting
-        else:
-            self.pending.pop(entity, None)
-        return applied
+        if reset_velocity or victim_source is not None:
+            raise NotImplementedError("BOB victim action must use its actual body host")
+        if apply_resistance:
+            script = getattr(owner, "body_script", None)
+            rows = statescript_mods(script.component) if script is not None else {}
+            mods = sorted((Mod(index, op, value, fight.tick, None, priority, key)
+                           for key, (index, op, value, priority) in rows.items() if index == 26), key=Mod.order)
+            scale = max(0.0, intent(mods, 26, 1.0))
+            vector = tuple(axis * scale for axis in vector)
+        return fight.knockbacks.apply(target, expr.Vec3(*vector), impact_frame=fight.tick)
 
     def recoil(self, player, instance):
         from ow174.game.combat import aim
@@ -345,6 +249,7 @@ class Impulses:
         speed = magnitude * scale
         self.queue(player, (speed * math.sin(yaw) * horizontal, speed * math.sin(elevation),
                             speed * math.cos(yaw) * horizontal))
+
 
     def coach_targets(self, shooter, hits, state, *, reflected):
         from ow174.game import immunity
@@ -387,7 +292,8 @@ class Impulses:
             blend = max(0.0, (distance - inner) / (outer - inner))
             x_weight = near_x + (far_x - near_x) * blend
             y_weight = near_y + (far_y - near_y) * blend
-            if target.entity == _source_entity(shooter):
+            if (target.entity == _source_entity(shooter)
+                    or target.entity != _source_entity(target.owner)):
                 continue
             x, y, z = direction
             vertical = max(y * y_weight, upward) if y_weight > 0 else y * y_weight
@@ -397,46 +303,6 @@ class Impulses:
                 fraction = min(1.0, cap / length) * pellets / count
                 self.queue(target.owner, tuple(axis * fraction for axis in vector), apply_resistance=True)
 
-    def update(self, tick):
-        from ow174.game.commands import Command
-
-        fight = self.combat
-        for entity in list(self.pending):
-            vitals = fight.vitals.get(entity)
-            if vitals is not None and vitals.dead:
-                self.pending.pop(entity, None)
-        if self.pending:
-            for bot in fight.match.bots:
-                entity = bot.entity
-                if (bot.dead or entity in self.npcs or not self.pending.get(entity)
-                        or fight.companions.actor_for(entity) is not None):
-                    continue
-                if not any(impulse.due_tick <= tick for impulse in self.pending[entity]):
-                    continue
-                # A fully resisted shove must not take over the NPC's normal motion.
-                mover = self.npc_mover(bot)
-                if self.apply_npc(bot, mover, tick):
-                    self.npcs[entity] = NpcMotion(bot, mover, tick - 1)
-                else:
-                    bot.velocity = mover.velocity
-        for entity, motion in list(self.npcs.items()):
-            bot, mover = motion.bot, motion.mover
-            if bot not in fight.match.bots or bot.dead:
-                self.retire(entity)
-                continue
-            # Bounded NPC catch-up follows the existing Bot.step policy. The
-            # unsupported global dropped-time/phase behavior is not inferred.
-            for at in range(max(motion.last_tick + 1, tick - 624), tick + 1):
-                self.apply_npc(bot, mover, at)
-                mover.use(world=fight._collision())
-                fight.ice_walls.step(mover, Command(at, yaw=round(bot.yaw)), TICK, at)
-            motion.last_tick = tick
-            self.publish_npc(bot, mover, tick)
-            bot.held = (0, 0)
-            if (not self.pending.get(entity) and not mover.airborne
-                    and not fight.ice_walls.supports(mover)
-                    and math.dist(mover.velocity, (0, 0, 0)) < 0.01):
-                self.npcs.pop(entity, None)
 
 
 def _bob_uppercut_launch(actor, target, modify):
@@ -1037,3 +903,59 @@ class Dynamite:
                 burn.next_damage = burn.start + math.ceil((burn.pulses + 1) * BURN_STEP / TICK)
             if burn.pulses >= 20 or tick >= burn.until or fight.vitals_of(target).dead:
                 self.burns.pop(key, None)
+
+
+def coach_directions(state, direction) -> tuple:
+    """Reconstruct the authored fixed-ring volley (613BDDB0), including its centre pellet.
+
+    Ring populations/radii and spread come from build 104319. The interpretation of spread as
+    the full cone angle, equal azimuth spacing and ring phase zero are reconstructed, not a
+    native random-seed/pattern match. Only Coach Gun1513/state16 and Enforcer13EB/node24
+    are enabled; their different pattern modes are not claimed native-equivalent.
+    Keep separate rays so armour, occlusion and death are resolved per pellet.
+    """
+    from ow174.game.combat import _number, _dot, EPSILON
+
+    cfg = state.node.field("m_5EC1EB38") or {}
+    supported = ((state.instance.graph.index == 0x1513 and state.index == 16)
+                 or (state.instance.graph.index == 0x13EB and state.node.pos == 24))
+    if cfg.get("$") != "STU_613BDDB0" or not supported:
+        return (direction,)
+
+    def value(cfg, default=0.0):
+        return _number(state.evaluate(cfg, watch=False), default) if cfg is not None else default
+
+    count = int(value(state.node.field("m_numProjectilesPerShot"), 1))
+    if not 0 <= count <= 256:
+        raise ValueError("fixed volley pellet count outside supported bounds")
+    spread = value(cfg.get("m_spread"))
+    if not math.isfinite(spread) or not 0 <= spread < 180:
+        raise ValueError("invalid fixed volley cone")
+    rings = []
+    for ring in cfg.get("m_0D30E40C") or []:
+        radius = value(ring.get("m_6425FFB9"))
+        population = int(value(ring.get("m_B19BD35D")))
+        if not math.isfinite(radius) or not 0 <= radius <= 1 or not 0 <= population <= 256:
+            raise ValueError("invalid fixed volley ring")
+        rings.append((radius, population))
+    if sum(population for _, population in rings) != count:
+        raise ValueError("fixed volley ring population does not match projectile count")
+    # A stable orthonormal basis, including a vertical aim.
+    horizontal = math.hypot(direction[0], direction[2])
+    right = ((direction[2] / horizontal, 0.0, -direction[0] / horizontal)
+             if horizontal > EPSILON else (1, 0, 0))
+    up = (
+        direction[1] * right[2] - direction[2] * right[1],
+        direction[2] * right[0] - direction[0] * right[2],
+        direction[0] * right[1] - direction[1] * right[0],
+    )
+    cone = math.tan(math.radians(spread / 2))
+    found = []
+    for radius, population in rings:
+        for index in range(population):
+            angle = index * 2 * math.pi / population
+            x, y = cone * radius * math.cos(angle), cone * radius * math.sin(angle)
+            ray = tuple(direction[k] + x * right[k] + y * up[k] for k in range(3))
+            length = math.sqrt(_dot(ray, ray))
+            found.append(tuple(component / length for component in ray))
+    return tuple(found)
