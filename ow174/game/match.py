@@ -63,7 +63,7 @@ from ow174.game.collision import (
     World,
     default_collision_provider,
 )
-from ow174.game.commands import CROUCH, JUMP, Command, CommandQueue
+from ow174.game.commands import CROUCH, JUMP, Command, CommandQueue, InputError
 from ow174.game.content import (
     JUNKENSTEIN_MAP,
     JUNKENSTEIN_MODES,
@@ -326,7 +326,7 @@ class Player:
         flags = CROUCHED if mover.crouched else 0
         return Movement(mover.position, mover.yaw, mover.pitch, mover.velocity, flags)
 
-    def take_commands(self, commands: list[Command]) -> int | None:
+    def take_commands(self, commands: list[Command], *, not_after: int | None = None) -> int | None:
         """Simulate the encodable command prefix and report the first frame needing a new link."""
         collision = self.match.collision_world
         if collision is None:
@@ -338,6 +338,10 @@ class Player:
             anchor_tick, anchor_frame = script.world_frame_anchor
             elapsed = max(0, self.match.tick - anchor_tick) * (RETAIL_QUANTA // 1000)
             horizon = min(MAX_LEASE_FRAME, anchor_frame + elapsed // script.frame_ms)
+        if not_after is not None:
+            if type(not_after) is not int or not 0 <= not_after <= 0xFFFFFFFF:
+                raise InputError("command horizon must be uint32")
+            horizon = not_after if horizon is None else min(horizon, not_after)
         fresh, boundary = self.commands.before_limit(
             commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None, horizon=horizon,
         )
@@ -350,6 +354,17 @@ class Player:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
             if self.has_body:
+                if self.match.combat.junkrat.tire.command(self, command, self.match.tick):
+                    neutral = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
+                    if not self.match.combat.is_dead(self):
+                        if self.mover.airborne or (not self.mover.driven and any(self.mover.velocity)):
+                            self._advance_body_gap(self.mover.first_step_frame(neutral.frame))
+                            self.mover.step(neutral, seconds, self.match.tick,
+                                            simulate_pose=self._step_tire_operator_pose)
+                            continue
+                        self.mover.last_command = neutral
+                    self._advance_body_frame(neutral, posed=False)
+                    continue
                 if self.controlled_mech is not None:
                     from ow174.game import body_entities, npc
 
@@ -396,6 +411,11 @@ class Player:
         if movelog.ENABLED:
             movelog.snapshots(self)
         return boundary
+
+    def _step_tire_operator_pose(self, command: Command, seconds: float, tick: int) -> None:
+        neutral = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
+        self.mover.step_pose(neutral, seconds, tick)
+        self._advance_body_frame(neutral, posed=False)
 
     def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0, world_idle: bool = False) -> None:
         """Release old input and advance timers across frames without a movement pose."""

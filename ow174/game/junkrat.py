@@ -262,6 +262,7 @@ class Junkrat:
                 flights = [mine.flight for mine in (*self.mines.values(), *self.traps.values())
                            if not mine.parked and mine.flight.last_tick is not None]
                 deadlines = [when for when, _ in self.trap_deadlines() if when >= after]
+                deadlines.extend(when for when in self.tire.deadlines() if when >= after)
                 at = min(first, min(deadlines, default=first),
                          min((max(after, flight.last_tick + 1) for flight in flights), default=first))
                 if at >= first:
@@ -274,6 +275,7 @@ class Junkrat:
                         self.sync_pose(flight.mine)
                 due = [trap for when, trap in self.trap_deadlines() if when <= at]
                 self.update_traps(due)
+                self.tire.update(deadlines_only=True)
                 after = at + 1
         finally:
             fight.now, fight.tick = saved_now, saved_tick

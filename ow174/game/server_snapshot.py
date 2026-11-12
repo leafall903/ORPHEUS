@@ -79,7 +79,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_contr
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
-from ow174.game.commands import CommandQueue
+from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
@@ -291,6 +291,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    Command,
     combat_profiles.Profiles,
     junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
     entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,
