@@ -372,3 +372,30 @@ actual missing consumers versus modern equivalent deflection/interception code.
 Then whole0005 owner reconcile; continue0003/000A audits. At a clean boundary,
 absorb canonical59c15a5a or newer to include root curve_motion/source attribution
 and other workers' new native fields. Do not interrupt a live implementation.
+
+
+A17 committed `8c12de89`, accepted by root334dbda3; canonical clean62dd2bf0.
+A18 restores ordinary imports for original Hanzo checks: complete NPC, Matrix,
+Winston and Experimental Barrier fixtures retained; legacy barrier_mesh maps
+existing reinhardt_barrier, sniper_special maps existing sniper_reposition with
+actual142C GRAPH identity. Frozen source arrow_deflection pure geometry retained
+byte-for-byte as tests/hero_delivery_arrow_deflection.py, consumed by original
+fixture checks rather than installing an unmounted production driver. Legacy
+Grasp fixture names alias current absorption identities in a tiny test helper.
+Profile mock lobby gets current three cosmetic callbacks. All1781 assertions in
+these five adapted files are AST-identical to frozen source (including unittest
+assert methods). Original runtime tests remain unchanged.
+Normal module entry now passes without AST:
+`python -B -m unittest test_game_hanzo_sonic.SonicPlayerTests test_game_hanzo_dragons.DragonPlayerTests`
+32/32,130.855s, worker-a-hanzo-fixture-normal-player-final.log.
+`python -B -m unittest test_game_hanzo_profiles test_game_hanzo_profile_journal_delivery`
+9/9, worker-a-hanzo-fixture-normal-second.log.
+11 focused normal Lunge/climb/strict/storage methods pass in
+worker-a-hanzo-fixture-normal-climb-final.log. All control/barrier fixture modules
+import normally in worker-a-hanzo-fixture-import.log. Profile envs are root
+runtime-inputs-v1 plus ORPHEUS_HANZO_PROFILE=0005/hanzo-dragon-profile.json,
+ORPHEUS_HANZO_SONIC_PROFILE=0005/hanzo-sonic-profile.json and
+ORPHEUS_MATRIX_TAGS=$ORPHEUS_PROJECTILE_TAGS. Other whole NPC/cross-owner private
+API checks are preserved, not declared all passed. Next clean-boundary action
+is absorb canonical62dd2bf0, then original Storm one-bounce implementation and
+normal fixture dependencies for its original tests, keeping all assertions.
