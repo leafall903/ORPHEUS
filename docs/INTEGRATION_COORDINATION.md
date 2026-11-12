@@ -902,3 +902,25 @@ until v16 has actual checks, while the code fields are committed independently.
 A53 df1f8a9c receivedd873f2e1 normalizes original PvE fixtures to actual composed
 graph provider/locked mover without old loaders. B41 493093e2 received21e1b364
 mounts original Cannon spread/combat charge; no separate temporary pool.
+
+
+A54 d412a283 received40a43036 preserves actual Heavy/BOB source carry semantics:
+impact retires only that BOB1407; original Player recovery and stop phase remain.
+Root frozen99790 on40a43036 usingv16 terminal25run52.368s with9retained subcases
+across2original all32hero methods (5fail4error),23other methods pass,no skips.
+The retained cases are only DVa007A _targets StopIteration after fixture clears
+mover.body and crouch restriction proof, and Tracer0003 standing critical proxy
+20vs40. Source fixture assumptions versus current DVa/Tracer owners are assigned
+A; no numerical expectations or geometry are changed. All other catalog/Ashe eye/
+actual BOB carry/Ball spread/runtime methods execute. Original33body catalog
+activation is source-preserving and not blocked by complete acceptance.
+Workspace input selection promotesv16; all27original source hashes reverified.
+
+New original shared source gap reported by A:0200 player_controller.py and
+controller_filter.py, actual empty000E Player controller VM, PinEffectServices,
+wire namespace, lifecycle, heroselect and stored state integration. Root owns
+this audit/merge. Canonical graph base already has exact original000E metadata.
+Existing current Player/heroselect encodes controller wire without this VM;
+root must preserve that sole wire ownership rather than enable another manager.
+Original filter_bits prerequisite also missing. A owns only its hero/status
+consumers and does not duplicate these hosts. Overall goal remains incomplete.

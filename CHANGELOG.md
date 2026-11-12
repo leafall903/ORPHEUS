@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Select original FirstPerson inputs for the integrated local entry
+
+- Workspace entry now selects v16, adding only the existing original33body
+  FirstPerson catalog. All recorded source hashes and every legacy eye field
+  match; current native constants and input loaders remain unchanged.
+- Original all32hero ray checks plus actual BOB carry, Ball spread, Ashe eye and
+  runtime execute25 methods52.368s. Nine retained subcases in two methods concern
+  DVa body/stance fixture and Tracer critical proxy;23other methods pass, no skips.
+  No original value or assertion was changed and acceptance does not block merge.
+
+
 ### Restore all delivered FirstPerson fallback fields and original catalog selection
 
 - Union35 missing original standing/crouched fields from32 delivered source
