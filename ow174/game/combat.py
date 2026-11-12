@@ -9322,6 +9322,7 @@ class Combat:
         candidates = []
         for target in self._targets():
             if (target.owner is caster or target.team != caster.team or self.vitals_of(target).dead
+                    or not barriers._projection_recipient_ready(self, target.owner)
                     or self._active_projected_barrier(target.entity)):
                 continue
             script = target.owner.body_script
@@ -10682,6 +10683,7 @@ class Combat:
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
         self.hooks.retire(bot.entity)
+        barriers.retire_owner(self, bot)
         hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)

@@ -1,5 +1,57 @@
 # Changelog
 
+## A90 — original projected NPC recipient on the sole native Pet
+
+Absorbed explicit stable3d7f9184 (worker merge45610881), preserving root Rocket
+field-at-end compatibility, C54–57 queries/wall consumers and B63–68. Original0068
+track_targets/_barrier_pairs admit live alliedNPC; original0016 replay query has
+an additional manual retain_corpse condition. Those contracts remain separate:
+current native025C accepts the actual present Bot/entity/valid bodyComponent,
+excludes source0016 teleporter devices, and C54 pure single_replay_projection keeps
+its original manual-only query gate. No second pool or zarya_barriers manager.
+
+Existing search and track consumers now use scoped projected-recipient readiness.
+Native Pet.create resolves actual combat target owner; NPC identity is Bot.entity,
+not its body definition. Same recipient_component/body checks protect lifetime.
+Actual Bot death and shared npc.remove_body immediately retire this same Pet;
+team change, dead/fault/replacedVM or removal invalidate it through existing
+advance/_end_bubble. Player/Cryo/Transcendence general readiness was not widened.
+Same actual source/parent/child0256 and Vitals receive damage,
+energy message and original expiry. No fake Player.body/client/hero properties.
+
+New actual catalog5 fixture baseline had noPet. Functional five-recipient cases
+verify200→140 shield, bodyHP unchanged, energy12, same bodyVM/pool and expiry;
+actual Vitals death+existing dispatcher and real team/removal also pass. C54 pure
+query returns each sameNPC. Combined with nativePet application2/lifetime2 and
+originalGenji bubble module:23methods30.097s,19pass/3fail/1error. All7focused Pet/
+NPC methods passed. OriginalGenji residuals retain numbers/assertions: dynamic
+beam172.17488vs170.7104, overlap1vs2, graze113vs200 and missing old projected actor
+StopIteration. Baseline attribution is not claimed for these four residuals.
+Log worker-a-zarya-npc-projection-lifecycle-shared-check.log.
+
+A real encrypted-peer ServerSession apply(spawn_manual_npc)+projected cast proves
+actual recipient_component/query before stored capture. Fullserver capture then
+correctly rejects private mutable VM storage shared across Component artifacts.
+Original test remains normally runnable/erroring, no strict waiver or standalone
+fallback. Pure baseline whole-server capture passes. Bounded read-only identity
+trace: a0000102 Zarya→c1000001 Pet0256 shares vm-scope dict{'id':int} (expr.Entity
+backing fields); automaticNPC c0001000→c0001001 shares vm-scope dict{'0':int};
+actualNPC Component reference also aliases intoPet and should remain same object.
+No serializer/runtime changes. Root explicitly takes precise by-value parameter
+boundary audit, preserving manager/Component/Context reference identity.
+Minimal reproduction: tests/test_zarya_npc_projection.py method
+ZaryaNpcProjectionTests.test_actual_server_encloses_projection_recipient_and_native_pet_storage.
+Logs worker-a-zarya-npc-projection-server-joint-check.log (2pass/1storageerror),
+worker-a-zarya-native-pet-storage-baseline-diagnostic.log and
+worker-a-zarya-npc-projection-private-storage-diagnostic.log. Keep its intended
+hash-mutate/restore/unknownreject assertions to run once root restores the exact
+boundary; do not delete the capture or rewrite assertions.
+
+Next A91: final0068 actual consumer/field mapping audit and remaining source gap
+implementation only. Source graph index0256 above is authoritative; no separate
+child manager. Root owns formal frozen-ref ancestry/storage-boundary followup.
+
+
 ## A89 — original melee/secondary recovery world admission
 
 Baseline real original future melee counter2vs1 and future secondary duplicate
