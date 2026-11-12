@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore shared original Sentry geometry queries
+
+- Restore original cover/target/barrier/splash prediction entry points over the
+  existing solid walls and current shield geometry, preserving actual actor and
+  service identities without advancing hosts or spending health.
+- Actual Mei/predicted-pose and raised Reinhardt stored-state checks pass;
+  remaining native shield input fixtures are explicitly pending, and do not
+  prevent submitting these existing-source consumers. No new runtime pool.
+
+
 ### Restore explicit NPC mover export options
 
 - Restore original006E --base/--npc-catalog/--output on the existing mover export

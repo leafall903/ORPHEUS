@@ -8832,6 +8832,26 @@ class Combat:
         trace = getattr(getattr(self.match, 'scene_host', None), 'trace_barrier', None)
         return trace(shooter, origin, direction, length) if trace is not None else None
 
+    def cover_ray(self, origin, direction, reach, *, exclude=None):
+        from ow174.game.prediction_geometry import cover_ray
+        return cover_ray(self, origin, direction, reach, exclude=exclude)
+
+    def visible_target(self, origin, target):
+        from ow174.game.prediction_geometry import visible_target
+        return visible_target(self, origin, target)
+
+    def trace_barrier(self, shooter, origin, direction, limit):
+        from ow174.game.prediction_geometry import trace_barrier
+        return trace_barrier(self, shooter, origin, direction, limit)
+
+    def _splash_targets(self, rocket, point, visible_from, *, targets=None):
+        from ow174.game.prediction_geometry import splash_targets
+        return splash_targets(self, rocket, point, visible_from, targets=targets)
+
+    def _splash_barriers(self, rocket, point, visible_from, impact):
+        from ow174.game.prediction_geometry import splash_barriers
+        return splash_barriers(self, rocket, point, visible_from, impact)
+
     def ray_obstruction(self, origin, direction, length):
         terrain = ray_world(self._collision(), origin, direction, length)
         ice = self.walls.cast(origin, direction, length if terrain is None else terrain)
