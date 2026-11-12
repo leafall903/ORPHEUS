@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Torbjorn rivet pellet consumers and retain both resource suites
+
+- Route unpredicted1683 volleys through the original radial projectile_patterns
+  implementation. Each actual secondary activation now launches all ten pellets
+  while its authored volley still spends ammo once. Retain prediction leases.
+- Carry original rivet per-pellet distance falloff and explicit critical geometry
+  through standalone server rockets; retain the scoped null critical default.
+- Preserve frozen0006 resources and the different root-preserved pending file as
+  separate unchanged tests. The initial28-check baseline had six failing
+  subcases; radial expansion clears the last-ammo and both cross-expiry damage
+  differences without rewriting their already-correct fire-delay behavior.
+- The36-check radial run retains three missing-hammer subcases and three
+  standalone projectile assertions; the latter are addressed by the scoped
+  follow-up: all10 original projectile/last-ammo/cross-expiry checks pass.
+  Hammer, turret, Molten and charge remain owner integration work.
+  No original-client execution, feature expansion or acceptance matrix was added.
+
 ### Mount delivered Torbjorn Overload health and reuse consumers
 
 - Mount the original1721 active-state armour grant, expiry and once-per-source

@@ -221,3 +221,18 @@ Molten consumers. No long test is active; no client acceptance was performed.
   review, not silent copying or a source-fixture import fallback completion claim.
 - The recorded older McCree/Flashbang subcase differences and incomplete client
   acceptance remain visible. They do not block committing existing consumers.
+
+C13 SHA:5d56f941, ready for root receipt. C14 retains frozen0006 resources and
+root's different pending resources as two unchanged files. Their initial28-check
+run had six failing subcases: three missing hammer contacts, secondary ten-pellet
+expansion, and two cross-expiry damage expectations caused by that expansion
+(the timing assertions already passed). Mount the original projectile_patterns
+unpredicted1683 radial consumer rather than changing fire-delay or tests.
+Next functional batch mounts original hammer contact windows/late targets/control
+cancellation/snapshot state and reconciles the owner turret repair dependency.
+
+C14 radial run:36 checks/116.015s, six failing subcases (three missing hammer,
+three standalone critical/falloff). Scoped standalone rivet follow-up: all10
+original projectile+last-ammo+cross-expiry cases pass/16.327s. Logs:
+worker-c-torbjorn-{rivet-resource,pellet-final}-check.log. No source assertions
+were changed. Resource fire timing already passed; do not rewrite it for damage.
