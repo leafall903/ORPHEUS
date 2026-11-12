@@ -1197,3 +1197,58 @@ no old-name manager alias. Source Control.locks already holds lists after curren
 root intake: audit against original BodyHack consumers instead of assuming a
 new second hack manager. Raw old fight.hacks observer is not an actual consumer
 absence by itself. Preserve missing unmounted consumer boundaries and failures.
+
+C34 SHA9b124b82 delivered. Clean sync root intake nowc81876df; sole conflict
+server_snapshot dataclass line resolved preserving both Translocator and Ball.
+Ashe and Ball existing implementation all retained, no worker-tree edits.
+
+C35: original skill-lock history query required by B38 Grapple
+------------------------------------------------------------
+B source01CA/sombra_emp.first_lock_after(script,frame,tick) reads original
+emp_previous_windows+emp_window, starts//script.frame_ms, first frame<start<=tick.
+Actual sole SombraControls already has entity->list[Lock(application,until,pulse)],
+which expired effects remove; no historical windows existed. Add lock_history
+inside that same manager: entity->(actual recipient component, component-ms
+windows). Record both real Lock append sites (body and device), directly from
+application.start and evaluated duration. Overlap merges as original; only
+unconsumed older windows survive, latest remains after active effect expires,
+recipient death/body retirement removes its record. No second EMP manager,
+application, pool, generic full-control window or fake old-name alias.
+
+Controls.first_lock_after(script,frame,tick) public API: bounds are actual
+recipient BODY frames, not world ticks. Stored timestamp is application.start
+on its real recipient component; identity check prevents another VM generation
+inheriting the record. The API does not infer1000+ bodyframe vs50worldtick offset.
+B explicitly knows original caller's fight.tick gap and is retaining it until a
+real anchor/caller mapping is available. Generic control/sleep/frost windows must
+not be used as Hack locks because Hack preserves ordinary primary/movement.
+No argument semantics guessed to make that mismatch disappear.
+
+In existing Controls.interrupt, nonhack_only for actual Ball calls existing
+ball.cancel_grapple(fight,player) before stopping blocked Ability states. This
+releases current tether now through its sole motion host. B38 owns actual
+ball._grapple_interrupt_after call to this API and full command/retire/death/settle
+consumers; do not edit Ball or install a fakeNone stub. B source suppress-button
+latch is being adapted to existing Controls.held, not a second EMP field.
+Stored Controls field registration includes actual lock_history tuple/component
+and windows, no new generic BodyScript field or timer.
+
+Actual source SombraCombatTests real scene and press(2,55) installed a real
+0B1F Lock on target component. start=application.start//script.frame_ms=1090;
+first_lock_after(start-1,start)==start and first_lock_after(start,start+1)==None.
+Actual effect world expiry via Controls.update removes active locks, but original
+query still returns1090. This tests production record/query, no fakeapplication.
+Exact v9 command: python -B -m unittest test_game_ana_sombra_control
+ test_game_script_runtime test_game_combat.DamageTests -v :40run56.723s,
+39pass1originalskip (requires all five pinned external barrier meshes),
+worker-c-sombra-lock-history-check.log. Existing skip/asserts unchanged.
+
+Next C36: original Sombra charge host and replay (source ultimate_charge class
+must be scoped Sombra and adapted beside existing canonical ultimate_charge
+functions for Rein/Genji; never replace/double other owner charge). Original
+012E/ultimate-context-research.json is its explicit input. This supplies actual
+next_passive_frame prerequisite to original sombra_replay accepted-reaction
+consumer. Then world-only Translocator throw/recall/lifetime, orphaned incoming
+applications and actual Portals/Sentry/Torb device consumers. Pending original
+Sombra generic .hacks fixture names must adapt to actual Controls.locks if only
+observers; no alias manager and no claim absence solely from old import/attr.

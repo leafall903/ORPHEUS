@@ -174,7 +174,7 @@ FIELDS = {
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
     breather.Breathers: _names("fight channels"),
-    sombra_control.Controls: _names("fight locks held device_receivers"),
+    sombra_control.Controls: _names("fight locks held device_receivers lock_history"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
     knockback.Knockbacks: _names("combat serial active"),
