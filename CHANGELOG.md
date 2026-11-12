@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile delivered Recall protection contracts
+
+- Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
+- Current original both-phase immunity and actual Dart playback/expiry checks pass; full AnaRecall group7pass/2known conflicting failures. No runtime or client behavior changed in this audit.
+
 ### Bind original BOB no-launch checks to the real force host
 
 - Original corpse/head-on no-force assertions now inspect the existing Knockbacks active host, retaining assertion intent and original numerical checks without a compatibility queue.
