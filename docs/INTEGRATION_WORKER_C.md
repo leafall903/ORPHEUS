@@ -2291,3 +2291,63 @@ consumers. Ana's old devices/next_shot/instance/output interface still requires
 actual owner/protocol audit; do not create a facade manager to fake it. Inspect
 any real missing parent VM output/timing consumer before calling it merely an
 observer. Full wall overlap setup/quantisation/cancel/splash differences persist.
+
+
+## C53 — natural allied ice support through frozen history (2026-11-12)
+
+C52 saved66a3cb561b4053aee491357b48898a000c5365d0; root independently passed
+realMeifiveactor causal36.818s. This narrow production batch removes the global
+walls.pieces rejection from the existing bounded frozen proof. Acquisition and
+proof now share the same unit query, excluding solid0932 columns, so a support
+actor cannot be misread as another beam enemy. Original allied natural/cancelled
+support can use the same Match NPC/combat world loop through the freeze; no
+second mover/actor/ledger. A temporary explicit support_impacts=False keeps
+impact/projected-retarget contexts declined until their actual service adapters
+are mounted, rather than calling missing APIs. Default helper retains original
+impact path; this partial boundary is NOT full impact/projected integration.
+
+Stable selectedv18 shared `python -B -m unittest test_symmetra_turrets
+ test_game_combat.DamageTests`:22/22pass26.915s.
+Log ../worker-c-symm-natural-support-shared-check.log.
+
+Original source selected2 methods from frozen0016 SymmetraNpcResourceTests:
+ test_ice_supported_sentry_expires_on_both_sides_of_npc_thaw and
+ test_ice_supported_sentry_cancels_at_checkpoints_around_npc_thaw.
+They execute create/ice_sentry_across_npc_thaw plus pure original pose fixtures,
+with actual original0016/npc-catalog-with-movers.json (immutable, no pack edit).
+The selected runtime's default fallback catalog intentionally has mover=None;
+using it initially stopped25subcases3.366s, not a missing restored mover API.
+Explicit original catalog passes original identity/capsule setup after root's
+metadata restoration. Initial oldconstant observation stopped25subcases8.672s;
+reader maps combat.mei_frost.FREEZE_MS to actual combat.mei.FREEZE_MS, same1300.
+Existing observation-only adaptations: fight.ice_wall→fight.walls and old Frost
+[2]→actual.sample[2]. No source assertion/literal expectation changed.
+
+Large original fixture installs dedicated-rocket observers even for these
+no-dedicated-rocket cases. Current Combat has no old _projectile_body_impact
+method:25subcase errors53.260s were preserved, not countedpass. In the selected
+fixture ONLY, install its body/explosion observer only when its own rocket
+variable is notNone; all their assertion branches already require shot is rocket.
+No production method/None stub/fake manager is installed, and actual current
+projectile/damage handling runs untouched. With body observer conditional,
+2methods109.290s reached20 successful nonHeavy subcases;5Heavy subcases hit
+old observe_explosion required-heading signature on an incidental existing
+projectile. Those are retained diagnostics; not allgreen.
+Logs ../worker-c-symm-frozen-ice-{original,current-owner,case-observer}-check.log.
+Final same no-dedicated-rocket explosion-observer condition check is running as
+handle60071, log ../worker-c-symm-frozen-ice-natural-check.log. Do not count a
+pending outcome as pass; code remains stable while it runs. Reproducer
+../parallel-merge/worker-c-frozen-ice-source-check.py. This is AST-selected source
+coverage, not normal import of the entire7k-line NPC test module or client proof.
+
+Root has explicitly taken FIVE public readonly Combat adapters:
+cover_ray/visible_target/trace_barrier/_splash_targets/_splash_barriers. C will not
+edit those new methods. Required contracts sent: trace returns same support
+piece and actualwalls manager identity; splash returns actualobject/service/
+amount, respects passed preview Target poses and impact exclusion. Root will
+map current sole Photon/Win/Rein/Walls/Orisa/Sigma geometry, no managers/pools.
+C54 continues old phase/Heavy/Zarya/Rocket fields and route-preview signatures
+inside Sentry proof. Source imports phase_defenses and calls old heavy phase/
+instance, zarya_barriers.projected, rocket.implicit_absorbable/impact_damage,
+Match.step_bot_pose; these are not yet real current consumers. Generic owner
+phase-expiry/respawn history remains separate. Preserve original guards/asserts.

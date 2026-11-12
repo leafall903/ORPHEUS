@@ -98,6 +98,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Admit natural allied support in frozen sentry history
+
+- The existing bounded proof now admits natural/cancelled allied Ice Wall support
+  using the same NPC/combat driver. Unit acquisition and historical proof share
+  the same actual unit filter; a solid column is not another beam enemy.
+- Original22 shared methods pass. Original source NPC support checks progress
+  through explicit delivered mover data; old dedicated-rocket observer errors
+  and the pending final selected check are recorded without weakening assertions.
+- Impact/projected-retarget adapters remain an explicit following batch.
+
 ### Exercise Ice Wall causal storage through its real owner
 
 - Existing causal storage check now selects Mei and casts five original pillars
