@@ -640,6 +640,11 @@ def _recipient_live(fight, barrier):
 
 def _live(fight, barrier):
     owner = barrier.parent
+    if barrier.component.world.hero == MEI:
+        from ow174.game import mei
+
+        if mei.cryo_world_expired(owner):
+            return False
     instance = barrier.source.instances.get(barrier.instance)
     state = instance.states.get(barrier.state) if instance is not None else None
     return (not barrier.retired and not owner.gone and owner.has_body

@@ -2019,3 +2019,50 @@ existing shared helpers, not whole old Combat. End-of-update Torb turret attacks
 currently occur after the in-loop removal sampling; include their barrier
 removals before final sentry settlement in the next boundary. Do not claim
 complete0016 equivalence or let these retained failures block this batch.
+
+
+## C48 — solid Cryo cover and actual sentry release (2026-11-12)
+
+C47 saved as2e4a24022925f74ae127367199ca942e2b0ba40f. This batch mounts original
+0016 cover_ray1605/_cryo_contacts1617 semantics inside existing _cryo_contact:
+all-team actual body capsule contacts are merged with the retained native actor
+proxy distance. Original source explicitly includes all active Cryo bodies,
+without owner/team exclusion; no new target, actor or inferred geometry.
+Acquisition now excludes Cryo itself (original _enemies1148 rule scoped to the
+existing Sentry host). Existing Combat.command's actual Mei protection admission
+releases the same sentry target/aura immediately, as source command686 did.
+B50's proven cryo_world_expired is reused in the pure active query and the
+existing barrier _live gate: stale physical ice retires at that same known
+birth-pair deadline without body VM stepping, input lease or world timer.
+Protection stack's existing authored exit phase is preserved on ordinary input.
+
+Stable v18 checks: full restored original10Cryo run25.164s before the final
+acquisition/release additions:1pass/9failedmethods/11assertrecords. World-only
+expiry now gets past old cryo.active True failure; later source expects5 beam
+ticks3.2 but actual B50 birth-pair endpoint admits6ticks3.84. No clock shifted to
+force old assertion. Other retained failures cover old cancel/exit expectations,
+self-heal sampling .75vs200/16.75vs16, grenade/melee/orb cover; these consumers
+are not claimed complete. Log ../worker-c-symm-cryo-cover-check.log.
+
+After acquisition exclusion: original2CryoSentry + actual rawMei epoch +14Sentry
++8Damage,25run197.792s:23pass/2retainedfail. Actual raw strict-storage probe
+passes with birthpair(1012,1044), world1020/body1085/deadline1303; world-only
+expiry leaves actual state35 active and body frame/now(1085,17375) frozen yet
+allows original130 damage, no inputlease; strict digests/replace checks pass.
+Log ../worker-c-symm-cryo-target-check.log. No source changes during this group.
+
+Final immediate-release change reran the2 original CryoSentry methods7.669s:
+first now passes solid-cover/no-target/no-damage assertions before remaining
+post-cancel reacquisition failure at180. Second now passes immediate clear of
+target, slow, old aura identity and variable, plus20tick no-slow assertions;
+only post-cancel active query at253 remainsTrue during existing protection exit.
+Original first baseline failed176, second baseline failed246; actual consumers
+progressed rather than rewriting assertions. No fullpass claim.
+Log ../worker-c-symm-cryo-release-check.log. All original assertions/files retained.
+
+Next C49: finish barrier removal observation after final Torb turret attacks;
+map retained Sentry helpers to actual cover/splash/phase/Heavy/Zarya services and
+mount proven frozen-history selection and per-tick update calls. Source0016
+phase_clocks, respawn isolation, replay_ice/replay_owners/frozen policies remain
+explicit gaps. Cryo cancellation exit and source0016 bare-world healing do not
+justify disabling the current single HealingEffects ledger or B50 raw epoch gate.

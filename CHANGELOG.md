@@ -16,6 +16,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   Full source/shared checks remain next; no client acceptance run.
 
 
+### Connect original solid Cryo cover and sentry release
+
+- Merge original all-team Cryo body-capsule cover with the existing native proxy;
+  actual sentry acquisition excludes ice and entering Cryo releases its aura.
+  Existing proven Mei world deadline also retires stale ice without stepping VM.
+- Original raw unequal-epoch/strict storage +14 Sentry +8 Damage methods pass;
+  two original Cryo/sentry checks now reach remaining cancellation-exit differences.
+  Preserve all original assertions and the existing protection/healing owners.
+
 ### Restore existing sentry cover-history consumers
 
 - Sentry damage integration receives actual expired/broken Photon and Winston
