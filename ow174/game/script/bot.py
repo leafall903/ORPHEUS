@@ -12,6 +12,9 @@ from ow174.game.script import body_owner, entity_link, entity_queries, expr, gra
 from ow174.game.script.driver import BodyWorld, OWNER_HEALTH, ReplicatedBody, Snapshot, create_body_graphs, create_initial_graphs
 
 DIED = 0x024000000000003E  # 003E.025, the body's authoritative death message
+DEATH_VOLLEY_GRAPH = 0x2535
+DEATH_VOLLEY_MODE_FLAG = 28300
+ARCHIVES_MODIFIER_FLAGS = (DEATH_VOLLEY_MODE_FLAG, 34924)
 RESET = 0x0240000000000013  # 0013.025, the placement's eligibility reset
 FIRING_GRAPH = FIRING & 0xFFFF
 PRACTICE_NAMEPLATE = 0x0D24
@@ -373,6 +376,12 @@ class BotWorld(runtime.World):
         super().send_message(target, message, params, sender)
 
     def entity_var_slot(self, entity: int, var: int, *, create: bool = False):
+        if entity == runtime.GAME_MODE_ENTITY and var in ARCHIVES_MODIFIER_FLAGS and self.match is not None:
+            host = self.match.scene_host
+            if host is not None:
+                slot = host.world.entity_var_slot(entity, var, create=False)
+                if slot is not NotImplemented:
+                    return slot
         controller = self.controller
         selected = var in (7681, 9134) or (self.hero == ASSASSIN_HERO and var == ASSASSIN_TARGET)
         if controller is not None and entity == controller.entity and selected:
@@ -525,7 +534,30 @@ class BotWorld(runtime.World):
                             self.match.combat.assassin_damage(state, reach)
                         return
 
+    def has_archives_modifier(self, flag):
+        entity = runtime.GAME_MODE_ENTITY
+        slot = self.entity_var_slot(entity, flag)
+        return self.entity_var(entity, flag) is not None if slot is NotImplemented else slot is not None
+
+    def play_archives_modifier(self, instance, node):
+        if self.match is None or (instance.graph.index, node.pos) != (0x0E62, 117):
+            return False
+        if not any(self.has_archives_modifier(flag) for flag in ARCHIVES_MODIFIER_FLAGS):
+            return False
+        resource = play.resolve_resource(instance, node)
+        entity = instance.component.entity
+        if (resource is None or resource.guid != 0x0580000000002535
+                or instance.evaluate(node.field("m_targets")) != expr.Entity(entity)):
+            return False
+        definition = graph.graph(DEATH_VOLLEY_GRAPH)
+        if definition is None:
+            return False
+        instance.component.play_loaded_graph(definition, source=entity, instigator=entity)
+        return True
+
     def play_script_host(self, instance: runtime.Instance, node: graph.Node) -> bool:
+        if self.play_archives_modifier(instance, node):
+            return True
         if self.hero == ASSASSIN_HERO and self.match is not None:
             return self.match.combat.assassin_play_capture(instance, node)
         if (self.hero != HEAVY_ASSAULT_HERO or self.match is None
