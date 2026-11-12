@@ -2,7 +2,7 @@
 
 import math
 
-from ow174.game import assassin, bots, combat, heavy_assault, immunity, npc_context, npc_navigation
+from ow174.game import assassin, bots, combat, heavy_assault, immunity, npc_context, npc_navigation, sniper_reposition
 
 AIM_RANGE = 100.0  # sandbox selection/engagement policy in metres, not a native AI range claim
 SNIPER_WEAPON, SNIPER_TRIGGER, SNIPER_AIM = 0x1122, 4, 34
@@ -49,11 +49,16 @@ def selected(match, player):
     return target.owner
 
 
-def start(match, player):
+def start(match, player, *, reposition=False):
     bot = selected(match, player)
     if bot is None:
         raise ValueError('No living manual enemy under the crosshair')
     value = button(bot)  # validate before changing policy
+    if reposition:
+        sniper_reposition.begin(match.combat, bot, player)
+    elif bot.attack_mode == "reposition":
+        sniper_reposition.stop(bot, match.tick)
+    bot.attack_mode = "reposition" if reposition else "primary"
     if bot.hero == 0x02E00000000001CE:
         component = bot.body_script.component
         index = component.entity_var(9948).value()
@@ -94,6 +99,9 @@ def stop(match):
         bot.firing = False
         bot.attack_target = None
         bot.attack_input = False
+        if bot.attack_mode == "reposition":
+            sniper_reposition.stop(bot, match.tick)
+        bot.attack_mode = "primary"
         npc_navigation.stop(bot, land=True)
         reposition = npc_navigation.reposition_state(bot)
         if reposition is not None:
@@ -198,6 +206,11 @@ def update_input(fight, bot):
     previous_target = bot.attack_target
     target = target_player(fight, bot) if active else None
     enabled = target is not None
+    if bot.attack_mode == "reposition":
+        if not enabled:
+            sniper_reposition.stop(bot, fight.tick)
+        elif sniper_reposition.repositioning(bot):
+            enabled = False
     if enabled and bot.hero == assassin.HERO and immunity.control_immune(target.owner, target.entity):
         enabled = False
     if enabled:

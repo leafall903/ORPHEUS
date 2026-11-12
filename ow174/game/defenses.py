@@ -207,8 +207,39 @@ def timed_protection(owner):
     return intangible(owner) or cryo_protected(owner)
 
 
+def call_mech_immune(actor):
+    """The delivered owner-only026A entry/CombatModFilter intersection."""
+    script = getattr(actor, "body_script", None)
+    if getattr(script, "hero", None) != DVA:
+        return False
+    component = script.component
+    if script.retired or component.owner_dead or component.fault is not None:
+        return False
+    for instance in component.instances.values():
+        if instance.graph.index != 0x026A:
+            continue
+        entry = instance.states.get(12)
+        state = instance.states.get(24)
+        if (entry is not None and entry.active and not entry.ending
+                and state is not None and state.active and not state.ending
+                and state.node.cls == "STU_D07EBF01"
+                and state.node.field("m_target") == {"$": "STU_B5A0CAF0", "m_EE729DCB": 0}):
+            return True
+    return False
+
+
 def invulnerable(owner):
-    return timed_protection(owner) or active_state(owner, ZENYATTA, 0x017B, 3) is not None
+    return (timed_protection(owner) or call_mech_immune(owner)
+            or active_state(owner, ZENYATTA, 0x017B, 3) is not None)
+
+
+def protection(owner):
+    """Retain the delivered protection query over combined defensive scopes."""
+    from ow174.game import reaper
+
+    if reaper.intangible(owner):
+        return "intangible"
+    return "immune" if invulnerable(owner) else None
 
 
 def projectile_protection_active(owner):

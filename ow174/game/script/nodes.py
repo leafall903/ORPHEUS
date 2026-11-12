@@ -3022,6 +3022,7 @@ class WeaponVolley(State):
         self.rate = 1.0
         self.spread0 = 0.0
         self.spread_ramp: float | None = None
+        self.spread_decay = 0.0
         self.links: list[Var] = []
         self.reported = 0  # shots of this activation already put on the component's shot list
         self.last_values: dict[tuple, object] = {}
@@ -3077,10 +3078,15 @@ class WeaponVolley(State):
         self.spread0 = min(1.0, max(0.0, to_float(spread.value()))) if spread else 0.0
         launch = _field(self, "m_5EC1EB38")
         self.spread_ramp = None
+        self.spread_decay = 0.0
         if (isinstance(launch, dict) and launch.get("$") == "STU_239B571E"
-                and launch.get("m_23C72C36") is None):
+                and (launch.get("m_23C72C36") is None
+                     or (self.instance.graph.index, self.node.pos) == (0x012E, 30))):
             cfg = launch.get("m_AC20B1C1")
             self.spread_ramp = f32(to_float(self.evaluate(cfg, watch=False))) if cfg else 0.0
+            decay = launch.get("m_23C72C36")
+            if decay is not None:
+                self.spread_decay = f32(to_float(self.evaluate(decay, watch=False)))
         self.links = []
         for slot, (name, value) in enumerate(
             (("m_24E351A4", self.ammo0), ("m_17770E7E", self.rate), ("m_3FFC9EB9", self.spread0))
@@ -3138,8 +3144,15 @@ class WeaponVolley(State):
         return self.spread_at(self.now - self.start - self.offset)
 
     def spread_at(self, elapsed: int) -> float:
-        """D80A50 normalized spread for the launch without between-shot decay."""
-        return self.spread_for_index(self.shots_at(elapsed) + 1)
+        """D80A50 ramp with Bastion Recon's authored between-shot decay."""
+        index = self.shots_at(elapsed)
+        spread = self.spread_for_index(index + 1)
+        if self.spread_decay > 0:
+            previous, following = shot_time(index, self.rate), shot_time(index + 1, self.rate)
+            if previous < following:
+                fraction = f32(f32(elapsed - previous) / f32(following - previous))
+                spread = max(0.0, f32(spread - f32(fraction * self.spread_decay)))
+        return spread
 
     def spread_for_index(self, index: int) -> float:
         """D80A50 accepts a count supplied by its caller."""
@@ -3151,6 +3164,9 @@ class WeaponVolley(State):
         return min(1.0, f32(increase + f32(self.spread0)))
     def spread_for_count(self, completed: int) -> float:
         return self.spread_for_index(completed)
+
+    def spread_after_shots(self, count: int) -> float:
+        return self.spread_for_index(count)
 
 
     def on_end(self, finished: bool) -> None:
