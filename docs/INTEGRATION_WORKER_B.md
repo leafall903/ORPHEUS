@@ -2471,3 +2471,34 @@ A37A/D379 indexed lookup/scalar interfaces; then original distance/possession
 publicregistries vs currentAIBehavior/AIControlOverride exactclassID mapping.
 Retain oldSDK APIs without replacing authoritative currenthost or pretending
 legacyfixture backend conflicts are missing gameplay features.
+
+
+## B88 — retain explicit typed NPC-query backend alongside current services
+
+Original01CA npc_queries.Context exposes explicit entity(owner,selector) and
+pair(owner,target) callbacks with causal binding/instance validation and exact
+Entity/bool result checks. Current sameclassID services use indexed_target_lookup
+and target_record_scalar with typed failed/float semantics. Preserve current
+actual dispatch by default; it does not replace this explicit public callbackSDK.
+
+Restore original module byte-for-byte and original Scene setter/getter, default
+unknown World API, same Scene binding dictionary and unbind/script-retirement
+cleanup. Current scalar evaluation tries this backend before entity_queries;
+unknown sourcebinding returnsNotImplemented without selector effects, leaving
+currentlookup/scalar paths intact. Only explicitly supplied originalcontext uses
+originaltyped contract. No auto callback namespace/controller/host or inferred
+bool-from-currentfloat conversion. Shared strictScene metadata registers exact
+npc_query_contexts field; arbitrary callback exports still obey existingstrict
+callable boundaries. C notified to preserve metadata union.
+
+Original unchanged sourceScene callback/typedargs/retire-ID test plus current
+entity_queries/runtime42/42 pass1.664s, worker-b-npc-query-sdk.log. Clean sync
+root8d973451 at worker34918591 retained bothpet_relation and controller_query
+runtimeimports in sole conflict; root/C SDK and ownerstate additions preserved.
+No original assertions changed, no clientacceptance.
+
+Next exact action: preserve original distance_constraints/possession_requests
+public registries, document actual strongerAIBehaviorState/AIControlOverride
+sameclassID mappings without attaching a second production registration host.
+Then originalAssassinServices vs actualmanual13C2 path equivalence audit and
+final frozen/staged012Fpositive delta inventory. No fullmatrix delivery gate.
