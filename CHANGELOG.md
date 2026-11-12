@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt Charge capture and bump lifecycle
+
+- Route actual Charge contacts to the same Charge record that owns bounded
+  movement. Retain the earlier narrow contact implementation as an unrouted
+  legacy helper; it no longer creates another capture state.
+- Restore generation-aware body contacts, captures after ID reuse, side bumps,
+  independent stun/pin release, team-change release, captured-body death and
+  immediate owner death/retirement/leave cleanup. Bumps and ordinary release
+  use existing additive Knockbacks, preserving immunity and the shared mover.
+- Restore source forced-throttle suppression during Reinhardt hard control so
+  the previous Charge modifier cannot move a stunned body. Other default mover
+  behavior is unchanged. Keep source obstruction exits on the existing record.
+- Original ChargeMovement7/ChargeContact21 plus98 shared mover/physics/runtime/
+  input/epoch checks ran126:124 pass; retain two original source inspections
+  of absent independent Earthshatter controls keys as errors. All original
+  behavioral assertions remain. Log:worker-b-reinhardt-contact-fourth.log.
+- Full source counter-charge, deployable collision, windup interruption and
+  Earthshatter integration continue; original-client acceptance remains open.
+
+
 ### Mount delivered Reinhardt Charge horizontal drive
 
 - Restore source007D's30-degree-per-second steering and authored16.5m/s drive

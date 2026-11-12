@@ -15,7 +15,7 @@ class Charge:
     state: object
     deadline: int
     pinned: int | None = None
-    hit: set[int] = field(default_factory=set)
+    hit: set = field(default_factory=set)
     heading: float | None = None
     activation: int | None = None
 
@@ -31,6 +31,11 @@ def drive(fight, player, command, seconds):
             or player.gone or not player.spawned or player.client is None):
         if (charge := fight.charges.get(player.body)) is not None:
             stop(fight, player.body, charge)
+        return None
+    retained = fight.charges.get(player.body)
+    victim = fight._target_entity(retained.pinned) if retained is not None else None
+    if victim is not None and not fight.match.game_map.free_for_all and victim.team == player.team:
+        stop(fight, player.body, retained)
         return None
     charge = fight.charges.get(player.body)
     wanted = command.yaw * math.tau / 65536
@@ -95,7 +100,16 @@ def sync(fight):
             fight.charges.pop(body, None)
         elif (not charge.state.active or fight.is_dead(owner) or fight.is_stunned(owner)
               or fight.tick >= charge.deadline):
+            victim = fight._target_entity(charge.pinned)
+            release = (victim is not None and not charge.state.active and not fight.is_dead(owner)
+                       and not fight.is_stunned(owner) and owner.spawned and owner.client is not None)
             stop(fight, body, charge)
+            if release:
+                heading = charge.heading if charge.heading is not None else owner.mover.yaw * math.tau / 65536
+                lateral_impulse(owner.mover.position, victim, charge.state.instance.state(49),
+                                (math.sin(heading), 0., math.cos(heading)), fight=fight, frame=owner.body_script.frame)
+        elif charge.pinned is not None and fight._target_entity(charge.pinned) is None:
+            charge.pinned = None
 
 
 def impact(fight, player, target, instance, index, frame):
@@ -107,20 +121,26 @@ def impact(fight, player, target, instance, index, frame):
         fight._damage(player, target, hit.amount, False, hit.loadout, frame, world_tick=fight.tick)
 
 
-def lateral_impulse(source_position, target, state, forward):
-    mover = getattr(target.owner, "mover", None)
-    if mover is None:
-        return
+def lateral_impulse(source_position, target, state, forward, *, fight=None, frame=None):
     payload = state.node.field("m_modifyHealth")
     horizontal = expr.to_float(state.evaluate(payload["m_E33EFEE1"], watch=False))
     vertical = expr.to_float(state.evaluate(payload["m_583C208B"], watch=False))
-    offset, = payload["m_C0139FA6"]["m_expression"]["m_D99EF254"]
+    if fight is not None:
+        offset = 5.0 if state.index == 15 else 2.0
+    else:
+        offset, = payload["m_C0139FA6"]["m_expression"]["m_D99EF254"]
     x = target.feet[0] - (source_position[0] - forward[0] * offset)
     z = target.feet[2] - (source_position[2] - forward[2] * offset)
     distance = math.hypot(x, z)
     # Reconstructed velocity deltas from the authored radial force operands.
     # Native force conversion and recipient resistance are separate.
     scale = horizontal / distance if distance > 0 else 0
+    if fight is not None:
+        fight.knockbacks.apply(target, expr.Vec3(x * scale, vertical, z * scale), impact_frame=frame)
+        return
+    mover = getattr(target.owner, "mover", None)
+    if mover is None:
+        return
     vx, vy, vz = mover.velocity
     mover.driven = False
     mover.velocity = (vx + x * scale, vy + vertical, vz + z * scale)
@@ -195,11 +215,14 @@ def advance(fight, player, command, start, seconds):
 
     script = player.body_script
     if (script is None or script.hero != barrier.REINHARDT or fight.is_dead(player)
-            or fight.is_stunned(player)):
+            or fight.is_stunned(player) or player.gone or not player.spawned or player.client is None):
+        fight.charges.pop(player.body, None)
         return
     instance = next((i for i in script.component.instances.values() if i.graph.index == 0x007D), None)
     running = instance.states.get(3) if instance is not None else None
     if running is None or not running.active:
+        if (retained := fight.charges.get(player.body)) is not None:
+            stop(fight, player.body, retained)
         return
     charge = fight.charges.get(player.body)
     if charge is None or charge.state is not running:
@@ -216,31 +239,35 @@ def advance(fight, player, command, start, seconds):
     enemies = sorted(fight._enemies(player), key=lambda t: (math.dist(feet, t.feet), t.entity))
     if counter(fight, player, instance, forward, enemies):
         return
+    from ow174.game.reinhardt_hammer import _wall_clear
     for target in enemies:
-        if target.entity in charge.hit or isinstance(target.owner, actors.Deployable):
+        key = (target.entity, fight.replacement_ticks.get(target.entity))
+        if key in charge.hit or isinstance(target.owner, actors.Deployable):
             continue
         if sum((p - q) * d for p, q, d in zip(target.feet, start, forward, strict=True)) < 0:
             continue
         c, d = target.segment()
         if (math.dist(*closest_segments(a, b, c, d)) > radius + target.radius
-                or not capsule_visible(fight._collision(), a, c, d, target.radius)):
+                or not capsule_visible(fight._collision(), a, c, d, target.radius)
+                or not _wall_clear(fight, a, (target.feet[0], target.feet[1] + 1, target.feet[2]))):
             continue
-        charge.hit.add(target.entity)
+        charge.hit.add(key)
         frontal = math.dist(*closest_segments(a, tip, c, d)) <= width + target.radius
         if frontal and isinstance(target.owner, bots.Bot) and target.owner.body_script is not None:
             immunity = target.owner.body_script.component.entity_var(6601, create=False)
             if immunity is not None and expr.truthy(immunity.value()):
                 stop(fight, player.body, charge)
                 return
-        if frontal and charge.pinned is None and not fight.is_stunned(target.owner):
+        if frontal and charge.pinned is None and not fight.is_stunned(target.owner) and not fight._control_immune(target):
             charge.pinned = target.entity
             fight.interrupt(target)
         else:
             before = fight.vitals_of(target).total
             impact(fight, player, target, instance, 15, command.frame)
             vitals = fight.vitals_of(target)
-            if not vitals.dead and vitals.total < before and not pinned(fight, target.entity):
-                lateral_impulse(player.mover.position, target, instance.state(15), forward)
+            if (not vitals.dead and vitals.total < before and not pinned(fight, target.entity)
+                    and not fight._control_immune(target)):
+                lateral_impulse(player.mover.position, target, instance.state(15), forward, fight=fight, frame=command.frame)
     victim = next((t for t in enemies if t.entity == charge.pinned and not fight.vitals_of(t).dead), None)
     wall = fight._collision().cast_ray(b, forward, player.mover.data.stand_radius + .08)
     if victim is not None:

@@ -15,6 +15,23 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B13 drive3e09ac2d submitted/root accepted71d04534. Synchronized accepted
+ 59c15a5a in local merge0abbce5b (preserved Hanzo climb plus Charge drive).
+- B14 discovers old Combat.charge_contact was still the actual capture consumer;
+  reinhardt_charge.advance was unused. Route the source-adapted advance to the
+  same charges records as movement; legacy helper remains unrouted. No second
+  capture manager remains. Restore generation contacts, immunity-aware bumps,
+  team changes, source death/leave and captured-body death cleanup, native
+  control throttle suppression and additive shared impulse consumers.
+- Original Movement7/Contact21+shared98 ran126:124 pass and2 retained missing
+  controls-key observations for independent Earthshatter sources. Original
+  assertions are intact; test controlled/pinned views read actual existing
+  statuses, and maps read actual charges. Logworker-b-reinhardt-contact-fourth.log.
+- Remaining0007: full mutual/counter charge (Doom/Heavy/Brigitte), charge world
+  deployable consumers/windup interruption and full owner Earthshatter/Fire
+  Strike/lifecycle/credit scope. Do not call the delivery complete yet.
+
+
 - B12 surfaces986eb818 submitted. B13 restores source Charge horizontal drive
   and30deg/s steering within the existing charges records and sameMover. New
   dataclass fields append heading/activation; no positional contract changes.
@@ -211,7 +228,8 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B13 drive batch, then continue0007 source full Charge contacts and
+1. Submit B14 capture batch, then synchronize62dd2bf0 or newer canonical at
+   a clean boundary and continue0007 source counter/deployable Charge and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve
    a single driver while migrating these consumers. Continue source

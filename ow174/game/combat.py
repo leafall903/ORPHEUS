@@ -2531,7 +2531,22 @@ class Combat:
         return None
 
     def charge_contact(self, player, command: Command, start, seconds: float) -> None:
-        """Resolve ordinary Charge on the existing 007D mover segment."""
+        """Use the delivered contact consumer on the existing Charge/mover state."""
+        reinhardt_charge.advance(self, player, command, start, seconds)
+
+    def charge_blocked(self, player, *, impact=True, frame=None):
+        """Delivered obstruction/control exit using the existing Charge record."""
+        charge = self.charges.get(player.body)
+        if charge is None:
+            return
+        target = self._target_entity(charge.pinned)
+        if impact and target is not None:
+            reinhardt_charge.impact(self, player, target, charge.state.instance, 12,
+                                   self.tick if frame is None else frame)
+        reinhardt_charge.stop(self, player.body, charge)
+
+    def _legacy_charge_contact(self, player, command: Command, start, seconds: float) -> None:
+        """Retained earlier narrow host; the delivered controller owns routing."""
         instance = self._charge_instance(player)
         phase = instance.states.get(3) if instance is not None else None
         if phase is None or not phase.active or self.is_stunned(player):
@@ -8756,6 +8771,10 @@ class Combat:
             self.primal_punches.interrupt(victim.body_script)
             self._winston_health(victim, victim.body_script)
 
+        for charge in self.charges.values():
+            if charge.pinned == victim.body:
+                charge.pinned = None
+        self.charges.pop(victim.body, None)
         self.punches.dashes.pop(victim.body, None)
         for casts in (self.slams.casts, self.meteors.casts):
             cast = casts.get(victim.body)
