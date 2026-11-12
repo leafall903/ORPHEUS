@@ -6,6 +6,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Target search for Sombra's Hack
+
+- Decoded the rest of the search's sight in `docs/research/track-targets.md`: the hardpoint list
+  `m_229DD034` belongs to the candidate and is tried first, `m_48837057` counts only with
+  `m_294660A6`, and `m_47AB1887` is a list of two-leg paths. Read Hack's condition opcode by
+  opcode, and where its first gate `#2426` comes from.
+- Hack's searches (`0B1B` nodes 50 and 52) are now answered. Secondary fire at an enemy within
+  15 m and the cone takes him, holds him through the cast, and the graph's own 0.65 s cast and
+  8 s cooldown follow. An ally, an enemy past the range, outside the cone or behind a wall is no
+  target, and letting go before the cast ends starts no cooldown.
+- `STU_AC829876`, "does this entity pass this filter", is answered in Hack's graph with the
+  filter's masks and condition instead of a flat no.
+- Reconstructed, each point named in the note: the server holds `#2426` on, since it plays no
+  mode sender states; a filter that asks for a tag finds nobody, so Hack takes hostile bodies
+  only; nobody is hidden from Sombra (`STU_7C005F8F` is not computed); node 52's two-leg sight
+  paths are not played. What the hack does to its target after the cast is not checked.
+- Added five runtime tests for the search, its refusals, the wall, the cast's length and the
+  cooldown.
+- Passed Ruff and 922 public Python tests. The runtime suite ran 1690 tests with the same 27
+  failures as after the staff change below, none new.
+- Original client, Practice Range: holding secondary fire at a Training Bot draws the purple
+  beams from Sombra's hand to the bot, the beams are gone when the cast ends, and the ability's
+  icon then counts down. No sign on the bot that it was hacked.
+
 #### Caduceus Staff beam in the client and its healing
 
 - Bodies now carry filter bit 0 beside their team in component 26, for players and bots. The

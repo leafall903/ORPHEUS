@@ -169,9 +169,12 @@ def _communication_screen_score(target: "Target", eye, forward, right, up) -> fl
 
 def _communication_visible(
     rays: World | RayWorld, origin, target: "Target", category: int, pose: ModelPose | None, actor_shapes=(),
+    first=(),
 ) -> bool:
-    # CA408C, CA41F6 and CA4227 query the primary anchor, lower body and secondary anchor in order.
-    for key, height_fraction in ((0x0DC0000000000001, None), (None, 0.3), (0x0DC00000000001CD, 0.6)):
+    # CA3B87 tries the search's own hardpoints first. Then CA408C, CA41F6 and CA4227 query the
+    # primary anchor, lower body and secondary anchor in order.
+    points = ((0x0DC0000000000001, None), (None, 0.3), (0x0DC00000000001CD, 0.6))
+    for key, height_fraction in (*((key, None) for key in first), *points):
         point = pose.hardpoint_position(key) if pose is not None and key is not None else None
         if point is None:
             if height_fraction is None:
@@ -610,11 +613,14 @@ class TargetSearch:
     masks: tuple  # STUConfigVarFilter: any, all, excluded entity bits, then any, required, excluded relations
     score: tuple | None  # screen weight, then the distance term's low bound, high bound and weight
     limit: int | None
+    hardpoints: tuple = ()  # the candidate's hardpoints the sight rays try before the body's own
 
 
 def filter_admits(masks: tuple, bits: int, hostile: bool, own: bool) -> bool:
     """STUConfigVarFilter's six masks (BCAAE0). A relation mask has 1 for not hostile, 2 for hostile and
     4 for the owner itself; the owner is never hostile."""
+    if not any(masks):
+        return True  # D0E109: with no mask set the test is not made
     any_bits, all_bits, excluded, any_relation, required, excluded_relation = masks
     relation = (4 if own else 0) | (2 if hostile and not own else 1)
     return bool(
@@ -1109,6 +1115,17 @@ class Combat:
                 found.append(target.entity)
         return tuple(found)
 
+    def _masks_admit(self, source, target: Target, masks: tuple) -> bool:
+        bits = HERO_BIT | (DEAD_BIT if self.vitals_of(target).dead else 0)
+        hostile = self.match.game_map.free_for_all or target.team != source.team
+        return filter_admits(masks, bits, hostile, target.entity == source.body)
+
+    def filter_admits_body(self, owner: int, entity: int, masks: tuple) -> bool:
+        """Whether a body passes a filter's six masks as seen from the owner's body (D0DA20)."""
+        source = self.match._message_player(owner)
+        target = next((found for found in self._targets() if found.entity == entity), None)
+        return source is not None and target is not None and self._masks_admit(source, target, masks)
+
     def track_targets(
         self, entity: int, search: TargetSearch, held: tuple[int, ...], admits: Callable[[int], bool],
     ) -> tuple[int, ...]:
@@ -1125,12 +1142,9 @@ class Combat:
         right = aim(mover.yaw + 16384, 0)
         up = aim(mover.yaw, mover.pitch - 16384)
         limit = math.cos(math.radians(max(0.0, min(search.aperture, 360.0)) * 0.5))
-        free_for_all = self.match.game_map.free_for_all
         scored = []
         for target in self._targets():
-            bits = HERO_BIT | (DEAD_BIT if self.vitals_of(target).dead else 0)
-            hostile = free_for_all or target.team != source.team
-            if (not filter_admits(search.masks, bits, hostile, target.entity == entity)
+            if (not self._masks_admit(source, target, search.masks)
                     or not _in_search_volume(eye, forward, search.radius, limit, target)
                     or not admits(target.entity)):
                 continue
@@ -1151,7 +1165,8 @@ class Combat:
             fresh = target.entity not in held
             if fresh and search.limit is not None and len(new) >= search.limit:
                 continue
-            if _communication_visible(rays, eye, target, SEARCH_MASK, self.model_pose_for(target.entity)):
+            pose = self.model_pose_for(target.entity)
+            if _communication_visible(rays, eye, target, SEARCH_MASK, pose, first=search.hardpoints):
                 (new if fresh else kept).append(row)
         found = sorted(kept, key=lambda row: held.index(row[1].entity)) + new
         if search.score is not None:
