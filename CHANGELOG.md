@@ -29,6 +29,60 @@ This log records tested changes and their acceptance status. Entries are grouped
   Charge device175 damage, native Fusion critical17 versus original ordinary6,
   shield-break contact and reflected projectile metadata. Client acceptance open.
 
+### Mount delivered Mei Blizzard flight and area consumers
+
+- Connect original064A release, ballistic terrain/Ice Wall contact,0946 area,
+  original damage/frost cadence, viewer lifecycle, body retirement and stored
+  state. Reuse existing projectile leases and Genji/Matrix/Sigma interception;
+  capture outgoing Nano/Orisa scaling once rather than double applying it.
+- Restore original dependent Mei fixture files and normal module imports. Keep
+  literal expectations and failures: Blizzard20/21 cases pass across the full
+  run and targeted fixture adaptation; wall launch timing remains different.
+  Ultimate/Deflect48:40pass,7fail,1old shield-observer error. Full FrostSources16:
+  15pass,1same observer error. Original Damage/Punch29 and runtime17 pass.
+- Sampled Cryo status history and the remaining wall/weapon/observer differences
+  stay recorded for subsequent integration; no full acceptance claim.
+
+### Apply existing frost modifiers to autonomous NPC navigation
+
+- Feed the existing per-body movement modifier into the same navigator Mover;
+  scale explicit MoveTo speeds and the existing ledge approach without changing
+  targets, planning, clocks, full-control gates or body allocation.
+- Original navigation37 and Mei frost9 all pass14.815s. A real prepared Trooper
+  receiving the actual frost consumer at50% travels0.8056640625 versus
+  1.6123046875 over20ticks, preserving the same navigator Mover.
+
+### Connect original Photon plane casts and shared surface contacts
+
+- Mount original0016 Q confirmation, actor creation and lifetime in the existing
+  Photon host when no mesh is selected; retain the verified configured mesh path,
+  one health pool, cast and cleanup lifecycle. Expose per-actor ray and capsule
+  contacts without synthesizing a mesh or adding another manager.
+- Connect existing cast interruption to control/death and ordinary melee to
+  Photon cover and shell damage; preserve deployed walls after owner death.
+- v9 original Moira/Photon9 pass; v8 original common plane interactions8 pass.
+  Actual Q probes confirm unbounded plane contact and finite configured-mesh
+  bounds. Shared52:41pass,4fail/7errors retained in existing Winston interaction
+  and observer cases; Symmetra charge, Damage and Punch all pass.
+- Original Photon NPC/private-observer equivalence, retained sentry scheduling,
+  sparse charge expiry and other pending owner consumers remain open.
+
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
 ### Restore delivered Orisa and Sigma barrier attack consumers
 
 - Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
@@ -9012,3 +9066,49 @@ no base runtime copy/change or client run/publication. Next exact action: origin
 then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
 0065 actual integration estimate now low-confidence2-5 active worker hours,
 excluding root intake/conflicts and acceptance-only residuals.
+
+A38 clean-boundary sync: absorbed submitted intake2c6fb142 automatically, retaining root control/Frost/Trap ordering and current shield/Shatter paths. Continue source0065 charge integration.
+
+
+## A39 - original single0B8B Junkrat charge host
+
+Activated original charge attach/detach, same-hero reserve, explicit catalog,
+world passive deadline and actual pool-loss012 lifecycle. Current native
+entity_filter.admit host, component76 key provider and possessor query remain
+unique; original hostility backend supplies the current relationship frontend.
+Catalog descriptors contain declared filter/tag inputs, never duplicate health.
+Generic Junkrat passive/damage gains are disabled so only original0B8B awards;
+shared award_ult/source-body/actor guards remain. No second012 emitter or old
+entity_filter manager was installed. Exact callback/target/filter storage is
+registered for actual current dataclasses and lifetime contexts.
+
+Actual original timing expectation passes: passive15 after160 silent ticks,
+no owner-frame advance, no duplicate or late-input extra award. Primary actual
+40 direct+80 splash sends corresponding two loss events totaling120 and awards
+120 once overall. Same-hero body handoff retains120; other-hero switch detaches.
+Actual original tag priorities pass:3C3->60,11E->90,both->60 for real120 loss.
+Original charge snapshot test passes, including deadline/tags/context retirement/
+reserve/detach causal storage. Current filter/tag/mask/collect/queries plus
+Damage/ProjectileTiming76 checks run,73 pass;3 existing errors are the unchanged
+entity_filter missing WILDCARD constant used in its old record backend. Next tiny
+boundary restores its already-inline native0x3FFFFFFF constant, no schema waiver.
+
+Complete original charge resource/combat/snapshot fixtures preserved unchanged.
+Resource fixtures retain old six-argument Target/Context constructor errors;
+normal combat fixture still inherits original NPC health_query import failure
+and pending death-volley constants. No assertion/observer alias workaround.
+Logs: worker-a-junkrat-charge-{original,actual-second,tags,shared}.log.
+Original input hero-lanes/0065/charge-entity-inputs.json configured by
+ORPHEUS_CHARGE_ENTITY_INPUTS. No client run/publication. Next: native filter
+constant, original Mayhem/death-volley on current bot/body hosts, normal fixture
+contract reconciliation and residual actual consumers. Root owns input/ref admission.
+
+
+## A40 - preserve native entity-filter wildcard constant
+
+Restored the missing WILDCARD=0x3FFFFFFF already used inline by native BCAAE0
+mask admission, and shared it with the existing record backend. This fixes three
+pre-existing missing-name errors, without new fallback/schema/graph exceptions.
+Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
+classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
+No client run/publication. Continue original0065 Mayhem/death-volley.

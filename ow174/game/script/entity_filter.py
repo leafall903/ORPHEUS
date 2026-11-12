@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from ow174.game.script import expr, play
 
 CLASS = 'STU_AC829876'
+WILDCARD = 0x3FFFFFFF  # native BCAAE0 admission sentinel, also used by the record backend.
 TARGET_PARAMETER = 8  # Expression opcode 13 uses the authored parameter identifier.
 MASK_FIELDS = ('m_84065FD1', 'm_1E14CCA8', 'm_4EA686DB',
                'm_27CF71D5', 'm_66747E7D', 'm_89831602')
@@ -56,7 +57,7 @@ def matches_masks(bits, cfg, *, relation=None):
     if relation is not None and type(relation) is not RelationResult:
         raise ValueError('expected native relation result or source absence')
     any_bits, all_bits, excluded_bits, any_relation, all_relation, excluded_relation = masks
-    admitted = bool(any_bits & bits) or any_bits == 0x3FFFFFFF
+    admitted = bool(any_bits & bits) or any_bits == WILDCARD
     required = bits & all_bits == all_bits
     excluded = bool(excluded_bits & bits)
     if relation is not None:
@@ -253,7 +254,7 @@ def admit(host, entity, cfg, *, instance, watcher):
         masks = tuple(cfg.get(field, 0) for field in MASK_FIELDS)
         if any(type(value) is not int or not 0 <= value <= 0xFFFFFFFFFFFFFFFF for value in masks):
             unsupported('mask config')
-        if masks[0] != 0x3FFFFFFF and not target.gate61 and any(masks):
+        if masks[0] != WILDCARD and not target.gate61 and any(masks):
             return False
         if watcher is not None and target.bits is not None:
             call('watch', 'target-filter', target, watcher)

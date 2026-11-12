@@ -13,10 +13,12 @@ import random
 import struct
 import types
 import weakref
+import uuid
 from collections import deque
 from pathlib import Path
 
-from ow174.game import symmetra_portals, symmetra_turrets
+from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, npc_controller_storage
+from ow174.game.script import scene
 from ow174.game import (
     assassin_controller,
     enforcer_controller,
@@ -74,7 +76,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import entity_hostility, entity_tags, fold, scopes, support_effects
+from ow174.game.script import entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -84,7 +86,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import body_owner, driver, entity_link, entity_queries, expr, play, runtime, spatial_queries
+from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -115,6 +117,7 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    mei_blizzard.Blizzard: _names("combat flights areas"),
     symmetra_portals.Portals: _names("combat pairs transits"),
     symmetra_portals.PortalPair: _names("owner endpoints instance_id owner_body ready_at"),
     symmetra_turrets.Turrets: _names("combat sentries"),
@@ -145,7 +148,7 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
         "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
@@ -161,6 +164,7 @@ FIELDS = {
     junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
     junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
+    entity_relation.Context: _names("owner context_present lookup relate watch_context retired"),
     junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
     venom.Mines: _names("combat flights mines poison next_number last_tick"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
@@ -260,6 +264,7 @@ FIELDS = {
     runtime.World: _names("hero mode"),
     enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
     assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
+    assassin_controller.Phase2World: _names("hero mode fight body") | frozenset(npc_controller_storage.SCENE_WORLD_FIELDS),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -280,6 +285,7 @@ FIELDS = {
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
+    assassin_controller.Phase2World: _names("auto_scene auto_target sample"),
     venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
     driver.BodyWorld: _names("passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
@@ -291,7 +297,9 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
-    Command,
+    Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
+    entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
+    scene.SceneEntity, scene.Placement,
     combat_profiles.Profiles,
     junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
     entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,
@@ -319,7 +327,7 @@ DATACLASSES = (
     brigitte.BashStun,
     echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
     reinhardt_barrier.RaisedBarrier,
-    genji.Mobility, combat.Frost,
+    genji.Mobility, combat.Frost, mei_blizzard.Flight, mei_blizzard.Area,
     earthshatter.Wave, reinhardt_charge.Charge,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier,
@@ -365,6 +373,8 @@ class _Graph:
             _fail("stored graph value budget exhausted")
         if obj is NotImplemented:
             return ["sentinel", "NotImplemented"]
+        if type(obj) is uuid.UUID:
+            return ["uuid", format(obj.int, "032x")]
         if obj is None or type(obj) in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
         boundary = self.boundaries.get(id(obj))
@@ -490,6 +500,11 @@ class _Graph:
             data = []
         elif kind is types.MethodType:
             data = {"self": self.value(obj.__self__), "function": self.value(obj.__func__)}
+        elif kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
+            data = {"self": self.value(obj.__self__), "method": "get"}
+        elif kind is runtime.Var and npc_controller_storage.is_scene_revision(obj):
+            data = {name: self.value(object.__getattribute__(obj, name))
+                    for name in ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")}
         elif kind is types.FunctionType:
             data = self._function(obj)
         elif kind is World:
