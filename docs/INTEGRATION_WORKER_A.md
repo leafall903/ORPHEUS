@@ -1469,3 +1469,7 @@ Root reassigned original0200 remaining000E dynamic owner/effect wire/manual Assa
 ## Clean synchronization for A69 manual controller association
 
 Absorb2fc50027 original restricted NPC association loader and preceding shared batches. Only changelog union conflict, both entries retained; no runtime source conflict. Parent v18 candidate has exact original5association rows without changed13B definitions. A now adds accessor/actual consumers only, preserving existing automatic hosts.
+
+## A69 clean shared-gate synchronization
+
+Absorb explicit stablead673b00 before pair implementation, retaining C43/C44 body button and ability gates plus latest Mine consumers. Only changelog union resolved; no code conflict or ongoing local test. Root original54 controller/Pin/Mine checks all passed245.116s, corroborating actual A64-A68 boundaries.

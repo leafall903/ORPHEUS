@@ -1019,3 +1019,39 @@ terminal43pass25.969s includes original Mine flight/factory, original controller
 filter/lifetime/namespace and replay manifest checks. Native arithmetic identity
 mutation was independently verified. B44 pending target/creator/lifetime/EMP
 consumers remain explicit, not counted complete. Root has no live tests now.
+
+
+## Controller and cross-owner intake checkpoint
+
+Root000E core989bffc9 and A64-67 are now actually mounted: sole full-frame
+encoder, original LinkedTarget scope/cache and angle clamp, live Match wire
+refresh, Pin/message services and strict causal ownership storage. Original
+controller/filter28 passed; real controller allocator changes/restores both
+VM/server digests. Earlier pending-core statements are superseded.
+
+A60-63 preserve original NPC hard controls, source Recall owner-contract
+classification and the nine-owner core handoff. C42 actual device components/
+slots, C43 logical gates and B44-49 Mine targets/filters/queries/barriers are
+received. Existing numeric, geometry and timing assertions stay unchanged.
+
+Root2fc50027 admits the original five explicit NPC associations as additive
+metadata. Six supplement checks pass. Candidate external v18 adds those five
+rows only: all742 graphs/23 entity records retain equality; source inputs are
+unchanged. Default remains v17 until A's actual manual-controller consumer is
+validated. A68 source00affd86 is receiveda021c341 (real Target guard).
+
+B50 source030e4602 is received92621c27: Mei-only constructor clock pair, exact
+original Chase lifetime mapping, same protection queries and both strict
+exporters. Actual raw independent-domain proof passes; no second healing ledger
+or global phase rewrite. C44 source1396466c is received3d720d03: observed
+application delivery clock/incoming source-retirement replay, retaining B45
+Mine application-start deadline in the resolved device Lock constructor.
+
+Canonical a021c341 is frozen for root90489 controller Pin/LinkedTarget/wire/
+manual Assassin + Mine contacts/barriers joint checks; intake3d720d03 is clean.
+Do not fast-forward canonical while this session is live. External coordination
+records its handle. Worker estimates remain low confidence; C now reports9-20
+active hours, B is producing a per-owner unmapped-consumer audit. Source-path
+audit of32 deliveries has10 whole-ref ancestors; missing paths include many
+alternate inherited implementations, so neither metric proves functional
+completion and neither is reported as a merge-completion percentage.

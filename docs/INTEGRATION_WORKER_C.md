@@ -1752,3 +1752,115 @@ legacyTracer fixture imports refer to different old sombra_hack constants/old
 Vitals.hack_until and must adapt queries to existinghosts with asserts retained,
 not add a fakeHERO/HACK/health namespace. Device lifetime/ownerretire boundary,
 Symmretainedsentry/placement, Mei geometry and Pharah/Bastion priorboundaries open.
+
+
+## C44: incoming application replay with observed delivery clocks
+
+Lock gains optional clock=(actual fight.tick, application.start recipientms) at
+the same accepted body/device invocation. Existing3-positional construction
+remains valid; missingclock never assumes equalepochs. No newtimer/queue/host.
+Original incoming replay now advances only retained0B32 andorphaned0B1F instances,
+translating each known clockassociation. operation/budgets remain; componentframe/
+now always restored. It does not step recipient BodyScript/consumeinput/movebody.
+Actual dead/retiredsource follows original _shown_sources rule, includingstill-
+shown bodies. DeviceWorld exact0B1F source-exists predicate now uses sameknown
+shown-source set rather than unknownbaseWorld answer. Other nativepaths untouched.
+
+Original application_replay_until adds orphaned acceptedinterval before retained
+combat tail; lastpart remains existingcatchup. Controls removes only stopped
+orphaned actualVMs early; live-source originalworldexpiry policy unchanged. Existing
+recipient history truncates at observedstop when no other application remains,
+not at guessedworld/frame offset. No secondVar/pool/status controller.
+
+Actual ordinary/differentepoch probes:
+- clock(1091,17455), recipientlastbody/component1115/now17855; afteractualcaster
+hero replacement +world-only ticks, VM stops/world1306<originalexpiry1404,
+888restored; bodyframe/componentframe/now exactlyunchanged, faultNone.
+- recipientconstructorbody2000 whileworld1091: clock(1091,32015); stoppedworld1304
+<1404; body/component2000/now32015 unchanged,faultNone. Known capturedpairs differ
+withoutinventedglobalanchors. worker-c-sombra-incoming-clock-probe.log.
+- Same shiftedbody, single10000-worldtick gap to11115: early originalapplication
+chain retiresoldVM/locks, body/component/now(2000,2000,32015) unchanged,faultNone.
+worker-c-sombra-incoming-large-gap-probe.log. No fakeapplication/control injected.
+
+Restored complete original012E test_game_sombra_emp.py. Only actualservice .hacks
+->.sombra_controls.locks, ceil(realuntil/TICK) queries, andactual selected-script
+router name adapted. All original constant Counter identical. No expectedvalue/
+stateclass rename rewritten. Normalimports retained, not ASTselected subset.
+v16 exact python -B -m unittest test_game_sombra_emp
+ test_game_sombra_charge.SombraChargeTests test_ashe_hack
+ test_ashe_emp.AsheEmpTests.test_emp_refreshes_the_lock_from_its_own_impact_after_ordinary_hack
+ test_ashe_emp.AsheEmpTests.test_emp_blocks_abilities_without_suppressing_viper_and_releases_at_expiry
+ test_script_body_owner test_script_entity_filter test_game_script_runtime -v:
+70run92.723s,68pass2retainedfail. All15charge,wholeAsheHack/refresh/expiry,
+stricttypedguards/runtime pass; originalEMP9pass2fail. FullsourceEMP verifies
+cost/delay/whiff/range/terrain/team/shield-only/Helix/deadsource/no-out-of-scope-
+resource resolution. Two failures preserved: snapshotliteral ModifyBodyHealth
+absent(currentactualclass ModifyHealth, strictexport itselfsucceeds), secondEMP
+atline143 total50.72vs50 becausecanonicalZenyatta intrinsicshield regen resumes;
+not mislabeledC44regression/baseline without comparison. EMP pooldrain currently
+bypasses ordinarydamage shield-recovery notifications; auditandconnectexisting
+shieldhost in nextbatch, not weakenregen/asserts. Full logfile6.4MB contains
+unittest inlineVMJSON: inspect boundedlineprefixes, neverprintthewholefailure.
+worker-c-sombra-incoming-original-check.log. Parse/duplicate-method/diff audits
+clean; no Python edits duringgroup. No client/journal/fullacceptance claim.
+
+Next: saveC44 independently, thenC45 missing EMP shieldnotification consumers/
+originalmodule dependencies and code-equivalence inventory below. Do not block
+this implementedreplay because two preservedoriginaldifferences remain.
+
+## Current owner consumer inventory after C44 (not an acceptance matrix)
+
+0006 Torbjorn: Overload/armour/tenpellets/hammer/bodyandsurfaces/realTurret throw,
+repair/death/ownership/Molten/charge allhaveactualconsumers(C13-19); actorSombra
+receiverC42 nowmounted. No knownunmountedTorb featuremodule identified, butfinish
+source-ref equivalenceaudit rather than inferfullcompletion fromtests/ancestry.
+Rough0-1activehour owncodeaudit; sharedobserver/client limits remainseparate.
+
+0008 Pharah: Hover/JumpJet/Barrage set/curves/abort/reflect/eye/independentcover/
+playerandBotimpulse consumers mounted(C4-12). Knownremaining actualedge is frozen
+impact-time cover/broken_particle_barriers forcehandling. CompleteHook counterpart
+ownedB; preservePharah-specific consumer once actualHook lands. Rough1-3hours.
+Do not treat four oldPharah fixturegeometry/timing failures as missingwholemodule.
+
+0015 Bastion: Repair/charge/Reconturret/Sentry/Tank frozenprojectile lifetimes
+mounted(C1-3); root mountedrealSniper consumer. Remainingcrossowner behavior:
+Heavycapture currentlySentry->Recon affects wall295vs235; HeavySentrymelee correct
+amountbutmissingoriginaldisplacement. Audittheseactualstance/movement paths,
+keeporiginalassertions. Rough1-2hours; no needrepeatNPCfullfixture foroldnames.
+
+0016 Symmetra: primary/orb/recovery/charge/Sentries/PortalPair andactualPhoton
+plane-or-meshQ mounted(C20-26/C29). Knownunmounted sourceSentry historicalphase
+inputs: Combat calls sentries.update({}, {}, ()); actualsource needsdamage_starts,
+cryo_expiries/barrier_cover_ends andretainedreplay inputs. Existing_recorded_pose
+compares4tuple whilecanonicalhistory7fields, so must preservecurrenttail and
+actuallybridgecorrectsample, not merely passgraphfile. Genericstrictplacement
+FA02 stillunsupported; auditoriginalstaticconsumer equivalence. Earlier sparse
+Photonexpiry/passivecharge split remainedunaudited; verifyactualcallers before
+claimmissingorcomplete. Sombra endpoint/sentry disableconsumersC42 nowmounted.
+Rough3-6hours, largestuncertainty actualhistoricalgeometry interlocks.
+
+00DD Mei: resources/reload/charge/frost aggregate/realNPCpartialslow/Blizzard/
+singleCryoHealing statusledger consumers mounted(C27/28/30-32). Originalwall
+lift/splash family equivalence remains: footprint/lift/lift_clear/lift_positions/
+move_bot/move_player/show/splash/splash_contacts/step_lifted_bot/volume_clear
+have no same-namedmountedsource interface; actualWalls hasothergeometry, so audit
+realconsumers beforelabelabsence. B50 nowsole Mei-only constructorprotection-
+birth pair/05FE4000ms worlddeadline; C hasnoMei WIP andsharedCryoHealing hasno
+constructorpair toreuse(history.at ismutableintegrationcursor). Rough2-4hours.
+
+012E Sombra: pistol/spread/Camo/nativeownercharge/actualBeacon/Hack/EMP request
+entries,bodybases,reapply,logicalabilities,actualdevices,ownerreplay andnowincoming
+replay mounted(C33-44). Remainingactualconsumer audit: EMPshielddrain needs
+existingrecovery/damage notifications; sourcefullphases/control/grenade/NPC/
+healthpack helpers stillolddependencies/queries and requireactualhost mapping.
+LegacyTracer expects differentold sombra_hack.HERO/HACK andVitals.hack_until;
+do not fabricatealiases/secondhealthservice. Existingprivate sourceobservations
+andworldcontactHelix timingremainrecorded. Rough2-4hours, plusunidentifiedshared
+consumer conflicts. Completeoriginalsource import/protocolaudit, not justtests.
+
+0065 Junkrat and0200 Ashe wereformallyreassignedA, not C remainingqueue. Bowns
+sharedHook andMine lifecycle; A ownsremaining000E/Pin/LinkedTarget wirecoupling.
+AggregateC remaining roughly9-20activeworkerhours(lowconfidence, overlaps);
+unknownsamefunctionconsumer equivalence/geometry canraiseit. Notcalendar estimate
+or linear extrapolation oftestcounts. No acceptance/client workadded to scope.

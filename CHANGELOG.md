@@ -12,6 +12,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
   pass. Original explicit AI association/recipient coupling remains next; no
   client acceptance or extra controller allocation added by this fix.
+### Record cross-owner integration and remaining original consumers
+
+- Persist receipts through the controller/manual-target, Mine/Cryo and incoming
+  EMP batches, plus exact conflict resolution preserving Mine application-start
+  deadlines. Keep candidate association inputs separate until actual admission.
+- Controller/Mine joint checks are still running on frozen canonical a021c341;
+  original assertions and client acceptance limits remain unchanged.
+
 ### Admit original NPC controller associations without replacing selected definitions
 
 - Extend the existing additive graph supplement with the original five explicit
@@ -21,6 +29,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   association rows: all 742 selected graphs and 23 entity definitions stay equal.
   Actual manual controller/context admission remains worker A work; v17 is still
   selected. Original inputs are unchanged and no client acceptance was run.
+
+### Admit actual manual Assassin targets in the existing input path
+
+- Fix the leftover Player-versus-Target identity comparison that rejected every
+  manual Assassin input after target_player began returning real combat Targets.
+  Retain the existing control-immunity predicate and sole control/pin hosts.
+- Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
+  pass. Original explicit AI association/recipient coupling remains next; no
+  client acceptance or extra controller allocation added by this fix.
 
 ### Preserve controller Pin services in causal server storage
 
@@ -142,6 +159,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+
+### Replay incoming Sombra applications on their observed recipient clocks
+
+- Record each existing Lock's actual delivery world/component association;
+  replay incoming EMP and retired-source Hack instances without advancing body
+  input, restoring component clocks and preserving live-source world expiry.
+- Ordinary/shifted-epoch and10000-tick gap probes retire actual applications
+  while recipient body clocks remain unchanged. Original70:68pass, two retained
+  snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
+  remaining owner consumer inventory and rough activehours persisted.
+
 ### Consume original Sombra ability and logical-button silence policies
 
 - Restore original weapon/passive/drawn-blade classification and logical input
@@ -10092,3 +10120,47 @@ remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
 Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
 then original world-only phase/Cryo/Transcendence and Minefield control interruption
 consumers. Retain source input history and all existing native device/owner paths.
+
+
+### B50 — original Mei Cryo world expiry across actual body epochs
+
+- Parent authorized this narrow shared integration; C confirmed no Mei WIP.
+  Existing cryo_samples is the sole mutable healing integration ledger, not a
+  stable constructor world/body pair; it remains unchanged.
+- Added Mei-only immutable BodyScript.cryo_birth=(actual match.tick,start_frame)
+  at its real constructor, registered in both strict exporters. No input lease,
+  world_frame_anchor, second mover, second healing ledger or VM stepping added.
+- Read the original05FE Chase6 lifetime expression (default4000ms), preserve its
+  body-frame floor, then convert with the real constructor pair to world ticks.
+  Only the existing Mei05FE protection/invulnerability queries stop blocking
+  after that deadline; absent/unknown birth/domain retains prior active-state
+  handling. Existing Mine9588 filtering consumes the same protection query.
+- Added real raw network regression: observed HeroPick constructor pair
+  (1012,1044), actual raw cast body1085, independent original250tick expected
+  worlddeadline1303. Deadline-1 remains protected; deadline accepts actual130
+  damage while state35 and VM(frame1085,now17375) remain frozen. Strict BodyVM
+  and server exports detect pair mutation/restoration. Raw S76->Mei replacement
+  produces newpair(1303,1085); retired originalpair stays unchanged. All pass
+  in the persisted test (84.556s), with world_frame_anchor stillNone.
+- Original same-domain Mine Cryo250vs120 failure is fixed; its subsequent
+  velocity0vs>4 assertion remains (queued impulse with no recipient commands).
+  Restored full original4 Mine phase methods/helpers without weaker assertions.
+  Final phase+barrier7run has4 assertions failing across3phase methods; all3
+  barrier methods and mixedCryo/Transcendence pass. Reaper/Moira change VM/frame
+  during world-idle; direct outcomes are at the apparent body-floor+1. A notes
+  owner birth/lease mapping must be audited before calling this a world-clock
+  regression. No global phase/idle strategy was changed to satisfy old fixtures.
+- Shared original Cryo/Damage/runtime35run32pass with3 existing geometry/held-
+  secondary assertions. A separate diagnostic disabling only the new expiry
+  guard reproduces those same3 assertions; expectations were not changed.
+- Split Mine fixtures now import their source helper module without exporting
+  its TestCase class, so normal unittest discovery does not duplicate another
+  module's tests. Reported prior focused counts used explicit classes already.
+- Original-client acceptance and complete Ball delivery remain open. External
+  logs: worker-b-mei-cryo-raw-regression.log, worker-b-mei-cryo-shared.log,
+  worker-b-mei-cryo-legacy-guard-baseline.log, worker-b-ball-mine-phases-final.log.
+
+Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
+concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
+then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
+blocking delivery on these preserved old boundary assertions.
