@@ -809,16 +809,15 @@ external original C#/C++ tool repositories were separately verified clean.
 
 ## Current integrated server invocation
 
-The workspace-root RUN_SERVER.cmd still targets original ORPHEUS main with
-runtime-104319; it does not yet select this combined worktree. Final default
-launcher handoff remains an explicit root item. The integrated server can use
-its existing CLI with the prepared original inputs below, without installing
+The workspace-root RUN_SERVER.cmd selects this combined worktree and prepared
+v18 original inputs using the existing ORPHEUS Python and state directory.
+The integrated server can also use its existing CLI with the inputs below, without installing
 new packages or copying a runtime. These are launch instructions, not a claim
 that a server/client was started during integration.
 
 ```powershell
 Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
-$profile = Get-Content '../parallel-merge/runtime-inputs-v17/environment.json' -Raw | ConvertFrom-Json
+$profile = Get-Content '../parallel-merge/runtime-inputs-v18/environment.json' -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) {
     [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
 }

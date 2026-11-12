@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Select original NPC associations in the combined workspace entry
+
+- Prepared v18 preserves all previously selected graph/entity records and adds
+  only the five exact original NPC associations. Actual same-BotScript pairs,
+  identity/clock/Var ownership/retirement and existing manual-input27 methods
+  pass; original automatic Assassin retains its existing independent host.
+- Select this prepared input through the existing combined launcher. Original
+  source packs, state directory and Python are retained. Manual1177 recipient
+  activation remains A70 work; old Zen observers/assertions remain recorded.
+  No server service or client acceptance session was started.
+
 ### Preserve the original Zen Sniper fixture's manual mode selection
 
 - Map its two old special_attack requests to the existing reposition mode;
