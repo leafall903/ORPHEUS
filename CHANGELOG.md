@@ -87,6 +87,36 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Meteor and the remaining Doomfist shared-service consumers still need
   integration. Original-client geometry/presentation acceptance remains open;
   no game client, network access, publication or push was performed.
+### Mount delivered Mercy fold evaluator and preserve distinct checks
+
+- Mount0004's original A6B80C63 module and native parameter provider through
+  expression/runtime scalar evaluation. Preserve destination values on child
+  failure, report the fold's successful scalar result, share operation/work
+  budgets and unwind temporary providers. Register live scope storage in both
+  body VM and server snapshots; retain the combined public play helpers.
+- Preserve the original fold checks unchanged; all49 fold/expression/runtime
+  checks passed, including actual0B8B metadata subtraction and passive capture.
+- Retain source Mercy Descent and both distinct pending Descent/Valkyrie files
+  under separate test names. Their21-check run passed19; the two historical
+  pending Valkyrie expectations require immediate passive gain where the source
+  and combined host restart the authored passive timer. Keep both versions.
+- Document the0002 owner reconciliation boundary. The D.Va96-check audit passed
+  with seven failures, two errors and one optional skip retained: blocked
+  placement fallback, entry immunity/control, old spread-call/storage interface,
+  missile extreme-angle quantization, lethal credit/landing and pilot projectile
+  retirement remain under reconciliation. No whole-line/client acceptance claim.
+
+### Synchronize worker A with received parallel implementations
+
+- Merge stable canonical a51925d5 into worker A, retaining both changelog
+  histories and all shared Doomfist/Bastion/scene/snapshot consumers.
+- The67-check boundary run passed Reaper interlocks/Shadow, button/runtime and
+  Rocket Punch; Bastion's expiry-boundary method retained two subcase errors
+  because this checkpoint predates C2's Rocket.charge_eligible implementation.
+  Do not weaken these checks or block unrelated integration on the known gap.
+- Four original Reaper world-clock methods also passed unchanged via isolated
+  source AST execution: idle Shadow landing, Wraith expiry, skipped Blossom and
+  released primary/reload. Full source-file imports still name old split APIs.
 
 ### Retain delivered Reaper ability interlock checks
 

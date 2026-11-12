@@ -40,12 +40,20 @@ match the frozen delivery exactly. Next clean-boundary action is to merge stable
 canonical `a51925d5` into this worker, then reconcile remaining cross-hero services
 and source body/lifetime paths before declaring code-level admission.
 
+The canonical boundary merge is now retained. Its67-check run passed the A/B
+groups; Bastion expiry retained two subcase errors for Rocket.charge_eligible
+absent before C2. Root was notified; tests remain unchanged. Four isolated
+original Reaper world-clock methods passed, including idle Shadow movement and
+skipped Blossom. Continue remaining cross-hero consumers; do not recopy game data
+or repeat the full original-client acceptance gate before submitting code.
+
 Next actions, in order:
 
-1. Audit Reaper source body/lifetime boundaries and remaining cross-hero consumers;
-   retain distinct original checks and determine code-level whole-line admission
-   without requiring the complete original-client/geometry matrix to pass.
-2. Complete DVa's remaining shared-service/code consumers, then continue Tracer,
+1. Root owns formal admission of `hero-deliveries/0002` (`4babd033`). Its107-file
+   delivery includes cross-owner source implementations; never replace combined
+   services wholesale to obtain ancestry. Worker A has supplied the Reaper-owned
+   consumers and unchanged interlock checks, not claimed all cross-owner fixtures.
+2. Audit DVa's remaining shared-service/code consumers, then continue Tracer,
    Zenyatta and Mercy, followed by Hanzo and Widowmaker. Source trees are at
    `verification/hero-lanes/<ID>/source`; refs are the frozen delivery evidence.
 3. During Mercy reconciliation compare both preserved files in
@@ -60,3 +68,46 @@ not themselves merge blockers; genuinely absent code consumers still need work.
 Rough worker A effort estimate:23–53 agent-hours, low confidence. The main
 uncertainty is shared code drift and unrelated dependencies included in frozen
 hero deliveries; do not extrapolate a completion percentage from test counts.
+
+Reaper source reconciliation boundary (code, not original-client acceptance):
+
+| Delivered consumer | Mounted implementation and evidence |
+| --- | --- |
+| 0019 shotgun, Reaping, authored 0B8B charge/ring sampler | fd09a36f; three source modules identical to frozen ref |
+| 0044/0045 Blossom, pulse/body/surface clocks, idle body advance | bf7fad86;45 focused checks and original skipped-world method |
+| 00F2 selector/confirm/cancel/locked landing, native button transition edges | 0e13388f;31 original checks and idle Shadow landing method |
+| Returned shotgun ownership, retained Nano, current deflector support, admitted charge | 1e5e2358;38 focused checks, real-input ownership and Sound Barrier probes |
+| Mutual ability/resource exclusion | a3808633;three original interlock checks unchanged and passed |
+
+Cross-owner reconciliation remains explicit: original `ana`, `dva_matrix`,
+`lucio_barrier`, `sigma_grasp`, `amplification`, `discord` and `mercy_beam` names
+map to combined control/interception/Sound Barrier/Sigma/Baptiste/Zenyatta/support
+services. Preserve their frozen expectations. The actual Mercy beam consumer is
+also worker A's later0004 work; the A2 admitted-support contract does not establish
+blue-beam admission. Native eye/head geometry causes original Deflect fixture
+differences already recorded above. Root may admit Reaper-owned code without
+waiting for those clients/geometry results, but must audit other owners before
+claiming the entire107-file delivery reconciled. No original check was weakened.
+
+DVa audit in progress after clean merge7089daad: blocked placement returns the
+correct `placement.Result(None)` with the obstacle body present, yet the authored
+fallback continues into TrackTargets (state19 counter1). Placement engine and
+BodyPlacement adapter match frozen007A exactly; diagnose the remaining scope/
+fallback routing rather than widening collision or changing the expectation.
+
+Audit result:96 checks, seven failures, two errors, one optional skip. The
+placement difference is now explained: frozen source has entity variable545
+unset, while combined communication-wheel/mover writes grounded=True; original
+026A:100 then deliberately chooses fallback. Preserve the shared grounded bridge.
+Genuine next DVa consumers to reconcile are entry control immunity and original
+pilot Light Gun projectile retirement. Preserve the old spread-call/storage and
+angle/kill/landing expectations for the other known differences. Log:
+`verification/worker-a-dva-audit-full.log`; source placement baseline passed.
+
+Mercy batch mounted the original0004 `script/fold.py`, original native provider
+and scalar success/destination semantics with body/server snapshot registration.
+All49 fold/expression/runtime checks passed. Distinct pending Descent and Valkyrie
+checks are retained as `_retained.py`, alongside the original source Descent and
+existing source Valkyrie. Their21-check run passed19; two historical pending
+Valkyrie immediate-passive expectations remain failed and unchanged. Continue
+actual0004 healing-status/regen chronology reconciliation after the DVa consumers.
