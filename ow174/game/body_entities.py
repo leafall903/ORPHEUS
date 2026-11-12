@@ -214,7 +214,7 @@ def _advance_mech(pilot, bot, command, seconds, tick, *, posed=True, endpoint=Tr
         match.combat.controlled_mech_command(bot, command, snapshot, blocked or not posed, pilot.quanta)
         active = match.combat.movement_mods(bot, statescript_mods(script.component), tick=tick)
         mover.track_mods(active, command.frame, posed=posed)
-        mover.script_data = statescript_mover_data(script.component)
+        mover.script_data = statescript_mover_data(script.component, mover=mover, frame=command.frame + 1)
         mover.flight_scale = statescript_flight(script.component)
 
 

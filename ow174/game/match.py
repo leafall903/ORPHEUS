@@ -357,6 +357,7 @@ class Player:
         )
         if script is not None and script.world_frame_anchor is not None:
             fresh = [item for item in fresh if item.frame > script.frame]
+        fresh = [item for item in fresh if not self.match.combat.knockbacks.replayed_pose(self, item.frame)]
         self.match.combat.hooks.observe_input(self, fresh)
         if fresh:
             data = echo_movement.effective_data(self)
@@ -470,6 +471,8 @@ class Player:
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
         fight = self.match.combat
+        if not replay_accepted:
+            fight.knockbacks.observe_pose(self, command.frame, tick)
         fight.knockbacks.prepare_victim(self, command.frame)
         command = fight.punches.command_input(self, command)
         step_hook_victim = getattr(self.match.scene_host, 'step_hook_victim', None)
@@ -759,7 +762,7 @@ class Player:
             charge.set_pending_credits(script.world, tuple(credit for credit in pending
                                                           if credit[0] > script.component.now))
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
-        self.mover.script_data = statescript_mover_data(script.component) if script else None
+        self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=command.frame + 1) if script else None
         self.mover.flight_scale = statescript_flight(script.component) if script else None
         retained = getattr(self, "valkyrie_pose", None)
         if retained is not None and command.frame >= retained.through:
@@ -778,7 +781,7 @@ class Player:
                     if key[0] == instance and key not in active and mod.end is None:
                         mod.end = frame + 1
         self.mover.track_mods(statescript_mods(script.component), script.frame, posed=False)
-        self.mover.script_data = statescript_mover_data(script.component)
+        self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=script.frame + 1)
         self.mover.flight_scale = statescript_flight(script.component)
 
     def clear_valkyrie_pose(self) -> None:
@@ -1909,6 +1912,7 @@ class Match:
         self.combat.orisa.superchargers.bind_owner(player, script)
         script.created(create)
         player.body_script = script
+        self.combat.knockbacks.observe_body(player, script, self.tick)
         self.combat.junkrat.charge.attach(player)
         if player.hero.guid == 0x02E000000000007A:
             from ow174.game import body_entities
@@ -1924,6 +1928,7 @@ class Match:
             body_entities.release_control(player)
         script = player.body_script
         if script is not None:
+            player.match.combat.knockbacks.forget_body(script.entity, script)
             player.match.combat.junkrat.charge.detach(player, body=script.entity)
             bodytrace.stopped(player, script)
             initial = script.stream.initial_owner

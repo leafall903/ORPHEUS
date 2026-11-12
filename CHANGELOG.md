@@ -17,6 +17,46 @@ ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
 source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
 three original Mei absolute differences and one old sigma_grasp fixture import
 error, without blocking code. No new defense pool, input bundle or client action.
+## A103 — original typed-row policy on the sole mover modifier ledger
+
+Confirmed original007A typed_override_scalar_order_expiration_and_base_restoration
+expected14 but current modded returned11: typed MoverData rows were ignored before
+scalarx2. Retained that original method text and originaltyped causal storage
+method in normal test_delivered_typed_mover. Restore actual component_data strict
+full-field/finite/nonnegative-integral parsing and typed_data selection. Typed
+STU_ED2B22BD rows now enter current statescript_mods→same Mover.mods with original
+privateindex-1 and priority; same Mod.start/end publication semantics remain.
+modded selects last typedrow before applying existing numeric modifiers.
+
+Player and actual ownedMech sync supply the same mover and precise next-published
+frame to statescript_mover_data. No inferred component/world epoch: actual test
+componentframe100 versus moverpublish10 selects real records starting11, same
+priority/start/key tie and expired rows clear13. Preview script_data remains
+stored for owner queries, but recovered physicalposes use only their own eligible
+mod rows (frame10 base5.5, frame11 selected7), preventing premature preview use.
+Standalone single-profile query preserved; multiple profile query without an
+actual mover clock remains strict rather than inventing timing. Full original
+explicit typed_data API accepts the supplied ordered records.
+
+Current explicit external flight/retained flight_profile keeps its existing
+precedence over typed rows; no Flux/retained Valkyrie path replaced. No new
+manager, ledger, data copy package, mover field or clock. MoverData already had
+exact storage support; original passive whole-server typed mutation is causal.
+Root's platform/Match init/spawn/remote hunks are untouched; only two existing
+Player sync calls and one existing ownedMech sync call change.
+
+Final originaltyped scalar/causal2 + actual published clock/strict parser/external
+flight3 + originalMercy backward/pendingprofile2 + ownedMech recoveredposes1
+=8/8pass23.994s, worker-a-typed-mover-causal-final-check.log. Previous joint added
+Mech melee:8pass/1fail due existing BotScript.hero Mei guard (C notified). DVa
+fusion23184 Nonevs.4 TypeError explicitly reproduced on committedA102 before this
+batch; log worker-a-typed-mover-fusion-baseline.log. Those source assertions remain.
+
+Next finish actual consumer signing. A101 Moira is definitively no missing
+consumer. A102 frozen affiliation is implemented. A final read-only comparison
+of original private FLIGHT_ROLE record versus current per-pose statescript_flight
+must distinguish effective mounted behavior from missing old observer symbols;
+no unproved host/clock duplication or acceptance-green gate will be introduced.
 
 ## A102 — preserve existing grenade launch affiliation in native status routing
 
@@ -335,6 +375,16 @@ already-consumed recipient excluded, same Rocket/one explosion/one damage servic
 A94 protected-body loop now supplies the correct one-pool exclusion. This is an
 existing source behavior, not a new mechanic. Then complete exact source/shared
 mover mapping and handoff; validation/API/resource conflicts remain tails.
+## C70 — original mode-scoped Mei melee projectile absorption
+
+Restored Snowball0059/Mei08BA body registration from existing2250 metadata and its
+actual22F0 defense on the same BodyScript/interception host. Original no-amount
+source41 contact, cone, boxes, tags, cooldown and fresh body lifecycle are preserved;
+ordinary Mei is unchanged. All30 original assert ASTs in six mode methods match
+source and6/6pass; actual body-VM causal case also passes. Broad45run41pass retains
+three original Mei absolute differences and one old sigma_grasp fixture import
+error, without blocking code. No new defense pool, input bundle or client action.
+
 ## C69 — original AI search contract and actual Assassin target IDs
 
 Corrected the existing13C2 provider to return raw IDs to its one typed TrackTargets
@@ -12573,3 +12623,89 @@ with samebodyphysics; endpointpolicy requires realcause evidence nextbatch.
 Later rootasked source0008 controller_query.matches/World.controller_components
 frozenset directSDK audit against B87same-name module/strongpluralRecord; preserve
 both explicitinterfaces, no automaticcontrollerhost. No allmatrix/clientgate.
+
+
+## B96 — observe actual force-recipient epochs without a new input lease
+
+Rootauthorized genericrecipient metadata on soleKnockbacks. body_epochs contains
+(actualBodyScript, immutableactualconstructorpair, latestrealphysicalposepair).
+Match.start_body_script records actualmatch.tick/script.frame afterbinding;
+realnonreplay _step_body_pose records actualtick/command.frame. Replay never
+rewrites these observations. Existinghero world_frame_anchor stays authoritative
+wherealreadydeclared; otherwise maponlythis observedpair with actualframe_ms.
+No impactreceipt pairedwith stalebodyframe, inventedoffset, newWorldphase/lease,
+secondmover/manager or change to heroClockpolicy.
+
+replayed_frames retains actualscriptidentity/completedbodyframe receipt. Incoming
+alreadyphysicallyreplayedframes cannot move/fireagain, including afterforce
+settles; actualendpointframe remains accepted. Match.stop_body_script clears
+onlymatchinglifecycle observations/receipts/launches; newbody starts freshpair.
+Bothfields exactregistered inserverstorage, realBodyScript sharedidentity retained.
+No currentNPCforce/control_mover behavior changed.
+
+ActualRun Soldier(with no world_frame_anchor) constructorworld1000/body2000,
+tworeceivedposes inoneworldtick and4 inputlessinteriorworldposes prove actual
+mapping/burstphase/sourcepair remains unchanged duringreplay; latealreadyreplayed
+FIRE cannotmove/fire; endpointactualcommand updates realposepair; originallease
+staysNone. Hero replacement clearsoldbody clocks/receipts/force andnewbody uses
+actualworld/body4000pair. ActualServer strictsnapshot mutation/restore proves
+constructorpair andcompletedreplayframe are causalstoredstate. Newepoch+runtime
+16/16 pass42.409s, worker-b-force-epoch-storage.log; earlierepoch+priorstorage+
+runtime16/16 pass23.930s, worker-b-force-epoch-mounted.log. Initialnewfixture
+injectedforce before firstCombatworldupdate (fight.tick0 vsMatch1000), causing
+source256 budgetcorrectlynotreach1000; correctednewfixture toestablishactualworld
+beforeforce, retainingbaseline/diagnosticlogs. Originalassertions unchanged.
+
+Endpointphysicalcompletion remains the single confirmedforceimplementation gap:
+B95 preserves endpointrealinput and leavesonepose difference in oldexactgap
+comparison. Do not relabel it observer-only or delaythisreceivableepochbatch.
+Next exact action: original0008 controller_query.matches frozenset predicate +
+World.controller_components directSDK coexistence withB87watchedContext and
+currentpluralRecord backend; then actualSigmaCLI missingfixtureconsumer and
+endpoint physical/input arbitration, eachseparatebatch.
+
+### B original-line integration signature at this checkpoint
+
+- 0007 frozen84d5169c: sourcebarrier/charge/hammer/FireStrike/Shatter mapped to
+  actualreinhardt_barrier/reinhardt_charge/reinhardt_hammer/earthshatter andsole
+  combat/driver/nativeRaisedBarrier pools. Mutual/counter/sourcecontrols/clock/
+  heldinput consumers are mounted; originalnearwallordering1.9cm andsource
+  observer/prototype differences remain numeric/validation scope, not absent
+  secondactors tocreate. ExistingpublicSDK restored B86/B87 and B91–94 adapters.
+- 0009 frozena16208f0: actualwinston.JumpPack/PrimalPunches, Combat Tesla,
+  world_bubbles/nativeBubble actor HP/TTL, charge/control andexistingNPC movement
+  hosts retain sourceconsumers. SourceAssassin publicServices API B90 preserved;
+  actualbroader13C2 AI producer remains currentAssassinController/NpcContext
+  (C audits original0008 radial/masks separately). No secondWinston dome manager.
+- 0040 frozen989ebf7c: actualhook.Hooks +sharedBodyWorld/self_heal/roadhog_charge,
+  primary/secondaryCombat dispatch andwhole_hog.Spec/Motion on soleKnockbacks.
+  Originalplayer/5NPC/ownedDVa worldmotion, existingmover/queue isolation andstrict
+  storage mapped B51–63; victim-credit concretebranches B80. B62 retired earlier
+  ownedDVa skip. WholeoldNPCfixture recovery is notruntimefeature absence; original
+  inclusiveBreather boundary is fixed, laterknownreadinessobserver mapping retained.
+- 012F frozen58d8e57e AND stagedsiblingb6d0581c: currentdoomfist.Punches/Slams,
+  meteor, HandCannon/Uppercut/passive shields plus existingcontrols/solemover.
+  B82–85 restores richerfrozen twoheight/ranking/close-contact/queuedadditive26/
+  timedbrake/Cryocover; B84 explicitgeneral tagcatalog; B94 vectorSDK/recursive
+  replacement. Stagedpositive productionlines audited as simplifications, no
+  independentstaged-only feature found. CurrentstrongerVectorRecord/nodes retained.
+- 01CA frozen9911dfc1: actualball roll/Grapple/Piledriver/Adaptive andball_mines
+  graphactor/HP/impact/fuse/EMP lifecycles, observedbirth/lockhistory adapters and
+  strictstorage alreadymapped. ExplicitSDKRegistry consumer callbacks preserved
+  B88/B89/B91–93 without secondcontroller or duplicateforcehost.
+- 023B frozen3f8a48f1: B ownactualCombat Accretion/projectiles, absorption.Grasp
+  activation/temporarypool/decaydeadline, sigma_barrier andsigma_charge/recovery;
+  originalfilter_context/filter_pipeline/filter_tags/targetSDKs restored. Root
+  owns actualsigma_flux receiver/lift/slam andrestoredfield33 Moverkernel. Original
+  reusedsame-grant expectations andFieldplacement5.210vs5 are retainedsource
+  conflicts, not justificationforsecondpool. Exactremainingtoolcaller: existing
+  verify_sigma_filter_inputs imports missingtest_sigma_symmetra_sentry, whose
+  beamfixture also needs actualSymmAPI adaptation (not fakebeammodule alias).
+- 0068 frozenowner reassignedtoA; no B runtimeWIP, soleZarya hosts preserved.
+
+These signatures identify actualexistingconsumers, not refancestry orfullmatrix
+pass claims. Remainingfiniteconfirmedcode: forceendpointconsumer; source0008
+matches/controller_components SDK; SigmaCLI fixturechain. Broader crossowner
+controller/arena/input-resource conflicts remain explicitlydocumented; original
+clientacceptance notperformed. Rootformalmerge/percent usesits owncanonical
+receipt, not this worker'ssourcecopiedpath count.

@@ -2747,3 +2747,89 @@ with samebodyphysics; endpointpolicy requires realcause evidence nextbatch.
 Later rootasked source0008 controller_query.matches/World.controller_components
 frozenset directSDK audit against B87same-name module/strongpluralRecord; preserve
 both explicitinterfaces, no automaticcontrollerhost. No allmatrix/clientgate.
+
+
+## B96 — observe actual force-recipient epochs without a new input lease
+
+Rootauthorized genericrecipient metadata on soleKnockbacks. body_epochs contains
+(actualBodyScript, immutableactualconstructorpair, latestrealphysicalposepair).
+Match.start_body_script records actualmatch.tick/script.frame afterbinding;
+realnonreplay _step_body_pose records actualtick/command.frame. Replay never
+rewrites these observations. Existinghero world_frame_anchor stays authoritative
+wherealreadydeclared; otherwise maponlythis observedpair with actualframe_ms.
+No impactreceipt pairedwith stalebodyframe, inventedoffset, newWorldphase/lease,
+secondmover/manager or change to heroClockpolicy.
+
+replayed_frames retains actualscriptidentity/completedbodyframe receipt. Incoming
+alreadyphysicallyreplayedframes cannot move/fireagain, including afterforce
+settles; actualendpointframe remains accepted. Match.stop_body_script clears
+onlymatchinglifecycle observations/receipts/launches; newbody starts freshpair.
+Bothfields exactregistered inserverstorage, realBodyScript sharedidentity retained.
+No currentNPCforce/control_mover behavior changed.
+
+ActualRun Soldier(with no world_frame_anchor) constructorworld1000/body2000,
+tworeceivedposes inoneworldtick and4 inputlessinteriorworldposes prove actual
+mapping/burstphase/sourcepair remains unchanged duringreplay; latealreadyreplayed
+FIRE cannotmove/fire; endpointactualcommand updates realposepair; originallease
+staysNone. Hero replacement clearsoldbody clocks/receipts/force andnewbody uses
+actualworld/body4000pair. ActualServer strictsnapshot mutation/restore proves
+constructorpair andcompletedreplayframe are causalstoredstate. Newepoch+runtime
+16/16 pass42.409s, worker-b-force-epoch-storage.log; earlierepoch+priorstorage+
+runtime16/16 pass23.930s, worker-b-force-epoch-mounted.log. Initialnewfixture
+injectedforce before firstCombatworldupdate (fight.tick0 vsMatch1000), causing
+source256 budgetcorrectlynotreach1000; correctednewfixture toestablishactualworld
+beforeforce, retainingbaseline/diagnosticlogs. Originalassertions unchanged.
+
+Endpointphysicalcompletion remains the single confirmedforceimplementation gap:
+B95 preserves endpointrealinput and leavesonepose difference in oldexactgap
+comparison. Do not relabel it observer-only or delaythisreceivableepochbatch.
+Next exact action: original0008 controller_query.matches frozenset predicate +
+World.controller_components directSDK coexistence withB87watchedContext and
+currentpluralRecord backend; then actualSigmaCLI missingfixtureconsumer and
+endpoint physical/input arbitration, eachseparatebatch.
+
+### B original-line integration signature at this checkpoint
+
+- 0007 frozen84d5169c: sourcebarrier/charge/hammer/FireStrike/Shatter mapped to
+  actualreinhardt_barrier/reinhardt_charge/reinhardt_hammer/earthshatter andsole
+  combat/driver/nativeRaisedBarrier pools. Mutual/counter/sourcecontrols/clock/
+  heldinput consumers are mounted; originalnearwallordering1.9cm andsource
+  observer/prototype differences remain numeric/validation scope, not absent
+  secondactors tocreate. ExistingpublicSDK restored B86/B87 and B91–94 adapters.
+- 0009 frozena16208f0: actualwinston.JumpPack/PrimalPunches, Combat Tesla,
+  world_bubbles/nativeBubble actor HP/TTL, charge/control andexistingNPC movement
+  hosts retain sourceconsumers. SourceAssassin publicServices API B90 preserved;
+  actualbroader13C2 AI producer remains currentAssassinController/NpcContext
+  (C audits original0008 radial/masks separately). No secondWinston dome manager.
+- 0040 frozen989ebf7c: actualhook.Hooks +sharedBodyWorld/self_heal/roadhog_charge,
+  primary/secondaryCombat dispatch andwhole_hog.Spec/Motion on soleKnockbacks.
+  Originalplayer/5NPC/ownedDVa worldmotion, existingmover/queue isolation andstrict
+  storage mapped B51–63; victim-credit concretebranches B80. B62 retired earlier
+  ownedDVa skip. WholeoldNPCfixture recovery is notruntimefeature absence; original
+  inclusiveBreather boundary is fixed, laterknownreadinessobserver mapping retained.
+- 012F frozen58d8e57e AND stagedsiblingb6d0581c: currentdoomfist.Punches/Slams,
+  meteor, HandCannon/Uppercut/passive shields plus existingcontrols/solemover.
+  B82–85 restores richerfrozen twoheight/ranking/close-contact/queuedadditive26/
+  timedbrake/Cryocover; B84 explicitgeneral tagcatalog; B94 vectorSDK/recursive
+  replacement. Stagedpositive productionlines audited as simplifications, no
+  independentstaged-only feature found. CurrentstrongerVectorRecord/nodes retained.
+- 01CA frozen9911dfc1: actualball roll/Grapple/Piledriver/Adaptive andball_mines
+  graphactor/HP/impact/fuse/EMP lifecycles, observedbirth/lockhistory adapters and
+  strictstorage alreadymapped. ExplicitSDKRegistry consumer callbacks preserved
+  B88/B89/B91–93 without secondcontroller or duplicateforcehost.
+- 023B frozen3f8a48f1: B ownactualCombat Accretion/projectiles, absorption.Grasp
+  activation/temporarypool/decaydeadline, sigma_barrier andsigma_charge/recovery;
+  originalfilter_context/filter_pipeline/filter_tags/targetSDKs restored. Root
+  owns actualsigma_flux receiver/lift/slam andrestoredfield33 Moverkernel. Original
+  reusedsame-grant expectations andFieldplacement5.210vs5 are retainedsource
+  conflicts, not justificationforsecondpool. Exactremainingtoolcaller: existing
+  verify_sigma_filter_inputs imports missingtest_sigma_symmetra_sentry, whose
+  beamfixture also needs actualSymmAPI adaptation (not fakebeammodule alias).
+- 0068 frozenowner reassignedtoA; no B runtimeWIP, soleZarya hosts preserved.
+
+These signatures identify actualexistingconsumers, not refancestry orfullmatrix
+pass claims. Remainingfiniteconfirmedcode: forceendpointconsumer; source0008
+matches/controller_components SDK; SigmaCLI fixturechain. Broader crossowner
+controller/arena/input-resource conflicts remain explicitlydocumented; original
+clientacceptance notperformed. Rootformalmerge/percent usesits owncanonical
+receipt, not this worker'ssourcecopiedpath count.

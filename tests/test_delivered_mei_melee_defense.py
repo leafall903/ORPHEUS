@@ -143,4 +143,3 @@ class MeiMeleeDefenseTests(unittest.TestCase):
             helper.fire(f, button=MELEE)
             self.assertEqual(mounted[0].state(6).counter, 1)
             self.assertEqual(helper.health(f, f.enemy), 250)
-
