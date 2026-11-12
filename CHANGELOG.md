@@ -9363,3 +9363,8 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 
 - Mount17F6 on current single movement host, with actual pose delivery, scalar reset/additive launch, resistance, flags/landing/phase exit, retirement and strict causal state. Restore Ashe next-pose timing without changing generic Knockbacks defaults.
 - Source/shared25 checks passed; actual normal/Reinhardt reset/launch/land, five NPC120HP loss with Heavy zero-motion, post-BOB-removal skipped parity and controlled pending-victim strict storage passed. Original private queue/spy failures remain recorded for later API reconciliation.
+
+### Worker A50 - BOB on current Heavy capture authority
+
+- Restore original BOB frontal/carry/opposing-charge semantics in existing Heavy1408/1407 Combat consumers and stop cleanup, using the same actual BOB mover. Preserve Player routing and original source victim selection.
+- Actual carry/wall300HP/release, stop, hero replacement and opposing pass/Player capture probes passed; NPC control/runtime/Bob52/52 passed. Preserve complete original BOB-NPC fixture and remaining API/lateral/status audit.

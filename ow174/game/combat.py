@@ -1748,13 +1748,13 @@ class _HeavyTargetContext(_HeavyTargetFilter):
             if owner == expr.Entity(self.attacker.entity):
                 yaw = self.attacker.yaw
             elif self.target is not None and owner == expr.Entity(self.target.entity):
-                yaw = self.target.owner.mover.yaw
+                yaw = self.target.owner.yaw if isinstance(self.target.owner, bots.Bot) else self.target.owner.mover.yaw
             else:
                 return super().native(cfg)
             return expr.Vec3(*deflection.basis(yaw, 0)[2])
         if (kind == "STU_AC829876" and self.target is not None
                 and (cfg.get("m_filter") or {}).get("m_84065FD1") == 1):
-            # This context is created only for a hostile player candidate.
+            # This context is created only for an admitted hostile body candidate.
             return expr.evaluate(cfg.get("m_entity"), self) == expr.Entity(self.target.entity)
         return super().native(cfg)
 
@@ -8724,6 +8724,12 @@ class Combat:
         player.body_script.component.play_loaded_graph(definition, source=source, instigator=source)
         return True
 
+    def _heavy_victim_mover(self, owner):
+        if owner in self.match.players:
+            return owner.mover
+        actor = self.companions.actor_for(getattr(owner, "entity", 0))
+        return actor.mover if actor is not None and actor.bot is owner and not owner.dead else None
+
     def heavy_capture_target(self, state) -> None:
         attacker = self._npc_melee_attacker(state)
         victim = state.evaluate(state.node.field("m_targets"), watch=False)
@@ -8732,7 +8738,7 @@ class Combat:
                 or resource != expr.Asset(0x0580000000001407)):
             return
         target = next((target for target in self._enemies(attacker) if target.entity == victim.id), None)
-        if target is None or target.owner not in self.match.players:
+        if target is None or self._heavy_victim_mover(target.owner) is None:
             return
         player = target.owner
         if player.body_script is None:
@@ -8747,7 +8753,8 @@ class Combat:
 
     def release_heavy_capture(self, source: int) -> None:
         """Retire the source-owned capture on its current victim body."""
-        for player in self.match.players:
+        victims = (*self.match.players, *(actor.bot for actor in self.companions.active.values()))
+        for player in victims:
             script = player.body_script
             if script is None:
                 continue
@@ -8765,14 +8772,14 @@ class Combat:
         if not isinstance(selected, expr.Entity):
             return
         target = next((t for t in self._enemies(attacker) if t.entity == selected.id), None)
-        if target is None or target.owner not in self.match.players:
+        if target is None or self._heavy_victim_mover(target.owner) is None:
             return
         context = _HeavyTargetContext(instance, attacker)
         destination = expr.evaluate(node.field("m_AF774F7D"), context)
         yaw = _number(expr.evaluate(node.field("m_E3779CD0"), context))
         if not isinstance(destination, expr.Vec3) or yaw is None or not math.isfinite(yaw):
             return
-        mover = target.owner.mover
+        mover = self._heavy_victim_mover(target.owner)
         position = tuple(destination)
         distance = math.dist(mover.position, position)
         if not math.isfinite(distance):
@@ -8780,6 +8787,10 @@ class Combat:
         # Sweep the released capsule so the requested pose cannot cross solid cover.
         mover._move_to(TICK, position, distance / TICK + 1)
         mover.yaw = (round(yaw * 65536 / 360) + 32768) % 65536 - 32768
+
+        if isinstance(target.owner, bots.Bot):
+            target.owner.position, target.owner.velocity = tuple(mover.position), tuple(mover.velocity)
+            target.owner.moved_tick = self.tick
 
     def advance_heavy_capture(self, component) -> None:
         """Sweep the source and captured player, then feed contact into the authored transition."""
@@ -8817,8 +8828,10 @@ class Combat:
         victim = selected.value() if selected is not None else None
         if not isinstance(victim, expr.Entity):
             return
-        player = next((p for p in self.match.players if p.has_body and p.body == victim.id), None)
-        script = player.body_script if player is not None else None
+        target = next((target for target in self._enemies(attacker) if target.entity == victim.id), None)
+        player = target.owner if target is not None else None
+        victim_mover = self._heavy_victim_mover(player) if player is not None else None
+        script = player.body_script if victim_mover is not None else None
         if (script is None or self.is_dead(player) or not any(
             i.graph.index == 0x1407 and i.source_entity() == attacker.entity
             for i in script.component.instances.values()
@@ -8839,10 +8852,12 @@ class Combat:
         attacker.moved_tick = component.frame
         # The static host preserves the contact offset and sweeps both capsules.
         # A lost stride larger than the contact tolerance stands in for the native sensor.
-        victim_mover = player.mover
         victim_mover.use(world=self._collision())
         victim_goal = _along(victim_mover.position, travelled, 1.)
         victim_mover._move_to(TICK, victim_goal, speed + 1)
+        if isinstance(player, bots.Bot):
+            player.position, player.velocity = tuple(victim_mover.position), tuple(victim_mover.velocity)
+            player.moved_tick = component.frame
         if max(math.dist(attacker.position, goal), math.dist(victim_mover.position, victim_goal)) > .03:
             attacker.velocity = (0., 0., 0.)
             instance.write(expr.lvalue(contact.node.field("m_26DA7CF8")), True)
@@ -8925,6 +8940,15 @@ class Combat:
         if attacker is None:
             return ()
         query = state.node
+        if query.pos == 96:
+            selected = state.instance.find_var(runtime.INSTANCE_SCOPE, 536, create=False)
+            selected = expr.to_entity(selected.value()) if selected is not None else 0
+            actor = self.companions.actor_for(selected)
+            if actor is not None and actor.bot.body_script is not None and any(
+                application.graph.index == 0x1407 and application.source_entity() == attacker.entity
+                for application in actor.bot.body_script.component.instances.values()
+            ):
+                return (expr.Entity(selected),)  # Retain the source-owned victim until the drive ends.
         context = _HeavyTargetContext(state.instance, attacker)
         eye = expr.evaluate(query.field("m_D59188D5"), context)
         width = _number(state.evaluate(query.field("m_A30B383E"), watch=False), 0.0)
@@ -8939,8 +8963,18 @@ class Combat:
         candidates = []
         eye_position = tuple(eye) if isinstance(eye, expr.Vec3) else None
         for target in self._npc_melee_candidates(attacker, state, query, eye=eye_position):
-            if target.owner not in self.match.players or target.owner.body_script is None:
+            companion = self.companions.actor_for(target.entity)
+            if (getattr(target.owner, "body_script", None) is None
+                    or (target.owner not in self.match.players and companion is None)):
                 continue
+            if companion is not None:
+                if companion.owner.entity != attacker.attack_target:
+                    continue
+                flag = companion.bot.body_script.component.entity_var(6601, create=False)
+                turn = (round(attacker.yaw) - companion.charge_yaw + 32768) % 65536 - 32768
+                if ((flag is not None and flag.value() is True)
+                        or (companion.phase == "charge" and abs(turn) > 16384)):
+                    continue
             x, y, z = _sub(target.feet, attacker.position)
             if x * forward[0] + z * forward[2] < math.hypot(x, z) * threshold:
                 continue

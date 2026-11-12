@@ -549,6 +549,9 @@ class Companions:
         charging = actor.phase == "charge" and carry is None
         stunned = fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot.entity, tick)
         rooted = fight.junkrat.rooted(bot.entity, tick)
+        if carry is not None:
+            # The actual Heavy host already owns the captured body/mover pose.
+            return
         if stunned or rooted:
             mover.velocity = (0.0, mover.velocity[1], 0.0)
         script = bot.body_script
@@ -557,7 +560,7 @@ class Companions:
         command = Command(tick, forward=127 if charging and not stunned and not rooted else 0,
                           yaw=actor.charge_yaw if charging else round(bot.yaw))
         mover.last_command = command
-        mover.step_pose(command, TICK, tick, move_to=carry, ground_override=fight.walls.ground(mover))
+        mover.step_pose(command, TICK, tick, ground_override=fight.walls.ground(mover))
         fight.walls.move_mover(mover, before)
         bot.position, bot.velocity = tuple(mover.position), tuple(mover.velocity)
         bot.held, bot.last_held = mover.throttles, mover.input_throttles
@@ -971,14 +974,17 @@ def _skill_locked(fight, entity, tick):
 
 
 def _carry_move(fight, bot):
-    for source, application in getattr(fight, "heavy_charge_pins", {}).items():
-        if application.component.entity != bot.entity:
+    # Current1408/1407 remains the sole carry driver and sweeps this same mover.
+    script = bot.body_script
+    if script is None:
+        return None
+    for application in script.component.instances.values():
+        if application.graph.index != 0x1407:
             continue
+        source = application.source_entity()
         carrier = next((other for other in fight.match.bots if other.entity == source and not other.dead), None)
         if carrier is not None:
-            from ow174.game.combat import aim
-            direction = aim(round(carrier.yaw), 0)
-            return ((carrier.position[0]+direction[0], carrier.position[1], carrier.position[2]+direction[2]), 20.0)
+            return carrier
     return None
 
 
