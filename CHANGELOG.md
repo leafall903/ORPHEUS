@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Orisa and Sigma barrier attack consumers
+
+- Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
+  native pool damage. Shatter retains their same geometry/pose only when this
+  wave breaks them, preserving stopped fronts without cloning an actor.
+- Synchronize Sigma's authored mode on its posed owner command through the
+  existing host with zero elapsed time after the world tick. Retire the same
+  owner-bound actor/child immediately with its body and clear cached activity.
+- Actual original verified C015 raw+integrity input creates700 health,16.5 speed
+  and1A2A child. All40 focused original interactions/runtime/snapshot pass.
+  Full original24 retains four Brigitte errors and contact8.92968 versus>9.6;
+  keep the full023B owner's authored0.9m launch bias and original expectations.
+- Preserve all original tests: main1399, Orisa40 and Sigma87 assertion counts,
+  order and Constants unchanged; fixture views read real fields and pools.
+  Original-client acceptance remains open.
+
 ### Restore delivered Fire Strike and shattered Winston shell consumers
 
 - Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
