@@ -10,9 +10,9 @@ Workers start from `bf7fad86` in separate worktrees and indexes:
 
 | Worker | Branch | Delivery IDs | Resume record |
 | --- | --- | --- | --- |
-| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A | `docs/INTEGRATION_WORKER_A.md` |
+| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A, 0065 | `docs/INTEGRATION_WORKER_A.md` |
 | `/root/merge_b` | `integration/merge-worker-b` | 0007, 0009, 0040, 0068, 012F, 01CA, 023B | `docs/INTEGRATION_WORKER_B.md` |
-| `/root/merge_c` | `integration/merge-worker-c` | 0006, 0008, 0015, 0016, 0065, 00DD, 012E, 0200 | `docs/INTEGRATION_WORKER_C.md` |
+| `/root/merge_c` | `integration/merge-worker-c` | 0006, 0008, 0015, 0016, 00DD, 012E, 0200 | `docs/INTEGRATION_WORKER_C.md` |
 
 Each worktree is `verification/merge-worker-<letter>` beside this worktree.
 Frozen source refs are `refs/hero-deliveries/<ID>`, with readable source trees
@@ -338,7 +338,8 @@ profile/journal9 pass; Sonic/Dragon32 run30 pass and2 optional input skips.
 No original assertion was weakened. B14 source5d1b6b78 is integrated as
  a4b14efc: source Charge captures/bumps use the same charges record and mover.
 Original54 combined Movement/Contact/runtime/epoch checks have52 passes and
-2 retained old.controls key observation errors, assigned to B's Shatter work.
+2 retained source controls-key errors, subsequently identified as a real independent
+hard-control lifecycle gap and restored by B25 (see current checkpoint).
 C16 sourceb889f287 is integrated as0854671e: actual turret NPC entity, pool,
 owner credit, geometry, build/fire/repair/cleanup and mark consumers. Original
 8 selected turret checks plus NPC/Damage produce23 passes on canonical inputs.
@@ -373,8 +374,8 @@ Storm ricochet7 checks all21 pass on the frozen canonical batch. The actual
 Torb command probe independently confirms two55 hammer contacts reduce the
 single Winston bubble700->590 while body500 and HERO_DAMAGE0 remain unchanged.
 Evidence: parallel-a19-b15-c17-check.log and parallel-c17-actual-torb-shell-check.log.
-No original expectations changed. Two old Shatter controls-key observation
-errors remain documented; A20 launch-frozen admission, B cross-hero/object
+No original expectations changed. Two source Shatter controls-key errors were still open at that checkpoint;
+B25 below restores their actual lifecycle rather than adding an observer alias; A20 launch-frozen admission, B cross-hero/object
 counters, C Molten/charge remain pending. All three workers continue separately.
 All root tests are terminal. Keep original languages, source packs and every
 implementation; incomplete acceptance is not a merge gate. No publication or
@@ -415,3 +416,37 @@ Original Hanzo NPC tests at16m expose the missing explicit search consumer;
 do not weaken those expectations or erase nearby fallback. A continues finite/
 range owned Matrix; B continues source cross-hero/NPC/object counters; C continues
 original Torb charge. Whole nonappearance integration goal remains incomplete.
+
+
+## Current persistent three-worker checkpoint
+
+A32 897b2736 is received as26721b18 (one registered combat-filter host),
+C25 433cd727 ased844bee (original Symmetra placement geometry),
+B24 b49e7c67 asd324a962 (native barrier contact and real nonempty possession
+callback snapshots), and B25 a23ea115 asae7f9c44 (original independent Shatter
+controls lifecycle). Preserve source-specific seconds clocks in controls and
+existing unrelated stuns; Shatter does not write both. Earlier descriptions of
+these controls errors as only observer differences were incomplete.
+
+Canonical advanced from6ef42b61 tod324a962 after its original encrypted Widow
+replay passed (1 test438.966s, parallel-widow-frozen-replay-check.log).
+The frozen6ef42b61 joint core check also passed57 tests. Latest d324a962 joint
+Symmetra/filter/possession/Genji verification runs in root session52507;
+log ../parallel-merge/latest-joint-check.log. Do not mutate canonical until it
+terminates; subsequent submissions go into intake. B25 is committed in intake.
+The v5 minimal original input profile is now
+../parallel-merge/runtime-inputs-v5/environment.json (18 added graphs,7 entities,
+4 Mercy effects; original input hashes unchanged). This is verification of
+committed boundaries, not a full feature or acceptance completion percentage.
+
+All three workers are running. Ownership0065 Junkrat transfers from C to A
+with C confirming no0065 WIP. A continues original Junkrat core; B continues
+remaining original surface/NPC consumers and seven-owner audit; C continues
+real PortalPair/confirmation/interaction, then Mei/Sombra/Ashe and source audit.
+Every worker maintains its branch and INTEGRATION_WORKER record and commits
+existing implementations without waiting for complete acceptance.
+
+Remaining estimate is2–5 continuous days at low confidence. B estimates16–36
+active worker-hours; C16–32, executed concurrently with A and root integration.
+Remaining shared collisions, Ball motion, Sigma pools and Ashe consumers make
+an exact deadline unreliable. No appearance migration or Rust runtime cutover.
