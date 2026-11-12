@@ -366,3 +366,9 @@ barrier/phase/NPC/reflect/expiry edges against current combined managers. Those
 broader original checks are retained, not declared green by ancestry/imports.
 Original0008 impact-time cover and Bastion NPC capture/movement differences
 remain visible. The other six assigned families must continue afterward.
+
+C18 SHA08c8d1bf delivered. Clean boundary synchronizes rootb6859d9b, including
+received C16/C17, explicit v4 composer, owned-mech/Storm/Charge/current scopes.
+Keep Molten update once, root Orisa pending cleanup, then root mark/turret
+updates once; do not duplicate those managers when resolving the same feature
+received by root under another merge SHA. This is coordination, not delivery.

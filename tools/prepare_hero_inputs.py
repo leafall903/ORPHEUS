@@ -49,12 +49,14 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, 
     })
     for path in supplements:
         merged = graph.add_supplement(merged, read_graphs(path))
+    unselected_metadata = {}
     for path in delivered_graphs:
         delivered = read_graphs(path)
         collections = ('graphs', 'entities', 'effect_scripts', 'deployables')
-        for key in delivered.keys() | base.keys():
+        for key in delivered.keys() & base.keys():
             if key not in collections and delivered.get(key) != base.get(key):
                 raise ValueError(f'delivered input conflicts with base metadata: {key}: {path}')
+        unselected_metadata[str(path)] = sorted(delivered.keys() - set(collections) - {'version'})
         known = {row['index']: row for row in merged['graphs']}
         additions = []
         for row in delivered['graphs']:
@@ -102,6 +104,8 @@ def build(runtime, mercy_effects, supplements, movers, projectile_tags, output, 
     }
     if 'deployables' in extra:
         manifest['additional_deployable_keys'] = sorted(extra['deployables'])
+    if delivered_graphs:
+        manifest['unselected_delivered_metadata'] = unselected_metadata
     payload = gzip.compress(json.dumps(extra, separators=(',', ':')).encode(), mtime=0)
     output.mkdir(parents=True)
     supplement_path.write_bytes(payload)

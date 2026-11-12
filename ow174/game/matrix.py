@@ -49,6 +49,7 @@ def loaded_tags():
 
 
 HERO, MECH = 0x02E000000000007A, 0x0400000000000407
+DVA = HERO  # retained delivery name for the same mounted hero identity
 # Build104319 .003 target-tag components. 15E9 has the Matrix exclusion
 # tag 0145. An absent component on a verified definition is an empty set.
 ANA_PROJECTILE_TAGS = {

@@ -548,6 +548,8 @@ class Player:
                     wall_control = (state.start // script.frame_ms + 1, backwards)
                 self.mover.step_pose(command, seconds, tick, speed_scale=speed_scale,
                                      movement_limit=movement_limit, wall_ride=wall_control)
+            elif self.hero.guid == 0x02E0000000000007 and stunned:
+                self.mover.step_pose(command, seconds, tick, suppress_throttle=True)
             elif fall_limit is not None:
                 self.mover.step_pose(
                     command, seconds, tick, movement_limit=movement_limit,
