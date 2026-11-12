@@ -121,6 +121,74 @@ class ZaryaNativeCleanseTests(unittest.TestCase):
 
 
 
+    @staticmethod
+    def boost_end(fight, victim):
+        effect = fight.healing.amp.get(victim.body)
+        return effect.end if effect is not None else 0
+
+    def test_antiheal_blocks_passive_shield_recovery_without_catchup(self):
+        for skipped in (False, True):
+            with self.subTest(skipped=skipped):
+                run, fight, ana, _, zarya = self.encounter(False, protect=False)
+                self.assertTrue(run.match.switch_hero(ana, heroes()[0x02E000000000013B]))
+                ana.mover.position[:] = [0, 1, 0]
+                self.throw_biotic_grenade(run, ana, zarya)
+                vitals = fight.vitals[zarya.body]
+                deadline = self.block_end(fight, zarya)
+                self.assertEqual(deadline - run.frame, 250)
+                self.assertEqual(vitals.now[combat.SHIELDS_POOL], 150)
+
+                if not skipped:
+                    while run.frame < deadline - 1:
+                        run.step({})
+                        self.assertEqual(vitals.now[combat.SHIELDS_POOL], 150)
+                    self.assertEqual(self.block_end(fight, zarya), deadline)
+                run.frame = deadline
+                run.match.update(deadline * combat.TICK, deadline)
+                self.assertEqual(self.block_end(fight, zarya), 0)
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 150.48)
+                for _ in range(20):
+                    run.step({})
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 160.08)
+                self.assertEqual(vitals.now[combat.HEALTH_POOL], 200)
+
+    def test_friendly_grenade_boosts_passive_shields_only_before_expiry(self):
+        for skipped in (False, True):
+            with self.subTest(skipped=skipped):
+                run, fight, attacker, zarya, _ = self.encounter(False, protect=False)
+                ana = run.players[2]
+                self.assertTrue(run.match.switch_hero(ana, heroes()[0x02E000000000013B]))
+                ana.mover.position[:] = [4, 1, 5]
+                ana.mover.body = None
+                attacker.body_script.component.set(87, 100)
+                for _ in range(61):
+                    run.step({attacker: (0, 0, 1)})
+                damaged_tick = run.frame
+                vitals = fight.vitals[zarya.body]
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 36.8, places=4)
+                self.throw_biotic_grenade(run, ana, zarya)
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 136.8, places=4)
+                expiry = self.boost_end(fight, zarya)
+                self.assertEqual(expiry, run.frame + 250)
+                ready = damaged_tick + 188
+                if not skipped:
+                    while run.frame < ready - 1:
+                        run.step({})
+                    self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 136.8, places=4)
+                    run.step({})
+                    self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], 137.16, places=4)
+                    while run.frame < expiry - 1:
+                        run.step({})
+                run.frame = expiry
+                run.match.update(expiry * combat.TICK, expiry)
+                expected = 136.8 + (expiry - ready - 0.5) * 0.72 + 0.48
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], expected, places=4)
+                self.assertEqual(self.boost_end(fight, zarya), 0)
+                run.step({})
+                self.assertAlmostEqual(vitals.now[combat.SHIELDS_POOL], expected + 0.48, places=4)
+                self.assertEqual(vitals.now[combat.HEALTH_POOL], 200)
+
+
 class NativePetApplicationTests(unittest.TestCase):
     def encounter(self, projected):
         source = ZaryaNativeCleanseTests()

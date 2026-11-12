@@ -88,6 +88,12 @@ class HealingEffects:
 
         target = next((t for t in self.combat._targets() if t.entity == entity), None)
         script = getattr(target.owner, "body_script", None) if target is not None else None
+        if target is not None and getattr(script, "hero", None) == 0x02E0000000000068:
+            # Settle the existing shield ledger before this actual status interval
+            # is installed, refreshed, removed or pruned; never discard its history.
+            vitals = self.combat.vitals.get(entity)
+            if vitals is not None:
+                self.combat._recover_shields(target.owner, vitals, self.combat.now)
         if (getattr(script, "hero", None) != regeneration.MERCY or script.entity != entity
                 or script.retired or script.component.owner_dead):
             return

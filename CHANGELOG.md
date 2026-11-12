@@ -10491,3 +10491,35 @@ consumer discrepancy for following audit, not an observer excuse. Two source
 zarya_recovery.bodies observer errors remain; do not create a compatibility ledger.
 The source module and every original failed assertion are preserved. This actual
 recovery boundary is independently committable without waiting for those checks.
+
+## A77 — real Ana status intervals on the same Zarya recovery ledger
+
+The existing Vitals shield recovery now applies the current sole HealingEffects
+anti/amp intervals and original discrete expiry-tick convention for0068. Original
+normal rate30/boosted45, no antiheal backlog and shield-only restoration remain.
+HealingEffects.record_regeneration settles this same existing ledger before real
+modifier install/refresh/cleanse/prune, so sparse expiry cannot discard interval
+history. No source status shadow, numeric rewrite, second regen ledger or new
+controller. Symmetra remains on its unchanged rate path.
+
+Actual real enemy/friendly grenades, normal/sparse delivery:2methods4cases pass
+3.998s; end-of-anti interval grants0.48 then20ticks9.6, original boosted first
+10.5ticks7.56, post-expiry20ticks9.6, white health unchanged. Combined status,
+actual application-pair/queued-allied and original rate modifier6/6pass8.998s.
+Logs worker-a-zarya-recovery-status-first.log and
+worker-a-zarya-status-cleanse-recovery-shared.log.
+
+Two additional original0068 status methods are preserved in the normal module
+with original helpers/asserts/numbers; only current native Pet/actual single
+status-deadline observations map to current fields and identical original250tick
+constant. They run2methods/4subcase failures5.463s before recovery assertions:
+original Ana50 implies shields150, current013B60 gives140; original beam expected
+shields36.8 at100energy now0. Actual Zarya beam damage discrepancy remains next
+owner consumer audit; no original36.8/150 assertion was changed. Log
+worker-a-zarya-source-recovery-status-preserved.log. This does not delay the
+independent implemented status consumer submission. No full suite/client/network.
+
+Next: original barrier start/expiry/cooldown/energy and current Graviton missing
+consumers, plus the now-evidenced actual beam damage path. All within0068 source
+scope and current single actors/pools; existing projected-history ownership and
+original nine-owner residual records remain in force.
