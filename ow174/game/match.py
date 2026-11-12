@@ -350,12 +350,14 @@ class Player:
         )
         if script is not None and script.world_frame_anchor is not None:
             fresh = [item for item in fresh if item.frame > script.frame]
+        self.match.combat.hooks.observe_input(self, fresh)
         if fresh:
             data = echo_movement.effective_data(self)
             self.mover.use(data if data != self.mover.data else None, collision)
         if movelog.ENABLED:
             movelog.commands(self, fresh, received=commands)
         for command in fresh:
+            command = self.match.combat.hooks.input(self, command)
             if self.has_body:
                 if self.match.combat.junkrat.tire.command(self, command, self.match.tick):
                     neutral = Command(command.frame, yaw=self.mover.yaw, pitch=self.mover.pitch)
@@ -478,6 +480,13 @@ class Player:
             self.mover.velocity = (0.0, 0.0, 0.0)
             movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
             self.mover.step_pose(movement, seconds, tick)
+            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            return
+        if (fight.hooks.controlled(self.body) and fight.hooks.drive_allowed(self.body, self)
+                and not self.mover.external_impulse
+                and not combat.reinhardt_charge.pinned(fight, self.body)):
+            # The sole world pull has already moved this same capsule. Input
+            # advances its body VM without integrating another movement pose.
             self._advance_body_frame(command, replay_accepted=replay_accepted)
             return
         if stunned or fight.recalls.locked(self):

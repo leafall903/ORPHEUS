@@ -1265,3 +1265,40 @@ and original failed checks remain deliverable throughout.
 Next exact implementation action: mount original Roadhog01C8/01C9 Hook through
 actual Combat.command/update/retire and the same mover/control services, in a
 small functional batch; then Sigma Flux and Zarya timer/recovery owner code.
+
+
+## B51 — mount original Roadhog Hook on actual players and NPCs
+
+Source: refs/hero-deliveries/0040. Restored original01C8/01C9 launch,
+world-clock flight, damage, capture, pull, input cutoff, interruption and cleanup
+through the sole Combat.hooks manager. Actual player mover, ordinary NPC
+impulse_mover and owned DVa control_mover remain unique; no second body pool or
+VM. Existing Recall/Trap/Graviton/knockback priorities remain. Death and body
+replacement immediately release links. Exact manager/Flight fields participate
+in strict server snapshots; target input clocks come from accepted raw commands.
+
+Verification: original core windup/recovery, command-independent pull and immediate
+death/replacement plus runtime15/15 pass. Actual five NPC factories each take30
+and reuse their existing mover. Actual two-client raw Hook validates active
+strict owner/victim VM and whole-server storage, causal flight/receipt-clock
+mutation and restoration, and raw HeroPick retirement. Actual owned DVa Hook
+reuses its sole control_mover, applies25 after armor, preserves strict Component
+storage and endpoint/release; that regression plus two original DVa tests3/3 pass.
+Original Hook19-test file is preserved with identical full AST/assertions.
+
+Full Hook/Ana/runtime39-run baseline was34pass4fail1error. Immediate Ana death
+failure was fixed and focused checks pass. Remaining original differences are
+Breather same-tick health accounting (15 expected net loss,10.2 actual), immediate
+new projected-shield attachment release (A now owns Zarya), and the old
+body_barriers observer getter. Assertions remain unchanged; polling actual shield
+protection already releases at the next Hook update. No client acceptance run.
+Logs: worker-b-hog-hook-{original,final-core,five-npc-2,raw-storage}.log and
+worker-b-hog-owned-mech-regression.log in external verification storage.
+
+Next exact action after submitting B51: sync the latest explicit canonical SHA,
+then audit original Hog Breather/Whole Hog/native weapon consumers. Root now owns
+Sigma Flux and its original arena/targets/placement/actor-point fixtures; A owns
+Zarya. Do not duplicate those hosts. Remaining B effort after those handoffs is
+approximately14–28 active hours, low confidence: Hog remainder2–5, non-Flux
+Sigma6–12, Rein/Winston/Doom/Ball caller/expiry audit6–11. This is code/audit work,
+not a wall-clock acceptance promise. No completed whole-owner claim is made.

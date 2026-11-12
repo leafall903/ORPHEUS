@@ -119,7 +119,7 @@ from ow174.game import doomfist, meteor, winston, knockback, lucio, orisa, orisa
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
 from ow174.game.brigitte import FLAIL_LOADOUT, WHIP_LOADOUT, BrigitteCombat
-from ow174.game import ball, ball_mines
+from ow174.game import ball, ball_mines, hook
 from ow174.game.collision import MOVER, RayWorld, World
 from ow174.game.commands import Command, JUMP
 from ow174.game.contacts import SKIN, closest_segments
@@ -2104,6 +2104,7 @@ class Combat:
         self.venom = venom.Mines(self)
         from ow174.game import junkrat
 
+        self.hooks = hook.Hooks(self)
         self.ball_mines = ball_mines.Mines(self)
         self.junkrat = junkrat.Junkrat(self)
         from ow174.game import ashe
@@ -2345,6 +2346,7 @@ class Combat:
                 self.sombra_charge.prepare_retirement(player, False)
             self.sombra_charge.retire_body(player.body)
         self.translocators.retire_body(player.body)
+        self.hooks.retire(player.body)
         self.ball_mines.retire(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
@@ -2492,6 +2494,7 @@ class Combat:
                 or any(c.captured == body for c in self.charge_contacts.values())
                 or self.stuns.get(body, 0) > (self.tick if tick is None else tick)
                 or self.source_control_deadline(body) > (self.tick if tick is None else tick)
+                or self.hooks.controlled(body)
                 or self.brigitte.controlled(body) or assassin_victim.controlled(self, body)
                 or self.is_asleep(actor, tick=tick)
                 or self.frost_progress(actor, tick=self.tick if tick is None else tick) >= 1.0)
@@ -2732,6 +2735,7 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        self.hooks.cancel_owner(target.entity)
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
             self.ball_contacts.pop(actor.body, None)
@@ -3415,6 +3419,7 @@ class Combat:
             self._sync_projected_barrier(player, script)
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
+        self.hooks.command(player, command)
         self.breathers.observe(player)
         self.sound_barriers.observe(player)
         if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
@@ -4375,7 +4380,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
+            or self.hooks.flights or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -4517,6 +4522,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.hooks.update(at)
             self.ball_mines.update(at)
             self.junkrat.update()
             self.orisa.update(at)
@@ -10010,6 +10016,7 @@ class Combat:
                 self.deadeye_notices.append((killer, victim, script, root_id, shot_frame, deadline))
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
+        self.hooks.retire(bot.entity)
         hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
@@ -10100,6 +10107,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.hooks.retire(victim.body)
         self.ball_contacts.pop(victim.body, None)
         ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)
