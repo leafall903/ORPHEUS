@@ -146,3 +146,21 @@ def wraith_active(owner, entity=None):
         if ability is not None and ability.flags & 1 and phase is not None and phase.active:
             return True
     return False
+
+
+def phased_out(owner, entity=None):
+    """Delivered phase query over the existing Wraith and Fade state owners."""
+    from ow174.game import moira
+
+    if entity is not None and getattr(owner, "body", None) != entity:
+        return False
+    return wraith_active(owner, entity) or moira.fading(owner)
+
+
+def cryo_active(owner, entity=None):
+    """Delivered Cryo query using the combined server's actual protection state."""
+    from ow174.game import defenses
+
+    if entity is not None and getattr(owner, "body", None) != entity:
+        return False
+    return defenses.cryo_protected(owner)
