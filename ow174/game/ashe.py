@@ -828,6 +828,8 @@ class Dynamite:
                 self.grenades.remove(item)
                 if guard is not None and guard.instance.graph.index == absorption.GRASP:
                     fight.absorption.absorbed(guard, HitDef(item.absorb_damage, None), None, item.body)
+                elif guard is not None and guard.instance.graph.index == 0x02CC:
+                    fight._absorbed(guard, item.absorb_damage, item.body)
                 if item.shot is not None:
                     fight.projectiles.intercepted(item.shot, fight.tick)
                 return

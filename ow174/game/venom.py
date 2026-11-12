@@ -221,7 +221,7 @@ class Mines:
                 if absorbed is not None and (not blocked or absorbed[0] + 1e-9 < boundary):
                     # Non-damaging thrown00AF has nominal0, not its future poison amount.
                     if absorbed[1] is not None:
-                        fight._absorbed(absorbed[1], 0.0)
+                        fight._absorbed(absorbed[1], 0.0, flight.body)
                     self.flights.remove(flight)
                     if flight.shot is not None:
                         fight.projectiles.absorbed(flight.shot)

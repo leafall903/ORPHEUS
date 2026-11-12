@@ -124,6 +124,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   add_impulse observer failure51.672s; exact Ashe eye/outer distances and actual
   Ball world-only shield expiry now execute together. No original values changed.
 
+### Restore Matrix authored absorption output on the actual mech
+
+- Existing Matrix contacts now emit original007A state fields/plug with actual payload/source, including tagged flight, Dynamite and Widow zero-payload mine. Current defense admission, ownership and Sigma consumers retained.
+- Actual owned mech/BOB regression plus shared damage/Helix/Grasp/Deflect:14 passed. Broader original WidowGrasp11 errors remain at old sigma.HERO fixture API, assertions unchanged. Client acceptance not run. DVa parked-pilot and Tracer uniform-eye fixture contract differences recorded without changing geometry.
 
 ### Connect prepared integration inputs to the existing local server entry
 

@@ -6514,12 +6514,14 @@ class Combat:
                 if scripted_absorption is not None:
                     interception.absorbed(absorption[1], amount)
                 else:
-                    self._absorbed(absorption[1], amount)
+                    self._absorbed(absorption[1], amount, _source_entity(shooter))
             return
         if tagged_contact is not None and tagged_contact[3] and wall is None and limit == tagged_contact[0]:
             scaled = replace(direct, amount=direct.amount * direct.scale(travelled + limit))
-            if tagged_contact[4].instance.graph.index == absorption.GRASP:
+            if tagged_contact[4].instance.graph.index == 0x1D02:
                 self.absorption.absorbed(tagged_contact[4], scaled, None, _source_entity(shooter))
+            elif tagged_contact[4].instance.graph.index == 0x02CC:
+                self._absorbed(tagged_contact[4], scaled.amount, _source_entity(shooter))
             return
         if redirect is not None and wall is None:
             distance, target = redirect
@@ -7372,7 +7374,7 @@ class Combat:
             elif defense is not None:
                 deflections.absorb(absorption[1], amount)
             else:
-                self._absorbed(absorption[1], amount)
+                self._absorbed(absorption[1], amount, rocket.source_entity)
             return 0.0
         if redirect is not None:
             if rocket.is_barrage:
@@ -7705,6 +7707,9 @@ class Combat:
             if returned[3]:
                 if returned[4].instance.graph.index == absorption.GRASP:
                     self.absorption.absorbed(returned[4], rocket.direct, rocket.blast, rocket.source_entity)
+                elif returned[4].instance.graph.index == 0x02CC:
+                    amount = sum(hit.amount for hit in (rocket.direct, rocket.blast) if hit is not None)
+                    self._absorbed(returned[4], amount, rocket.source_entity)
                 rocket.flown += duration * returned[0] / step if step > EPSILON else 0
                 self.rockets.remove(rocket)
                 if rocket.shot is not None:
@@ -8647,9 +8652,11 @@ class Combat:
         return nearest
 
     @staticmethod
-    def _absorbed(state: runtime.State, amount: float) -> None:
+    def _absorbed(state: runtime.State, amount: float, source: int) -> None:
         instance = state.instance
-        if instance.graph.index == 0x1D02:
+        if instance.graph.index == 0x02CC:
+            deflection.reflected_projectile(state, source, amount)
+        elif instance.graph.index == 0x1D02:
             instance.write((expr.INSTANCE, 6584), amount)
             instance.follow(state.node, "m_160B5DBE", state)
             instance.component.run_now()
