@@ -1154,6 +1154,8 @@ class Component:
         self.destroyed: list[Instance] = []
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
+        self.health_reports: list[tuple[tuple[int, ...], float, int | None, int, tuple | None]] = []
+        self.motion_reports: list[tuple[tuple[int, ...], tuple, int]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
         self.input_suppressed = False  # delivered input-only control, separate from death/physics
         self.maximum_health = None  # explicit authoritative body-health input, when supplied
@@ -1180,6 +1182,8 @@ class Component:
             self.fault = error
             self.world.script_failed(self)
             self.shots.clear()
+            self.health_reports.clear()
+            self.motion_reports.clear()
             self.held.clear()
             self.code_states.clear()
             self.startup_entity_values.clear()

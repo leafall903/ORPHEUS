@@ -377,6 +377,12 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 9)):
+            from ow174.game import doomfist_passive
+
+            return tuple(expr.Entity(entity) for entity in doomfist_passive.targets(self, state))
         if (self.hero == 0x02E000000000006E and self.match is not None
                 and not state.instance.component.strict and state.instance.graph.index == 0x0259
                 and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
@@ -730,6 +736,15 @@ class BodyWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
+
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 10)):
+            if elapsed_ms == 0:
+                from ow174.game import doomfist_passive
+
+                doomfist_passive.hit(self, state)
+            return True
 
         if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 22), (0x026A, 36)):
             if not elapsed_ms:
@@ -1486,7 +1501,7 @@ class BodyWorld(runtime.World):
                 scalar = float(instance.evaluate(node.field('m_BC5E91CF[2].m_9B7A63EA.m_configVars[1]')))
                 dx, _, dz = aim(owner.mover.yaw, 0)
                 velocity = tuple(v * speed * scalar / math.sqrt(1 + .3 * .3) for v in (dx, .3, dz))
-            self.velocity_requests.append((instance.component.frame + 1, 'impulse', velocity))
+            instance.component.motion_reports.append(((self.body,), velocity, instance.component.now))
             return True
         if self.hero == lucio_movement.HERO:
             return lucio_movement.action(instance, node)

@@ -49,7 +49,7 @@ COMPONENT_SCOPE = "component-vm-storage"
 TRANSPORT_FIELDS = frozenset(("stream", "create_arrived", "first_owner_frame", "reports", "report_count"))
 _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
-    "disabled", "seq", "next_id", "destroyed", "shots", "owner_dead", "input_suppressed", "fault", "_operation_depth",
+    "disabled", "seq", "next_id", "destroyed", "shots", "health_reports", "motion_reports", "owner_dead", "input_suppressed", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
     "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health",
 ))
