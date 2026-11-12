@@ -4,8 +4,12 @@ import json
 import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from ow174.game.script import nodes, runtime
+from ow174.game import statescript
+from ow174.game.script import decode, nodes, runtime
+from ow174.game.script.driver import BodyStream, Snapshot, WheelCallout, frame_callout
+from ow174.game.script.graph import Graph
 from ow174.jam.cipher import Jam
 from ow174.jam.framing import FrameReader, send_frame
 from tests.script_fixtures import graph, node, plug, setter
@@ -112,6 +116,73 @@ class SeismicSlamWaveContractTests(unittest.TestCase):
         self.assertEqual((wave.active, child.active), (expected["active_after_tick"],) * 2)
         self.assertEqual(instance.vars[7].value(), expected["finish_marker"])
         self.assertEqual(world.events, expected["events"])
+
+
+class ShortFrameActionContractTests(unittest.TestCase):
+    def test_owner_and_observer_keep_the_first_stamp_until_ack(self):
+        contract = json.loads((FIXTURES / "body-short-action-retry-v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["schema_version"], 1)
+        self.assertEqual(contract["case_id"], "statescript.short-frame-action-retry.v1")
+        self.assertEqual(contract["target_build"], 104319)
+        self.assertEqual(contract["evidence"], "synthetic-reference")
+        inputs, expected = contract["input"], contract["expected"]
+        instance, action = inputs["instance"], inputs["action"]
+        instance_id, graph_index = instance["id"], instance["graph_index"]
+        action_node = node(action["position"], "SyntheticAction")
+        action_node.update(rid=action["raw_index"], remote=action["remote_index"])
+        definition = Graph({
+            "index": graph_index,
+            "header": {
+                "m_nodesBitCount": action["raw_bits"], "m_remoteSyncNodesBitCount": action["remote_bits"],
+                "m_statesBitCount": 0, "m_syncVarsBitCount": 0,
+            },
+            "fields": {}, "items": 1, "containers": {}, "nodes": [action_node], "unknown_nodes": [],
+            "states": [], "entries": [], "remote": [None] * action["remote_index"] + [action["position"]],
+            "sync_vars": [],
+        })
+        definitions = {instance_id: definition}
+        instances = {instance_id: (graph_index, None)}
+        cmfd = inputs["command_frame"]
+        baseline = Snapshot(cmfd, instances)
+        event = WheelCallout(
+            action["serial"], instance_id, instance["start_time_ms"], action["position"], action["time_ms"],
+            None, (),
+        )
+        pending = Snapshot(cmfd, instances, callout=event.serial, callouts=(event,))
+
+        with patch.object(decode, "graph_of", side_effect={graph_index: definition}.__getitem__):
+            for mode in ("owner", "observer"):
+                with self.subTest(mode=mode):
+                    stream = BodyStream(inputs["entity"])
+                    client = decode.ClientBody()
+                    tree = statescript.body_full_frame([statescript.InstanceWire(instance_id, definition)],
+                                                       {}, definitions)
+                    initial = stream.full(tree, baseline)
+                    self.assertEqual(client.apply(initial).actions, [])
+                    stream.arrived(initial.chunk_last)
+                    for outcome, number, wire in zip(inputs["delivery"], expected["chunk_last"],
+                                                     expected[mode]["chunk_hex"], strict=True):
+                        keys = set()
+                        queued = frame_callout(stream.base, pending, stream.touched(), keys, stream.last + 1)
+                        if mode == "owner":
+                            delta = statescript.owner_delta(cmfd, False, [], {}, definitions, callout=queued)
+                        else:
+                            delta = statescript.remote_delta([], {}, definitions, callout=queued)
+                        update = stream.delta(delta, pending, keys, cmfd if mode == "owner" else 0)
+                        self.assertEqual(update.chunk_last, number)
+                        self.assertEqual(update.chunk.count, expected[mode]["bit_count"])
+                        self.assertEqual(update.chunk.getvalue().hex(), wire)
+                        received = client.apply(update)
+                        self.assertEqual(received.owner, mode == "owner")
+                        self.assertEqual([list(item) for item in received.actions], [expected["action"]])
+                        if outcome == "lost":
+                            stream.lost(number)
+                        else:
+                            self.assertEqual(outcome, "acknowledged")
+                            stream.arrived(number)
+                    self.assertEqual(stream.base.callout, expected["acknowledged_serial"])
+                    self.assertIsNone(frame_callout(stream.base, pending, stream.touched(), set(),
+                                                    stream.last + 1))
 
 
 if __name__ == "__main__":

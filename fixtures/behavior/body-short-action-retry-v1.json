@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "statescript.short-frame-action-retry.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "b6cae01cb2b2864fe7c963abde932224494e218b",
+    "paths": [
+      "src/ow174/game/script/driver.py",
+      "src/ow174/game/statescript.py",
+      "src/ow174/game/script/decode.py"
+    ]
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "entity": 2147483649,
+    "command_frame": 20,
+    "instance": {"id": 5, "graph_index": 17, "start_time_ms": 100},
+    "action": {"serial": 1, "position": 3, "raw_index": 9, "raw_bits": 4, "remote_index": 1, "remote_bits": 2, "time_ms": 200},
+    "delivery": ["lost", "acknowledged"]
+  },
+  "expected": {
+    "chunk_last": [2, 3],
+    "action": [2, 5, 3],
+    "acknowledged_serial": 1,
+    "owner": {
+      "bit_count": 115,
+      "chunk_hex": ["040000f024140e0012004091449500", "040004f024140e0012004091449500"]
+    },
+    "observer": {
+      "bit_count": 92,
+      "chunk_hex": ["04000080039000008920aa00", "04000480039000008920aa00"]
+    }
+  }
+}

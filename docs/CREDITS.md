@@ -156,6 +156,11 @@ support category comes from profile `0016.097`. The state writer at `C95C90`
 supplies the optional auxiliary-list layout. TrackTargets at `CAF449` reads
 the maximum result count from `m_C39691D9`.
 
+The 104319 `0B27` graph supplies the two landing effect actions at positions
+46 and 102. The short-action path at `A0CCA0` and `1B73B90` dispatches the
+effect callback at `97BF00`. The callback consults the client's predicted
+effect record at `A09910`.
+
 ## The Best Defense
 
 The local 104319 graph export supplies the damage-dealt listener in `0DDD`,

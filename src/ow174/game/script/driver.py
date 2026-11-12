@@ -735,17 +735,20 @@ class BodyWorld(runtime.World):
                 return True
         return NotImplemented
 
-    def replicate_wheel_event(self, instance: runtime.Instance, node: graph.Node) -> None:
-        if not self.communication_wheel or node.remote < 0 or not node.is_networked:
+    def replicate_frame_action(self, instance: runtime.Instance, node: graph.Node) -> None:
+        """Queue an authored presentation event for the body streams."""
+        if node.remote < 0 or not node.is_networked:
             return
         index = instance.graph.index
+        key = (index, node.pos)
         legacy_symmetra = (
             self.body_definition == LEGACY_SYMMETRA_BODY and index == 0x0169 and node.pos in (82, 86)
         )
-        if index not in (0x02CF, 0x05AD, 0x0686) and not legacy_symmetra:
+        wheel = self.communication_wheel and (index in (0x02CF, 0x05AD, 0x0686) or legacy_symmetra)
+        if not wheel and key not in nodes.SLAM_IMPACT_ACTIONS:
             return
         component = instance.component
-        selected = instance.vars.get(29699)
+        selected = instance.vars.get(29699) if wheel else None
         values = []
         for row in node.field("m_BF5B22B7") or ():
             var = expr.guid_of(row.get("m_0D09D2D9")) & 0xFFFF
@@ -754,7 +757,7 @@ class BodyWorld(runtime.World):
             entity_scope = row.get("m_56341592") == expr.ENTITY
             slot = (component.vars if entity_scope else instance.vars).get(var)
             values.append(((0 if entity_scope else instance.id, var), (slot.value() if slot else None, ())))
-        if (index, node.pos) == nodes.WHEEL_VOICE_PULSE and selected is not None:
+        if key == nodes.WHEEL_VOICE_PULSE and selected is not None:
             values.append(((instance.id, 29699), (selected.value(), ())))
         serial = self.wheel_callouts[-1].serial + 1 if self.wheel_callouts else 1
         if index == 0x02CF and node.pos in (3, 8):

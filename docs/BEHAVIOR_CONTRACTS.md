@@ -32,6 +32,15 @@ with the close impact. Run it with the prepared runtime described in
 covers lifecycle. Exact ground contacts, displacement, presentation and
 original-client acceptance need separate observations.
 
+## Body short actions
+
+The [short-action retry fixture](../fixtures/behavior/body-short-action-retry-v1.json)
+checks the owner and observer encodings using different authored index widths.
+It pins the frame bytes, the original action stamp across loss and retry, and
+the acknowledgement that retires the event. The prepared Seismic Slam test
+runs both landing effects through the body streams. Original-client rendering,
+audio and prediction recovery remain pending.
+
 ## Fixture fields
 
 | Field | Meaning |

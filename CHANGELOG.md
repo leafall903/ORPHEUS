@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Seismic Slam landing effects
+
+- Send the authored body-attached landing effect and ground shockwave effect
+  through the same frame-action queue as communication effects.
+- Preserve the first action stamp on a lost frame for the owner and each
+  observer. Acknowledgement advances the stream, and late observers start
+  from the current action baseline.
+- Added a shared synthetic short-action retry fixture and a prepared 104319
+  regression covering both effects and the wave's contact target on a normal
+  grounded cast.
+- Passed Ruff, 927 public Python tests, six dashboard tests and 72
+  Doomfist, movement and communication-wheel runtime regressions.
+  Original-client playback, audio and prediction recovery remain pending.
+
 #### Seismic Slam ground shockwave
 
 - Run the authored initial and full-range samples of the grounded impact.
