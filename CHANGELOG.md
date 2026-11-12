@@ -4,6 +4,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original Sigma Grasp interception checks
+
+- Restore all10 original023B actual-input interception checks byte-for-byte;
+  existing sole Grasp/interception services pass them without another host.
+- Shield request replay/lifecycle audit continues. No client acceptance run.
+
 ### Preserve original Sigma charge across respawn
 
 - Existing respawn/replacement hook retains the same Sigma body's earned
