@@ -71,6 +71,7 @@ from ow174.game import (
     molten_core,
     torbjorn_mark,
     torbjorn_charge,
+    symmetra,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -3094,7 +3095,8 @@ class Combat:
                 log.exception("[game] %s: %s's Tesla Cannon failed", self.match.label(), player.name)
         try:
             self._echo_beam(player, command, script)
-            self._weapon_beam(player, command, script)
+            if player.hero.guid != symmetra.HERO:
+                self._weapon_beam(player, command, script)
         except Exception:
             log.exception("[game] %s: %s's beam failed", self.match.label(), player.name)
         self._flush_pending_attacks()
@@ -3273,6 +3275,8 @@ class Combat:
         Body capsules, eye origin and one damage sample per posed command are
         server reconstruction. Native selection, lock tolerances and cadence remain open.
         """
+        if player.hero.guid == symmetra.HERO:
+            return symmetra.primary(self, player, command)
         spec = BEAM_STATES.get(player.hero.guid)
         if spec is None:
             return
