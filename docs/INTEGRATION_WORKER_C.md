@@ -5,7 +5,9 @@ Assigned by the user-authorized three-worker merge on 2026-11-12.
 - Worktree: `verification/merge-worker-c`; branch: `integration/merge-worker-c`.
 - Starting canonical commit: `bf7fad86`.
 - Assigned deliveries: 0006 Torbjorn, 0008 Pharah, 0015 Bastion,
-  0016 Symmetra, 0065 Junkrat, 00DD Mei, 012E Sombra, 0200 Ashe.
+  0016 Symmetra, 00DD Mei, 012E Sombra.
+- Root formally reassigned 0065 Junkrat and later0200 Ashe to worker A; C has
+  no Ashe/Junkrat WIP and must not independently start their owner modules.
 - Preserve and mount existing original-language implementations; no new gameplay,
   acceptance matrix, Rust runtime cutover, network, publication or client session.
   Commit partial functional batches despite incomplete whole-line acceptance.

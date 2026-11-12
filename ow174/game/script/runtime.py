@@ -391,6 +391,13 @@ class InstanceContext(Context):
         from ow174.game.script import spatial_queries
 
         component = self.instance.component
+        if not component.strict and self.instance.graph.index in (0x0C19, 0x0C1A):
+            from ow174.game import translocators
+
+            result = translocators.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
         if (not component.strict and self.instance.graph.index == 0x15F5
                 and getattr(component.world, "body_definition", None) is not None):
             from ow174.game import symmetra
@@ -1209,6 +1216,15 @@ class World:
         return False
 
     def create_entity(self, instance, node):
+        return NotImplemented
+
+    def body_health_pool(self, state):
+        return NotImplemented
+
+    def body_recall_target(self, state):
+        return NotImplemented
+
+    def body_recall_move(self, state):
         return NotImplemented
 
     def body_placement(self, state):
@@ -2591,18 +2607,19 @@ def message_entries(instance: Instance, message: int) -> list[Node]:
     return found
 
 
-def send_message(component: Component, message: int, params: dict, sender: int) -> int:
-    """Deliver a game message to every instance of the component (at now). Returns how many nodes get it."""
-    return sum(send_instance_message(instance, message, params, sender)
+def send_message(component: Component, message: int, params: dict, sender: int, *, at: int | None = None) -> int:
+    """Queue matching message entries at the supplied time or component clock."""
+    return sum(send_instance_message(instance, message, params, sender, at=at)
                for instance in list(component.instances.values()))
 
 
-def send_instance_message(instance: Instance, message: int, params: dict, sender: int) -> int:
-    """Queue a message at the component clock for only this graph instance."""
+def send_instance_message(instance: Instance, message: int, params: dict, sender: int, *, at: int | None = None) -> int:
+    """Queue a message for only this graph instance."""
     entries = message_entries(instance, message)
+    when = instance.component.now if at is None else at
     for node in entries:
         delivery = (message, dict(params), sender)
-        instance.post(Event(instance.component.now, 0, MESSAGE, node=node, message=delivery))
+        instance.post(Event(when, 0, MESSAGE, node=node, message=delivery))
     return len(entries)
 
 

@@ -326,6 +326,79 @@ class JunkensteinPlayerStatTime(State):
         component.unsupported(instance, 'player stat state outside the verified NPC scope', node.cls, node)
 
 
+@state_class("STU_C3CA88AA")
+class BodyRecallTarget(State):
+    """Explicit placement host; unsupported definitions retain their legacy state."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.result = (None, False)
+        self.outputs = []
+        self.ever_valid = False
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "body recall placement", self.node.cls, self.node,
+            )
+        result = self.instance.component.world.body_recall_target(self)
+        if result is NotImplemented:
+            return
+        self.result = result
+        self.ever_valid = bool(result[1])
+        for slot, key in enumerate(("m_CC27E08A", "m_264326B3")):
+            target = lvalue(_field(self, key))
+            if target is not None:
+                self.outputs.append(self.link(target, slot))
+        self.ticks()
+
+    def tick(self):
+        result = self.instance.component.world.body_recall_target(self)
+        if result is NotImplemented:
+            return
+        before = [var.value() for var in self.outputs]
+        if result[1]:
+            self.ever_valid = True
+            self.result = result
+        else:
+            self.result = (self.result[0], False)
+        for var, value in zip(self.outputs, before, strict=True):
+            self.instance.changed(var, value)
+
+    def output(self, slot):
+        return self.result[slot]
+
+    def on_end(self, finished):
+        for var in self.outputs:
+            self.unlink(var)
+        self.outputs.clear()
+
+
+@state_class("STU_746F8777")
+class BodyRecallMove(State):
+    """Scoped server displacement; native motion curves/presentation remain open."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.accepted = False
+        self.destination = None
+
+    def on_begin(self):
+        if self.instance.component.strict:
+            self.instance.component.unsupported(
+                self.instance, "body recall movement", self.node.cls, self.node,
+            )
+        result = self.instance.component.world.body_recall_move(self)
+        if result is NotImplemented:
+            return
+        self.accepted, self.destination = result
+        if not self.accepted:
+            self.request(ABORT)
+            return
+        seconds = to_float(self.evaluate(_field(self, "m_2B98273A"), watch=False))
+        self.request_finish(max(0, math.ceil(seconds * 1000)))
+
+
 @state_class("STUStatescriptStateHealthPool")
 class AuthoredBodyHealthPool(State):
     """Validate authored base pools and own a Junkenstein wave's supplemental health."""
@@ -341,6 +414,8 @@ class AuthoredBodyHealthPool(State):
                 and component.world.set_health_pool(self, True) is not NotImplemented):
             return
         if not component.strict:
+            if (instance.graph.index, self.node.pos) == (0x0C1A, 23):
+                component.world.body_health_pool(self)
             return
         placement = (instance.graph.index, self.node.pos)
         common_body_kind = {1: 0, 3: 2, 8: 1}.get(self.node.pos) if placement[0] == 0x0033 else None
@@ -2112,7 +2187,11 @@ class Stack(State):
                 self.top, self.under = True, False
                 self.instance.exit_subgraph(self.node, "m_underSubgraphPlug")
                 self.instance.follow(self.node, "m_topSubgraphPlug", self)
-        elif not self.under:
+        else:
+            self.become_under()
+
+    def become_under(self) -> None:
+        if not self.under:
             self.top, self.under = False, True
             self.instance.exit_subgraph(self.node, "m_topSubgraphPlug")
             self.instance.follow(self.node, "m_underSubgraphPlug", self)
@@ -3073,11 +3152,14 @@ class WeaponVolley(State):
             before = self.last_values.get(var.key, var.value())
             self.last_values[var.key] = self.instance.changed(var, before)
 
+    def allows_dead(self) -> bool:
+        """Original0065 authored allow-shots-while-dead volley flag."""
+        return truthy(self._config("m_58631C73", False))
+
     def report(self, until: int) -> None:
         """Put the shots fired up to `until` (ms) that are not on the component's list yet on it: shot k
         leaves at start + offset + shot_time(k), at most the planned shots (combat.py hits with them)."""
-        if self.instance.component.owner_dead:
-            # unverified (PS4 build): a dead owner's volley shoots no more (allowShotsWhileDead: not read)
+        if self.instance.component.owner_dead and not self.allows_dead():
             return
         start = self.start + self.offset
         activation = (self.counter, self.start)
@@ -3089,7 +3171,11 @@ class WeaponVolley(State):
             from ow174.game import tracer_pistol
 
             tracer_pistol.remember(self, self.reported, time, activation)
-            self.instance.component.shots.append((self, self.reported, time, activation))
+            from ow174.game import ashe
+
+            report = (self, self.reported, time, activation)
+            launch = ashe.viper_launch(self, time - start, activation[0])
+            self.instance.component.shots.append(report if launch is None else (*report, launch))
             self.reported += 1
 
     def _config(self, name: str, default):

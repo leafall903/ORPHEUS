@@ -17,6 +17,17 @@ This log records tested changes and their acceptance status. Entries are grouped
   changes/restores server digest. No second actor/mover/pool is introduced.
 - Native geometry/filter acceptance and complete Ball line remain open.
 
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
+
 ### Mount delivered Ball Grapple lifecycle on the existing motion host
 
 - Route original launch/anchor travel/attachment, release/cooldown, body death/
@@ -46,6 +57,51 @@ This log records tested changes and their acceptance status. Entries are grouped
   Existing Ana/Sombra control, runtime and Damage40 run39pass1original mesh skip
   in56.723s. Ball caller hookup remains worker B's independent batch.
 
+### Mount original Sombra Translocator actor and recall consumers
+
+- Connect original non-leased1575 throw,0C1A graph/source association,5HP,
+  finite-radius arc/bounce/settle, checked recall, recycle, expiry and exact
+  body/death cleanup. Use the existing combat entity allocator and Deployable
+  target/Vitals pool; original until_tick uses the same operational expiry field.
+- Merge original optional BotScript record/world/graph resolver/source inputs,
+  scoped recall states and native queries, retaining default NPC controller and
+  strict runtime behavior. Register actual actor and recall causal storage.
+- Ten selected untouched original Translocator methods pass38.961s (actual throw,
+  pool/identity, physics, recall, recycle, owner/ally protection, retirement,
+  hostile damage and stored cross-component watchers). Shared NPC/navigation/
+  runtime/budget/Damage90 pass9.279s. Full original fixture remains byte-identical.
+- Select original012E translocator-entity-research.json via explicit
+  ORPHEUS_TRANSLOCATOR_DATA. World-gap replay, extended controls/EMP and full
+  legacy fixture imports remain pending; no whole-line/client acceptance claim.
+
+### Mount original Sombra pistol spread and Camo damage timing
+
+- Connect original cone/ramp/seed policy to real pistol shots. Mount original
+  Camo received-damage dating and bounded exit/cooldown replay on the existing
+  owner frame anchor, retaining authored exclusion tags and neutral gap input.
+- Merge original optional message-time arguments into the two existing runtime
+  send functions; default callers retain the component clock and same queue.
+- Original spread9:7pass,2critical/timing differences. Original Sombra combat38:
+  29pass,3fail,6cases with old hack/fixture observer errors; preserve all original
+  expectations. Camo damage, exclusions, movement, cancellation and world-gap
+  cooldown pass. Shared runtime/budget/Damage46 pass2.613s.
+- Sombra application replay, translocator and actual Portal device consumers
+  remain separate pending integration work; this does not declare the line done.
+
+### Connect original sampled Cryo healing to the existing health service
+
+- Consume original VM cumulative healing and CryoHealing history through one
+  _heal_target writer; recognize the native report without a second heal. Keep
+  existing health pools, charge, stats, death and body-retirement rules.
+- Settle at existing HealingEffects installation, cleanse and expiry boundaries;
+  carry its received scalar in the original per-activation history, preserving
+  existing legacy status intervals and the original three-field sample API.
+- Cryo/Baptiste status28:25cases pass,7failed subcases across3cases retained;
+  original Cryo200/cancel/retire/storage checks pass. Separate charge/Damage/
+  runtime27 all pass. Actual typed amp gives24HP over20Cryo ticks once.
+- Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
+  expectations; preserve that cross-owner gap and the known NPC shield-total,
+  held-secondary and flight observer differences without changing assertions.
 
 ### Restore delivered Ball form and critical-hit history
 
@@ -195,6 +251,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   unchanged apart from frost fixture import naming; no client check implied.
 - Autonomous navigator partial slow still needs its authorized narrow bridge;
   Blizzard, sampled Cryo history and full pending fixture imports remain open.
+### Restore delivered Charge impacts on Superchargers
+
+- Mount original tracker56 offset/radius,961 flag, mesh capsule overlap and
+  visibility query on the existing Charge. Feed the real device entity into
+  the authored end output and007D125 health node, retaining native damage175.
+- Use the same actual Device pool and original GJK mesh helper. No second
+  charge driver/actor or Brigitte1408 takeover. Preserve team and world cover.
+- Three original device cases pass: enemy200->25 once and authored termination,
+  allied skip/capture beyond it, and static cover. Existing Charge movement,
+  contacts, mutual counters and runtime55/55 pass. Client acceptance open.
+
+### Restore delivered Fire Strike deployment object contacts
+
+- Route existing Photon plane/mesh actors and Orisa Superchargers through the
+  same ordered Fire Strike contacts, captured affiliation and one-hit ledger.
+  Damage the actual owner pool; retain penetrating body hits and aura teardown.
+- Actual Photon Q plane probe: shield100/body100 damage once. Actual deployed
+  device probe:200->100->0 before expiry, actor/buff removal and scale reset.
+  Allied Fire Strike150 damage/charge, allied Charge and runtime19 checks pass.
+- Retain complete original Fusion/Supercharger suites:69 assertions each, order
+  and Constants unchanged. Full25 retains9 failures/1 obsolete getter error;
+  final getter mapped to actual charges passes focused check. Known gaps include
+  Charge device175 damage, native Fusion critical17 versus original ordinary6,
+  shield-break contact and reflected projectile metadata. Client acceptance open.
+
 ### Restore delivered Orisa and Sigma barrier attack consumers
 
 - Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
@@ -9224,3 +9305,154 @@ pre-existing missing-name errors, without new fallback/schema/graph exceptions.
 Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
 classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
 No client run/publication. Continue original0065 Mayhem/death-volley.
+
+
+## A41 - original player Total Mayhem death volleys
+
+Restored WeaponVolley's authored m_58631C73 allow-shots-while-dead query and
+report guard, then consumed only Junkrat022A terminal reports immediately from
+the existing authoritative death callback. Ordinary dead primary/melee remain
+rejected. Mounted original launch_ring.py only for Total Mayhem's six authored
+scatter states; other existing native spread/Volley/NPC consumers are retained.
+Original collision/gravity/rebound/fuses run through A33's actual shared Rocket.
+
+Baseline two original Mayhem checks failed0 volleys. Original reports-six,
+six-direction scatter, floor/wall rebound, bounded six fuses and skipped-update
+blast order5 pass. Original launch-ring math, shared Damage/ProjectileTiming,
+dead-primary rejection, team/wall and Wraith/Cryo29 pass. Current original
+runtime17 pass. Actual still-owned dead-source Mayhem earns200 for its200HP victim, as required
+by the original charge fixture; it must not be suppressed as a retired source.
+The initial extra probe incorrectly assumed zero and that expectation was rejected;
+original assertions were not changed. Logs worker-a-junkrat-mayhem-{baseline,
+fourth,shared,runtime,charge-final}.log.
+Original tests/assertions retained, no synthetic projectile/observer or matrix.
+No client run/publication. Next exact action: original NPC2535 death-volley
+modifier on existing BotWorld/BotScript, then normal original NPC/charge fixture
+contract and any genuine remaining consumers; keep acceptance-only residuals.
+
+
+## A42 - original NPC2535 death volleys and normal fixture entry
+
+Mounted existing BotWorld mode-variable/0E62-117 PlayScript consumer for original
+2535 graph, preserving declared-false availability and live mode changes. Original
+DEATH_VOLLEY_GRAPH/MODE_FLAG constants now belong to the actual consumer, not a
+fake test alias. After BotScript death and due death timers, only2535/0 dead-allowed
+volleys enter the shared projectile host. Current controller/death/clock-offset
+and owned-DVa lifecycle are retained.
+
+Preserved original component51 health_query utility/API: original48-slot float32
+fold plus explicit Match adapter to the one current authoritative body_health
+pool service. Runtime continues to use richer health_queries frontend; no second
+pool/query registration. This restores normal original NPC/charge fixture imports.
+Original NPC death-volley mode gate (four cases) and owned-dead Mayhem charge two
+methods pass. Entire original26 charge combat methods now execute normally:
+25 pass, one preserved old bubble.health observer failure (real0256 pool retained).
+Original health utility/current NPC control/navigation/controller storage72 checks:
+71 pass, one old detached-BodyWorld expectation None instead of current cached
+owner health200; assertions unchanged. Logs worker-a-junkrat-{deathvolley-first,
+deathvolley-shared,health-original,charge-original-combat}.log. No client run/push.
+
+Remaining0065 actual code audit: original archives_thunderstorm.py on2535's
+second34924 branch is not yet mounted; original command/control/eye/throttle/sleep/
+barrier fixtures still need source-consumer reconciliation. Keep prior recorded
+Tire expiry-frag/Fortify/observer residuals and old resource Target/Context fixture
+contract differences. Do not call entire frozen0065 admitted until root reconciles.
+Root additionally recorded original Tracer cross-owner sleep/Recall and old-body
+history residuals in root-trap-status-order-check.log; preserve for later audit.
+
+New root-directed owner transfer:0200 Ashe frozen
+8b991768223a98ff97f2618a53f0947dc6477c4b, source hero-lanes/0200/source, exclusively A.
+C confirms no Ashe WIP and keeps Mei/Sombra/Symm. Next exact action: audit source
+Ashe primary/Coach/dynamite/BOB/charge and mount real consumers in batches, reuse
+current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
+handoff above; root owns source-ref/provenance admission and ordering.
+
+A42 clean-boundary sync: absorbed submitted intake6e011ccf automatically, including root strict NPC-controller storage, accepted Total Mayhem, root status ordering and shared shield/Mei fixes. Next0200 Ashe actual consumer audit.
+
+
+## A43 - original Ashe Viper launch capture and real rays
+
+New owner0200 frozen8b991768223a98ff97f2618a53f0947dc6477c4b. Mounted original
+Viper report-time cone/seed capture as its authored optional fifth shot-tuple
+member; retained Tracer's existing capture and widened shared consumers to keep
+four-member reports unchanged. Original hip/ADS viper_direction now reaches real
+hitscan. Restored source14FC critical default2 only when authored field is absent.
+Original weapon_spread.quantized_direction API uses the existing unique native
+unsigned weapon_aim round trip; do not overwrite richer shared math/providers.
+
+Complete original ashe.py and fixture dependencies preserved. Its Dynamite,
+Companions/BOB and Impulses classes are NOT yet activated/claimed complete. Original
+npc_melee helper dependency is retained as a library, not installed as a second
+NPC melee manager; current heavy_assault remains the actual shared host.
+
+Original deferred reports/state reentry/three rays and strict body-VM tuple payload
+digest check pass; original normalized volley check passes. Final original hip/
+ADS/melee, empty/per-round reload and Viper critical3 methods pass. Existing
+runtime/weapon_spread/Damage/ProjectileTiming36 checks in the shared run pass.
+One original player-ray method retains six old spy-position failures because its
+_hitscan args[2] is now origin (current direction is args[3]); original assertions
+unchanged. Separate actual six-case hip/ADS enemy/wall/ally probe confirms all six
+captured directions equal consumed args[3] and health/occlusion/team policy pass.
+Logs worker-a-ashe-viper-{baseline,second,shared,final,rays}.log. No client/push.
+
+Next exact action: mount original Dynamite throw/fuse/collision/owned-shot trigger/
+blast/burn/source lifetime through actual shared defenses and state storage, then
+Coach impulse/reload interlocks, BOB actual NPC/driver/gun/charge. Root is handling
+0065 archives_thunderstorm second34924 branch; this worker has no WIP there.
+Other0065/Tracer original fixture residuals remain in A42, not abandoned or greened.
+
+
+## A44 - original Ashe Dynamite on shared defenses and damage
+
+Mounted original14FD throw, curved/swept/bounced Grenade, launch-owned fuse and
+absorption eligibility, owned Viper shot trigger, blast/falloff/self-half damage,
+20-pulse burn/replacement and owner/deflector retirement. Uses current _deflector/
+absorption and one _explode/_damage path; no old shield/wall manager or health
+pool restored. Optional _explode.victims_out reports real landed bodies for burn,
+keeping native_impact_body/protected_out intact. Original explicitAshe loadout
+admits self_scale=.5; unrelated explosion defaults unchanged. health_tags(None)
+accepts only original static Identifier configs; dynamic configs require State.
+
+Restored only original mesh_sweep/scene_sweep hit_touching=False optional plumbing:
+default math unchanged, True includes approaching initial contact. Native contacts9
+pass. Original Dynamite19 full run initially had3 errors; actual cancellation now
+fixed through existing intercepted observer lifecycle. One method still has two
+legacy damage_tags-keyword spy errors (current actualhit_tags), assertions kept.
+Focused actual cancellation/half-self/nonowner-trigger plus Damage/Timing18 pass;
+Genji fuse/ownership/thrower/reflector retirement3 original methods pass. Additional
+real Grasp interception and Cryo burn cleanse pass; old Matrix fixture int hero
+metadata and personal_barriers observer fail before/after current real services,
+retained without fake aliases. Actual launched grenade and landed burn strict
+stored export/digest probe passes. Logs worker-a-ashe-dynamite-{full,shared,
+deflect-second,defense,snapshot}.log and worker-a-ashe-contacts.log.
+
+Necessary original input:0200/ashe-parent-navigation-prepared-entities.json.gz,
+21 graphs/7 entities incl2533/25C3, source hashes unchanged. Worker external
+worker-a-ashe-graphs.json.gz is a strict nonreplacing union with composedv11;
+root is auditing authoritative current graph/controller/mover composition. No
+runtime-base edits, full assets, client run or publication. Full original controls/
+BOB fixture dependencies saved; BOB itself remains unmounted, not counted complete.
+Next exact action: source Coach recoil/pellet impulse and reload interlocks on the
+existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/charge.
+
+### Worker A45 - Ashe Viper reload hard-control interlocks
+
+- Connect original reload-under/end and expiry recovery to actual shared control interruption, reusing current stack transitions. Original Flashbang reload and runtime checks: 15 passed; shell/held-input reload methods passed unchanged.
+
+### Worker A46 - Ashe Coach recoil and pellet-aggregated shove
+
+- Mount original 15-ray Coach geometry, recoil, distance rings/limits, reflected source aggregation and modifier26 resistance on current single Knockbacks/player/NPC movement hosts. Register only the shared-host reference in stored state.
+- Original physical Coach checks and current shared checks passed as recorded; preserve old private pending-queue errors and approx0.002506m outer-boundary expectations. Actual five NPC and reflected15-pellet single-host probes passed. BOB remains next.
+
+### Worker A synchronization after A46
+
+Absorb committed intake afcec3b8 at a clean boundary before BOB integration; retain all parallel source consumers.
+
+### Worker A47 - strict original BOB mover-extension dependency
+
+- Restore original fingerprint-bound add-only mover bundle API and optional cached-table extension path while retaining current supplementary table/DVa movement. Original malformed-input and current body-form checks: 13 passed. Original/runtime base mismatch remains explicit; no source inputs altered.
+
+### Worker A48 - original BOB actor factory, lifetime and gun
+
+- Mount actual ultimate factory, one shared NPC/Vitals/mover, authored gun reports, phase/lifetime/owner credit and active charge lock. Restore original companion ally healing and guard shared Sombra hit routing against nonplayer BotScript.
+- Original BOB factory/lifetime/gun14/14 and shared28/28 passed; actual controlled-input strict BOB snapshot passed. Original uppercut/victim handoff remains next, with its baseline error preserved; no whole-line completion claim.

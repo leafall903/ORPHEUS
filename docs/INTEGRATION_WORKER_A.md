@@ -1103,3 +1103,167 @@ pre-existing missing-name errors, without new fallback/schema/graph exceptions.
 Current filter/tag/mask/collect/entity-query60 original checks pass; unknown
 classification still rejects strictly. Log worker-a-junkrat-filter-constant.log.
 No client run/publication. Continue original0065 Mayhem/death-volley.
+
+
+## A41 - original player Total Mayhem death volleys
+
+Restored WeaponVolley's authored m_58631C73 allow-shots-while-dead query and
+report guard, then consumed only Junkrat022A terminal reports immediately from
+the existing authoritative death callback. Ordinary dead primary/melee remain
+rejected. Mounted original launch_ring.py only for Total Mayhem's six authored
+scatter states; other existing native spread/Volley/NPC consumers are retained.
+Original collision/gravity/rebound/fuses run through A33's actual shared Rocket.
+
+Baseline two original Mayhem checks failed0 volleys. Original reports-six,
+six-direction scatter, floor/wall rebound, bounded six fuses and skipped-update
+blast order5 pass. Original launch-ring math, shared Damage/ProjectileTiming,
+dead-primary rejection, team/wall and Wraith/Cryo29 pass. Current original
+runtime17 pass. Actual still-owned dead-source Mayhem earns200 for its200HP victim, as required
+by the original charge fixture; it must not be suppressed as a retired source.
+The initial extra probe incorrectly assumed zero and that expectation was rejected;
+original assertions were not changed. Logs worker-a-junkrat-mayhem-{baseline,
+fourth,shared,runtime,charge-final}.log.
+Original tests/assertions retained, no synthetic projectile/observer or matrix.
+No client run/publication. Next exact action: original NPC2535 death-volley
+modifier on existing BotWorld/BotScript, then normal original NPC/charge fixture
+contract and any genuine remaining consumers; keep acceptance-only residuals.
+
+
+## A42 - original NPC2535 death volleys and normal fixture entry
+
+Mounted existing BotWorld mode-variable/0E62-117 PlayScript consumer for original
+2535 graph, preserving declared-false availability and live mode changes. Original
+DEATH_VOLLEY_GRAPH/MODE_FLAG constants now belong to the actual consumer, not a
+fake test alias. After BotScript death and due death timers, only2535/0 dead-allowed
+volleys enter the shared projectile host. Current controller/death/clock-offset
+and owned-DVa lifecycle are retained.
+
+Preserved original component51 health_query utility/API: original48-slot float32
+fold plus explicit Match adapter to the one current authoritative body_health
+pool service. Runtime continues to use richer health_queries frontend; no second
+pool/query registration. This restores normal original NPC/charge fixture imports.
+Original NPC death-volley mode gate (four cases) and owned-dead Mayhem charge two
+methods pass. Entire original26 charge combat methods now execute normally:
+25 pass, one preserved old bubble.health observer failure (real0256 pool retained).
+Original health utility/current NPC control/navigation/controller storage72 checks:
+71 pass, one old detached-BodyWorld expectation None instead of current cached
+owner health200; assertions unchanged. Logs worker-a-junkrat-{deathvolley-first,
+deathvolley-shared,health-original,charge-original-combat}.log. No client run/push.
+
+Remaining0065 actual code audit: original archives_thunderstorm.py on2535's
+second34924 branch is not yet mounted; original command/control/eye/throttle/sleep/
+barrier fixtures still need source-consumer reconciliation. Keep prior recorded
+Tire expiry-frag/Fortify/observer residuals and old resource Target/Context fixture
+contract differences. Do not call entire frozen0065 admitted until root reconciles.
+Root additionally recorded original Tracer cross-owner sleep/Recall and old-body
+history residuals in root-trap-status-order-check.log; preserve for later audit.
+
+New root-directed owner transfer:0200 Ashe frozen
+8b991768223a98ff97f2618a53f0947dc6477c4b, source hero-lanes/0200/source, exclusively A.
+C confirms no Ashe WIP and keeps Mei/Sombra/Symm. Next exact action: audit source
+Ashe primary/Coach/dynamite/BOB/charge and mount real consumers in batches, reuse
+current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
+handoff above; root owns source-ref/provenance admission and ordering.
+
+A42 clean-boundary sync: absorbed submitted intake6e011ccf automatically, including root strict NPC-controller storage, accepted Total Mayhem, root status ordering and shared shield/Mei fixes. Next0200 Ashe actual consumer audit.
+
+
+## A43 - original Ashe Viper launch capture and real rays
+
+New owner0200 frozen8b991768223a98ff97f2618a53f0947dc6477c4b. Mounted original
+Viper report-time cone/seed capture as its authored optional fifth shot-tuple
+member; retained Tracer's existing capture and widened shared consumers to keep
+four-member reports unchanged. Original hip/ADS viper_direction now reaches real
+hitscan. Restored source14FC critical default2 only when authored field is absent.
+Original weapon_spread.quantized_direction API uses the existing unique native
+unsigned weapon_aim round trip; do not overwrite richer shared math/providers.
+
+Complete original ashe.py and fixture dependencies preserved. Its Dynamite,
+Companions/BOB and Impulses classes are NOT yet activated/claimed complete. Original
+npc_melee helper dependency is retained as a library, not installed as a second
+NPC melee manager; current heavy_assault remains the actual shared host.
+
+Original deferred reports/state reentry/three rays and strict body-VM tuple payload
+digest check pass; original normalized volley check passes. Final original hip/
+ADS/melee, empty/per-round reload and Viper critical3 methods pass. Existing
+runtime/weapon_spread/Damage/ProjectileTiming36 checks in the shared run pass.
+One original player-ray method retains six old spy-position failures because its
+_hitscan args[2] is now origin (current direction is args[3]); original assertions
+unchanged. Separate actual six-case hip/ADS enemy/wall/ally probe confirms all six
+captured directions equal consumed args[3] and health/occlusion/team policy pass.
+Logs worker-a-ashe-viper-{baseline,second,shared,final,rays}.log. No client/push.
+
+Next exact action: mount original Dynamite throw/fuse/collision/owned-shot trigger/
+blast/burn/source lifetime through actual shared defenses and state storage, then
+Coach impulse/reload interlocks, BOB actual NPC/driver/gun/charge. Root is handling
+0065 archives_thunderstorm second34924 branch; this worker has no WIP there.
+Other0065/Tracer original fixture residuals remain in A42, not abandoned or greened.
+
+
+## A44 - original Ashe Dynamite on shared defenses and damage
+
+Mounted original14FD throw, curved/swept/bounced Grenade, launch-owned fuse and
+absorption eligibility, owned Viper shot trigger, blast/falloff/self-half damage,
+20-pulse burn/replacement and owner/deflector retirement. Uses current _deflector/
+absorption and one _explode/_damage path; no old shield/wall manager or health
+pool restored. Optional _explode.victims_out reports real landed bodies for burn,
+keeping native_impact_body/protected_out intact. Original explicitAshe loadout
+admits self_scale=.5; unrelated explosion defaults unchanged. health_tags(None)
+accepts only original static Identifier configs; dynamic configs require State.
+
+Restored only original mesh_sweep/scene_sweep hit_touching=False optional plumbing:
+default math unchanged, True includes approaching initial contact. Native contacts9
+pass. Original Dynamite19 full run initially had3 errors; actual cancellation now
+fixed through existing intercepted observer lifecycle. One method still has two
+legacy damage_tags-keyword spy errors (current actualhit_tags), assertions kept.
+Focused actual cancellation/half-self/nonowner-trigger plus Damage/Timing18 pass;
+Genji fuse/ownership/thrower/reflector retirement3 original methods pass. Additional
+real Grasp interception and Cryo burn cleanse pass; old Matrix fixture int hero
+metadata and personal_barriers observer fail before/after current real services,
+retained without fake aliases. Actual launched grenade and landed burn strict
+stored export/digest probe passes. Logs worker-a-ashe-dynamite-{full,shared,
+deflect-second,defense,snapshot}.log and worker-a-ashe-contacts.log.
+
+Necessary original input:0200/ashe-parent-navigation-prepared-entities.json.gz,
+21 graphs/7 entities incl2533/25C3, source hashes unchanged. Worker external
+worker-a-ashe-graphs.json.gz is a strict nonreplacing union with composedv11;
+root is auditing authoritative current graph/controller/mover composition. No
+runtime-base edits, full assets, client run or publication. Full original controls/
+BOB fixture dependencies saved; BOB itself remains unmounted, not counted complete.
+Next exact action: source Coach recoil/pellet impulse and reload interlocks on the
+existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/charge.
+
+## A45 - original Viper reload hard-control interlock
+
+- Mounted original `set_viper_reload_stunned` at both existing shared interruption entry points, with current stuns/sleep expiry restoring linked empty-magazine reload only after the actual hard-control predicate clears. No extra stack or control host.
+- Restored original `Stack.become_under` by factoring the identical existing inline branch; dependency_changed, priorities, top/under plugs and native stack bookkeeping remain unchanged.
+- Original two Flashbang reload methods plus 13 normal runtime checks: 15 passed using v11 plus the A44 Ashe graph union (`worker-a-ashe-reload-stun-third.log`). Both full shell/held-primary/ADS interlock methods also passed in the first run. Initial wiring errors and fails are retained in prior logs; assertions unchanged.
+- Next: actual Coach recoil and source pellet-aggregated shove on the current single Knockbacks/player/NPC movers, then BOB. No whole Ashe/ref reconciliation yet.
+
+## A46 - original Coach geometry, recoil and victim shove
+
+- Connect original 1513/21 recoil and 1513/16 fixed 15-pellet pattern, source limiter/rings/cap/resistance and per-source/target nearest-pellet aggregation. One ranged payload retains all Coach rays across current pending support-boost ordering; actual shared hitscan returns landed ownership through reflections before one shove. Other attack payload paths retain defaults.
+- `ashe.Impulses` now translates source requests into existing `Knockbacks`, actual player velocity_changes and Bot.impulse_mover; no separate pending queue/NPC integration loop. Source modifier26 rows reduce victim requests once before the existing unresisted host, including Heavy zero response. Original `fortify_active` reads the actual current body VM slot9161; no Fortify controller/profile/time change. Snapshot registers only the facade combat reference; actual queued movement remains existing causal state.
+- Original Coach15 methods: 10 passed, one nearest-pellet method has three preserved approx0.002506m differences at the outer boundary; four methods still read removed private `impulses.pending` and error. Existing actual mover queues remain authoritative, no observer facade invented. Physical cast/aim/recoil clamps/rulesets/walls/ally/spam and ordinary ring methods passed.
+- Original 15-hit transport/spread/Cryo + shared Damage/Timing/runtime: initial33 methods all functionality passed except two missing original Fortify query subcases and private pending observer. Restored actual query then Fortify plus strict stored snapshot and Damage/Timing: 17 passed. Logs: worker-a-ashe-coach-{first,second,third,shared,final}.log.
+- Actual five current catalog NPCs all take damage and use the single impulse mover; Heavy receives90 without movement (zero modifier26), Trooper84/Enforcer90/Sniper90/Assassin24 with movement (current geometry retained). Actual Genji reflection probe confirms15 credited pellets, 200/110 health, both owner recoil/reflected shove on Ashe, defender unmoved. Logs worker-a-ashe-coach-npc-probe.log and -reflection-probe.log.
+- BOB original Companions/victim/charge phases remain unmounted next; no Ashe whole-line claim. Low-confidence remaining actual Ashe work: roughly 6-12 worker-hours, dominated by reconciling BOB actual single NPC/driver/mover profiles and source victim control with current snapshot/charge/defense consumers. Parent owns prepared-input admission; old private observer differences are not a merge blocker.
+
+## Clean synchronization after A46
+
+Absorbed committed intake afcec3b8 after A46. Automatic source merges retain Coach/Dynamite/reload and new Ball/Sombra/root shared consumers; no conflicts, no runtime/base mutation. Continue BOB original lifecycle on this combined boundary.
+
+## A47 - original strict mover extension dependency for BOB
+
+- Restore original pure `load_mover_bundle` fingerprint/add-only complete finite validation and original two-method fixture, preserving all original assertions (including twelve malformed cases). Current global cached mover table keeps current `ORPHEUS_MOVERS_SUPPLEMENT` union and DVa/C34 movement; an explicit `ORPHEUS_MOVER_EXTENSION` first adds only validated missing bodies. No default input/profile switch.
+- Original mover extension plus current body-form/supplement checks: 13 passed using v13 environment (`worker-a-ashe-mover-extension.log`).
+- Source prepared package expects mover base e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c; current immutable base is fcdfa08827099284736677498c0354d2262f4ae00cd70c26dcba259a49af333f and has no25C3. Do not bypass strict mismatch or alter source package. Parent notified; current-bound derived input requires record-level original-base validation. BOB remains unmounted pending real factory/phase consumers, next immediately.
+
+## A48 - original BOB factory, shared actor lifetime and gun phase
+
+- Actual 1536/3 PlayScript factory now allocates one `npc.spawn` Bot with one1200HP Vitals entry, original25C3/153B body/gun, current cached mover geometry and original strict bob_charge/bob_idle profiles. The Bob record and Bot.impulse_mover reference the same mover; Match generic NPC stepping skips this managed actor while source phase arbitration drives it. Current generic BotScript gun report/transport remains the only attack consumer.
+- Preserve source summon slot512, source/instigator, charge/wall/settle/gun deadlines, target selection, owner credit, one active actor gate, current movement mods/pillar collision, owner replacement/expiry/kill cleanup and single-NPC removal. Restore original ally-owner equivalence for shared heal_area (FFA companion, no enemy healing) and suppress actual Ashe generic/passive charge during active BOB.
+- Current combined Sombra nonlethal hit branch assumed all body_script objects have `.hero`; real BOB hit exposed BotScript has none. Narrow current guard now uses getattr(None) and leaves actual Sombra BodyScript behavior unchanged.
+- Original BobTests14/14 passed unchanged with v13 plus strict current-bound mover package; current shared Damage/Timing/runtime28/28 passed. Actual controlled network ultimate input created BOB, strict stored export passed, actor lifetime mutation changed digest then round-tripped (`worker-a-ashe-bob-snapshot-second.log`). Original full logs worker-a-ashe-bob-{first,second,third,shared}.log preserve initial actual contract errors.
+- Strict derived mover package: ../worker-a-ashe-current-bound-movers.json.gz and standalone .manifest.json. Original/retribution base43 JSON records equal current immutable43 exactly; byte hash differs from serialization only. Source package, both base hashes and derived hash recorded externally. Original files untouched; parent owns unified profile admission.
+- NEXT REAL GAP: uppercut victim must enter actual17F6 and reset/launch through the same queued movement host. `test_enemy_contact_deals_one_uppercut_then_launches_and_fires` currently errors at A46's explicit unmounted-victim guard after actual contact damage (worker-a-ashe-bob-uppercut-baseline.log). Original bob_victim.py saved unmodified and admitted in model manifest, not yet called for player pose. Do not claim full BOB/Ashe completion. Continue victim/status/Heavy cross-consumers immediately; no acceptance blocker imposed on this real factory/gun boundary.

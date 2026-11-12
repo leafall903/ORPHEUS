@@ -382,14 +382,8 @@ def cryo_heal(world, state, elapsed_ms):
             or target.owner.body_script.component is not instance.component
             or expr.to_entity(state.evaluate(state.node.field("m_FA3ECC43"), watch=False)) != world.body):
         return True
-    duration = round(expr.to_float(state.evaluate(state.node.field("m_95F1FB0B"), watch=False)) * 1000)
-    if duration <= 0:
-        return True
-    elapsed = max(0, state.now - state.start)
-    applied = min(duration, elapsed) - min(duration, max(0, elapsed - elapsed_ms))
-    budget = expr.to_float(state.evaluate(state.node.field("m_modifyHealth.m_amount"), watch=False))
-    vitals = fight.vitals_of(target)
-    fight._heal_target(target.owner, target, budget * applied / duration)
+    # The original sampled consumer settles this activation after body VM advance.
+    # Claim the authored native report here so it cannot heal a second time.
     return True
 
 

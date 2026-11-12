@@ -17,7 +17,7 @@ import uuid
 from collections import deque
 from pathlib import Path
 
-from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, npc_controller_storage
+from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, npc_controller_storage
 from ow174.game.script import scene
 from ow174.game import (
     assassin_controller,
@@ -36,6 +36,7 @@ from ow174.game import (
     ball,
     barrier,
     assassin_victim,
+    ashe,
     barriers,
     breather,
     bots,
@@ -118,6 +119,7 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    translocators.Translocators: _names("combat entries recall_poses data_path data_record data_graphs data_digest"),
     mei_blizzard.Blizzard: _names("combat flights areas"),
     symmetra_portals.Portals: _names("combat pairs transits"),
     symmetra_portals.PortalPair: _names("owner endpoints instance_id owner_body ready_at"),
@@ -149,9 +151,9 @@ FIELDS = {
     ShownController: _names("script create_acked pick card_again possession"),
     CommandQueue: _names("last_frame epoch wraps"),
     combat.Combat: _names(
-        "blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
+        "translocators cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
-        "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs junkrat dynamite impulses companions venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples grapple_seen ball_contacts pile_air_locks orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
@@ -162,6 +164,9 @@ FIELDS = {
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
+    ashe.Companions: _names("combat active unavailable_reason"),
+    ashe.Impulses: _names("combat"),
+    ashe.Dynamite: _names("combat grenades burns last_tick"),
     junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
     junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
@@ -298,6 +303,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    ashe.Grenade, ashe.Burn, ashe.Bob,
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
     entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
     scene.SceneEntity, scene.Placement,
@@ -328,7 +334,7 @@ DATACLASSES = (
     brigitte.BashStun,
     echo_duplicate.Copy, barriers.Bubble, barriers.world_bubbles.FixedBubble,
     reinhardt_barrier.RaisedBarrier,
-    genji.Mobility, combat.Frost, mei_blizzard.Flight, mei_blizzard.Area,
+    genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
     earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier,

@@ -525,6 +525,10 @@ class BodyWorld(runtime.World):
         return history.expires_ms if history is not None else None
 
     def ability_start_allowed(self, state) -> bool:
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and state.instance.graph.index == 0x1536 and state.index == 1
+                and self.match.combat.companions.active_for(self.body)):
+            return False
         if not self.ability_resource_available(state):
             return False
         # The hosted projection supplies its overlap gate while the native
@@ -742,6 +746,22 @@ class BodyWorld(runtime.World):
         if self.match is None or instance.component.entity != self.body:
             return NotImplemented
         return body_entities.create_mech(self.match, instance, node)
+
+    def body_health_pool(self, state):
+        if self.match is not None:
+            self.match.combat.translocators.health_pool(state)
+
+    def body_recall_target(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.select_recall(state)
+
+    def body_recall_move(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.recall(state)
+
+    def destroy_entity(self, instance, node):
+        if self.match is not None and instance.graph.index == 0x0C1A:
+            self.match.combat.translocators.destroy_authored(instance.component.entity)
+            return True
+        return NotImplemented
 
     def create_world_entity(self, instance, node):
         if self.match is not None:
@@ -972,6 +992,16 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
+                and instance.graph.index == 0x1513 and not instance.component.strict):
+            value = instance.graph.node(45).field("m_value")
+            if cfg is value["m_configVars"][0]:
+                from ow174.game import ashe
+
+                for player in self.match.players:
+                    if player.has_body and not player.gone and player.body == self.body:
+                        return Vec3(*ashe.coach_shove_direction(cfg, player))
+
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         if self.hero == 0x02E00000000001CA and instance is not None:
@@ -1062,6 +1092,7 @@ class BodyWorld(runtime.World):
             player = next((p for p in self.match.players if p.has_body and p.body == self.body), None)
             if player is not None:
                 cls = cfg.get("$")
+
                 yaw = player.mover.yaw * math.tau / 65536
                 if cls == "STU_71A87E92":
                     return Vec3(*player.mover.position)
@@ -1755,6 +1786,14 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and instance.graph.index == 0x1513 and node.pos == 21):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                self.match.combat.impulses.recoil(player, instance)
+            return True
+
         if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) in ((0x0B27, 75), (0x0DD8, 1)):
             from ow174.game.combat import aim
 
@@ -1839,6 +1878,21 @@ class BodyWorld(runtime.World):
 
     def play_script_host(self, instance, node):
         from ow174.game import photon_barrier
+
+        if (self.match is not None and self.hero == 0x02E0000000000200
+                and not instance.component.strict and instance.graph.index == 0x1536 and node.pos == 3
+                and node.field("m_6D7701B7") is None
+                and (node.field("m_script") or {}).get("m_graph") == "0x0580000000001537"):
+            player = next((p for p in self.match.players if p.body == self.body
+                           and p.has_body and not p.gone), None)
+            if player is not None and not self.match.combat.is_dead(player):
+                charge = expr.to_float(instance.evaluate({"$":"STUConfigVarDynamic", "m_identifier":14668, "m_60DB8F99":0}))
+                duration = 10.0 * expr.to_float(self.ruleset(13032), 1.0)
+                instance.write((expr.INSTANCE, 14669), duration)
+                inherited = instance.source_entity()
+                self.match.combat.companions.summon(player, charge_seconds=charge, gun_seconds=duration,
+                    charge_instigator=inherited if expr.valid_entity(inherited) else self.body)
+            return True
 
         if self.match is not None and self.hero == photon_barrier.HERO:
             return self.match.combat.photon_barriers.play(instance, node) is True
@@ -1961,6 +2015,10 @@ class BodyWorld(runtime.World):
                 and match.combat.orisa.receive(target, message, sender)):
             return
         if match is not None and sender == self.body:
+            actor = match.combat.translocators.entries.get(target)
+            if actor is not None:
+                runtime.send_message(actor.body_script.component, message, params, sender)
+                return
             if match.combat.junkrat.message(target, message, sender):
                 return
             if self.hero == ice_wall.MEI and ice_wall.cancel(match.combat, target, message, params, sender):
@@ -2206,7 +2264,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.world_frame_anchor: tuple[int, int] | None = None
-        if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
+        if hero in (0x02E0000000000002, 0x02E0000000000009, 0x02E000000000012E) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero == 0x02E00000000000DD:
             from ow174.game import mei_ultimate
@@ -2571,6 +2629,9 @@ class BodyScript(ReplicatedBody):
         """
         if not math.isfinite(amount) or amount < 0:
             raise ValueError("ultimate health-event amount must be finite and nonnegative")
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
         if not amount or any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return 0.0
         cost = expr.to_float(self.component.entity_var(ULT_COST).value())
@@ -2642,6 +2703,9 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return 0.0
         if self.world.match is not None and (self.hero == 0x02E0000000000065
                 or self.world.match.combat.junkrat.tire.busy(self.entity)):
             return 0.0
@@ -2705,6 +2769,10 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+
+        if (self.hero == 0x02E0000000000200 and self.world.match is not None
+                and self.world.match.combat.companions.active_for(self.entity)):
+            return
 
         if self.world.match is not None and (self.hero == 0x02E0000000000065
                 or self.world.match.combat.junkrat.tire.busy(self.entity)):
@@ -3162,20 +3230,21 @@ class BodyScript(ReplicatedBody):
 
 
 def create_body_graphs(
-    component: runtime.Component, record: dict, *, include_initial: bool = True,
+    component: runtime.Component, record: dict, *, include_initial: bool = True, resolve_graph=None,
 ) -> list[runtime.Instance]:
     """Allocate the weapon manager and slots, plus any initial graphs not already mounted."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     weapons = record.get("weapons") or []
     component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
     component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
-    created = create_initial_graphs(component, record) if include_initial else []
-    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    created = create_initial_graphs(component, record, resolve_graph=lookup) if include_initial else []
+    manager = lookup(record["manager"]) if record.get("manager") is not None else None
     if component.strict and record.get("manager") is not None and manager is None:
         raise ValueError("body weapon manager graph is unavailable")
     if manager is not None:
         created.append(component.create(manager, init=False))
     for slot, item in enumerate(weapons):
-        weapon = graph.graph(item) if item is not None else None
+        weapon = lookup(item) if item is not None else None
         if component.strict and item is not None and weapon is None:
             raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
@@ -3183,11 +3252,12 @@ def create_body_graphs(
     return created
 
 
-def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+def create_initial_graphs(component: runtime.Component, record: dict, *, resolve_graph=None) -> list[runtime.Instance]:
     """Allocate the definition's instances in asset order, before running their entries."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     created = []
     for number, item in enumerate(record["graphs"], 1):
-        definition = graph.graph(item["graph"])
+        definition = lookup(item["graph"])
         if definition is None:
             continue
         values = {}

@@ -11,6 +11,9 @@ import math
 
 from ow174.game.script import expr
 
+REAPER = 0x02E0000000000002
+MEI = 0x02E00000000000DD
+MOIRA = 0x02E00000000001A2
 ORISA = 0x02E000000000013E
 ZENYATTA = 0x02E0000000000020
 TRANSCENDENCE = 0x017B
@@ -164,3 +167,24 @@ def cryo_active(owner, entity=None):
     if entity is not None and getattr(owner, "body", None) != entity:
         return False
     return defenses.cryo_protected(owner)
+
+
+def fortify_active(owner, entity):
+    """Read the original Fortify flag on its actual current body VM."""
+    script = getattr(owner, "body_script", None)
+    if (getattr(getattr(owner, "hero", None), "guid", None) != ORISA
+            or script is None or script.retired or script.component.owner_dead
+            or script.component.entity != entity):
+        return False
+    flag = script.component.entity_var(9161, create=False)
+    return flag is not None and flag.value() is True
+
+
+def heavy_carry_active(owner, entity):
+    """Read the original Heavy carry flag on the live victim body VM."""
+    script = getattr(owner, "body_script", None)
+    if (script is None or getattr(script, "retired", False) or script.component.owner_dead
+            or script.component.entity != entity):
+        return False
+    flag = script.component.entity_var(2024, create=False)
+    return flag is not None and flag.value() is True
