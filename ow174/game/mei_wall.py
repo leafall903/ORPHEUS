@@ -418,7 +418,7 @@ class Walls:
             if instance is not None:
                 self.stop_preview(instance)
 
-    def damage(self, piece, shooter, amount, *, team=None):
+    def damage(self, piece, shooter, amount, *, team=None, source_scaled=True, source_body=None):
         from ow174.game.combat import _source_entity
 
         team = shooter.team if team is None else team
@@ -430,7 +430,7 @@ class Walls:
                 return
             self.combat._damage(shooter, self.combat._deployable_target(piece.actor), amount, False,
                                 None, self.combat.tick, world_tick=self.combat.tick,
-                                source_scaled=True, award_ult=False)
+                                source_scaled=source_scaled, source_body=source_body, award_ult=False)
         else:
             piece.health = max(0.0, piece.health - amount)
             if piece.health == 0:

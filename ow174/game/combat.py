@@ -1743,6 +1743,7 @@ class Rocket:
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
     barrage_source: tuple | None = None
+    offense_scale: float | None = None  # Original0068 launch Nano snapshot; other families keep impact policy.
 
 
     @property
@@ -2104,6 +2105,36 @@ class Combat:
                 if viewer.spawned and viewer.client is not None:
                     viewer.client.queue_bot_live(bot.entity, snapshot)
 
+    def stop_boosters(self, player) -> None:
+        from ow174.game import dva
+
+        instance = dva.boosters(player)
+        if instance is None:
+            return
+        ability = instance.states.get(0)
+        if not isinstance(ability, nodes.Ability) or not ability.flags & ability.RUNNING:
+            return
+        ability.presses.clear()
+        ability.stop()
+        instance.component.run_now()
+        self.booster_contacts.pop(instance.component.entity, None)
+        if not isinstance(player, bots.Bot):
+            player.mover.track_mods(self.movement_mods(player, statescript_mods(instance.component)),
+                                    instance.component.frame, posed=False)
+
+
+    def stop_genji_strike(self, player) -> None:
+        if getattr(player.hero, "guid", None) != 0x02E0000000000029 or player.body_script is None:
+            return
+        self.genji_strikes.pop(player.body, None)
+        component = player.body_script.component
+        instance = next((i for i in component.instances.values() if i.graph.index == 0x01DB), None)
+        dash = instance.states.get(1) if instance is not None else None
+        if dash is not None and dash.active:
+            dash.request(runtime.ABORT)
+            component.run_now()
+
+
     def _booster_contact(self, player, command, script) -> None:
         """Consume 047E's live tracking and damage states using current capsules and static LOS."""
         mover = player.control_mover if isinstance(player, bots.Bot) else player.mover
@@ -2171,6 +2202,10 @@ class Combat:
         self.input_locks = {}
         self.booster_contacts = {}
         self.hammer_hits = {}
+        self.zarya_charge_tick = 0
+        self.zarya_charge_ready: dict[int, int] = {}
+        self.zarya_melee_ready: dict[int, int] = {}
+        self.zarya_secondary_ready: dict[int, int] = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
         self.matrix_definitions: frozenset[int] | None = None
@@ -2475,6 +2510,9 @@ class Combat:
         self.vitals.pop(player.body, None)
         self.history.pop(player.body, None)
         self.replacement_ticks.pop(player.body, None)
+        self.zarya_charge_ready.pop(player.body, None)
+        self.zarya_melee_ready.pop(player.body, None)
+        self.zarya_secondary_ready.pop(player.body, None)
         if player.hero.guid == hero_torbjorn.HERO and next_hero not in (None, hero_torbjorn.HERO):
             molten_core.retire_owner(self, player)
             hero_torbjorn.destroy_turret(self, player)
@@ -4248,6 +4286,13 @@ class Combat:
             counters[key] = state.counter
             if state.counter == seen or not state.active or command is None:
                 continue
+            if hero == 0x02E0000000000068 and instance.graph.index == 0x0043:
+                ability = instance.states.get(instance.graph.node(14).state)
+                if isinstance(ability, nodes.Ability) and ability.cur > 0 and ability.cooldown_rate > 0:
+                    cooldown_ms = max(1, expr.round_half_away(expr.f32(expr.f32(ability.cur * 1000.0) / ability.cooldown_rate)))
+                    ready_frame = (ability.last + cooldown_ms) // script.frame_ms
+                    elapsed = (ready_frame - command.frame) * script.frame_ms
+                    self.zarya_melee_ready[player.body] = self.match.tick + math.ceil(elapsed / (TICK * 1000))
             modify = state.node.field("m_modifyHealth") or {}
             amount = _number(state.evaluate(modify.get("m_amount"), watch=False), 0.0) if modify else 0.0
             loadout = (
@@ -4521,9 +4566,9 @@ class Combat:
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Natural/cancelled allied support uses this same real world loop.
-        # Impact/projected retarget proofs await their actual service adapters.
-        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
+        # Supported impact proofs read the same actors and preview route poses;
+        # admission still feeds the sole world/NPC update loop.
+        return self.sentries.frozen_history_candidates(tick)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -4536,6 +4581,9 @@ class Combat:
         # accepted gap, using the existing actors and their actual clock pairs.
         sentry_damage_starts, cryo_expiries = {}, {}
         for player in self.match.players:
+            phase_end = immunity.phase_world_deadline(self, player)
+            if phase_end is not None and phase_end <= tick:
+                sentry_damage_starts[player.body] = now - (tick - phase_end + 1) * TICK
             deadline = mei.cryo_world_deadline(player)
             if deadline is not None and deadline <= tick:
                 ended = now - (tick - deadline + 1) * TICK
@@ -4681,6 +4729,10 @@ class Combat:
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
+            if at > self.zarya_charge_tick:
+                if self.zarya_charge_tick:
+                    self._charge_zarya_passive(self.zarya_charge_tick + 1, at)
+                self.zarya_charge_tick = at
             self.now, self.tick = now - (tick - at) * TICK, at
             for player, script, release in bubble_releases.get(at, ()):
                 if (player.body_script is not script or self.is_dead(player)
@@ -4804,6 +4856,7 @@ class Combat:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
+        self._advance_idle_zarya_reloads()
         molten_core.update(self)
         for player in self.match.players:
             if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
@@ -5008,12 +5061,13 @@ class Combat:
             self.photon_barriers.melee(shooter, origin, centre, radius, amount)
             sigma_barrier.melee(self, shooter, origin, centre, radius, amount)
 
-    def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None):
+    def _damage_contact_barrier(self, contact, amount, *, shooter, source_body=None, source_scaled=False):
         from ow174.game import nano
 
         _, owner, actor = contact
         source = _source_entity(shooter) if source_body is None else source_body
-        amount *= nano.offense(self, source)
+        if not source_scaled:
+            amount *= nano.offense(self, source)
         if isinstance(actor, sigma_barrier.Barrier):
             sigma_barrier.damage_barrier(self, actor, amount)
         elif isinstance(actor, orisa_barrier.Barrier):
@@ -6145,6 +6199,11 @@ class Combat:
         if (not isinstance(shooter, bots.Bot) and command is not None
                 and self.sentries.fired(shooter, command, state)):
             return
+        if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E0000000000068
+                and state.instance.graph.index == 0x0241 and state.index == 19):
+            from ow174.game import zarya
+
+            self.zarya_secondary_ready[shooter.body] = self.match.tick + zarya.SECONDARY_RECOVERY_TICKS
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
         if not isinstance(shooter, bots.Bot) and self.ball_mines.volley(shooter, state, number, shot_frame):
@@ -6532,6 +6591,15 @@ class Combat:
                 if not npc and _zarya_world_timed_flight(definition, spawn):
                     # Original0068 anchors actual world admission, never bare command time.
                     projectile_tick = self.match.tick
+                offense_scale = None
+                if not npc and _zarya_world_timed_flight(definition, spawn):
+                    from ow174.game import nano
+
+                    offense_scale = nano.offense(self, _source_entity(shooter))
+                    if direct is not None:
+                        direct = replace(direct, amount=direct.amount * offense_scale)
+                    if blast is not None:
+                        blast = replace(blast, amount=blast.amount * offense_scale)
                 for pellet, launch in enumerate(directions):
                     pellet_shot = (self.projectiles.fired(
                         shooter, state, shot_frame, definition, lifetime, origin, launch,
@@ -6546,6 +6614,7 @@ class Combat:
                         velocity=(velocity if velocity is not None else
                                   tuple(expr.f32(value * speed) for value in launch) if gravity is not None else None),
                         spray=moira.spray_trace(shooter, state, direct), dose_scalar=dose_scalar,
+                        offense_scale=offense_scale,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
                         detonate_on_expiry=(flashbang_gravity is not None or pulse or junkrat_profile is not None
@@ -6590,6 +6659,14 @@ class Combat:
                         if release_tick:
                             rocket.stamp_launch(release_tick)
                     self._submit_attack(shooter, shot_frame, rocket)
+                if not npc and spawn == graviton.FIELD_ENTITY and shooter.hero.guid == 0x02E0000000000068:
+                    from ow174.game import zarya
+
+                    script = shooter.body_script
+                    ready_frame = zarya.ultimate_charge_ready_frame(script)
+                    if ready_frame:
+                        elapsed = max(0, ready_frame - script.frame) * script.frame_ms
+                        self.zarya_charge_ready[shooter.body] = self.match.tick + math.ceil(elapsed / (TICK * 1000))
             return
         if direct is None or direct.amount <= 0.0:
             return
@@ -7528,6 +7605,11 @@ class Combat:
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
         assisted = None
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                # This same native pillar is already represented by its actual
+                # solid slab below; its generic body capsule must not hit early.
+                continue
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
             if (target.entity in rocket.hit_entities or self._has_protection(target, PHASE_STATES)
@@ -7786,11 +7868,19 @@ class Combat:
             if rocket.is_barrage:
                 rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
             old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
+            if rocket.offense_scale is not None:
+                from ow174.game import nano
+
+                old_scale *= rocket.offense_scale
+                rocket.offense_scale = nano.offense(self, rocket.source_entity)
             for name in ("direct", "blast"):
                 definition = getattr(rocket, name)
                 if definition is not None:
                     definition = replace(definition, amount=definition.amount / old_scale, boost_credit=None)
-                    setattr(rocket, name, self._support_hit(rocket.shooter, definition))
+                    definition = self._support_hit(rocket.shooter, definition)
+                    if rocket.offense_scale is not None:
+                        definition = replace(definition, amount=definition.amount * rocket.offense_scale)
+                    setattr(rocket, name, definition)
             rocket.damage_charge = None
             rocket.boost_credit = (rocket.direct.boost_credit if rocket.direct is not None else
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
@@ -7898,13 +7988,15 @@ class Combat:
                         or (getattr(rocket.shooter.hero, "guid", None) == hero_torbjorn.HERO
                             and direct.projectile_headshot)):
                     amount *= direct.scale(rocket.flown * rocket.speed)
+                if rocket.offense_scale is not None:
+                    amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
                 before = self.vitals_of(struck).total if rocket.accretion_source is not None else 0.0
                 landed = self._damage(
                     rocket.shooter, struck, amount, critical, direct.loadout, self.tick,
                     world_tick=self.tick, hit_tags=direct.tags,
                     broken_particle_barriers=broken_particle_barriers, source_body=rocket.source_body,
                     damage_charge=rocket.damage_charge, boost_credit=rocket.boost_credit,
-                    award_ult=rocket.charge_eligible,
+                    award_ult=rocket.charge_eligible, source_scaled=rocket.offense_scale is not None,
                 )
                 if landed:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
@@ -8350,7 +8442,8 @@ class Combat:
                 if isinstance(actor, reinhardt_barrier.RaisedBarrier) and self.is_dead(owner):
                     continue  # a nearer body hit can retire its carried shield
                 rocket.penetrated.add(key)
-                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter)
+                self._damage_contact_barrier(target, rocket.direct.amount, shooter=rocket.shooter,
+                                             source_body=rocket.source_body, source_scaled=rocket.offense_scale is not None)
             elif kind == 3:
                 rocket.penetrated.add(key)
                 self.brigitte.damage_barrier(target, rocket.direct.amount * self.orisa.superchargers.scale(rocket.shooter))
@@ -8383,8 +8476,29 @@ class Combat:
                 rocket, point, self._ice_wall_blockers(), shield_los=False,
             ))
             return 0.0
+        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
+        impulse_protected = set(protected) | set(broken_particle_barriers or ())
+        if pharah:
+            impulse_protected.update(
+                actor.recipient_body or actor.parent_body for actor in self.barriers.scripted.values()
+                if actor.component.world.hero == barriers.ZARYA and actor.vitals is not None
+                and actor.vitals.total > 0 and barriers._live(self, actor)
+            )
+        pharah_impulses = (self._pharah_impulses(
+            rocket, damage_point, point, protected=impulse_protected,
+            heading=incident_direction, normal=surface_normal, defer=True,
+        ) if pharah else ())
         boost = self.orisa.superchargers.scale(rocket.shooter)
+        wall_source_scaled = rocket.offense_scale is not None
+        wall_scale = self._team_damage(rocket.shooter, 1.0) * boost if wall_source_scaled else 1.0
         source = _along(point, incident_direction, -0.0001)
+        # Sample the original solid-wall exposure before any impact can remove
+        # cover. Bound native pillars share these geometry objects and pools.
+        ice_splash = (() if not self.walls.pieces or blast is None or blast.amount <= 0.0 else tuple(
+            (piece, amount) for piece, manager, amount in self._splash_barriers(
+                rocket, point, source, None if ice is None else (ice[1], self.walls),
+            ) if manager is self.walls
+        ))
         blockers = tuple((actor, manager)
                          for manager in (self.orisa_barriers, self.orisa.superchargers)
                          for actor in manager.opponents(rocket.shooter))
@@ -8407,7 +8521,6 @@ class Combat:
         if accretion and blast is not None and blast.amount <= 0:
             candidates = []
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
-        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or blast.loadout == 0x0B9000000000020B
@@ -8422,9 +8535,10 @@ class Combat:
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
         if blast is None or (blast.amount <= 0.0 and not (accretion and blast.source_impulse_scale)):
             if pharah:
-                self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+                self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
             if ice is not None:
-                self.walls.damage(ice[1], rocket.shooter, ice_damage, team=rocket.team)
+                self.walls.damage(ice[1], rocket.shooter, ice_damage * wall_scale, team=rocket.team,
+                                  source_scaled=wall_source_scaled, source_body=rocket.source_body)
             for barrier, amount in shield_damage:
                 self.brigitte.damage_barrier(barrier, amount)
             if deployed is not None:
@@ -8463,8 +8577,11 @@ class Combat:
             protected_out.update(protected)
         victims = []
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                continue  # same actual pillar is settled by its solid geometry below
             if ice is not None and target.entity == ice[1].entity:
-                continue  # same actual pillar is settled by the impact surface below
+                continue
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
                 continue
             if target.owner is not None and self.vitals_of(target).dead:
@@ -8513,8 +8630,11 @@ class Combat:
                     continue
             victims.append((target, blast.amount * scalar))
         if ice is not None:
-            self.walls.damage(ice[1], rocket.shooter, ice_damage + blast.amount * blast.splash(0.0),
-                              team=rocket.team)
+            self.walls.damage(ice[1], rocket.shooter, (ice_damage + blast.amount * blast.splash(0.0)) * wall_scale,
+                              team=rocket.team, source_scaled=wall_source_scaled, source_body=rocket.source_body)
+        for piece, amount in ice_splash:
+            self.walls.damage(piece, rocket.shooter, amount * wall_scale, team=rocket.team,
+                              source_scaled=wall_source_scaled, source_body=rocket.source_body)
         for barrier, amount in shield_damage:
             self.brigitte.damage_barrier(barrier, amount)
         for barrier, amount in deployed_splash:
@@ -8528,11 +8648,14 @@ class Combat:
                 self._biotic_impact(rocket.shooter, blast, victims, broken_particle_barriers)
         else:
             for target, amount in victims:
+                if rocket.offense_scale is not None:
+                    amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
                 landed = (not accretion or amount > 0) and self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
                     award_ult=rocket.charge_eligible and target.owner is not rocket.shooter,
+                    source_scaled=rocket.offense_scale is not None,
                 )
                 if (blast.loadout == SOLDIER_WEAPON_LOADOUT and not self.vitals_of(target).dead
                         and (landed or defenses.invulnerable(target.owner))):
@@ -8558,9 +8681,13 @@ class Combat:
                     )
 
         if pharah:
-            self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+            self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
 
-    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None, normal=(0.0, 0.0, 0.0)):
+    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None,
+                         normal=(0.0, 0.0, 0.0), defer=False):
+        # Freeze exposure before the same impact can destroy its cover. The
+        # local plan is applied once after damage by the existing physical host.
+        impulses = []
         blast = rocket.blast
         heading = rocket.direction if heading is None else heading
         candidates = self._enemies(rocket.shooter)
@@ -8612,6 +8739,15 @@ class Combat:
             length = math.hypot(dx, dz)
             scale = flat / length if length > EPSILON else 0.0
             impulse = (dx * scale, upward, dz * scale)
+            impulses.append((target, impulse))
+        if not defer:
+            self._apply_pharah_impulses(impulses, protected=protected)
+        return tuple(impulses)
+
+    def _apply_pharah_impulses(self, impulses, *, protected=()):
+        for target, impulse in impulses:
+            if target.entity in protected or self.vitals_of(target).dead:
+                continue
             if isinstance(target.owner, bots.Bot):
                 from ow174.game.collision import TEAM0, TEAM1
 
@@ -9186,6 +9322,7 @@ class Combat:
         candidates = []
         for target in self._targets():
             if (target.owner is caster or target.team != caster.team or self.vitals_of(target).dead
+                    or not barriers._projection_recipient_ready(self, target.owner)
                     or self._active_projected_barrier(target.entity)):
                 continue
             script = target.owner.body_script
@@ -9343,6 +9480,86 @@ class Combat:
                 modifier = _number(state.evaluate(state.node.field("m_50530EAB"), watch=False), 0.0)
                 return max(0.0, 1.0 + modifier) if math.isfinite(modifier) else 1.0
         return 1.0
+
+    def _advance_idle_zarya_reloads(self) -> None:
+        from ow174.game import zarya
+
+        if self.match.ended:
+            return
+        for owner in self.match.players:
+            script = owner.body_script
+            if (script is None or script.hero != zarya.HERO or script.retired
+                    or owner.gone or not owner.has_body or self.is_dead(owner)):
+                continue
+            weapon = next((i for i in script.component.instances.values() if i.graph.index == 0x0241), None)
+            if weapon is None:
+                continue
+            for index in (46, 12):  # Refill before recovery if a world update crosses both deadlines.
+                wait = weapon.states.get(index)
+                deadline = getattr(wait, "world_deadline", None)
+                if deadline is None or not wait.active or self.tick <= deadline:
+                    continue
+                # The deadline frame remains available to real input.
+                # An idle completion must not spend a press buffered before recovery.
+                for button_index in (5, 16):
+                    button = weapon.states.get(button_index)
+                    if isinstance(button, nodes.LogicalButton):
+                        button.pressed_at = None
+                frame = (wait.start + wait.ms) // script.frame_ms
+                owner._advance_body_gap(frame + 1)
+                if owner.body_script is not script:
+                    break
+                if not wait.active:
+                    continue
+                try:
+                    script.finish_idle_reload(wait)
+                    self.command(owner, None)
+                    owner.mover.track_mods(self.movement_mods(owner, statescript_mods(script.component)),
+                                           script.frame, posed=False)
+                except Exception:
+                    log.exception("[game] %s: %s's idle reload failed", self.match.label(), owner.name)
+                    self.match.stop_body_script(owner, failed=True)
+                    break
+
+
+    def _zarya_charge_script(self, player, source: int):
+        from ow174.game import zarya
+
+        script = getattr(player, "body_script", None)
+        if (self.match.ended or not isinstance(script, BodyScript) or script.hero != zarya.HERO
+                or script.entity != source or player.body != source or player.gone
+                or not player.spawned or not player.has_body or player.client is None
+                or script.retired or script.component.owner_dead or script.component.fault is not None):
+            return None
+        if any(rocket.source_body == source and rocket.spawn == graviton.FIELD_ENTITY
+               for rocket in self.rockets):
+            return None
+        return script
+
+    def _zarya_charge_ready_tick(self, script) -> int | None:
+        from ow174.game import zarya
+
+        authored = zarya.ultimate_charge_ready_frame(script)
+        ready = self.zarya_charge_ready.get(script.entity)
+        if authored is None or (ready is None and authored):
+            return None
+        # A sparse world update can pass the field's deadline before removing the field.
+        field_ready = max((field.end_tick + 1 for field in self.zarya_gravitons.fields
+                           if field.source_body == script.entity), default=0)
+        return max(ready or 0, field_ready)
+
+    def _charge_zarya_passive(self, first: int, last: int) -> None:
+        from ow174.game import zarya
+
+        for player in self.match.players:
+            script = self._zarya_charge_script(player, player.body)
+            if script is not None and script.ult_seconds > 0:
+                ready = self._zarya_charge_ready_tick(script)
+                if ready is not None:
+                    start = max(first, ready, self.replacement_ticks.get(player.body, 0) + 1)
+                    if start <= last:
+                        elapsed = (last - start + 1) * TICK
+                        script.award_ult_charge(elapsed * zarya.ULT_PASSIVE_PER_SECOND)
 
     def _charge_echo_health_event(self, player, amount: float, *, source_body=None) -> None:
         """Mount health-event charge for Echo and the hero body currently copied by Echo."""
@@ -10002,6 +10219,13 @@ class Combat:
                 from ow174.game import mei_ultimate
 
                 mei_ultimate.grant(shooter, dealt, loadout=loadout)
+            if (award_ult and enemy and current_source and hero == 0x02E0000000000068
+                    and not self.echo_duplicates.active(shooter)):
+                zarya_script = self._zarya_charge_script(shooter, shooter.body)
+                if zarya_script is not None:
+                    ready = self._zarya_charge_ready_tick(zarya_script)
+                    if ready is not None and ready <= (self.tick if world_tick is None else world_tick):
+                        zarya_script.award_ult_charge(dealt)
             if award_ult and current_source and hero == 0x02E000000000023B:
                 from ow174.game import sigma_charge
 
@@ -10010,7 +10234,7 @@ class Combat:
                     selected.gain_ult_charge(max(0.0, base_before - vitals.base_total))
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007, 0x02E000000000023B)
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000003, 0x02E0000000000007, 0x02E0000000000068, 0x02E000000000023B)
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
@@ -10459,6 +10683,7 @@ class Combat:
 
     def _bot_died(self, killer, bot: bots.Bot, critical: bool, loadout, tick: int, *, deadeye=False, source=None) -> None:
         self.hooks.retire(bot.entity)
+        barriers.retire_owner(self, bot)
         hero_torbjorn.turret_killed(self, bot)
         source = _source_entity(killer) if source is None else source
         self.sombra_controls.retire(bot.entity)
@@ -10669,6 +10894,9 @@ class Combat:
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
+        if (isinstance(old_script, BodyScript) and old_script.hero == 0x02E0000000000068
+                and player.hero.guid == old_script.hero and old_script.component.fault is None):
+            points = old_script.component.entity_var(ULT_CHARGE).value()
         if (old_script is not None and player.hero.guid == 0x02E000000000023B
                 and old_script.entity == player.body):
             points = max(0.0, expr.to_float(old_script.component.entity_var(ULT_CHARGE).value()))

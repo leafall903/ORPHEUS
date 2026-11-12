@@ -478,8 +478,8 @@ def track_projected_target(world, state):
         closest = math.inf if wall is None else wall
         for target in fight._targets():
             ally = target.owner
-            if (ally is source or ally not in world.match.players or target.team != source.team
-                    or not _recipient_ready(fight, ally)):
+            if (ally is source or target.team != source.team
+                    or not _projection_recipient_ready(fight, ally)):
                 continue
             a, b = target.segment()
             distance = ray_capsule(origin, direction, a, b, target.radius)
@@ -493,6 +493,18 @@ def _recipient_ready(fight, player):
     script = player.body_script
     return (player.has_body and player.spawned and not player.gone and player.client is not None
             and script is not None and not script.retired and not fight.is_dead(player))
+
+
+def _projection_recipient_ready(fight, actor):
+    if not isinstance(actor, bots.Bot):
+        return actor in fight.match.players and _recipient_ready(fight, actor)
+    from ow174.game.symmetra_portals import BODIES as TELEPORTER_BODIES
+
+    script = actor.body_script
+    return (actor in fight.match.bots and actor.body not in TELEPORTER_BODIES
+            and not fight.is_dead(actor) and script is not None
+            and script.component.entity == actor.entity
+            and not script.component.owner_dead and script.component.fault is None)
 
 
 def cryo_heal(world, state, elapsed_ms):
@@ -604,9 +616,10 @@ def create(world, state):
     if signature == (ZARYA, 0x025C, 10):
         variable = state.instance.vars.get(536)
         target = expr.to_entity(variable.value()) if variable is not None else 0
-        recipient = next((p for p in world.match.players if p.body == target and p is not owner), None)
+        recipient = next((row.owner for row in fight._targets()
+                          if row.entity == target and row.owner is not owner), None)
         if (recipient is None or world.match.game_map.free_for_all or recipient.team != owner.team
-                or not _recipient_ready(fight, recipient)):
+                or not _projection_recipient_ready(fight, recipient)):
             return 0
     from ow174.game.script.driver import BodyWorld
 
@@ -627,7 +640,7 @@ def create(world, state):
                       application_tick=world.match.tick)
     if recipient is not None:
         barrier.recipient = recipient
-        barrier.recipient_body = recipient.body
+        barrier.recipient_body = recipient.entity if isinstance(recipient, bots.Bot) else recipient.body
         barrier.recipient_component = recipient.body_script.component
     if world.hero == REINHARDT:
         barrier.mesh, barrier.geometry_digest = barrier_geometry.load()
@@ -652,6 +665,7 @@ def retire(fight, entity):
                           and expiry.duration.counter == expiry.generation
                           and expiry.duration.now // barrier.source.frame_ms == expiry.frame)
     if (expiry is not None and fight.tick <= expiry.tick
+            and (barrier.vitals is None or barrier.vitals.total > 0)
             and (fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
                  or ending_on_deadline)
             and not fight.is_dead(barrier.parent)
@@ -669,10 +683,11 @@ def retire(fight, entity):
 
 
 def retire_owner(fight, owner):
+    body = owner.entity if isinstance(owner, bots.Bot) else owner.body
     for barrier in list(fight.barriers.scripted.values()):
-        if barrier.parent is owner and barrier.parent_body == owner.body:
+        if barrier.parent is owner and barrier.parent_body == body:
             retire(fight, barrier.entity)
-        elif barrier.recipient is owner and barrier.recipient_body == owner.body:
+        elif barrier.recipient is owner and barrier.recipient_body == body:
             _end_bubble(fight, barrier)
 
 
@@ -797,11 +812,14 @@ def _apply_bubble_cleanse(fight, barrier):
 
 
 def _recipient_live(fight, barrier):
-    player = barrier.recipient
-    return (player is None or (player in fight.match.players and player.body == barrier.recipient_body
-                              and player.team == barrier.parent.team and not fight.match.game_map.free_for_all
-                              and _recipient_ready(fight, player)
-                              and player.body_script.component is barrier.recipient_component))
+    actor = barrier.recipient
+    if actor is None:
+        return True
+    body = actor.entity if isinstance(actor, bots.Bot) else actor.body
+    return (body == barrier.recipient_body and actor.team == barrier.parent.team
+            and not fight.match.game_map.free_for_all
+            and _projection_recipient_ready(fight, actor)
+            and actor.body_script.component is barrier.recipient_component)
 
 
 def _expiry(fight, barrier):
@@ -949,6 +967,14 @@ def damage(fight, barrier, amount, *, attacker=0):
             barrier.component.run_now()
             barrier.source.run_now()
         if remaining <= 0:
+            expiry = _expiry(fight, barrier)
+            if expiry is not None and expiry.ended_ahead and not expiry.duration.active:
+                projected = barrier.recipient is not None
+                ability = fight.barriers._ability(expiry.duration.instance, projected)
+                if ability is not None and ability.last >= expiry.duration.ended_at:
+                    hit_frame = expiry.frame + fight.tick - expiry.tick
+                    at = hit_frame * barrier.source.frame_ms + ability.last - expiry.duration.ended_at
+                    ability.set_cooldown_start(at)
             barrier.component.set(478, True)
             barrier.component.run_now()
             # Scoped break bridge. The child is not a player message sender.

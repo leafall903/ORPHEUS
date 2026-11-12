@@ -1949,3 +1949,282 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+## A84 — original0068 world charge and respawn credit
+
+Restored source f5b7366d original ultimate_charge_ready_frame and Combat's single
+zarya_charge_tick/ready host: passive5/s uses accepted Match world ticks, cast's
+actual body/world pair, live flight exclusion, field end+1 admission, and actual
+body birth. Ordinary beam/grenade/melee damage awards actual lost HP once, with
+original world-ready gate. Generic fallback excludes Zarya to avoid two awards;
+Graviton direct/DOT retain award_ult=False. Same-body source/client/fault/death
+eligibility is original source policy. The two causal host fields are registered
+in existing exact server snapshot. Retirement removes readiness for old body.
+Original BodyScript.award_ult_charge uses current capped _gain_ult_points so the
+retained Duplicate bonus is not discarded. Existing Echo health-event host is
+preserved, and copied Zarya damage is excluded from this second credit branch.
+World passive uses the same copied body's bonus. No new012/charge manager.
+
+Baseline original passive100ticks failed0.56 vs8. After integration original7
+methods pass9.656s: passivepaced/sparse, fieldend+170, futurecast+500 lock,
+latebody2cases, realweapon damage and post-field melee admission. Additional
+original overkill/cap/ally/miss/absorbed/heldQ pass; death test exposed missing
+source _respawn Zarya charge preservation. Added only source-matching healthy
+BodyScript capture to current respawn points bridge (not global hero switching),
+then all four original methods pass6.566s. Logs worker-a-zarya-world-charge-
+original-check.log and worker-a-zarya-charge-respawn-original-check.log.
+
+Crossowner originalEcho13+Zarya4+server snapshot1 ran18 in41.376s:16passed,
+Zarya respawn fail subsequently fixed as above; copiedSoldier passive fixture
+still computes1000*None because current Soldier uses natural0B8B rather than its
+old numeric ult_seconds timer. This error occurs in its expected-value expression;
+all other12Echo checks and existing whole-server combat snapshot pass. No original
+assertions/numbers modified. Original blocks-charge wholemethod also stops at
+prior health193.4 vs<193 (before charge assertions), kept visible. Original193
+projectile point/extent residual from A83 remains unchanged.
+
+Next: source field offense snapshot on existing Rocket/Field; sync root's actual
+cover_ray query for original field LOS; then mobility-stop/idle-reload/cadence
+consumer audit. No duplicate active actors, movers, regen ledgers or acceptance
+matrix. Estimated remaining3–7active hours low confidence, not a submission gate.
+
+## A85 — original Graviton eye-point cover consumer
+
+Cleanly absorbed root faec1f1c (worker merge652efbce) including five pure geometry
+queries, B61 actual NPC sole-mover ownership and C wall geometry. Restored source
+Graviton eye-point ray admission through existing Combat.cover_ray. It reads the
+same settled static world, IceWall and actual Cryo body geometry; no second trace
+service or historical-time facade was introduced. Current birth, radius, team,
+phase/Fade/Recall/Fortify and same-body protections remain on the existing path.
+
+Original static-wall and direct5/DOT20 methods plus NPC same-mover2, Flux overlap1,
+Fortify2 all pass (8 methods; only the SwiftStrike method
+fails its2subcases, all other7 pass),20.531s. Original SwiftStrike team/
+cover method now reaches its genuine missing ability-stop assertion (dash.active
+True vsFalse), which belongs to the next existing mobility consumer batch. All
+assertions/numerics retained. Log worker-a-zarya-field-cover-eye-check.log.
+
+Next: frozen field offense on existing Rocket/Field and source mobility stop/
+ready gates, then actual idle reload/cadence audit. Original193 width boundary,
+old recovery-ledger observations and Ana50/native60 remain visible.
+
+## A86 — original0068 launch Nano snapshot and causal storage
+
+Restored original Rocket.offense_scale optional launch snapshot for owned03DB/
+03E2 only, defaultNone preserves every other family's policy. Original source
+snapshot is Nano only: direct/blast HitDefs pre-multiply the launch scalar, and
+Field retains it. Body direct/splash and field DOT skip liveNano after that,
+while existing impact team/supercharger and captured Mercy credit remain. Native
+Pet/shield HitDef consumers receive the pre-scaled amount. The actual generic
+penetration contact helper has an optional source_scaled=False and snapshot
+Rocket passesTrue to prevent its additional Nano multiplication. Sigma/Orisa/
+Photon/Winston/Pet damage helpers were checked: no other liveNano multiplication.
+Deflect removes old captured staff*oldNano before applying new source staff*newNano;
+no accumulated boost, source ownership/flight lifecycle remain existing policy.
+No duplicate charge/field/defense service. Both fields use current exact dataclass
+storage; actualencrypted-peer whole GameServer launch and landing prove Rocket
+and Field scalar mutations change/restore digest and unknownField storage rejects.
+That causal method passes44.570s; initial out-of-journal direct switch was correctly
+rejected, replaced by session.apply and peer.commands, no strict bypass.
+
+Kept original0068 Nano secondary/Graviton checks as normal module with original
+assertions/numbers. Observation bridges: nano_until seconds->actual tick, original
+offense_scale observer->sole nano.offense, old pool->actual Pet.vitals. Original
+eye-aim Nano helper is incompatible with existing013B centre ranking at3m; recorded
+failed actual cast, then helper targets existing centre service without changing
+source assertions/range/cone or host Nano policy. Original secondary70.5 passed;
+Graviton unshielded/personal subcases preserve1.5 scalar after actualNano expiry,
+direct7.5+DOT30 total37.5, pool190.1/energy1.98. Projected subcase stillfails7.5
+initial health loss vs0: bounded diagnostic proves noPet existed,025C slot536
+absent/faultNone before projectile. It is an original horizontal projection input
+versus current actual target capsule/eye admission issue, not duplicate damage;
+original projected input and expectations retained. Diagnostic log
+worker-a-zarya-nano-projected-actual-diagnostic.log. First nullable536 diagnostic
+error retained and corrected; no fake slot/actor supplied. Current originalAna
+actual250heal/8s expiry and defaultGraviton/directweapon checks also passed.
+
+Logs worker-a-zarya-nano-launch-field-current-host-check.log (2methods oneprojected
+subfail, all othercases pass), worker-a-zarya-nano-actual-server-storage-check.log,
+worker-a-zarya-nano-snapshot-default-joint-check.log (3functional methods pass,
+initial controlled-root probe error before final fix). Remaining: original
+mobility-stop/ready gates, idle-reload/cadence, and C-reported trueNPC projected
+recipient admission on sameBarriers/Pet host. Do not create zarya_bubbles or old
+private recovery-ledger aliases. Original193 point/extent, oldAna50/native60 and
+all original assertions remain. Lowconfidence remaining3–7active hours.
+
+## A87 — original Graviton mobility interruption on existing owners
+
+Restored original stop_genji_strike/stop_boosters consumers and original pure
+DVa boosters lookup. Lookup reads actual component.world.hero so BodyScript and
+actual owned0407 BotScript share the same047E (no BotScript.hero alias). Stop uses
+actual component entity as booster_contacts key and existing Ability.stop/ABORT;
+Player movement-mod sync remains Player-only, realMech retains samecontrol_mover.
+Existing Graviton accepted pull path now stops same Genji dash, actualBoosters,
+WinstonJump flight and existing ReinhardtCharge record. It preserves Heavy stop,
+Moira/Tracer reset, live source/team/Fortify/pinned admission and single mover.
+
+Player pose uses fresh field movement_for only to block original mobility bit8
+before its body VM can spend cooldown, or release a no-longer-valid pull. Current
+pulled registry still owns actual pose admission: a merely included/pinned body
+is not promoted to moving. Existing hard-CC/Hack/Recall/Trap filters remain ordered
+as before. Ability cooldown/resource gates are unchanged; ordinary attack/ultimate
+inputs are not cleared. Actual owned mech input continues through its existing
+Bot/sole component, not the parked pilot.
+
+Original newSwiftStrike deny/full cooldown and team/cover change whole methods
+pass with5NPCsame-mover2, actualOwnedMech boost1, Flux1/Fortify2:8/8pass20.695s.
+The new ownedMech test really creates0407, starts047E via actual pilot commands,
+then verifies stop on same component/control_mover and no booster in parkedpilot.
+After narrowing pose admission to current registry, originalGenji2/Fortify2 rerun
+4/4pass7.139s. Logs worker-a-zarya-real-mobility-owned-mech-joint-check.log and
+worker-a-zarya-mobility-preserved-admission-check.log. Original active-dash expiry
+method reaches all interruption assertions but still fails exact finalY:
+1.26953125→1.1796875 during5ticks afterrelease (horizontal0,4 unchanged), matching
+actual falling mover after field. Original assertion retained, not frozen by a
+new movement controller. Early copied-helper imports/BotScript.hero assumptions
+were corrected against current actual host before final checks; no runtime alias.
+
+Next exact batch: original idle reload/world cadence, then C-reported native Pet
+projected NPC recipient on soleBarriers/scripted/Vitals. Retained Nano projected
+horizontal-aim fixture residual,193 point-vs-width and oldprivate/Ana observations.
+
+## A88 — original idle reload on existing world Wait/body VM
+
+Restored original0068 _advance_idle_zarya_reloads and BodyScript.finish_idle_reload
+on the existing0241 refill/recovery Wait instances and A79 world_deadline. World
+update finishes only after deadline (boundary remains available for input), clears
+stale buffered primary/secondary presses, supplies one neutral body gap when
+needed, then finishes that same Wait without consuming a future command frame.
+Refill is handled before recovery, same VM/buttons/stream and Combat command
+consumer. No new reload timer, ledger, actor or accepted-frame epoch.
+
+Current Player no longer has source sync_movement_mods: both this consumer and
+A87's Player-only booster stop now call the existing same mover.track_mods over
+Combat.movement_mods+statescript_mods, posed=False. Actual ownedMech uses its
+already-existing Bot/control_mover path. No obsolete wrapper API was added.
+
+Baseline original2 idle methods failed75vs100, and original future melee counter
+was2vs1 (separate next batch). Original paced secondary cadence already passed,
+so do not blindly restore a second scheduler there. After idle consumer and real
+mover adapter, original idle2/futureReload1/beam reload1/paced secondary1 plus
+worldenergy1/Pet lifetime2/actualownedMech stop1 all9pass11.064s. All original
+ammo/deadline/frame assertions retained, including future command frame equality.
+Initial direct use of removed sync method failed and disabled the body as expected;
+corrected through actual current interface before final checks. Log
+worker-a-zarya-idle-reload-original-joint-check.log; baseline
+worker-a-zarya-idle-cadence-baseline.log retained.
+
+Next: original world melee cooldown (actual accepted cast/world pair) and assess
+secondary future-clock consumer only if real original failure; then native Pet
+projection to eligible actualNPC recipients on sole Barriers/scripted/Vitals.
+
+## A89 — original melee/secondary recovery world admission
+
+Baseline real original future melee counter2vs1 and future secondary duplicate
+Rocket failure were verified (logs worker-a-zarya-idle-cadence-baseline.log and
+worker-a-zarya-secondary-future-admission-check.log); paced cadence alone was not
+evidence for future-clock protection. Restored original zarya_melee_ready and
+zarya_secondary_ready on current Combat, actual accepted body/world cast pair.
+Melee uses existing Ability.cur/last/rate and exact native f32/round-half-away
+cooldown conversion (current Ability has no old cooldown_ms method; no facade or
+global timer arithmetic was added). The existing BodyWorld start/floor hooks
+admit original0043/node14 only after mapped world deadline. Original0241/state19
+actual emission records original62tick recovery; current Match.body_command only
+masks secondary before same BodyScript input when world recovery is not complete.
+All other body/owner/controller, logical input gates, pose and resource paths stay
+current. Old-body retirement clears both maps; exact Combat storage admits both.
+No second ability/reload/charge scheduler or replacement component.
+
+Original future melee, paced/repress/held melee, close30HP, future secondary,
+held secondary, futureidle/reload and field-end melee charge:9/9pass7.298s.
+Original aimed-miss/static-wall methods passed in earlier8method4.902s run, no
+source numeric/assert/input changes. Final log worker-a-zarya-world-melee-secondary-
+clock-original-check.log; standalonefuturesecondary failed before admission was
+restored, showing this is a genuine missing consumer. Existing passive, cooldown,
+new actor and shield ledgers are not duplicated.
+
+Next: actual native025C projected recipients for eligible realNPCs on sole
+Barriers/scripted/Vitals (C54 original0016 consumer evidence), plus final0068 source
+consumer reconciliation. Original Nano projected horizontal ray miss,193 width
+boundary, original fallingY and old recovery/Ana observations remain visible.
+Estimated remaining2–5active hours low confidence, not a completion claim.
+
+## A90 — original projected NPC recipient on the sole native Pet
+
+Absorbed explicit stable3d7f9184 (worker merge45610881), preserving root Rocket
+field-at-end compatibility, C54–57 queries/wall consumers and B63–68. Original0068
+track_targets/_barrier_pairs admit live alliedNPC; original0016 replay query has
+an additional manual retain_corpse condition. Those contracts remain separate:
+current native025C accepts the actual present Bot/entity/valid bodyComponent,
+excludes source0016 teleporter devices, and C54 pure single_replay_projection keeps
+its original manual-only query gate. No second pool or zarya_barriers manager.
+
+Existing search and track consumers now use scoped projected-recipient readiness.
+Native Pet.create resolves actual combat target owner; NPC identity is Bot.entity,
+not its body definition. Same recipient_component/body checks protect lifetime.
+Actual Bot death and shared npc.remove_body immediately retire this same Pet;
+team change, dead/fault/replacedVM or removal invalidate it through existing
+advance/_end_bubble. Player/Cryo/Transcendence general readiness was not widened.
+Same actual source/parent/child0256 and Vitals receive damage,
+energy message and original expiry. No fake Player.body/client/hero properties.
+
+New actual catalog5 fixture baseline had noPet. Functional five-recipient cases
+verify200→140 shield, bodyHP unchanged, energy12, same bodyVM/pool and expiry;
+actual Vitals death+existing dispatcher and real team/removal also pass. C54 pure
+query returns each sameNPC. Combined with nativePet application2/lifetime2 and
+originalGenji bubble module:23methods30.097s,19pass/3fail/1error. All7focused Pet/
+NPC methods passed. OriginalGenji residuals retain numbers/assertions: dynamic
+beam172.17488vs170.7104, overlap1vs2, graze113vs200 and missing old projected actor
+StopIteration. Baseline attribution is not claimed for these four residuals.
+Log worker-a-zarya-npc-projection-lifecycle-shared-check.log.
+
+A real encrypted-peer ServerSession apply(spawn_manual_npc)+projected cast proves
+actual recipient_component/query before stored capture. Fullserver capture then
+correctly rejects private mutable VM storage shared across Component artifacts.
+Original test remains normally runnable/erroring, no strict waiver or standalone
+fallback. Pure baseline whole-server capture passes. Bounded read-only identity
+trace: a0000102 Zarya→c1000001 Pet0256 shares vm-scope dict{'id':int} (expr.Entity
+backing fields); automaticNPC c0001000→c0001001 shares vm-scope dict{'0':int};
+actualNPC Component reference also aliases intoPet and should remain same object.
+No serializer/runtime changes. Root explicitly takes precise by-value parameter
+boundary audit, preserving manager/Component/Context reference identity.
+Minimal reproduction: tests/test_zarya_npc_projection.py method
+ZaryaNpcProjectionTests.test_actual_server_encloses_projection_recipient_and_native_pet_storage.
+Logs worker-a-zarya-npc-projection-server-joint-check.log (2pass/1storageerror),
+worker-a-zarya-native-pet-storage-baseline-diagnostic.log and
+worker-a-zarya-npc-projection-private-storage-diagnostic.log. Keep its intended
+hash-mutate/restore/unknownreject assertions to run once root restores the exact
+boundary; do not delete the capture or rewrite assertions.
+
+Next A91: final0068 actual consumer/field mapping audit and remaining source gap
+implementation only. Source graph index0256 above is authoritative; no separate
+child manager. Root owns formal frozen-ref ancestry/storage-boundary followup.
+
+## A91 — original earlier break rebase after an ahead body end
+
+Final source audit found a real missing0068 _intercept branch: when the body
+already ended its normal duration ahead of the world, an earlier breaking impact
+must move the existing Ability cooldown origin to that actual mapped contact.
+Restored that branch on same BarrierExpiry/duration/Ability and queue, preserving
+cur/rate/native arithmetic. Original Ability.set_cooldown_start is a real action
+consumer (clears its old param2 timer, schedules remaining positive delay); current
+restart/default timer arithmetic are untouched. No wrapper observer or new clock.
+Broken actual Pet no longer qualifies for normal ahead-end retention at health0,
+so it retires immediately instead of lingering as the positive-expiry actor.
+
+Kept source test_projection_cooldown_uses_break_tick_after_a_future_command as a
+normal focused module. Old service/pool observations map to sole Barriers and
+Pet.Vitals; original10HP controlled seeding uses actual Vitals.damage. All
+original health/energy2/generation/500tick deadline assertions and numeric values
+remain. Current native capsule acquisition requires current recipient-centre pitch
+rather than the old horizontal eye ray: initial source helper reject is logged,
+and actual pitch adapter is explicit for real casts. With that adapter before
+production change the original final reactivation assertion failed, proving a
+clock consumer gap beyond geometry. After rebase, original full method passes
+with existing lifetime2/nativeapplication2 and originalruntime13:18/18pass5.775s.
+Logs worker-a-zarya-early-break-current-receiver-baseline.log and
+worker-a-zarya-early-break-cooldown-runtime-check.log. No serializer changes.
+
+Next A92: source silent ACTIVE break contact/body-gap/cooldown path audit (distinct
+from this already-ended-ahead branch), then final0068 source mapping handoff.
+Root owns A90 exact cross-VM value boundary; all original strict errors remain.

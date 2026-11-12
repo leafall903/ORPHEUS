@@ -546,6 +546,9 @@ class BodyWorld(runtime.World):
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and not self.match.combat.barriers.ability_start_allowed(state)):
             return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and state.instance.graph.index == 0x0043 and state.node.pos == 14):
+            return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
         # The hosted projection supplies its overlap gate while the native
         # 025C recipient effect/tag system is unimplemented.
         if (self.match is not None and self.hero == 0x02E0000000000068
@@ -559,7 +562,10 @@ class BodyWorld(runtime.World):
             return 0.0
         from ow174.game.combat import TICK
 
-        ready = self.match.combat.barriers.cooldown_ready_tick(state)
+        if state.instance.graph.index == 0x0043 and state.node.pos == 14:
+            ready = self.match.combat.zarya_melee_ready.get(self.body, 0)
+        else:
+            ready = self.match.combat.barriers.cooldown_ready_tick(state)
         return min(state.cur, max(0, ready - self.match.tick) * TICK * state.cooldown_rate)
 
     def body_owner_context(self, entity):
@@ -2557,6 +2563,15 @@ class BodyScript(ReplicatedBody):
         self.frame = frame
         regeneration.prune_healing_scales(self)
 
+    def finish_idle_reload(self, wait: nodes.Wait) -> None:
+        """Finish a due world wait without consuming the next command frame."""
+        buttons = self.buttons & ~3
+        self.component.edges(button_edges(self.buttons, buttons, 0))
+        self.buttons = buttons
+        wait.request_finish()
+        self.component.run_now()
+
+
     def _run(self, frame: int, edges: list) -> None:
         from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
 
@@ -2737,6 +2752,13 @@ class BodyScript(ReplicatedBody):
         if cost > 0 and charge < cost:
             self.set_ult_charge(min(cost, charge + points))
 
+    def award_ult_charge(self, points: float) -> None:
+        """Apply an original absolute health/world award after its host eligibility gate."""
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if points > 0 and cost > 0 and charge < cost:
+            self._gain_ult_points(cost, charge, f32(points))
+
     def credit_ult_charge(self, points: float) -> None:
         """Apply an authored absolute award with the retained Duplicate bonus."""
         if self.ult_gain_bonus:
@@ -2914,6 +2936,14 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E0000000000068:
+            from ow174.game import zarya
+
+            if (self.world.match is None and self.ult_seconds > 0
+                    and not self.retired and not self.component.owner_dead
+                    and not self.ultimate_running()):
+                self.award_ult_charge(zarya.ULT_PASSIVE_PER_SECOND * self.frame_ms / 1000)
+            return  # Actual Match world admission owns its existing charge host.
         if self.hero == 0x02E0000000000040:
             from ow174.game import roadhog_charge
 

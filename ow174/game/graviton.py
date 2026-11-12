@@ -32,6 +32,7 @@ class Field:
     last_tick: int
     end_tick: int
     radius: float
+    offense_scale: float = 1.0
 
 
 class Gravitons:
@@ -63,10 +64,11 @@ class Gravitons:
         radius = definition.node(5).field('m_value.m_value')
         tick = self.fight.tick
         self.fields.append(Field(rocket.shooter, rocket.source_body, rocket.team, point, tick,
-                                 tick + math.ceil(duration / tick_seconds), radius))
+                                 tick + math.ceil(duration / tick_seconds), radius,
+                                 rocket.offense_scale if rocket.offense_scale is not None else 1.0))
 
     def _includes(self, field, target):
-        from ow174.game.combat import capsule_visible, segment_distance
+        from ow174.game.combat import segment_distance
 
         owner = target.owner
         if (self.fight.replacement_ticks.get(target.entity, 0) > self.fight.tick
@@ -78,9 +80,15 @@ class Gravitons:
                 or immunity.wraith_active(owner, target.entity) or immunity.cryo_active(owner, target.entity)):
             return False
         a, b = target.segment()
-        return (segment_distance(field.position, a, b) - target.radius <= field.radius
-                and capsule_visible(self.fight._collision(), field.position, a, b, target.radius,
-                                    walls=self.fight.walls))
+        if segment_distance(field.position, a, b) - target.radius > field.radius:
+            return False
+        point = (target.feet[0], target.feet[1] + target.eye, target.feet[2])
+        delta = tuple(v - o for v, o in zip(point, field.position, strict=True))
+        distance = math.sqrt(sum(v * v for v in delta))
+        if distance <= 1e-9:
+            return True
+        wall = self.fight.cover_ray(field.position, tuple(v / distance for v in delta), distance)
+        return wall is None or wall >= distance
 
     def includes(self, field, target, *, tick=None):
         return self._includes(field, target)
@@ -129,10 +137,12 @@ class Gravitons:
                 if not self._includes(field, target):
                     continue
                 if seconds:
-                    self.fight._damage(field.shooter, target, DAMAGE_PER_SECOND * seconds,
+                    amount = self.fight._team_damage(field.shooter, DAMAGE_PER_SECOND * seconds * field.offense_scale)
+                    amount *= self.fight.orisa.superchargers.scale(field.shooter)
+                    self.fight._damage(field.shooter, target, amount,
                                        False, LOADOUT, tick, world_tick=tick,
                                        source_body=field.source_body, hit_tags=DAMAGE_TAGS,
-                                       award_ult=False, armour_scalar=1.0)
+                                       award_ult=False, armour_scalar=1.0, source_scaled=True)
                 if self.fight.vitals_of(target).dead:
                     pulls.pop(target.entity, None)
                     continue
@@ -140,6 +150,9 @@ class Gravitons:
                         and not reinhardt_charge.pinned(self.fight, target.entity)):
                     pulls.setdefault(target.entity, (target, field.position, seconds))
             if tick >= field.end_tick:
+                ready = self.fight.zarya_charge_ready.get(field.source_body)
+                if ready is not None:
+                    self.fight.zarya_charge_ready[field.source_body] = max(ready, field.end_tick + 1)
                 self.fields.remove(field)
         # Resolve all damage before movement, so a later field can kill a target
         # without leaving a pull queued for its retired body.
@@ -154,6 +167,14 @@ class Gravitons:
                     from ow174.game import tracer
 
                     tracer.discard_mobility_input(target.owner)
+            owner = target.owner
+            self.fight.stop_boosters(owner)
+            if not isinstance(owner, bots.Bot):
+                self.fight.stop_genji_strike(owner)
+                self.fight.winston_jump.cancel(target.entity)
+                charge = self.fight.charges.get(target.entity)
+                if charge is not None:
+                    reinhardt_charge.stop(self.fight, target.entity, charge)
             if seconds:
                 self._pull(target, position, seconds, tick)
         for target in targets:

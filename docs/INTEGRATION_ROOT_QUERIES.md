@@ -32,10 +32,23 @@ Reinhardt surface/identity/splash/exclusion/digest checks also pass. Both run
 under Component.run_now/run_frame, Reinhardt.sync and Sigma.update rejection
 guards: queries neither run VMs nor synchronize actors.
 
-The same probe's Winston cast fixture has not yet produced a live actor under
-current body/world input admission; that is not counted as a passing Winston
-geometry test. Orisa/Sigma/Photon stages are pending behind it. All five query
+The Winston fixture initially failed to produce a live actor: its raw input
+was ahead of the body/world admission window, and Session.tick advances only one
+world tick unless missed ticks are explicitly supplied. Driving that actual
+clock correctly produces the real actor; Winston surface/object/service/splash/
+exclusion and whole-server readonly digest checks now pass too. No production
+clock was changed. Orisa's separate raw cast fixture still has no live barrier;
+Orisa/Sigma/Photon stages are pending, not counted as passing query checks. All five query
 implementations are committed without waiting for whole-family acceptance, as
 authorized; root continues these actual input/geometry checks while C resumes
 source retained-impact proof consumers. No assertions/numbers are rewritten.
 Probe/log: parallel-merge/root-prediction-geometry-actual-probe.py/.log.
+
+
+Body-splash deduplication is limited to a target that is exactly the backing
+actor of a piece in the current walls map. Unbound original native pillars keep
+their body damage path. An actual ServerSession unbound-pillar query returns80
+splash without spending health or changing the whole-server digest; no geometry
+clone or actor is created by the query. Explicit predicted-target lists still
+retain their passed objects/poses. Probe/log:
+parallel-merge/root-prediction-unbound-pillar-probe.py/.log.
