@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Record cross-owner integration and remaining original consumers
+
+- Persist receipts through the controller/manual-target, Mine/Cryo and incoming
+  EMP batches, plus exact conflict resolution preserving Mine application-start
+  deadlines. Keep candidate association inputs separate until actual admission.
+- Controller/Mine joint checks are still running on frozen canonical a021c341;
+  original assertions and client acceptance limits remain unchanged.
+
 ### Admit original NPC controller associations without replacing selected definitions
 
 - Extend the existing additive graph supplement with the original five explicit
