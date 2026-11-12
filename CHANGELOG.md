@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore Pulse Bomb current-source retirement boundary
+
+- Keep the source0003 family rule: an already reflected Pulse Bomb survives its
+  original thrower's replacement but retires when its current source body is
+  replaced. Exclude only Pulse from the generic detached foreign-flight survival
+  rule; ordinary incoming reflected rounds and Genji0304 own teardown retain
+  their current behavior.
+- Original77 Tracer pistol/Blink/Recall/Pulse/Deflect methods run normally:
+ 76 pass, one unchanged observation expects unarmed fuse_left0 while the shared
+  Rocket stores None. Retain that source assertion and log; no extra fuse state
+  or altered physics is added for the observation. Actual Recall ammo/health/
+  same-frame correction already passes through current graph consumers.
+- All24 focused Ana hip/dart foreign survival, Genji reflected Shuriken retirement,
+  Damage and runtime checks pass. Source Tracer pistol code matches apart from
+  line endings; current Recalls/Pulse wrappers reconcile the remaining original
+  hero behavior through one combat/mover lifecycle. Begin Widowmaker consumers
+  next; its Venom/Grapple/Infra-Sight are not yet installed.
+
 ### Connect owned Matrix to finite-flight and canister interception
 
 - Reuse the delivered Matrix contact service in the existing tagged interception
