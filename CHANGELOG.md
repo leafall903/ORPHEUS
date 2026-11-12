@@ -265,6 +265,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Preserve complete original Grasp shield consumers
+
+- Restore original shield checks over actual named pool groups, activation
+  ledger, entered waits and allocated wire slot, keeping every numeric assertion.
+- Fresh second cast/cap/health/death/replacement/wire pass; two original world
+  decay failures identify the next missing consumer. No client run.
+
 ### Restore original Grasp source activation dedup
 
 - Existing registered Grasp ledger consumes each original absorption activation
