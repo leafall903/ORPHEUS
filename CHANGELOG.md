@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Refresh original Hack receiver graph lifetimes on EMP
+
+- Apply the original recipient graph replacement before the existing PlayScript
+  request, retiring the stale first effect while retaining actual source, params,
+  pools and world-lock intervals.
+- Original refresh, whole AsheHack, Sombra cooldown/world-only EMP, retirement,
+  all15charge and shared VM queue/runtime pass79/79. No fixture or value changes;
+  actual device and incoming-clock integration remains recorded work.
+
 ### Retain original recipient-frame skill admission through the expiry edge
 
 - Observe the real Hack Wait in existing lock history and apply its recipient
