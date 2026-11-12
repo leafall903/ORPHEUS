@@ -4,6 +4,26 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt mutual Charge windup counters
+
+- Mount the source counter query on posed commands as well as running contact,
+  admitting nearby opposing windups in either input order. Preserve authored
+  two-second profiles, tolerant opposite-facing comparison, query cone/radius,
+  IceWall/static cover, no damage and independent cooldowns.
+- Drain running subgraphs queued during Ability.stop so mutual knockdown cannot
+  resume either old drive. Use the existing native stun clock and Charge state.
+- All10 original mutual scenarios pass, including125-tick exact expiration,
+  heading/cone/team/cover rejection, body retirement and fresh cooldown casts.
+  Combined original mutual/Movement/Contact/Punch/mover/physics/runtime/input/
+  epoch157 run155 pass; retain the two original Shatter source-key inspection
+  errors. No assertion is dropped or numerical expectation relaxed.
+- Persist the B14 original assertion audit:1399 asserts in original per-method
+  order; zero changed assertion Constants. Raw AST has observer mappings to
+  current state. Source bump/release offsets5/2 are explicit in original0007.
+- Full cross-hero/NPC counters, charge object contacts and Earthshatter remain
+  in progress; client acceptance remains open. No publication or network action.
+
+
 ### Mount delivered Reinhardt Charge capture and bump lifecycle
 
 - Route actual Charge contacts to the same Charge record that owns bounded

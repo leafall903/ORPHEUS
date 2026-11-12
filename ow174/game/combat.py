@@ -2844,6 +2844,10 @@ class Combat:
                     state.presses.clear()
                     state.stop()
         component.run_now()
+        if script.hero == barrier.REINHARDT:
+            instance = next((i for i in component.instances.values() if i.graph.index == 0x7D), None)
+            if instance is not None:
+                reinhardt_charge.drain_end(instance)
         component.shots.clear()
 
         cast = self.meteors.casts.get(target.entity)
@@ -2891,6 +2895,8 @@ class Combat:
         shots, script.component.shots[:] = list(script.component.shots), []
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
+        if command is not None and reinhardt_charge.counter_frame(self, player):
+            return
         self.zenyatta.command(player, command)
         interception.update_pools(self, self.tick)
         barriers.advance(self, self.tick)
