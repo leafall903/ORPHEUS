@@ -125,6 +125,21 @@ class Hooks:
                 reach, speed, radius, direct, pull, separation, gap, recovery, limit,
                 self.combat.tick, self.combat.tick,
             )
+            flight = self.flights[player.body]
+            endpoint = combat._along(flight.origin, flight.direction, flight.reach)
+            # 01C8's client-only CosmeticEntity35 (03F7) and chain consume
+            # these synchronized world positions. The missing native ray/hardpoint
+            # queries otherwise leave 431 as scalar zero and terminate ChaseVar.
+            instance.write((0, 1179), expr.Vec3(*endpoint))
+            instance.write((0, 10534), expr.Vec3(*flight.origin))
+            instance.write((0, 433), expr.Vec3(*flight.direction))
+            self.present(flight, flight.origin)
+
+    @staticmethod
+    def present(flight, position):
+        """Feed the authored hook/chain cosmetic through the existing body stream."""
+        point = expr.Vec3(*position)
+        flight.instance.write((0, 431), point)
 
     @property
     def fight(self):
@@ -247,6 +262,7 @@ class Hooks:
                     self.cancel_owner(body)
                     continue
                 flight.travelled += step
+                self.present(flight, combat._along(flight.origin, flight.direction, flight.travelled))
                 if best is None:
                     if flight.travelled >= flight.reach:
                         self.cancel_owner(body)
@@ -289,6 +305,7 @@ class Hooks:
                 continue
             # Maintain the link to the capsule center, with ordinary static occlusion.
             centre = (target.feet[0], target.feet[1] + target.height / 2, target.feet[2])
+            self.present(flight, centre)
             delta = combat._sub(centre, fight._eye(flight.owner))
             length = math.sqrt(combat._dot(delta, delta))
             if length > 1e-9:

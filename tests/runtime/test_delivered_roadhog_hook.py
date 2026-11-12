@@ -15,6 +15,7 @@ from ow174.game.collision import World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
+from ow174.game.script import expr
 
 ROADHOG = 0x02E0000000000040
 
@@ -80,6 +81,22 @@ def assert_competing_hooks(test, run, casters, victim, entity):
 
 
 class HookTests(unittest.TestCase):
+    def test_hook_native_cosmetic_gets_world_positions_through_flight(self):
+        run, hog, enemy, _, _ = self.session(distance=30)
+        seen = []
+        for frame in range(75):
+            self.step(run, hog, enemy, shift=frame == 0)
+            flight = run.match.combat.hooks.flights.get(hog.body)
+            if flight is None:
+                continue
+            point = flight.instance.find_var(0, 431).value()
+            self.assertIsInstance(point, expr.Vec3)
+            self.assertIsInstance(flight.instance.find_var(0, 1179).value(), expr.Vec3)
+            seen.append(tuple(point))
+        self.assertGreater(len(seen), 2)
+        self.assertGreater(math.dist(seen[0], seen[-1]), 5)
+        self.assertFalse(run.match.combat.hooks.flights)
+
     def session(self, distance=10.0, *, enemy_hog=False):
         run = Run(KANEZAKA_DM, ("Roadhog", "Enemy"))
         match = run.match

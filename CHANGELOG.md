@@ -56,6 +56,22 @@ Minimal confirmation: five focused presentation, flight, damage and hit-notice
 checks passed using the immutable v19 runtime. Original-client rendering, flight
 trajectories and impact effects still require the integration operator to view
 the game.
+## Roadhog hook cosmetic world positions
+
+Feed the existing authoritative Hook flight into 01C8's synchronized world-point
+431, endpoint1179, launch point10534 and direction433. The original client-only
+CosmeticEntity35 / 03F7 hook and chain previously received scalar-zero positions
+from unavailable native ray/hardpoint queries. Reuse the existing body stream and
+authored cosmetic; do not allocate a second projectile or change damage/pull rules.
+Keep the hooked endpoint on the actual target capsule while pulling.
+
+Minimal executed checks: typed moving cosmetic point plus miss retirement;
+original input Hook windup/one30-damage hit/pull/release; primary25 pellets with
+25 HIT notices and165 damage; secondary close slug50 damage/one notice and
+post-expiry25 fragments/165 damage/25 notices. A small actual-flight probe found
+25 unique directions and15.7555-degree full angular span for primary and secondary
+fragments, with no remaining rockets after expiry. Client model/chain visibility
+still needs an in-game look; no complete acceptance matrix was run.
 
 ## A108 — DVa accepted Booster force on the sole world replay host
 
