@@ -3456,6 +3456,13 @@ class Ability(State):
                 return True
         return False
 
+    def expire_presses(self, at_time: int) -> None:
+        """Discard elapsed buffers before an external resource award can wake an old command clock."""
+        early = _field(self, "m_246438AD")
+        limit = seconds_to_ms(self.evaluate(early, watch=False)) if early is not None else 0
+        self.presses[:] = [item for item in self.presses if at_time - item[0] <= limit]
+
+
     # starting and stopping
 
     def tick(self) -> None:

@@ -556,3 +556,20 @@ and Grapple native state/runtime/driver/combat consumers, followed by original
 venom.py and its throw/tick/contact/damage/cleanup consumers. Current combined
 server has no Widow-specific module and no005A grapple callback, so this is
 real missing code; proceed without waiting for the sentinel observation.
+
+### A23 delivered Widowmaker rifle/Infra-Sight (this commit)
+
+Source000A0bbf016a88d6272db5358c5e4f6a611d4db5b327: rifle critical defaults,
+charge gates/stale Q expiration and committed Infra cast/effect/team reveal now
+consume actual graphs/current targets and server clock. Derived windows add no
+snapshot state; native Ability press buffer remains the sole input buffer.
+Original normal modules23:22pass/1 retained fold discrepancy; no checks weakened.
+Log ../worker-a-widow-rifle-infra-second.log. Exact failing method:
+WidowmakerInfraSightTests.test_infra_damage_message_replaces_stale_deduction_with_authored_empty_array.
+Node83 uses STU_A6B80C63; current original fold returns0.0, source old unknown
+native default returned(). Preserve current exact fold, not a Widow specialcase.
+Shared test_game_combat.DamageTests + test_script_runtime +
+test_game_hanzo_profiles:27 methods,25pass/2optional skips.
+Next exact action: native005A STU_4BBC5D09 GrappleCast plus BodyWorld/static/IceWall
+anchor consumers and snapshot layout. Then mount delivered venom.py into actual
+throw/tick/contact/damage/retirement consumers. Those features are still missing.
