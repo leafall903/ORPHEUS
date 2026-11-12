@@ -12523,3 +12523,33 @@ matches/controller_components SDK; SigmaCLI fixturechain. Broader crossowner
 controller/arena/input-resource conflicts remain explicitlydocumented; original
 clientacceptance notperformed. Rootformalmerge/percent usesits owncanonical
 receipt, not this worker'ssourcecopiedpath count.
+
+
+## B97 — preserve second original controller-query frozenset API
+
+Source0008 same-name controller_query is a DIFFERENT existingpublicinterface:
+CLASS/matches(explicitfrozenset|None), plusWorld.controller_components(instance,
+entity) resolvedoverride. B87preserved0007watchedContext; currentpluralRecord
+service doesnotexpose theseoriginaldirectAPIs. Append exactsource matches AST
+and originalunknownWorld API, restoreoriginalcallback+ensure_valid/source-lifetime/
+typedvalidation nativefallback branch. CurrentInstanceContext watchedContext and
+pluralRecord default precedence retained; no automaticcontrollerhost, component
+presence inference or secondrecordnamespace. BothsourceAPIs coexist in actual
+module, not a fakeimport alias.
+
+Restore source0008 fixture byte-for-byte under noncolliding deliveredfilename.
+Combinedoriginal0008/0007/runtime28run25pass3 retainedcontractdifferences2.927s,
+worker-b-controller-components-sdk.log. Newdirecttruth/malformed/explicitresolved/
+callbackretirement/hero-replacement cases pass; actualcurrentbodycontrollerRecord
+can resolveforeignbody asTrue whereas old0008 fixture expectedunboundNone.
+The other2are B87alreadyrecorded strongRecord knownabsence/fallback-order cases.
+Do not erase currentresolvedfacts to satisfy oldunknown expectations. No source
+assertionchanged, no clientacceptance. No newstorage (puredeclaredAPI behavior).
+
+Next exactaction B98: sole remainingtoolmodule dependency in wholeRoot audit,
+verify_sigma_filter_inputs→test_sigma_symmetra_sentry→originalbeamfixture, restore
+actualtoolcaller againstcurrentSymm/Sentry APIs (no modulealias). Then return to
+confirmedforceendpointphysical/input boundary. B96epochmetadata code delivered;
+rootreceived673c5607 androotjoint underway. No other knownpublicSDK consumer gap
+in currentBboundedowner inventory; oldnumeric/client/source-conflict tails remain
+explicitlyseparate from code-preservation delivery.

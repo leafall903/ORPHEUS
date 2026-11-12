@@ -116,3 +116,13 @@ def evaluate(evaluation, cfg):
         if type(controller.has_component92) is not bool:
             unsupported('controller query component92 availability')
         return not controller.has_component92
+
+
+def matches(components):
+    """None declares no selected entity; an unknown selection must not use None."""
+    if components is None:
+        return False
+    if (type(components) is not frozenset
+            or any(type(index) is not int or not 0 <= index < 256 for index in components)):
+        raise ValueError("controller query needs an explicit native component set")
+    return 75 in components and 92 not in components

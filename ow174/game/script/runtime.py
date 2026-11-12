@@ -1000,6 +1000,14 @@ class World:
         """A D379F515 component46 record scalar, known absence, or unknown service."""
         return NotImplemented
 
+    def controller_components(self, instance: "Instance", entity: int):
+        """B96D3A98: selected controller components, known absence, or unknown.
+
+        Supplying a set declares that the source entity/component43/DA6910
+        relation has actually been resolved. A UUID/body alone does not do so.
+        """
+        return NotImplemented
+
     def entity_controller_context(self, entity: int):
         """CC9BF0 namespace, component43 observation and DA6910 controller resolution."""
         return NotImplemented
@@ -1192,6 +1200,20 @@ class World:
         return NotImplemented
 
     def native(self, cfg: dict, instance: "Instance | None"):
+        from ow174.game.script import controller_query
+
+        if cfg.get("$") == controller_query.CLASS and instance is not None:
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+            components = self.controller_components(instance, entity)
+            instance.component.ensure_valid()
+            if components is not NotImplemented:
+                if (instance.stopped or instance.teardown
+                        or instance.component.instances.get(instance.id) is not instance):
+                    instance.component.unsupported(instance, "controller query source lifecycle", cfg["$"])
+                try:
+                    return controller_query.matches(components)
+                except ValueError as error:
+                    instance.component.unsupported(instance, "controller query component set", str(error))
         if cfg.get("$") == "STU_A77AC2AC" and self.mode:
             from ow174.game.content import TUTORIAL_MODE
 
