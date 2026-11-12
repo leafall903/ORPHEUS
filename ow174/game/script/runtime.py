@@ -472,6 +472,12 @@ class InstanceContext(Context):
                 # Preserve the delivered unavailable-instance guard before any
                 # alternate query provider evaluates the entity selector.
                 return body_owner.evaluate(self, cfg)
+        if (cls == entity_queries.POSSESSOR
+                and component.world.entity_possessor_context(component.entity) is not NotImplemented):
+            # This explicit source host owns its namespace and subscriptions;
+            # retain the unavailable body-owner guard above and every other
+            # host's existing controller/body-owner precedence below.
+            return entity_queries.evaluate(self, cfg)
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
@@ -933,6 +939,10 @@ class World:
 
     def entity_query_context(self, entity: int):
         """Explicit active query namespace, environment, entity and possession lookup."""
+        return NotImplemented
+
+    def entity_possessor_context(self, entity: int):
+        """Explicit component43 relation context, independently scoped by the host."""
         return NotImplemented
 
     def entity_definition_resource(self, entity: int):

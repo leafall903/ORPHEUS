@@ -264,6 +264,10 @@ class BotWorld(runtime.World):
     def combat(self):
         return self.match.combat if self.match is not None else None
 
+    def entity_possessor_context(self, entity):
+        # NPC/DVa existing scoped native adapters do not declare component43 here.
+        return NotImplemented
+
     movement_flags = BodyWorld.movement_flags
 
     def movement_flag_projection(self, instance, node):

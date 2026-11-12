@@ -224,7 +224,7 @@ FIELDS = {
         "self_repairs control_windows sleep_windows frost_windows"
     ),
     driver.BodyWorld: _names("hero mode body body_definition beam_barrier throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
-                             "_body_owner_context _entity_query_context"),
+                             "_body_owner_context _entity_query_context _possessor_query"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
         "flashbang_weapon_stack"
@@ -242,7 +242,7 @@ FIELDS = {
     body_owner.Context: _names("owner instance_present environment_present lookup watch_environment "
                                "watch_owner retired"),
     entity_queries.Context: _names("owner namespace_present environment_present possession_context_present "
-                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant"),
+                                   "lookup watch_environment watch_possession retired lookup_linked lookup_participant watch_possessor"),
     runtime.World: _names("hero mode"),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
