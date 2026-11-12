@@ -3039,6 +3039,8 @@ class Combat:
                 and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
+        if command is not None:
+            self.junkrat.tire.begin(player, command)
         self.barriers.sync(player)
         reaper.advance_entry(player)
         self._shadow(player, command)
@@ -3046,6 +3048,8 @@ class Combat:
         self.winston_jump.command(player, command, dead=self.is_dead(player))
         hero_torbjorn.overload(self, player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
+        if self.junkrat.tire.busy(player.body):
+            shots = [shot for shot in shots if shot[0].allows_dead()]
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
         if command is not None and reinhardt_charge.counter_frame(self, player):
@@ -4019,6 +4023,8 @@ class Combat:
             or any(npc_shields.recovery_pending(bot) for bot in self.match.bots)
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
+            first = retained
+        if self.tick and (self.junkrat.tire.actors or self.junkrat.tire.recovery):
             first = retained
         for player in self.match.players:
             if player.hero.guid == symmetra_charge.HERO:
@@ -9463,6 +9469,9 @@ class Combat:
             return
         player = who
         if player.gone or not player.has_body or not self.is_dead(player):
+            return
+        if self.junkrat.tire.busy(player.body):
+            self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
         old_script = player.body_script
         points, pending = None, ()

@@ -1023,3 +1023,37 @@ worker-a-junkrat-npc-{original-baseline,actual-final,attacks-second,heavy,shared
 No client run/publication. Next exact action: original Tire039C actor/control/
 climb/recovery and command hooks, then original0B8B charge and Mayhem/death-volley;
 follow up unchanged original NPC import contract and current Sniper clock evidence.
+
+
+## A38 - original RIP-Tire actor, operator control and recovery
+
+Mounted original0065 Tire039C placement/readiness/charge consumption, authoring
+0233 drive selector, wall-climb0234, exclusive operator commands, remote detonation,
+100HP actor damage/destruction, source/owner retirement, posthumous timeout,
+respawn deferral and1.5s recovery. Tire is one actual Deployable and its same
+Vitals in targets/storage; no second construct pool/driver created. Deadline replay
+includes Tire timeout/recovery outside the retained shared window. Busy Tire gates
+both current passive and generic damage charge, pending original0B8B activation.
+Restored original explicit Player.take_commands(not_after=...) through existing
+strict CommandQueue horizon, preserving Bastion horizon and epoch bounds.
+
+Original46 Tire tests preserved unchanged. Baseline readiness had no actor;
+readiness+front placement now2 pass. Full initial46 run preserved6 failure and
+6 error records. Follow-up6 affected checks:5 pass (steering/jump, falloff325,
+input-silence catchup, detonation600/owner credit/no refund, posthumous timeout);
+expiry-frame frag collision has two retained failing subcases. Full run remaining
+native Fortify float residual and old grasp_grants private observer errors are
+preserved; no fake observer restored. Original command epochs/handoff/command
+checks plus Damage/ProjectileTiming34 pass. Actual launched Tire stored probe
+passes same actor/pool identity and causal controller/deadline digest export;
+registered exact Command dataclass fields for its real retained control record.
+External logs worker-a-junkrat-tire-{baseline,full-first,second,shared,snapshot-final}.log.
+
+Original inputs used read-only: hero-lanes/0065/junkrat_tire_174.json and
+tire-0234-extracted.json via ORPHEUS_JUNKRAT_TIRE_PROFILE and
+ORPHEUS_JUNKRAT_TIRE_CONTROLLER. Root owns composed profile/provenance admission;
+no base runtime copy/change or client run/publication. Next exact action: original
+0B8B single charge host, entity/filter provider adapters and actual damage012;
+then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
+0065 actual integration estimate now low-confidence2-5 active worker hours,
+excluding root intake/conflicts and acceptance-only residuals.

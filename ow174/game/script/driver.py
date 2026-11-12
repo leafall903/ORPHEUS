@@ -2597,6 +2597,8 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.world.match is not None and self.world.match.combat.junkrat.tire.busy(self.entity):
+            return 0.0
         if self.hero == 0x02E000000000000A:
             from ow174.game import widowmaker
 
@@ -2657,6 +2659,9 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+
+        if self.world.match is not None and self.world.match.combat.junkrat.tire.busy(self.entity):
+            return
 
         if self.hero == mei.HERO:
             if (self.component.owner_dead or self.ult_seconds <= 0 or self.ultimate_running()):
