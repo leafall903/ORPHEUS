@@ -665,6 +665,7 @@ def retire(fight, entity):
                           and expiry.duration.counter == expiry.generation
                           and expiry.duration.now // barrier.source.frame_ms == expiry.frame)
     if (expiry is not None and fight.tick <= expiry.tick
+            and (barrier.vitals is None or barrier.vitals.total > 0)
             and (fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
                  or ending_on_deadline)
             and not fight.is_dead(barrier.parent)
@@ -966,6 +967,14 @@ def damage(fight, barrier, amount, *, attacker=0):
             barrier.component.run_now()
             barrier.source.run_now()
         if remaining <= 0:
+            expiry = _expiry(fight, barrier)
+            if expiry is not None and expiry.ended_ahead and not expiry.duration.active:
+                projected = barrier.recipient is not None
+                ability = fight.barriers._ability(expiry.duration.instance, projected)
+                if ability is not None and ability.last >= expiry.duration.ended_at:
+                    hit_frame = expiry.frame + fight.tick - expiry.tick
+                    at = hit_frame * barrier.source.frame_ms + ability.last - expiry.duration.ended_at
+                    ability.set_cooldown_start(at)
             barrier.component.set(478, True)
             barrier.component.run_now()
             # Scoped break bridge. The child is not a player message sender.

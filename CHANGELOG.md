@@ -1,5 +1,35 @@
 # Changelog
 
+## A91 — original earlier break rebase after an ahead body end
+
+Final source audit found a real missing0068 _intercept branch: when the body
+already ended its normal duration ahead of the world, an earlier breaking impact
+must move the existing Ability cooldown origin to that actual mapped contact.
+Restored that branch on same BarrierExpiry/duration/Ability and queue, preserving
+cur/rate/native arithmetic. Original Ability.set_cooldown_start is a real action
+consumer (clears its old param2 timer, schedules remaining positive delay); current
+restart/default timer arithmetic are untouched. No wrapper observer or new clock.
+Broken actual Pet no longer qualifies for normal ahead-end retention at health0,
+so it retires immediately instead of lingering as the positive-expiry actor.
+
+Kept source test_projection_cooldown_uses_break_tick_after_a_future_command as a
+normal focused module. Old service/pool observations map to sole Barriers and
+Pet.Vitals; original10HP controlled seeding uses actual Vitals.damage. All
+original health/energy2/generation/500tick deadline assertions and numeric values
+remain. Current native capsule acquisition requires current recipient-centre pitch
+rather than the old horizontal eye ray: initial source helper reject is logged,
+and actual pitch adapter is explicit for real casts. With that adapter before
+production change the original final reactivation assertion failed, proving a
+clock consumer gap beyond geometry. After rebase, original full method passes
+with existing lifetime2/nativeapplication2 and originalruntime13:18/18pass5.775s.
+Logs worker-a-zarya-early-break-current-receiver-baseline.log and
+worker-a-zarya-early-break-cooldown-runtime-check.log. No serializer changes.
+
+Next A92: source silent ACTIVE break contact/body-gap/cooldown path audit (distinct
+from this already-ended-ahead branch), then final0068 source mapping handoff.
+Root owns A90 exact cross-VM value boundary; all original strict errors remain.
+
+
 ## A90 — original projected NPC recipient on the sole native Pet
 
 Absorbed explicit stable3d7f9184 (worker merge45610881), preserving root Rocket
