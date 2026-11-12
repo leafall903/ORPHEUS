@@ -1,7 +1,6 @@
 """Retain the original0020 real-hit shield recovery assertions.
 
-Only the arena adapter omits the unsupported explicit default difficulty=None.
-Nondefault difficulty remains a separate unmerged NPC pool consumer.
+The arena and recovery assertions retain the delivered difficulty input.
 """
 
 import math
@@ -59,7 +58,7 @@ class ZenyattaNpcTests(unittest.TestCase):
             player.client.queue_bot_death_update = lambda *args: None
             player.client.bot_stream = lambda body: None
         x, y, z = zen.mover.position
-        bot = npc.spawn(run.match, definition, (x, y, z + 8), team=team, yaw=-32768, **({'difficulty_index': difficulty_index} if difficulty_index is not None else {}))
+        bot = npc.spawn(run.match, definition, (x, y, z + 8), team=team, yaw=-32768, difficulty_index=difficulty_index)
         self.assertIsNotNone(bot.body_script)
         self.assertTrue(bot.retain_corpse)
         return (run, zen, bot, run.match.combat.vitals[bot.entity])
@@ -107,3 +106,48 @@ class ZenyattaNpcTests(unittest.TestCase):
         self.assertEqual(vitals.now[combat.HEALTH_POOL], 250)
         self.assertFalse(regen.active)
         self.assertAlmostEqual(zen.body_script.component.entity_var(342).value() - charge, (run.frame - first_regen_frame) * 0.08, places=2)
+
+
+    def test_npc_shield_wait_and_recovery_keep_time_across_skipped_updates(self):
+        for key, skipped in product(('2', '3', '4'), (False, True)):
+            with self.subTest(npc=key, skipped=skipped):
+                tier = None if key == '2' else 3
+                run, zen, bot, vitals = self.arena(self.catalog[key], difficulty_index=tier)
+                component = bot.body_script.component
+                recovery, = (i for i in component.instances.values() if i.graph.index == 3682)
+                shields = combat.SHIELDS_POOL
+                wounded_shield = vitals.pool_maximum(shields) - 48
+                starting_health = vitals.pool_total(combat.HEALTH_POOL)
+                self.assertGreater(wounded_shield, 0)
+                run.step({zen: (0, 600, FIRE)})
+                for _ in range(25):
+                    run.step({})
+                    if vitals.pool_total(shields) == wounded_shield:
+                        break
+                self.assertEqual(vitals.pool_total(shields), wounded_shield)
+                wait = recovery.states[recovery.graph.node(52).state]
+                self.assertTrue(wait.active)
+                deadline = wait.start + wait.ms
+                for _ in range(195):
+                    if component.now + 32 >= deadline:
+                        break
+                    run.step({})
+                self.assertTrue(wait.active)
+                self.assertEqual(vitals.pool_total(shields), wounded_shield)
+                self.assertLess(component.now, deadline)
+                self.assertLessEqual(deadline - component.now, 32)
+                charge = zen.body_script.component.entity_var(342)
+                charge_before = charge.value()
+                if skipped:
+                    run.frame += 11
+                    run.step({})
+                else:
+                    for _ in range(12):
+                        run.step({})
+                self.assertFalse(wait.active)
+                regen = recovery.states[recovery.graph.node(51).state]
+                self.assertTrue(regen.active)
+                self.assertEqual(regen.start, deadline)
+                self.assertAlmostEqual(vitals.pool_total(shields), wounded_shield + 0.03 * (component.now - deadline), places=4)
+                self.assertEqual(vitals.pool_total(combat.HEALTH_POOL), starting_health)
+                self.assertAlmostEqual(charge.value() - charge_before, 12 * 0.08, places=3)

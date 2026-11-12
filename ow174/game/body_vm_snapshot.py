@@ -80,6 +80,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
+    nodes.AIControlOverride: (("remove_record",), ()),
     nodes.BodyPlacement: ((), ()),
     nodes.FilterArray: ((), ()),
     nodes.StaticTagTarget: ((), ()),
@@ -528,7 +530,7 @@ class _Export:
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))
             if kind is BotWorld:
-                optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context")
+                optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
                                "controller_inputs", "heavy_counter_stuns"))

@@ -3,7 +3,7 @@
 import os
 import unittest
 
-import test_zenyatta_npcs as npc_fixture
+import test_npc_shields_delivery as npc_fixture
 from test_game_combat import aim
 
 from ow174.game import combat, npc_control, world

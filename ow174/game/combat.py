@@ -571,6 +571,13 @@ class WaveHealthPool:
 
 
 @dataclass
+class ConditionalPool:
+    pool_id: int
+    most: float
+    now: float
+
+
+@dataclass
 class TemporaryArmour:
     amount: float
     until: float
@@ -628,6 +635,7 @@ class Vitals:
         self.ids[HEALTH_POOL] = pool_id
         self.wave_health: WaveHealthPool | None = None
         self.wave_health_id = 0
+        self.conditional_pools: dict[int, ConditionalPool] = {}
         self.extra: dict[tuple, TemporaryPool] = {}
         self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
@@ -760,12 +768,16 @@ class Vitals:
     def total(self) -> float:
         shield = self.temporary_shield
         wave = self.wave_health.current if self.wave_health is not None else 0.0
-        base = sum(self.now.values()) + wave + self.temporary_armour
+        base = sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values()) + wave + self.temporary_armour
         return base + (shield.amount if shield else 0.0) + sum(pool.now for pool in self.extra.values())
 
     @property
     def base_total(self) -> float:
-        return sum(self.now.values())
+        return sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values())
+
+    @property
+    def base_maximum(self) -> float:
+        return sum(self.most.values()) + sum(pool.most for pool in self.conditional_pools.values())
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -817,7 +829,42 @@ class Vitals:
 
     def pool_current(self, kind: int) -> float:
         bonus = self.wave_health
-        return self.now.get(kind, 0.0) + (bonus.current if kind == HEALTH_POOL and bonus is not None else 0)
+        pool = self.conditional_pools.get(kind)
+        return (self.now.get(kind, 0.0) + (pool.now if pool is not None else 0)
+                + (bonus.current if kind == HEALTH_POOL and bonus is not None else 0))
+
+    pool_total = pool_current
+
+    def pool_maximum(self, kind):
+        pool = self.conditional_pools.get(kind)
+        bonus = self.wave_health
+        return (self.most[kind] + (pool.most if pool is not None else 0)
+                + (bonus.capacity if kind == HEALTH_POOL and bonus is not None else 0))
+
+    def set_conditional_pool(self, kind, amount):
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("conditional pool amount must be finite and nonnegative")
+        pool = self.conditional_pools.get(kind)
+        if pool is None:
+            if amount == 0:
+                return
+            pool = self.conditional_pools[kind] = ConditionalPool(5 + len(self.conditional_pools), 0, 0)
+        pool.most = pool.now = amount
+        self.changed.add(kind)
+
+    def restore_pool(self, kind, amount):
+        amount = max(0.0, amount)
+        given = min(amount, max(0.0, self.most[kind] - self.now[kind]))
+        if given:
+            self.now[kind] += given
+        pool = self.conditional_pools.get(kind)
+        if pool is not None:
+            extra = min(amount - given, max(0.0, pool.most - pool.now))
+            pool.now += extra
+            given += extra
+        if given:
+            self.changed.add(kind)
+        return given
 
     def normal_health(self, maximum: bool) -> float:
         """Read the normal component-51 records in wire order with float32 accumulation."""
@@ -828,6 +875,8 @@ class Vitals:
                 total = expr.f32(total + expr.f32(pools[kind]))
                 if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                     total = expr.f32(total + expr.f32(bonus.capacity if maximum else bonus.current))
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                total = expr.f32(total + expr.f32(pool.most if maximum else pool.now))
         return total
 
     def capped_damage(self, amount: float, minimum_health: float = 0.0, *, armour_scalar=None, beam=False) -> float:
@@ -838,6 +887,7 @@ class Vitals:
         preview.now = dict(self.now)
         preview.changed = set()
         preview.extra = {key: copy(pool) for key, pool in self.extra.items()}
+        preview.conditional_pools = {key: copy(pool) for key, pool in self.conditional_pools.items()}
         preview.bonus_armour = [copy(pool) for pool in self.bonus_armour]
         preview.temporary_shield = copy(self.temporary_shield)
         preview.wave_health = copy(self.wave_health)
@@ -858,6 +908,15 @@ class Vitals:
                     pool.now -= take
                     taken += take
                     left -= take
+                    self.changed.add(kind)
+            if left <= 0.0:
+                break
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                take = min(left, pool.now)
+                if take > 0:
+                    pool.now -= take
+                    left -= take
+                    taken += take
                     self.changed.add(kind)
             if left <= 0.0:
                 break
@@ -909,11 +968,7 @@ class Vitals:
         """Heal health, then armour, then shields (unverified: the order). Returns what it gave."""
         left = max(0.0, amount)
         for kind in (HEALTH_POOL, ARMOUR_POOL, SHIELDS_POOL):
-            give = min(left, self.most[kind] - self.now[kind])
-            if give > 0.0:
-                self.now[kind] += give
-                self.changed.add(kind)
-                left -= give
+            left -= self.restore_pool(kind, left)
             if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                 give = min(left, bonus.capacity - bonus.current)
                 if give > 0:
@@ -922,7 +977,7 @@ class Vitals:
                     self.changed.add(kind)
         given = max(0.0, amount) - left
         self.ult_healing_deficit = max(
-            0.0, min(self.ult_healing_deficit - given, sum(self.most.values()) - self.base_total),
+            0.0, min(self.ult_healing_deficit - given, self.base_maximum - self.base_total),
         )
         return given
 
@@ -932,6 +987,8 @@ class Vitals:
         for kind in kinds:
             if kind in self.ids:
                 parts[kind * POOLS] = world.pool(self.ids[kind], kind, self.most[kind], self.now[kind])
+            if (pool := self.conditional_pools.get(kind)) is not None:
+                parts[kind * POOLS + 1] = world.pool(pool.pool_id, kind, pool.most, pool.now)
             if kind == HEALTH_POOL and self.wave_health_id:
                 bonus = self.wave_health
                 parts[1] = (world.pool(self.wave_health_id, kind, bonus.capacity, bonus.current)
@@ -4042,7 +4099,7 @@ class Combat:
             if target.entity == _source_entity(shooter) or not self._ally(shooter, target):
                 continue
             vitals = self.vitals_of(target)
-            if not vitals.dead and vitals.base_total < sum(vitals.most.values()) - EPSILON:
+            if not vitals.dead and vitals.base_total < vitals.base_maximum - EPSILON:
                 targets.append(target)
         return targets
 
@@ -6821,7 +6878,7 @@ class Combat:
             if getattr(getattr(owner, "hero", None), "guid", None) == doomfist.HERO:
                 # Delivered0DDD has a separate capped temporary pool; its HUD
                 # maximum stays the body's intrinsic declared health.
-                maximum = sum(vitals.most.values())
+                maximum = vitals.base_maximum
             script.set_health(vitals.total, maximum)
 
     def _barrier_hit(self, shooter, origin, direction, length):
@@ -7665,7 +7722,7 @@ class Combat:
         if (target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
             vitals.ult_healing_deficit = min(
-                sum(vitals.most.values()) - vitals.base_total,
+                vitals.base_maximum - vitals.base_total,
                 vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
             )
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0

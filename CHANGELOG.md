@@ -22,6 +22,68 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Mount delivered manual NPC difficulty and conditional health pools
+
+- Preserve0020's four-tier143A selector, conditional health/shield pool records,
+  creation-before-publication and retirement. Mount the native pool state through
+  the existing health-pool class while retaining ordinary compatibility/strict
+  base pools and Junkenstein wave health. Keep authored base capacities separate.
+- Include conditional pools in damage, capped preview, normal health, healing,
+  eligibility deficits and component51 slot1; preserve temporary/wave records.
+  Shield recovery now restores the original conditional pools too. Register
+  difficulty identity/pool/state storage in body and server snapshots.
+- All27 focused checks passed unchanged: actual five-NPC/four-tier Zen hits and
+  wire records, conditional shield recovery, every tier's Harmony/Transcendence,
+  Sniper/Assassin recovery, skipped updates, basic pool damage and runtime.
+  The existing difficulty file only imports the retained compatible fixture;
+  no assertion was weakened. Real server capture was getter-free, repeatable
+  and sensitive to both conditional health and the NPC difficulty identity.
+- The53-check broader storage/pool run retained four old storage expectations:
+  new input/report fields, Assassin allocation/classes and Zenyatta body storage.
+  Preserve them; the27 focused pool/recovery checks are green. Other original
+  difficulty attack/melee interactions remain available and are not a new gate.
+
+### Synchronize worker A with received launch and NPC hosts
+
+- Merge stable37577fbd into worker A, preserving both log histories, A6/A7
+  consumers and received Slam/Meteor/Barrage/Sniper/report-queue implementations.
+- The75-check boundary run passed74 checks. The original Pharah Barrage motion
+  module retained an import error for the unmounted old sigma_grasp name in
+  its defense fixture. Fold/expression/runtime, real NPC shield recovery,
+  Doomfist Slam and selected D.Va launch/landing checks passed unchanged.
+
+### Mount delivered NPC shield recovery for the Zenyatta line
+
+- Mount0020's0E62 shield query, actual-damage notification, authored waiting/
+  rearm and recovery states in BotWorld and retained combat catch-up. Restore
+  only the existing basic shield pool and use the combined timed healing factor;
+  do not heal health or add another regeneration pool/clock.
+- Preserve the original real-Zenyatta-hit recovery assertions in a focused
+  delivery file. Its arena omits only the unsupported explicit default
+  difficulty=None keyword. Nondefault NPC difficulty/pool-profile mounting is
+  still pending and is not covered by this fixture. All14 recovery/runtime
+  checks passed using the existing combined NPC catalog, graphs and movers.
+- D.Va core modules, placement and linked-entity consumers match the frozen
+  delivery; retain the earlier documented combined-service adaptations and
+  original compatibility failures. Formal source-ref reconciliation remains
+  with the root coordinator, without requiring whole-client acceptance first.
+
+### Preserve delivered D.Va launch vectors and single landing damage
+
+- Keep D.Va's native quantized volley directions when the shared NPC emission
+  path runs; the generic Enforcer fallback must not overwrite the already
+  resolved Micro Missiles direction. Retain that fallback for other NPC heroes.
+- Flush only positive elapsed time when ending a continuous health state.
+  A zero-time end no longer replays Call Mech's250-damage entry as another hit.
+- All18 targeted launch/landing/fuse/runtime checks passed unchanged. An actual
+  partial Cryo cancellation probe retained the same129.53846 health as the
+  previous end callback, including its continuous healing tail. The29-check
+  Ana/Cryo/healing suite retained exactly the same five failures/25 subcase
+  errors with both callbacks (old source API/health expectations); keep them.
+- Matrix plus held primary still differs from the old D.Va walk-penalty check:
+  the delivered newer button service rejects disabled primary conditions while
+  the old007A query read held primary regardless of disablement. Preserve both
+  source checks; do not remove the newer shared button implementation to pass it.
 
 ### Mount delivered manual Sniper repositioning
 

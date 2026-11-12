@@ -38,7 +38,7 @@ def native(world, cfg, instance):
     vitals = world.match.combat.vitals.get(instance.component.entity)
     if vitals is None:
         return NotImplemented
-    value = vitals.pool_current(SHIELDS_POOL) if cls == CURRENT_POOL else vitals.most[SHIELDS_POOL]
+    value = vitals.pool_total(SHIELDS_POOL) if cls == CURRENT_POOL else vitals.pool_maximum(SHIELDS_POOL)
     return expr.f32(value)
 
 
@@ -49,7 +49,7 @@ def received_damage(fight, bot, vitals, source):
     script = bot.body_script
     component = script.component
     instance = next((i for i in component.instances.values() if i.graph.index == GRAPH), None)
-    maximum = vitals.most[SHIELDS_POOL]
+    maximum = vitals.pool_maximum(SHIELDS_POOL)
     if not scoped(component.world, instance) or maximum <= 0:
         return
     # Reconstruct the positive shield-capability input when no writer supplied it.
@@ -72,16 +72,13 @@ def modify_health(world, state, elapsed_ms):
         state.request(runtime.ABORT)
         return True
     vitals = fight.vitals_of(target)
-    if vitals.dead or vitals.pool_current(SHIELDS_POOL) >= vitals.most[SHIELDS_POOL]:
+    if vitals.dead or vitals.pool_total(SHIELDS_POOL) >= vitals.pool_maximum(SHIELDS_POOL):
         state.request(runtime.ABORT)
         return True
     amount = state.node.field("m_modifyHealth")["m_amount"]
     rate = expr.to_float(state.evaluate(amount, watch=False))
     seconds = elapsed_ms / 1000
     given = rate * seconds * fight.healing.factor(target, seconds=seconds)
-    given = min(max(0.0, given), max(0.0, vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL]))
-    if given > 0:
-        vitals.now[SHIELDS_POOL] += given
-        vitals.changed.add(SHIELDS_POOL)
+    if given > 0 and vitals.restore_pool(SHIELDS_POOL, given):
         fight._sync_body_health(target.owner, vitals)
     return True
