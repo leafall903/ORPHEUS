@@ -91,6 +91,8 @@ _STATE_LAYOUTS = {
     runtime.State: ((), ()),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
+    nodes.CombatModFilter: (("combat_filter",), ()),
+    nodes.CombatDamageFilter: (("combat_filter",), ()),
     nodes.RecallRewind: ((), ()),
     nodes.SharedVariables: ((), ()),
     nodes.EntityControl: (("control_radius", "control_bypass", "control_inverse_a", "control_inverse_b",
