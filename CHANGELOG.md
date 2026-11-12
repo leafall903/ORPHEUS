@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Mei Blizzard flight and area consumers
+
+- Connect original064A release, ballistic terrain/Ice Wall contact,0946 area,
+  original damage/frost cadence, viewer lifecycle, body retirement and stored
+  state. Reuse existing projectile leases and Genji/Matrix/Sigma interception;
+  capture outgoing Nano/Orisa scaling once rather than double applying it.
+- Restore original dependent Mei fixture files and normal module imports. Keep
+  literal expectations and failures: Blizzard20/21 cases pass across the full
+  run and targeted fixture adaptation; wall launch timing remains different.
+  Ultimate/Deflect48:40pass,7fail,1old shield-observer error. Full FrostSources16:
+  15pass,1same observer error. Original Damage/Punch29 and runtime17 pass.
+- Sampled Cryo status history and the remaining wall/weapon/observer differences
+  stay recorded for subsequent integration; no full acceptance claim.
+
 ### Apply existing frost modifiers to autonomous NPC navigation
 
 - Feed the existing per-body movement modifier into the same navigator Mover;

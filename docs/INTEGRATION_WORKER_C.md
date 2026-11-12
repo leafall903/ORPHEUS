@@ -923,3 +923,69 @@ projectile/deflection/absorption/status hosts, then normal-import original full
 Mei ultimate/frost source modules when their real dependencies are mounted.
 Keep sampled Cryo history and old wall/shield/deflect observers explicit; never
 replace actual consumers by aliases or weaken strict guards/assertions.
+
+C30 SHA55932da4 delivered.
+
+C31: actual original Mei Blizzard owner
+---------------------------------------
+Original mei_blizzard.py flight/area implementation now consumed by Combat._shoot
+064A/st3; one projectiles lease, actual ballistic chord/terrain/Mei wall anchoring,
+200ms delay/4250ms area/20DPS, independent per-target200ms frost channel, existing
+entity allocator/viewer create-destroy, world ticks/catch-up and body retirement.
+Existing Combat._deflector supplies single Genji/Matrix/Sigma service and actual
+projectile tag admission, with existing Grasp output plug for zero-damage consume.
+No old source defense managers or module-name aliases. Reflection reassigns actual
+owner/body and outgoing snapshot; existing _damage is source_scaled to avoid
+applying captured Nano/Orisa twice. Defense/phase queries use existing actual
+Cryo/phase hosts. Stored manager/flights/areas registered, including area deadlines,
+static-impact side and source samples. Original passive storage test passed.
+
+Restored original tests/test_mei_blizzard,wall,wall_placement,control,deflect,shields.
+Only fixture API/import adaptation: delivered combat fixture name; Genji's HERO/
+active observer -> existing deflection.GENJI/defenses.deflect_state, shield fixture
+-> actual barriers.Bubble/defenses.ZARYA (old Bubble constructor still not claimed
+equivalent); one raw frost tuple assignment -> combat.Frost(sample=originaltuple).
+All original literal values/counts match AST Counter; no expected values edited.
+No fake observer/health view, no second pool, no tests removed. Old shields observer
+errors remain visible instead of aliases. The old cryo sampled consumer is still
+not mounted; current barriers.cryo_heal remains sole healer pending next batch.
+
+Exact v9 environment+test_environment commands:
+python -B -m unittest test_mei_blizzard -v :21run106.663s,19pass1fail1error(two
+subcases). worker-c-mei-blizzard-second-check.log. The error was raw tuple fixture
+in frozen-input case; after actual Frost(sample=...) adaptation that original case
+passes in the shared command below. Thus20/21 original cases pass across these
+runs, not a fresh final all21 run. Wall near-face test expects one flight after32
+frames but actual current wall has already anchored it (0flights); preserve original
+assertion/geometry/timing rather than delay a real hit for the check.
+First failed matrix_definitions=None integration log retained; final production
+uses existing _deflector current tag policy, not an ad-hoc nullable catalog check.
+
+python -B -m unittest test_mei_ultimate test_mei_deflect -v :48run44.488s,
+40pass7fail1error,worker-c-mei-blizzard-ultimate-deflect-check.log. These are normal
+imports and full original classes, not earlier AST selection. Ultimate31:29pass,
+wall damage400vs325 fail and old fight.shields observer error. Deflect17:11pass,
+remaining6 differences include spray damage/freeze, wall flight already anchored,
+post-duration/rear icicle damage50vs125, spray230.75vs250, static cover175vs250.
+Actual airborne Blizzard reflection ownership, area damage/frost, rear/allied
+non-reflection, original-owner switch survival/reflected-owner retirement allpass.
+
+python -B -m unittest test_mei_frost_sources -v :full normal module16run37.673s,
+15pass1old fight.shields observer error; worker-c-mei-frost-sources-full-check.log.
+Includes formerly unrun actual spray+Blizzard channels/two areas/Cryo cleanse and
+wall source isolation. Source file still byte-identical to original delivered ref.
+
+python -B -m unittest test_mei_blizzard.BlizzardTests.
+ test_frozen_input_cannot_start_and_freeze_during_windup_prevents_launch
+ test_game_combat.DamageTests test_doomfist_punch test_game_runtime -v:
+30actualtests pass21.621s,plus1 loader error because module name was mistyped.
+worker-c-mei-blizzard-shared-check.log. Correct separate command:
+python -B -m unittest test_game_script_runtime -v :17pass.909s,
+worker-c-mei-blizzard-runtime-check.log. Do not count the mistyped loader as a
+runtime implementation failure or claim its group passed as written.
+
+Next C32: reconcile original CryoHealing sampled VM/status history with existing
+barriers.cryo_heal into one actual health consumer, then original normal Cryo
+checks and status timing. Sombra/Ashe remain actual unmounted owner modules;
+root flagged old DeviceWorld/driver symmetra_portals name lookups to adapt to
+actual fight.portals and symmetra_portals.py, with endpoint attribution/EMP/lock.
