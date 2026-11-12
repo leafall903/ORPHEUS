@@ -111,8 +111,14 @@ holds only the placeables it creates, so the extractor's rule stays inside that 
 
 Not decoded: which player gets which marker (ORPHEUS's port of the picker `STU_5E805B5A` takes a
 random one not used in the last 3 s), what receives `0687.025` for Uprising (its controller
-`0D2A`, `1194` and `0D29` have no entry for it, unlike PvP's `0C90`), whether the native picker
-also wants the spawn component, and whether the players face the way the markers do.
+`0D2A`, `1194` and `0D29` have no entry for it, unlike PvP's `0C90`), and whether the native
+picker also wants the spawn component.
+
+The facing is not settled either. By their rotation the four markers stand side by side and face
+across their row, all four within ten degrees of one another. The server gives each body its
+marker's yaw and keeps it through the hero pick (checked on the server). In the client the view
+at the start faced a wall, with the rails a quarter turn away, so the client's camera may not be
+taking the spawn's yaw in this flow. That was not checked.
 
 ## Compared with ORPHEUS
 
