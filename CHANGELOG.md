@@ -4,6 +4,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
+
 ### Restore Grasp world decay from actual grant receipt
 
 - Existing pool groups consume the original declared delay/rate even without
