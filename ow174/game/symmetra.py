@@ -325,3 +325,41 @@ def transit_position_query(world, cfg, instance):
         if point is not None:
             return expr.Vec3(*point)
     return None
+
+
+def placement_direction_query(world, cfg, instance):
+    """Expose native direction queries for the owned upright placement body.
+
+    CE8460 and CCDD80 select rows0 and2 of D1B5E0's transform, respectively.
+    CC94D0/D18780/C5E040 adds the stored pitch for the view-forward query.
+    Arbitrary transforms, parent attachments and the native component contracts
+    remain open; this maps only the known upright server mover pose.
+    """
+    queries = {"STU_66F3B89E": "lateral", "STU_021D01CD": "forward", "STU_2200A66D": "view"}
+    kind = queries.get(cfg.get("$"))
+    if (kind is None or world.hero != HERO or world.match is None
+            or instance.graph.index not in (0x156B, 0x1571)):
+        return NotImplemented
+    if instance.evaluate(cfg.get("m_entity")) != expr.Entity(world.body):
+        return NotImplemented
+    owner = next((p for p in world.match.players if p.body == world.body), None)
+    if (owner is None or owner.gone or not owner.has_body or not owner.spawned
+            or world.match.combat.is_dead(owner)):
+        return NotImplemented
+    yaw = owner.mover.yaw
+    if type(yaw) not in (int, float) or not math.isfinite(yaw) or not -32768 <= yaw <= 32768:
+        return NotImplemented
+    angle = yaw * math.tau / 65536
+    sine, cosine = math.sin(angle), math.cos(angle)
+    if kind == "view":
+        pitch = owner.mover.pitch
+        if type(pitch) not in (int, float) or not math.isfinite(pitch) or not -32768 <= pitch <= 32768:
+            return NotImplemented
+        # Original C5E040 converts the signed stored pitch with this f32 scale.
+        radians = expr.f32(expr.f32(pitch) * 9.58738019107841e-05)
+        horizontal = math.cos(radians)
+        return expr.Vec3(expr.f32(sine * horizontal), expr.f32(-math.sin(radians)),
+                         expr.f32(cosine * horizontal))
+    axes = (expr.Vec3(expr.f32(cosine), 0.0, expr.f32(-sine)),
+            expr.Vec3(expr.f32(sine), 0.0, expr.f32(cosine)))
+    return axes[0 if kind == "lateral" else 1]

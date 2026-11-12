@@ -603,3 +603,42 @@ No client execution, no pair/placement/admission implementation claimed.
 Next: original stateless placement_geometry/clock helpers and sourcePortalPair
 actor factory/confirm/interaction against existing NPC/actor pool; preserve
 canonical Photon barrier and DVa CallMech placement. No generic service overwrite.
+
+
+C24 SHA184e4d32 delivered. Root explicit profile now runtime-inputs-v5,
+.environment plus .test_environment (EXTRA only originalskip flag).
+
+## C25 original static placement checkpoint
+
+Source script/placement_geometry.py and symmetra_placement.py stateless math
+preserved. Append source Clock/Record/StaticResult/publication/history/Confirmation
+primitives to existing script/placement.py without replacing CallMech.Result/place.
+Original World provider protocols and source Placement base now exist; current
+PlacementPreview delegates only for actual Symm1571/69 and156B/57 when canonical
+Photon.geometry is absent. Configured Photon retains current whole placement
+path; no second wall manager. Original server forward-clock/disabled prediction
+history policy is explicit. Confirmation remains unknown until real owner accepts.
+Actual placement body/view axes and static null-parent transform route narrowly
+before typed native services. Initial15:14pass/axis-stack failure exposed missing
+poll_native on early answer; fix that dependency registration, final15pass2.691s.
+VM registry stores actual PlacementPreview.last_frame/latest_frame; actual active
+1571 preview export changes digest when latest_frame changes.
+
+Explicit root v5 environment +test_environment, no _data patch:
+python -B -m unittest test_symmetra_turrets test_symmetra_static_placement test_symmetra_placement_axes test_game_dva_placement test_symmetra_teleport_action -v
+46run45pass1skip36.499s; worker-c-symmetra-placement-v5-check.log. C23 original14
+now exercised on final additive v5 records rather than in-memory test composition.
+Original pure test_script_placement_geometry+history44pass0.004s.
+Original test_script_placement_results retained unchanged:6cases, sevenerrors
+across fivecases from existing strict map SummonerPlacement refusing FA02 state
+at construction; permissive provider-shape case/subcases execute. First combined
+67run10errors1skip before actual source base class renamed Placement; after
+proper source classname, strict boundary isolated to sevenerrors, no fakealias.
+Do not weaken strict map guard or original assertions for this check. Original
+strict generic Placement role still needs reconciliation with map placement;
+current server owner path is permissive and actually works. No new matrix.
+
+Next: original PortalPair/confirm/factory/interaction via existing NPC pool,
+with original actor inputs already supplied by v5. Preserve current strict map
+Summoner and configured Photon paths while completing these missing consumers.
+Source sentry retained phase/ice/projected-history boundaries remain above.

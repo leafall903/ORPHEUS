@@ -887,6 +887,11 @@ class BodyWorld(runtime.World):
         from ow174.game import hero_torbjorn, symmetra, symmetra_charge, torbjorn_charge
 
         if instance is not None:
+            from ow174.game import symmetra_placement
+            for query in (symmetra.placement_direction_query, symmetra_placement.static_transform):
+                value = query(self, cfg, instance)
+                if value is not NotImplemented:
+                    return value
             value = symmetra.transit_position_query(self, cfg, instance)
             if value is not NotImplemented:
                 return value
@@ -1758,6 +1763,46 @@ class BodyWorld(runtime.World):
 
     def placement_probe(self, state):
         return self.match is not None and ice_wall.probe(self.match.combat, state)
+
+    def uses_delivered_placement(self, state):
+        if (self.hero != 0x02E0000000000016 or self.match is None
+                or (state.instance.graph.index, state.node.pos) not in ((0x156B, 57), (0x1571, 69))):
+            return False
+        return state.instance.graph.index == 0x1571 or self.match.combat.photon_barriers.geometry is None
+
+    def confirm_placement(self, state):
+        if self.match is not None and state.instance.graph.index == 0x1571:
+            portals = getattr(self.match.combat, "portals", None)
+            if portals is not None:
+                return portals.confirm(self, state)
+        return NotImplemented
+
+    def placement_clock(self, state):
+        from ow174.game import symmetra
+        from ow174.game.script import placement
+
+        if (self.hero == symmetra.HERO and self.match is not None
+                and (state.instance.graph.index, state.node.pos) in ((0x156B, 57), (0x1571, 69))):
+            frame = state.instance.component.frame
+            # Explicit authoritative forward-server policy: one VM frame per
+            # update. Native render/prediction clock reconciliation is separate.
+            return placement.Clock(frame & 0xFFFFFFFF, frame, 1)
+        return NotImplemented
+
+    def replay_placement(self, state, frame: int):
+        if self.placement_clock(state) is not NotImplemented:
+            return False  # This server has no admitted client placement history.
+        return NotImplemented
+
+    def record_placement(self, state, value):
+        if self.placement_clock(state) is not NotImplemented:
+            return True  # Explicit forward-server policy: no admitted prediction storage.
+        return NotImplemented
+
+    def placement_geometry(self, state):
+        from ow174.game import symmetra_placement
+
+        return symmetra_placement.preview(self, state)
 
     def refresh_compatible_placement(self, state, *, confirm):
         from ow174.game import photon_barrier
