@@ -9568,3 +9568,7 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A synchronization after A52
 
 Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain all parallel source and local launcher commits.
+
+### Worker A53 - activate original Ashe NPC checks on shared inputs
+
+- Use one composed graph provider/current locked mover table and existing actual catalog/current-bound extension for original fixtures; remove obsolete secondary-loader/cache calls and stale input gate. Preserve all numeric assertions. Normal15 methods now run without skips; original API/one Heavy hit differences retained in logs.
