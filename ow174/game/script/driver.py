@@ -1639,8 +1639,12 @@ class BodyWorld(runtime.World):
             )
             return (target,) if target is not None else ()
 
-        from ow174.game import mccree
+        from ow174.game import mccree, widowmaker
 
+        if self.hero == widowmaker.HERO:
+            selected = widowmaker.tracked_targets(self, state)
+            if selected is not NotImplemented:
+                return selected
         return mccree.targets(self, state)
 
     def target_effects(self, state):
@@ -2374,7 +2378,25 @@ class BodyScript(ReplicatedBody):
             runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
             self.component.run_now()
 
+    def infra_window(self):
+        from ow174.game import widowmaker
+
+        return widowmaker.infra_window(self)
+
+    def ultimate_active(self, *, at_time=None):
+        from ow174.game import widowmaker
+
+        return (widowmaker.ultimate_active(self, at_time=at_time)
+                if self.hero == widowmaker.HERO else self.ultimate_running())
+
+    def award_damage_charge(self, damage):
+        return self.gain_ult_charge(damage)
+
     def ultimate_running(self) -> bool:
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.ultimate_active(self)
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return True
         # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
@@ -2391,6 +2413,10 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.award_damage_charge(self, points)
         if self.hero == 0x02E0000000000005:
             from ow174.game import hanzo_charge, hanzo_control
 

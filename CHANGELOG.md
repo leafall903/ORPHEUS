@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Widowmaker rifle and Infra-Sight consumers
+
+- Preserve source000A primary/scoped authored critical defaults (2/2.5), effective
+  damage charge and stale ultimate-press expiration on the combined body host.
+  Derive committed0067 cast/effect windows from its retained Wait; expose live
+  reveal to the existing combat query and TrackTargets payload, refreshed by
+  server world time even without owner commands. Keep one script/combat manager.
+- Preserve the complete original test_widowmaker_combat.py, including pending
+  Grapple/Venom methods. Original rifle/Infra23 methods:22 pass, one retained
+  failure at0B8B/node83 Var16102 (native fold accumulator0.0 versus old expected
+  empty tuple). Keep the newer original fold.py implementation and old assertion.
+  Shared Damage/runtime/profile27 checks:25 pass,2 optional input skips.
+- Frozen source:hero-deliveries/000A at0bbf016a88d6272db5358c5e4f6a611d4db5b327.
+  Grapple and Venom consumers remain actual pending work, not whole-line complete.
+
 ### Restore Pulse Bomb current-source retirement boundary
 
 - Keep the source0003 family rule: an already reflected Pulse Bomb survives its
