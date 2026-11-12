@@ -11,7 +11,7 @@ from ow174.game import mover
 from ow174.game.combat import Vitals
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.match import _rotation
-from ow174.game.script import entity_team, expr, modifiers, npc_queries, play, runtime, scene
+from ow174.game.script import distance_constraints, entity_team, expr, modifiers, npc_queries, play, runtime, scene
 from tests.test_script_for_code import KEY, make, row
 from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.test_script_play_resource import row as schema_row
@@ -48,6 +48,27 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_distance_constraint_registry_orders_equal_priority_and_cleans_up_on_failure(self):
+        world = scene.SceneWorld()
+        world.bind(123)
+        registry = distance_constraints.Registry()
+        world.set_distance_constraints(123, registry)
+        old = registry.register(object(), priority=1.5)
+        newest = registry.register(object(), priority=1.5, above_equal=True)
+        low = registry.register(object(), priority=-1)
+        component = runtime.Component(123, world=world, strict=True)
+        active = component.create(graph([node(0, 'STU_B61E6681', state=0)]), init=False)
+        state = active.state(0)
+        state.begin()
+        added = state.registration[1]
+        self.assertEqual(registry.entries, (newest, old, added, low))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(registry.entries, (newest, old, low))
+        world.unbind(123)
+        self.assertFalse(registry.entries)
+        self.assertIs(world.distance_constraint_registry(123), NotImplemented)
+
     def test_target_tag_query_replaces_old_results_in_declared_order_and_forgets_reused_ids(self):
         def tag(key):
             return {'$': 'STU_357DABBB', 'm_7D7C86A1': f'0x{0x0D60000000000000 | key:016X}'}

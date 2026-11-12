@@ -980,6 +980,10 @@ class World:
         """Explicit component76 keys, known absence, or unknown service."""
         return NotImplemented
 
+    def distance_constraint_registry(self, entity: int):
+        """Original explicit component88 registration backend, or unknown."""
+        return NotImplemented
+
     def npc_query_context(self, entity: int):
         """Explicit original typed NPC callback context, or unknown service."""
         return NotImplemented
