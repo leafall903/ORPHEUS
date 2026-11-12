@@ -17,6 +17,7 @@ from ow174.game.script import expr, nodes
 
 # Host event namespace, not the key construction of native FF3471E9.
 # Actual0263 instance/node keys cannot have this upper32 prefix.
+REPLAY_LIMIT = 256
 HOST_PREFIX = 0xFFFFFFFF00000000
 
 
@@ -60,6 +61,7 @@ class Knockbacks:
         self.combat = combat
         self.serial = 0
         self.active: dict[int, Mover] = {}
+        self.launches: dict[int, int] = {}
         self.whole_hog_seen = {}
         self.whole_hog_motion = {}
 
@@ -105,6 +107,55 @@ class Knockbacks:
             self._enqueue(target.entity, mover, frame, key, impulse)
         self.serial += 1
         return True
+
+    def record_launch(self, target):
+        """Retain an accepted player impulse on this same physical host."""
+        from ow174.game import bots
+        if not isinstance(target.owner, bots.Bot):
+            self.launches[target.entity] = self.combat.tick
+
+    def replay_until(self, previous):
+        return previous + REPLAY_LIMIT if self.launches else previous
+
+    def replay_launches(self, tick, dt):
+        """Original neutral missing-pose consumer, using declared epoch anchors."""
+        from ow174.game.projectiles import MAX_LEASE_FRAME
+        from ow174.game.sombra_replay import body_frame
+        fight, match = self.combat, self.combat.match
+        if match.ended or not self.launches:
+            return
+        targets = {target.entity: target for target in fight._targets()}
+        scheduled = match.tick, fight.tick, fight.now
+        try:
+            match.tick = fight.tick = tick
+            for entity, launched in tuple(self.launches.items()):
+                if tick < launched:
+                    continue
+                target = targets.get(entity)
+                if target is None or not match._shown(target.owner) or fight.vitals_of(target).dead:
+                    self.launches.pop(entity, None)
+                    continue
+                player = target.owner
+                script = player.body_script
+                if script is None or script.retired:
+                    self.launches.pop(entity, None)
+                    continue
+                frame = body_frame(script, tick, round(dt * 1000))
+                if frame is None or frame > MAX_LEASE_FRAME:
+                    continue  # No equal-epoch or stale receipt-frame assumption.
+                mover = player.mover
+                if (mover.last_command is None or mover.last_command.frame < frame) and script.frame < frame:
+                    command = Command(frame, yaw=mover.yaw, pitch=mover.pitch)
+                    mover.last_command = command
+                    player._step_body_pose(command, dt, tick, replay_accepted=True)
+                    history = fight.history.get(entity)
+                    if history and history[-1][0] >= tick:
+                        at, _, *shape = history[-1]
+                        history[-1] = at, tuple(mover.position), *shape
+                if not mover.airborne and not any(mover.velocity) and not mover.velocity_changes:
+                    self.launches.pop(entity, None)
+        finally:
+            match.tick, fight.tick, fight.now = scheduled
 
     def whole_hog_hit(self, target, direction, distance, spec, packet):
         """Original per-volley force on the sole target movement host."""
@@ -350,6 +401,7 @@ class Knockbacks:
         return entity in self.active or entity in self.whole_hog_motion
 
     def retire(self, entity, *, forget=True):
+        self.launches.pop(entity, None)
         self.retire_whole_hog(entity, forget=forget)
         if forget:
             self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()

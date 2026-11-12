@@ -29,6 +29,7 @@ from ow174.game.script import (
     controller_heroes,
     controller_queries,
     data_flow,
+    distance_constraints,
     effect_routing,
     entity_control,
     entity_filter,
@@ -42,8 +43,10 @@ from ow174.game.script import (
     message_state,
     model_look,
     modifiers,
+    npc_queries,
     play,
     play_queue,
+    possession_requests,
     runtime,
     scopes,
     voice_stimulus,
@@ -255,6 +258,9 @@ class SceneWorld(runtime.World):
         self.mode_score_thresholds = None  # Extracted mode GUID -> (float targets, difficulty limits).
         self.engine_settings: dict[int, bool | int | float] | None = None
         self.global_data_flow: dict[int, tuple[runtime.State, bool]] = {}
+        self.possession_requests: dict[int, possession_requests.Registry] = {}
+        self.distance_constraints: dict[int, distance_constraints.Registry] = {}
+        self.npc_query_contexts: dict[int, npc_queries.Context] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.controller_records: dict[int, controller_queries.Record] = {}
         self.absent_spatial_binding_owners: set[int] = set()
@@ -263,6 +269,7 @@ class SceneWorld(runtime.World):
         self.indexed_targets: dict[int, dict[tuple[int, int], int] | None] = {}
         self.target_record_scalars: dict[int, dict[int, float] | None] = {}
         self.entity_filter_records: dict[int, entity_filter.Record] = {}
+        self._target_tag_candidates: dict[int, frozenset[int]] | None = None
         self.target_tag_members: dict[int, tuple[int, ...]] = {}
         self.entity_directions: dict[int, tuple[expr.Vec3 | None, expr.Vec3 | None]] | None = None
         self.model_gate_consumers = {}
@@ -380,6 +387,8 @@ class SceneWorld(runtime.World):
         self.unbind_script_component(entity)
         self._retire_effect_bindings(entity)
         record = self.entities.pop(entity, None)
+        if self._target_tag_candidates is not None:
+            self._target_tag_candidates.pop(entity, None)
         self.notify_entity_filter_change(entity, retired=True)
         self._owned_deployables.pop(entity, None)
         for owner, deployables in self._owned_deployables.items():
@@ -399,6 +408,12 @@ class SceneWorld(runtime.World):
         self.ai_weapon_records.pop(entity, None)
         self.ai_weapon_slots.pop(entity, None)
         self.ai_behavior_requests.pop(entity, None)
+        requests = self.possession_requests.pop(entity, None)
+        if requests is not None:
+            requests.clear()
+        constraints = self.distance_constraints.pop(entity, None)
+        if constraints is not None:
+            constraints.clear()
         if record is not None:
             self.linked_controllers.pop(entity, None)
             for body, controller in self.linked_controllers.items():
@@ -462,6 +477,50 @@ class SceneWorld(runtime.World):
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
 
+    def set_possession_requests(self, entity: int, registry: possession_requests.Registry) -> None:
+        self._bound_entity(entity)
+        if (type(registry) is not possession_requests.Registry or entity in self.possession_requests
+                or registry in self.possession_requests.values()):
+            raise ValueError("possession requests need an unbound registry")
+        self.possession_requests[entity] = registry
+
+    def possession_request_registry(self, entity: int):
+        return self.possession_requests.get(entity, NotImplemented)
+
+    def set_distance_constraints(self, entity: int, registry: distance_constraints.Registry) -> None:
+        self._bound_entity(entity)
+        if entity in self.distance_constraints:
+            raise ValueError("distance constraint registry is already bound")
+        self.distance_constraints[entity] = registry
+
+    def distance_constraint_registry(self, entity: int):
+        return self.distance_constraints.get(entity, NotImplemented)
+
+    def set_npc_query_context(self, entity: int, context: npc_queries.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not npc_queries.Context:
+            raise ValueError('invalid NPC query context')
+        self.npc_query_contexts[entity] = context
+
+    def npc_query_context(self, entity: int):
+        return self.npc_query_contexts.get(entity, NotImplemented)
+
+    def set_target_tag_candidates(self, candidates) -> None:
+        """Declare the active query order and effective uint32 tags explicitly."""
+        ordered = {}
+        for entity, tags in candidates:
+            self._bound_entity(entity)
+            keys = frozenset(tags)
+            if entity in ordered or any(type(tag) is not int or not 0 < tag <= 0xFFFFFFFF for tag in keys):
+                raise ValueError("invalid target-tag candidate catalog")
+            ordered[entity] = keys
+        self._target_tag_candidates = ordered
+
+    def target_tag_candidates(self):
+        if self._target_tag_candidates is None:
+            return NotImplemented
+        return tuple(self._target_tag_candidates.items())
+
     def set_target_tag_entities(self, tag: int, entities) -> None:
         """Supply the ordered active matches for an authored TargetTag."""
         if type(tag) is not int or tag >> 48 != 0x0D60:
@@ -516,6 +575,9 @@ class SceneWorld(runtime.World):
                 or registry in self.component86_registries.values()))):
             raise ValueError('component86 requires an unbound empty registry or known absence')
         self.component86_registries[entity] = registry
+
+    def component86_backend_declared(self) -> bool:
+        return bool(self.component86_registries)
 
     def component86(self, entity: int):
         return self.component86_registries.get(entity, NotImplemented)
@@ -615,6 +677,7 @@ class SceneWorld(runtime.World):
         messages = self.message_contexts.pop(entity, None)
         if messages is not None:
             messages.retire()
+        self.npc_query_contexts.pop(entity, None)
         query = self.query_contexts.pop(entity, None)
         if query is not None:
             query.retire()
@@ -1637,6 +1700,7 @@ class SceneWorld(runtime.World):
         messages = self.message_contexts.pop(component.entity, None)
         if messages is not None:
             messages.retire()
+        self.npc_query_contexts.pop(component.entity, None)
         query = self.query_contexts.pop(component.entity, None)
         if query is not None:
             query.retire()

@@ -462,7 +462,7 @@ class InstanceContext(Context):
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
+            body_owner, controller_heroes, controller_queries, controller_query, npc_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
         )
 
         component = self.instance.component
@@ -546,6 +546,10 @@ class InstanceContext(Context):
             return result
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
+            # Preserve the original explicitly bound watched backend; an unknown
+            # binding leaves the existing record-based service in charge.
+            result = controller_query.evaluate(self, cfg)
+        if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
         if cls == body_owner.CLASS and self.instance.graph.index == 0x0B8B and not component.strict:
             from ow174.game import orisa_charge
@@ -559,6 +563,8 @@ class InstanceContext(Context):
             result = entity_link.evaluate(self, cfg)
         if result is NotImplemented:
             result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = npc_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
@@ -899,6 +905,10 @@ class World:
     def compatibility_stop_script(self, instance: "Instance", node: Node):
         return NotImplemented
 
+    def target_tag_candidates(self):
+        """Ordered active candidate IDs and their effective tag keys, or unknown."""
+        return NotImplemented
+
     def target_tag_entities(self, tag: int):
         """Ordered entity IDs for an explicitly known single-tag search."""
         return NotImplemented
@@ -934,6 +944,10 @@ class World:
         return NotImplemented
 
 
+    def ai_behavior_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit component87 callback state; no default selection host."""
+        return NotImplemented
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 
@@ -966,12 +980,28 @@ class World:
         """Explicit component76 keys, known absence, or unknown service."""
         return NotImplemented
 
+    def possession_request_registry(self, entity: int):
+        """Original explicit component70 request backend, or unknown."""
+        return NotImplemented
+
+    def distance_constraint_registry(self, entity: int):
+        """Original explicit component88 registration backend, or unknown."""
+        return NotImplemented
+
+    def npc_query_context(self, entity: int):
+        """Explicit original typed NPC callback context, or unknown service."""
+        return NotImplemented
+
     def indexed_target_lookup(self, entity: int):
         """The A37A910D instance service, known absence, or unknown service."""
         return NotImplemented
 
     def target_record_scalar(self, owner: int, target: int):
         """A D379F515 component46 record scalar, known absence, or unknown service."""
+        return NotImplemented
+
+    def entity_controller_context(self, entity: int):
+        """CC9BF0 namespace, component43 observation and DA6910 controller resolution."""
         return NotImplemented
 
     def controller_record(self, entity: int):
@@ -1004,6 +1034,10 @@ class World:
     def b61_registry(self, entity: int):
         """Explicit registry for B61 state records."""
         return NotImplemented
+
+    def component86_backend_declared(self) -> bool:
+        """Whether the host explicitly selected the original component86 backend."""
+        return False
 
     def component86(self, entity: int):
         """Explicit target registry, known absence, or unknown service."""

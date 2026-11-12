@@ -189,6 +189,7 @@ def remove_body(match, bot) -> None:
     match.combat.junkrat.release_trap_victim(bot.entity)
     match.combat.clear_pins(bot.entity)
     match.combat.knockbacks.retire(bot.entity)
+    match.combat.slams.retire_target(bot.entity)
     match.combat.support_effects.retire(bot.entity)
     match.combat.healing.retire(bot.entity)
     match.combat.sound_barriers.retire(bot.entity)

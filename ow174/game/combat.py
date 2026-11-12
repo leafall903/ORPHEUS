@@ -58,6 +58,7 @@ from ow174.game import (
     dragon,
     absorption,
     barrage_motion,
+    pharah,
     actors,
     assassin_victim,
     baptiste,
@@ -2268,6 +2269,7 @@ class Combat:
         self.zarya_gravitons = graviton.Gravitons(self)
         self.respawns: list[tuple[float, object]] = []  # (when, a player or a bot)
         self.early_projectile_respawns: set[int] = set()  # actual historical projectile deaths
+        self.pharah_airborne: set[int] = set()
         self.deadeye_notices = []  # (killer, victim, script, root, shot frame, deadline)
         self.next_bot = bots.BOT_ENTITY + len(match.bots)
         self.next_barrier = barriers.FIRST_ENTITY
@@ -2341,7 +2343,7 @@ class Combat:
         return entity
 
     def create_deployable(self, source, definition, kind, position, *, health, radius, height, seconds,
-                          rotation=(0.0, 0.0, 0.0, 1.0), capsule=None):
+                          rotation=(0.0, 0.0, 0.0, 1.0), capsule=None, publish=True):
         """Create a transient damage target without borrowing the NPC respawn policy."""
         entity = self.allocate_combat_entity()
         actor = actors.Deployable(
@@ -2357,9 +2359,10 @@ class Combat:
         self.replacement_ticks[entity] = self.tick
         if health > 0:
             self.vitals[entity] = Vitals(entity, health)
-        for viewer in self.match.players:
-            if viewer.spawned and viewer.client is not None:
-                viewer.client.queue_entities([self.deployable_create(actor)])
+        if publish:
+            for viewer in self.match.players:
+                if viewer.spawned and viewer.client is not None:
+                    viewer.client.queue_entities([self.deployable_create(actor)])
         return actor
 
     def deployable_create(self, actor):
@@ -2367,11 +2370,21 @@ class Combat:
         components = vitals.component(vitals.ids) if vitals is not None else {}
         components[26] = [actor.filter_bits]
         position = actor.position
+        from ow174.game import volskaya
+
+        host = self.match.scene_host
+        movement = parent = None
+        if (isinstance(host, volskaya.LiftHost) and actor.definition == ice_wall.PILLAR
+                and actor.entity in host.lift.attached_walls):
+            piece = self.walls.pieces.get(actor.entity) or host.lift.actor_piece(actor)
+            angle = math.atan2(-piece.axis[2], piece.axis[0])
+            movement, parent = host.lift.wall_movement(piece, angle), volskaya.ENTITY
+        rotation = actor.rotation
         return world.EntityUpdate(
             actor.entity, world.OP_CREATE,
             lambda origin: world.create(origin, actor.definition, components,
                                         flags=world.WITH_TRANSFORM | world.WITH_SCALE, position=position,
-                                        rotation=actor.rotation),
+                                        rotation=rotation, movement=movement, movement_parent=parent),
         )
 
     def destroy_deployable(self, entity):
@@ -2385,6 +2398,10 @@ class Combat:
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
+        from ow174.game import volskaya
+
+        if isinstance(self.match.scene_host, volskaya.LiftHost):
+            self.match.scene_host.lift.attached_walls.discard(entity)
         self.sombra_controls.retire(entity)
         self.baptiste.deployable_removed(entity)
         piece = self.walls.pieces.get(entity)
@@ -2505,6 +2522,7 @@ class Combat:
         self.reaper_shadows.pop(player.body, None)
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
+        self.slams.retire_target(player.body)
         self.meteors.casts.pop(player.body, None)
         self.primal_bonus.pop(player.body, None)
         self.winston_jump.retire(player.body)
@@ -2606,6 +2624,7 @@ class Combat:
             ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
         self.early_projectile_respawns.discard(player.body)
+        self.pharah_airborne.discard(player.body)
 
     def record_replacement(self, body: int) -> None:
         """Keep the creation boundary independent of the rolling pose history."""
@@ -3429,16 +3448,38 @@ class Combat:
         start, deadline = self.pile_air_locks.get(player.body, (0, 0))
         return start <= tick < deadline and player.mover.airborne
 
-    def _launch(self, entity: int, velocity: tuple) -> None:
+    def _launch(self, entity: int, velocity: tuple, *, add_vertical: bool = False):
         """Route delivered impulse vectors to the existing authoritative mover."""
         target = next((t for t in self._targets() if t.entity == entity), None)
         if target is None or self.vitals_of(target).dead:
             return
         if isinstance(target.owner, bots.Bot):
-            target.owner.apply_impulse(velocity, self.tick, self._collision())
+            owner = target.owner
+            if not add_vertical:
+                owner.apply_impulse(velocity, self.tick, self._collision())
+                return owner.control_mover or owner.impulse_mover
+            if owner._trap_rooted(self.match.tick):
+                return None
+            # Slam already consumed native modifier26 at contact. The raw body
+            # adapter reuses the sole existing control/impulse mover, including
+            # route bodies, without applying that modifier a second time.
+            from ow174.game.collision import MOVER
+            if self._collision() is None:
+                return None
+            owner._apply_legacy_impulse(velocity, self.match.tick, self._collision(), category=MOVER)
+            mover = owner.control_mover or owner.impulse_mover
+            if mover is not None:
+                mover.velocity = tuple(expr.f32(axis) for axis in mover.velocity)
+                mover.external_impulse = True
+                owner.velocity = mover.velocity
+            return mover
+        mover = target.owner.mover
+        if add_vertical:
+            mover.add_external_impulse(velocity)
         else:
-            target.owner.mover.impulse(velocity)
-            target.owner.mover.external_impulse = True
+            mover.impulse(velocity)
+            mover.external_impulse = True
+        return mover
 
     def stun(self, target, duration):
         deadline = self.tick + math.ceil(duration / TICK)
@@ -3642,6 +3683,10 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif replay_aim is not None and script.hero == pharah.HERO:
+            for state, number, time, activation, *launch in shots:
+                if pharah.accepted_volley(state):
+                    self._shoot(player, replay_aim, state, number, time, activation=activation)
         elif replay_aim is not None and script.hero == sombra_camo.HERO:
             for state, number, time, activation, *launch in shots:
                 if translocators.accepted_volley(state):
@@ -4611,6 +4656,10 @@ class Combat:
 
         # Original0016 beam integration consumes cover that ended inside the
         # accepted gap, using the existing actors and their actual clock pairs.
+        previous = self.tick
+        if tick > previous:
+            self.knockbacks.replay_launches(previous, TICK)
+            pharah.replay(self, previous, TICK)
         allocation_clock = None
         if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
             allocation_clock = self.match.environment.monotonic(callsite="combat.respawn_clock")
@@ -4763,7 +4812,9 @@ class Combat:
         from itertools import chain
 
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
-                         sombra_replay.application_replay_until(self, self.tick))
+                         sombra_replay.application_replay_until(self, self.tick),
+                         pharah.replay_until(self, self.tick, TICK),
+                         self.knockbacks.replay_until(self.tick))
         early_end = min(first, replay_end + 1)
         normal_ticks = (set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick))
@@ -4941,6 +4992,8 @@ class Combat:
                     retained_owners, sentry_damage_starts, allocation_clock,
                     sphere_cover_ends=sphere_cover_ends, include_sphere_owners=at >= first)
             if at < tick:
+                self.knockbacks.replay_launches(at, TICK)
+                pharah.replay(self, at, TICK)
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
@@ -6549,6 +6602,8 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
+                if number == 0 and shooter.mover.airborne:
+                    self.pharah_airborne.add(shooter.body)
             if reach and range_left is None and not field_canister and not barrage and junkrat_profile is None and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
@@ -6684,6 +6739,9 @@ class Combat:
                 if npc:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
                 elif junkrat_profile is not None:
+                    projectile_tick = self.tick
+                elif (shooter.hero.guid == pharah.HERO
+                      and state.instance.graph.index in (0x0023, 0x007B, 0x002B)):
                     projectile_tick = self.tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
@@ -7734,7 +7792,10 @@ class Combat:
             best = (scene_barrier[0], None)
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
-        wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
+        cryo_cover = ()
+        if rocket.direct is not None and rocket.direct.loadout == defenses.HAND_CANNON:
+            cryo_cover = defenses.cryo_blockers(self.match.players, exclude=rocket.shooter)
+        wall = ray_cover(collision, rocket.position, heading, max(step, assisted_rank), cryo_cover)
         terrain_normal = None
         if rocket.terrain_bounce is not None:
             from ow174.game import junkrat_projectile
@@ -8869,7 +8930,9 @@ class Combat:
                 category = MOVER if self.match.game_map.free_for_all or target.team not in (0, 1) else (TEAM0, TEAM1)[target.team]
                 target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
             else:
-                target.owner.mover.add_impulse(impulse, self.tick)
+                applied = target.owner.mover.add_impulse(impulse, self.tick)
+                if any(applied):
+                    self.knockbacks.record_launch(target)
 
     def _pharah_source_impulse_path(self, origin, target, shooter):
         """Delivered source prediction independently tests middle and nearest sight points."""
@@ -10820,6 +10883,7 @@ class Combat:
         self.support_effects.retire(bot.entity)
         self.lucio_auras.retire(bot.entity)
         self.knockbacks.retire(bot.entity)
+        self.slams.retire_target(bot.entity)
         self.projected_barriers.pop(bot.entity, None)
         component = self._scene_component(bot)
         self.junkrat.release_trap_victim(bot.entity)
@@ -10903,6 +10967,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        self.pharah_airborne.discard(_source_entity(victim))
         self.hooks.retire(victim.body)
         self.healing.retire(victim.body)
         self.absorption.retire(victim.body)
@@ -10936,6 +11001,7 @@ class Combat:
                 charge.pinned = None
         self.charges.pop(victim.body, None)
         self.punches.dashes.pop(victim.body, None)
+        self.slams.retire_target(victim.body)
         for casts in (self.slams.casts, self.meteors.casts):
             cast = casts.get(victim.body)
             if cast is not None:

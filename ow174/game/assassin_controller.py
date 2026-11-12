@@ -44,7 +44,7 @@ class TargetWorld(runtime.World):
 
     def tracked_targets(self, state):
         if self.selects_ai_behavior(state.instance) and state.node.pos == 4:
-            return tuple(expr.Entity(entity) for entity in self.candidates)
+            return self.candidates  # TrackTargets owns the one typed Entity write.
         return super().tracked_targets(state)
 
     def native(self, cfg, instance):

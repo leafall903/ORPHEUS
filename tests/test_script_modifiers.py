@@ -183,6 +183,30 @@ class ModifierStateTests(unittest.TestCase):
             begin(component, state)
         self.assertFalse(backend.records)
 
+    def test_vector_replacement_preserves_numeric_rows_and_retires_at_its_clock(self):
+        vector = {'$': 'STU_09F9B1FE', 'm_CFEC5F76': 0,
+                  'm_9B7A63EA': {'$': 'STUConfigVarDynamic', 'm_identifier': 7, 'm_60DB8F99': 0}}
+        component, active, state, backend = setup([row(integer(0), field=26), vector])
+        active.write((0, 7), 7)
+        begin(component, state)
+        self.assertEqual(backend.resolve(26, 1, frame=21), (True, 0))
+        self.assertIsNone(backend.resolve_vector(0, frame=20))
+        self.assertEqual(backend.resolve_vector(0, frame=21), (0., 0., 0.))
+        backend.source_frame = 21
+        active.write((0, 7), ((expr.Vec3(2, 3, 4),), 9))
+        component.run_now()
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(1, frame=22))
+        backend.source_frame = 22
+        state.end(False)
+        self.assertEqual(backend.resolve_vector(0, frame=22), (2., 3., 4.))
+        self.assertIsNone(backend.resolve_vector(0, frame=23))
+        self.assertEqual(backend.resolve(26, 1, frame=23), (False, 1))
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'later missing service', 'Unknown')
+        self.assertFalse(backend.records)
+        self.assertFalse(backend.vector_records)
+
     def test_vector_rows_order_defaults_separate_storage_and_retirement(self):
         vector = expr.Vec3
         rows = [row(integer(8), field=0),

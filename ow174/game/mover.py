@@ -914,6 +914,14 @@ class Mover:
         self.spring_steps = (0, 0)
         self.landed = False
 
+    def add_timed_mod(self, index: int, op: int, value: float, start: int, end: int) -> None:
+        """Publish the delivered finite modifier on the server tick clock."""
+        # -1 already identifies scheduled impulse records in this unified mover.
+        prefix = (-2, start)
+        slot = max((key[2] for key in self.mods if key[:2] == prefix), default=-1) + 1
+        key = (*prefix, slot)
+        self.mods[key] = Mod(index, op, f32(value), start, end, key=key)
+
     def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
         a mod that came on acts from the next frame on, one that went off acts up to this frame. The
@@ -927,6 +935,8 @@ class Mover:
             else:
                 mod.value, mod.priority = value, priority
         for key, mod in list(self.mods.items()):
+            if key[0] == -2:
+                continue
             if key not in active and mod.end is None:
                 mod.end = frame + 1
             elif posed and mod.end is not None and mod.end <= frame:
@@ -1019,12 +1029,13 @@ class Mover:
     def step(
         self, command: Command, seconds: float, tick: int = 0,
         *, simulate_pose: Callable[[Command, float, int], None] | None = None,
-        retained_buttons: int = 0,
+        retained_buttons: int = 0, drop_repeated_buttons: int = 0,
     ) -> None:
         """One tick per command frame. Frames that never arrived are run first: the client ran them, most
         likely with the same keys (the last command again, and from the 33rd
         missing one without throttles and buttons). A player with a body script can drive each pose and
-        run its graph on the same frame, including recovered input."""
+        run its graph on the same frame, including recovered input. Explicit
+        drop_repeated_buttons require real input and do not repeat into missing poses."""
         pose = self.step_pose if simulate_pose is None else simulate_pose
         last = self.last_command
         if last is not None:
@@ -1032,7 +1043,7 @@ class Mover:
                 if frame - last.frame > REPEAT:
                     last = Command(last.frame, yaw=last.yaw, pitch=last.pitch)
                 missing = replace(
-                    last, frame=frame, buttons=(last.buttons & ~SUBFRAME) | retained_buttons, action=0,
+                    last, frame=frame, buttons=(last.buttons & ~(SUBFRAME | drop_repeated_buttons)) | retained_buttons, action=0,
                     subframe=0xFF, click_yaw=None, click_pitch=None,
                 )
                 pose(missing, seconds, tick)
@@ -1062,7 +1073,16 @@ class Mover:
         self.horizontal_driven = horizontal_drive is not None
         dt = seconds
         frame = command.frame
-        active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        active = []
+        for key, mod in list(self.mods.items()):
+            if key[0] == -2:
+                if tick >= mod.end:
+                    del self.mods[key]
+                elif mod.acts(tick):
+                    active.append(mod)
+            elif mod.acts(frame):
+                active.append(mod)
+        active.sort(key=Mod.order)
         if speed_scale != 1.0:
             active.append(Mod(SPEED, MULTIPLY, speed_scale, frame))
         flight_scale, profile = self.flight_scale, self.script_data

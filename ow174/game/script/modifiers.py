@@ -78,6 +78,27 @@ class Record:
 
 
 @dataclass(frozen=True)
+class VectorReplacement:
+    """A C33FC0 operation-2 row, stored separately from scalar modifiers."""
+
+    kind: int
+    key: int
+    start: int
+    field: int
+    value: tuple[float, float, float]
+    priority: float = 0.0
+    end: int = UINT32_MAX
+
+    def __post_init__(self):
+        for name in ("kind", "start", "field", "end"):
+            _uint(getattr(self, name), 32, name)
+        _uint(self.key, 64, "key")
+        x, y, z = self.value
+        object.__setattr__(self, "value", (_number(x), _number(y), _number(z)))
+        object.__setattr__(self, "priority", _number(self.priority))
+
+
+@dataclass(frozen=True)
 class VectorRecord:
     kind: int
     key: int
@@ -168,6 +189,20 @@ class NumericModifiers:
             records.pop(index)
         records.insert(insertion_index(records, record), record)
 
+    def upsert_vector(self, record: VectorReplacement) -> None:
+        """Retain the original replacement API on the same general vector store."""
+        if type(record) is not VectorReplacement:
+            raise ValueError("expected a vector replacement record")
+        self.upsert(VectorRecord(record.kind, record.key, record.start, record.field,
+                                 2, Vec3(*record.value), record.priority, record.end))
+
+    def retire_vector(self, kind: int, key: int, end: int) -> None:
+        self.retire(kind, key, end, vector=True)
+
+    def clear(self) -> None:
+        self.records.clear()
+        self.vector_records.clear()
+
     def retire(self, kind: int, key: int, end: int, *, vector=False) -> None:
         end = _uint(end, 32, "end")
         records = self.vector_records if vector else self.records
@@ -190,9 +225,15 @@ class NumericModifiers:
                 found = True
         return found, value
 
-    def resolve_vector(self, field: int, base: Vec3, *, frame: int) -> tuple[bool, Vec3]:
+    def resolve_vector(self, field: int, base: Vec3 | None = None, *, frame: int):
         _uint(field, 32, "field")
         _uint(frame, 32, "read frame")
+        if base is None:
+            # Original API asks for the last replacement, without a caller's base.
+            # General ADD/MULTIPLY rows remain available through the base API.
+            return next((tuple(record.value) for record in reversed(self.vector_records)
+                         if record.operation == 2 and record.field == field
+                         and record.start <= frame < record.end), None)
         value, found = Vec3(*map(_number, base)), False
         for record in self.vector_records:
             if record.field == field and record.start <= frame < record.end:
