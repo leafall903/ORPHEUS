@@ -462,9 +462,31 @@ alone is not evidence that a line's consumers are actually mounted.
   Bap/Sigma absorption0vs24 and Moira IceWall250 unchanged. All retained in
   worker-b-rein-retained-first.log; no full-green or completion claim.
 
+## B27 original native shield lifecycle
+
+- Source0095 lower helper stops Ability59, aborts Pet17 and drains its original
+  branches. Use on actual control/death/disconnect/unspawned transitions, keep
+  cache inactive immediately, and connect existing _died. No extra VM or actor.
+  Never drive a strict script through this compatibility manager path.
+- Source pre-damage fixtures address actual authored Vitals; manager retirement
+  observation maps existing owner-body registry. Original assertions1399 same
+  order/count and Constant lists; no numeric expectation edits.
+- `worker-b-rein-native-lifecycle-focused.log`:41/41 pass with v6 environment and
+  test_environment plus the separate validRein collision descriptor. Full source
+  Barrier34 retains2fail3errors (Flashbang1575vs1600, exposed ally200, explicit
+  team query API and Brigitte host). Existing terminal/break/recovery, owner
+  death/leave/disconnect, incident-side break and source controls now pass.
+- Correct B21 long Genji stored-fan attribution: ManifestMismatch caused by
+  changing this worker's source while the2325s suite remained running. Keep its
+  strict rejection; no Genji implementation conclusion from that error. Other
+  numeric failures require frozen/full-input confirmation. Parent runs frozen
+  canonical replay while workers keep merging; do not repeat nonfrozen journals.
+- Next: clean sync canonical and restore original explosion surface/recipient
+  queries, explicit source team contact context, and remaining native surfaces.
+
 ## Exact next work
 
-1. Commit B26, then clean-sync canonical after parent acceptance. Continue
+1. Commit B27, then clean-sync canonical after parent acceptance. Continue
    source0007 actual shield retirement/death/control/break/recast consumers,
    real native pool fixture inputs, source frozen-team queries and remaining
    surface histories. Preserve original grenade incident-side occlusion and

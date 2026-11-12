@@ -4490,7 +4490,7 @@ class BarrierTests(unittest.TestCase):
         self.assertEqual(self.health(self.rein), 500)
 
     def test_terminal_shield_hit_breaks_and_cannot_be_recast_during_cooldown(self):
-        self.shield().current = 20  # pre-damaged resource fixture; terminal hit is an actual rifle input
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 20)  # pre-damaged resource fixture; terminal hit is an actual rifle input
         self.fire()
         shield = self.shield()
         self.assertEqual(shield.current, 0)
@@ -4521,7 +4521,7 @@ class BarrierTests(unittest.TestCase):
         self.advance(20, buttons=2)
         shield = self.shield()
         self.assertTrue(shield.active)
-        shield.current = 40
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 40)
 
         self.run.step({self.rein: (0, 0, 2), self.other: (-32768, 0, 16)})
         for _ in range(75):
@@ -4553,7 +4553,7 @@ class BarrierTests(unittest.TestCase):
     def test_retirement_removes_the_old_barrier_resource(self):
         old = self.rein.body
         self.match.switch_hero(self.rein, self.rein.hero)
-        self.assertNotIn(old, self.match.combat.barriers)
+        self.assertNotIn(old, self.match.combat.barriers.reinhardt.actors)
 
     def test_helix_direct_and_splash_damage_shield_once_without_harming_owner(self):
         self.fire(buttons=2)
@@ -4563,7 +4563,7 @@ class BarrierTests(unittest.TestCase):
         self.assertFalse(self.match.combat.rockets)
 
     def test_projectile_break_does_not_spill_same_explosion_through_the_shield(self):
-        self.shield().current = 1
+        set_reinhardt_shield_health(self.match.combat, self.rein.body, 1)
         self.fire(buttons=2)
         self.advance(25, buttons=2)
         self.assertEqual(self.health(self.rein), 500)
@@ -4605,12 +4605,12 @@ class BarrierTests(unittest.TestCase):
         self.match.leave(self.rein)
         self.run.players.remove(self.rein)
         self.assertEqual(fight.tick, tick)
-        self.assertNotIn(old, fight.barriers)
+        self.assertNotIn(old, fight.barriers.reinhardt.actors)
         for _ in range(15):
             self.run.step({})
         self.fire((0, 2, -2))
         self.assertEqual(self.health(self.other), 180)
-        self.assertNotIn(old, fight.barriers)
+        self.assertNotIn(old, fight.barriers.reinhardt.actors)
 
     def test_owner_death_retires_the_live_shield_even_while_input_is_held(self):
         fight = self.match.combat

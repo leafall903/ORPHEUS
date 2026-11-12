@@ -9310,6 +9310,9 @@ class Combat:
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities
 
+        if victim.hero.guid == barrier.REINHARDT:
+            reinhardt_barrier.sync(self, victim)
+            self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
