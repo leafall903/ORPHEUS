@@ -291,6 +291,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original directly callable target SDK
+
+- Restore original root/index/history/geometry/membership/temporal APIs where
+  current World wrappers do not replace their public interfaces; explicit
+  backend requirements stay unchanged, with no second attached runtime host.
+- Ten original modules and eleven fixtures are byte-identical; all58 checks
+  pass. Existing Volume/gameplay paths remain; no client acceptance run.
+
 ### Restore original victim-side credit for supported weapons
 
 - Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent

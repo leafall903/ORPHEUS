@@ -2260,3 +2260,33 @@ Next exact action: final bounded source production caller inventory (owner
 modules/sharedadapters); report zero/explicit remaining implementations to root
 separately from tests/conflicts/client follow-up, and do not gate delivery on
 full source matrices. No original-client acceptance run.
+
+
+## B81 — preserve original directly callable target SDK implementations
+
+Final sourcecall scan: the10original target_* modules below import one another
+but have NO external sourceow174/tools production importer. This establishes
+that their missing path is not a missing gameplay host. It does NOT justify
+discarding existing publicSDK implementation. Compare actual APIs: current
+spatial_queries(Context/evaluate) is a World-config front end, component45 is
+boundcomponent history/update, andscopes is message-host lifetime. These do not
+replace originalRootMap/Index/Buffer/SpatialTree/TemporalQuery/etc direct APIs.
+Root explicitly confirms retain originalSDK where no equivalent interface.
+
+Restore byte-for-byte target_aggregate/context/geometry/history/index/membership/
+relation/scan/spatial/store and all11original correspondingfixtures, including
+temporaltests. Existing target_volume remains UNCHANGED (root proved wholeAST
+and11kernels identical and actualFlux/Moira use it). Original explicit backend,
+unknown/strict requirements, float32 arithmetic, root/member/cache lifetime,
+identity and mutation order remain. No automatic sceneIndex/cache/World/manager
+is created or attached, and no existing runtime path is replaced. These are
+original existing direct-call API implementations, not invented newfeatures.
+
+All58 original SDK checks pass1.073s, worker-b-sigma-target-sdk.log. No current
+runtime mutation or client acceptance. After confirmedB80 runtimecredit fix
+and these SDK restorations, no additional unmounted production implementation
+is currently established for the six retainedowner chains. Next exact action:
+final source-to-current path/caller inventory and give root a precise closure
+record, separating known original numeric/source conflicts/client tails from
+any newly PROVEN absent implementation. Do not use incomplete fullmatrices or
+missing legacyfixture imports as code merge blockers.
