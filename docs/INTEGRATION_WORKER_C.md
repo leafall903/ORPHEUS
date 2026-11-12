@@ -174,3 +174,6 @@ Clean C11/C12 synchronization: root17b8eec7 (Echo curve_motion and reflected
 source_entity ownership, integrated prepared-input profile, A/B current owners).
 Only CHANGELOG conflicted; keep both entries. Resolve single functional SHAs
 for reception; do not replay this coordination merge as an owner delivery.
+
+Before Torbjorn/Overload work, synchronize roota65aee9d, including received
+C11/C12 and A11 variable transition rechecks; preserve both changelog entries.
