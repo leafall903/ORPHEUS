@@ -69,6 +69,7 @@ SCENE_WORLD_FIELDS = (
     'play_queues',
     'player_participant_roster',
     'possessors',
+    'possession_requests',
     'primary_possessors',
     'query_contexts',
     'references',

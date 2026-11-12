@@ -46,6 +46,7 @@ from ow174.game.script import (
     npc_queries,
     play,
     play_queue,
+    possession_requests,
     runtime,
     scopes,
     voice_stimulus,
@@ -257,6 +258,7 @@ class SceneWorld(runtime.World):
         self.mode_score_thresholds = None  # Extracted mode GUID -> (float targets, difficulty limits).
         self.engine_settings: dict[int, bool | int | float] | None = None
         self.global_data_flow: dict[int, tuple[runtime.State, bool]] = {}
+        self.possession_requests: dict[int, possession_requests.Registry] = {}
         self.distance_constraints: dict[int, distance_constraints.Registry] = {}
         self.npc_query_contexts: dict[int, npc_queries.Context] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
@@ -406,6 +408,9 @@ class SceneWorld(runtime.World):
         self.ai_weapon_records.pop(entity, None)
         self.ai_weapon_slots.pop(entity, None)
         self.ai_behavior_requests.pop(entity, None)
+        requests = self.possession_requests.pop(entity, None)
+        if requests is not None:
+            requests.clear()
         constraints = self.distance_constraints.pop(entity, None)
         if constraints is not None:
             constraints.clear()
@@ -471,6 +476,16 @@ class SceneWorld(runtime.World):
     def _bound_entity(self, entity: int) -> None:
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
+
+    def set_possession_requests(self, entity: int, registry: possession_requests.Registry) -> None:
+        self._bound_entity(entity)
+        if (type(registry) is not possession_requests.Registry or entity in self.possession_requests
+                or registry in self.possession_requests.values()):
+            raise ValueError("possession requests need an unbound registry")
+        self.possession_requests[entity] = registry
+
+    def possession_request_registry(self, entity: int):
+        return self.possession_requests.get(entity, NotImplemented)
 
     def set_distance_constraints(self, entity: int, registry: distance_constraints.Registry) -> None:
         self._bound_entity(entity)

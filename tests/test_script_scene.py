@@ -11,7 +11,7 @@ from ow174.game import mover
 from ow174.game.combat import Vitals
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.match import _rotation
-from ow174.game.script import distance_constraints, entity_team, expr, modifiers, npc_queries, play, runtime, scene
+from ow174.game.script import distance_constraints, entity_team, expr, modifiers, npc_queries, play, possession_requests, runtime, scene
 from tests.test_script_for_code import KEY, make, row
 from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.test_script_play_resource import row as schema_row
@@ -48,6 +48,54 @@ def caller(world):
 
 
 class SceneIdentityTests(unittest.TestCase):
+    def test_enforcer_possession_request_preserves_configured_float_order(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        component = runtime.Component(owner, world=world, strict=True)
+        authored = graph([node(
+            0, 'STU_473549CA', state=0, m_00D49978=reference(),
+            m_49EEBB65={'$': 'STUConfigVarFloat', 'm_value': 1.25},
+            m_FD4D6C19={'$': 'STUConfigVarFloat', 'm_value': 2.5},
+        )])
+        instance = component.create(authored, init=False)
+        instance.state(0).begin()
+        self.assertEqual(requests.requests, (
+            possession_requests.Request(owner, 1234, kind=1, payload=(1.25, 2.5)),
+        ))
+        component.destroy(instance)
+        self.assertFalse(requests.requests)
+
+    def test_possession_request_cleanup_leaves_other_requests_intact(self):
+        world = scene.SceneWorld()
+        owner, target = 123, 456
+        world.bind(owner)
+        world.bind(target, ALPHA)
+        requests = possession_requests.Registry(lambda state: possession_requests.Inputs(owner, 1234))
+        world.set_possession_requests(target, requests)
+        old = possession_requests.Request(345, 23)
+        top = possession_requests.Request(678, 45, above_equal=True)
+        requests.insert(old)
+        component = runtime.Component(owner, world=world, strict=True)
+        definition = graph([node(0, 'STU_CF8C7CC5', state=0, m_00D49978=reference())])
+        active = component.create(definition, init=False)
+        state = active.state(0)
+        state.begin()
+        request = possession_requests.Request(owner, 1234)
+        requests.insert(top)
+        self.assertEqual(requests.requests, (top, old, request))
+        state.end(False)
+        self.assertEqual(requests.requests, (top, old))
+        state.begin()
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            component.unsupported(active, 'fixture failure', 'Fixture')
+        self.assertEqual(requests.requests, (top, old))
+        world.unbind(target)
+        self.assertFalse(requests.requests)
+
     def test_distance_constraint_registry_orders_equal_priority_and_cleans_up_on_failure(self):
         world = scene.SceneWorld()
         world.bind(123)

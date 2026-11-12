@@ -91,7 +91,8 @@ _STATE_LAYOUTS = {
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
     nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
-    nodes.AIControlOverride: (("remove_record",), ()),
+    nodes.Component86NumericPairState: (("registry", "request_registration"), ()),
+    nodes.AIControlOverride: (("remove_record", "request_registration"), ()),
     nodes.BodyPlacement: ((), ()),
     nodes.JunkensteinControllerState: ((), ()),
     nodes.JunkensteinBehaviorBranch: ((), ()),
@@ -177,9 +178,13 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 
-from ow174.game.script import distance_constraints
+from ow174.game.script import distance_constraints, possession_requests
 
 _VALUE_LAYOUTS = {
+    possession_requests.Inputs: ("owner", "clock"),
+    possession_requests.Selection: ("slot", "identifier", "flag"),
+    possession_requests.Request: ("owner", "clock", "kind", "priority", "above_equal", "payload", "selection"),
+    possession_requests.Registry: ("inputs", "accepted_selections", "_requests", "_selections"),
     distance_constraints.Entry: ("state", "priority", "sequence"),
     distance_constraints.Registry: ("_entries", "_sequence"),
     nodes.AIBehaviorRequest: ("kind", "priority", "prefer_later", "shared", "inputs"),

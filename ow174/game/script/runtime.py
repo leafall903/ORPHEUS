@@ -980,6 +980,10 @@ class World:
         """Explicit component76 keys, known absence, or unknown service."""
         return NotImplemented
 
+    def possession_request_registry(self, entity: int):
+        """Original explicit component70 request backend, or unknown."""
+        return NotImplemented
+
     def distance_constraint_registry(self, entity: int):
         """Original explicit component88 registration backend, or unknown."""
         return NotImplemented

@@ -39,6 +39,7 @@ from ow174.game.script import (
     modifiers,
     placement,
     play,
+    possession_requests,
     record_assignment,
     scopes,
     self_heal,
@@ -1144,6 +1145,18 @@ class B61ExtendedState(B61State):
         )
 
 
+def _declared_stack_priority(state, feature, *, default):
+    config = state.node.field("m_priority")
+    if config is None:
+        return default, False
+    asset = expr.guid_of(config.get("m_priority")) if isinstance(config, dict) else 0
+    if (not asset or asset >> 48 != 0x0C40
+            or (asset & 0xFFFFFFFFFFFF) not in expr.STACK_PRIORITIES):
+        instance = state.instance
+        instance.component.unsupported(instance, feature, state.node.cls, state.node)
+    return stack_priority(config)
+
+
 @state_class("STU_CF8C7CC5")
 class Component86State(State):
     """C77F60/C78640 target registration with explicit scene host data."""
@@ -1171,6 +1184,13 @@ class Component86State(State):
         if not expr.valid_entity(entity):
             self.request(ABORT)
             return
+        if self.node.cls == "STU_473549CA":
+            explicit = component.world.possession_request_registry(entity)
+            if explicit is not NotImplemented:
+                priority, above = _declared_stack_priority(
+                    self, "possession request priority", default=9999.0)
+                AIControlOverride._explicit_request(self, entity, explicit, priority, above)
+                return
         registry = component.world.component86(entity)
         if registry is None:
             self.request(ABORT)
@@ -1214,6 +1234,20 @@ class Component86SelectionState(Component86State):
 @state_class("STU_473549CA", strict_only=True)
 class Component86NumericPairState(Component86State):
     """C78AE0 supplies a kind 1 pair in the primary component86 list."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.registry = None
+        self.request_registration = None
+
+    def on_cleanup(self):
+        if self.request_registration is not None:
+            registry, request = self.request_registration
+            registry.remove(request)
+            self.request_registration = None
+        super().on_cleanup()
+
+    on_failed = on_destroyed = on_cleanup
 
     def registration(self, registry):
         default = f32(math.pi)
@@ -1737,6 +1771,7 @@ class AIControlOverride(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.remove_record = None
+        self.request_registration = None
 
     def on_begin(self):
         instance = self.instance
@@ -1751,6 +1786,12 @@ class AIControlOverride(State):
                 component.unsupported(instance, "AI control priority resource", self.node.cls, self.node)
             priority, prefer_later = expr.STACK_PRIORITIES[priority_asset & 0xFFFFFFFF]
         target = expr.to_entity(play.evaluate_scalar(instance, _field(self, "m_00D49978"))) & 0xFFFFFFFF
+        registry = component.world.possession_request_registry(target)
+        if registry is not NotImplemented:
+            priority, prefer_later = _declared_stack_priority(
+                self, "possession request priority", default=9999.0)
+            self._explicit_request(target, registry, priority, prefer_later)
+            return
         if self.node.cls == "STU_066B4605":
             slot_cfg = _field(self, "m_D66E7D68")
             slot_value = play.evaluate_scalar(instance, slot_cfg, initial=9999)
@@ -1777,7 +1818,48 @@ class AIControlOverride(State):
             component.unsupported(instance, "AI control component", self.node.cls, self.node)
         self.remove_record = remove
 
+    def _explicit_request(self, target, registry, priority, above_equal):
+        """Use the original explicitly supplied request backend for this state."""
+        instance = self.instance
+        component = instance.component
+        selection = payload = None
+        if self.node.cls == "STU_066B4605":
+            if not expr.valid_entity(target) or registry is None:
+                self.request(ABORT)
+                return
+            if registry.accepted_selections is NotImplemented:
+                component.unsupported(instance, "possession selection service", self.node.cls, self.node)
+            slot, success = play.evaluate_scalar_result(instance, _field(self, "m_D66E7D68"))
+            slot = expr.to_int(slot, 9999) if success else 9999
+            identifier = play._asset(play.evaluate_scalar(instance, _field(self, "m_F2810377")))
+            flag = truthy(play.evaluate_scalar(instance, _field(self, "m_F8585ABF")))
+            if (slot, identifier) not in registry.accepted_selections:
+                self.request(ABORT)
+                return
+            selection = possession_requests.Selection(slot, identifier, flag)
+        elif self.node.cls == "STU_473549CA":
+            fallback = f32(math.pi)
+            payload = tuple(f32(to_float(
+                play.evaluate_scalar(instance, _field(self, field), initial=fallback, watcher=self),
+                fallback,
+            )) for field in ("m_49EEBB65", "m_FD4D6C19"))
+        inputs = registry.inputs(self)
+        if (type(inputs) is not possession_requests.Inputs or not self.active or self.ending
+                or component.world.possession_request_registry(target) is not registry):
+            component.unsupported(instance, "possession request inputs", self.node.cls, self.node)
+        component.ensure_valid()
+        request = possession_requests.Request(
+            inputs.owner, inputs.clock, kind=1 if payload is not None or selection is not None else 2,
+            priority=priority, above_equal=above_equal, payload=payload, selection=selection,
+        )
+        registry.insert(request)
+        self.request_registration = registry, request
+
     def on_cleanup(self):
+        if self.request_registration is not None:
+            registry, request = self.request_registration
+            registry.remove(request)
+            self.request_registration = None
         remove, self.remove_record = self.remove_record, None
         if remove is not None:
             remove()
