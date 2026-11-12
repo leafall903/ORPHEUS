@@ -317,6 +317,8 @@ class BodyWorld(runtime.World):
         super().__init__(hero, mode)
         self.body = body
         self.body_definition = body_definition
+        if hero == 0x02E0000000000040:
+            self.healing_tick = None
         self.beam_barrier = None
         self.communication_wheel = False
         self.emote_aliases: tuple[int, ...] = ()
@@ -874,7 +876,7 @@ class BodyWorld(runtime.World):
     def heal_self(self, entity, amount):
         """Apply original0240 timed healing to this same live body only."""
         if self.match is not None and entity == self.body:
-            self.match.combat.heal_self(entity, amount)
+            self.match.combat.heal_self(entity, amount, tick=getattr(self, "healing_tick", None))
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
@@ -2363,7 +2365,7 @@ class BodyScript(ReplicatedBody):
 
             ult_seconds = mei_ultimate.DEFAULT_SECONDS
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
-                                               0x02E0000000000005, 0x02E00000000001CA):
+                                               0x02E0000000000005, 0x02E00000000001CA, 0x02E0000000000040):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         if ult_seconds is None and hero == 0x02E00000000001CA and match is None:
             ult_seconds = ULT_SECONDS
@@ -2495,7 +2497,7 @@ class BodyScript(ReplicatedBody):
 
     def command(
         self, frame: int, buttons: int, action: int = 0, forward: int = 0, right: int = 0,
-        *, grounded: bool | None = None, airborne: bool | None = None,
+        *, grounded: bool | None = None, airborne: bool | None = None, healing_tick: int | None = None,
     ) -> None:
         """Run the command frames up to `frame`: frames the client skipped keep the last buttons (a long gap
         runs only its last MAX_GAP frames; what was due before runs in the first of them).
@@ -2513,8 +2515,17 @@ class BodyScript(ReplicatedBody):
             return
         if frame < self.frame:
             raise CommandEpochError(self.frame, frame)
+        def run_frame(at, edges):
+            if self.hero != 0x02E0000000000040:
+                return self._run(at, edges)
+            previous = self.world.healing_tick
+            self.world.healing_tick = None if healing_tick is None else healing_tick - (frame - at)
+            try:
+                return self._run(at, edges)
+            finally:
+                self.world.healing_tick = previous
         for missing in range(max(self.frame + 1, frame - MAX_GAP), frame):
-            self._run(missing, [])
+            run_frame(missing, [])
         if self.hero == GENJI and airborne is not None:
             # 01C7 state 4 publishes the IN_AIR mask and its inverse (D3D7EA/D3D9D6/D3D9EF).
             # Its initial packed state is zero, so an initially false output has no write.
@@ -2535,7 +2546,7 @@ class BodyScript(ReplicatedBody):
             # Delivered alias policy: merge physical controls before finding edges.
             previous |= bool(previous & 0x800)
             current |= bool(current & 0x800)
-        self._run(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
+        run_frame(frame, tracer.filter_edges(self.world, button_edges(previous, current, action)))
         if self.hero == 0x02E0000000000079 and self.world.match is not None:
             self.passive_ult_last_command_tick = self.world.match.tick
         self.buttons = buttons
@@ -2813,6 +2824,12 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+                return 0.0
+            return self._gain_roadhog_points(roadhog_charge.combat_points(self, points, kind))
         if self.hero == 0x02E00000000001CA:
             from ow174.game import ball
             return ball.add_ult_charge(self, points)
@@ -2842,7 +2859,7 @@ class BodyScript(ReplicatedBody):
                 return 0.0
             points = ultimate.combat_points(self, points, kind, target_definition)
         if (self.retired or self.component.fault is not None
-                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A) and self.component.owner_dead)
+                or (self.hero in (0x02E000000000013B, 0x02E000000000006E, 0x02E000000000007A, 0x02E0000000000040) and self.component.owner_dead)
                 or type(points) not in (int, float) or not math.isfinite(points) or points <= 0
                 or self.ultimate_running()):
             return 0.0
@@ -2861,6 +2878,17 @@ class BodyScript(ReplicatedBody):
         after = min(cost, f32(before + min(points, cost - before)))
         self.set_ult_charge(after)
         return after - before
+
+    def _gain_roadhog_points(self, points: float) -> float:
+        if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost <= 0 or charge >= cost:
+            return 0.0
+        after = min(cost, f32(charge + points))
+        self.set_ult_charge(after)
+        return after - charge
 
     def interrupt_control(self) -> None:
         """Scoped Barrage abort for the reconstructed authoritative control service.
@@ -2882,6 +2910,15 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                roadhog_charge.passive_points(self)
+                return
         if self.hero == 0x02E00000000001CA and self.world.match is not None:
             from ow174.game import ball
             ball.diagnostic_charge(self)

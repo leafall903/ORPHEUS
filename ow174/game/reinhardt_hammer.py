@@ -173,7 +173,8 @@ def objects(fight, player, volumes, amount, seen):
     # Body visibility is decided before a swing can remove an occluding pillar.
     for piece in tuple(fight.walls.pieces.values()):
         token = ("ice_wall", piece.entity)
-        if token in seen:
+        body_token = ("body", (piece.entity, fight.replacement_ticks.get(piece.entity)))
+        if token in seen or body_token in seen:
             continue
         for a, b, radius in volumes:
             length = math.dist(a, b)

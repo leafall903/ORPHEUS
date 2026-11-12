@@ -30,4 +30,3 @@ def advance_energy(script, tick: int) -> None:
             # Retain the delivered accepted-body cursor after external world work.
             chase.last = chase.clock()
             component.run_now()
-

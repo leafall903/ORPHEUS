@@ -4,6 +4,41 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve three original-language integration checkpoints
+
+- Merge existing Zarya Pet lifetime/cooldown, chronological Roadhog healing and
+  unified Ice Wall actor/pool implementations without waiting for whole-owner
+  acceptance. Preserve source assertions, shared actors and existing budgets.
+- Record the joint26 failures and passing original2 IceSentry checks explicitly;
+  workers continue actual owner/fixture reconciliation. Full integration remains
+  in progress, with appearance migration excluded.
+
+
+### Persist original NPC and tank integration receipts
+
+- Record current original-language ownership, selected v18 inputs and actual
+  NPC/Hook/heal/Flux/Zarya/Sentry consumers with retained source differences.
+- Latest frozen-main joint30 checks pass68.466s; earlier joint17 and original/
+  shared NPC73 also pass. Full nonappearance integration remains in progress;
+  no new acceptance matrix, listening service, client session or publication.
+
+### Restore Roadhog authored charge and natural passive cadence
+
+- Existing0B8B hosts original Hog damage/healing multipliers, gate/cap and natural
+  cadence; eligible self healing and Hog victim credit use actual pools. Preserve
+  the separate combined charge helper and other heroes' contracts.
+- Original passive strict-storage/readiness/lifecycle/runtime16/16 pass. Full
+  charge checks retain real historical-heal/deadline gaps and original numbers;
+  observer mappings use actual services. No client acceptance run.
+
+### Retire released Roadhog pellets with their original body
+
+- Retiring an actual Hog removes its unleased01C6 pellets/fragments; death alone
+  retains released damage and original killer credit. Dead Hog no longer gains
+  ultimate from that damage. Preserve other projectile retirement policies.
+- Original lifecycle/runtime16 checks now retain only three final fresh-respawn
+  passive-charge differences; preceding cleanup and dead-source assertions pass.
+  Original natural Hog charge remains next; no client acceptance run.
 ### Restore retained ice-supported sentry damage
 
 - Original eligible ice-supported/airborne Sentries settle on each retained world
@@ -15,6 +50,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Actual settled mover remains eligible for frozen proof; active displacement is
   excluded by its real state/control owners. Original31 shared methods pass.
 
+
+### Retire released Roadhog pellets with their original body
+
+- Retiring an actual Hog removes its unleased01C6 pellets/fragments; death alone
+  retains released damage and original killer credit. Dead Hog no longer gains
+  ultimate from that damage. Preserve other projectile retirement policies.
+- Original lifecycle/runtime16 checks now retain only three final fresh-respawn
+  passive-charge differences; preceding cleanup and dead-source assertions pass.
+  Original natural Hog charge remains next; no client acceptance run.
 
 ### Restore original Roadhog secondary expiry fragments
 

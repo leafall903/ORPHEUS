@@ -725,6 +725,8 @@ class Vitals:
         self.death_tick: int | None = None
         self.killer: int | None = None
         self.ult_healing_deficit = 0.0
+        self.healing_damage = []
+        self.health_changes = {}
         self.sleep_until = 0
         self.sleep_wake_floor = 0
         self.sleep_view = None
@@ -1151,7 +1153,31 @@ class Vitals:
                 taken += take
         return taken
 
-    def heal(self, amount: float) -> float:
+    def record_health_change(self, tick: int, amount: float) -> None:
+        self.health_changes[tick] = self.health_changes.get(tick, 0.0) + amount
+
+    def historical_heal_capacity(self, tick: int) -> float:
+        later = sum(change for at, change in self.health_changes.items() if at > tick)
+        return max(0.0, self.base_maximum - self.base_total + later)
+
+    def credit_healing_damage(self, amount: float, tick: int) -> None:
+        previous = self.ult_healing_deficit
+        self.ult_healing_deficit = min(self.base_maximum - self.base_total, previous + amount)
+        added = self.ult_healing_deficit - previous
+        if added > 0:
+            if self.healing_damage and self.healing_damage[-1][0] == tick:
+                _, last = self.healing_damage[-1]
+                self.healing_damage[-1] = tick, last + added
+            else:
+                self.healing_damage.append((tick, added))
+
+    def healing_eligible(self, tick: int | None) -> float:
+        if tick is None:
+            return self.ult_healing_deficit
+        future = sum(amount for at, amount in self.healing_damage if at > tick)
+        return max(0.0, self.ult_healing_deficit - future)
+
+    def heal(self, amount: float, *, tick=None) -> float:
         """Heal health, then armour, then shields (unverified: the order). Returns what it gave."""
         left = max(0.0, amount)
         for kind in (HEALTH_POOL, ARMOUR_POOL, SHIELDS_POOL):
@@ -1163,10 +1189,24 @@ class Vitals:
                     left -= give
                     self.changed.add(kind)
         given = max(0.0, amount) - left
-        self.ult_healing_deficit = max(
-            0.0, min(self.ult_healing_deficit - given, self.base_maximum - self.base_total),
-        )
+        eligible = min(given, self.healing_eligible(tick))
+        self._cap_healing_deficit(self.ult_healing_deficit - eligible)
         return given
+
+    def _cap_healing_deficit(self, eligible: float) -> None:
+        self.ult_healing_deficit = max(0.0, min(eligible, self.base_maximum - self.base_total))
+        # Undated damage is older than every tracked entry. Trim the oldest
+        # tracked damage when consumed or displaced by the remaining HP deficit.
+        tracked = sum(amount for _, amount in self.healing_damage)
+        remaining = max(0.0, tracked - self.ult_healing_deficit)
+        for index, (at, amount) in enumerate(self.healing_damage):
+            if amount > remaining:
+                self.healing_damage[index] = at, amount - remaining
+                del self.healing_damage[:index]
+                break
+            remaining -= amount
+        else:
+            self.healing_damage.clear()
 
     def component(self, kinds) -> dict:
         """Component 51 with these pools' fields set (the others are left as they are)."""
@@ -2294,7 +2334,15 @@ class Combat:
             return
         self.sombra_controls.retire(entity)
         self.baptiste.deployable_removed(entity)
+        piece = self.walls.pieces.get(entity)
+        if piece is not None and piece.actor is actor:
+            self.walls.remove(piece)
         ice_wall.retired(actor)
+        if actor.definition == ice_wall.PILLAR and isinstance(actor.body_script, actors.PillarScript):
+            component = actor.body_script.component
+            component.disconnect_foreign_watchers()
+            for instance in tuple(component.instances.values()):
+                component.destroy(instance)
         self.vitals.pop(entity, None)
         self.stuns.pop(entity, None)
         self._retire_source_controls(entity)
@@ -2477,6 +2525,8 @@ class Combat:
             or (rocket.reflected and rocket.shot is None and not getattr(rocket, "pulse_bomb", False))
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
+                and not (getattr(player.hero, "guid", None) == 0x02E0000000000040
+                         and rocket.source_graph == 0x01C6)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
         ]
         self.frost_hits.pop(player.body, None)
@@ -3704,6 +3754,7 @@ class Combat:
             bubble_queries = winston.HostedBarriers(self)
             bubbles = bubble_queries.snapshot()
             damaged_bubbles = set()
+            damaged_bodies = set()
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
@@ -3736,11 +3787,12 @@ class Combat:
                             bubble.damage(definition.amount * player.quanta / 1e6 * winston._outgoing(self, player))
                             damaged_bubbles.add(bubble.body)
                         continue
-                self._damage(player, target, definition.amount * player.quanta / 1e6,
-                             False, definition.loadout, command.frame, beam=True, armour_scalar=.8)
+                if self._damage(player, target, definition.amount * player.quanta / 1e6,
+                                False, definition.loadout, command.frame, beam=True, armour_scalar=.8):
+                    damaged_bodies.add(target.entity)
             winston.tesla_walls(self, player, origin, direction, reach, angle,
                                 definition.amount * player.quanta / 1e6 * winston._outgoing(self, player),
-                                bubble_queries, bubbles)
+                                bubble_queries, bubbles, excluded=damaged_bodies)
 
     def _weapon_beam(self, player, command, script) -> None:
         """Select a beam target and evaluate its authored ModifyHealth.
@@ -4122,6 +4174,8 @@ class Combat:
                 contacts.append(target)
         pillars = [piece for piece in self._melee_pillar_targets(origin, centre, radius)
                    if (self.match.game_map.free_for_all or piece.team != actor.team)]
+        pillar_ids = {piece.entity for piece in pillars}
+        contacts = [target for target in contacts if target.entity not in pillar_ids]
         if not health:
             return tuple(expr.Entity(target.entity) for target in (*contacts, *pillars))
         modify = state.node.field("m_modifyHealth")
@@ -5665,7 +5719,7 @@ class Combat:
             self._cryo_healing(player)
 
     def _heal_target(self, shooter, target, amount, *, source_entity=None, tags=(), seconds=0.0,
-                     end_tick=None, healing_scaled=False):
+                     end_tick=None, healing_scaled=False, healing_tick=None):
         vitals = self.vitals_of(target)
         if vitals.dead:
             return 0.0
@@ -5676,9 +5730,14 @@ class Combat:
                 amount *= vitals.healing_time(end - seconds, end) / seconds
             else:
                 amount *= vitals.healing_factor(self.now)
-        eligible = vitals.ult_healing_deficit
-        given = vitals.heal(amount)
+        if healing_tick is not None and healing_tick < self.tick:
+            amount = min(amount, vitals.historical_heal_capacity(healing_tick))
+        eligible = vitals.healing_eligible(healing_tick)
+        before = vitals.base_total
+        given = vitals.heal(amount, tick=healing_tick)
         if given > 0.0:
+            vitals.record_health_change(self.tick if healing_tick is None else healing_tick,
+                                        vitals.base_total - before)
             if not isinstance(shooter, (bots.Bot, SceneHazard)):
                 shooter.stats.add(stats.HEALING, given)
                 if target.owner is shooter or (not self.match.game_map.free_for_all and target.team == shooter.team):
@@ -5688,6 +5747,10 @@ class Combat:
                         script = shooter.body_script
                         if script is not None:
                             script.gain_ult_charge(min(given, eligible), kind="healing", recipient=target.entity)
+                if shooter.hero.guid == 0x02E0000000000040 and target.owner is shooter:
+                    script = shooter.body_script
+                    if script is not None and (source_entity is None or source_entity == shooter.body):
+                        script.gain_ult_charge(min(given, eligible), kind="healing")
                 if shooter.hero.guid == 0x02E00000000000DD and target.owner is shooter:
                     from ow174.game import mei_ultimate
 
@@ -8337,6 +8400,8 @@ class Combat:
             protected_out.update(protected)
         victims = []
         for target in candidates:
+            if ice is not None and target.entity == ice[1].entity:
+                continue  # same actual pillar is settled by the impact surface below
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
                 continue
             if target.owner is not None and self.vitals_of(target).dead:
@@ -8661,6 +8726,8 @@ class Combat:
         self._radial_impulse(target, point, blast.horizontal_impulse * scalar, blast.vertical_impulse * scalar)
 
     def _radial_impulse(self, target: Target, point, horizontal: float, vertical: float) -> None:
+        if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
+            return  # object pools receive the blast, not a character mover response
         if defenses.fortify_scale(target.owner) is not None:
             return
         dx, dz = target.feet[0] - point[0], target.feet[2] - point[2]
@@ -8730,11 +8797,11 @@ class Combat:
             self._heal_target(healer, target, amount, source_entity=source_body,
                               seconds=seconds, end_tick=None if ticks is None else ticks[1])
 
-    def heal_self(self, entity, amount):
-        """Apply an owned self heal through the existing live target/pool path."""
+    def heal_self(self, entity, amount, *, tick=None):
+        """Apply the owned original heal with its actual command-world association."""
         for target in self._targets():
             if target.entity == entity:
-                self._heal(target.owner, target, amount)
+                self._heal_target(target.owner, target, amount, end_tick=tick, healing_tick=tick)
                 return
 
     def _heal(self, healer, target: Target, amount: float, *, source_body=None) -> float:
@@ -9651,6 +9718,9 @@ class Combat:
             armour_scalar = 1.0  # delivered periodic damage bypasses per-tick armour reduction.
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
             return False
+        if (isinstance(target.owner, actors.Deployable)
+                and self.deployables.get(target.entity) is not target.owner):
+            return False
         vitals = self.vitals_of(target)
         if (vitals.dead or self.now < vitals.invulnerable_until or amount <= 0.0 or self._invulnerable(target.owner)
                 or reaper.intangible(target.owner)
@@ -9734,10 +9804,10 @@ class Combat:
             return True
         if (not shield_drain and target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
-            vitals.ult_healing_deficit = min(
-                vitals.base_maximum - vitals.base_total,
-                vitals.ult_healing_deficit + max(0.0, base_before - vitals.base_total),
-            )
+            vitals.credit_healing_damage(max(0.0, base_before - vitals.base_total),
+                                         self.tick if world_tick is None else world_tick)
+        vitals.record_health_change(self.tick if world_tick is None else world_tick,
+                                    vitals.base_total - base_before)
         hero_torbjorn.turret_damaged(self, target)
         extra = max(0.0, dealt - base) if boost_credit is not None else 0.0
         if isinstance(shooter, bots.Bot) and (credit := self._credit_player(shooter)) is not None:
@@ -9848,6 +9918,10 @@ class Combat:
                     and not (hero == ball.HERO and loadout == 0x0B900000000001ED)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
+                if hero == 0x02E0000000000040:
+                    from ow174.game import roadhog_charge
+
+                    points *= roadhog_charge.damage_received_multiplier(getattr(victim, "body_script", None))
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == ball.HERO:

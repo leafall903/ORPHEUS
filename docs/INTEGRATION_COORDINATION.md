@@ -1054,3 +1054,83 @@ active hours, B is producing a per-owner unmapped-consumer audit. Source-path
 audit of32 deliveries has10 whole-ref ancestors; missing paths include many
 alternate inherited implementations, so neither metric proves functional
 completion and neither is reported as a merge-completion percentage.
+
+
+## Current intake checkpoint: original NPC inputs and tank consumers
+
+All earlier live root handles are terminal. Canonical/intake04e9cf8e contain
+original Flux plus source terminal3/5/45/61, automatic Sniper, actual000E/manual
+Assassin/NpcContext/sleep queries, EMP drain/relay clocks, native Cryo cover and
+Sentry cover/frozen/ice input consumers. Original actor, geometry, lifecycle,
+source-policy and observer differences remain explicit in worker records.
+
+Selected runtime inputs remain v18. Workspace RUN_SERVER.cmd matches its tracked
+template and keeps original Python/state. No service/client or network operation.
+Root original0016 optionalNPC mover/controller metadata is actually mounted: same
+34-field schema, finite complete input, same physical mover, capsule/navigation/
+impulse/wire consumers and strict storage. Controller hint remains metadata as
+in its original test; actual graph association still owns the unique controller.
+All73 original/shared NPC checks passed20.943s and actual server metadata
+identity/mutation/restoration/unknown-field rejection probe passed.
+
+A now owns0068 in addition to its previous nine owners. A74-78 apply Hook/sleep/
+actual HealingEffects cleanses at accepted native Pet time, use the existing
+Vitals shield ledger for delay/rate/status intervals, and reconcile Zarya beam
+activation/body-world elapsed/dedup/armour on the sole existing beam path.
+No second shield pool, recovery host or controller was introduced.
+
+B51-56 mount original Hooks, source0240 timed self-heal on existing Vitals,
+WholeHog force capture into soleKnockbacks,25 primary pellet spread/full falloff,
+expiry-only frozen secondary children, and source-owned projectile retirement.
+Original Hog body-node vs Ana world-only heal expectations conflict and stay
+unchanged. WholeHog world-only damping/ownedDVa and authored charge remain open.
+
+Root55077 on frozendde577d1 passed17 checks115.973s: Hook/selfheal/ownedDVa/
+sleep/Flux/Pulse/Zarya release/manual Assassin. Root9765 on frozen04e9cf8e
+passed30 checks68.466s: Hog primary/secondary/force, Zarya actual status/native
+application/beam armour, original NPC metadata and actual controller pairs.
+These are scoped integration results, not whole-owner/client acceptance.
+
+Actual outstanding work remains A79 Zarya Wait/Chase/state clocks then expiry/
+cooldown/energy/Graviton and recorded beam clock boundaries; B57 authored Hog
+charge/remaining motion then nonFluxSigma; C51 single actual IceWall actor ID/
+Vitals/lifetime then retained support-impact helpers. Source nonappearance
+completion is unproven until all original consumers and remaining nonhero
+source changes are reconciled; ancestry/path/test counts are not completion.
+
+
+## Preserved parallel checkpoints after worker interruption
+
+All three worker tracked changes were first committed without dropping partial
+implementations, then reviewed and merged: A80 bb396d8f ->4091b974,
+B58 e33dd315 ->e55e3f80, C51 0dcad5d2 ->769b27b7. Canonical and intake both
+contain the original-language implementation. Workers subsequently resumed on
+their existing branches and continue remaining owner consumers; no new worker
+or source tree was substituted.
+
+A80 mounts original Pet expiry/cooldown on the existing scripted barrier actor;
+B58 uses dated details of the existing Vitals healing deficit and optional Hog
+command timestamps; C51 binds geometry to the original five pillar actors and
+actual Vitals/TTL rather than allocating five additional geometry entities.
+
+Root joint26 on frozen769b27b7 finished86.455s with12 assertion records and4
+errors, not a passing combined suite. Hog retains only the original exact
+channel-end mitigation two subcases20vs10. Zarya old grenade expectations retain
+50vsactual60; its new world-clock test also assumes no body catch-up, now in
+conflict with A80's original expiry neutral-gap driver (1125vs1002). A owns
+checking energy is not double-consumed and reconciling that test's real intent.
+Two retained Ana/Sentry tests still read the obsolete ice_wall observation path,
+and the old wall snapshot fixture creates geometry without an actual Mei body.
+C owns binding those fixtures to the sole real walls/Mei actors, preserving
+assertions and causal storage checks. These failures did not prevent merging.
+
+The original0016 two complete IceSentry methods separately passed9.922s with
+only the existing host name mapped to walls; no assertion changed. The current
+actual Pet component causal snapshot also passes in the joint run. Earlier
+frozenb03ab783 scoped clock/charge/runtime13 checks passed57.997s.
+
+All root process handles77455/31322/10000 are terminal. Original owner policies,
+nonhero source reconciliation and full nonappearance completion remain open.
+Latest worker estimates A5-10/B14-27/C8-18 active hours plus root integration;
+remaining30-60 continuous parallel hours /3-5 calendar days is low confidence,
+not a completion guarantee or a percentage derived from test counts.

@@ -392,7 +392,7 @@ class Player:
                 script = self.body_script
                 retained = (sigma_barrier.barrier_gap_buttons(script, command.buttons)
                             if not dead and script is not None and command.frame > script.frame + 1 else 0)
-                self._advance_body_gap(first_pose, retained_buttons=retained)
+                self._advance_body_gap(first_pose, retained_buttons=retained, incoming_frame=command.frame)
                 if not dead and self.controller_vm is not None:
                     angles = self.controller_vm.linked_target_angles()
                     if angles is not None:
@@ -406,7 +406,11 @@ class Player:
                 if not dead and (self.body_script is not None or hooked):
                     self.mover.step(
                         command, seconds, self.match.tick,
-                        simulate_pose=self._step_body_pose, retained_buttons=retained,
+                        simulate_pose=(lambda posed, seconds, tick, endpoint=command.frame:
+                            self._step_body_pose(posed, seconds, tick,
+                                healing_tick=tick - (endpoint - posed.frame)))
+                            if self.hero.guid == 0x02E0000000000040 else self._step_body_pose,
+                        retained_buttons=retained,
                     )
                 else:
                     if not dead:  # a dead body lies where it fell
@@ -430,13 +434,18 @@ class Player:
         self.mover.step_pose(neutral, seconds, tick)
         self._advance_body_frame(neutral, posed=False)
 
-    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0, world_idle: bool = False) -> None:
+    def _advance_body_gap(self, first_pose: int, *, retained_buttons: int = 0, world_idle: bool = False, incoming_frame: int | None = None) -> None:
         """Release old input and advance timers across frames without a movement pose."""
         script = self.body_script
         if script is None or script.frame + 1 >= first_pose:
             return
+        def advance(frame):
+            healing_tick = (self.match.combat.tick - (incoming_frame - frame)
+                            if script.hero == 0x02E0000000000040 and incoming_frame is not None else None)
+            self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False,
+                                     defer_effects=world_idle, healing_tick=healing_tick)
         first_missing = script.frame + 1
-        self._advance_body_frame(Command(first_missing, buttons=retained_buttons), posed=False, defer_effects=world_idle)
+        advance(first_missing)
         if first_pose - first_missing > MAX_GAP:
             from ow174.game import tracer_recall
 
@@ -444,15 +453,15 @@ class Player:
             if checkpoint is None:
                 checkpoint = tracer_recall.exit_frame(self)
             if checkpoint is not None and first_missing < checkpoint < first_pose - MAX_GAP:
-                self._advance_body_frame(Command(checkpoint, buttons=retained_buttons), posed=False, defer_effects=world_idle)
+                advance(checkpoint)
         from ow174.game import lucio
 
         frame, end = script.frame, first_pose - 1
         while self.body_script is script and frame < end:
             frame = lucio.effect_gap_frame(script, frame, end)
-            self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False, defer_effects=world_idle)
+            advance(frame)
 
-    def _step_body_pose(self, command: Command, seconds: float, tick: int, *, replay_accepted: bool = False) -> None:
+    def _step_body_pose(self, command: Command, seconds: float, tick: int, *, replay_accepted: bool = False, healing_tick: int | None = None) -> None:
         script = self.body_script
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
@@ -477,21 +486,21 @@ class Player:
             from ow174.game import tracer
 
             tracer.hold_pose(self, command)
-            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
             return
         if fight.junkrat.rooted(self.body, tick):
             # Restrain movement after the existing status and Recall admission.
             self.mover.velocity = (0.0, 0.0, 0.0)
             movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
             self.mover.step_pose(movement, seconds, tick)
-            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
             return
         if (fight.hooks.controlled(self.body) and fight.hooks.drive_allowed(self.body, self)
                 and not self.mover.external_impulse
                 and not combat.reinhardt_charge.pinned(fight, self.body)):
             # The sole world pull has already moved this same capsule. Input
             # advances its body VM without integrating another movement pose.
-            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
             return
         if stunned or fight.recalls.locked(self):
             command = replace(command, forward=0, right=0, buttons=0, action=0)
@@ -516,7 +525,7 @@ class Player:
         forced = self.match.combat.orisa.movement(self)
         if forced is not None:
             self.mover.step_pose(command, seconds, tick, move_to=forced)
-            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
             return
         if (not stunned and not pulled and not fight.is_asleep(self, tick=tick)
                 and self.body not in fight.sombra_controls.locks):
@@ -538,7 +547,7 @@ class Player:
             self.mover.use(data)
         if echo_request is not None and not pulled:
             self.mover.step_pose(command, seconds, tick, move_to=echo_request)
-            self._advance_body_frame(command, replay_accepted=replay_accepted)
+            self._advance_body_frame(command, replay_accepted=replay_accepted, healing_tick=healing_tick)
             return
         # Arbitration between simultaneous world-target states is unresolved.
         slam = None if stunned or pulled else fight.slams.movement(self)
@@ -635,7 +644,7 @@ class Player:
             self.match.combat.punch_wall_contact(self, command, tick)
         self._advance_body_frame(
             command, posed=not input_suppressed, movement_end=movement_end,
-            charge_start=charge_start, seconds=seconds, replay_accepted=replay_accepted,
+            charge_start=charge_start, seconds=seconds, replay_accepted=replay_accepted, healing_tick=healing_tick,
         )
         if not self.mover.airborne and not self.mover.landed:
             fight.translocators.recall_poses.discard(self.body)
@@ -663,7 +672,7 @@ class Player:
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[runtime.State, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
-        defer_effects: bool = False, replay_accepted: bool = False,
+        defer_effects: bool = False, replay_accepted: bool = False, healing_tick: int | None = None,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         command = self.match.combat.punches.command_input(self, command)
@@ -704,7 +713,7 @@ class Player:
             previous_fortify = combat._active_fortify(self) if posed else None
             previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
-                self.match.body_command(self, command, movement_end=movement_end, posed=posed)
+                self.match.body_command(self, command, movement_end=movement_end, posed=posed, healing_tick=healing_tick)
                 if pressed & INTERACT and self.body_script is not None and portals.pairs:
                     portals.interact(self)
                 if posed and self.body_script is script and script.frame > previous_frame:
@@ -1879,7 +1888,7 @@ class Match:
 
     def body_command(
         self, player: Player, command: Command, *, movement_end: tuple[runtime.State, bool] | None = None,
-        posed: bool = True,
+        posed: bool = True, healing_tick: int | None = None,
     ) -> None:
         """One new command frame for the body's statescript. A failure turns it off for this body (logged)
         instead of breaking the tick."""
@@ -1914,6 +1923,7 @@ class Match:
                 command.frame, command.buttons, command.action, command.forward, command.right,
                 grounded=not player.mover.airborne,
                 airborne=player.mover.airborne if posed else None,
+                healing_tick=healing_tick if script.hero == 0x02E0000000000040 else None,
             )
         except Exception as error:
             bodytrace.failed(script, error)
