@@ -8068,3 +8068,20 @@ client operations performed. Whole nonappearance integration remains active.
   real damage/control TypeErrors and later six numeric-vs-dictionary subcase
   failures were reproduced and resolved, not ignored. Evidence:
   parallel-b17-c19-shield-consumers-check.log. No client/publication operations.
+
+
+### Preserve NPC foreign-variable consumers in one method
+
+- AST audit found the final non-property duplicate method: BotWorld.entity_var.
+  Merge the overwritten Heavy9161/Assassin foreign-variable consumers into the
+  active Song/manual-Assassin implementation. Preserve manual target's live
+  player checks and unknown fallback; no duplicate VM/controller or source alias.
+- Actual Heavy reads both live9161 values through the restored consumer. NPC
+  control/Lucio control27 run25 pass and2 optional input skips. Repository AST
+  audit now finds no duplicate definitions except intentional property setters.
+  Evidence: parallel-root-npc-foreign-var-probe.log and
+  parallel-root-npc-foreign-var-core-check.log.
+- Broader original NPC combat-state probe33 retains1 failure/1 error in the
+  separate CombatModFilter versus CombatDamageFilter registration/host contract,
+  with2 input skips; preserve original expectations for later provider merge.
+  It does not gate the completed actual foreign-variable code submission.
