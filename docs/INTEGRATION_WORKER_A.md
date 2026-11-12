@@ -1166,3 +1166,35 @@ current NPC single actor/Vitals/driver. Do not discard the explicit0065/Tracer
 handoff above; root owns source-ref/provenance admission and ordering.
 
 A42 clean-boundary sync: absorbed submitted intake6e011ccf automatically, including root strict NPC-controller storage, accepted Total Mayhem, root status ordering and shared shield/Mei fixes. Next0200 Ashe actual consumer audit.
+
+
+## A43 - original Ashe Viper launch capture and real rays
+
+New owner0200 frozen8b991768223a98ff97f2618a53f0947dc6477c4b. Mounted original
+Viper report-time cone/seed capture as its authored optional fifth shot-tuple
+member; retained Tracer's existing capture and widened shared consumers to keep
+four-member reports unchanged. Original hip/ADS viper_direction now reaches real
+hitscan. Restored source14FC critical default2 only when authored field is absent.
+Original weapon_spread.quantized_direction API uses the existing unique native
+unsigned weapon_aim round trip; do not overwrite richer shared math/providers.
+
+Complete original ashe.py and fixture dependencies preserved. Its Dynamite,
+Companions/BOB and Impulses classes are NOT yet activated/claimed complete. Original
+npc_melee helper dependency is retained as a library, not installed as a second
+NPC melee manager; current heavy_assault remains the actual shared host.
+
+Original deferred reports/state reentry/three rays and strict body-VM tuple payload
+digest check pass; original normalized volley check passes. Final original hip/
+ADS/melee, empty/per-round reload and Viper critical3 methods pass. Existing
+runtime/weapon_spread/Damage/ProjectileTiming36 checks in the shared run pass.
+One original player-ray method retains six old spy-position failures because its
+_hitscan args[2] is now origin (current direction is args[3]); original assertions
+unchanged. Separate actual six-case hip/ADS enemy/wall/ally probe confirms all six
+captured directions equal consumed args[3] and health/occlusion/team policy pass.
+Logs worker-a-ashe-viper-{baseline,second,shared,final,rays}.log. No client/push.
+
+Next exact action: mount original Dynamite throw/fuse/collision/owned-shot trigger/
+blast/burn/source lifetime through actual shared defenses and state storage, then
+Coach impulse/reload interlocks, BOB actual NPC/driver/gun/charge. Root is handling
+0065 archives_thunderstorm second34924 branch; this worker has no WIP there.
+Other0065/Tracer original fixture residuals remain in A42, not abandoned or greened.

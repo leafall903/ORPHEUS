@@ -3092,7 +3092,11 @@ class WeaponVolley(State):
             from ow174.game import tracer_pistol
 
             tracer_pistol.remember(self, self.reported, time, activation)
-            self.instance.component.shots.append((self, self.reported, time, activation))
+            from ow174.game import ashe
+
+            report = (self, self.reported, time, activation)
+            launch = ashe.viper_launch(self, time - start, activation[0])
+            self.instance.component.shots.append(report if launch is None else (*report, launch))
             self.reported += 1
 
     def _config(self, name: str, default):
