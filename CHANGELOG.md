@@ -9964,3 +9964,30 @@ explicit canonical SHA after this saved boundary; retain both Mine and actual
 NPC-device exclusion predicates and Mine-only expiry clock. Continue actual
 world-only phase/Cryo/Transcendence and barrier Mine consumers, keeping original
 single-EMP frame-end mismatch visible.
+
+
+### B48 — original Mine particle-barrier admission before body impulse
+
+- Restored original Minefield particle-barrier priority using the same existing
+  barriers.protect_body actor consumer before body damage/impulse. A non-None
+  consumed impact exits even if it breaks the shield; the same barrier is not
+  charged twice and protected bodies receive no launch from that impact.
+- Restored original personal/projected Zarya and Winston inside/outside shell
+  Mine checks. Zarya fixtures select actual barriers.scripted actors, preserving
+  the original vitals/recipient assertions; the static for_target proxy's cached
+  health is not the actual authored pool observer. No extra shield host/pool.
+  Winston getter adaptation selects existing world.actors and uses its actual
+  owner/health/centre()/radius fields; original numeric values remain unchanged.
+- v17 original3 barrier cases plus original130-hit and eligible-multiple-body2
+  plus shared runtime13 all18 pass (14.026s). Zarya actual200->70 once, energy26,
+  body unchanged and no impulse. Winston700 unchanged while the opposite-shell
+  body takes130 and receives the original impulse in both directions.
+- Initial fixture read static proxy.health200 while actual scripted pool already
+  had70; corrected the getter to the real actor. The original no-impulse checks
+  then exposed actual(0,5,5) movement, driving the restored source priority branch.
+  No expectation was reduced, no matrix added; original-client acceptance open.
+
+Next exact action: continue source Mine world-only phase/Cryo/Transcendence and
+projected/personal expiry contexts without assuming body/world clocks are equal.
+Keep B45's single-EMP frame-end discrepancy and all original checks. Then audit
+remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
