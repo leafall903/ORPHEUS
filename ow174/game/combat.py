@@ -69,6 +69,7 @@ from ow174.game import (
     healing,
     hero_torbjorn,
     molten_core,
+    mei_blizzard,
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
@@ -2083,6 +2084,7 @@ class Combat:
         self.turrets = {}  # Owner controller -> original actor-backed turret.
         self.sentries = symmetra_turrets.Turrets(self)
         self.portals = symmetra_portals.Portals(self)
+        self.blizzard = mei_blizzard.Blizzard(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2260,6 +2262,7 @@ class Combat:
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
+        self.blizzard.retire(player.body)
         self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
@@ -4093,6 +4096,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
+            or self.blizzard.flights or self.blizzard.areas
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -4196,6 +4200,7 @@ class Combat:
             self.sound_barriers.update()
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
+            self.blizzard.update(at)
             self.venom.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
@@ -5495,6 +5500,9 @@ class Combat:
             from ow174.game import mccree
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
+        if not npc and self.blizzard.fired(shooter, state, shot_frame, origin, direction,
+                                          activation=activation, snapshot=snapshot):
+            return
         if not npc and state.instance.graph.index == 0x01EE:
             from ow174.game import mccree
 
