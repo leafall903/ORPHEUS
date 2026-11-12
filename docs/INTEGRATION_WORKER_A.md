@@ -973,3 +973,23 @@ run/publication. Next exact action A36: original ballistic/deployable deadline
 replay outside retained window, then actual NPC restraint consumers; continue
 Tire039C/control/climb/recovery and charge0B8B. Neither entire0065 completion nor
 all original assertions passing is claimed at this partial consumer boundary.
+
+
+## A36 - original deployable deadline replay
+
+Restored source0065 event replay outside the shared retained combat window.
+Known airborne Mine/Trap flights advance at their actual world tick, then original
+Trap arming/capture/release deadlines run before retained updates. Only existing
+deployable actors participate; shared combat retention and other hero clocks
+remain intact. No new timer/pool/observer or acceptance matrix was introduced.
+
+Original first-batched-update test (Mine/Trap, ground/empty, strides8/256) and
+arming/capture skipped-update test both pass. Original long-gap hardcoded check
+still expects55/243 whereas current actual trajectory gives57/245; assertion is
+preserved. Separate actual gameplay probe confirms damage80, capture, retirement
+and root release exactly match for contiguous/8/256 updates, all57/245. Damage,
+ProjectileTiming and original release/source-replacement checks17 pass. Logs:
+worker-a-junkrat-trap-clock-{first,parity,shared}.log. Tests use external v9 profile.
+No client run/publication. Next exact action: mount original NPC restraint against
+current actual navigation/impulse/Heavy charge and Assassin consumers, keeping
+ranged/melee fire available; then Tire and charge. A35 residuals remain recorded.
