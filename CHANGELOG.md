@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Persist original NPC and tank integration receipts
+
+- Record current original-language ownership, selected v18 inputs and actual
+  NPC/Hook/heal/Flux/Zarya/Sentry consumers with retained source differences.
+- Latest frozen-main joint30 checks pass68.466s; earlier joint17 and original/
+  shared NPC73 also pass. Full nonappearance integration remains in progress;
+  no new acceptance matrix, listening service, client session or publication.
+
 ### Restore retained ice-supported sentry damage
 
 - Original eligible ice-supported/airborne Sentries settle on each retained world

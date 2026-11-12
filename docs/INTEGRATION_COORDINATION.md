@@ -1054,3 +1054,46 @@ active hours, B is producing a per-owner unmapped-consumer audit. Source-path
 audit of32 deliveries has10 whole-ref ancestors; missing paths include many
 alternate inherited implementations, so neither metric proves functional
 completion and neither is reported as a merge-completion percentage.
+
+
+## Current intake checkpoint: original NPC inputs and tank consumers
+
+All earlier live root handles are terminal. Canonical/intake04e9cf8e contain
+original Flux plus source terminal3/5/45/61, automatic Sniper, actual000E/manual
+Assassin/NpcContext/sleep queries, EMP drain/relay clocks, native Cryo cover and
+Sentry cover/frozen/ice input consumers. Original actor, geometry, lifecycle,
+source-policy and observer differences remain explicit in worker records.
+
+Selected runtime inputs remain v18. Workspace RUN_SERVER.cmd matches its tracked
+template and keeps original Python/state. No service/client or network operation.
+Root original0016 optionalNPC mover/controller metadata is actually mounted: same
+34-field schema, finite complete input, same physical mover, capsule/navigation/
+impulse/wire consumers and strict storage. Controller hint remains metadata as
+in its original test; actual graph association still owns the unique controller.
+All73 original/shared NPC checks passed20.943s and actual server metadata
+identity/mutation/restoration/unknown-field rejection probe passed.
+
+A now owns0068 in addition to its previous nine owners. A74-78 apply Hook/sleep/
+actual HealingEffects cleanses at accepted native Pet time, use the existing
+Vitals shield ledger for delay/rate/status intervals, and reconcile Zarya beam
+activation/body-world elapsed/dedup/armour on the sole existing beam path.
+No second shield pool, recovery host or controller was introduced.
+
+B51-56 mount original Hooks, source0240 timed self-heal on existing Vitals,
+WholeHog force capture into soleKnockbacks,25 primary pellet spread/full falloff,
+expiry-only frozen secondary children, and source-owned projectile retirement.
+Original Hog body-node vs Ana world-only heal expectations conflict and stay
+unchanged. WholeHog world-only damping/ownedDVa and authored charge remain open.
+
+Root55077 on frozendde577d1 passed17 checks115.973s: Hook/selfheal/ownedDVa/
+sleep/Flux/Pulse/Zarya release/manual Assassin. Root9765 on frozen04e9cf8e
+passed30 checks68.466s: Hog primary/secondary/force, Zarya actual status/native
+application/beam armour, original NPC metadata and actual controller pairs.
+These are scoped integration results, not whole-owner/client acceptance.
+
+Actual outstanding work remains A79 Zarya Wait/Chase/state clocks then expiry/
+cooldown/energy/Graviton and recorded beam clock boundaries; B57 authored Hog
+charge/remaining motion then nonFluxSigma; C51 single actual IceWall actor ID/
+Vitals/lifetime then retained support-impact helpers. Source nonappearance
+completion is unproven until all original consumers and remaining nonhero
+source changes are reconciled; ancestry/path/test counts are not completion.
