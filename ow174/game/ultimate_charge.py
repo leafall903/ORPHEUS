@@ -10,8 +10,9 @@ from ow174.game.bots import Bot
 from ow174.game.deflection import GENJI
 from ow174.game.script import expr, runtime
 
+TRACER = 0x02E0000000000003
 REINHARDT = 0x02E0000000000007
-AUTHORED_CHARGE_HEROES = frozenset((REINHARDT, GENJI))
+AUTHORED_CHARGE_HEROES = frozenset((TRACER, REINHARDT, GENJI))
 DAMAGE = 0x0240000000000012
 _MATCH_EVENT = -1  # server metadata outside the authored uint16 parameter keys
 _ADMITTED = ContextVar("combat_charge_admission", default=None)
@@ -54,7 +55,7 @@ def match_admission(instance, cfg):
 def damage(shooter, target, amount, tags, *, reflected_strike=False, source_team=None):
     script = getattr(shooter, 'body_script', None)
     hero = getattr(script, 'hero', None)
-    if hero != REINHARDT and not (hero == GENJI and reflected_strike):
+    if hero not in (TRACER, REINHARDT) and not (hero == GENJI and reflected_strike):
         return
     if script.retired or script.world.match is None or amount <= 0:
         return
@@ -76,6 +77,14 @@ def damage(shooter, target, amount, tags, *, reflected_strike=False, source_team
     instance = next((i for i in script.component.instances.values() if i.graph.index == 0xB8B), None)
     if instance is None:
         return
+    if hero == TRACER:
+        # Original Tracer prepares the common-body capability before 012 delivery.
+        enabled = script.component.entity_var(2426, create=False)
+        if enabled is None or enabled.value() is None:
+            common = next((item for item in script.component.instances.values()
+                           if item.graph.index == 0x01C7), None)
+            if common is not None:
+                common.run_node(common.graph.node(39), None)
     # Empty excluded-detail list: this bridge's amount is already net pool loss.
     # Native gross/net itemization parity remains a separate accounting frontier.
     # The server event identifies the body that lost the pools.

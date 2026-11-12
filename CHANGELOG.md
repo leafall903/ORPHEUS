@@ -10193,3 +10193,25 @@ Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
 concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
 then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
 blocking delivery on these preserved old boundary assertions.
+
+## A72 — Tracer authored damage-tag and charge entry reconciliation
+
+Restored original0003 damage credit through the existing sole `ultimate_charge`
+012/0B8B host, carrying actual resolved loss, recipient and original hit tags.
+Tracer is excluded from the generic points-only fallback, so Pulse contact5 and
+blast350 retain their original excluded-tag semantics. Original common-body
+node39 capability preparation runs before accepted Tracer frames and damage;
+existing false2426 is preserved. The original passive owner query is scoped to
+Tracer0B8B and delegated before the typed controller provider, preserving normal
+60-second policy vs explicit zero passive override. No second charge graph,
+manual suppression constant, new snapshot field or Flux lifecycle change.
+
+Original focused checks: six/six pass7.293s, covering passive5/s and cap, passive
+restart before Pulse retirement, excluded contact/blast, ordinary resolved pistol
+loss/cap, original72-point multipliers and2426 gate. Prior standalone actual
+armour/shield loss also passed. Log `worker-a-tracer-charge-source-six.log`.
+The old worker tree cannot import original Flux fixture due to missing old
+sigma_accretion dependency; root reports its current fixture is already adapted.
+Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
+TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
+All original assertions/failures retained. No client session/network/publication.
