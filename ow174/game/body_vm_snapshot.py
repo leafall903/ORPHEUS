@@ -121,7 +121,7 @@ _STATE_LAYOUTS = {
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
-        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "links", "reported", "last_values"),
+        ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "spread_decay", "links", "reported", "last_values"),
         ("max_shots", "min_shots", "shot_spread"),
     ),
     nodes.MoveTo: (("movement",), ()),

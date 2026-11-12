@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Bastion spread and Sentry rear core
+
+- Retain Recon239B571E's authored ramp and between-shot decay, Sentry's
+  no-decay shot ramp and emitted-shot spread input. Preserve other heroes'
+  spread profiles and store the new causal decay field in VM snapshots.
+- Apply Recon's delivered default critical multiplier only to012E/30. Add the
+  Sentry rear-core capsule and yaw to authoritative target/rewind samples;
+  body contacts in front continue to occlude the rear critical capsule.
+- All four original spread/head/core checks pass, including eight rear-core
+  pose/cover/team/history cases. Shared volley/spread/VM/Tracer checks pass
+  46/49; the three unchanged Assassin factory and Soldier world-field checks
+  fail identically at the preceding commit. Keep those checks and failures.
+- Preserve invalid award-type rejection before Bastion charge arithmetic.
+  Tank projectile contact, self-splash/impulse and launch-frozen charge still
+  need source reconciliation. Whole-line and original-client acceptance stay
+  open; this functional batch does not depend on their completion.
+
 ### Mount delivered Bastion Self-Repair and ultimate gates
 
 - Retain the original0153 repair sampler, bounded per-frame reports and0044

@@ -19,19 +19,24 @@ incoming8243 already applies Ironclad0.8; do not multiply another0.8 adapter.
 The original scalar query is retained for delivery consumers and checks.
 The original combat and charge check files remain unchanged.
 
-This entry is committed with `feat: integrate delivered Bastion repair and charge`.
-After receipt, find this commit by subject before applying later worker commits.
+First functional batch: `cd7cb8f350b21f3960abe2ff98b5ffeb053743cb`
+(`feat: integrate delivered Bastion repair and charge`), received by root as
+canonical0be0ca2a. Root retains the subsequent Component.input_suppressed bridge.
+
+The second batch mounts Recon/Sentry authored spread, Recon critical default,
+Sentry rear-core capsule and historical yaw. Its commit subject is
+`feat: integrate delivered Bastion spread and rear core`; resolve its SHA from
+this branch before reception. Four owner checks pass; shared checks pass46/49,
+with all three failures reproduced unchanged atcd7cb8f3.
 
 ## Exact next work
 
-1. Retain Bastion Recon239B571E's authored between-shot spread decay and launch
-   count, Sentry's no-decay ramp and the rear-core critical capsule/pose history.
-2. Reconcile the remaining Tank splash/impulse/lifecycle consumers and external
+1. Reconcile the remaining Tank splash/impulse/lifecycle consumers and external
    cross-hero helpers; compare owner features, not just ancestry or file names.
-3. Continue the other seven deliveries. Substantial missing owner families include
+2. Continue the other seven deliveries. Substantial missing owner families include
    Torbjorn turret/Molten Core, Symmetra portals/turrets, Junkrat mine/tire,
    Mei Blizzard/frost, Sombra cloak/translocator and Ashe/BOB.
-4. For Torbjorn also compare the root-discovered preserved file
+3. For Torbjorn also compare the root-discovered preserved file
    `verification/combined-server-pending-tests/test_game_torbjorn_resources.py`
    against incoming/current checks; retain differing expectations without overwrite.
 

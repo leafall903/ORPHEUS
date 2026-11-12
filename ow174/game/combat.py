@@ -149,6 +149,8 @@ TRACER_BODY = 0x0400000000000001
 TRACER_HEAD = (-5.5390897614415735e-05, 1.5670119524002075, -0.006037640385329723)
 TRACER_HEAD_RADIUS = 0.1599999964237213
 HEAD_BELOW = 0.2  # m under the eye where the head starts (unverified)
+SENTRY_CORE = ((1.26459091, -0.56047679), (1.25363660, -0.65987499))
+SENTRY_CORE_RADIUS = 0.07999999
 ECHO_TRI_SHOT_LOADOUT = 0x0B90000000000270
 BEAM_ARMOR_FACTOR = 0.7  # OW1 retail patch, 2020-08-31.
 HISTORY = 64  # ticks of body positions kept for the shots' view time (about 1 s; unverified: retail's limit)
@@ -1168,6 +1170,7 @@ class Target:
     critical_allowed: bool = True
     capsule: tuple | None = None
     head_offset: tuple | None = None
+    sentry_yaw: int | None = None
 
     def segment(self, feet=None):
         """The capsule's segment (from the feet to the top, a radius in from both ends)."""
@@ -1176,6 +1179,11 @@ class Target:
             return tuple(tuple(a + b for a, b in zip((x, y, z), point, strict=True))
                          for point in self.capsule)
         return (x, y + self.radius, z), (x, y + max(self.radius, self.height - self.radius), z)
+
+    def core_segment(self):
+        x, y, z = self.feet
+        dx, _, dz = aim(self.sentry_yaw, 0)
+        return tuple((x + dx * depth, y + height, z + dz * depth) for height, depth in SENTRY_CORE)
 
 
 @dataclass(frozen=True)
@@ -3595,7 +3603,9 @@ class Combat:
                 head_offset = (hx * cos_yaw + hz * sin_yaw, hy, hz * cos_yaw - hx * sin_yaw)
             found.append(
                 Target(player.body, player.team, tuple(player.mover.position), height, data.stand_radius, eye,
-                       player, head_offset=head_offset)
+                       player, head_offset=head_offset, sentry_yaw=(round(player.mover.yaw)
+                           if player.hero.guid == BASTION and player.body_script is not None
+                           and player.body_script.component.entity_var(1216).value() == 2 else None))
             )  # fmt: skip
         for bot in self.match.bots:
             if bot.detached_bomb:
@@ -3806,6 +3816,9 @@ class Combat:
     @staticmethod
     def _target_sample(tick, target, *, feet=None):
         sample = (tick, target.feet if feet is None else feet, target.height, target.eye)
+        if (getattr(getattr(target.owner, "hero", None), "guid", None) == BASTION
+                or target.sentry_yaw is not None):
+            return (*sample, target.head_offset, target.sentry_yaw)
         if (getattr(getattr(target.owner, "hero", None), "body", None) == TRACER_BODY
                 or target.head_offset is not None):
             return (*sample, target.head_offset)
@@ -3837,8 +3850,9 @@ class Combat:
             sample = before if share < 0.5 else after
         _, _, height, eye, *region = sample
         head_offset = region[0] if region else None
+        sentry_yaw = region[1] if len(region) > 1 else None
         return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner,
-                      target.critical_allowed, target.capsule, head_offset)
+                      target.critical_allowed, target.capsule, head_offset, sentry_yaw)
 
     def script_targets(self, source: int, state):
         """Reconstructed Mercy staff selection, restricted to its actual query states.
@@ -4442,7 +4456,10 @@ class Combat:
             if directed is None:
                 return
             origin, direction = directed
-        if not npc and state.instance.graph.index == 0xBD4 and node.pos == 50 and state.spread_ramp is not None:
+        if (not npc and state.spread_ramp is not None
+                and ((state.instance.graph.index == 0xBD4 and node.pos == 50)
+                     or (shooter.hero.guid == BASTION
+                         and (state.instance.graph.index, node.pos) in ((0x012E, 30), (0x013A, 26))))):
             from ow174.game import weapon_spread
 
             launch = node.field("m_5EC1EB38")
@@ -4456,6 +4473,10 @@ class Combat:
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
         direct = hit_def(state, node.field("m_6396149F"))
+        if (not npc and shooter.hero.guid == BASTION and direct is not None
+                and (state.instance.graph.index, node.pos) == (0x012E, 30)
+                and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
+            direct = replace(direct, critical=2.0)
         if direct is not None:
             reaper.shotgun_critical(shooter, state, direct)
         from ow174.game import dva
@@ -4783,6 +4804,10 @@ class Combat:
                 continue
             a, b = shown.segment()
             t = ray_capsule(origin, direction, a, b, shown.radius)
+            if shown.sentry_yaw is not None:
+                core = ray_capsule(origin, direction, *shown.core_segment(), SENTRY_CORE_RADIUS)
+                if core is not None and (t is None or core < t):
+                    t = core
             if shown.head_offset is not None:
                 centre = _along(shown.feet, shown.head_offset, 1.0)
                 head = ray_capsule(origin, direction, centre, centre, TRACER_HEAD_RADIUS)
@@ -4932,7 +4957,10 @@ class Combat:
             self._apply_hit(shooter, target, direct, direct.amount * factor, False, shot_frame, world_tick=world_tick)
             return
         hit_y = origin[1] + direction[1] * t
-        if shown.head_offset is not None:
+        if shown.sentry_yaw is not None:
+            core = ray_capsule(origin, direction, *shown.core_segment(), SENTRY_CORE_RADIUS)
+            critical = core is not None and core <= t + EPSILON
+        elif shown.head_offset is not None:
             centre = _along(shown.feet, shown.head_offset, 1.0)
             head = ray_capsule(origin, direction, centre, centre, TRACER_HEAD_RADIUS)
             critical = head is not None and head <= reach
