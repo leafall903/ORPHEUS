@@ -155,6 +155,14 @@ This log records tested changes and their acceptance status. Entries are grouped
   tool, retaining stance metadata and the original34 physical fields.
 - Actual extraction/loader checks preserve base records and bytes, reject base
   overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+### Mount original Hypersphere airburst and impact consumers
+
+- Existing Rocket flight reads original Sigma profile gravity/expiry; missing
+  ring scalars use original1 while explicit0 stays0. Damage and impulse now
+  share the original direct/blast path, including declared owner self damage.
+- Original sphere5 plus Accretion/shared32 checks pass. Original normalized
+  wall response remains the next batch. No original-client acceptance run.
+
 ### Reconnect Sigma base-shield recovery
 
 - Sigma uses the existing0033 recovery integrator and own-body current/maximum

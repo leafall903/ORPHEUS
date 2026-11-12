@@ -1439,8 +1439,9 @@ def hit_def(state, cfg) -> HitDef | None:
                 state.evaluate(ring.get("m_radius"), watch=False) if ring.get("m_radius") is not None else 0.0
             )
             scalar = ring.get("m_B399CACB")
-            scalar = state.evaluate(scalar, watch=False) if scalar is not None else 0.0
-            rings.append((_number(radius, 0.0), _number(scalar, 0.0)))
+            sigma_ring = graph_index in (0x1BBB, 0x187F)
+            scalar = state.evaluate(scalar, watch=False) if scalar is not None else None
+            rings.append((_number(radius, 0.0), _number(scalar, 1.0 if sigma_ring else 0.0)))
     impulse_rings = []
     for ring in modify.get("m_knockbackRings") or []:
         if not isinstance(ring, dict):
@@ -1494,7 +1495,7 @@ def hit_def(state, cfg) -> HitDef | None:
 
 
 def _accretion_knockback(state, modify) -> tuple[float, float, tuple] | None:
-    if state.instance.graph.index != ACCRETION or state.node.pos != 9:
+    if (state.instance.graph.index, state.node.pos) not in ((ACCRETION, 9), (0x187F, 45), (0x187F, 56)):
         return None
     rows = modify.get("m_knockbackRings") or ()
     if not rows:
@@ -6319,9 +6320,13 @@ class Combat:
         from ow174.game import junkrat_projectile
 
         junkrat_profile = junkrat_projectile.profile(state) if not npc else None
+        from ow174.game import sigma_projectiles
+
+        sphere_profile = (sigma_projectiles.hypersphere_motion(state)
+                          if not npc and shooter.hero.guid == 0x02E000000000023B else None)
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
-            gravity = flashbang_gravity
+            gravity = sphere_profile[0] if sphere_profile is not None else flashbang_gravity
             if hanzo_bow:
                 gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                               for motion in node.field("m_projectileMotions") or ()
@@ -6562,7 +6567,8 @@ class Combat:
                         offense_scale=offense_scale,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
-                        detonate_on_expiry=flashbang_gravity is not None or pulse or junkrat_profile is not None,
+                        detonate_on_expiry=(flashbang_gravity is not None or pulse or junkrat_profile is not None
+                                            or sphere_profile is not None),
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=(
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
@@ -7929,6 +7935,7 @@ class Combat:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None:
                         self._accretion_hit(rocket, struck, before - self.vitals_of(struck).total)
+                    if rocket.accretion_source is not None or rocket.source_graph == 0x187F:
                         self._apply_accretion_impulse(rocket, struck, direct)
         if struck is not None and blast is None and len(rocket.hit_entities) + 1 < rocket.target_limit:
             rocket.ended = None
@@ -8441,13 +8448,14 @@ class Combat:
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
         accretion = rocket.accretion_source is not None
+        hypersphere = rocket.source_graph == 0x187F and blast is not None and blast.loadout == 0x0B9000000000028C
         if accretion and blast is not None and blast.amount <= 0:
             candidates = []
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or blast.loadout == 0x0B9000000000020B
-                or accretion
+                or accretion or hypersphere
                 or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
                 and (blast.self_scale > 0 or (accretion and blast.source_impulse_scale > 0))
                 and rocket.source_entity == _source_entity(rocket.shooter)):
@@ -8592,8 +8600,8 @@ class Combat:
                     if victims_out is not None:
                         victims_out.add(target.entity)
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
-                own_accretion = accretion and target.entity == rocket.source_entity
-                if (landed or (own_accretion and blast.source_impulse_scale)) and accretion and (
+                own_accretion = (accretion or hypersphere) and target.entity == rocket.source_entity
+                if (landed or (own_accretion and blast.source_impulse_scale)) and (accretion or hypersphere) and (
                     target is not struck or rocket.direct is None or rocket.direct.knockback is None
                 ):
                     self._apply_accretion_impulse(
