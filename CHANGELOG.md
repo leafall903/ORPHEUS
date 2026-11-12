@@ -10772,3 +10772,53 @@ Next exact action: same native Pet start/expiry and mapped cooldown consumption
 from original0068 Barriers, preserving actual application_tick/cleanse, then
 existing Graviton field/flight clock consumers and outstanding sparse projectile
 impact chronology. Root has A74-A78; A79 is another independent actual boundary.
+
+## A80 review — actual Pet lifetime, mapped cooldown and callback ordering
+
+Root preserved the initial full A80 implementation as bb396d8f and admitted it
+in769b27b7 while the worker was interrupted. That checkpoint is retained intact;
+this review does not repeat it. Existing Barriers now contains original expiry/
+cooldown metadata, still one scripted actor and one Vitals pool. Actual constructor
+body/world application pair schedules source Chase deadline, start/expiry edges
+join the existing replay loop, normal ending ahead retains that same actor for
+historical world contacts, and original mapped cooldown blocks future-input reuse.
+No second barrier actor/pool or old Barriers.active/projected manager copied.
+
+Review found a real callback ordering gap: Pet.destroy runs while its parent
+Chase is still ending, before active=False/ended_at commit. The same normal
+reached+generation+deadline test now admits that exact transient ending state;
+it cannot preserve arbitrary abort/break. Actual Zarya caster/recipient death
+retires the sole native Pet immediately via existing ownership cleanup. C confirmed
+C47/C49 history does not depend on dead actor membership; existing read-only
+history/identity remains. Break and body replacement remain immediate.
+
+Actual future constructor pair differs by39/40frames, Pet absent from collision
+before application, early accepted body duration end keeps identical actor+pool,
+world expiry removes it, and far-future command cannot bypass mapped cooldown:
+both personal/projected cases pass. Real projected break/caster-death/recipient
+replacement3cases pass. Current application/antiheal+original cooldown+energy+
+13shared runtime joint19/19pass13.027s, log
+worker-a-zarya-pet-lifetime-runtime-final.log. Initial5 original expiry/cooldown/
+application/Hook checks also passed13.102s (checkpoint worker log).
+
+A79's new idle-energy test had required a frozen body frame, which conflicts with
+A80's legitimate one neutral timer gap. It now asserts the same BodyScript and
+Component, exact original expiry.frame and ended duration instead. Original energy
+rate/bounded EPSILON, paced/sparse agreement and bit-exact no duplicate debit on
+later body catchup remain unchanged; both cases pass5.049s. No original source
+50/60 or other numerical assertion changed. Initial callback/dead-membership/test
+intent failures remain in their logs for provenance.
+
+Actual encrypted-peer whole-GameServer native personal Pet captures strict expiry
+metadata successfully: changing its real expiry.tick changes digest and restoring
+returns the exact digest, worker-a-zarya-pet-expiry-storage-final.log. The first
+probe tried an uncontrolled hero switch and correctly hit journal external-root
+rejection; final probe uses original session.apply and peer.commands, no bypass.
+No source/client/service/network/publication change or full acceptance rerun.
+
+Next exact action: compare original0068 Graviton clock/phase/Fortify/Flux/charge/
+movement consumers with existing graviton.Gravitons and current NPC mover host;
+mount the missing pieces without another field, mover or charge ledger. Preserve
+A80 expiry/application metadata and C47/C49 projected history, and the two still
+open original sparse projectile-impact timings. Remaining low-confidence5-10
+active hours covers these actual temporal consumers and owner reconciliation.
