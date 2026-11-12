@@ -2492,3 +2492,39 @@ complete exact consumer mapping/handoff. Existing Baptiste fixture still polls
 legacy amp/anti Modifier tables; adapt to actual native graph/timer observations
 without changing original expected health/timing values or adding runtime aliases.
 Those observations are validation tails, not missing or unsubmitted A98 code.
+
+## A99 — preserve original Mercy status checks and immediate lifecycle consumers
+
+Preserved normal tests/test_game_mercy_healing_status.py from original0004:
+all28 testmethods/all128 assertion calls. Per-assert numeric constants are equal
+when normalizing the actual boost_credit[1] field access to former damage_scale;
+that index is an observation adapter, not a changed expected value. Fixture uses
+current composed MercyChain provider instead of old boost_tests package swapping,
+sole fight.healing and actual immunity phase query with the same2 original hero
+constants. Original1.3/health/credit/clock assertions are unchanged. No AST-only
+execution bypass, runtime observer alias or check removal; the normal unittest
+module imports and executes the original cases.
+
+Genuine original lifecycle gap: original immediate targetdeath case left0C71+
+0C72 live in component.instances. Mounted sole healing.retire at existing Player
+death, NPC death and npc.remove_body cleanup; no other cleanup removed. Root
+must preserve newer B83 slams.retire_target calls alongside these additions
+(not present in this worker base). Replacement/resurrection already retired.
+
+Original hostile/staff, friendly100/1.5/healingcredit and lateMercy passive3methods
+pass20.197s. Original launchboost and overkill2methods pass10.757s, preserving1.3
+and effective-credit assertions. Original5NPC friendlyamp/manual removal method
+passes1.594s. New actual5NPC lethal lifecycle plus originalPlayer immediate death
+=2/2pass2.836s; genuine baseline originaldeath failure retained. Logs
+worker-a-original-mercy-healing-status-check.log,
+worker-a-original-healing-boost-check.log,
+worker-a-original-healing-npc-remove-check.log and
+worker-a-native-status-death-check.log. Native7 preceding scope also executed
+without failures while old damage_scale observation raised3errors; mapping to
+actual captured credit then made both full originalboost methods pass.
+
+Next: precise source/consumer handoff mapping, nativeMatrix and currentBaptiste
+fixture actualtimer observations. Original28 module not all rerun; old pose/API/
+resource conflicts remain validation tails, not unsubmitted production work.
+Root owns defaultv19 activation and Volskaya. Original runtime/source inputs
+unchanged. No new acceptance matrix or feature added.

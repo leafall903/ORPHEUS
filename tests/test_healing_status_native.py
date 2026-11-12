@@ -143,3 +143,24 @@ class NativeHealingStatusTests(unittest.TestCase):
         for _ in range(20):
             run.step({})
         self.assertEqual(fight.healing.factor(body), 1.5)
+
+    def test_actual_npc_death_immediately_retires_status_components(self):
+        from test_game_mercy_healing_status import MercyHealingStatusTests
+        from ow174.game import npc
+        import test_game_mercy_chains as chains
+        fixture = MercyHealingStatusTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        catalog = npc.load_catalog(chains.npc_tests.NPC_DATA / "pve_npcs_174.json")
+        for definition in catalog.values():
+            with self.subTest(npc=definition.name):
+                bot = npc.spawn(fixture.match, definition, (0, 1, 8), team=0)
+                target = next(t for t in fixture.fight._targets() if t.owner is bot)
+                fixture.ana.team = 0
+                fixture.fight.healing.impact(fixture.ana, target)
+                item = fixture.fight.healing.applied[(fixture.ana.body, bot.entity)]
+                fixture.ana.team = 1
+                fixture.fight._damage(fixture.ana, target, 10000, False, None, fixture.run.frame)
+                self.assertFalse(item.component.instances)
+                self.assertNotIn((fixture.ana.body, bot.entity), fixture.fight.healing.applied)
+                npc.remove_spawned(fixture.match)
