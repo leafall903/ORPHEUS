@@ -609,6 +609,8 @@ class Player:
             command, posed=not input_suppressed, movement_end=movement_end,
             charge_start=charge_start, seconds=seconds,
         )
+        if not self.mover.airborne and not self.mover.landed:
+            fight.translocators.recall_poses.discard(self.body)
 
     def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):
         fight = self.match.combat

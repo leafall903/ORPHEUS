@@ -73,6 +73,7 @@ from ow174.game import (
     mei_blizzard,
     sombra_camo,
     sombra_spread,
+    translocators,
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
@@ -2144,6 +2145,7 @@ class Combat:
         self.absorption = absorption.Grasp(self)
         self.barrier = barrier.BarrierField(self)
         self.deployables: dict[int, actors.Deployable] = {}
+        self.translocators = translocators.Translocators(self)
 
     def allocate_combat_entity(self):
         entity = self.next_bot
@@ -2188,6 +2190,9 @@ class Combat:
         )
 
     def destroy_deployable(self, entity):
+        if entity in self.translocators.entries:
+            self.translocators.destroy_at(entity, self.tick)
+            return
         construct = self.junkrat.lookup(entity)
         if construct is not None:
             self.junkrat.retire(construct)
@@ -2276,6 +2281,7 @@ class Combat:
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
+        self.translocators.retire_body(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
         self.sentries.release_target(player.body)
@@ -4136,7 +4142,7 @@ class Combat:
         if self.tick and tick > self.tick + 1 and (
             self.dragons or any(r.continuation is not None for r in self.rockets)
             or self.timed_hits or self.recalls.phases or self.zenyatta.owners or self.breathers.channels or self.moira_clocks or self.photon_barriers.casts or self.photon_barriers.actors
-            or self.blizzard.flights or self.blizzard.areas
+            or self.blizzard.flights or self.blizzard.areas or self.translocators.entries
             or self.zarya_gravitons.fields or self.sombra_controls.locks
             or self.sound_barriers.landings or self.sound_barriers.waves or self.sound_barriers.shielded
             or self.sound_barriers.pending
@@ -4241,6 +4247,7 @@ class Combat:
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
             self.blizzard.update(at)
+            self.translocators.update(at)
             self.venom.update(at)
             self.dynamite.update(at)
             for body, dome in tuple(self.winston_domes.items()):
@@ -4666,6 +4673,11 @@ class Combat:
 
     @staticmethod
     def _deployable_target(actor):
+        if isinstance(actor, translocators.Translocator):
+            x,y,z = actor.position
+            radius = translocators.RADIUS
+            return Target(actor.entity,actor.team,(x,y-radius,z),2*radius,radius,radius,
+                          actor,critical_allowed=False)
         return Target(actor.entity, actor.team, actor.position, actor.height, actor.radius,
                       actor.height * 0.5, actor, critical_allowed=False, capsule=actor.capsule)
 
@@ -5772,6 +5784,9 @@ class Combat:
                                               if m.get("$") == "STU_E1A5B579"),
                                           max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
                     return
+
+            if not npc and self.translocators.fire(shooter, state, definition, origin, direction, activation):
+                return
 
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
@@ -9716,6 +9731,7 @@ class Combat:
             reinhardt_barrier.sync(self, victim)
             self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
+        self.translocators.retire_body(victim.body)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:
             photon_barrier.interrupt(victim.body_script)

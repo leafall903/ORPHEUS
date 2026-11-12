@@ -391,6 +391,13 @@ class InstanceContext(Context):
         from ow174.game.script import spatial_queries
 
         component = self.instance.component
+        if not component.strict and self.instance.graph.index in (0x0C19, 0x0C1A):
+            from ow174.game import translocators
+
+            result = translocators.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
         if (not component.strict and self.instance.graph.index == 0x15F5
                 and getattr(component.world, "body_definition", None) is not None):
             from ow174.game import symmetra
@@ -1209,6 +1216,15 @@ class World:
         return False
 
     def create_entity(self, instance, node):
+        return NotImplemented
+
+    def body_health_pool(self, state):
+        return NotImplemented
+
+    def body_recall_target(self, state):
+        return NotImplemented
+
+    def body_recall_move(self, state):
         return NotImplemented
 
     def body_placement(self, state):

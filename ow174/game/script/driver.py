@@ -743,6 +743,22 @@ class BodyWorld(runtime.World):
             return NotImplemented
         return body_entities.create_mech(self.match, instance, node)
 
+    def body_health_pool(self, state):
+        if self.match is not None:
+            self.match.combat.translocators.health_pool(state)
+
+    def body_recall_target(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.select_recall(state)
+
+    def body_recall_move(self, state):
+        return NotImplemented if self.match is None else self.match.combat.translocators.recall(state)
+
+    def destroy_entity(self, instance, node):
+        if self.match is not None and instance.graph.index == 0x0C1A:
+            self.match.combat.translocators.destroy_authored(instance.component.entity)
+            return True
+        return NotImplemented
+
     def create_world_entity(self, instance, node):
         if self.match is not None:
             fight = self.match.combat
@@ -1961,6 +1977,10 @@ class BodyWorld(runtime.World):
                 and match.combat.orisa.receive(target, message, sender)):
             return
         if match is not None and sender == self.body:
+            actor = match.combat.translocators.entries.get(target)
+            if actor is not None:
+                runtime.send_message(actor.body_script.component, message, params, sender)
+                return
             if match.combat.junkrat.message(target, message, sender):
                 return
             if self.hero == ice_wall.MEI and ice_wall.cancel(match.combat, target, message, params, sender):
@@ -3162,20 +3182,21 @@ class BodyScript(ReplicatedBody):
 
 
 def create_body_graphs(
-    component: runtime.Component, record: dict, *, include_initial: bool = True,
+    component: runtime.Component, record: dict, *, include_initial: bool = True, resolve_graph=None,
 ) -> list[runtime.Instance]:
     """Allocate the weapon manager and slots, plus any initial graphs not already mounted."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     weapons = record.get("weapons") or []
     component.set(WEAPON_SLOTS, tuple(item is not None for item in weapons))
     component.set(DEFAULT_SLOT, next((slot for slot, item in enumerate(weapons) if item is not None), 0))
-    created = create_initial_graphs(component, record) if include_initial else []
-    manager = graph.graph(record["manager"]) if record.get("manager") is not None else None
+    created = create_initial_graphs(component, record, resolve_graph=lookup) if include_initial else []
+    manager = lookup(record["manager"]) if record.get("manager") is not None else None
     if component.strict and record.get("manager") is not None and manager is None:
         raise ValueError("body weapon manager graph is unavailable")
     if manager is not None:
         created.append(component.create(manager, init=False))
     for slot, item in enumerate(weapons):
-        weapon = graph.graph(item) if item is not None else None
+        weapon = lookup(item) if item is not None else None
         if component.strict and item is not None and weapon is None:
             raise ValueError(f"body weapon graph is unavailable for slot {slot}")
         if weapon is not None:
@@ -3183,11 +3204,12 @@ def create_body_graphs(
     return created
 
 
-def create_initial_graphs(component: runtime.Component, record: dict) -> list[runtime.Instance]:
+def create_initial_graphs(component: runtime.Component, record: dict, *, resolve_graph=None) -> list[runtime.Instance]:
     """Allocate the definition's instances in asset order, before running their entries."""
+    lookup = graph.graph if resolve_graph is None else resolve_graph
     created = []
     for number, item in enumerate(record["graphs"], 1):
-        definition = graph.graph(item["graph"])
+        definition = lookup(item["graph"])
         if definition is None:
             continue
         values = {}

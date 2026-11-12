@@ -1116,3 +1116,84 @@ Sombra replay. Original Controls owner/list/application lifecycle and actual
 Portal endpoint/EMP services need reconciliation; no second manager/name alias.
 Source018? retain exact ref012E. Remaining C own active-work rough8-16hours after
 Ashe/Junkrat formal transfer, low confidence; shared reception/client not included.
+
+C33 SHA8e7b300f delivered.
+
+C34: original Translocator actor-backed host
+-------------------------------------------
+Actual0C19 non-predicted volley now consumed before projectiles.fired, so no owner
+lease/second Rocket. Original translocators.py authority now runs world ticks,
+finite-radius seven-sample cast, gravity20/bounce/settle, recalled checked capsule,
+original source graph/recycle message, health5/lifetime and body/death retirement.
+Use existing Combat.allocate_combat_entity; each entry is the same actual
+actors.Deployable object in fight.deployables and ordinary _targets, sharing
+one Vitals/entity. Source sphere target centre preserved by narrow Target mapping.
+Original until_tick operational API proxies the existing expires_tick field, one
+actual TTL, including setters used by original checks. Generic actor team is
+captured at creation consistently with current server policy; source raw property
+read owner.team dynamically. Runtime team mutation parity is not established.
+
+Original entity record file is exactly012E/translocator-entity-research.json,
+SHA256 e5781249ad864e4265abb609a41bbcf05cdbcc8b41ec336dc363bc36381aad43.
+Set ORPHEUS_TRANSLOCATOR_DATA to that immutable original path; do not fabricate a
+translocator_174.json or copy full assets. Its entity1575/extra_graphs are read by
+original data() and supplied to the existing BotScript VM. Generic BotScript now
+accepts original optional record/world/resolve_graph/source_entity; default NPC
+world/controller/difficulty/pool paths retained. create_body_graphs and initial
+helper use optional resolver, defaults global graph lookup. External BodyWorld
+gets actual definition1575 and existing component registration, not NPC-only
+controller fields; source association attached before instance init. Record has
+no controller; no extra controller created. Source new recall classes preserve
+strict unsupported guards. Nonstrict0C1A health hook on existing HealthPool state,
+original narrow context queries precede unrelated typed interfaces only for
+C19/C1A and recognized configs. B33 native early gate must remain on reception.
+
+Same BodyWorld forwards actual owner messages to live beacon component; this was
+a true missing consumer, not a fixture expectation adjustment. Checked recall
+uses existing knockback retirement/Orisa recipient release, original mover
+teleport reset and current shared body/movement driver. Source recall_poses is
+cleared at first settled real pose. Ice Wall gets original cast_ray adapter over
+current real pillar contact and immutable map, not another geometry manager.
+Actor removal clears exact output, owner message/cooldown, controls, component
+registry/foreign watches/instances, viewer destroy, Vitals/history/replacement.
+New state/manager/actor causal storage registered in both existing serializers.
+
+Verification v9 environment+test_environment plus explicit original
+ORPHEUS_TRANSLOCATOR_DATA path above. Full raw test_game_sombra_translocator.py
+copied byte-identical. Its top imports still depend on old pharah/shot_guards,
+control and NPC fixture protocols; do NOT claim full normal-module execution.
+Ten original TranslocatorTests methods compiled as untouched class AST with real
+globals: math/os/unittest/Path/mock/replace, fixture=test_game_sombra_combat,
+stored=test_server_snapshot, actual combat/npc/npc_control/reinhardt_barrier/
+stats/translocators/world/FIRE/Command/expr/OWNER_HEALTH/send_instance_message.
+No fake fixtures, health or assertion values. Exact suffixes (prefix test_):
+actual_volley_binds_server_identity_and_original_health_pool_without_lease;
+reconstructed_arc_lands_without_damage_or_endless_energy_gain;
+gap_and_continuous_entity_motion_agree;
+second_press_consumes_beacon_and_relocates_then_lands_at_destination;
+manual_recycle_routes_original_message_and_enforces_original_cooldown;
+owner_and_ally_actual_fire_do_not_destroy_the_entity;
+hero_replacement_retires_old_entity_and_does_not_transfer_it;
+actual_owner_death_retires_the_owned_entity;
+active_entity_is_captured_with_cross_component_watchers;
+enemy_actual_rifle_destroys_five_hp_entity_without_hero_kill_or_respawn.
+10allpass38.961s, worker-c-translocator-core-second-check.log. Initial9 had5pass/
+4subfail all due missing beacon message relay; retained first log. Real separate
+actual throw/300tick probe:5HP, identity registered, sameactor in deployables,
+settled y0.20001; real cross-wall recall z14.5166015625 vsdevice14.5165007043269,
+owner component faultNone. After ten-case run, tiny precise foreign-watch
+cleanup and settled-pose recall_poses consumer added; broad default-path check:
+python -B -m unittest test_game_npc test_npc_navigation test_script_runtime
+ test_script_runtime_budget test_game_script_runtime test_game_combat.DamageTests
+ -v :90allpass9.279s,worker-c-translocator-shared-check.log. No full journal gate.
+AST duplicate-method audit clean (property setters excluded); raw fixture hash
+unchanged. Do not count selected class execution as all source translocator checks.
+
+Next C35: original accepted owner replay (sombra_replay, translocator recall-pose
+world-only physics and release/expiry boundaries), actual Controls list/application
+protocol and healthpack service; then actual Photon/Sentry/Torb/Portal device EMP
+and Hack endpoints. Root flagged actualfight.portals/symmetra_portals mapping;
+no old-name manager alias. Source Control.locks already holds lists after current
+root intake: audit against original BodyHack consumers instead of assuming a
+new second hack manager. Raw old fight.hacks observer is not an actual consumer
+absence by itself. Preserve missing unmounted consumer boundaries and failures.

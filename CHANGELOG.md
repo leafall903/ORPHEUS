@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Sombra Translocator actor and recall consumers
+
+- Connect original non-leased1575 throw,0C1A graph/source association,5HP,
+  finite-radius arc/bounce/settle, checked recall, recycle, expiry and exact
+  body/death cleanup. Use the existing combat entity allocator and Deployable
+  target/Vitals pool; original until_tick uses the same operational expiry field.
+- Merge original optional BotScript record/world/graph resolver/source inputs,
+  scoped recall states and native queries, retaining default NPC controller and
+  strict runtime behavior. Register actual actor and recall causal storage.
+- Ten selected untouched original Translocator methods pass38.961s (actual throw,
+  pool/identity, physics, recall, recycle, owner/ally protection, retirement,
+  hostile damage and stored cross-component watchers). Shared NPC/navigation/
+  runtime/budget/Damage90 pass9.279s. Full original fixture remains byte-identical.
+- Select original012E translocator-entity-research.json via explicit
+  ORPHEUS_TRANSLOCATOR_DATA. World-gap replay, extended controls/EMP and full
+  legacy fixture imports remain pending; no whole-line/client acceptance claim.
+
 ### Mount original Sombra pistol spread and Camo damage timing
 
 - Connect original cone/ramp/seed policy to real pistol shots. Mount original
