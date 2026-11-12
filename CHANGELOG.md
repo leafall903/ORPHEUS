@@ -12891,3 +12891,42 @@ ActualBotWorld None/dict/tuple strictquery smoke preserves fallback without a
 TypeError; tooloutputrecorded. Queryguard readsresolver onlyfor B96D. No runtime
 state, protocol, sourceassertions or strongerRecord path changes. NextB98tool
 fixtureintegration remains, sourceCLI classhelpers will bindcurrentactualhost.
+
+
+## B98 — recover real Sigma filter-audit tool dependency consumers
+
+Restore complete original023B test_sigma_symmetra_sentry andtest_sigma_barrier
+fixture implementations. Sourcehas NO test_sigma_symmetra_beam file; prior
+inventoryphrase suggestingthatdependency wasincorrect. Actualmissing import is
+oldproduction symmetra_beam.HERO/WEAPON namespace; map directly tocurrentactual
+symmetra. Sentryhelper mapsactualsymmetra_turrets.LAUNCH_GRAPH/BODY andsole
+fight.sentries.sentries actorlist; Barrier mapsactualfight.sigma_barriers pool/
+actor dict andsigma_barrier functions. Grasp/Flux qualifiers mapactualabsorption/
+sigma_flux. No fakealiases/modules, secondbarrier/sentry instance or schema edits.
+Everyoriginalassertion AST preserved under those actualhost getter/qualifier
+mappings. Tests remainfullsource, not rewritten to copiesofimplementation.
+
+verify_sigma_filter_inputs now calls actualmatrix.tags immutablecombinedcatalog
+instead ofabsentdva_matrix module. Rootowns staticNPCtool originalprimarySniper
+consumer andA106remainingruntimeAPI adapters; no B overlap in thatfile. Synced
+root7b6e38ba afterrootactualSniper restore, no circumventingbackend aliases.
+
+RealCLI --help passes. Defaultaudit and --include-sentry bothcomplete and write
+originalJSON reports outsideworktree. Originalrawcriteria stays0/7 andoriginal
+exit1, not an import/API exception; no inventedstatus/categorybits to forcegreen.
+Include-sentry adds bothactual2658 flight andattached actorcreate rows (body_count
+remains7 by originalroledefinition). OriginalSentry prepare/launch/attach actual
+helper passes; originaltest_sentry_crosses_live_grasp_then_damages_and_slows_sigma
+passes2.153s. ActualoriginalBarrierarena reaches same nativeactor/700HP+Sigma400HP.
+Logs worker-b-sigma-filter-{tool-help-ready,default,sentry}.log, JSON reports
+worker-b-sigma-filter-{default,sentry}.json; helperlogs sigma-{sentry,barrier}-tool-
+helper.log and sigma-sentry-original-contact.log. No liveclientacceptance.
+
+This restores the onlymissingstatic testmodule import inroottools AST inventory,
+plusits actualproduction tag-provider dependency; rootseparatelyfixes staticNPC
+productionSniper producer. Otherfullsource numeric/legacyarena expectations are
+notclaimedgreen from thesehelpers. Next exactaction B99: knownforeign-source
+forcevictim endpoint replay on soleKnockbacks with Rocket.source_entity frozen
+identity; self/unknown/C68ownPharah endpoint remains its actualinput path. B96
+receipts prevent laterphysical duplicate. Rootconfirmed this sourceownership
+boundary; earlierglobalendpointreserve was our inference, not a userconstraint.
