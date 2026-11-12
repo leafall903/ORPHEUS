@@ -10244,11 +10244,23 @@ class Combat:
                 if hero == 0x02E0000000000040:
                     from ow174.game import roadhog_charge
 
-                    points *= roadhog_charge.damage_received_multiplier(getattr(victim, "body_script", None))
+                    points = max(0.0, base_before - vitals.base_total) * roadhog_charge.damage_received_multiplier(
+                        getattr(victim, "body_script", None))
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
                 if hero == ball.HERO:
                     points = dealt - (temporary_before - vitals.temporary_shields)
+                inherited_credit = (
+                    (hero == doomfist.HERO and loadout == 0x0B90000000000109)
+                    or (hero == ball.HERO and loadout in (
+                        0x0B90000000000189, 0x0B900000000001E8, 0x0B900000000002F5))
+                    or (hero == deflection.GENJI and loadout == 0x0B90000000000189)
+                )
+                if inherited_credit:
+                    from ow174.game import roadhog_charge
+
+                    points = max(0.0, base_before - vitals.base_total) * roadhog_charge.damage_received_multiplier(
+                        getattr(victim, "body_script", None))
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))

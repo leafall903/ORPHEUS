@@ -291,6 +291,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original victim-side credit for supported weapons
+
+- Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent
+  pool loss and the existing victim modifier, preserving other authored target
+  adjustments without duplicate scaling or another charge ledger.
+- Reached weapon/impact and shared30 checks pass. Original damage/physics and
+  numeric expectations remain; no original-client acceptance run.
+
 ### Retire Grasp ownership on actual death
 
 - Existing absorption ownership cleanup now runs for the actual dead body,
