@@ -418,6 +418,31 @@ alone is not evidence that a line's consumers are actually mounted.
   complete remaining shield surfaces/history for other managers. B21 snapshot
   full-suite session82747 still running; do not claim it passed.
 
+## B25 actual independent Earthshatter controls
+
+- Evidence corrected earlier observation-only attribution: source.controls is
+  real independent(victim, source, kind)->seconds lifetime, not a name alias for
+  canonical victim->max-tick stuns. Mount it on actual is_stunned/movement_pause
+  and interrupt consumers, snapshot schema, update expiry and victim cleanup.
+  Earthshatter no longer writes stuns as well. Preserve source-on-departure
+  knockdown; retire only victim entries on death/body retirement.
+- Existing HitDef.tags now reaches _damage. Source Charge can capture a body
+  under ordinary control; reject existing captures across current owners and
+  actual immunity, not every stun. No migration of Punch/Brigitte/NPC hosts.
+- `worker-b-shatter-source-controls-second.log`:62/62 original Shatter31,
+  ChargeContact21, Passive9 and causal wave snapshot pass. First61 had one
+  capture guard failure, corrected to original source rule before this run.
+  `worker-b-shatter-owned-control-snapshot.log`:actual nonempty owned control
+  gates input/movement, leaves stuns empty and changes repeatable passive digest
+  when its deadline changes. Keep all original source expectations intact.
+- Remaining7-owner rough effort16-36 effective hours, low confidence: Rein other
+  surfaces/NPC completion, Hog/Zarya/Ball/Sigma source/native reconciliation and
+  Doom/Win cross-owner closure. Main risks Ball movement/impulse, Sigma pending
+  extra pools, sharedNPC/Brigitte interactions. No full-acceptance blocking.
+- Next: clean sync latest canonical, then source shield-history/surface and NPC
+  completion audit; advance remaining owners. Full B21 snapshot session82747
+  remains live with partial errors logged, never counted passing.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

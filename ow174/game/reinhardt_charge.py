@@ -352,7 +352,9 @@ def advance(fight, player, command, start, seconds):
             if immunity is not None and expr.truthy(immunity.value()):
                 stop(fight, player.body, charge)
                 return
-        if frontal and charge.pinned is None and not fight.is_stunned(target.owner) and not fight._control_immune(target):
+        captured = (pinned(fight, target.entity) or target.entity in fight.pins.values()
+                    or any(c.captured == target.entity for c in fight.charge_contacts.values()))
+        if frontal and charge.pinned is None and not captured and not fight._control_immune(target):
             charge.pinned = target.entity
             fight.interrupt(target)
         else:
