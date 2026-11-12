@@ -236,3 +236,27 @@ three standalone critical/falloff). Scoped standalone rivet follow-up: all10
 original projectile+last-ammo+cross-expiry cases pass/16.327s. Logs:
 worker-c-torbjorn-{rivet-resource,pellet-final}-check.log. No source assertions
 were changed. Resource fire timing already passed; do not rewrite it for damage.
+
+C14 SHA7a0ab40b ready for root receipt. C15 mounts source hammer body/window/
+cancel/Genji107/snapshot consumers and optional contacted barrier APIs. Original
+hammer13 plus background reload interaction:14 checks,12 pass, two repeat
+interval differences retained (ordinary53vs47frames, boosted second contact
+later than source33). Log worker-c-torbjorn-hammer-check.log. A conditional-marker
+experiment did not change either difference and was reverted; no shared native
+animation/stack semantics were weakened. Four direct actual barrier-method
+probes validate one contacted hit and unchanged ordinary calls. Old shared
+fixtures retain two descriptor skips and absent body_barriers error, log
+worker-c-torbjorn-hammer-barrier-shared-check.log; unrelated old Tracer imports
+also expect absent deflection.TAGS_PATH and were not counted as executed.
+
+Next: reconcile worker B's reinhardt_hammer.surfaces(fight,player,volumes,amount,
+seen) helper for native shell faces and reuse its actual capsule geometry.
+Its seen namespace is ('surface', actor entity), whereas these optional legacy
+area/melee contacted APIs use actor int entity. Torb sphere volumes are
+(centre,centre,1). Preserve distinct per-swing source contacts. Zarya native
+body damage remains existing combined policy; no extra double shell hit.
+Then mount original actor-backed turret factory on existing NPC entities and
+pool, with actual owner credit/geometry/snapshot/lifetime bridges. Its collection
+is fight.turrets(owner.entity->source Turret); legacy prototype torbjorn_turret
+manager has not been a production consumer. Hammer repair and Steel Trap
+contact remain explicit pending owner consumers, not completed by empty maps.
