@@ -1425,3 +1425,14 @@ Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/
 ## Clean synchronization after A62
 
 Absorb intake d7139d1a: original shared PlayerController/filter lifecycle and its source fixture, C41/C42 lock/device consumers, Ball Mine factory/damage, strict storage/replay arithmetic identity. Only changelog union conflict; retain both entries. Actual owner source policies preserved; no external runtime/base writes. Next verify only newly composed owner status/controller boundaries, avoiding duplicate broad acceptance passes.
+
+## A64 shared-controller assignment and clean synchronization
+
+Root reassigned original0200 remaining000E dynamic owner/effect wire/manual Assassin/LinkedTarget/Pin causal storage after the nine-core boundary. Absorb stable canonical/intake6d51297b, only changelog union conflict; keep both ControllerWorld and MineWorld exact storage branches, every current codec and scalar replay profile. Root owns intake reception only for this shared task. C43 owns LogicalButton/body_button/ability gates; do not duplicate it. First independent batch: optional original dynamic/bound-var owner-full encoder, default16 combination bit equivalence captured before changes externally.
+
+## A64 - original dynamic effects in the sole owner full-frame encoder
+
+- Stable6d51297b synchronization137a3c2d retains all ControllerWorld/MineWorld storage, scalar profiles and codecs. Restore exact original0200 owner_full_frame optional dynamic/bound_vars/frame_ms and _dynamic_owner_full into current statescript.py. Static and dynamic descriptors share one sorted uint16 namespace; overlapping bound variables/IDs reject before encoding. Full owner effect states use original class/owner-slot validation and existing event/variable writers.
+- Restore original write_payload optional full mode for LinkedTarget codec, leaving existing codecs/Map/PairArray/fragmentation/spray and default delta paths intact. No alternate wire encoder or manager. Default no-effect PRACTICE/PVP open/skins/hide16 combos are byte/bit identical against pre-edit captured values in worker-a-controller-owner-full-baseline.json.
+- Existing test_game_statescript + test_statescript_codecs25/25 passed2.450s. New normal test_controller_effect_owner_full2/2 passed. Actual original1177 graph/LinkedTarget full payload and bound14695 flag decode together with the real static Practice controller tree; ID/entity-var collisions reject. worker-a-owner-full-codec-shared.log and worker-a-controller-effect-full.log.
+- This batch is only the real encoder dependency boundary; Match effect refresh, manual NPC recipient coupling, LinkedTarget runtime registration and Pin causal storage remain next. Do not claim original manual Assassin whole group live yet; C43 owns body-button/LogicalButton/Ability gates independently.

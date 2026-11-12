@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Encode original controller effects in the existing owner full frame
+
+- Restore optional dynamic instances/bound variables and original LinkedTarget full payload mode in the sole state-script encoder. Preserve existing codec and fragment paths; reject overlapping instance/variable namespaces.
+- All16 default controller combinations remain byte/bit identical. Existing state-script/codec25 plus actual1177 full-frame/bound-flag2 checks pass. Match refresh and manual Assassin host consumers remain subsequent work; no client acceptance run.
+
 ### Record nine-owner source reconciliation boundary
 
 - Worker A records actual original-language consumers for seven initial heroes,
