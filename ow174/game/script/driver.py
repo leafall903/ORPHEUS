@@ -546,6 +546,9 @@ class BodyWorld(runtime.World):
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and not self.match.combat.barriers.ability_start_allowed(state)):
             return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and state.instance.graph.index == 0x0043 and state.node.pos == 14):
+            return self.match.tick >= self.match.combat.zarya_melee_ready.get(self.body, 0)
         # The hosted projection supplies its overlap gate while the native
         # 025C recipient effect/tag system is unimplemented.
         if (self.match is not None and self.hero == 0x02E0000000000068
@@ -559,7 +562,10 @@ class BodyWorld(runtime.World):
             return 0.0
         from ow174.game.combat import TICK
 
-        ready = self.match.combat.barriers.cooldown_ready_tick(state)
+        if state.instance.graph.index == 0x0043 and state.node.pos == 14:
+            ready = self.match.combat.zarya_melee_ready.get(self.body, 0)
+        else:
+            ready = self.match.combat.barriers.cooldown_ready_tick(state)
         return min(state.cur, max(0, ready - self.match.tick) * TICK * state.cooldown_rate)
 
     def body_owner_context(self, entity):
