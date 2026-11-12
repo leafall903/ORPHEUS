@@ -1,5 +1,6 @@
 """Original0068 projected break/world cooldown assertion on the same native Pet."""
 import unittest
+import math
 import test_ashe_pve_npcs as fixtures
 from test_game_combat import FakeClient, Run, aim
 from ow174.game import barriers, combat, npc
@@ -39,7 +40,8 @@ class ZaryaBreakClockTests(unittest.TestCase):
     @staticmethod
     def protected(service, caster, recipient):
         actor = service.authored_for(caster.body)
-        return actor is not None and actor.recipient is recipient and actor.vitals.total > 0
+        return (actor is not None and (actor.recipient or actor.parent) is recipient
+                and actor.vitals.total > 0)
 
     @staticmethod
     def projection_pitch(fight, caster, bot):
@@ -105,3 +107,69 @@ class ZaryaBreakClockTests(unittest.TestCase):
         self.assertTrue(pet.active)
         self.assertEqual(pet.counter, generation + 1)
         self.assertTrue(self.protected(service, caster, bot))
+
+
+
+    def test_silent_barrier_break_starts_energy_and_cooldown_at_actual_impact(self):
+        cases = [(definition, True) for definition in self.catalog.values()]
+        cases.append((next(iter(self.catalog.values())), False))
+        for definition, projected in cases:
+            with self.subTest(npc=definition.name, projected=projected):
+                run, fight, caster, ana, bot = self.ana_projection_arena(definition, protected=projected)
+                recipient = bot if projected else caster
+                cast = {caster: (-16384, self.projection_pitch(fight, caster, bot) if projected else 0, 16 if projected else 8)}
+                if not projected:
+                    caster.mover.position[:] = (0, 1, 5)
+                    caster.mover.body = None
+                    bot.position = (10, 1, 5)
+                    run.step(cast)
+                self.assertTrue(self.protected(fight.barriers, caster, recipient))
+                service = fight.barriers
+                pool = service.authored_for(caster.body).vitals
+                pool.damage(pool.total - 10)
+                script = caster.body_script
+                instance = next(i for i in script.component.instances.values()
+                                if i.graph.index == (0x025C if projected else 0x0244))
+                pet = instance.state(10 if projected else 2)
+                generation = pet.counter
+                start = run.frame
+                launch = start + 65
+                target = next(t for t in fight._targets() if t.owner is recipient)
+                vitals = fight.vitals_of(target)
+                before = vitals.total
+                yaw, pitch = aim(fight._eye(ana), (0, 2, 5))
+                run.match.update(launch * combat.TICK, launch, frames=False)
+                ana.take_commands([Command(launch, yaw=yaw, pitch=pitch, buttons=1, extra=0)])
+                self.assertEqual(len(fight.rockets), 1)
+                for hit in range(launch + 1, launch + 15):
+                    run.match.update(hit * combat.TICK, hit, frames=False)
+                    if not fight.rockets:
+                        break
+                self.assertEqual(pool.total, 0)
+                self.assertEqual(vitals.total, before)
+                self.assertFalse(self.protected(service, caster, recipient))
+                self.assertEqual(script.frame, start)
+                run.match.update((hit + 1) * combat.TICK, hit + 1, frames=False)
+                self.assertFalse(pet.active)
+                self.assertEqual(script.frame, hit)
+                cooldown = 8 if projected else 10
+                self.assertAlmostEqual(instance.vars[61].value(), cooldown, delta=0.025)
+                energy = script.component.entity_var(87)
+                self.assertEqual(energy.value(), 2)
+                run.match.update((hit + 1) * combat.TICK, hit + 1, frames=False)
+                self.assertEqual(energy.value(), 2)
+                self.assertNotIn((caster.body, projected), service.expiries)
+
+                run.frame = hit + 50
+                run.step({})
+                self.assertEqual(energy.value(), 2)
+                run.frame = hit + math.ceil(cooldown / combat.TICK) - 3
+                run.step(cast)
+                self.assertFalse(pet.active)
+                self.assertEqual(pet.counter, generation)
+                self.assertEqual(energy.value(), 0)
+                run.step({})
+                run.step({})
+                run.step(cast)
+                self.assertEqual(pet.counter, generation + 1)
+                self.assertTrue(self.protected(service, caster, recipient))

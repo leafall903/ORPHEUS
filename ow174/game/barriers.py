@@ -118,8 +118,9 @@ class Barriers:
             remaining = round(abs(expr.to_float(duration.cur) - expr.to_float(duration.destination())) * 1000
                               / rate)
         frame = (duration.last + remaining - 1) // script.frame_ms
-        if script.frame < frame < MAX_LEASE_FRAME:
-            elapsed = (frame - script.frame) * script.frame_ms
+        anchor = duration.instance.component.frame  # actual ctor callback; BodyScript.frame commits after command
+        if anchor < frame < MAX_LEASE_FRAME:
+            elapsed = (frame - anchor) * script.frame_ms
             started = caster.match.tick
             tick = started + math.ceil(elapsed / (TICK * 1000))
             expiry = BarrierExpiry(caster, duration, duration.counter, frame, tick, started)
@@ -149,12 +150,21 @@ class Barriers:
                     and not self.fight.is_dead(owner)):
                 if expiry.ended_ahead and self.fight.tick <= expiry.tick:
                     continue
-                if expiry.duration.active and self.fight.tick > expiry.tick:
-                    # Leave the expiry frame available for real input before running a neutral gap.
+                if (self.fight.tick > expiry.tick and (expiry.duration.active
+                        or (not expiry.duration.reached and script.frame < expiry.frame))):
+                    # Leave the expiry/contact frame available for real input before its neutral gap.
                     frame = expiry.frame + min(1, self.fight.tick - expiry.tick - 1)
                     owner._advance_body_gap(frame + 1)
                 if expiry.duration.active:
                     continue
+                if not expiry.duration.reached and self.fight.tick > expiry.tick:
+                    # Native child cleanup may queue the authored cooldown write
+                    # at the idle owner's old cursor. Settle that same value only
+                    # after its original contact-frame neutral gap has run.
+                    ability = self._ability(expiry.duration.instance, projected)
+                    boundary = expiry.frame * script.frame_ms
+                    if ability is not None and ability.cur > 0 and ability.last < boundary:
+                        ability.set_cooldown_start(boundary + ability.last % script.frame_ms)
                 self._record_cooldown(body, projected, expiry, script.frame_ms)
             self.expiries.pop((body, projected), None)
 
@@ -368,6 +378,9 @@ class Barriers:
             dealt = damage(self.fight, actor, amount, attacker=attacker)
             bubble.health = actor.vitals.total
             return dealt
+        if bubble.phase.instance.graph.index in (PERSONAL, PROJECTED):
+            bubble.health = 0.0
+            return 0.0  # the missing/exhausted native actor cannot recreate a proxy pool
         dealt = min(bubble.health, max(0.0, amount))
         bubble.health = max(0.0, bubble.health-dealt)
         if dealt and shooter is not None:
@@ -973,18 +986,38 @@ def damage(fight, barrier, amount, *, attacker=0):
             barrier.source.run_now()
         if remaining <= 0:
             expiry = _expiry(fight, barrier)
-            if expiry is not None and expiry.ended_ahead and not expiry.duration.active:
-                projected = barrier.recipient is not None
-                ability = fight.barriers._ability(expiry.duration.instance, projected)
-                if ability is not None and ability.last >= expiry.duration.ended_at:
-                    hit_frame = expiry.frame + fight.tick - expiry.tick
-                    at = hit_frame * barrier.source.frame_ms + ability.last - expiry.duration.ended_at
-                    ability.set_cooldown_start(at)
+            deferred = False
+            projected = barrier.recipient is not None
+            if expiry is not None:
+                duration = expiry.duration
+                hit_frame = expiry.frame + fight.tick - expiry.tick
+                if expiry.ended_ahead and not duration.active:
+                    ability = fight.barriers._ability(duration.instance, projected)
+                    if ability is not None and ability.last >= duration.ended_at:
+                        at = hit_frame * barrier.source.frame_ms + ability.last - duration.ended_at
+                        ability.set_cooldown_start(at)
+                elif duration.active:
+                    # Original0068 finishes the same duration at the contact's
+                    # mapped frame; the next world edge supplies its neutral gap.
+                    at = max(barrier.source.now, hit_frame * barrier.source.frame_ms)
+                    duration.request_finish(at - barrier.source.now)
+                    frame = min(expiry.frame, max(barrier.parent.body_script.frame + 1, hit_frame))
+                    expiry.tick += frame - expiry.frame
+                    expiry.frame = frame
+                    deferred = True
+            if projected:
+                old = fight.projected_barriers.get(barrier.recipient_body)
+                if old is not None and old.source == barrier.parent_body:
+                    fight.projected_barriers.pop(barrier.recipient_body, None)
+            else:
+                fight.personal_barriers.pop(barrier.parent_body, None)
+            fight.barriers.live.pop((barrier.parent_body, PROJECTED if projected else PERSONAL), None)
             barrier.component.set(478, True)
             barrier.component.run_now()
-            # Scoped break bridge. The child is not a player message sender.
-            # End the Pet so its authored cooldown and ability-stop links run.
-            _end_bubble(fight, barrier)
+            if deferred:
+                retire(fight, barrier.entity)
+            else:
+                _end_bubble(fight, barrier)
         return dealt
     legacy = fight.reinhardt_barriers.get(barrier.parent_body)
     if legacy is not None:
