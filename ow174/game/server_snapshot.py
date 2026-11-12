@@ -36,6 +36,7 @@ from ow174.game import (
     ball,
     barrier,
     assassin_victim,
+    ashe,
     barriers,
     breather,
     bots,
@@ -151,7 +152,7 @@ FIELDS = {
     combat.Combat: _names(
         "cryo_samples blizzard portals sentries molten_pools molten_burns torbjorn_marks hammer_contacts turrets match vitals history replacement_ticks input_locks booster_contacts rockets matrix_definitions sonic_profile sonars dragon_profile dragons dragon_pose_anchors pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen hammer_hits tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale reconstructed_volley_patterns "
-        "pulse_bombs junkrat venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
+        "pulse_bombs junkrat dynamite venom zenyatta projectiles observers voice stuns controls npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
         "punch_impacts punches slams meteors primal_bonus winston_jump primal_punches projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms reaper_shadows echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_sources frost_hits next_barrier assassin_victims ability_impacts ball_grapples orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
@@ -162,6 +163,7 @@ FIELDS = {
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
+    ashe.Dynamite: _names("combat grenades burns last_tick"),
     junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
     junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
@@ -298,6 +300,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    ashe.Grenade, ashe.Burn,
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
     entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
     scene.SceneEntity, scene.Placement,

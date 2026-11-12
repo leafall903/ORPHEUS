@@ -141,6 +141,7 @@ class Grenade:
     shot: object = None
     bounces: int = 0
     absorb_damage: float = 0.0
+    matrix_absorbable: bool | None = None
 
 
 @dataclass
@@ -826,6 +827,9 @@ class Dynamite:
         grenade = Grenade(shooter, shooter.body, shooter.team, tuple(origin),
                           tuple(speed * axis for axis in direction), tick,
                           tick + math.ceil(fuse_seconds / TICK), shot, absorb_damage=absorb_damage)
+        definition = 0x0400000000002533
+        grenade.matrix_absorbable = (definition in self.combat.matrix_definitions
+            if self.combat.matrix_definitions is not None else self.combat.projectile_tags.admitted(definition))
         self.grenades.append(grenade)
         return grenade
 
@@ -839,7 +843,8 @@ class Dynamite:
             # Deflect changes the combat body while the delivery keeps the launch body.
             if shot is not None and (item.body == body or shot.body == body):
                 item.shot = None
-                self.combat.projectiles.cancel(shot)
+                if shot in self.combat.projectiles.shots:
+                    self.combat.projectiles.intercepted(shot, self.combat.tick)
 
     def ray_hit(self, shooter, origin, direction, reach):
         """Closest owned grenade on the ray, without mutating it."""
@@ -897,16 +902,20 @@ class Dynamite:
                if collision is not None else None)
         limit = reach if hit is None else reach * hit[0]
         normal = hit[2] if hit is not None else None
-        ice = fight.ice_walls.cast(
-            item.position, direction, limit, radius=WORLD_RADIUS, vertical=WORLD_RADIUS)
-        if ice is not None and any(ice[2]) and (normal is None or ice[0] < limit):
-            limit, normal = ice[0], ice[2]
-        guard_hit = None
+        ice = fight.walls.cast(item.position, direction, limit, radius=WORLD_RADIUS)
+        if ice is not None and (normal is None or ice[0] < limit):
+            from ow174.game.mei_wall import ray
+
+            face = ray(ice[1], item.position, direction, reach)
+            if face is not None and face[1] is not None:
+                limit, normal = ice[0], face[1]
+        guard_hit = fight._deflector(item.shooter, 0x0400000000002533, item.position,
+                                     direction, limit, absorption_admitted=item.matrix_absorbable)
+        if guard_hit is not None and normal is not None and guard_hit[0] >= limit:
+            guard_hit = None  # original terrain tie precedes a projectile guard.
+        if guard_hit is not None:
+            limit = guard_hit[0]
         enemies = fight._enemies(item.shooter)
-        for target in enemies:
-            guard = fight._projectile_guard(target, item.position, direction, limit)
-            if guard is not None and (guard[0] < limit or (normal is None and guard_hit is None)):
-                limit, guard_hit = guard[0], (target.owner, guard[1])
         # D79F00 rebounds admitted entity contacts. Use the static hostile
         # capsules as the query and keep the guard and terrain ties ahead of bodies.
         for target in enemies:
@@ -922,15 +931,18 @@ class Dynamite:
                 normal = tuple(part / length for part in offset)
                 guard_hit = None
         if guard_hit is not None:
-            defender, absorber = guard_hit
-            if absorber is not None:
+            from ow174.game import absorption
+            from ow174.game.combat import HitDef
+
+            _, target, _, absorbed, guard = guard_hit
+            defender = target.owner
+            if absorbed:
                 self.grenades.remove(item)
-                fight.absorb_projectile(absorber, item.shooter, item.absorb_damage)
+                if guard is not None and guard.instance.graph.index == absorption.GRASP:
+                    fight.absorption.absorbed(guard, HitDef(item.absorb_damage, None), None, item.body)
                 if item.shot is not None:
-                    fight.projectiles.cancel(item.shot)
+                    fight.projectiles.intercepted(item.shot, fight.tick)
                 return
-            # Reconstruct ownership and velocity at contact. The fuse and original
-            # projectile delivery record keep their launch clocks.
             item.position = tuple(a + b * limit for a, b in zip(item.position, direction, strict=True))
             item.shooter, item.body, item.team = defender, defender.body, defender.team
             item.velocity = tuple(speed * axis for axis in aim(defender.mover.yaw, defender.mover.pitch))
@@ -952,60 +964,35 @@ class Dynamite:
         return BLAST_MAX + (BLAST_MIN - BLAST_MAX) * fraction
 
     def detonate(self, item):
-        from ow174.game import immunity
-        from ow174.game.combat import PERSONAL_BARRIER_RADIUS, segment_distance
+        from ow174.game.combat import HitDef, Rocket
 
         if item not in self.grenades:
             return False
         blast_tags = _dynamite_tags(0x1502, 15)
         burn_tags = _dynamite_tags(0x150F, 1)
-        self.grenades.remove(item)  # retire before damage/death callbacks can run
+        self.grenades.remove(item)
         fight = self.combat
         if item.shot is not None:
             fight.projectiles.flown(item.shot, (fight.tick - item.born) * TICK)
-        targets = fight._targets()
-        protected = fight.world_barriers.explosion(item.shooter, item.position, targets, self._blast_amount)
-        for host in (fight.sigma_barriers, fight.orisa_barriers, fight.reinhardt_barriers):
-            protected.update(host.explosion(
-                item.shooter, item.position, targets, BLAST_RADIUS, self._blast_amount,
-            ))
-        for target in targets:
-            if target.entity in protected:
+        blast = HitDef(BLAST_MAX, LOADOUT, rings=((INNER_RADIUS, 1.0), (BLAST_RADIUS, BLAST_MIN / BLAST_MAX)),
+                       self_scale=0.5, tags=blast_tags)
+        rocket = Rocket(item.shooter, item.team, item.position, (0, 0, 1), 0, 0, None, blast,
+                        source_body=item.body)
+        affected = set()
+        fight._explode(rocket, item.position, victims_out=affected)
+        for target in fight._targets():
+            if target.entity not in affected or fight.vitals_of(target).dead or self._burn_ends(target):
                 continue
             own = target.owner is item.shooter and target.entity == item.body
-            if not own and not fight.is_enemy(item.shooter, target):
-                continue
-            if fight.vitals_of(target).dead or immunity.damage_immune(target.owner, target.entity):
-                continue
-            phase = None if own else fight.barrier_phase(target)
-            if phase is not None:
-                centre = (target.feet[0], target.feet[1] + target.height / 2, target.feet[2])
-                distance = max(0.0, math.dist(item.position, centre) - PERSONAL_BARRIER_RADIUS)
-            else:
-                a, b = target.segment()
-                distance = max(0.0, segment_distance(item.position, a, b) - target.radius)
-            amount = self._blast_amount(distance)
-            if not amount or not self._visible(item.position, target):
-                continue
-            if phase is not None:
-                # The whole blast resolves against the bubble, even on break.
-                fight.damage_personal_barrier(target.entity, phase, item.shooter, amount)
-                continue
-            scale = 0.5 if own else 1.0
-            fight._damage(item.shooter, target, amount * scale, False, LOADOUT, fight.tick,
-                          world_tick=fight.tick, damage_tags=blast_tags)
-            if not fight.vitals_of(target).dead and not self._burn_ends(target):
-                # 1502/21 plays 150F with policy 3, replacing the target's
-                # running burn regardless of which Ashe applied it.
-                for key in tuple(self.burns):
-                    if key[1] == target.entity:
-                        del self.burns[key]
-                self.burns[(item.body, target.entity)] = Burn(
-                    item.shooter, item.body, target.entity, fight.tick,
-                    fight.tick + math.ceil(BURN_SECONDS / TICK),
-                    fight.tick + math.ceil(BURN_STEP / TICK), BURN_TOTAL * scale / 20, tags=burn_tags,
-                )
-        fight.ice_walls.blast(item.shooter, item.position, self._blast_amount)
+            for key in tuple(self.burns):
+                if key[1] == target.entity:
+                    del self.burns[key]
+            self.burns[item.body, target.entity] = Burn(
+                item.shooter, item.body, target.entity, fight.tick,
+                fight.tick + math.ceil(BURN_SECONDS / TICK),
+                fight.tick + math.ceil(BURN_STEP / TICK), BURN_TOTAL * (0.5 if own else 1.0) / 20,
+                tags=burn_tags,
+            )
         return True
 
     def _visible(self, origin, target):
@@ -1018,7 +1005,7 @@ class Dynamite:
         direction = tuple(axis / distance for axis in delta)
         hit = collision.cast_ray(origin, direction, distance) if collision is not None else None
         return ((hit is None or hit.distance >= distance - 1e-6)
-                and not self.combat.ice_walls.blocks(origin, point))
+                and not self.combat.walls.blocked(origin, point))
 
     @staticmethod
     def _burn_ends(target):
@@ -1039,12 +1026,12 @@ class Dynamite:
         for key, burn in list(self.burns.items()):
             target = targets.get(burn.target)
             if (target is None or fight.vitals_of(target).dead or self._burn_ends(target)
-                    or (target.owner is not burn.shooter and not fight.is_enemy(burn.shooter, target))):
+                    or (target.owner is not burn.shooter and not (fight.match.game_map.free_for_all or target.team != burn.shooter.team))):
                 self.burns.pop(key, None)
                 continue
             if tick >= burn.next_damage and burn.pulses < 20:
                 fight._damage(burn.shooter, target, burn.damage, False, LOADOUT, tick,
-                              world_tick=tick, damage_tags=burn.tags)
+                              world_tick=tick, hit_tags=burn.tags, source_body=burn.source)
                 burn.pulses += 1
                 # Absolute phase avoids accumulating ceil(0.25 / 0.016) rounding error.
                 burn.next_damage = burn.start + math.ceil((burn.pulses + 1) * BURN_STEP / TICK)

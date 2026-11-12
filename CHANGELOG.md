@@ -9302,3 +9302,37 @@ blast/burn/source lifetime through actual shared defenses and state storage, the
 Coach impulse/reload interlocks, BOB actual NPC/driver/gun/charge. Root is handling
 0065 archives_thunderstorm second34924 branch; this worker has no WIP there.
 Other0065/Tracer original fixture residuals remain in A42, not abandoned or greened.
+
+
+## A44 - original Ashe Dynamite on shared defenses and damage
+
+Mounted original14FD throw, curved/swept/bounced Grenade, launch-owned fuse and
+absorption eligibility, owned Viper shot trigger, blast/falloff/self-half damage,
+20-pulse burn/replacement and owner/deflector retirement. Uses current _deflector/
+absorption and one _explode/_damage path; no old shield/wall manager or health
+pool restored. Optional _explode.victims_out reports real landed bodies for burn,
+keeping native_impact_body/protected_out intact. Original explicitAshe loadout
+admits self_scale=.5; unrelated explosion defaults unchanged. health_tags(None)
+accepts only original static Identifier configs; dynamic configs require State.
+
+Restored only original mesh_sweep/scene_sweep hit_touching=False optional plumbing:
+default math unchanged, True includes approaching initial contact. Native contacts9
+pass. Original Dynamite19 full run initially had3 errors; actual cancellation now
+fixed through existing intercepted observer lifecycle. One method still has two
+legacy damage_tags-keyword spy errors (current actualhit_tags), assertions kept.
+Focused actual cancellation/half-self/nonowner-trigger plus Damage/Timing18 pass;
+Genji fuse/ownership/thrower/reflector retirement3 original methods pass. Additional
+real Grasp interception and Cryo burn cleanse pass; old Matrix fixture int hero
+metadata and personal_barriers observer fail before/after current real services,
+retained without fake aliases. Actual launched grenade and landed burn strict
+stored export/digest probe passes. Logs worker-a-ashe-dynamite-{full,shared,
+deflect-second,defense,snapshot}.log and worker-a-ashe-contacts.log.
+
+Necessary original input:0200/ashe-parent-navigation-prepared-entities.json.gz,
+21 graphs/7 entities incl2533/25C3, source hashes unchanged. Worker external
+worker-a-ashe-graphs.json.gz is a strict nonreplacing union with composedv11;
+root is auditing authoritative current graph/controller/mover composition. No
+runtime-base edits, full assets, client run or publication. Full original controls/
+BOB fixture dependencies saved; BOB itself remains unmounted, not counted complete.
+Next exact action: source Coach recoil/pellet impulse and reload interlocks on the
+existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/charge.
