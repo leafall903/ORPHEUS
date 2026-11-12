@@ -210,3 +210,11 @@ Root still owns0020 formal source admission and cross-owner old defense managers
 Next exact code work is0005's missing Hanzo charge/control/movement modules, with
 0003 Recall/Pulse reconciled against its already-mounted combined managers, then
 000A. Avoid copying old cross-owner managers merely to recover their names.
+
+At the clean A10 boundary worker A absorbed root9c842c3e. All32 mixed checks
+passed without skips using `parallel-merge/runtime-inputs-v1/environment.json`.
+Load that file's environment properties into the process, also set
+ORPHEUS_NPC_DATA=combined-server-runtime/data and PYTHONPATH=tests. The profile
+contains the explicit original Mercy bindings/graphs, DVa graph/movers and full
+3528-projectile tags; worker does not alter its files. Next work is Hanzo charge/
+control (modules absent), followed by lunge/climb/native pose consumers.

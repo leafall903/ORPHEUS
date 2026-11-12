@@ -26,10 +26,11 @@ def _box(origin, direction, low, high, length):
     return enter
 
 
-def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb')):
+def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb'), direction=None, eye_of=None):
     from ow174.game.combat import aim
     from ow174.game.script.expr import Vec3
 
+    flight_direction = rocket.direction if direction is None else direction
     best = None
     for target in fight._enemies(rocket.shooter):
         owner = target.owner
@@ -43,10 +44,10 @@ def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb')):
         right = (math.cos(yaw), 0.0, -math.sin(yaw))
         up = (math.sin(yaw) * math.sin(pitch), math.cos(pitch), math.cos(yaw) * math.sin(pitch))
         axes = right, up, forward
-        eye = fight._eye(owner)
+        eye = fight._eye(owner) if eye_of is None else eye_of(owner)
         delta = tuple(p - e for p, e in zip(rocket.position, eye, strict=True))
         origin = tuple(_dot(delta, axis) for axis in axes)
-        direction = tuple(_dot(rocket.direction, axis) for axis in axes)
+        direction = tuple(_dot(flight_direction, axis) for axis in axes)
         for instance in script.component.instances.values():
             for state in instance.states.values():
                 if not state.active or state.node.cls != 'STUStatescriptStateDeflectProjectiles':
@@ -58,7 +59,7 @@ def intercept(fight, rocket, length, excluded, *, modes=('reflect', 'absorb')):
                 angle = state.evaluate(state.node.field('m_025D0C39'), watch=False)
                 if not isinstance(angle, (int, float)):
                     continue
-                if -_dot(forward, rocket.direction) + 1e-9 < math.cos(math.radians(angle)):
+                if -_dot(forward, flight_direction) + 1e-9 < math.cos(math.radians(angle)):
                     continue
                 for row in state.node.field('m_boxes') or ():
                     low = state.evaluate(row.get('m_CBA118B2'), watch=False)

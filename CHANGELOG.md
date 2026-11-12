@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Synchronize worker A with the explicit merged input loader
+
+- Merge stable9c842c3e and retain shared NPC attack-mode/spatial fixes, Echo
+  motion changes and the original effect-binding supplement loader/preparer.
+  Keep all A9 chronology and A10 metadata/interfaces during reconciliation.
+- Load the root's existing runtime-inputs-v1 environment profile without editing
+  source packs. All32 mixed Mercy boost/effects, NPC recovery, cooldown and
+  runtime checks passed with no skips under the combined explicit inputs.
+
 ### Preserve delivered Zenyatta dependency interfaces
 
 - Retain the original barrier graph/hero and Flashbang hero constants used by
@@ -37,6 +46,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   existing external inputs while preserving the original packs. No runtime data
   was changed by this worker and no original-client acceptance is claimed.
 
+### Restore delivered manual NPC melee and charge entry points
+
+- Restore the original mutually exclusive melee/charge/reposition selection
+  through current NPC input and Heavy Assault services. Preserve ordinary
+  primary/autonomous policy, explicit mode stop/reset, authored charge windup
+  and movement, and suppress ordinary pursuit for explicit stationary attacks.
+- Reuse the canonical one-shot melee consumer for the explicit melee mode.
+  An unsupported BotWorld spatial context now returns NotImplemented instead
+  of dereferencing the D.Va-only body field and retiring the Heavy script.
+- Existing62 NPC control/navigation checks pass. Actual close Trooper/Heavy
+  inputs produce25/75 armour-adjusted damage, stop cleanly and emit no primary
+  projectile. Actual Recon wall charge preserves49-tick windup and295 damage.
+- Preserve the unchanged original fixture failures: Trooper at2m is rejected
+  by the now-hosted authored1.5m feet-distance guard; Sentry Heavy melee has a
+  displacement difference. The legacy charge observation uses absent
+  heavy_drives; a direct three-form probe also finds Sentry returning to Recon
+  during capture, yielding295 versus expected235. Keep these owner interlocks
+  open rather than weakening assertions or claiming complete NPC acceptance.
 ### Mount delivered manual NPC difficulty and conditional health pools
 
 - Preserve0020's four-tier143A selector, conditional health/shield pool records,
@@ -113,6 +140,70 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Preserve Doomfist defense consumers and flight budget
+
+- Retain original10 Wraith,15 Deflect and20 Grasp scenarios using actual
+  canonical services for their renamed observations. Wraith10 and Deflect15
+  pass with explicit complete external projectile tags; all13 passive checks
+  pass alongside Deflect (28 total).
+- Restore the delivered reflection endpoint policy: only move the separation
+  epsilon that remaining flight can pay for, and count it in travelled
+  distance. Keep source shield grant deadline/cap separate from the advancing
+  integration cursor and depleted wire maximum. Existing positional shield
+  constructor arguments remain unchanged; new stored fields are appended.
+- Preserve Grasp's first20-check result (one failure/four errors), concerning
+  old aggregate-field observations and source pool_reports versus native extra
+  pool staging. Actual023B pending/posed/fault consumers still need audit.
+- Echo/Genji shared33-check regression has7 failures/2 errors both with this
+  change and HEAD's original sweep function. Retain both logs; no original
+  check was removed. Whole-line/client acceptance remains open, no push.
+
+### Retain Doomfist input and Meteor lifecycle checks
+
+- Preserve the original magazine/resource, Flashbang-interrupt, throttle and
+  held-primary suites: all22 checks pass unchanged against the mounted hosts.
+- Reconcile original Meteor observation APIs with canonical sleep deadlines,
+  frost storage, damage immunity, lazy respawn vitals and Hack application/lock
+  deadline. Keep the original5000ms effect check on the actual applied lock.
+  All9 original lifecycle scenarios pass across the seven initial successes
+  and the two focused follow-ups; no assertion or case was dropped.
+- Preserve TemporaryShield's existing fifth positional activation argument;
+  append pool_id after it and use a keyword for the new producer. The original
+  positional snapshot fixture plus13 passive checks pass (14 total).
+- Remaining source defense/barrier/NPC equivalents and full-line audit stay
+  open; original-client acceptance is unchanged. No client, network or push.
+
+### Mount delivered manual Sniper repositioning
+
+- Preserve Bastion delivery0015's original sniper_reposition.py unchanged.
+  Restore the existing manual reposition argument, authored wait/MoveTo,
+  cooldown, stop/target-loss handling and post-reposition weapon resumption.
+  Route this explicit mode through current navigation without replacing the
+  existing automatic142C retreat or ordinary pursuit.
+- Retain the attack mode in Bot initialization/death and enclosing snapshots.
+  All three unchanged original NPC reposition checks passed against the actual
+  external NPC graph/catalog/mover inputs, without a source-package import
+  fallback. Shared NPC/navigation checks continue separately.
+- C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
+  Roll/runtime and Slam checks passed after preserving both velocity adapters.
+
+### Mount delivered Hand Cannon scatter and shield-pool policy
+
+- Route0D0A's eleven independently colliding pellets through the delivered
+  radial spread/jitter generator and server seed binding. Retain the null
+  critical sentinel and honor an explicit positive projectile critical value.
+- Mount source Vitals aggregate shield add/decay consumers, cap/no-delay-reset
+  policy, source pool identity and explicit zero-ID retirement. Preserve other
+  existing temporary-shield producers' default identity. Exclude temporary
+  shield loss from Doomfist's authored damage charge.
+- All21 original Hand Cannon checks,13 passive-shield checks and the Meteor
+  temporary-shield charge regression pass (35 total). This includes the two
+  source API/wire checks reported during canonical Uppercut intake. Previously
+  failing released-pellet Meteor scenarios and health-loss charge also pass.
+- Remaining original Meteor shared-service API observations, NPC/status/barrier
+  interlocks and the whole-line audit are still pending. Original-client
+  acceptance remains open. No external inputs copied, client launch or push.
+
 ### Mount delivered Doomfist Uppercut consumers
 
 - Mount the retained Uppercut host with the delivered sphere, dual-height/Cryo
@@ -148,6 +239,66 @@ This log records tested changes and their acceptance status. Entries are grouped
   follow-up reconciliation. Incomplete acceptance does not block this mounted
   implementation submission. Uppercut and other Doomfist shared consumers
   remain pending. Original-client acceptance remains open; no client or push.
+### Mount delivered Pharah blast and impulse consumers
+
+- Mount authored self-damage, independent force rings, source force scaling,
+  vertical minimum and owner blast geometry. Zero-damage Concussion gets an
+  authoritative host even without a prediction lease; it applies force through
+  existing world/shield services without damage, charge or hit markers.
+- Retain the original modifier26 response and one-frame vector ADD adapter,
+  applied after persistent SET. Body replacement retires queued local impulses.
+  Use true impact distance/normal and incident chord separately from cover bias;
+  preserve source LOS admission, Fortify/phase exclusions and existing health pools.
+- Fix the C6 cross-owner motion collision reported by worker B: only an explicit
+  source002B/barrage_source tag enters the seven-field curve parser, curve-eye
+  selection or curve redirect. Preserve other owners' motion payloads and their
+  ordinary gravity/sticky lifecycle rather than guessing from tuple shape.
+- All34 original Pharah impulse/Helix/Tank/physics checks pass; all five original
+  curve/reflection checks still pass after the tag fix. Echo Deflect completes
+  eight checks without a motion-parser error: six pass, two retained payload/
+  copied-charge expectations differ in this pre-A7 worktree. Source checks stay
+  unchanged; latest root Echo code will be synchronized at the clean boundary.
+- Full C6 server-snapshot run remains active; no complete Pharah/client or
+  remaining NPC/control/charge acceptance is claimed by this batch.
+
+### Mount delivered Pharah curved reflection and launch contacts
+
+- Retain reflected Barrage eye origin, original-state seed replay,5s lifetime/
+  100m range restart and residual-tick curve phase. A live source state supplies
+  spread; replaced launch bodies fall back to defender raw aim. Continue a
+  redirected shell across subsequent catch-up ticks and keep the existing bounded
+  reflection policy. Shared support attribution remains in the combined route.
+- Feed actual curved chord direction and the scoped authored defense eye into
+  the existing interception service via optional inputs; other callers retain
+  their defaults. Preserve Pharah0032 standing/crouched offsets and the original
+  spring-aware volley origin. Its body-extent assistance compares contact plus
+  query radius; static walls retain point contact rather than an enlarged sphere.
+- All five original curve/reflection checks pass, including partial-tick and
+  delayed-copy equivalence. Original eye/Helix/channel run:18/19 pass, with the
+  retained McCree double-hit expectation still failing. The43-check Genji/Baptiste
+  run retains6 failures and2 errors: all6 failures plus the Mei bubble error
+  reproduce at the preceding commit; the other error requires explicit NPC data.
+  Keep these checks and no relaxed assertions.
+- C6's full server-snapshot regression still runs independently; root's focused
+  C6 curve/Helix/storage14 checks passed. Remaining Pharah splash/self-splash/
+  impulse and cross-hero control/charge reconciliation stay open.
+
+### Mount delivered Pharah Barrage control interruption
+
+- Mount the original002B entity33 stack abort through combined combat-control
+  interruption and Sombra's existing interrupt service. Unwind channel volley,
+  duration and movement mods while preserving the permanent ultimate listener.
+- Preserve the original eight control checks unchanged. The previously failing
+  Flashbang/Barrage abort/recast case now passes, as do the five Barrage movement
+  checks. Four pre-existing subcase failures remain in Flashbang launch timing
+  and McCree post-roll hit-count expectations, identical to the baseline.
+- A real Pharah body/Sombra interrupt-service probe confirms abort and recast;
+  all26 shared script-runtime/Reaper-Shadow checks pass. Keep normal source
+  checks and known failures without weakening assertions or blocking submission.
+- C6's full shared Helix/Tank/server-snapshot run remains active at this commit;
+  record its final outcome next. Original curved-flight reflection eye/seed/
+  lifetime restart and Pharah splash/impulse remain for subsequent batches.
+
 ### Mount delivered Pharah Barrage launch and curved flight
 
 - Mount the original barrage_motion sampler, seed/quantization and two motion
@@ -233,6 +384,39 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Meteor and the remaining Doomfist shared-service consumers still need
   integration. Original-client geometry/presentation acceptance remains open;
   no game client, network access, publication or push was performed.
+### Mount delivered NPC shield recovery for the Zenyatta line
+
+- Mount0020's0E62 shield query, actual-damage notification, authored waiting/
+  rearm and recovery states in BotWorld and retained combat catch-up. Restore
+  only the existing basic shield pool and use the combined timed healing factor;
+  do not heal health or add another regeneration pool/clock.
+- Preserve the original real-Zenyatta-hit recovery assertions in a focused
+  delivery file. Its arena omits only the unsupported explicit default
+  difficulty=None keyword. Nondefault NPC difficulty/pool-profile mounting is
+  still pending and is not covered by this fixture. All14 recovery/runtime
+  checks passed using the existing combined NPC catalog, graphs and movers.
+- D.Va core modules, placement and linked-entity consumers match the frozen
+  delivery; retain the earlier documented combined-service adaptations and
+  original compatibility failures. Formal source-ref reconciliation remains
+  with the root coordinator, without requiring whole-client acceptance first.
+
+### Preserve delivered D.Va launch vectors and single landing damage
+
+- Keep D.Va's native quantized volley directions when the shared NPC emission
+  path runs; the generic Enforcer fallback must not overwrite the already
+  resolved Micro Missiles direction. Retain that fallback for other NPC heroes.
+- Flush only positive elapsed time when ending a continuous health state.
+  A zero-time end no longer replays Call Mech's250-damage entry as another hit.
+- All18 targeted launch/landing/fuse/runtime checks passed unchanged. An actual
+  partial Cryo cancellation probe retained the same129.53846 health as the
+  previous end callback, including its continuous healing tail. The29-check
+  Ana/Cryo/healing suite retained exactly the same five failures/25 subcase
+  errors with both callbacks (old source API/health expectations); keep them.
+- Matrix plus held primary still differs from the old D.Va walk-penalty check:
+  the delivered newer button service rejects disabled primary conditions while
+  the old007A query read held primary regardless of disablement. Preserve both
+  source checks; do not remove the newer shared button implementation to pass it.
+
 ### Reconcile delivered D.Va entry immunity and retired projectile ownership
 
 - Mount007A's026A entry-scope/CombatModFilter intersection for the pilot only,

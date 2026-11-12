@@ -58,6 +58,43 @@ alone is not evidence that a line's consumers are actually mounted.
   follow-up passes all5 checks. Queued Uppercut report getter-free enclosing
   server snapshot repeatability/causality also passes. Source fixture cap/delay
   reads use the existing canonical shield-object fields; assertions remain.
+- Uppercut batch `8759d171` submitted. Hand Cannon now mounts original radial
+  eleven-pellet scatter, seeded jitter, explicit critical handling and null
+  sentinel. Original21 Hand Cannon checks all pass.
+- The source aggregate shield add/decay API and low-range pool identity now
+  mount over canonical TemporaryShield; other producers retain their existing
+  default identity. Original13 passive checks all pass, including capped-delay
+  retention and exact pool2/clear-to0 wire checks. Doomfist damage charge uses
+  ordinary health loss, excluding temporary shield damage as the source did.
+  Combined21+13+the Meteor temporary-shield charge regression: all35 pass.
+- Hand Cannon/pool batch `7f9b0e73` submitted. Preserve TemporaryShield's
+  existing fifth positional activation argument; pool_id is appended after it
+  and the Doomfist producer passes pool_id by keyword. The existing positional
+  snapshot fixture plus13 passive checks pass (14 total).
+- All9 original Meteor lifecycle scenarios now pass across the first7-pass run
+  and the two focused API follow-ups. Their observations use actual sleep
+  deadlines, frost storage, immunity admission, lazy body-vitals acquisition,
+  and Hack's actual application/deadline, retaining the original5000ms check.
+- Retained original resources/interrupts/throttles/held-primary suites: all22
+  checks pass without behavior/assertion changes. These exercise real ability
+  input, magazine clocks, Flashbang exits, movement gates and retained fire.
+- Input/lifecycle batch `f694f758` submitted; canonical `728e6abe` synchronized
+  in local merge `2ac8acae` before the cross-hero defense audit.
+- Retained original Wraith10 and Deflect15 scenarios; all pass with current
+  mounted Reaper/Genji services and the explicit complete projectile-tag input.
+  The source reflection-budget endpoint check found a genuine free epsilon
+  displacement; separation now uses and charges only remaining flight budget.
+- Preserve the source pool grant deadline/cap separately from decay integration
+  cursor/depletion. Together with13 passive checks, the Deflect run passes28.
+- Original20 Grasp checks are retained. The first run has one failure and four
+  errors: source aggregate deadline/rate observations differ from canonical
+  native extra pools, and three checks refer to the source pool_reports queue.
+  Audit actual pending grant/posed/fault semantics during023B integration; do
+  not weaken or remove these checks or assume a missing name means no Grasp.
+- Shared Echo/Genji Deflect33 checks have7 failures/2 errors both before and
+  after this reflection change. The baseline uses HEAD's exact _sweep_rocket
+  function in process, preserving the WIP tree. Evidence is retained outside
+  Git at worker-b-reflection-shared.log and its -baseline counterpart.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -69,9 +106,9 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount original eleven-pellet Hand Cannon scatter and its remaining source
-   target/damage consumers. Reconcile Meteor's original shared-service API
-   observations against current APIs without dropping behavior assertions.
+1. Audit remaining Doomfist barrier/NPC source services against mounted
+   canonical equivalents. Preserve original checks and source docs; report
+   actual missing consumers separately from renamed helper APIs.
 2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
    Uppercut or Meteor as a complete Doomfist line.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

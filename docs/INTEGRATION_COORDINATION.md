@@ -134,3 +134,91 @@ passed after reconciling shared combat code. The original Pharah fixture still
 loads the real frozen Sigma helper via package fallback solely for its top-level
 import; these checks do not claim Sigma integration. Worker C continues the
 delivered reflected-curve restart/eye/seed consumers separately.
+
+A6 `9669c2f4` is received as `72891263`; all18 original quantized-missile,
+single-landing, released-bomb/runtime checks passed. C7 `2d2da024` is received
+as `83dd1eee`; retain the four original control subcase failures (two concussion
+boundaries, two post-Roll hit-count cases) matching the recorded owner baseline.
+The shared26 runtime/Shadow checks pass and Barrage abort/recast is mounted.
+
+B5 `7f9b0e73` restores Hand Cannon radial launch, typed critical behavior,
+temporary-pool allocation/decay/retirement and Doomfist charge admission. Root
+keeps TemporaryShield's fifth positional activation argument intact, appending
+pool_id after it and passing the new ID by keyword. This preserves existing
+Sigma shield production and Echo/storage fixtures. All36 combined owner/charge/
+storage checks and two existing positional-contract/storage checks passed.
+The two passive-shield failures recorded for B4 are resolved without removing
+their original expected values.
+
+Root restored the original manual NPC melee/charge arguments over current
+services, retaining original checks and explicit input/navigation modes. The
+unsupported spatial-context guard avoids a real Heavy Assault VM retirement.
+All62 existing NPC control/navigation checks pass; actual close Trooper/Heavy
+melee25/75, stop/reset and Recon charge295 probes pass. Original at2m Trooper,
+Sentry displacement and captured Sentry wall-damage differences remain recorded
+in `parallel-root-manual-*-check.log`; the old heavy_drives observer also needs
+mapping to current charge state. Preserve the original assertions. Worker C
+owns Bastion stance/control follow-up; root retains NPC API/navigation scope.
+
+A7 `d4d3bc4c` is received as `1f2686ec`;75 shared checks passed, and the real
+NPC shield check passed separately with ORPHEUS_NPC_DATA pointing at the prepared
+runtime data. B6 `f694f758` is received as `791034c6`;35 original input/resource/
+runtime checks passed after submission. Original lifecycle assertions use the
+combined sleep/lock/vitals storage adapters, retaining their expected values.
+
+C8 `20598453` is received as `f3989db0`; all five original curve/reflection
+checks passed and five eye checks passed. Preserve the existing McCree hit-count
+subcase failure. B7 `6f7ef665` is received as `3dd5aa86`;37 focused checks passed,
+and the original endpoint budget check passed with the existing full projectile
+tags from hero-lanes/006E/prepared/projectile_tags_174.json explicitly selected.
+
+C9 `e9849f58` is received by the merge named `merge: receive worker C Pharah
+impulses and tagged curves`. The explicit is_barrage marker separates the
+seven-field sampler from Echo's existing one-field motion payload. All30
+Pharah impulse/curve/reflection/physics checks and six Echo checks passed;
+preserve two original Echo damage/copied-charge differences. The parser
+exceptions are resolved, without deleting either motion implementation.
+
+Next root prepared-input audit: the external Mercy effect pack contains four
+effect bindings and three additional graphs absent from the base pack. Current
+graph supplements reject effect_scripts. Keep base inputs unchanged and connect
+those original prepared inputs through an explicit composition/loading path.
+The default projectile catalog is empty without ORPHEUS_PROJECTILE_TAGS; the
+full existing catalog must also be configured for the integrated server. Audit
+the remaining Echo differences as actual consumers rather than discarding them
+as baseline failures. A8 conditional NPC pools remains a ready independent batch.
+
+A8 `c6775daf` is received as `21c701bc`; all89 combined original four-tier
+NPC pool/hit/wire/healing/shield/runtime/basic-damage/navigation checks passed.
+Conditional capacity remains separate from ordinary, wave and temporary pools.
+
+## Prepared integration inputs
+
+The root now connects the existing effect bindings through graph supplements,
+with conflict/dangling-binding rejection. Base files are never overwritten.
+`tools/prepare_hero_inputs.py` composes the existing Mercy effect pack and D.Va
+supplement, validates the full projectile catalog, and writes only a small graph
+supplement plus an environment/provenance manifest outside the worktree.
+
+Current generated profile:
+`verification/parallel-merge/runtime-inputs-v1/environment.json`.
+It selects the existing combined runtime, derived hero-graphs supplement,
+original mech mover supplement and the original full3528-definition projectile
+catalog. The supplement adds10 graphs, one entity and four effect bindings.
+All shared graphs and other metadata in the Mercy pack exactly match the base.
+Source SHA256 values are checked before/after generation and retained in the
+manifest. Five loader checks passed; using the generated environment, all13
+original Mercy boost/charge/effects checks plus the original Deflect endpoint
+check passed without skips. These are server checks, not game-client acceptance.
+
+Reproduce from this worktree:
+
+```powershell
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-v2
+$profile = Get-Content ../parallel-merge/runtime-inputs-v1/environment.json -Raw | ConvertFrom-Json
+foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
+```
+
+Use the loaded process environment for the existing Python server entry point
+and checks. A new output directory is required when recomposing; original packs
+and prior generated profiles stay intact. The profile has no appearance input.

@@ -488,7 +488,7 @@ class BodyWorld(runtime.World):
         return self._body_owner_context
 
     def spatial_query_context(self, entity):
-        if self.match is not None and entity == self.body:
+        if self.match is not None and entity == getattr(self, "body", None):
             return getattr(self, "_spatial_query_context", NotImplemented)
         return NotImplemented
 
@@ -2321,6 +2321,24 @@ class BodyScript(ReplicatedBody):
         after = min(cost, f32(before + min(points, cost - before)))
         self.set_ult_charge(after)
         return after - before
+
+    def interrupt_control(self) -> None:
+        """Scoped Barrage abort for the reconstructed authoritative control service.
+
+        Graph002B's #33 stack aborts itself when a higher control stack wins,
+        unwinding its #7605 stack, duration Wait, volley and movement mods. The
+        persistent ultimate button listener stays alive for a later activation.
+        This does not host the native status/priority manager or other heroes.
+        """
+        if self.hero != 0x02E0000000000008 or self.component.owner_dead:
+            return
+        for instance in list(self.component.instances.values()):
+            if instance.graph.index != 0x2B:
+                continue
+            for state in list(instance.states.values()):
+                if (state.active and state.node.cls == "STUStatescriptStateStack"
+                        and expr.lvalue(state.node.field("m_out_Var")) == (graph.ENTITY, 33)):
+                    state.end(False)
 
     def _charge_ult(self) -> None:
         if self.hero == BASTION:
