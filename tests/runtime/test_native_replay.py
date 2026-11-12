@@ -297,19 +297,15 @@ class NativeReplayTests(unittest.TestCase):
             run = Run()
         player = run.players[0]
         document = {"header": header(player.body_script), "events": []}
-        context = document["header"]
-        initial = BodyScript(
-            context["hero"], context["entity"], context["start_frame"],
-            quanta=context["quanta_us"], mode=context["mode"], health=context["health"],
-            ult_seconds=context["ult_seconds"], communication_wheel=context["communication_wheel"],
-        )
-        # Match hooks can allocate states and supply values to live body queries.
-        # Allocation order affects later traversal; the body-only trace replays neither input.
-        actual_snapshot, initial_snapshot = (
-            stored_snapshot(script) for script in (player.body_script, initial)
-        )
-        actual_order = [instance["state_order"] for instance in actual_snapshot["instances"]]
-        initial_order = [instance["state_order"] for instance in initial_snapshot["instances"]]
+        # Compare with the actual constructor boundary, which saw the Match owner's mover pose.
+        # Subsequent projectile-lease discovery allocates additional inactive states.
+        constructor_hash, initial_snapshot = constructor_snapshots[player.body_script]
+        actual_snapshot = stored_snapshot(player.body_script)
+        actual_order, initial_order = [], []
+        for snapshot, orders in ((actual_snapshot, actual_order), (initial_snapshot, initial_order)):
+            for instance in snapshot["instances"]:
+                orders.append(instance.pop("state_order"))
+        self.assertEqual(actual_snapshot, initial_snapshot)
         self.assertNotEqual(actual_order, initial_order)
         original = run.match.body_command
 
@@ -337,6 +333,50 @@ class NativeReplayTests(unittest.TestCase):
         self.assertEqual(result["diagnostics"], [{"kind": "initial_state_mismatch"}])
         # The isolated replay also lacks the owner's pose during construction itself.
         self.assertNotEqual(result["final_hash"], constructor_hash)
+
+    def test_match_external_first_access_is_not_mistaken_for_a_constructor_only_trace_local_reference(self):
+        from test_game_combat import Run
+
+        run = Run()
+        player = run.players[0]
+        document = {"header": header(player.body_script), "events": []}
+        context = document["header"]
+        initial = BodyScript(
+            context["hero"], context["entity"], context["start_frame"],
+            quanta=context["quanta_us"], mode=context["mode"], health=context["health"],
+            ult_seconds=context["ult_seconds"], communication_wheel=context["communication_wheel"],
+        )
+        # Match hooks can allocate states and supply values to live body queries.
+        # Allocation order affects later traversal; the body-only trace replays neither input.
+        actual_snapshot, initial_snapshot = (
+            stored_snapshot(script) for script in (player.body_script, initial)
+        )
+        actual_order = [instance["state_order"] for instance in actual_snapshot["instances"]]
+        initial_order = [instance["state_order"] for instance in initial_snapshot["instances"]]
+        self.assertNotEqual(actual_order, initial_order)
+        original = run.match.body_command
+
+        def observe(current, command, **kwargs):
+            before = snapshot_hash(current.body_script)
+            original(current, command, **kwargs)
+            seq = len(document["events"])
+            document["events"].append(make_command_event(
+                current.body_script, command, seq=seq + 1, server_tick=run.match.tick,
+                before_hash=before, command_epoch=0, body_epoch=1,
+            ))
+
+        with patch.object(run.match, "body_command", side_effect=observe):
+            for frame in range(12):
+                run.step({player: (0, 0, FIRE if frame < 8 else 0)})
+        document["events"].append(make_end_event(
+            player.body_script, seq=len(document["events"]) + 1, server_tick=run.match.tick,
+            command_epoch=0, body_epoch=1,
+        ))
+        result = replay_document(document)
+        self.assertEqual(len(document["events"]), 13)
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["validated_commands"], 0)
+        self.assertEqual(result["diagnostics"], [{"kind": "initial_state_mismatch"}])
 
     def test_isolated_wheel_trace_replays_equipment_and_grounded_input(self):
         script = body(

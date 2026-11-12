@@ -55,5 +55,3 @@ class Motion:
     velocity: tuple
     tick: int
     npc_mover: object = None
-
-

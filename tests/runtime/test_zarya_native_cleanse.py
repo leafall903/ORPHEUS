@@ -61,7 +61,6 @@ class ZaryaNativeCleanseTests(unittest.TestCase):
         self.assertFalse(fight.rockets)
 
     def test_either_barrier_cleanses_existing_antiheal_on_cast(self):
-        from test_game_combat import in_world
 
         for projected in (False, True):
             for cast in (False, True):

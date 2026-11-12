@@ -29,5 +29,3 @@ def locked(player, frame=None):
         return False
     frame_ms = instance.component.frame_ms
     return frame is None or (wait.start // frame_ms <= frame and frame * frame_ms < wait.start + wait.ms)
-
-

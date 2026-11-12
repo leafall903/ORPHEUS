@@ -62,5 +62,3 @@ class NativeFlightTests(unittest.TestCase):
         self.assertTrue(ball_mines.clip_flight(
             (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), 1, 0, 1, 0, .016,
         )[-1])
-
-

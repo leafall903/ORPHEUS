@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import test_ashe_combat as fixtures
 
-from ow174.game import ashe, combat, heavy_assault, immunity, mover, npc, npc_control, npc_melee, world
+from ow174.game import heavy_charge, ashe, combat, heavy_assault, immunity, mover, npc, npc_control, npc_melee, world
 from ow174.game.collision import flat_world
 from ow174.game.commands import Command
 from ow174.game.content import heroes

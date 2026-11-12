@@ -8,7 +8,6 @@ from test_game_combat import KANEZAKA_DM, Run
 from test_game_graph_analysis import make_graph
 
 from ow174.game.content import find_hero
-from ow174.game.script import entity_queries, expr, runtime
 
 
 class MatchBodyQueryTests(unittest.TestCase):

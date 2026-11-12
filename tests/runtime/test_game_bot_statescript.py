@@ -78,7 +78,7 @@ class AIFireWeaponTests(unittest.TestCase):
         self.assertEqual(fields["+0x7C"], {"+0x0": viewer.body})
         self.assertEqual((fields["+0x88"], fields["+0x90"]), (0x0EE00000000009F0, 0x076000000000AE7B))
 
-    def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior(self):
+    def test_body_weapon_component_mounts_slot_one_and_fires_without_placement_behavior_local_reference(self):
         weapon = make_graph(GRAPH, [
             node(0, "STUStatescriptEntry", fields={"m_outPlug": output([1, "m_beginPlug"])}),
             node(1, "STUStatescriptStateLogicalButton", state=0, fields={
