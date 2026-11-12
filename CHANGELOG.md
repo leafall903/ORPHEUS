@@ -1,5 +1,15 @@
 # Changelog
 
+## C66 — omitted projectile and active sphere retained respawns
+
+Restored original0016 early projectile-death tracking across update calls on the
+same respawn queue, with exact strict snapshot field and retirement/resurrection
+cleanup. Native Winston sphere owner replacement retains the actual bubble and
+source next-tick cover-end boundary. No second scheduler, pool or allocator.
+35 actual/shared tests pass25.528s, including single/split real orb deaths, native
+sphere owner respawn and whole-server causal/unknown-field checks. Old source
+assertions retained; no client/network action.
+
 ## C65 — retained Sentry owner respawn and historical body allocation
 
 Connected original0016 prewindow retries/retained Sentry-owner replacement to the
