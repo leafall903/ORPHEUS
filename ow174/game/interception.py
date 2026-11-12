@@ -189,9 +189,12 @@ def update_pools(fight, tick):
             script.component.destroy(instance)  # completed/declined self-grant stop-action reconstruction
 
 
-def absorption(fight, shooter, hit, origin, direction, length, *, padding=0.0):
+def absorption(fight, shooter, hit, origin, direction, length, *, padding=0.0, definition=None):
     """Nearest eligible enemy Grasp volume before a body or wall is considered."""
-    if hit is None or not hit.deflectable:
+    if hit is None:
+        return None
+    definitions = getattr(fight, "matrix_definitions", None)
+    if not (definition in definitions if definitions is not None else hit.deflectable):
         return None
     best = None
     for target in fight._enemies(shooter):

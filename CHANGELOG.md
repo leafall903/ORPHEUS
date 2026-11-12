@@ -129,6 +129,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Mount explicit delivered combat profiles through server startup and replay
+
+- Mount original combat_profiles.Profiles and CLI --reconstructed-hanzo-sonic-
+  profile, --reconstructed-hanzo-dragon-profile and --reconstructed-projectile-
+  tags. Validate before service/client work, carry through Settings/LobbyServer/
+  GameServer and configure each newly created match before players are added.
+  Preserve default immutable catalog selection; test environment variables do
+  not silently enable a host.
+- Mount the original configure_hanzo_profiles journal root with atomic parsed
+  profile validation, plus full server/future-match profile snapshot storage.
+  Keep original profile quantities/source digests and effective frozen absorption
+  definitions in provenance. The old tag loader's exclusion string is adapted to
+  the combined integer tag constant. Existing Matrix/Grasp consumers read only
+  the optional per-match admission override, with no duplicate absorption host.
+- Eight original profile/normal-server-startup assertions passed with only
+  unrelated NPC imports omitted and three current cosmetic fixture callbacks
+  supplied.27 existing CLI checks plus the retained original profile journal
+  replay/partial-mount check passed. Actual rifle default/full/empty-admission
+  probes pass: Matrix600/600/530 HP, Grasp400/400/330 HP. All23 focused Damage,
+  Deflect and runtime checks passed. Original Ana/Sigma broad checks preserve
+  six old Vitals private-field errors (healing_block_until/bonus_shields), rather
+  than replacing their assertions.
+- Source profile tests retained unchanged. No inputs/assets copied or changed;
+  next integrate the four previously recorded Fortify historical-clock cases.
+
 ### Mount delivered Dragonstrike launch and moving-damage continuation
 
 - Mount original dragon.py unchanged and an explicit source_entity damage API

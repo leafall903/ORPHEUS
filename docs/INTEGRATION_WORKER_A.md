@@ -322,3 +322,28 @@ log predates the alias; worker-a-hanzo-dragon-source-api.log is final attributio
 evidence.55 existing projectile/Bastion/runtime checks pass in
 worker-a-hanzo-dragon-shared.log. Keep the four source Fortify checks unchanged.
 A15 final DamageTests regression:8/8 passed in worker-a-hanzo-dragon-damage-regression.log.
+
+
+A15 committed `dfae83bb`. A16 mounts original combat_profiles, CLI options,
+Settings/LobbyServer/GameServer -> each match live configuration, atomic
+configure_hanzo_profiles journal root and future/current profile capture.
+Original source tag loader adapts only string-vs-int exclusion constant. Default
+matrix_definitions=None keeps current immutable catalogs; explicit frozenset
+feeds existing _trace_absorption, _deflector, _matrix_hit, deflections.intercept
+and interception.absorption consumers consistently. No new absorption driver.
+Original8 profile argument/startup methods all pass in
+worker-a-hanzo-startup-profile-first.log. AST omits only unrelated NPC fixture
+imports in Sonic/Dragon fixture modules, and the old mock lobby receives the
+current three cosmetic callbacks (no assertion modified). Original28 total CLI
+and retained journal-root checks pass in worker-a-hanzo-profile-cli-journal.log.
+Actual Ana hip round probes compare default/full/empty admissions: Matrix
+600/600/530HP in worker-a-hanzo-profile-absorption.log; Grasp400/400/330HP in
+worker-a-hanzo-profile-grasp-final.log.23 Damage/Deflect/runtime checks pass in
+worker-a-hanzo-profile-final-shared.log. Broad old Ana/Sigma suite preserves six
+private Vitals field errors (healing_block_until/bonus_shields), recorded in
+worker-a-hanzo-profile-default-regression.log; do not weaken its checks.
+Next exact action: port source Orisa Fortify pose-anchor, activation pending,
+rebase and idle clock methods as a scoped adapter to current defenses/BodyScript,
+without replacing current orisa_barrier manager; rerun four original Dragon
+Fortify chronology methods. Then finish Hanzo source-owned consumers (notably
+Storm ricochet/arrow deflection) and owner reconcile, proceed Tracer/Widowmaker.

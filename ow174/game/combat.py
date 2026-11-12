@@ -1871,6 +1871,7 @@ class Combat:
         self.booster_contacts = {}
         self.replacement_ticks: dict[int, int] = {}  # replacement body -> authoritative world tick
         self.rockets: list[Rocket] = []
+        self.matrix_definitions: frozenset[int] | None = None
         self.dragon_profile: dragon.Profile | None = None
         self.dragons: list[dragon.Flight] = []
         self.dragon_pose_anchors: dict[int, tuple] = {}
@@ -5279,7 +5280,9 @@ class Combat:
 
     def _deflector(self, shooter, definition, origin, direction, reach, *, view_tick=None, time_span=None,
                    radius=0.0):
-        if not self.projectile_tags.admitted(definition):
+        admitted = self.projectile_tags.admitted(definition)
+        absorbable = definition in self.matrix_definitions if self.matrix_definitions is not None else admitted
+        if not admitted and not absorbable:
             return None
         closest = None
         for target in self._enemies(shooter):
@@ -5289,6 +5292,8 @@ class Combat:
             if (hero not in (deflection.GENJI, absorption.SIGMA)
                     or script is None or script.retired or getattr(owner, 'mover', None) is None
                     or self.is_stunned(owner)):
+                continue
+            if not (admitted if hero == deflection.GENJI else absorbable):
                 continue
             graph_index, state_index = (0x03A3, 10) if hero == deflection.GENJI else (0x1D02, 1)
             instance = next((i for i in script.component.instances.values()
@@ -5360,7 +5365,7 @@ class Combat:
             redirect = None
         else:
             absorption = None
-        scripted_absorption = interception.absorption(self, shooter, direct, origin, direction, limit)
+        scripted_absorption = interception.absorption(self, shooter, direct, origin, direction, limit, definition=definition)
         if scripted_absorption is not None and scripted_absorption[0] < limit:
             absorption = scripted_absorption
             limit = absorption[0]
@@ -5670,7 +5675,8 @@ class Combat:
         Consumers bound reach by earlier world/defense contacts. Native filter,
         attachment and history semantics remain open.
         """
-        if not deflection.absorbable(definition):
+        if not (definition in self.matrix_definitions if self.matrix_definitions is not None
+                else deflection.absorbable(definition)):
             return None
         best = None
         for target in self._enemies(shooter):
@@ -6107,6 +6113,7 @@ class Combat:
         limit = best[0] if best else step
         candidate = interception.absorption(
             self, rocket.shooter, rocket.direct, rocket.position, heading, limit, padding=padding,
+            definition=rocket.definition,
         )
         if candidate is not None and (best is None or candidate[0] < limit):
             scripted_absorption = absorption = candidate
@@ -7277,7 +7284,10 @@ class Combat:
     ):
         from ow174.game.interception import box_contact
 
-        matrix = projectile_tags.absorbable(definition)
+        matrix = (definition in self.matrix_definitions if self.matrix_definitions is not None
+                  else projectile_tags.absorbable(definition))
+        if self.matrix_definitions is not None:
+            grasp = matrix
         if not matrix and not grasp:
             return None
         nearest = None
