@@ -29,6 +29,19 @@ python -S -B -m unittest tests.public.test_world_query_contracts
 
 This source-only check needs neither installed dependencies nor prepared runtime data. It uses the same `ORPHEUS_BEHAVIOR_FIXTURES` override as the framing consumer. The contract covers query results and error categories only: Python's strict host faults and stops the component, while Rust records an expression issue and declines that evaluation. It does not establish equivalent component recovery, event order, live foreign-variable watchers or client behavior. Original-client acceptance remains pending.
 
+## Career stats from played matches
+
+The [career-stats fixture](../fixtures/behavior/career-stats-v1.json) gives two synthetic matches as the game server counts them, per hero and by stat, and expects the totals the profile stores and the stat lists the career profile sends for "All modes": one list per hero played, with each hero's own stat for a number, and one for "All Heroes" with the sums. A stat the career does not keep, healing here, is left out. Its pinned Python source establishes the bookkeeping. The stat identifiers were read from the original client.
+
+The [Python consumer](../tests/public/test_career_contracts.py) feeds the matches to `count_match` on a new `Profile` and compares the stored career, a save and load, and `played_stats`. It needs neither installed dependencies nor prepared runtime data and uses the same `ORPHEUS_BEHAVIOR_FIXTURES` override.
+
+```powershell
+$env:PYTHONPATH = 'src'
+python -S -B -m unittest tests.public.test_career_contracts
+```
+
+Client acceptance is partial. The original client showed these four stats for two heroes and for "All Heroes" under All Modes from a prepared profile, and time played in a real match reached the saved profile. The contract does not cover how a match splits its numbers by hero, the per-mode categories, or the stats not counted yet.
+
 ## Fixture fields
 
 | Field | Meaning |

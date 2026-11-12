@@ -57,14 +57,9 @@ class CareerMessages:
         won, and the running competitive season with its matches won."""
         played = self._hours_played(profile)
         won = self._matches_won(profile, played)
-        counted = _counted(profile)
-        all_modes = {
-            hero: [_stat(HERO_STAT[stat], total) for stat, total in totals.items()]
-            for hero, totals in counted.items()
-        } or {hero: [_stat(TIME_PLAYED_STAT, hours * 3600)] for hero, hours in played}
-        if counted:
-            whole = {stat: sum(totals.get(stat, 0.0) for totals in counted.values()) for stat in HERO_STAT}
-            all_modes[ALL_HEROES] = [_stat(stat, total) for stat, total in whole.items() if total]
+        all_modes = played_stats(profile) or {
+            hero: [_stat(TIME_PLAYED_STAT, hours * 3600)] for hero, hours in played
+        }
         for hero, wins in won.items():
             all_modes.setdefault(hero, []).append(_stat(MATCHES_WON_STAT, wins))
         season = {hero: [_stat(MATCHES_WON_STAT, wins)] for hero, wins in won.items()}
@@ -158,6 +153,20 @@ def count_match(profile: Profile, played: dict[int, dict[int, float]]) -> bool:
                 totals[f"0x{stat:016X}"] = totals.get(f"0x{stat:016X}", 0.0) + amount
                 added = True
     return added
+
+
+def played_stats(profile: Profile) -> dict[int, list[dict]]:
+    """The stat lists of the profile's own matches: each hero played, then "All Heroes" with the sums.
+    Empty for a profile without a match."""
+    counted = _counted(profile)
+    shown = {
+        hero: [_stat(HERO_STAT[stat], total) for stat, total in totals.items()]
+        for hero, totals in counted.items()
+    }
+    if counted:
+        whole = {stat: sum(totals.get(stat, 0.0) for totals in counted.values()) for stat in HERO_STAT}
+        shown[ALL_HEROES] = [_stat(stat, total) for stat, total in whole.items() if total]
+    return shown
 
 
 def _counted(profile: Profile) -> dict[int, dict[int, float]]:

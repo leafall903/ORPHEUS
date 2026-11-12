@@ -223,7 +223,11 @@ This log records tested changes and their acceptance status. Entries are grouped
   own keeps the showcase hours.
 - Added runtime tests: the split by hero across a switch and a leave, the profile's totals over two
   matches and a save, the reply with and without a career, the captured stat catalogue listing every
-  stat sent, and the lobby saving a queue card's match only. Ruff and the 922 public tests passed.
+  stat sent, and the lobby saving a queue card's match only.
+- Added a public behavior contract: a synthetic fixture of two matches with the stored career and
+  the "All modes" stat lists it expects, and its Python consumer. `played_stats` holds the stat
+  lists of a profile's own matches so the consumer needs no runtime data. Ruff and the public
+  tests passed.
 - Original-client check on a copy of a profile holding known numbers for two heroes: under All
   Heroes and All Modes the Statistics tab listed Time Played, Eliminations, Hero Damage Done and
   Deaths with the two heroes' sums and its own Avg/10 Min. The Overview listed the two heroes under
