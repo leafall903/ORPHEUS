@@ -1,5 +1,42 @@
 # Changelog
 
+## A87 — original Graviton mobility interruption on existing owners
+
+Restored original stop_genji_strike/stop_boosters consumers and original pure
+DVa boosters lookup. Lookup reads actual component.world.hero so BodyScript and
+actual owned0407 BotScript share the same047E (no BotScript.hero alias). Stop uses
+actual component entity as booster_contacts key and existing Ability.stop/ABORT;
+Player movement-mod sync remains Player-only, realMech retains samecontrol_mover.
+Existing Graviton accepted pull path now stops same Genji dash, actualBoosters,
+WinstonJump flight and existing ReinhardtCharge record. It preserves Heavy stop,
+Moira/Tracer reset, live source/team/Fortify/pinned admission and single mover.
+
+Player pose uses fresh field movement_for only to block original mobility bit8
+before its body VM can spend cooldown, or release a no-longer-valid pull. Current
+pulled registry still owns actual pose admission: a merely included/pinned body
+is not promoted to moving. Existing hard-CC/Hack/Recall/Trap filters remain ordered
+as before. Ability cooldown/resource gates are unchanged; ordinary attack/ultimate
+inputs are not cleared. Actual owned mech input continues through its existing
+Bot/sole component, not the parked pilot.
+
+Original newSwiftStrike deny/full cooldown and team/cover change whole methods
+pass with5NPCsame-mover2, actualOwnedMech boost1, Flux1/Fortify2:8/8pass20.695s.
+The new ownedMech test really creates0407, starts047E via actual pilot commands,
+then verifies stop on same component/control_mover and no booster in parkedpilot.
+After narrowing pose admission to current registry, originalGenji2/Fortify2 rerun
+4/4pass7.139s. Logs worker-a-zarya-real-mobility-owned-mech-joint-check.log and
+worker-a-zarya-mobility-preserved-admission-check.log. Original active-dash expiry
+method reaches all interruption assertions but still fails exact finalY:
+1.26953125→1.1796875 during5ticks afterrelease (horizontal0,4 unchanged), matching
+actual falling mover after field. Original assertion retained, not frozen by a
+new movement controller. Early copied-helper imports/BotScript.hero assumptions
+were corrected against current actual host before final checks; no runtime alias.
+
+Next exact batch: original idle reload/world cadence, then C-reported native Pet
+projected NPC recipient on soleBarriers/scripted/Vitals. Retained Nano projected
+horizontal-aim fixture residual,193 point-vs-width and oldprivate/Ana observations.
+
+
 ## A86 — original0068 launch Nano snapshot and causal storage
 
 Restored original Rocket.offense_scale optional launch snapshot for owned03DB/

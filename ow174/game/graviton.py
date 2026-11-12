@@ -167,6 +167,14 @@ class Gravitons:
                     from ow174.game import tracer
 
                     tracer.discard_mobility_input(target.owner)
+            owner = target.owner
+            self.fight.stop_boosters(owner)
+            if not isinstance(owner, bots.Bot):
+                self.fight.stop_genji_strike(owner)
+                self.fight.winston_jump.cancel(target.entity)
+                charge = self.fight.charges.get(target.entity)
+                if charge is not None:
+                    reinhardt_charge.stop(self.fight, target.entity, charge)
             if seconds:
                 self._pull(target, position, seconds, tick)
         for target in targets:

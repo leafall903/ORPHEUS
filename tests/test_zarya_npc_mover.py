@@ -111,3 +111,35 @@ class ZaryaNpcMoverTests(unittest.TestCase):
         self.assertNotIn(bot.entity, manager.pulled)
         self.assertTrue(sigma_flux.has_effect(bot))
         self.assertIs(bot.impulse_mover, mover)
+
+
+class ZaryaOwnedMechStopTests(unittest.TestCase):
+    def test_existing_booster_stop_uses_actual_owned_mech_component(self):
+        import test_dva_delivery_created_body as fixtures
+        from ow174.game import dva
+        from ow174.game.script import nodes
+
+        fixtures.CreatedBodyTests.setUpClass()
+        case = fixtures.CreatedBodyTests()
+        run, pilot, enemy, _, mech = case.scenario()
+        enemy.spawned = False
+        fight = run.match.combat
+        script, mover = mech.body_script, mech.control_mover
+        component = script.component
+        for _ in range(80):
+            run.step({})
+        boosters = dva.boosters(mech)
+        ability = boosters.states[0]
+        for _ in range(30):
+            run.step({pilot: (0, 0, 8)})
+            if ability.flags & nodes.Ability.RUNNING:
+                break
+        self.assertTrue(ability.flags & nodes.Ability.RUNNING)
+        self.assertIs(pilot.controlled_mech, mech)
+        fight.stop_boosters(mech)
+        self.assertFalse(ability.flags & nodes.Ability.RUNNING)
+        self.assertFalse(boosters.states[2].active)
+        self.assertIs(mech.body_script, script)
+        self.assertIs(script.component, component)
+        self.assertIs(mech.control_mover, mover)
+        self.assertIsNone(dva.boosters(pilot))
