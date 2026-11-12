@@ -62,6 +62,7 @@ SCENE_WORLD_FIELDS = (
     'model_gate_consumers',
     'modifier_components',
     'objective_route',
+    'npc_query_contexts',
     'participant_roster',
     'placements',
     'play_queues',

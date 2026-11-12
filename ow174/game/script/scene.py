@@ -42,6 +42,7 @@ from ow174.game.script import (
     message_state,
     model_look,
     modifiers,
+    npc_queries,
     play,
     play_queue,
     runtime,
@@ -255,6 +256,7 @@ class SceneWorld(runtime.World):
         self.mode_score_thresholds = None  # Extracted mode GUID -> (float targets, difficulty limits).
         self.engine_settings: dict[int, bool | int | float] | None = None
         self.global_data_flow: dict[int, tuple[runtime.State, bool]] = {}
+        self.npc_query_contexts: dict[int, npc_queries.Context] = {}
         self.query_contexts: dict[int, entity_queries.Context] = {}
         self.controller_records: dict[int, controller_queries.Record] = {}
         self.absent_spatial_binding_owners: set[int] = set()
@@ -465,6 +467,15 @@ class SceneWorld(runtime.World):
         if type(entity) is not int or entity not in self.entities:
             raise ValueError("entity must already be bound")
 
+    def set_npc_query_context(self, entity: int, context: npc_queries.Context) -> None:
+        self._bound_entity(entity)
+        if type(context) is not npc_queries.Context:
+            raise ValueError('invalid NPC query context')
+        self.npc_query_contexts[entity] = context
+
+    def npc_query_context(self, entity: int):
+        return self.npc_query_contexts.get(entity, NotImplemented)
+
     def set_target_tag_candidates(self, candidates) -> None:
         """Declare the active query order and effective uint32 tags explicitly."""
         ordered = {}
@@ -634,6 +645,7 @@ class SceneWorld(runtime.World):
         messages = self.message_contexts.pop(entity, None)
         if messages is not None:
             messages.retire()
+        self.npc_query_contexts.pop(entity, None)
         query = self.query_contexts.pop(entity, None)
         if query is not None:
             query.retire()
@@ -1656,6 +1668,7 @@ class SceneWorld(runtime.World):
         messages = self.message_contexts.pop(component.entity, None)
         if messages is not None:
             messages.retire()
+        self.npc_query_contexts.pop(component.entity, None)
         query = self.query_contexts.pop(component.entity, None)
         if query is not None:
             query.retire()

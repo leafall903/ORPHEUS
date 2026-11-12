@@ -462,7 +462,7 @@ class InstanceContext(Context):
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, controller_query, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
+            body_owner, controller_heroes, controller_queries, controller_query, npc_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
         )
 
         component = self.instance.component
@@ -563,6 +563,8 @@ class InstanceContext(Context):
             result = entity_link.evaluate(self, cfg)
         if result is NotImplemented:
             result = body_owner.evaluate(self, cfg)
+        if result is NotImplemented:
+            result = npc_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = entity_queries.evaluate(self, cfg)
         if result is NotImplemented:
@@ -976,6 +978,10 @@ class World:
 
     def component76_keys(self, entity: int):
         """Explicit component76 keys, known absence, or unknown service."""
+        return NotImplemented
+
+    def npc_query_context(self, entity: int):
+        """Explicit original typed NPC callback context, or unknown service."""
         return NotImplemented
 
     def indexed_target_lookup(self, entity: int):

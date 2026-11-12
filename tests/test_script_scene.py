@@ -11,7 +11,7 @@ from ow174.game import mover
 from ow174.game.combat import Vitals
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.match import _rotation
-from ow174.game.script import entity_team, expr, modifiers, play, runtime, scene
+from ow174.game.script import entity_team, expr, modifiers, npc_queries, play, runtime, scene
 from tests.test_script_for_code import KEY, make, row
 from tests.test_script_play_resource import array, inline, integer, requesting, with_schema
 from tests.test_script_play_resource import row as schema_row
@@ -1766,6 +1766,27 @@ class SceneIdentityTests(unittest.TestCase):
 
 
 class NativeFailureTests(unittest.TestCase):
+    def test_npc_query_context_forwards_typed_arguments_and_retires_on_unbind(self):
+        world = scene.SceneWorld()
+        world.bind(123, ALPHA)
+        world.bind(456, BETA)
+        calls = []
+        world.set_npc_query_context(123, npc_queries.Context(
+            lambda owner, selector: calls.append((owner, selector)) or 456,
+            lambda owner, target: calls.append((owner, target)) or True,
+        ))
+        active = caller(world)
+        entity = {'$': npc_queries.ENTITY_QUERY, 'm_152B6961': reference(),
+                  'm_A60150E2': {'$': 'STUConfigVarInt', 'm_value': 4}}
+        pair = {'$': npc_queries.PAIR_QUERY, 'm_7826B991': reference(), 'm_target': reference(BETA)}
+        self.assertEqual(active.evaluate(entity), expr.Entity(456))
+        self.assertIs(active.evaluate(pair), True)
+        self.assertEqual(calls, [(123, 4), (123, 456)])
+        world.unbind(123)
+        world.bind(123, ALPHA)
+        with self.assertRaises(runtime.UnsupportedScriptError):
+            active.evaluate(entity)
+
     def test_failed_reference_preserves_destination_but_successful_null_overwrites_it(self):
         active = caller(scene.SceneWorld())
         initial = expr.Asset(17)
