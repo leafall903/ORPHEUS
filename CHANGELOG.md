@@ -4,6 +4,27 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Winston Jump Pack and Primal strikes
+
+- Mount original JumpPack and PrimalPunches launch/landing, takeoff/impact,
+  windup/hit, additive impulse, interruption/death and retirement consumers.
+  Source sphere queries/damage use read-through views of existing WorldBubbles
+  actors. Preserve a single authoritative bubble/pool/impulse controller.
+- Keep authored flight movement modifiers under the source collision host's
+  lifetime. Strict/native elapsed handling remains unchanged. Mount source
+  idle reload and Winston-only accepted-input horizon; default command queues
+  and other heroes retain their admission policy.
+- Restore source Tesla bubble/ice-wall blocking/damage and .8 beam armor with
+  overflow. Existing other beam defaults remain unchanged. Retain the original
+  native bubble health observations in source fixtures without changing cases.
+- Delivered Tesla/Jump/health35+Primal18 and canonical Tesla12/runtime13: all78
+  pass. Command/epoch16 pass. Source charge27 has26 passes and the retained DVa
+  pilot/controlled-mech interlock failure. Active JumpPack getter-free enclosing
+  server snapshot repeatability and stored-controller causality pass.
+- Moira beam10 retains two subcase errors on its older cryo_actors observation;
+  other behavior assertions pass. Remaining source bubble idle/status/NPC
+  consumers and whole-line audit stay open; no original-client claim or push.
+
 ### Mount delivered Winston health and charge clocks
 
 - Retain complete0009 winston.py and mount the original Primal health/refill,

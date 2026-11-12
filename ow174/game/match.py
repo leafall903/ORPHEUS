@@ -330,8 +330,13 @@ class Player:
             return None
         seconds = self.quanta / 1e6
         script = self.body_script
+        horizon = None
+        if script is not None and script.hero == 0x02E0000000000009 and script.world_frame_anchor is not None:
+            anchor_tick, anchor_frame = script.world_frame_anchor
+            elapsed = max(0, self.match.tick - anchor_tick) * (RETAIL_QUANTA // 1000)
+            horizon = min(MAX_LEASE_FRAME, anchor_frame + elapsed // script.frame_ms)
         fresh, boundary = self.commands.before_limit(
-            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None
+            commands, MAX_LEASE_FRAME, anchor=script.frame if script is not None else None, horizon=horizon,
         )
         if script is not None and script.world_frame_anchor is not None:
             fresh = [item for item in fresh if item.frame > script.frame]

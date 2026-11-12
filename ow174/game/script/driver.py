@@ -390,6 +390,17 @@ class BodyWorld(runtime.World):
                 and state.instance.graph.index == 0x0B8B and state.node.pos == 3
                 and state.instance.component.entity == self.body)
 
+    def compatibility_elapsed_condition(self, instance, node):
+        if (self.match is not None and self.hero == 0x02E0000000000009
+                and not instance.component.strict and instance.graph.index == 0x010A
+                and node.pos in (13, 64)):
+            flight = self.match.combat.winston_jump.flights.get(self.body)
+            if flight is not None and flight[0] is instance:
+                # The delivered collision host owns this flight's end. Do not
+                # also retire its movement modifiers on the narrower timer.
+                return False
+        return NotImplemented
+
     def linked_tracked_targets(self, state):
         if (self.match is not None and self.hero == 0x02E000000000012F
                 and not state.instance.component.strict
@@ -1934,7 +1945,7 @@ class BodyScript(ReplicatedBody):
         self.retired = False
         self.first_owner_frame: int | None = None
         self.world_frame_anchor: tuple[int, int] | None = None
-        if hero == 0x02E0000000000002 and match is not None:
+        if hero in (0x02E0000000000002, 0x02E0000000000009) and match is not None:
             self.world_frame_anchor = match.tick, start_frame
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS

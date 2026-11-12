@@ -571,6 +571,9 @@ class World:
     def external_wait(self, state):
         return False
 
+    def compatibility_elapsed_condition(self, instance, node):
+        return NotImplemented
+
     def controller_button(self, state: "State", pressed: bool) -> None:
         """Host transport for a supported controller logical-button state."""
         if state.instance.component.strict:

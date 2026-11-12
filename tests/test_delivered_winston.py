@@ -13,6 +13,11 @@ from ow174.game.script.driver import HUD_MAX_HEALTH, ULT_CHARGE, ULT_COST
 WINSTON = 0x02E0000000000009
 
 
+def bubble_for(fight, body):
+    return next((actor for actor in fight.barriers.world.actors.values()
+                 if actor.source_body == body and not actor.retired), None)
+
+
 class TeslaTests(unittest.TestCase):
     def setUp(self):
         self.run = Run(names=("Winston", "Enemy", "Ally"))
