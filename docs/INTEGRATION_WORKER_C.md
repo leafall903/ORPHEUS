@@ -438,3 +438,41 @@ Torb native direct torbjorn_charge.native dispatch with typed NotImplemented
 fallthrough, Genji and missing-instance gates, original Combat.body_health
 lookup semantics and all latest owner fields. Only changelog conflicted; keep
 both entries. This coordination merge is not a new owner implementation.
+
+## C20 first0016 owner checkpoint
+
+Actual symmetra.py primary/target_query consumers now feed original157C100/101
+TrackRay outputs, radius fallback, hit flags, live rate, tagged barrier feedback
+and ammo query. Adapt to real existing barrier geometry and pool services; no
+new barrier manager/actor/pool. Source has_tag lookup uses current complete
+catalog; unknown definitions stay unqualified. BodyWorld.beam_barrier is real
+state and exactly registered for passive storage. Do not copy source services
+under alternate names and double-drive current Photon/Winston/Rein/Zarya.
+
+Original test_symmetra_combat.py retained unchanged. First21 run15pass/6fail:
+two primary failures exposed two existing _weapon_beam command calls; narrow
+Symm once-per-command handoff resolves those. Final21:17pass/four unmounted
+shield-recovery failures22.300s. Logs worker-c-symmetra-primary-{first,final}-check.log.
+Actual probe from ReinhardtWinstonBarrierTests.deploy(7), switch rein->Symm,
+place(0,1,0), wait35, advance10(buttons1): shell700->690.3997802734375, body500,
+world.beam_barrier equals actual dome.body. Initial ad-hoc1e-6 comparison was
+tighter than the native float32 per-tick representation; source assertions
+were not edited. Existing Zenyatta dome case still expects absent .domes and
+errors before its beam assertions; do not claim that case executed fully or
+create an observer-only replacement manager.
+
+No new shared method names were introduced without an AST duplicate-method
+scan. It confirmed C19's preexisting Vitals API name collision, now independently
+fixed by root4999fd44 (numeric temporary_shields stays; actual extra tag mapping
+is tagged_shields; decay dispatch retains both clock and tag/amount). This WIP
+has not overwritten that root correction and must sync it at the next clean
+boundary. Root's source fixture attribute adaptors preserve literal assertions.
+
+Next: submit this primary batch, then sync latest root including4999fd44 and
+source health lookup/Sniper/Genji guards. Mount original Symm shield recovery
+and owner charge, then actual sentry and portal/placement source managers
+while preserving canonical Photon Barrier implementation. Original25s orb
+and retained scheduling/respawn bridges require separate source comparison;
+constants or source files alone are not completion. Source symmetra placement/
+transit/teleport entry consumers have not yet been copied/mounted. Remaining
+other owners0065/00DD/012E/0200 still require full reconciliation.

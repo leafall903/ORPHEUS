@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Symmetra dual TrackRay primary consumers
+
+- Replace Symmetra's single-ray prototype consumer with original157C primary
+  feedback for both100/101 rays, hit/miss targets,0.2m fallback, live damage
+  rate and shield-ammo/charge target queries. Use existing world/ice/Cryo cover
+  and existing native/held/spherical/deployed barrier actors and health owners;
+  derive tag membership from actual prepared definitions, not inferred health.
+- The command pipeline already called the generic beam helper twice. Invoke
+  this delivered Symmetra consumer once per posed frame; retain other heroes'
+  received paths. Add original has_tag lookup without changing absorbable
+  policy, and register the real beam_barrier world field in passive storage.
+- All original PhotonProjector/utility/melee core cases pass; the complete
+  retained21-case file has17 pass/four shield-recovery failures. Recovery is
+  the next missing owner consumer, not a reason to drop or delay this primary.
+- Actual native Winston shell probe: ten frames reduce700 to690.3997802734375
+  (native float32 health updates), leave the distant body500, and feed its real
+  tagged shell ID back to the authored graph. The old Zenyatta dome fixture
+  still reads absent Barriers.domes; retain that observation/error rather than
+  inventing a second manager or fake alias to satisfy it.
+- Sentries, portals/placement, original charge, shield recovery and long-lived
+  orb/scheduler bridges still need reconciliation. No whole0016, new matrix
+  or original-client acceptance is claimed.
+
 ### Mount delivered Torbjorn original charge and owner gates
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
