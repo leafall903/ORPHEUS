@@ -194,7 +194,10 @@ class Walls:
             self.pieces[entity] = piece
             created = True
             for owner, mover, position in lifts:
-                self.place_mover(mover, position, ((0., 1., 0.),))
+                if isinstance(owner, Bot):
+                    self.place_mover(mover, position, ((0., 1., 0.),))
+                else:
+                    self.place_player(owner, position, ((0., 1., 0.),))
                 if isinstance(owner, Bot):
                     owner.impulse_mover = owner.wall_mover = mover
                     owner.last_tick = self.combat.tick
@@ -230,6 +233,14 @@ class Walls:
             lifts.append((owner, mover, destination))
         return lifts
 
+
+    @staticmethod
+    def place_player(player, position, normals=()):
+        """Original player relocation keeps current physical and stored pose together."""
+        mover = player.mover
+        Walls.place_mover(mover, position, normals)
+        if mover.history:
+            mover.history[-1] = mover.snapshot(mover.history[-1].frame)
 
     @staticmethod
     def place_mover(mover, position, normals):
