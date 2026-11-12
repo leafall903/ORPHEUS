@@ -129,29 +129,32 @@ class Knockbacks:
         if not isinstance(owner, bots.Bot) and (owner not in fight.match.players
                 or not owner.has_body or owner.body != entity):
             return False  # Damageable devices have no player impulse capsule.
-        if isinstance(owner, bots.Bot):
-            # This source scope is the ordinary NPC impulse channel. Owned
-            # mechs retain their distinct body-clock movement path.
-            if owner.control_mover is not None:
-                return False
-            mover = owner.impulse_mover
-            frame = max(fight.match.tick, fight.tick) + 1
-        else:
-            from ow174.game import whole_hog
+        if entity in self.active or self.has_pending(entity):
+            return False  # Preserve the existing native queue's physical priority.
+        from ow174.game import whole_hog
 
-            if entity in self.active:
-                return False  # Preserve the existing native queue's physical priority.
-            mover = owner.mover
-            motion = self.whole_hog_motion.get(entity)
-            if motion is None:
-                motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick)
-            current = motion.velocity
-            frame = max(owner.body_script.component.frame + 1, fight.match.tick, fight.tick)
+        motion = self.whole_hog_motion.get(entity)
         if isinstance(owner, bots.Bot):
-            current = (0.0, 0.0, 0.0) if mover is None else tuple(mover.velocity)
-        if isinstance(owner, bots.Bot) and mover is not None:
-            current = velocity.consume(current, mover.values.jump_speed,
-                                       mover.velocity_changes, frame)
+            if owner.control_mover is not None:
+                return False  # Owned-body command epoch is a separate following batch.
+            mover = owner.impulse_mover
+            if mover is None:
+                from ow174.game import npc_navigation
+
+                if owner.navigation is not None:
+                    npc_navigation.stop(owner)
+                category = MOVER if fight.match.game_map.free_for_all or owner.team not in (0, 1) else (TEAM0, TEAM1)[owner.team]
+                mover = owner.ensure_manual_mover(fight.tick, fight._collision(), category)
+                if mover is None:
+                    mover = Mover(owner.position, round(owner.yaw), fight._collision(),
+                                  owner.movement_data or mover_data(owner.body), category=category)
+                    mover.velocity = owner.velocity
+                    owner.impulse_mover = mover
+            if motion is None:
+                motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick, mover)
+        elif motion is None:
+            motion = whole_hog.Motion(owner, entity, (0.0, 0.0, 0.0), fight.tick)
+        current = motion.velocity
         x, y, z = current
         x += direction[0] / size * spec.force * horizontal
         z += direction[2] / size * spec.force * horizontal
@@ -160,14 +163,8 @@ class Knockbacks:
         if flat > limit:
             x, z = x / flat * limit, z / flat * limit
         y = min(spec.lift_cap * cap, y + spec.lift * vertical)
-        delta = expr.Vec3(*(expr.f32(after - before)
-                           for before, after in zip(current, (x, y, z))))
-        if isinstance(owner, bots.Bot):
-            if not self.apply(target, delta, impact_frame=fight.tick):
-                return False
-        else:
-            motion.velocity = tuple(expr.f32(value) for value in (x, y, z))
-            self.whole_hog_motion[entity] = motion
+        motion.velocity = tuple(expr.f32(value) for value in (x, y, z))
+        self.whole_hog_motion[entity] = motion
         self.whole_hog_seen[key] = fight.tick
         return True
 
@@ -176,14 +173,19 @@ class Knockbacks:
         return motion.velocity if motion is not None else (0.0, 0.0, 0.0)
 
     def retire_whole_hog(self, entity, *, forget=True):
-        self.whole_hog_motion.pop(entity, None)
+        motion = self.whole_hog_motion.pop(entity, None)
+        if motion is not None and motion.npc_mover is not None:
+            owner = motion.owner
+            if owner.control_mover is None and owner.impulse_mover is motion.npc_mover:
+                owner.velocity = motion.npc_mover.velocity
         if forget:
             self.whole_hog_seen = {key: tick for key, tick in self.whole_hog_seen.items()
                                    if key[-1] != entity}
 
     def _advance_whole_hog(self):
-        """Original selected world damping, displacing the same player capsule."""
-        from ow174.game import reinhardt_charge
+        """Original selected world damping, displacing the same owned capsule."""
+        from ow174.game import bots, reinhardt_charge
+        from ow174.game.mover import statescript_mods
 
         fight = self.combat
         tick = fight.tick
@@ -200,10 +202,26 @@ class Knockbacks:
             if fight.orisa.controls(entity):
                 self.retire_whole_hog(entity)
                 continue  # Do not replay paused external slices after Halt releases.
-            mover = motion.owner.mover
+            npc = isinstance(motion.owner, bots.Bot)
+            if npc and (motion.owner.control_mover is not None
+                        or motion.owner.impulse_mover is not motion.npc_mover):
+                self.retire_whole_hog(entity)
+                continue
+            mover = motion.npc_mover if npc else motion.owner.mover
+            if npc and tuple(mover.position) != tuple(motion.owner.position):
+                mover.position = list(motion.owner.position)
+                mover.body = None
             for at in range(motion.tick + 1, min(tick, motion.tick + 128) + 1):
                 dt = .016
                 motion.tick = at
+                if npc:
+                    component = getattr(getattr(motion.owner, "body_script", None), "component", None)
+                    mods = statescript_mods(component) if component is not None else {}
+                    mover.track_mods(fight.movement_mods(motion.owner, mods, tick=at), at - 1)
+                    command = Command(at, yaw=round(motion.owner.yaw), pitch=round(motion.owner.pitch))
+                    ground = fight.walls.ground(mover) if fight.walls.pieces else None
+                    mover.step_pose(command, dt, at, ground_override=ground)
+                    mover.last_command = command
                 constrain = fight.walls.constrain if fight.walls.pieces else None
                 value = mover.displace(motion.velocity, dt, constrain=constrain)
                 data = mover.values
@@ -212,7 +230,11 @@ class Knockbacks:
                 factor = remaining / flat if flat > 1e-9 else 0.0
                 lift = max(0.0, value[1] - 10 * data.gravity_scale * dt)
                 motion.velocity = (value[0] * factor, lift, value[2] * factor)
-                if max(map(abs, motion.velocity)) < 1e-4:
+                if npc:
+                    motion.owner.position = tuple(mover.position)
+                    motion.owner.velocity = tuple(a + b for a, b in zip(mover.velocity, motion.velocity, strict=True))
+                    motion.owner.last_tick = motion.owner.moved_tick = at
+                if max(map(abs, motion.velocity)) < 1e-4 and (not npc or not mover.airborne):
                     self.retire_whole_hog(entity, forget=False)
                     break
 
