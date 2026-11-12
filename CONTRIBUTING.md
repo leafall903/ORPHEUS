@@ -17,6 +17,8 @@ The editable install provides `orpheus` and `python -m orpheus`. Runtime depende
 
 Submit changes from a topic branch on your fork to `main`. Use your own Git author identity. Keep code, research and evidence scoped to the change.
 
+For Python behavior changes, provide a language-neutral fixture with inputs, expected outputs and reference evidence so Rust can check the same behavior. Record pending client acceptance and any missing fixture prerequisites. Backfill existing behavior as it is touched. See the [shared behavior contract workflow](docs/BEHAVIOR_CONTRACTS.md).
+
 ## Public source checks
 
 Run these Python and JavaScript checks from a clean checkout without a local `runtime-data/` pack. Clear `ORPHEUS_RUNTIME_DIR` to match CI. The checks use public source and synthetic fixtures.
