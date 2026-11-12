@@ -586,6 +586,9 @@ class Player:
             if script is not None and not stunned and not self.mover.external_impulse:
                 movement_limit = self.match.combat.brigitte.bash_movement_limit(self)
             fall_limit = echo_movement.glide_limit(self, command)
+            from ow174.game import sigma_flux
+
+            flux_flight = sigma_flux.flux_flight_data(self) if not stunned else None
             speed_scale = max(0.3, 1.0 - frost)
             if self.hero.guid == 0x02E0000000000079:
                 controller = wall_ride.controller(script)
@@ -599,6 +602,8 @@ class Player:
                                      movement_limit=movement_limit, wall_ride=wall_control)
             elif self.hero.guid == 0x02E0000000000007 and stunned:
                 self.mover.step_pose(command, seconds, tick, suppress_throttle=True)
+            elif flux_flight is not None and movement_limit is None:
+                self._move_pose(command, seconds, tick, flight=flux_flight)
             elif fall_limit is not None:
                 self.mover.step_pose(
                     command, seconds, tick, movement_limit=movement_limit,
@@ -622,16 +627,17 @@ class Player:
         if not self.mover.airborne and not self.mover.landed:
             fight.translocators.recall_poses.discard(self.body)
 
-    def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):
+    def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None, flight=None):
         fight = self.match.combat
         command = fight.clamp_sleep_command(self, command)
         walls = fight.walls
         if not walls.pieces:
-            return self.mover.step_pose(command, seconds, tick, move_to=move_to, flight_profile=flight_profile)
+            return self.mover.step_pose(command, seconds, tick, move_to=move_to, flight_profile=flight_profile,
+                                        flight=flight)
         before = tuple(self.mover.position)
         outcome = self.mover.step_pose(
             command, seconds, tick, move_to=move_to, ground_override=walls.ground(self.mover),
-            flight_profile=flight_profile,
+            flight_profile=flight_profile, flight=flight,
         )
         blocked = walls.move_mover(self.mover, before)
         if move_to is not None and blocked:
@@ -679,6 +685,9 @@ class Player:
             if pressed & ABILITY and portals.pairs:
                 portals.dismiss(self)
             previous_frame = script.frame
+            from ow174.game import sigma_flux
+
+            sigma_flux.sync_flux_airborne(script.component, self.mover)
             previous_fortify = combat._active_fortify(self) if posed else None
             previous_cast = previous_fortify.counter if previous_fortify is not None else None
             with grasp:
@@ -692,6 +701,7 @@ class Player:
                             script.orisa_fortify_pending = True
                         script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
+                sigma_flux.release_phased_flux_target(self)
                 self.match.combat.command(self, command if posed and not replay_accepted else None,
                                           defer_effects=defer_effects,
                                           replay_aim=command if replay_accepted else None)

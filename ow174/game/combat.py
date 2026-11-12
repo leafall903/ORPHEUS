@@ -2758,6 +2758,9 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        from ow174.game import sigma_flux
+
+        sigma_flux.interrupt_flux_lift(self, actor)
         if isinstance(actor, bots.Bot):
             from ow174.game import sniper_retreat
 
@@ -5672,6 +5675,9 @@ class Combat:
                 else:
                     allowed = npc_control.update_input(self, bot) if controlled and not authored else not self.is_stunned(bot)
                 advanced = script.frame < vm_tick
+                from ow174.game import sigma_flux
+
+                sigma_flux.sync_flux_airborne(script.component, bot.impulse_mover)
                 snapshot = script.advance_live(vm_tick, bot.position)
                 if bot not in self.match.bots or bot.body_script is not script:
                     continue
@@ -10154,6 +10160,9 @@ class Combat:
             reinhardt_barrier.sync(self, victim)
             self.barriers.reinhardt.sync(victim)
         self._interrupt_reaper(victim.body, victim)
+        from ow174.game import sigma_flux
+
+        sigma_flux.interrupt_flux_lift(self, victim)
         self.translocators.retire_body(victim.body)
         self.winston_jump.cancel(victim.body)
         if victim.body_script is not None:

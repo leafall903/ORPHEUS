@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Gravitic Flux on the existing body and movement hosts
+
+- Preserve original023B placement/selection/receiver/lift/slam functions in the
+  original0003 sigma_flux module boundary. Existing body VM callbacks, Player
+  movement, plain NPC impulse mover, interruption/death and strict exports own
+  actual consumption; existing Grasp and Barrier services remain unchanged.
+- Original full cost/selection/lift/grounded slam/effect-end and both body VM
+  exports pass1/1 in30.690s. All original assertions remain; the fixture extracts
+  its actual parent setup instead of importing unrelated missing Accretion.
+  Full source/shared checks remain next; no client acceptance run.
+
 ### Select original NPC associations in the combined workspace entry
 
 - Prepared v18 preserves all previously selected graph/entity records and adds

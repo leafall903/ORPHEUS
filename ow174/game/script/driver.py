@@ -706,6 +706,10 @@ class BodyWorld(runtime.World):
     def play_compatible_script(self, instance, node) -> None:
         if self.match is None:
             return
+        from ow174.game import sigma_flux
+
+        if sigma_flux.play_flux_request(self, instance, node):
+            return
         fight = self.match.combat
         if self.hero == 0x02E0000000000009 and instance.graph.index == 0x00FA and node.pos == 2:
             world_barriers = fight.barriers.world
@@ -848,6 +852,11 @@ class BodyWorld(runtime.World):
 
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
+
+        from ow174.game import sigma_flux
+        flux = sigma_flux.flux_modify_health(self, state, elapsed_ms)
+        if flux is not NotImplemented:
+            return flux
 
         if self.match is not None and (state.instance.graph.index, state.node.pos) == (0x007D, 125):
             from ow174.game import reinhardt_charge
@@ -997,6 +1006,14 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        if instance is not None and self.match is not None:
+            from ow174.game import sigma_flux
+
+            for resolve in (sigma_flux.flux_caster_native, sigma_flux.flux_effect_native,
+                            sigma_flux.flux_position_query, sigma_flux.flux_actor_point_query):
+                result = resolve(self, cfg, instance)
+                if result is not NotImplemented:
+                    return result
         if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
                 and instance.graph.index == 0x1513 and not instance.component.strict):
             value = instance.graph.node(45).field("m_value")
@@ -1795,6 +1812,10 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        from ow174.game import sigma_flux
+        if sigma_flux.flux_velocity(instance, node):
+            return True
+
         if (not instance.component.strict and instance.graph.index == 0x17F6 and node.pos == 4):
             return True  # Original reset is queued by the actual uppercut movement host.
 
@@ -1834,6 +1855,10 @@ class BodyWorld(runtime.World):
         return result
 
     def tracked_targets(self, state):
+        from ow174.game import sigma_flux
+        selected = sigma_flux.flux_targets(self, state)
+        if selected is not NotImplemented:
+            return selected
         if (self.communication_wheel and self.match is not None
                 and state.instance.graph.index == 0x05AD and state.node.pos in (113, 115)):
             collision_filter = state.node.field("m_3D667CE3") or {}
@@ -1993,7 +2018,11 @@ class BodyWorld(runtime.World):
         return symmetra_placement.preview(self, state)
 
     def refresh_compatible_placement(self, state, *, confirm):
-        from ow174.game import photon_barrier
+        from ow174.game import photon_barrier, sigma_flux
+
+        flux = sigma_flux.place_flux(self, state, confirm=confirm)
+        if flux is not NotImplemented:
+            return flux
 
         if self.match is None or self.match.combat.photon_barriers.geometry is None:
             return NotImplemented
