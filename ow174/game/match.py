@@ -1363,6 +1363,7 @@ class Match:
             pull_mods = self.combat.orisa.npc_movement_mods(bot.entity, tick)
             if pull_mods:
                 mods.update(pull_mods)
+            mods = self.combat.movement_mods(bot, mods, tick=tick)
             self.combat.knockbacks.step_npc(
                 bot, tick, RETAIL_QUANTA / 1e6, self.collision_world,
                 paused_until=self.combat.movement_pause_until(bot), movement_mods=mods, pillars=pillars,

@@ -117,6 +117,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   Actual nonempty control probe verifies input/movement gating, no duplicate
   stuns write, repeatable passive capture and causal deadline sensitivity.
 - Main original1399 assertions and expectations remain; client acceptance open.
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
+
 ### Connect original Mei input resources and ultimate settings
 
 - Mount original Mei05FE entry completion, automatic real reload/low-ammo
@@ -8776,3 +8793,33 @@ client operations performed. Whole nonappearance integration remains active.
  received in the separate intake tree while that source tree stayed frozen.
  Evidence: parallel-widow-frozen-replay-check.log and
  parallel-b18-c20-a26-core-check.log. No original-client or publication action.
+
+
+## A34 - actual Junkrat Concussion Mine actor and remote lifecycle
+
+Mounted frozen0065 source `c31d926214d74bbb6d5f308cabce92c65d8a48fc` Mine launch,
+sticky flight, replacement/output ownership, remote deferred detonation,
+source-body retirement, real25HP damage/destruction and radial impulse. Mine is
+one actual Deployable subtype; targets, body-health queries and storage refer to
+its same Vitals object. No second actor or compatibility health pool exists.
+Static/IceWall parking and Matrix-only airborne interception use existing shared
+collision/absorption; parked explosion reuses the actual barrier protected set
+for impulse. Current source/body/death guards and all shared projectile paths
+remain. Added source phase/Cryo query names delegating actual current state hosts.
+
+Preserved complete original28 Mine tests unchanged. With external v7 profile:
+26 pass, one optional Reinhardt-collision skip, one retained native Fortify float
+rounding residual (67.00000286102295 vs66.99999928474426); assertions unchanged.
+Damage/ProjectileTiming plus two original stored-state checks17 pass. Actual
+launched Mine storage probe confirms target actor/pool alias and causal deadline/
+health digest changes. Logs outside Git: worker-a-junkrat-mine-full-second.log,
+worker-a-junkrat-mine-shared.log, worker-a-junkrat-mine-snapshot.log.
+No original-client run or network/publication. This is a Mine code boundary.
+
+The imported original tire/charge and hostility/tag modules are necessary source
+dependencies, preserved with current relation-provider import adapters; their
+activation/command/native hooks are NOT yet claimed complete. Next exact action:
+mount original Trap cast/arm/status09BC/root consumers using the same actor/Vitals
+and existing movement host, then Tire039C/control/climb/recovery and charge0B8B.
+Root owns input union and frozen-ref reconciliation. Remaining0065 integration
+estimate remains low confidence4-8 active worker hours, excluding root conflicts.

@@ -565,3 +565,62 @@ Logs retain both original failing assertions and exact per-pool evidence.
 All five NPC controller hosts also ran40ticks on original v7 input: each has
 one body and its expected graph, no fault. Assassin uses1158, the other four
 11E3/13E9/1138/1251. No controller association override was installed.
+
+
+## Latest received actor/frost/cover checkpoint
+
+B28 source7db269dc received as64797927 freezes incident-side cover using the
+actual native mesh hit, separates the source RaisedBarrier geometry, and sends
+exposed recipients through existing splash exactly once. A34 source098ea1cc
+received asf83d3e53 mounts original Mine flight/park/remote/death/retire on one
+Deployable/Vitals. Conflict resolution preserved both _explode parameters
+native_impact_body and protected_out, and snapshot controls/Junkrat fields.
+C28 source4fd1d4f7 received asee3f30ba mounts original per-source/channel frost
+and aggregate/settings/control/cleanup on the existing host. Frost.sources and
+frost_sources deliberately share identity; default interrupt semantics remain,
+with source-specific Visor preservation only on real freeze. A detached-bomb
+cleanup uses the same actual frost retirement service.
+
+Root v8 frozen geometry/source-shared check51679 is terminal:60run59pass1skip
+in30.392s, root-v8-geometry-shared-check.log. v8 explicitly selects confirmed
+original Rein collision and Orisa geometry (the latter exactly matches the
+prior runtime default). Source hashes are unchanged. Canonical ee3f30ba frozen
+for root A34/B28/C28 joint check31622: original Mine/Frost/Punch/runtime/Damage
+and four shield-explosion cases, log a34-b28-c28-joint-check.log. Do not mutate
+canonical until terminal; intake accepts subsequent committed source batches.
+
+v9 candidate environment.json derives v8 plus the original Trap09BC graph and
+103A/11A9 entities (19 supplemental graphs/9 entities total). The original Trap
+pack omits version, so only its derived loader input receives version1; all
+source bytes and hashes are unchanged. C located exact original Photon mesh
+at0040/symmetra_collision_174.json (SHA d11a09fc7224c2b73819a06a40f9dbb1cb35ff681c373aa1891a987de6eedfe8).
+Candidate v9 selects it through the existing ORPHEUS_SYMMETRA_COLLISION loader.
+A validates Trap; C validates original Photon Q/plane versus configured mesh
+and placement. Stable recommended profile remains v8 until those consumers
+are checked; preserve every earlier profile and original input.
+
+New actual root remaining integration evidence: all five configured NPC hosts
+run, but strict component VM export rejects enforcer_controller.TargetWorld
+and assassin_controller.Phase2World as unknown stored types. The four simple
+worlds store hero/mode/fight/body/selected; Assassin retains its actual SceneWorld
+storage and callbacks. Bot optional controller fields also need exact schema
+review. Evidence: root-v8-npc-controller-storage-audit.log. Restore causal
+registration, including actual callbacks/scene records and all five controller
+fields; do not drop storage or return artificial export values. This is pending
+implementation integration, not whole-server completion or an acceptance gate.
+
+Next A: Trap/Tire/charge; B: captured-team consumers and remaining original
+surfaces/owners; C: Photon Q/plane/mesh, then Blizzard/Cryo history and remaining
+owners. C is explicitly authorized one narrow existing navigator partial-slow
+bridge, preserving its mover/clock/control path. Root retains NPC snapshot and
+full original source/language integration audit. All three workers persist.
+
+
+Root frozen ee3f30ba joint31622 is now terminal:83run82pass, one preserved
+Mine/Fortify float residual67.00000286102295 vs66.99999928474426 (3.576e-6),
+45.656s, no skips. New Mine, multi-source Frost, Punch, runtime, damage and
+four original shield splash consumers execute together. No original assertion
+or rounding precision changed. Root has no live tests or code WIP; all ready
+batches are committed and the three workers continue. NPC controller snapshot
+registration remains the next concrete root integration task; overall goal
+is active and incomplete.

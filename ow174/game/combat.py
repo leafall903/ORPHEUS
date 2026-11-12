@@ -74,6 +74,8 @@ from ow174.game import (
     symmetra_charge,
     symmetra_turrets,
     symmetra_portals,
+    mei,
+    mei_frost,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -1231,11 +1233,15 @@ class HitDef:
 class Frost:
     """Default 0B77 max-across-sources progress and exclusive freeze deadline."""
 
-    sources: dict[int, tuple[float, int]] = field(default_factory=dict)
+    sources: dict[int | tuple[int, int], tuple] = field(default_factory=dict)
     frozen_until: int = 0
     frozen_aim: tuple[int, int] | None = None
+    sample: tuple | None = None
 
     def progress(self, tick: int) -> float:
+        if self.sample is not None:
+            sample = mei.frost_view(self.sample, tick * round(TICK * 1000))
+            return sample[0] if sample is not None else 0.0
         if tick < self.frozen_until:
             return 1.0
         return max((value for value, expires in self.sources.values() if tick < expires), default=0.0)
@@ -1491,6 +1497,7 @@ class Target:
     capsule: tuple | None = None
     head_offset: tuple | None = None
     sentry_yaw: int | None = None
+    construct: object = None
 
     def segment(self, feet=None):
         """The capsule's segment (from the feet to the top, a radius in from both ends)."""
@@ -1590,6 +1597,7 @@ class Rocket:
     segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
     matrix_absorbable: bool | None = None
+    mine: object = None
     terrain_bounces: int = 0
     terrain_bounce_limit: int = 0
     terrain_bounce: tuple | None = None
@@ -2039,6 +2047,9 @@ class Combat:
         from ow174.game import venom
 
         self.venom = venom.Mines(self)
+        from ow174.game import junkrat
+
+        self.junkrat = junkrat.Junkrat(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2099,6 +2110,7 @@ class Combat:
         self.projected_casts: dict[tuple[int, int], int] = {}
         self.brigitte = BrigitteCombat(self)
         self.frost_hits: dict[int, Frost] = {}
+        self.frost_sources: dict[int, dict[tuple[int, int], tuple]] = {}
         self.assassin_victims: dict[int, assassin_victim.Lease] = {}
         self.projectiles = projectiles.Projectiles(self)  # leases, confirmations, the Biotic Field
         self.echo_beam_seen: dict[int, int] = {}
@@ -2160,6 +2172,10 @@ class Combat:
         )
 
     def destroy_deployable(self, entity):
+        construct = self.junkrat.lookup(entity)
+        if construct is not None:
+            self.junkrat.retire(construct)
+            return
         actor = self.deployables.pop(entity, None)
         if actor is None:
             return
@@ -2297,6 +2313,7 @@ class Combat:
         self.brigitte.retire(player.body)
         self.walls.retire(player.body)
         self.venom.retire(player.body)
+        self.junkrat.retire_body(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -2328,6 +2345,7 @@ class Combat:
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
         ]
         self.frost_hits.pop(player.body, None)
+        self.frost_sources.pop(player.body, None)
         self.genji_strikes.pop(player.body, None)
         self.genji_blades.pop(player.body, None)
         self.genji_assists.pop(player.body, None)
@@ -2353,6 +2371,7 @@ class Combat:
         self.stuns.pop(body, None)
         self._retire_source_controls(body)
         self.frost_hits.pop(body, None)
+        self.frost_sources.pop(body, None)
         self.clear_pins(body)
 
     def cancel_npc_projectiles(self, bot: bots.Bot) -> None:
@@ -2410,7 +2429,9 @@ class Combat:
         vitals = self.vitals.get(entity)
         sleep = vitals.sleep_until if vitals is not None else 0
         pull = self.match.tick + 1 if entity in self.zarya_gravitons.pulled else 0
-        return max(sleep, pull, self.stuns.get(entity, 0), self.source_control_deadline(entity))
+        frost = self.frost_hits.get(entity)
+        frozen_until = frost.frozen_until if frost is not None else 0
+        return max(sleep, pull, frozen_until, self.stuns.get(entity, 0), self.source_control_deadline(entity))
 
     def damage_immune(self, owner):
         vitals = self.vitals.get(_source_entity(owner))
@@ -2434,22 +2455,79 @@ class Combat:
             for key in (6604, 8440, 9161)
         )
 
-    def _mei_frost_hit(self, shooter, target: Target, tick: int) -> None:
-        owner = target.owner
-        if isinstance(owner, bots.Bot) or owner.body_script is None or self._frost_immune(target):
+    def frost(self, actor, *, tick=None):
+        at = self.match.tick if tick is None else tick
+        frost = self.frost_hits.get(_source_entity(actor))
+        if frost is None:
+            return None
+        if frost.sample is not None:
+            return mei.frost_view(frost.sample, at * round(TICK * 1000))
+        progress = frost.progress(at)
+        if not progress:
+            return None
+        yaw, pitch = frost.frozen_aim or (0, 0)
+        return progress, at * round(TICK * 1000), frost.frozen_until * round(TICK * 1000), yaw, pitch
+
+    def frozen(self, actor, *, tick=None) -> bool:
+        sample = self.frost(actor, tick=tick)
+        return sample is not None and bool(sample[2])
+
+    def _clear_frost(self, actor):
+        entity = _source_entity(actor)
+        self.frost_sources.pop(entity, None)
+        if self.frost_hits.pop(entity, None) is not None:
+            script = getattr(actor, "body_script", None)
+            if script is not None:
+                self._write_frost(script.component, 0.0)
+
+    def _set_frost_sample(self, actor, frost, sample):
+        frost.sample = sample
+        frost.frozen_until = math.ceil(sample[2] / round(TICK * 1000)) if sample[2] else 0
+        frost.frozen_aim = sample[3:] if sample[2] else None
+        self._write_frost(actor.body_script.component, sample[0])
+
+    def _frost_hit(self, target, *, source=None, channel=0, now_ms=None,
+                   initial=mei.FROST_INITIAL, step=mei.FROST_STEP):
+        actor = target.owner
+        if (isinstance(actor, actors.Deployable) or getattr(actor, "body_script", None) is None
+                or self._frost_immune(target) or symmetra._attached_barrier(self, actor) is not None):
             return
+        yaw, pitch = ((round(actor.yaw), round(actor.pitch)) if isinstance(actor, bots.Bot)
+                      else (actor.mover.yaw, actor.mover.pitch))
         frost = self.frost_hits.setdefault(target.entity, Frost())
-        if tick < frost.frozen_until:
-            return  # Further hits do not extend an established freeze.
-        source = _source_entity(shooter)
-        previous, expires = frost.sources.get(source, (0.0, 0))
-        progress = min(1.0, max(FROST_INITIAL, expr.f32((previous if tick < expires else 0.0) + FROST_STEP)))
-        frost.sources[source] = (progress, tick + FROST_GAP_TICKS)
-        if progress >= 1.0:
-            frost.sources.clear()
-            frost.frozen_until = tick + FROST_FREEZE_TICKS
-            self._interrupt(target)
-        self._write_frost(owner.body_script.component, frost.progress(tick))
+        sample = frost.sample
+        at = self.tick * round(TICK * 1000) if now_ms is None else now_ms
+        if sample is not None:
+            at = max(at, sample[1])
+            if sample[2]:
+                if at < sample[2]:
+                    return
+                self.frost_sources.pop(target.entity, None)
+        elif self.tick < frost.frozen_until:
+            return
+        entries = self.frost_sources.setdefault(target.entity, {})
+        if frost.sample is None and frost.sources and frost.sources is not entries:
+            # Preserve old default-host partial progress when adopting its live object.
+            for body, (progress, expires) in frost.sources.items():
+                entries[body, 0] = ((progress, (expires - FROST_GAP_TICKS) * round(TICK * 1000),
+                                     0, yaw, pitch), False)
+        frost.sources = entries  # One causal source dictionary, shared with the original owner index.
+        mei_frost.prune(entries, at)
+        minimum, scalar, freeze_ms, stacking = mei_frost.settings(source, weapon=channel == 0)
+        key = (_source_entity(source) if source is not None else 0, channel)
+        previous = entries.get(key, (None, False))[0]
+        entries[key] = (mei.frost_hit(previous, at, yaw, pitch,
+                                     initial=initial if minimum is None else minimum,
+                                     step=expr.f32(step * scalar), freeze_ms=freeze_ms), stacking)
+        sample = mei_frost.combine(entries, at, yaw, pitch, freeze_ms=freeze_ms)
+        self._set_frost_sample(actor, frost, sample)
+        if sample[2]:
+            script = getattr(actor, "body_script", None)
+            preserve = tuple(script.ultimates) if script is not None and defenses.soldier_visor_running(actor) else ()
+            self._interrupt(target, preserve=preserve)
+
+    def _mei_frost_hit(self, shooter, target: Target, tick: int) -> None:
+        self._frost_hit(target, source=shooter, now_ms=tick * round(TICK * 1000))
 
 
     def clear_pins(self, entity: int) -> None:
@@ -2560,7 +2638,7 @@ class Combat:
     def _control_immune(self, target: Target) -> bool:
         return immunity.control_immune(target.owner, target.entity) or self.orisa._immune(target.owner)
 
-    def _interrupt(self, target: Target) -> None:
+    def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
         self._interrupt_reaper(target.entity, actor)
         mover = actor.control_mover if isinstance(actor, bots.Bot) else getattr(actor, "mover", None)
@@ -2577,7 +2655,7 @@ class Combat:
         self.brigitte.interrupted(target.entity)
         self.walls.cancel_preview(target.owner)
         script = getattr(actor, "body_script", None)
-        self.interrupt_controlled(script, actor=actor)
+        self.interrupt_controlled(script, actor=actor, preserve=preserve)
         if script is not None and not isinstance(actor, bots.Bot):
             self.primal_punches.interrupt(script)
         cast = self.meteors.casts.get(target.entity)
@@ -2596,7 +2674,7 @@ class Combat:
             channel["targets"].clear()
         reaper.interrupt_shadow(player)
 
-    def interrupt_controlled(self, script, *, actor=None) -> None:
+    def interrupt_controlled(self, script, *, actor=None, preserve=()) -> None:
         """Reconstructed input/channel interruption, shared by hosted control effects."""
         if script is None:
             return
@@ -2637,6 +2715,8 @@ class Combat:
                     self.genji_strikes.pop(component.entity, None)
                 if isinstance(state, nodes.Ability):
                     state.presses.clear()
+                    if state in preserve:
+                        continue
                     # Genji0317's persistent transform has no continue condition
                     # or continuing stack priority. Preserve its authored timer;
                     # the stunned command gate still blocks drawing new swings.
@@ -3050,6 +3130,8 @@ class Combat:
         support_healing, script.support_healing = script.support_healing, []
         if self.is_dead(player):
             return
+        if mei.protected(player):
+            self._clear_frost(player)
         if (repairs and not self.is_stunned(player)
                 and not (command is not None and script.controlled_at(command.frame))
                 and player.body not in self.sombra_controls.locks):
@@ -4119,6 +4201,7 @@ class Combat:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, at, poses=dragon_poses)]
             self.sonars[:] = [beacon for beacon in self.sonars if sonic.advance(self, beacon, at)]
+            self.junkrat.update()
             self.orisa.update(at)
             for body, wave in list(self.shatters.items()):
                 if earthshatter.advance(self, wave):
@@ -4216,16 +4299,34 @@ class Combat:
         for entity, frost in list(self.frost_hits.items()):
             target = current.get(entity)
             if target is None or target.owner.body_script is None:
-                del self.frost_hits[entity]
+                self.frost_hits.pop(entity, None)
+                self.frost_sources.pop(entity, None)
                 continue
-            progress = 0.0 if self._frost_immune(target) else frost.progress(tick)
-            self._write_frost(target.owner.body_script.component, progress)
-            if not progress:
-                del self.frost_hits[entity]
+            if self._frost_immune(target) or symmetra._attached_barrier(self, target.owner) is not None:
+                self._clear_frost(target.owner)
+                continue
+            if frost.sample is not None:
+                at = tick * round(TICK * 1000)
+                sample = mei.frost_view(frost.sample, at)
+                if sample is None:
+                    self._clear_frost(target.owner)
+                    continue
+                if not sample[2]:
+                    mei_frost.prune(frost.sources, at)
+                    sample = mei_frost.combine(frost.sources, at, *sample[3:])
+                    if sample is None:
+                        self._clear_frost(target.owner)
+                        continue
+                self._set_frost_sample(target.owner, frost, sample)
             else:
-                for source, (_, expires) in list(frost.sources.items()):
-                    if tick >= expires:
-                        del frost.sources[source]
+                progress = frost.progress(tick)
+                self._write_frost(target.owner.body_script.component, progress)
+                if not progress:
+                    self._clear_frost(target.owner)
+                else:
+                    for source, (_, expires) in list(frost.sources.items()):
+                        if tick >= expires:
+                            del frost.sources[source]
         for entity, (deadline, _) in tuple(self.npc_hit_reactions.items()):
             if entity not in current or deadline <= tick:
                 self._end_npc_hit_reaction(entity)
@@ -4474,6 +4575,7 @@ class Combat:
         for actor in self.deployables.values():
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
+        found.extend(self.junkrat.targets())
         return [self.pulse_bombs.sampled(target) for target in found]
 
     def _target_entity(self, entity):
@@ -4929,6 +5031,8 @@ class Combat:
             owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
         if owner is None:
             owner = self.deployables.get(entity)
+        if owner is None:
+            owner = self.junkrat.lookup(entity)
         if owner is not None:
             vitals = self.vitals.get(entity)
             if vitals is not None:
@@ -5510,6 +5614,17 @@ class Combat:
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
             blast = hit_def(state, node.field("m_D2D11CE9"))
+            if not npc and shooter.hero.guid == junkrat_projectile.HERO:
+                from ow174.game import junkrat
+
+                if definition == junkrat.MINE:
+                    self.junkrat.cast(shooter, state, origin, direction, speed, lifetime,
+                                      sum(max(0.0, _number(state.evaluate(m.get("m_599AB8D7"), watch=False), 0.0))
+                                          for m in node.field("m_projectileMotions") or ()
+                                          if m.get("$") == "STU_E1A5B579"), blast,
+                                      max_distance=reach if reach and reach > 0 else None, launch_tick=self.tick)
+                    return
+
             biotic_grenade = (state.instance.graph.index == 0x0B97 and blast is not None
                               and blast.effect == BIOTIC_GRENADE_EFFECT)
             if biotic_grenade:
@@ -6248,6 +6363,8 @@ class Combat:
                 rocket.last_tick = at
                 self._fly_field_canister(rocket, min(TICK, rocket.left))
             return
+        if rocket.mine is not None and rocket.mine.parked:
+            return
         if not self.orisa.flying(rocket):
             return
         # Player input can arrive immediately before the scheduler accounts for a gap.
@@ -6419,6 +6536,9 @@ class Combat:
         return SplitVolley(directions, speed, min(lifetime, reach / speed), direct)
 
     def _expire(self, rocket: Rocket) -> None:
+        if rocket.mine is not None:
+            self.junkrat.retire(rocket.mine)
+            return
         rocket.ended = "expired"
         self._landed(rocket)
         if rocket.detonate_on_expiry:
@@ -6438,7 +6558,7 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.terrain_bounce is not None:
+        if rocket.terrain_bounce is not None or rocket.mine is not None:
             # Source0065's direction/speed pair is authoritative for each chord.
             rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
@@ -6450,7 +6570,7 @@ class Combat:
             hanzo_arrow = (rocket.source_graph == 0x00B9
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
             if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
-                    or hanzo_arrow or rocket.terrain_bounce is not None):
+                    or hanzo_arrow or rocket.terrain_bounce is not None or rocket.mine is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -6460,7 +6580,9 @@ class Combat:
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
         self._fly_slice(rocket, duration, self.tick, reflected=reflected)
-        if rocket.terrain_bounce is not None and rocket.velocity is not None and rocket in self.rockets:
+        if rocket.mine is not None:
+            self.junkrat.sync_pose(rocket.mine)
+        if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
             # The delivered grenade stores the end velocity after sweeping its
             # ballistic chord; the next frame and public direction share it.
             rocket.speed = math.hypot(*rocket.velocity)
@@ -6571,15 +6693,10 @@ class Combat:
             if remaining <= step:
                 duration *= remaining / step if step > EPSILON else 0.0
                 step, range_ends = remaining, True
-        if rocket.terrain_bounce is not None and rocket.range_limit is not None:
-            remaining = max(0.0, rocket.range_limit - rocket.travelled)
-            if step >= remaining:
-                duration *= remaining / step if step > EPSILON else 0.0
-                step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
-        candidates = self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
+        candidates = () if rocket.mine is not None else self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
@@ -6600,7 +6717,8 @@ class Combat:
                 t = ray_capsule(rocket.position, heading, a, b, target.radius + padding)
                 if t is not None and t <= step and (assisted is None or t < assisted[0]):
                     assisted = (t, target)
-        scene_barrier = self._barrier_hit(rocket.shooter, rocket.position, heading, best[0] if best else step)
+        scene_barrier = (self._barrier_hit(rocket.shooter, rocket.position, heading, best[0] if best else step)
+                         if rocket.mine is None else None)
         if scene_barrier is not None:
             best = (scene_barrier[0], None)
         collision = self._collision()
@@ -6634,6 +6752,8 @@ class Combat:
             best = (ice[0], None)
         else:
             ice = None
+        if rocket.mine is not None:
+            return self.junkrat.flight_step(rocket, duration, heading, step, best, range_ends)
         if (assisted is not None and (best is None or (best[1] is None and assisted_rank < best[0]))
                 and (wall is None or assisted_rank < wall)):
             best = assisted
@@ -7372,7 +7492,8 @@ class Combat:
 
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
                  struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
-                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0), native_impact_body=None):
+                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0),
+                 native_impact_body=None, protected_out=None):
         damage_point = point if damage_point is None else damage_point
         incident_direction = rocket.direction if incident_direction is None else incident_direction
         blast = rocket.blast
@@ -7451,6 +7572,8 @@ class Combat:
                     and capsule_visible(self._collision(), visible_from, centre, centre, barriers.RADIUS)):
                 protected.add(bubble.body)
                 self.barriers.damage(bubble, blast.amount * scalar, rocket.shooter)
+        if protected_out is not None:
+            protected_out.update(protected)
         victims = []
         for target in candidates:
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
@@ -7990,7 +8113,7 @@ class Combat:
         return best
 
     def _trace_absorption(
-        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None,
+        self, shooter, definition, origin, direction, reach, *, grasp=False, view_tick=None, admitted=None, matrix_only=False,
     ):
         from ow174.game.interception import box_contact
 
@@ -7999,6 +8122,8 @@ class Combat:
                   else projectile_tags.absorbable(definition))
         if admitted is not None or self.matrix_definitions is not None:
             grasp = matrix
+        if matrix_only:
+            grasp = False
         if not matrix and not grasp:
             return None
         nearest = None
@@ -8733,7 +8858,15 @@ class Combat:
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
             if vitals.dead or vitals.now[HEALTH_POOL] <= EPSILON:
+                if self.junkrat.lookup(target.entity) is target.owner:
+                    vitals.died_at = self.now
+                    vitals.death_tick = self.tick if world_tick is None else world_tick
+                    vitals.killer = attacker
+                    if not isinstance(shooter, bots.Bot):
+                        self._tell_hit(shooter, target, dealt, KILLING, frame)
                 self.destroy_deployable(target.entity)
+            elif self.junkrat.lookup(target.entity) is target.owner and not isinstance(shooter, bots.Bot):
+                self._tell_hit(shooter, target, dealt, 0, frame)
             return True
         if (target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
@@ -9390,6 +9523,7 @@ class Combat:
         self.breathers.retire(victim.body)
         self.personal_barriers.pop(victim.body, None)
         self.projected_barriers.pop(victim.body, None)
+        self.frost_sources.pop(victim.body, None)
         if self.frost_hits.pop(victim.body, None) is not None and victim.body_script is not None:
             self._write_frost(victim.body_script.component, 0.0)
         self.zarya_gravitons.release(victim)
