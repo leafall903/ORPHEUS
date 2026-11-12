@@ -136,7 +136,7 @@ _STATE_LAYOUTS = {
     nodes.MoveTo: (("movement",), ()),
     nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
-    nodes.PlacementPreview: ((), ()),
+    nodes.PlacementPreview: (("last_frame", "latest_frame"), ()),
     nodes.SummonerPlacement: (("confirmed",), ()),
     nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (

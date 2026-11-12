@@ -203,6 +203,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
+### Mount original Symmetra static placement preview
+
+- Connect delivered projection/sampling/surface math, typed result publication,
+  forward clock/history policy and upright body/view-axis queries to actual
+  Symmetra preview states. Native dependencies poll so held preview follows yaw.
+- Retain canonical Photon placement when its geometry owner is configured and
+  existing DVa CallMech placement. Source preview alone does not synthesize a
+  confirmation owner or portal pair. Store the actual placement timing fields.
+- Original static/axis15 pass2.691s; original pure geometry/history44 pass.
+  Explicit prepared v5 sentry/preview/DVa/transit46 checks:45 pass/one skip in
+  36.499s. Active preview timing changes its real VM stored digest.
+- Original generic placement result checks retain seven strict fixture errors
+  in five cases because the existing map SummonerPlacement strict guard still
+  rejects their FA02 state at construction; permissive invalid-provider case
+  passes. Preserve guard/assertions and defer strict role reconciliation.
+  Portal confirmation/pairs and client acceptance remain unfinished.
+
 ### Mount delivered Symmetra transit action consumers
 
 - Connect original15F5 own-body PlayScript and1647 relocation to existing

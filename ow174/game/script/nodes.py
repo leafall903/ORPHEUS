@@ -36,6 +36,7 @@ from ow174.game.script import (
     message_state,
     model_look,
     modifiers,
+    placement,
     play,
     record_assignment,
     scopes,
@@ -5154,23 +5155,84 @@ def collect_targets(instance: Instance, node, caller) -> bool:
     return True
 
 
+class Placement(State):
+    """Priority1 C83C30/C83C50 begin and +70 tick; geometry remains a world service."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.last_frame = 0xFFFFFFFF
+        self.latest_frame = 0xFFFFFFFF
+
+    def on_begin(self):
+        self.last_frame = 0xFFFFFFFF
+        self.ticks()
+
+    def plug_enter(self, input_path):
+        if input_path == 'm_6647ED22' and self.active:
+            result = self.instance.component.world.confirm_placement(self)
+            if result is not NotImplemented:
+                if type(result) is not bool:
+                    raise ValueError('placement confirmation host must return boolean or explicit unknown')
+                return result
+        return super().plug_enter(input_path)
+
+    def _unknown(self, feature):
+        component = self.instance.component
+        if component.strict:
+            component.unsupported(self.instance, feature, self.node.cls, self.node)
+
+    def tick(self):
+        world = self.instance.component.world
+        context = world.placement_clock(self)
+        if context is NotImplemented:
+            self._unknown("placement clock")
+            return
+        if type(context) is not placement.Clock:
+            self.instance.component.unsupported(
+                self.instance, "placement clock shape", self.node.cls, self.node)
+        if self.last_frame != 0xFFFFFFFF and not context.ready():
+            return
+        self.last_frame = context.frame
+        if self.latest_frame == 0xFFFFFFFF or context.frame > self.latest_frame:
+            self.latest_frame = context.frame
+        replayed = world.replay_placement(self, context.frame)
+        if replayed is NotImplemented:
+            self._unknown("placement history")
+            return
+        if type(replayed) is not bool:
+            self.instance.component.unsupported(
+                self.instance, "placement history result", self.node.cls, self.node)
+        if not replayed and world.calculate_placement(self, commit=False) is NotImplemented:
+            self._unknown("placement geometry")
+
+
 @state_class("STU_4C96470A")
-class PlacementPreview(State):
+class PlacementPreview(Placement):
     """Explicit placement-confirmation adapter; native preview geometry is unknown.
 
     The1902 authored links distinguish confirm from begin. Other graphs retain
     legacy behavior unless their world explicitly supports this service.
     """
 
+    def _delivered(self):
+        owns = getattr(self.instance.component.world, "uses_delivered_placement", None)
+        return owns is not None and owns(self)
+
     def on_begin(self):
+        if self._delivered():
+            return super().on_begin()
         refresh = getattr(self.instance.component.world, "refresh_compatible_placement", None)
         if refresh is not None and refresh(self, confirm=False) is not NotImplemented:
             self.ticks()
 
     def tick(self):
+        if self._delivered():
+            return super().tick()
         self.instance.component.world.refresh_compatible_placement(self, confirm=False)
 
     def plug_enter(self, input_path):
+        if self._delivered():
+            return super().plug_enter(input_path)
         if input_path == "m_6647ED22" and self.active:
             world = self.instance.component.world
             if not self.instance.component.strict:
@@ -5188,7 +5250,7 @@ class PlacementPreview(State):
                 self.instance.component.unsupported(
                     self.instance, "placement confirmation", self.node.cls, self.node,
                 )
-        return super().plug_enter(input_path)
+        return State.plug_enter(self, input_path)
 
 
 def spawn_deployable(instance, node, caller):
