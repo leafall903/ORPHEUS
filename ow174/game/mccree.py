@@ -160,7 +160,10 @@ def apply_velocity(owner, frame, *, controlled=False):
             pending.append((at, operation, value))
             continue
         vx, vy, vz = owner.mover.velocity
-        if operation == 'delta':
+        if operation == 'impulse':
+            owner.mover.impulse(value)
+            owner.mover.external_impulse = True
+        elif operation == 'delta':
             owner.mover.velocity = tuple(expr.f32(v + d) for v, d in zip((vx, vy, vz), value, strict=True))
         else:
             # Reconstructed horizontal-speed clamp; full native phase ordering is open.

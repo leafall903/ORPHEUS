@@ -23,8 +23,63 @@ alone is not evidence that a line's consumers are actually mounted.
 - The source's input-only control flag now gates new and already queued down
   edges. It does not erase Punch knockback velocity as a generic player stun.
   Bot input/control and passive snapshots share the same stored controller.
+- First submitted batch: `41d6de0e`, accepted by canonical as `a51925d5`.
 - Both delivered `doomfist.py` and `meteor.py` implementations are retained.
-  Slams and Meteors are not yet mounted; do not claim the whole Doomfist line.
+  Slams now mount ground-hop velocity, aerial target/movement, landing, wave,
+  hit/pull and shield awards (batch `856ce426`, canonical `94ec713f`).
+- Meteors now mount confirmation/input filtering, target locking, ground warp,
+  capsule-range/falloff/cover selection, real health loss, launch, protection,
+  interruption/death/retirement and snapshots. Do not claim the whole Doomfist
+  line while Uppercut and remaining shared-service consumers are unresolved.
+- The source null-case Switch semantics now run authored indexed phases while
+  retaining the earlier1248 weapon-combo adapter. Positive external launches
+  leave their floor before the authored landing limit can attach them again.
+- All22 original Slam checks,21 Punch and13 VM runtime checks pass (56 total).
+  Original Slam expectations remain; four reads of the source persistent
+  `temporary_pool_used` field use the canonical retained shield-object presence.
+  McCree Roll, numeric modifier and Lucio velocity regressions: all41 pass.
+- Meteor batch `89d4114e` is accepted as canonical `67c2a296`.
+- Meteor's original capsule-boundary range test passes both subcases. Its
+  enclosing-server active snapshot passes getter-free repeatability and stored
+  confirmation causality after real neutral-input charging. The full28-check
+  original suite completed in380s: four assertion failures (two are subcases of
+  one released-Hand-Cannon check), seven errors. Preserve the full log at
+  `verification/worker-b-doomfist-meteor-full.log`. Failures expose the remaining
+  eleven-pellet Hand Cannon and the then-unmounted Uppercut passive. Errors
+  include old protected/SOMBRA/ana_sleeps/ANA_SLEEP_EFFECT APIs and a direct
+  lookup before canonical's lazy respawn vitals creation. No check was removed.
+- Uppercut target/damage consumers now mount through the retained passive
+  module using the delivered sphere, lower/upper rays, active Cryo cover,
+  damage, passive shields and survivor launch. Health/motion reports are posed
+  queues, discarded on unposed input or VM fault and included in passive
+  snapshots; no unposed state callback may directly damage or launch a body.
+- Uppercut23+Slam22+Punch21+runtime13 ran79 checks, with78 passing and one
+  cap-metadata assertion then fixed. The focused cap/HUD/decay/incoming damage
+  follow-up passes all5 checks. Queued Uppercut report getter-free enclosing
+  server snapshot repeatability/causality also passes. Source fixture cap/delay
+  reads use the existing canonical shield-object fields; assertions remain.
+- Uppercut batch `8759d171` submitted. Hand Cannon now mounts original radial
+  eleven-pellet scatter, seeded jitter, explicit critical handling and null
+  sentinel. Original21 Hand Cannon checks all pass.
+- The source aggregate shield add/decay API and low-range pool identity now
+  mount over canonical TemporaryShield; other producers retain their existing
+  default identity. Original13 passive checks all pass, including capped-delay
+  retention and exact pool2/clear-to0 wire checks. Doomfist damage charge uses
+  ordinary health loss, excluding temporary shield damage as the source did.
+  Combined21+13+the Meteor temporary-shield charge regression: all35 pass.
+- Hand Cannon/pool batch `7f9b0e73` submitted. Preserve TemporaryShield's
+  existing fifth positional activation argument; pool_id is appended after it
+  and the Doomfist producer passes pool_id by keyword. The existing positional
+  snapshot fixture plus13 passive checks pass (14 total).
+- All9 original Meteor lifecycle scenarios now pass across the first7-pass run
+  and the two focused API follow-ups. Their observations use actual sleep
+  deadlines, frost storage, immunity admission, lazy body-vitals acquisition,
+  and Hack's actual application/deadline, retaining the original5000ms check.
+- Retained original resources/interrupts/throttles/held-primary suites: all22
+  checks pass without behavior/assertion changes. These exercise real ability
+  input, magazine clocks, Flashbang exits, movement gates and retained fire.
+- Synchronized accepted parallel batches from `a51925d5` in local merge
+  `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
   The active enclosing-server snapshot probe is recorded outside Git at
   `verification/worker-b-doomfist-active-punch-snapshot.log`.
@@ -34,16 +89,17 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount `doomfist.Slams` movement/landing/wave and `meteor.Meteors` targeting,
-   protection/landing/damage through the current collision/health services.
-   Preserve current Doomfist Uppercut/passive implementation while reconciling
-   its older unmounted `doomfist_passive.py` consumers.
-2. Reconcile native body-forward, ray/ground and velocity-action adapters and
+1. Audit remaining Doomfist barrier/defense/NPC source services against mounted
+   canonical equivalents. Preserve original checks and source docs; report
+   actual missing consumers separately from renamed helper APIs.
+2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
+   Uppercut or Meteor as a complete Doomfist line.
+3. Reconcile native body-forward, ray/ground and velocity-action adapters and
    actual original source checks. Do not replace shared files wholesale.
-3. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
+4. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
    resource charge, NPC and status interlocks. Then perform a feature-level
    completion audit before a formal line merge.
-4. Advance the remaining six tank deliveries, auditing canonical equivalents
+5. Advance the remaining six tank deliveries, auditing canonical equivalents
    before importing similarly named helpers. Missing source modules are not
    automatically missing behavior; existing narrow prototypes are not proof of
    complete owner implementation either.

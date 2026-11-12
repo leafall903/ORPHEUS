@@ -361,6 +361,11 @@ class InstanceContext(Context):
                 self.watcher.polled = True
                 self.watcher.ticks()
 
+    def fold(self, cfg: dict, *, initial=None):
+        from ow174.game.script import fold
+
+        return fold.evaluate(self.instance, cfg, initial=initial, watcher=self.watcher)
+
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         cls = cfg.get("$")
@@ -370,12 +375,6 @@ class InstanceContext(Context):
             result = spatial_queries.evaluate(self, cfg)
             if result is not NotImplemented:
                 return result
-        if cls == "STU_A6B80C63":
-            from ow174.game.script import play
-
-            if cfg.get("m_C239F989") is not None or cfg.get("m_8054375D") is not None:
-                return play.array_reduce(self.instance, cfg, watcher=self.watcher)
-            return play.fold_array(self.instance, cfg, watcher=self.watcher)
         if cls in ("STU_7042F028", "STU_45B0D2B2"):
             from ow174.game.script import play
 
@@ -1154,6 +1153,8 @@ class Component:
         self.destroyed: list[Instance] = []
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
+        self.health_reports: list[tuple[tuple[int, ...], float, int | None, int, tuple | None]] = []
+        self.motion_reports: list[tuple[tuple[int, ...], tuple, int]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
         self.input_suppressed = False  # delivered input-only control, separate from death/physics
         self.maximum_health = None  # explicit authoritative body-health input, when supplied
@@ -1180,6 +1181,8 @@ class Component:
             self.fault = error
             self.world.script_failed(self)
             self.shots.clear()
+            self.health_reports.clear()
+            self.motion_reports.clear()
             self.held.clear()
             self.code_states.clear()
             self.startup_entity_values.clear()

@@ -150,6 +150,29 @@ def cryo_protected(owner):
             and state.node.field("m_target") == {"$": "STU_B5A0CAF0", "m_EE729DCB": 0})
 
 
+def cryo_capsule(player):
+    """Delivered090B cover shape over the combined server's Cryo lifetime."""
+    from ow174.game.script import nodes
+
+    if not player.has_body or not player.spawned or player.gone or player.client is None:
+        return None
+    phase = active_state(player, MEI, 0x05FE, 6)
+    if phase is None or phase.ending:
+        return None
+    script = player.body_script
+    ability = phase.instance.states.get(0)
+    if (script.component.fault is not None or script.component.entity != player.body
+            or not isinstance(ability, nodes.Ability) or not ability.flags & nodes.Ability.RUNNING):
+        return None
+    x, y, z = player.mover.position
+    return (x, y + .5, z), (x, y + 1.5, z), .5
+
+
+def cryo_blockers(players, *, exclude=None):
+    return tuple(capsule for player in players if player is not exclude
+                 and (capsule := cryo_capsule(player)) is not None)
+
+
 def cryo_healing_sample(owner):
     """Cumulative self-healing from Mei 05FE/state13's authored amount and duration."""
     if getattr(getattr(owner, "hero", None), "guid", None) != MEI:
@@ -184,8 +207,39 @@ def timed_protection(owner):
     return intangible(owner) or cryo_protected(owner)
 
 
+def call_mech_immune(actor):
+    """The delivered owner-only026A entry/CombatModFilter intersection."""
+    script = getattr(actor, "body_script", None)
+    if getattr(script, "hero", None) != DVA:
+        return False
+    component = script.component
+    if script.retired or component.owner_dead or component.fault is not None:
+        return False
+    for instance in component.instances.values():
+        if instance.graph.index != 0x026A:
+            continue
+        entry = instance.states.get(12)
+        state = instance.states.get(24)
+        if (entry is not None and entry.active and not entry.ending
+                and state is not None and state.active and not state.ending
+                and state.node.cls == "STU_D07EBF01"
+                and state.node.field("m_target") == {"$": "STU_B5A0CAF0", "m_EE729DCB": 0}):
+            return True
+    return False
+
+
 def invulnerable(owner):
-    return timed_protection(owner) or active_state(owner, ZENYATTA, 0x017B, 3) is not None
+    return (timed_protection(owner) or call_mech_immune(owner)
+            or active_state(owner, ZENYATTA, 0x017B, 3) is not None)
+
+
+def protection(owner):
+    """Retain the delivered protection query over combined defensive scopes."""
+    from ow174.game import reaper
+
+    if reaper.intangible(owner):
+        return "intangible"
+    return "immune" if invulnerable(owner) else None
 
 
 def projectile_protection_active(owner):

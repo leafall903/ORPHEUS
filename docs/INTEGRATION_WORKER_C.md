@@ -123,3 +123,7 @@ Focused Self-Repair/resource/death/gap/Tank checks passed7/7 after this batch.
 Further charge and storage results belong to CHANGELOG.md and external logs.
 No complete Bastion or original-client acceptance is claimed. The other seven
 assigned deliveries are not yet reconciled by this worker.
+
+Canonical synchronization after C9: f3989db0; preserve all original worker A/B/root
+consumers. Only CHANGELOG required conflict resolution, retaining both entries.
+C10 must verify received NPC/sniper, Doomfist and retained movement bridges.

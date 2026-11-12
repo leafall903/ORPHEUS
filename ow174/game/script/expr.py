@@ -344,6 +344,11 @@ class Context:
         """
         return default_native(cfg)
 
+    def fold(self, cfg: dict, *, initial=None):
+        """Contexts without a VM provider retain their ordinary native-query policy."""
+        result = self.native(cfg)
+        return initial if result is EVALUATION_FAILED else result
+
 
 _warned: set[str] = set()
 
@@ -459,6 +464,8 @@ def evaluate(cfg, ctx: Context, *, initial=None):
     if not isinstance(cfg, dict):
         return cfg
     cls = cfg.get("$")
+    if cls == "STU_A6B80C63":
+        return ctx.fold(cfg, initial=initial)
     if cls == "STU_4A101787":
         return False  # 104319 CEF730 writes a successful boolean false.
     if cls in ("STU_B40ACFBA", "STU_1232F9A3", "STU_AA7C7E9F", "STU_383710EE"):

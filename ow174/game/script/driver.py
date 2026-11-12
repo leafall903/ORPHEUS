@@ -377,6 +377,12 @@ class BodyWorld(runtime.World):
         return None
 
     def linked_tracked_targets(self, state):
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 9)):
+            from ow174.game import doomfist_passive
+
+            return tuple(expr.Entity(entity) for entity in doomfist_passive.targets(self, state))
         if (self.hero == 0x02E000000000006E and self.match is not None
                 and not state.instance.component.strict and state.instance.graph.index == 0x0259
                 and (state.node.field("m_8A2905A0") or {}).get("m_identifier") == 2337):
@@ -482,7 +488,7 @@ class BodyWorld(runtime.World):
         return self._body_owner_context
 
     def spatial_query_context(self, entity):
-        if self.match is not None and entity == self.body:
+        if self.match is not None and entity == getattr(self, "body", None):
             return getattr(self, "_spatial_query_context", NotImplemented)
         return NotImplemented
 
@@ -731,6 +737,15 @@ class BodyWorld(runtime.World):
     def modify_health(self, state, elapsed_ms):
         from ow174.game import barriers
 
+        if (self.match is not None and self.hero == 0x02E000000000012F
+                and not state.instance.component.strict
+                and (state.instance.graph.index, state.index) == (0x0DD8, 10)):
+            if elapsed_ms == 0:
+                from ow174.game import doomfist_passive
+
+                doomfist_passive.hit(self, state)
+            return True
+
         if self.match is not None and (state.instance.graph.index, state.node.pos) in ((0x0B2F, 22), (0x026A, 36)):
             if not elapsed_ms:
                 self.match.combat.dva_ultimate_damage(state)
@@ -755,7 +770,9 @@ class BodyWorld(runtime.World):
         return barriers.transcendence_heal(self, state, elapsed_ms) if value is NotImplemented else value
 
     def end_health(self, state):
-        self.modify_health(state, max(0, state.now - state.last_applied))
+        elapsed = max(0, state.now - state.last_applied)
+        if elapsed:
+            self.modify_health(state, elapsed)
 
     def compatibility_message_receiver(self, state):
         from ow174.game import assassin_victim
@@ -1511,6 +1528,22 @@ class BodyWorld(runtime.World):
     def velocity_action(self, instance, node):
         from ow174.game import lucio_movement, mccree
 
+        if self.hero == 0x02E000000000012F and (instance.graph.index, node.pos) in ((0x0B27, 75), (0x0DD8, 1)):
+            from ow174.game.combat import aim
+
+            if instance.component.owner_dead:
+                return True
+            owner = self.match._message_player(self.body) if self.match is not None else None
+            if owner is None:
+                return True
+            speed = float(node.field('m_BC5E91CF[2].m_9B7A63EA.m_expression.m_D99EF254[0]'))
+            velocity = (0., speed, 0.)
+            if instance.graph.index == 0x0B27:
+                scalar = float(instance.evaluate(node.field('m_BC5E91CF[2].m_9B7A63EA.m_configVars[1]')))
+                dx, _, dz = aim(owner.mover.yaw, 0)
+                velocity = tuple(v * speed * scalar / math.sqrt(1 + .3 * .3) for v in (dx, .3, dz))
+            instance.component.motion_reports.append(((self.body,), velocity, instance.component.now))
+            return True
         if self.hero == 0x02E0000000000008:
             return self._pharah_velocity_action(instance, node)
         if self.hero == lucio_movement.HERO:

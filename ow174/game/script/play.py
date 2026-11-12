@@ -378,6 +378,9 @@ def evaluate_scalar_result(instance, cfg, *, initial=None, watcher=None, _depth=
         if isinstance(cfg, dict) and cfg.get('$') == MODE_SCORE_THRESHOLDS:
             values = mode_score_thresholds(instance, cfg, watcher=watcher)
             return (values[0], True) if values else (0, False)
+        if isinstance(cfg, dict) and cfg.get('$') == 'STU_A6B80C63':
+            #1B7804E succeeds even if its final child preserves the destination.
+            return instance.evaluate(cfg, watcher, initial=initial), True
         if isinstance(cfg, dict) and cfg.get('$') == AUTHORED_ARRAY:
             configs = cfg.get('m_configVars') or ()
             if not configs:

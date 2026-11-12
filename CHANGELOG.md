@@ -26,6 +26,105 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Full C6 server-snapshot run remains active; no complete Pharah/client or
   remaining NPC/control/charge acceptance is claimed by this batch.
 
+### Restore delivered manual NPC melee and charge entry points
+
+- Restore the original mutually exclusive melee/charge/reposition selection
+  through current NPC input and Heavy Assault services. Preserve ordinary
+  primary/autonomous policy, explicit mode stop/reset, authored charge windup
+  and movement, and suppress ordinary pursuit for explicit stationary attacks.
+- Reuse the canonical one-shot melee consumer for the explicit melee mode.
+  An unsupported BotWorld spatial context now returns NotImplemented instead
+  of dereferencing the D.Va-only body field and retiring the Heavy script.
+- Existing62 NPC control/navigation checks pass. Actual close Trooper/Heavy
+  inputs produce25/75 armour-adjusted damage, stop cleanly and emit no primary
+  projectile. Actual Recon wall charge preserves49-tick windup and295 damage.
+- Preserve the unchanged original fixture failures: Trooper at2m is rejected
+  by the now-hosted authored1.5m feet-distance guard; Sentry Heavy melee has a
+  displacement difference. The legacy charge observation uses absent
+  heavy_drives; a direct three-form probe also finds Sentry returning to Recon
+  during capture, yielding295 versus expected235. Keep these owner interlocks
+  open rather than weakening assertions or claiming complete NPC acceptance.
+
+### Mount delivered manual Sniper repositioning
+
+- Preserve Bastion delivery0015's original sniper_reposition.py unchanged.
+  Restore the existing manual reposition argument, authored wait/MoveTo,
+  cooldown, stop/target-loss handling and post-reposition weapon resumption.
+  Route this explicit mode through current navigation without replacing the
+  existing automatic142C retreat or ordinary pursuit.
+- Retain the attack mode in Bot initialization/death and enclosing snapshots.
+  All three unchanged original NPC reposition checks passed against the actual
+  external NPC graph/catalog/mover inputs, without a source-package import
+  fallback. Shared NPC/navigation checks continue separately.
+- C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
+  Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Retain Doomfist input and Meteor lifecycle checks
+
+- Preserve the original magazine/resource, Flashbang-interrupt, throttle and
+  held-primary suites: all22 checks pass unchanged against the mounted hosts.
+- Reconcile original Meteor observation APIs with canonical sleep deadlines,
+  frost storage, damage immunity, lazy respawn vitals and Hack application/lock
+  deadline. Keep the original5000ms effect check on the actual applied lock.
+  All9 original lifecycle scenarios pass across the seven initial successes
+  and the two focused follow-ups; no assertion or case was dropped.
+- Preserve TemporaryShield's existing fifth positional activation argument;
+  append pool_id after it and use a keyword for the new producer. The original
+  positional snapshot fixture plus13 passive checks pass (14 total).
+- Remaining source defense/barrier/NPC equivalents and full-line audit stay
+  open; original-client acceptance is unchanged. No client, network or push.
+
+### Mount delivered Hand Cannon scatter and shield-pool policy
+
+- Route0D0A's eleven independently colliding pellets through the delivered
+  radial spread/jitter generator and server seed binding. Retain the null
+  critical sentinel and honor an explicit positive projectile critical value.
+- Mount source Vitals aggregate shield add/decay consumers, cap/no-delay-reset
+  policy, source pool identity and explicit zero-ID retirement. Preserve other
+  existing temporary-shield producers' default identity. Exclude temporary
+  shield loss from Doomfist's authored damage charge.
+- All21 original Hand Cannon checks,13 passive-shield checks and the Meteor
+  temporary-shield charge regression pass (35 total). This includes the two
+  source API/wire checks reported during canonical Uppercut intake. Previously
+  failing released-pellet Meteor scenarios and health-loss charge also pass.
+- Remaining original Meteor shared-service API observations, NPC/status/barrier
+  interlocks and the whole-line audit are still pending. Original-client
+  acceptance remains open. No external inputs copied, client launch or push.
+
+### Mount delivered Doomfist Uppercut consumers
+
+- Mount the retained Uppercut host with the delivered sphere, dual-height/Cryo
+  visibility, authored health effect, survivor launch and passive award. Queue
+  health/motion reports for posed consumption; discard unposed reports and clear
+  them on VM failure. Include both queues in stored component snapshots.
+- Keep the source passive cap in the temporary pool's declared maximum while
+  retaining Doomfist's intrinsic HUD maximum. Fix the old prototype's Asset
+  loadout conversion so admitted Uppercut hits award the original shield stack.
+- Uppercut23/Slam22/Punch21/runtime13:78 of79 checks passed; the one shield-cap
+  metadata failure was fixed and the focused cap/HUD/decay/incoming-damage
+  follow-up passes5 of5. Queued-report enclosing-server getter-free snapshot
+  repeatability and causality pass. All source behavior assertions remain.
+- The preceding full28 Meteor checks completed with4 assertion failures and7
+  errors. Retain that evidence and every check: remaining Hand Cannon scatter,
+  old shared-service field/API observations and lazy respawn-vitals lookup are
+  follow-up work. Uppercut now addresses its missing passive trigger. No whole
+  line/client acceptance claimed, no game client or publication performed.
+
+### Mount delivered Doomfist Meteor host
+
+- Mount original Meteor targeting/confirmation, authored stages, landing warp,
+  capsule falloff, static/Cryo cover, damage/launch and shield awards. Use actual
+  health loss with the combined damage API. Protect selection/descent and finish
+  interrupted recovery or dead/retired casts without replaying impact.
+- Register Meteor controller/cast state in enclosing-server snapshots. The
+  active real-server probe passes getter-free repeatability and confirmation
+  causality using actual neutral-input charge. The original capsule-boundary
+  test passes both subcases.
+- Preserve all28 original Meteor checks, adapting module names/constants and
+  the retained shield-pool observation. Their full natural-charge run remains
+  in progress at this commit; older shared-service API observations may require
+  follow-up reconciliation. Incomplete acceptance does not block this mounted
+  implementation submission. Uppercut and other Doomfist shared consumers
+  remain pending. Original-client acceptance remains open; no client or push.
 ### Mount delivered Pharah curved reflection and launch contacts
 
 - Retain reflected Barrage eye origin, original-state seed replay,5s lifetime/
@@ -130,6 +229,133 @@ This log records tested changes and their acceptance status. Entries are grouped
   error from the retained Tracer/Pharah fixture's missing sigma_accretion owner.
   No check is removed or weakened. Client and remaining cross-hero integration
   stay open; this does not postpone submission of the functional batch.
+
+### Mount delivered Doomfist Slam host
+
+- Route original ground-hop and aerial Slam targeting, posed movement, landing,
+  charged wave damage, survivor pull and passive awards through Slams. Retire
+  casts with their body and include their stored state in server snapshots.
+- Bridge the delivered Slam/Uppercut velocity actions through the existing
+  next-frame request queue. Preserve positive external launch lift until it
+  clears the floor, as the delivered mover did. Retain the original indexed
+  Switch null-case semantics alongside the existing weapon-combo adapter.
+- All22 original Slam checks,21 Punch checks and13 VM runtime checks pass.
+  All41 McCree Roll, numeric modifier and Lucio velocity regressions pass.
+  An active enclosing-server Slam capture is getter-free, repeatable and
+  sensitive to its stored cast damage.
+  Original assertions stay intact; the source persistent pool-used observation
+  is expressed using canonical retained shield-object presence.
+- Meteor and the remaining Doomfist shared-service consumers still need
+  integration. Original-client geometry/presentation acceptance remains open;
+  no game client, network access, publication or push was performed.
+### Mount delivered NPC shield recovery for the Zenyatta line
+
+- Mount0020's0E62 shield query, actual-damage notification, authored waiting/
+  rearm and recovery states in BotWorld and retained combat catch-up. Restore
+  only the existing basic shield pool and use the combined timed healing factor;
+  do not heal health or add another regeneration pool/clock.
+- Preserve the original real-Zenyatta-hit recovery assertions in a focused
+  delivery file. Its arena omits only the unsupported explicit default
+  difficulty=None keyword. Nondefault NPC difficulty/pool-profile mounting is
+  still pending and is not covered by this fixture. All14 recovery/runtime
+  checks passed using the existing combined NPC catalog, graphs and movers.
+- D.Va core modules, placement and linked-entity consumers match the frozen
+  delivery; retain the earlier documented combined-service adaptations and
+  original compatibility failures. Formal source-ref reconciliation remains
+  with the root coordinator, without requiring whole-client acceptance first.
+
+### Preserve delivered D.Va launch vectors and single landing damage
+
+- Keep D.Va's native quantized volley directions when the shared NPC emission
+  path runs; the generic Enforcer fallback must not overwrite the already
+  resolved Micro Missiles direction. Retain that fallback for other NPC heroes.
+- Flush only positive elapsed time when ending a continuous health state.
+  A zero-time end no longer replays Call Mech's250-damage entry as another hit.
+- All18 targeted launch/landing/fuse/runtime checks passed unchanged. An actual
+  partial Cryo cancellation probe retained the same129.53846 health as the
+  previous end callback, including its continuous healing tail. The29-check
+  Ana/Cryo/healing suite retained exactly the same five failures/25 subcase
+  errors with both callbacks (old source API/health expectations); keep them.
+- Matrix plus held primary still differs from the old D.Va walk-penalty check:
+  the delivered newer button service rejects disabled primary conditions while
+  the old007A query read held primary regardless of disablement. Preserve both
+  source checks; do not remove the newer shared button implementation to pass it.
+
+### Reconcile delivered D.Va entry immunity and retired projectile ownership
+
+- Mount007A's026A entry-scope/CombatModFilter intersection for the pilot only,
+  through existing damage/control immunity and the retained protection query.
+  End it with entry/body retirement; do not transfer it to the controlled mech.
+- Retire the old pilot's Light Gun rounds on hero replacement alongside the
+  existing owned-body retirement, retaining other heroes' projectile policies.
+  Derive owned-mech lethal hit flags from the resolved health pool before the
+  later death record is published, preserving Echo replacement behavior.
+- All31 focused entry/retirement/control/buffer/runtime checks passed with full
+  external0407/projectile inputs; the separate actual lethal-damage check passed
+  in both forms. Original entry immunity, stale pilot projectile and lethal hit
+  failures from the96-check audit are resolved without changing expectations.
+- Remaining original failures concern grounded placement fallback, legacy spread
+  call/storage interfaces, extreme-angle quantization and duplicate landing
+  damage. Keep these checks and code while reconciliation continues.
+
+### Mount delivered Mercy fold evaluator and preserve distinct checks
+
+- Mount0004's original A6B80C63 module and native parameter provider through
+  expression/runtime scalar evaluation. Preserve destination values on child
+  failure, report the fold's successful scalar result, share operation/work
+  budgets and unwind temporary providers. Register live scope storage in both
+  body VM and server snapshots; retain the combined public play helpers.
+- Preserve the original fold checks unchanged; all49 fold/expression/runtime
+  checks passed, including actual0B8B metadata subtraction and passive capture.
+- Retain source Mercy Descent and both distinct pending Descent/Valkyrie files
+  under separate test names. Their21-check run passed19; the two historical
+  pending Valkyrie expectations require immediate passive gain where the source
+  and combined host restart the authored passive timer. Keep both versions.
+- Document the0002 owner reconciliation boundary. The D.Va96-check audit passed
+  with seven failures, two errors and one optional skip retained: blocked
+  placement fallback, entry immunity/control, old spread-call/storage interface,
+  missile extreme-angle quantization, lethal credit/landing and pilot projectile
+  retirement remain under reconciliation. No whole-line/client acceptance claim.
+
+### Synchronize worker A with received parallel implementations
+
+- Merge stable canonical a51925d5 into worker A, retaining both changelog
+  histories and all shared Doomfist/Bastion/scene/snapshot consumers.
+- The67-check boundary run passed Reaper interlocks/Shadow, button/runtime and
+  Rocket Punch; Bastion's expiry-boundary method retained two subcase errors
+  because this checkpoint predates C2's Rocket.charge_eligible implementation.
+  Do not weaken these checks or block unrelated integration on the known gap.
+- Four original Reaper world-clock methods also passed unchanged via isolated
+  source AST execution: idle Shadow landing, Wraith expiry, skipped Blossom and
+  released primary/reload. Full source-file imports still name old split APIs.
+
+### Retain delivered Reaper ability interlock checks
+
+- Preserve the original three command-path interlock checks unchanged. All
+  passed: Blossom/Wraith/Shadow suppress incompatible actions, retain authored
+  resource ownership and complete the locked Shadow landing correctly.
+- Core Reaper, damage-charge and shot-pattern modules remain byte-for-byte
+  identical to delivery0002. Other original cross-hero fixtures refer to split
+  source APIs that require reconciliation with combined services; retain their
+  expectations and do not treat old module naming as absent gameplay alone.
+
+### Reconcile delivered Reaper reflected-shell attribution
+
+- Retain the launch Nano contribution and select the deflector's staff and
+  Supercharger contribution once per returned shell. Preserve the combined
+  bounded multibounce path, body ownership, authored hit tags and loadout.
+  Route returned damage through the admitted 0B8B source without duplicate
+  generic charge; exclude staff bonus and Sound Barrier loss as delivered.
+- All38 focused Genji/reflection/Reaper-charge/runtime checks passed with one
+  optional D.Va input skip. Real-input returned-shell damage and charge identity
+  passed. A Sound Barrier probe absorbed222 damage and awarded zero charge.
+  Pending-shell snapshots were getter-free, repeatable and sensitive to cached
+  deflector credit. The admitted staff-contract probe passed launch-only,
+  return-only and combined cases; actual Mercy beam admission remains separate.
+- Keep original geometry expectations: the original frontal/back Deflect fixture
+  differs from combined native eye/head contacts (120 expected versus222 damage
+  in the frontal case). No expectation was weakened. Cross-hero consumers and
+  whole-line reconciliation continue; no original-client acceptance is claimed.
 
 ### Mount delivered Bastion spread and Sentry rear core
 

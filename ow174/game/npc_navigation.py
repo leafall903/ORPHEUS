@@ -468,6 +468,18 @@ def _step(match, bot, tick, seconds, search_budget):
     if bot.impulse_mover is not None and not bot.dead:
         bot._impulse_step(tick, seconds, match.collision_world)
         return
+    if bot.attack_mode == "melee":
+        return
+    if bot.attack_mode == "reposition":
+        from ow174.game import sniper_reposition
+
+        if (bot.dead or match.ended or not bot.firing or match.combat.is_stunned(bot, tick=tick)
+                or match.combat.is_asleep(bot, tick=tick)
+                or bot.entity in match.combat.sombra_controls.locks):
+            sniper_reposition.stop(bot, tick)
+        else:
+            sniper_reposition.advance(match.combat, bot)
+        return
     target = next((t for t in match.combat._targets() if getattr(t.owner, 'entity', None) == bot.attack_target
                    and getattr(t.owner, 'client', None) is not None and not match.combat.vitals_of(t).dead
                    and not getattr(t.owner, 'gone', False)
@@ -551,6 +563,8 @@ def _step(match, bot, tick, seconds, search_budget):
         elif clipped_to_target and math.hypot(bot.position[0] - tx, bot.position[2] - tz) <= radius + 0.002:
             nav.charge_contact = (tick, target.entity)
         return
+    if bot.attack_mode == "charge":
+        return  # Explicit charge waits for its authored MoveTo instead of pursuing.
     if current_mover and movement is None and not nav.path and nav.mover.airborne:
         _settle_step(bot, nav, tick, seconds)
         return

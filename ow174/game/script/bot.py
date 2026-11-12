@@ -552,7 +552,7 @@ class BotWorld(runtime.World):
         return super().entity_var(entity, var)
 
     def native(self, cfg: dict, instance: runtime.Instance):
-        from ow174.game import assassin, npc_context, orisa_halt
+        from ow174.game import assassin, npc_context, npc_shields, orisa_halt
 
         if self.hero == 0x02E000000000007A and self.match is not None:
             from ow174.game import body_entities
@@ -584,6 +584,8 @@ class BotWorld(runtime.World):
         result = assassin.native(self, cfg, instance)
         if result is NotImplemented:
             result = npc_context.native(self, cfg, instance)
+        if result is NotImplemented:
+            result = npc_shields.native(self, cfg, instance)
         if result is not NotImplemented:
             return result
         halt = orisa_halt.native(self, cfg, instance)
@@ -695,7 +697,11 @@ class BotWorld(runtime.World):
         return targets if targets is NotImplemented else tuple(target.id for target in targets)
 
     def modify_health(self, state, elapsed_ms):
-        from ow174.game import assassin, heavy_assault
+        from ow174.game import assassin, heavy_assault, npc_shields
+
+        value = npc_shields.modify_health(self, state, elapsed_ms)
+        if value is not NotImplemented:
+            return value
 
         if self.match is not None and self.hero == 0x02E000000000007A and (state.instance.graph.index, state.node.pos) == (0x0B2F, 22):
             if not elapsed_ms:
@@ -713,7 +719,8 @@ class BotWorld(runtime.World):
         if (self.match is not None and (self.hero, state.instance.graph.index, state.node.pos) in
                 ((TROOPER_HERO, 0x1422, 4), (HEAVY_ASSAULT_HERO, 0x140E, 5))):
             attacker = self.match.combat._npc_melee_attacker(state)
-            if attacker is not None and attacker.spawner.get("manual_spawn") is True and not attacker.firing:
+            if (attacker is not None and attacker.spawner.get("manual_spawn") is True
+                    and (not attacker.firing or attacker.attack_mode == "melee")):
                 if elapsed_ms == 0:
                     self.apply_modify_health(state)
                     settings = state.node.field("m_modifyHealth") or {}
