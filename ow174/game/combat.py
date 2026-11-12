@@ -1421,6 +1421,7 @@ class RangedContact:
     definition: int | None
     state: object
     world_tick: int | None = None
+    reaper_shell: dict | None = None
 
 @dataclass(frozen=True)
 class MeleeContact:
@@ -4391,7 +4392,7 @@ class Combat:
                             if (shown := self.seen(target, payload.view_tick)) is not None)
             self._hitscan(shooter, payload.state, payload.origin, payload.direction, payload.reach,
                           targets, hit, frame, payload.world_tick, view_tick=payload.view_tick,
-                          definition=payload.definition)
+                          definition=payload.definition, reaper_shell=payload.reaper_shell)
 
     def _support_hit(self, shooter, definition):
         if definition is None or definition.healing or self.match.game_map.free_for_all:
@@ -4706,10 +4707,16 @@ class Combat:
 
             seed = weapon_spread.seed_base(shooter.entity, state.instance.id, node.pos, activation[0])
             directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
+        reaper_shell = None
+        if reaper.is_reaper(shooter) and state.instance.graph.index == reaper.SHOTGUN_GRAPH:
+            from ow174.game import nano
+
+            reaper_shell = {"amount": direct.amount, "nano_bonus": nano.offense(self, shooter.body) - 1.0,
+                            "returns": {}}
         for pellet in directions:
             self._submit_attack(shooter, shot_frame, RangedContact(
                 direct, origin, pellet, reach, view_tick, charge_context, definition, state,
-                view_tick if npc else None,
+                view_tick if npc else None, reaper_shell,
             ))
 
     @staticmethod
@@ -4770,7 +4777,8 @@ class Combat:
         return closest
 
     def _hitscan(self, shooter, state, origin, direction, reach, targets, direct, shot_frame, world_tick,
-                 *, view_tick=None, reflected=frozenset(), definition=None, travelled=0.0, matrix_factor=1.0, bounces=0):
+                 *, view_tick=None, reflected=frozenset(), definition=None, travelled=0.0, matrix_factor=1.0, bounces=0,
+                 reaper_shell=None):
         best = None
         for target, shown in targets:
             if self._has_protection(target, PHASE_STATES) or immunity.wraith_active(target.owner, target.entity):
@@ -4902,11 +4910,24 @@ class Combat:
                 contact = _along(origin, direction, distance)
                 if matrix_factor == 1.0:
                     matrix_factor = self.baptiste.matrix_multiplier(shooter, origin, contact)
+                returned = direct
+                if reaper_shell is not None:
+                    returns = reaper_shell["returns"]
+                    if owner.body not in returns:
+                        # Keep the launch Nano contribution; staff and Supercharger
+                        # ownership are selected once per deflector for this shell.
+                        base_scale = 1.0 + reaper_shell["nano_bonus"] + self.orisa.superchargers.scale(owner) - 1.0
+                        staff = self._damage_boost(owner, frame=self.tick)
+                        scale = base_scale + (staff[1] - 1.0 if staff is not None else 0.0)
+                        credit = (staff[0], scale / base_scale) if staff is not None and base_scale > 0 else None
+                        returns[owner.body] = reaper_shell["amount"] * scale, credit
+                    amount, credit = returns[owner.body]
+                    returned = replace(direct, amount=amount, boost_credit=credit)
                 self._hitscan(
-                    owner, state, _along(contact, facing, 1e-4), facing, reach - distance, targets, direct,
+                    owner, state, _along(contact, facing, 1e-4), facing, reach - distance, targets, returned,
                     shot_frame, self.tick, view_tick=self.tick, reflected=reflected | {target.entity},
                     definition=definition, travelled=travelled + distance,
-                    matrix_factor=matrix_factor, bounces=bounces + 1,
+                    matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
                 )
             return
         if best is None or (wall is not None and wall < best[0]):
@@ -4940,6 +4961,8 @@ class Combat:
             award_ult=state.instance.graph.index != 0x01EE,
             deadeye=state.instance.graph.index == 0x01EE and state.node.pos == 14,
             hit_reaction=state.instance.graph.index == 0x01D2 and state.node.pos in (31, 37),
+            source_scaled=reaper_shell is not None and bounces > 0,
+            reflected_reaper_shell=reaper_shell is not None and bounces > 0,
         )
         if landed:
             self._hit_effect(target, direct.effect, shooter=shooter)
@@ -7044,6 +7067,7 @@ class Combat:
         hit_tags: tuple[int, ...] = (), armour_scalar: float | None = None,
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
+        reflected_reaper_shell: bool = False,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
@@ -7094,6 +7118,8 @@ class Combat:
             amount *= 0.5
         adaptive = vitals.extra.get(("adaptive", moira.ADAPTIVE_SHIELD_TAG))
         shield_before = adaptive.now if adaptive is not None else 0.0
+        sound_pool = vitals.extra.get(sound_barrier.POOL_KEY)
+        sound_before = sound_pool.now if sound_pool is not None else 0.0
         minimum = self._minimum_health(target, vitals)
         base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1]), minimum,
                                     armour_scalar=armour_scalar, beam=beam)
@@ -7178,8 +7204,16 @@ class Combat:
             if current_source:
                 self._reaping(shooter, target, dealt)
             if award_ult and enemy and current_source:
-                reaper.charge_damage(shooter, dealt - extra, target,
+                source_points = dealt - extra - max(0.0, sound_before - (sound_pool.now if sound_pool is not None else 0.0))
+                reaper.charge_damage(shooter, source_points, target,
                                      tuple(expr.Asset(tag) for tag in hit_tags))
+                if reflected_reaper_shell and source_points > 0:
+                    from ow174.game import damage_charge as authored_charge
+
+                    instance = authored_charge.admitted_source(script)
+                    if instance is not None:
+                        authored_charge.apply(script, instance, source_points, target,
+                                              tuple(expr.Asset(tag) for tag in hit_tags))
             if award_ult and enemy and current_source and hero == regeneration.MERCY:
                 from ow174.game.script import charge
 
@@ -7189,6 +7223,7 @@ class Combat:
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source
+                    and not reflected_reaper_shell
                     and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt

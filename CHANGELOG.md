@@ -4,6 +4,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reconcile delivered Reaper reflected-shell attribution
+
+- Retain the launch Nano contribution and select the deflector's staff and
+  Supercharger contribution once per returned shell. Preserve the combined
+  bounded multibounce path, body ownership, authored hit tags and loadout.
+  Route returned damage through the admitted 0B8B source without duplicate
+  generic charge; exclude staff bonus and Sound Barrier loss as delivered.
+- All38 focused Genji/reflection/Reaper-charge/runtime checks passed with one
+  optional D.Va input skip. Real-input returned-shell damage and charge identity
+  passed. A Sound Barrier probe absorbed222 damage and awarded zero charge.
+  Pending-shell snapshots were getter-free, repeatable and sensitive to cached
+  deflector credit. The admitted staff-contract probe passed launch-only,
+  return-only and combined cases; actual Mercy beam admission remains separate.
+- Keep original geometry expectations: the original frontal/back Deflect fixture
+  differs from combined native eye/head contacts (120 expected versus222 damage
+  in the frontal case). No expectation was weakened. Cross-hero consumers and
+  whole-line reconciliation continue; no original-client acceptance is claimed.
+
 ### Integrate delivered Shadow Step and native button transition edges
 
 - Mount the original00F2 Shadow Step selection/confirmation/cancellation,

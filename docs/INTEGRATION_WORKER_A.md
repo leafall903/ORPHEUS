@@ -9,24 +9,35 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
-Current batch A1 ports Reaper00F2 Shadow Step's selector/confirmation/cancel,
+Committed batch A1 (`0e13388f`) ports Reaper00F2 Shadow Step's selector/confirmation/cancel,
 locked destination, actor/capsule/Mei-pillar exclusion, revalidation, authored
 cast completion, actual movement, immunity and retirement. It also retains the
 source's shared four-flag logical-button transition conditions and owner-list
 rechecks with the input identity preserved during CHECK. Existing Tracer and
 Halloween dependency rechecks remain present. Source: `hero-deliveries/0002`
-(`4babd033`). The exact batch SHA is recoverable from the latest commit touching
-this checkpoint, rather than a self-referential hash embedded in its own commit.
+(`4babd033`). Root accepted A1 into canonical as `ecf4a68e`.
 
 Validation: all31 original Shadow Step/button-transition/runtime checks passed;
 three selected existing Tracer Blink/Recall checks passed. A live server-state
 capture confirmed repeatable getter-free export and sensitivity to the stored
 Shadow Step selector buttons. No original-client acceptance was run or claimed.
 
+Batch A2 reconciles delivered reflected Reaper shells: retained launch Nano,
+per-deflector staff/Supercharger ownership, admitted 0B8B charge without generic
+double credit, and Sound Barrier/staff exclusion. The exact A2 SHA is recoverable
+from the commit touching this checkpoint. All38 focused checks passed (one
+optional D.Va skip); actual-input damage/charge identity and a222-damage Sound
+Barrier/zero-charge probe passed. Getter-free pending-shell captures include the
+cached returned amount and credit. The staff-contract probe passed all three
+ownership combinations; actual Mercy admission is still pending that line.
+The original Deflect geometry fixture remains unchanged: combined native contacts
+yield222 rather than120 frontal damage, and lethal rather than80 HP back exposure.
+Evidence logs remain outside Git at `verification/worker-a-returned-shell-*.log`.
+
 Next actions, in order:
 
-1. Reconcile Reaper reflected-shell attribution, source body/lifetime boundaries
-   and remaining cross-hero consumers; determine code-level whole-line admission
+1. Audit Reaper source body/lifetime boundaries and remaining cross-hero consumers;
+   retain distinct original checks and determine code-level whole-line admission
    without requiring the complete original-client/geometry matrix to pass.
 2. Complete DVa's remaining shared-service/code consumers, then continue Tracer,
    Zenyatta and Mercy, followed by Hanzo and Widowmaker. Source trees are at
