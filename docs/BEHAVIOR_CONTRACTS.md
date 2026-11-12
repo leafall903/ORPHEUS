@@ -16,6 +16,19 @@ python -B -m unittest tests.public.test_behavior_contracts
 
 Normal public test discovery also runs this contract. For cross-language checks, set `ORPHEUS_BEHAVIOR_FIXTURES` to the other checkout's `fixtures/behavior` directory so both consumers read the same file. Without that setting, the test uses this repository's fixtures. Record the exact Python and Rust revisions used for a comparison.
 
+## Strict World queries
+
+The [World query fixture](../fixtures/behavior/world-queries-v1.json) records eleven synthetic cases: known origin and position, known unset, missing and populated foreign variables, unavailable position and foreign-variable services, and a null entity member read. Its pinned Python source establishes the strict host's query policy. It is not original-client evidence.
+
+The [Python consumer](../tests/public/test_world_query_contracts.py) creates a fresh production `Component(strict=True)` and graph instance for every case, then calls `instance.evaluate`. Its World adapter supplies only the fixture's positions and variable values. Missing positions return `None`; an unavailable entity-variable service returns `NotImplemented`, while a known variable table with a missing key returns `None`. The consumer checks fixed result types and values or the exact unsupported-query diagnostic, including its entity and variable identifier.
+
+```powershell
+$env:PYTHONPATH = 'src'
+python -S -B -m unittest tests.public.test_world_query_contracts
+```
+
+This source-only check needs neither installed dependencies nor prepared runtime data. It uses the same `ORPHEUS_BEHAVIOR_FIXTURES` override as the framing consumer. The contract covers query results and error categories only: Python's strict host faults and stops the component, while Rust records an expression issue and declines that evaluation. It does not establish equivalent component recovery, event order, live foreign-variable watchers or client behavior. Original-client acceptance remains pending.
+
 ## Fixture fields
 
 | Field | Meaning |
