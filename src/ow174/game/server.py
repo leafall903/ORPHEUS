@@ -27,7 +27,7 @@ from dataclasses import dataclass, field, replace
 from ow174.game import combat, correction, messages, movelog, observers, world
 from ow174.game.bits import BitReader, BitWriter
 from ow174.game.commands import InputError, read_commands
-from ow174.game.content import PRACTICE_RANGE_MODE
+from ow174.game.content import PRACTICE_RANGE_MODE, spawn_form
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
 from ow174.game.link import (
     ACK,
@@ -1324,7 +1324,7 @@ class GameServer:
             for match in self.matches:
                 for player in match.players:
                     if player.account_lo == account_lo and player.client is not None:
-                        return match.switch_hero(player, hero)
+                        return match.switch_hero(player, spawn_form(hero))
         return False
 
     def npc_key(self, account_lo: int, key: str, catalog, *, menu_open: bool = False) -> dict:

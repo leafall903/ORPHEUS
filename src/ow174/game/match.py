@@ -53,6 +53,7 @@ from ow174.game.content import (
     GameMap,
     Hero,
     heroes,
+    spawn_form,
     spawn_point,
 )
 from ow174.game.environment import ExecutionEnvironment, SystemEnvironment
@@ -789,7 +790,7 @@ class Match:
         """Freeze a player's current health pools, team and hero, with the projectile lease for its owner."""
         vitals = self.combat.vitals.get(owner.body)
         if vitals is None:
-            health, armour, shields = pools.body_pools(owner.hero.guid)
+            health, armour, shields = pools.body_pools(owner.hero.guid, owner.hero.body)
             components = world.health(health, health, armour, shields)
         else:
             components = vitals.component(vitals.ids)
@@ -1508,6 +1509,7 @@ class Match:
                 label, name = self.label(), player.name
                 log.warning("[game] %s: %s picked %s, not of the queued role", label, name, hero.name)
                 return
+            hero = spawn_form(hero)
             skin = self.skin_of(player.account_lo, hero.guid)
             needs_body = not player.has_body or player.body_script_failed
             if ((needs_body or hero is not player.hero or skin != player.skin)

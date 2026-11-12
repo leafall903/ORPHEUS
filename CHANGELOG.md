@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### D.Va enters play in her mech
+
+- A pick of D.Va now gives her mech, body definition `0407`, where it gave her pilot `040A`: the
+  hero's record names the pilot, and the mech is an entity definition of its own.
+  `content.spawn_form` holds that pairing, and a pack without the mech's statescript keeps the
+  pilot. A player joining before any pick, and an explicit switch to a body, are unchanged.
+- Health pools are now read for the body played. The mech's own graph data gives 300 health and
+  300 armour; a hero in his own body gets what he got before.
+- The body script already built the mech's graphs, and its Fusion Cannons already fire from held
+  fire. Nothing was added for them.
+- Added runtime tests: the pairing and its fallback, the pools by body, a pick giving the mech and
+  a second pick keeping the body, the mech's graphs and 600 total health, and held fire shooting.
+- Not done: the mech has no mover data of its own and moves with Soldier: 76's, whose capsule is
+  0.5 m where the mech's is 0.7 m. Its eye height is the default. Eject, Self-Destruct and Call
+  Mech are not played: a destroyed mech is a dead D.Va, and she respawns in the mech. The pilot's
+  Light Gun does not fire on the server.
+- Original-client acceptance is pending.
+
 #### Target search for Sombra's Hack
 
 - Decoded the rest of the search's sight in `docs/research/track-targets.md`: the hardpoint list

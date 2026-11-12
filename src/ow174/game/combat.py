@@ -1063,7 +1063,7 @@ class Combat:
             if isinstance(owner, bots.Bot):
                 found = Vitals(entity, owner.health)
             else:
-                found = Vitals(entity, *pools.body_pools(owner.hero.guid))
+                found = Vitals(entity, *pools.body_pools(owner.hero.guid, owner.hero.body))
             self.vitals[entity] = found
         return found
 

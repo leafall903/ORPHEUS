@@ -3,7 +3,7 @@
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 
 from ow174.paths import DATA_DIR
@@ -32,6 +32,23 @@ class Hero:
     name: str
     role: str
     body: int  # the 003 entity the client plays as (the hero's m_gameplayEntity)
+
+
+# The body a hero enters play in, where the hero's record names another: D.Va's record names her pilot
+# (040A) and she spawns in her mech, an entity definition of its own (0407).
+SPAWN_BODIES = {0x02E000000000007A: 0x0400000000000407}
+
+
+@cache
+def spawn_form(hero: Hero) -> Hero:
+    """The hero in the body he enters play in: the same object for the same hero, so a pick of the hero
+    already played is seen as one. A pack without that body's statescript keeps the record's body."""
+    from ow174.game.script import graph
+
+    body = SPAWN_BODIES.get(hero.guid)
+    if body is None or graph.entity_body(body) is None:
+        return hero
+    return replace(hero, body=body)
 
 
 @cache
