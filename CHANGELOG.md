@@ -22,6 +22,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Chunk sweep for the runtime tests
+
+- Added `tests/chunk_sweep.py`. `python -B -m tests.chunk_sweep` runs the runtime tests with every
+  statescript chunk queued for a game client read the way the client reads it: each client keeps a
+  `decode.ClientBody` per entity and applies its chunks in queue order. A chunk the client would
+  crash on, refuse or misread is listed with the test that queued it, and the exit code is 1.
+- It does not read a fragment of a split mode frame, a state class without a verified codec, a graph
+  the bundle lacks or a delta whose base was never queued. Those count as unchecked, with the
+  deltas that follow on the same entity. Chunks handed to a mock client are not seen.
+- Sweep of this branch's 1652 runtime tests: 2408 chunks read, 126 unchecked, none the client
+  would crash on, refuse or misread. The tests' own failures on the local pack are unchanged.
+- Added runtime tests for the sweep's counting. Ruff and the 922 public tests passed. The sweep
+  needs the runtime data, so it does not run in CI.
+
 #### Graph extraction from the pinned DataTool's UUID fields
 
 - `tools/extract_game_graphs.py` now reads a `teUUID` field as its text, or as none when the dump
