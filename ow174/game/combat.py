@@ -7758,7 +7758,10 @@ class Combat:
             best = (scene_barrier[0], None)
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
-        wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
+        cryo_cover = ()
+        if rocket.direct is not None and rocket.direct.loadout == defenses.HAND_CANNON:
+            cryo_cover = defenses.cryo_blockers(self.match.players, exclude=rocket.shooter)
+        wall = ray_cover(collision, rocket.position, heading, max(step, assisted_rank), cryo_cover)
         terrain_normal = None
         if rocket.terrain_bounce is not None:
             from ow174.game import junkrat_projectile
