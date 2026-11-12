@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore native shield impact splash recipient handling
+
+- Keep the actual native mesh hit as this impact's cover before damaging its
+  pool, then resolve exposed bodies through the existing explosion path. This
+  preserves protection when the same hit breaks the shield without swallowing
+  splash onto an exposed body. Exclude duplicate area damage from the same
+  body's separate collision-descriptor adapter; never exchange the descriptors.
+- Reuse the exact native mesh transform in one stateless trace helper. Preserve
+  front-side near-surface splash/falloff; rear explosions do not damage the
+  forward shield. Other shield and sticky-projectile paths retain their hosts.
+- All60 original focused four shield splash cases, existing near-shield falloff,
+  Pharah primary/edge and runtime checks pass. Complete original suites retain
+  known Echo488/380, missing sigma_grasp import, Brigitte and pending team-bound
+  observations; assertions and original numeric expectations are unchanged.
+- Original-client acceptance remains open.
+
 ### Restore delivered native Barrier Field lowering and retirement
 
 - Run original0095 Ability/Pet lowering when the owner is controlled, dead,

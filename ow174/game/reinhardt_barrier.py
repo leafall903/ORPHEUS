@@ -345,11 +345,12 @@ class ReinhardtBarriers:
             actor.instance.component.run_now()
         return before - actor.health
 
-    def explosion(self, shooter, point, blast, visible_from, forced):
+    def explosion(self, shooter, point, blast, visible_from, forced, *, excluded=()):
         from ow174.game.combat import capsule_visible
 
         radius = max((ring[0] for ring in blast.rings), default=0.0)
-        actors = {actor.entity: actor for actor in (*self.enemies(shooter), *forced)}
+        actors = {actor.entity: actor for actor in (*self.enemies(shooter), *forced)
+                  if actor.body not in excluded}
         protected = set()
         for actor in actors.values():
             for target in self.fight._enemies(shooter, damageable=True):
@@ -359,6 +360,11 @@ class ReinhardtBarriers:
                 length = math.sqrt(sum(v*v for v in delta))
                 if length and actor.trace(visible_from, tuple(v/length for v in delta), length) is not None:
                     protected.add(target.entity)
+            position, axes = frame(actor.geometry, *actor.pose())
+            # Preserve front-side near-surface splash even without a body in
+            # range, while a rear explosion cannot damage this forward shield.
+            if actor not in forced and sum((point[k] - position[k]) * axes[2][k] for k in range(3)) < 0:
+                continue
             collision = self.fight._collision()
             def visible(surface, collision=collision):
                 return capsule_visible(collision, visible_from, surface, surface, .001)
