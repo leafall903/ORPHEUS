@@ -670,6 +670,14 @@ class Mover:
             self.flags_word |= FELL
             self.air_ticks = 0
 
+    def stop_drive(self) -> None:
+        """Retire the delivered driven movement without changing the body pose."""
+        self.velocity = (0.0, 0.0, 0.0)
+        self.driven = False
+        self.external_impulse = False
+        if self.history:
+            self.history[-1] = self.snapshot(self.history[-1].frame)
+
     def apply_impulse(self, impulse: tuple[float, float, float]) -> None:
         """Delivered additive world-space velocity change for an owned body."""
         vx, vy, vz = self.velocity

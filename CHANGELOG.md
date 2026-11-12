@@ -40,6 +40,39 @@ This log records tested changes and their acceptance status. Entries are grouped
   need source reconciliation. Whole-line and original-client acceptance stay
   open; this functional batch does not depend on their completion.
 
+### Receive the first three parallel implementation batches
+
+- Receive B1's delivered Rocket Punch host alongside A1 Shadow Step and C1
+  Bastion repair/charge. Preserve both body-retirement paths, every causal
+  snapshot registration and A's input-transition CHECK context.
+- Bridge Bastion's repair admission to the shared input_suppressed flag used
+  by Punch control, retaining its separate delayed-control history. An actual
+  Punch control-service probe confirmed no queued/continuous repair during control.
+- All97 combined Punch/Shadow/button/runtime/scene/repair/charge/storage checks
+  passed after reconciliation. Worker source commits remain preserved; this is
+  batch admission, not whole-line/client acceptance. Workers continue independently.
+
+### Mount delivered Doomfist Rocket Punch host
+
+- Preserve the source Doomfist owner hosts and Meteor implementation. Route
+  Rocket Punch charge/release, swept dash, first capsule contact, one wall bonus,
+  recovery/cooldown and input-only control through the delivered Punches object.
+  Retain the existing impulse mover and passive shield pool. Restore the scoped
+  authoritative body-forward query used to latch its launch direction.
+- Stop routing the earlier Doomfist punch_contact prototype alongside this host;
+  keep its implementation and the existing Reinhardt Charge route. Suppress
+  control-period input without zeroing the delivered horizontal knockback.
+  The input_suppressed flag gates both newly queued and pending button presses,
+  and joins the passive component and enclosing server snapshot layout.
+- Retain the original21 Rocket Punch checks and shared combat fixture, adapting
+  only the fixture's Sombra import to the combined module name. All21 checks and
+  all13 existing runtime checks passed. The active enclosing server snapshot
+  probe additionally checks getter-free repeatability and dash-state causality.
+- Slams, Meteor, remaining passive/Uppercut and other-hero/NPC dependencies still
+  require reconciliation. Their delivered implementations remain preserved;
+  incomplete whole-line acceptance does not block this code submission. No
+  original-client acceptance, new gameplay feature or acceptance matrix claimed.
+
 ### Mount delivered Bastion Self-Repair and ultimate gates
 
 - Retain the original0153 repair sampler, bounded per-frame reports and0044
@@ -59,10 +92,58 @@ This log records tested changes and their acceptance status. Entries are grouped
   combat checks recorded9 failures and10 errors. All seven focused repair,
   resource, death/gap and Tank-gate checks now pass; all four passive/damage/
   qualified-healing charge checks and14 runtime/storage checks pass.
+- Root intake retained the original invalid-award type guard and passed all43
+  repair/charge/storage plus Shadow/button/runtime checks after merging with A1.
 - Recon/Sentry spread, static rear-core pose/critical consumer, Tank splash and
   cross-hero interlocks still need reconciliation. This batch preserves existing
   implementation without waiting for whole-line/client acceptance. No gameplay
   feature or acceptance matrix is added; see INTEGRATION_WORKER_C.md for resume.
+
+### Integrate delivered Shadow Step and native button transition edges
+
+- Mount the original00F2 Shadow Step selection/confirmation/cancellation,
+  locked cast destination and standing capsule/live-actor landing policy.
+  Preserve authored cast/recovery/cooldown and validate the destination again
+  before the movement handoff. Retain original Mei pillar support/occupancy
+  helpers and capture the selector/cast record as causal server state.
+- Restore7DEB522D's four native down/up/held/released flags and compiled
+  transition-owner rechecks, preserving the triggering button during CHECK.
+  Keep existing Tracer/Halloween dependency-driven transition rechecks. Use
+  Reaper's authored Shadow/Wraith intangible intervals for hostile admission,
+  direct damage and resource-backed control without widening the cast window.
+- All31 original Shadow Step/button-transition/runtime checks passed. Three
+  existing Blink/Recall checks passed separately; a live server snapshot probe
+  remained getter-free/repeatable and changed with stored selector buttons.
+- Root intake retained both coordination/scenario records and passed all64
+  combined Shadow/button/runtime/scene-host checks after the shared-code merge.
+- Persist worker A's scope and next actions in INTEGRATION_WORKER_A.md. Reaper
+  reflected-shell and other cross-hero code reconciliation continues; no whole-
+  line or original-client acceptance is claimed, and no matrix gate is added.
+
+### Reconcile the original Python scenario delivery history
+
+- Verify that all13 code/check file patches from95cd0b5d match the admitted
+  389d9b07 integration, then merge the original delivery ref. Resolve shared
+  conflicts in favor of the later combined implementations, retaining their
+  D.Va, Genji, Soldier, native-state and mode-query consumers.
+- Restore SceneHazard alongside Bot/Deployable in the live source-entity
+  resolver; later body adapters had accidentally dropped the no-body hazard
+  case. Preserve the source document's remaining blank-line change.
+- Refresh six existing scene Bot mocks with the real default unowned fields
+  (owner/source_body zero); original assertions remain unchanged. All33 scene
+  host checks passed. A direct no-body hazard probe also passed through the
+  combined damage consumers. No hero-completion count or client acceptance
+  is inferred from this already implemented scenario delivery.
+
+### Persist three-worker original-language integration
+
+- Dispatch three explicitly authorized subagents on separate worktrees/indexes
+  frombf7fad86, partitioning the22 remaining hero deliveries7/7/8. Preserve their
+  branches and per-worker resume records; root alone receives commits and
+  reconciles shared code before fast-forwarding intake.
+- Retain a durable coordination record and continuation protocol. This changes
+  task ownership only, not gameplay or acceptance scope. Verify each worker live
+  before resuming/restarting it. The complete nonappearance merge remains open.
 
 ### Mount delivered Death Blossom clocks and idle Reaper bodies
 

@@ -72,6 +72,12 @@ def ray(pillar, origin, direction, length, *, radius=0.0, height=0.0):
     return max(0.0, enter), global_vector(pillar, normal)
 
 
+def occupies(pillar, point, radius, height):
+    x, y, z = local(pillar, tuple(a - b for a, b in zip(point, pillar.feet, strict=True)))
+    dx = max(0, abs(x) - pillar.width / 2)
+    dz = max(0, abs(z) - pillar.depth)
+    return y < pillar.height - EPS and y + height > EPS and math.hypot(dx, dz) < radius
+
 def closest(pillar, point):
     p = local(pillar, tuple(a - b for a, b in zip(point, pillar.feet, strict=True)))
     bounded = (max(-pillar.width / 2, min(pillar.width / 2, p[0])),
@@ -330,6 +336,19 @@ class Walls:
         piece.health = max(0.0, piece.health - amount)
         if piece.health == 0:
             self.remove(piece)
+
+    def fits(self, point, radius, height, *, tick):
+        return not any(tick < piece.expires and occupies(piece, point, radius, height)
+                       for piece in self.pieces.values())
+
+    def supports(self, point, *, tick):
+        for piece in self.pieces.values():
+            if tick >= piece.expires:
+                continue
+            x, y, z = local(piece, tuple(a - b for a, b in zip(point, piece.feet, strict=True)))
+            if abs(y - piece.height) <= EPS and abs(x) <= piece.width / 2 and abs(z) <= piece.depth:
+                return True
+        return False
 
     def instance(self, player):
         script = getattr(player, "body_script", None)

@@ -1155,6 +1155,7 @@ class Component:
         # Volley state, shot number, time, and the frozen activation counter and start.
         self.shots: list[tuple[State, int, int, tuple[int, int]]] = []
         self.owner_dead = False  # the body's health is 0 (combat.py): presses and shots stop
+        self.input_suppressed = False  # delivered input-only control, separate from death/physics
         self.maximum_health = None  # explicit authoritative body-health input, when supplied
         self.fault: ScriptBudgetError | UnsupportedScriptError | None = None
         self._operation_depth = 0
@@ -1461,6 +1462,8 @@ class Component:
     def edges(self, buttons: list[tuple[int, bool]]) -> None:
         """Button edges at now, on every instance (0x7FF789C66AA0 queues each on all the instances)."""
         for button, pressed in buttons:
+            if pressed and self.input_suppressed:
+                continue
             for instance in list(self.instances.values()):
                 instance.post(Event(self.now, 0, BUTTON, button=button, pressed=pressed))
 
@@ -1884,7 +1887,12 @@ class Instance:
         elif event.kind == CHECK:
             state.flags_check = False
             if state.active:
-                state.try_complete()
+                previous = self.component.button
+                self.component.button = event.button
+                try:
+                    state.try_complete()
+                finally:
+                    self.component.button = previous
         elif event.kind == CHANGED:
             state.flags_changed = False
             if state.active:
@@ -1914,6 +1922,8 @@ class Instance:
     def button_edge(self, button: int, pressed: bool) -> None:
         """A logical-button edge (event 8): the held list, then every LogicalButton/Ability state of the
         graph's m_logicalButtonStateIndices, active or not."""
+        if pressed and self.component.input_suppressed:
+            return
         component = self.component
         component.button = button
         if pressed and button not in component.held:
@@ -1924,19 +1934,21 @@ class Instance:
             state = self.state(index)
             if state is not None:
                 state.button(button, pressed)
+        # A logical-button condition is not itself a State. Its compiled owner
+        # list identifies transition States that need a completion check when
+        # this input changes (e.g. Reaper00F2/st1 waiting for Shadow Step).
+        for node in self.graph.nodes:
+            if node.cls != "STU_7DEB522D" or not self.accepts(node):
+                continue
+            cfg = node.field("m_logicalButton")
+            if expr.to_int(self.evaluate(cfg)) != button:
+                continue
+            for index in node.field("m_122DF0CA") or ():
+                state = self.states.get(index)
+                if state is not None and state.active and not state.flags_check:
+                    state.flags_check = True
+                    self.post(Event(component.now, 0, CHECK, state=state, button=button, pressed=pressed))
         component.button = NO_BUTTON
-        if pressed and self.graph.index == 0x023A:
-            # 023A's held-button transition conditions name the states to recheck.
-            for condition in self.graph.nodes:
-                if (condition is None or condition.cls != "STU_7DEB522D"
-                        or not condition.field("m_00994FF0")
-                        or expr.to_int(self.evaluate(condition.field("m_logicalButton"))) != button):
-                    continue
-                for index in condition.field("m_122DF0CA") or ():
-                    state = self.states.get(index)
-                    if state is not None and state.active and not state.flags_check:
-                        state.flags_check = True
-                        self.post(Event(component.now, 0, CHECK, state=state))
 
     def run_deferred(self) -> bool:
         """The deferred list (Defer), from the last entry down. Returns whether something ran."""
