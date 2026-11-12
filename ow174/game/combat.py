@@ -1619,6 +1619,9 @@ class SplitVolley:
     speed: float
     lifetime: float
     direct: HitDef
+    blast: HitDef | None = None
+    definition: int | None = None
+    authored_roadhog: bool = False
 
 
 @dataclass
@@ -6315,6 +6318,9 @@ class Combat:
                               and blast is not None and bool(blast.impulse_rings))
             if damaging or shot is not None or deployment or server_ability or field_spec is not None or spawn is not None or pharah_impulse:
                 split = None
+                if (not npc and shooter.hero.guid == 0x02E0000000000040
+                        and (source_graph, node.pos) == (0x01C6, 29)):
+                    split = self._roadhog_split(state, direction)
                 if (npc and shooter.hero == 0x02E0000000000040 and state.instance.graph.index == 0x01C6
                         and node.pos in (26, 29) and self._scene_component(shooter) is state.instance.component):
                     from ow174.game import weapon_spread
@@ -7049,7 +7055,10 @@ class Combat:
                     break
                 self._fly_step(rocket, min(TICK, rocket.left))
             return
-        self._fly_step(rocket, min(elapsed * TICK, rocket.left))
+        seconds = elapsed * TICK
+        remaining = (max(0.0, seconds - rocket.left)
+                     if rocket.split_on_expiry is not None and rocket.split_on_expiry.authored_roadhog else 0.0)
+        self._fly_step(rocket, min(seconds, rocket.left), expiry_remaining=remaining)
 
     def _fly_field_canister(self, rocket, remaining):
         """Delivered 0257 gravity/rebound clock, using the combined collision services."""
@@ -7123,6 +7132,31 @@ class Combat:
             return
         self._landed(rocket)
 
+    @staticmethod
+    def _roadhog_split(state, direction):
+        """Original01C6/node29 expiry-only child volley, frozen at launch."""
+        callback = state.node.field("m_747ECB51") or {}
+        child = callback.get("m_volley")
+        if callback.get("$") != "STU_DB5FDC79" or not isinstance(child, dict):
+            return None
+        def field(name, default):
+            value = child.get(name)
+            return default if value is None else _number(state.evaluate(value, watch=False), default)
+        speed = field("m_projectileSpeed", 0.0)
+        if speed <= 0:
+            return None
+        direct = hit_def(state, child.get("m_6396149F"))
+        if direct is not None:
+            direct = replace(direct, critical=(direct.critical if
+                (child.get("m_6396149F") or {}).get("m_A872C70E") is not None else 2.0),
+                projectile_headshot=True, roadhog_pellet=True)
+        config = (child.get("m_projectileEntity") or {}).get("m_entityDef")
+        asset = state.evaluate(config, watch=False) if config is not None else None
+        return SplitVolley(spread.directions(state, direction, fields=child), speed,
+                           min(field("m_projectileLifetime", 5.0), field("m_FEC435C6", RANGE) / speed),
+                           direct, hit_def(state, child.get("m_D2D11CE9")),
+                           asset.guid if isinstance(asset, expr.Asset) else None, True)
+
     def _split_volley(self, state, direction, seed, number):
         from ow174.game import weapon_spread
 
@@ -7139,7 +7173,7 @@ class Combat:
             return None
         return SplitVolley(directions, speed, min(lifetime, reach / speed), direct)
 
-    def _expire(self, rocket: Rocket) -> None:
+    def _expire(self, rocket: Rocket, remaining=0.0) -> None:
         if rocket.mine is not None:
             if rocket.detonate_on_expiry:
                 self.junkrat.detonate(rocket.mine)
@@ -7151,16 +7185,23 @@ class Combat:
         if rocket.detonate_on_expiry:
             self._explode(rocket, rocket.position)
         if (split := rocket.split_on_expiry) is not None:
-            self.rockets.extend(
-                Rocket(rocket.shooter, rocket.team, rocket.position, direction, split.speed, split.lifetime,
-                       split.direct, None, last_tick=self.tick, scale_direct=True)
-                for direction in split.directions
-            )
+            children = [Rocket(rocket.shooter, rocket.team, rocket.position, direction,
+                               split.speed, split.lifetime, split.direct, split.blast,
+                               last_tick=self.tick, scale_direct=True,
+                               definition=split.definition,
+                               reflected=rocket.reflected if split.authored_roadhog else False,
+                               source_body=rocket.source_body if split.authored_roadhog else None,
+                               source_graph=rocket.source_graph if split.authored_roadhog else None)
+                        for direction in split.directions]
+            self.rockets.extend(children)
+            if split.authored_roadhog and remaining > 0:
+                for child in children:
+                    self._fly_step(child, min(remaining, child.left))
 
-    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None) -> None:
+    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None, expiry_remaining=0.0) -> None:
         """One linear sweep after any authored acceleration update."""
         if duration <= 0.0:
-            self._expire(rocket)
+            self._expire(rocket, remaining=expiry_remaining)
             return
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
@@ -7186,7 +7227,7 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick, reflected=reflected)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining)
         if rocket.mine is not None:
             self.junkrat.sync_pose(rocket.mine)
         if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
@@ -7197,7 +7238,7 @@ class Combat:
                 rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
 
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -7214,13 +7255,13 @@ class Combat:
             rocket.travelled += step
             rocket.left -= duration
             if rocket.left <= EPSILON:
-                self._expire(rocket)
+                self._expire(rocket, remaining=expiry_remaining)
             return
         # Re-sweep the unspent slice after redirects. Bound overlapping
         # deflectors that could repeatedly collide at distance zero.
         reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
-            continuation = self._sweep_rocket(rocket, duration, reflected)
+            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining)
             if isinstance(continuation, Rocket):
                 return continuation
             duration = continuation
@@ -7229,7 +7270,7 @@ class Combat:
         rocket.flown += duration
         rocket.left -= duration
         if rocket.left <= EPSILON:
-            self._expire(rocket)
+            self._expire(rocket, remaining=expiry_remaining)
 
     def _orisa_deployable_hit(self, shooter, origin, direction, length, *, radius=0.0):
         nearest = None
@@ -7267,7 +7308,7 @@ class Combat:
         elif duration - consumed > EPSILON:
             self._fly_step(rocket, duration - consumed, reflected=reflected)
 
-    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float | Rocket:
+    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
         integrated_duration = duration
         step = rocket.speed * duration
@@ -7517,7 +7558,7 @@ class Combat:
             rocket.flown += duration
             rocket.left -= duration
             if range_ends or rocket.left <= 0.0:
-                self._expire(rocket)
+                self._expire(rocket, remaining=expiry_remaining)
             return 0.0
         t, struck = best
         contact_time = duration * t / step if step > EPSILON else 0.0
@@ -7566,6 +7607,10 @@ class Combat:
                                    rocket.blast.boost_credit if rocket.blast is not None else None)
             rocket.direction = (pulse_facing if pulse_facing is not None else defense[2]
                                 if defense is not None else aim(struck.owner.mover.yaw, struck.owner.mover.pitch))
+            if rocket.split_on_expiry is not None and rocket.split_on_expiry.authored_roadhog:
+                split = rocket.split_on_expiry
+                rocket.split_on_expiry = replace(split, directions=spread.reorient(
+                    split.directions, heading, rocket.direction))
             separation = min(1e-4, max(0.0, duration - contact_time) * rocket.speed)
             rocket.position = _along(point, rocket.direction, separation)
             if rocket.velocity is not None:

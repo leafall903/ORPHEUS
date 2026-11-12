@@ -1414,3 +1414,37 @@ the existing SplitVolley/Rocket path, with source critical/default definition an
 same-step expiry remainder/reflection reorientation. Then run original secondary
 and remaining reload/lifecycle checks, retaining all failed expectations. Whole
 Hog independent external damping/world-only motion remains explicitly open.
+
+
+## B55 — original secondary slug expiry fragments and remaining slice
+
+Source01C6/node29 now freezes original25-child directions, speed/lifetime,
+critical/headshot/falloff and projectile definition through the existing
+SplitVolley/Rocket path. Expiry emits those children, body/wall contact does not.
+Thread the original unspent flight slice as optional call arguments only, so
+children advance inside that same source world gap; no persistent clock field or
+second projectile manager. Original frozen cone reorients on actual Deflect.
+New SplitVolley fields are appended, preserving existing four-position callers;
+non-source NPC split metadata/default behavior is retained.
+
+Original Secondary6 + Projectile9 + Damage8 + runtime13 =36/36 pass26.234s.
+This includes close slug50 vs burst165/25 hit reports/singleammo, ally/miss,
+body/wall contact on either side of9m expiry, no burst through prior wall,
+continuous/skipped world-gap equality, primary100m range and all original
+falloff/critical/melee assertions. Actual raw HeroPick/secondary verifies active
+frozen25-child cone, strict owner/victim VM and whole-server storage; cone
+mutation/restoration changes/restores digest. Real expiry children damage the
+actual target. Log worker-b-hog-fragments-{mount,restored,raw-storage}.log.
+
+Fixture changes are ONLY actual interface mapping: .burst→.split_on_expiry and
+mocked _expired→_expire. Normalizing those attributes/string names yields exactly
+the full original test_game_roadhog AST, including every original assertion and
+expected value; no fake production aliases added. The initial eight attribute
+errors are retained in mount log and eliminated by actual interface mapping.
+
+Next exact action: finish frozen resource/WholeHog test process92742 at
+worker-b-hog-weapons-restored.log, then actual released projectile death/switch/
+reentry consumer audit. Intermediate output now confirms fresh post-Q
+full/partial/empty magazine behavior passes; released projectile lifecycle
+expectations still fail and must be traced. WholeHog source external damping and
+world-only motion remain open; root owns Flux and A owns Zarya. No client run.
