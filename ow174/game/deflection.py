@@ -476,3 +476,45 @@ def recover_matrix_recharge(script, before):
                 instance.update()
             finally:
                 component.now = previous
+
+
+def countdown_deadline(chase):
+    """Read an active authored scalar ChaseVar's remaining time without ticking it."""
+    if chase is None or not chase.active or chase.node.cls != "STUStatescriptStateChaseVar":
+        return None
+    if chase.remaining is not None:
+        remaining = max(0.0, chase.remaining / 1000)
+    else:
+        destination = expr.to_float(chase.evaluate(chase.node.field("m_destination"), watch=False))
+        config = chase.node.field("m_9B0385B4")
+        rate = expr.to_float(chase.evaluate(config, watch=False)) if config is not None else 1.0
+        if not all(math.isfinite(value) for value in (chase.cur, destination, rate)):
+            raise ValueError("invalid scalar defense countdown")
+        if rate <= 0:
+            return math.inf
+        remaining = abs(chase.cur - destination) / rate
+    return chase.last / 1000 + remaining
+
+
+def state_deadline(state):
+    """Deadline from a live native timer/countdown record; no owner-VM advancement."""
+    if state is None or not state.active:
+        return None
+    if state.node.cls == "STUStatescriptStateWait":
+        return (state.start + max(0, state.ms)) / 1000
+    return countdown_deadline(state)
+
+
+def world_active(state, now, deadline):
+    """Current command window only: future activation cannot protect older catch-up hits."""
+    if state is None or not state.active or deadline is None:
+        return False
+    window_end = now + (state.instance.component.frame_ms - 1) / 1000
+    return window_end + 1e-9 >= state.start / 1000 and now + 1e-9 < deadline
+
+
+def matrix_deadline(instance):
+    chase = instance.states.get(45)
+    if chase is None or chase.node.pos != 104:
+        return None
+    return countdown_deadline(chase)

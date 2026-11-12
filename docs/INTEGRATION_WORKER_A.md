@@ -622,3 +622,34 @@ Clean-boundary sync after A25: absorbed canonical d594849c (includes root
 Sniper/native shared fixes and accepted A23/A24), automatic source merge with no
 conflicts. Retain root current shield APIs and all worker Venom consumers.
 Next: normal source000A Infra clock/buffer/defense checks, no runtime asset edits.
+
+### A26 delivered defense world-clock queries (this commit)
+
+Synced canonical d594849c in28247487. Port source000A deflection.py pure
+countdown_deadline/state_deadline/world_active/matrix_deadline; use current
+selected-player Matrix service/absorption trace, keeping owned Bot _owned_closed.
+Existing Genji window now also gates _genji_deflect_state plus optional at_tick
+in existing static _deflect_state; both current internal trace/melee callers pass
+world tick. No owner VM advancement, no duplicate guard manager or snapshotfields.
+Infra source damageable=False search admits living phase/Recall bodies through
+explicit observation filter, retaining current owned-pet exclusion and team/range.
+Original InfraClock+Buffer12 pass (worker-a-widow-clock-buffer.log).
+MatrixClock6 pass; DeflectClock2pass/2fail only now HP174vs187 (current command
+cadence26vs13), proving the prior stale/future block removed but preserving old
+assertions (worker-a-widow-defense-clock-second.log).
+Broader original WeaponEdge/Eye/Throttle/MatrixClock/DeflectClock23 initially14
+failure records including subtests: residual1..4ammo fires under native dispatch,
+old static eye1.5vs current1.55 plus cover, and missing clock gates fixed here.
+Shared GenjiDeflect/Blade/TracerMatrix/Damage/runtime56:6failure/2error, preserved
+old Mei spray/bubble/noneligible/splash and missingTAGS_PATH expectations. Root
+is independently restoring catalog APIs; no claimed full green. AnaDeflect+
+Damage/runtime34:2failure/3error, oldgrenade50vsnative60 and healing_boost_until
+private view, retained. Logs worker-a-widow-deadline-shared.log and
+worker-a-widow-clock-ana-shared.log.
+Original normal Widow replay fixture retained unchanged. First235-second run
+invalidated its model manifest because files were edited during replay; root will
+run at a frozen committed boundary, not an implementation failure claim.
+Next exact action: remaining real000A source weapon_launch cone consumer audit:
+current cone admission only McCree/Bastion, missing original Widow001B nodes9/19.
+Preserve native WeaponVolley spread/index timing while mounting delivered cone
+policy, then inspect remaining owner/cross-owner boundary before source reconcile.

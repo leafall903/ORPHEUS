@@ -85,8 +85,26 @@ def infra_targets(fight, source, instance):
     if (window is None or window[1] > now + instance.component.frame_ms - 1 or now >= window[2]):
         return ()
     radius = expr.to_float(instance.evaluate(instance.graph.node(1).field("m_radius")))
-    return tuple(target.entity for target in fight._enemies(source, damageable=False)
-                 if math.dist(source.mover.position, target.feet) <= radius)
+    # The delivery's damageable=False reveal search admits living phase/Recall
+    # bodies. Current damage searches deliberately exclude them, so keep this
+    # authored observation filter separate while retaining owned-pet exclusion.
+    from ow174.game import actors, bots
+
+    found = []
+    for target in fight._targets():
+        owner = target.owner
+        if (owner is source or target.entity == source.body
+                or getattr(owner, "combat_owner", None) is source
+                or (isinstance(owner, bots.Bot) and owner.owner == source.entity
+                    and owner.source_body == source.body)
+                or (isinstance(owner, actors.Deployable) and owner.owner is source)):
+            continue
+        if not fight.match.game_map.free_for_all and target.team == source.team:
+            continue
+        if (not fight.vitals_of(target).dead
+                and math.dist(source.mover.position, target.feet) <= radius):
+            found.append(target.entity)
+    return tuple(found)
 
 
 def revealed_to(fight, viewer, entity):
