@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt swing surface and object contacts
+
+- Reuse delivered capsule/mesh and shell overlap queries against existing
+  Reinhardt, Winston, Brigitte, Sigma, Orisa and Photon actors. Each active
+  swing records the actual surface identity and can meet a new late contact;
+  damage remains owned by the existing manager and health pool.
+- Restore source Ice Wall/Supercharger contact consumers and endpoint exclusion
+  so a visible pillar face can take one85-point hit without exposing the body
+  behind it. Body visibility precedes pillar damage. Future Torbjorn bot actors
+  remain ordinary body targets; no old prototype turret manager is installed.
+- Keep Zenyatta's ultimate helper safe for existing Deployable targets without
+  hero metadata; a nonhero has no ultimate. This prevents an area-consumer
+  exception before the pillar contact can run.
+- Five original shield-only, owner-bypass, reused-body, Ice Wall and Winston
+  shell scenarios pass unchanged assertions. Source Segment/Hammer25 plus
+  shared runtime/commands/epoch33 run58: retain two flank-Bash damage subcase
+  failures and13 old or uninitialized Brigitte/charge/target/control observer
+  errors. No original check is removed or relaxed. Logs remain external.
+- Brigitte's current held-secondary scene leaves its old shield dictionary
+  empty; the read-through test adapter preserves that error. Source Charge,
+  Earthshatter and remaining cross-hero checks/client acceptance stay open.
+
+
 ### Mount delivered Reinhardt active hammer swings
 
 - Restore source0048 active-window target queries, overlapping capsule dedup,

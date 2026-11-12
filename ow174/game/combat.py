@@ -3630,9 +3630,8 @@ class Combat:
                     radius = _number(tracker.evaluate(tracker.node.field("m_radius"), watch=False), 0.0)
                     if isinstance(a, expr.Vec3) and isinstance(b, expr.Vec3) and radius > 0.0:
                         volumes.append((position(a), position(b), radius))
-                if ("surfaces",) not in hit and volumes:
-                    self.photon_barriers.melee(player, eye, volumes[0][1], volumes[0][2], amount)
-                    hit.add(("surfaces",))
+                from ow174.game import reinhardt_hammer
+                reinhardt_hammer.surfaces(self, player, volumes, amount, hit)
                 for target in self._enemies(player):
                     victim_key = ("body", (target.entity, self.replacement_ticks.get(target.entity)))
                     if victim_key in hit:
@@ -3652,6 +3651,7 @@ class Combat:
                                              hit_tags=health_tags(state, modify))
                         if dealt and not self._control_immune(target):
                             self._hammer_knockback(state, modify, target, command.frame)
+                reinhardt_hammer.objects(self, player, volumes, amount, hit)
 
 
     def _hammer_knockback(self, state, modify, target, frame):

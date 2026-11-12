@@ -15,6 +15,27 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B11 Hammer batch4e383151 submitted. B12 mounts source stateless full capsule
+  surface queries through current actor managers, source shell overlap and
+  Ice Wall/Supercharger contact consumers. No surface/pool driver is added.
+  Shared API reinhardt_hammer.surfaces(fight,player,volumes,amount,seen) accepts
+  (a,b,radius) volumes and records ("surface",actual_actor_entity); Brigitte's
+  old owner-only face adds replacement generation. C15 shared sphere contacted
+  keys remain actual actor ints in an independent caller set.
+- Original shield-only/body-bypass/reused-ID/IceWall/nativeWinston shell five
+  checks all pass. Full Segment/Hammer25+shared33 ran58, retaining2 flank-Bash
+  damage subfailures and13 legacy observer/uninitialized shield errors.
+  The actual Brigitte held-secondary scene leaves oldbrigitte.barriers empty;
+  never fake that shield or mark the source feature covered by a name adapter.
+- Zen ultimate_state now admits absent hero metadata safely for Deployable
+  targets. This fixes an actual Hammer area exception before pillar damage.
+  Logs:worker-b-reinhardt-surfaces-fifth.log,worker-b-reinhardt-winston-shell.log,
+  worker-b-reinhardt-surface-shared.log. Source original checks remain intact.
+- Torbjorn's future production actor is bots.Bot owned byC, with combat_geometry;
+  the ordinary Hammer body loop already includes it. Do not mount the old
+  torbjorn_turret.Turrets prototype or add another damage/health route.
+
+
 - B10 idle bubble batch00f8133a submitted; synchronized canonical25e8154a
   with local mergecc899e53. Never send that local synchronization merge for
   cherry-pick; send each independent implementation commit.
@@ -177,7 +198,10 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Commit/submit Hammer batch; continue0007 source surface/object contacts,
+1. Submit B12 surface batch, then continue0007 source full Charge and
+   Earthshatter. Source charge_drive/blocked/contact step live in original
+   combat.py around812-1388 and match._step_body_pose around365-411. Preserve
+   a single driver while migrating these consumers. Continue source
    full Charge and Earthshatter. Reconcile original observations with the actual
    native services; do not install competing shield or movement controllers.
    Continue
