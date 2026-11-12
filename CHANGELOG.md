@@ -35,6 +35,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   Cryo/incoming EMP joint5 checks passed on their frozen combined revisions.
   v18 remains candidate pending actual NPC admission; no client acceptance run.
 
+
+### Mount original explicit NPC controller associations on the existing pair
+
+- Original association accessor/NpcContext now bind real body/root namespaces on
+  the existing optional BotScript controller path. Plain manual pairs retain
+  distinct IDs/clocks and exact causal storage; existing automatic hosts stay sole.
+- Five actual pairs, retirement, authored automatic Assassin isolation and shared
+  manual input pass. Original strict unknown-controller storage rejection passes;
+  actual whole-server paired context changes alter/restore digest. Controller1177
+  recipient submission and authored sleep delay remain subsequent work.
+
+### Admit actual manual Assassin targets in the existing input path
+
+- Fix the leftover Player-versus-Target identity comparison that rejected every
+  manual Assassin input after target_player began returning real combat Targets.
+  Retain the existing control-immunity predicate and sole control/pin hosts.
+- Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
+  pass. Original explicit AI association/recipient coupling remains next; no
+  client acceptance or extra controller allocation added by this fix.
 ### Record cross-owner integration and remaining original consumers
 
 - Persist receipts through the controller/manual-target, Mine/Cryo and incoming

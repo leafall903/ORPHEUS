@@ -506,6 +506,11 @@ def junkenstein_player_tags(body: int) -> list[int] | None:
     return _data().get('junkenstein', {}).get('player_target_tags', {}).get(f'0x{body:016X}')
 
 
+def npc_controller(body: int) -> dict | None:
+    """Optional authored AI-entity association; no implicit controller allocation."""
+    return (_data().get("npc_controllers") or {}).get(f"0x{body:016X}")
+
+
 def entity_script_component(definition: int, *, junkenstein: bool = False):
     """Actual entity component dict, known absence None, or unknown old/missing data.
 

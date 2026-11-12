@@ -356,6 +356,7 @@ class BotWorld(runtime.World):
         self.match = match
         self.weapon_buttons = weapon_buttons
         self.owner_position = owner_position
+        self.control_context = None
         self.controller_components = controller_components
         self.manual_nameplate = manual_nameplate
         self.manual_target = None
@@ -367,6 +368,8 @@ class BotWorld(runtime.World):
         self.heavy_counter_stuns: list[tuple[int, float]] = []
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        if self.control_context is not None and self.control_context.send(target, message, params, sender):
+            return
         controller = self.controller
         if (self.hero == 0x02E000000000007A and self.match is not None
                 and sender == getattr(self, "body", None)
@@ -387,6 +390,10 @@ class BotWorld(runtime.World):
                 slot = controls.endpoint_slot(self.component.entity, entity, var)
                 if slot is not NotImplemented:
                     return slot
+        if self.control_context is not None:
+            result = self.control_context.variable(entity, var, create=create)
+            if result is not NotImplemented:
+                return result
         if entity == runtime.GAME_MODE_ENTITY and var in ARCHIVES_MODIFIER_FLAGS and self.match is not None:
             host = self.match.scene_host
             if host is not None:
@@ -606,6 +613,8 @@ class BotWorld(runtime.World):
         return self.weapon_buttons.get(str(slot))
 
     def selects_ai_behavior(self, instance: runtime.Instance) -> bool:
+        if self.control_context is not None and self.control_context.selects(instance):
+            return True
         # Reconstruction policy for the single authored firing placement behavior.
         return self.owner_position is not None and instance.graph.index == FIRING_GRAPH
 
@@ -762,6 +771,15 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
+    def entity_filter_context(self, entity):
+        context = self.control_context
+        return context if context is not None and entity in (context.body, context.controller) else NotImplemented
+
+    def play_script_context(self, instance, node):
+        if self.control_context is not None:
+            return self.control_context.play_script_context(instance, node)
+        return super().play_script_context(instance, node)
+
     def body_health(self, entity):
         lookup = getattr(self.match.combat, "body_health", None) if self.match is not None else None
         return lookup(entity) if lookup is not None else NotImplemented
@@ -905,6 +923,7 @@ class BotScript(ReplicatedBody):
         difficulty_index: int | None = None,
         record: dict | None = None, world: runtime.World | None = None,
         resolve_graph=None, source_entity: int | None = None,
+        manual_controller_definition: int | None = None, body_position: tuple | None = None,
     ) -> None:
         from ow174.game import heavy_assault
 
@@ -939,30 +958,50 @@ class BotScript(ReplicatedBody):
                 entity, True, True, True, lookup=world._lookup_entity_query,
                 watch_environment=world._poll_entity_query, watch_possession=world._poll_entity_query,
             )
+        component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
+        if not external_world:
+            world.component = component
+        component.frame = frame
+        component.now = frame * component.frame_ms
+        self.control_context = None
         self.controller: runtime.Component | None = None
-        if record.get("controller") is not None:
-            asset = graph.guid(record["controller"])
+        if manual_controller_definition is not None and record.get("controller") is not None:
+            raise ValueError('manual association cannot replace an existing controller')
+        if record.get("controller") is not None or manual_controller_definition is not None:
+            asset = (manual_controller_definition if manual_controller_definition is not None
+                     else graph.guid(record["controller"]))
+            if manual_controller_definition is not None:
+                association = graph.npc_controller(body)
+                if (association is None or graph.guid(association.get("definition")) != asset
+                        or external_world):
+                    raise ValueError('manual controller requires the explicit body association')
             definition = graph.entity_body(asset) if asset is not None and asset >> 48 == 0x0400 else None
             if (definition is None or type(controller_entity) is not int
                     or not expr.valid_entity(controller_entity) or controller_entity == entity):
                 raise ValueError('NPC controller requires definition and separate live entity identity')
             require_controller_graphs(definition)
             controller_world = runtime.World(hero, mode)
-            if hero == ASSASSIN_HERO:
+            if manual_controller_definition is not None:
+                from ow174.game.script.npc_context import NpcContext
+                context = self.control_context = NpcContext(entity, controller_entity, asset, component)
+                if body_position is not None:
+                    context.position = expr.Vec3(*body_position)
+                world.control_context = context
+                controller_world = BotWorld(hero, mode, buttons, match=match)
+                controller_world.control_context = context
+            elif hero == ASSASSIN_HERO:
                 controller_world = AssassinControllerWorld(hero, mode, body, entity, match)
             controller = self.controller = runtime.Component(controller_entity, world=controller_world)
             controller.frame, controller.now = frame, frame * controller.frame_ms
+            if self.control_context is not None:
+                self.control_context.controller_component = controller
+                controller_world.component = controller
             world.controller = controller
             for instance in create_initial_graphs(controller, definition):
                 instance.init()
             controller.run_frame(frame)
         elif controller_entity is not None:
             raise ValueError('controller identity supplied without an explicit definition association')
-        component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
-        if not external_world:
-            world.component = component
-        component.frame = frame
-        component.now = frame * component.frame_ms
         registered = match is not None and (hero == 0x02E000000000007A or external_world)
         if registered:
             match.register_body_component(component)
@@ -1063,7 +1102,9 @@ class BotScript(ReplicatedBody):
         self.frame = frame
         if (self.behavior is not None or self.component.world.hero == 0x02E000000000007A) and position is not None:
             self.component.world.owner_position = expr.Vec3(*position)
-        if self.controller is not None and not self.controller.owner_dead:
+        if self.control_context is not None:
+            self.control_context.advance(frame, position)
+        elif self.controller is not None and not self.controller.owner_dead:
             if self.has_controller_buttons:
                 match = self.component.world.match
                 collision = match.collision_world if match is not None else None
@@ -1245,6 +1286,8 @@ class BotScript(ReplicatedBody):
     def retire_controller(self) -> None:
         """Retire the selected host namespace; native controller/network lifecycle remains open."""
         controller = self.controller
+        if self.control_context is not None:
+            self.control_context.retire()
         if controller is None or controller.owner_dead:
             return
         for instance in list(controller.instances.values()):

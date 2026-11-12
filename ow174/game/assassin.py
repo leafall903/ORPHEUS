@@ -8,6 +8,7 @@ from ow174.game.script.graph import graph
 
 HERO, GRAPH, BUTTON = 0x02E00000000001BB, 0x1157, 36
 VICTIM_GRAPH, PIN_MESSAGE = 0x1177, 0x02400000000008FE
+PIN_EFFECT = 0x0580000000001177
 PIN_RANGE = 3.0  # manual contact policy, not recovered native acquisition distance
 
 
@@ -317,3 +318,14 @@ def refresh(fight, bot):
     component = getattr(bot.body_script, "component", None)
     if component is not None and manual(component.world):
         refresh_control(component.world, component)
+
+
+def retire_pin_effect(host, source):
+    """Reconstructed manual release policy for submitted effects."""
+    if host is None or host.retired or host.component.fault is not None:
+        return
+    component = host.component
+    for instance in tuple(component.instances.values()):
+        if (instance.graph.index == (PIN_EFFECT & 0xFFFFFFFFFFFF) and instance.auto_retire
+                and instance.cached_source_entity == source):
+            component.destroy(instance)

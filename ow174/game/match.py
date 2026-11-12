@@ -1029,7 +1029,13 @@ class Match:
             manual_rialto_spawn = (self.game_map.map_guid == 0x080000000000079F
                                    and bot.spawner.get("manual_spawn") is True)
             controller_entity = None
-            if record.get("controller") is not None:
+            association = None
+            if (record.get("controller") is None and bot.spawner.get("manual_spawn") is True
+                    and not bot.spawner.get("autonomous_targeting")
+                    and not bot.spawner.get("acquire_targets") and getattr(bot, "pursuit", None) is None):
+                association = graph.npc_controller(bot.body)
+            manual_definition = graph.guid(association.get("definition")) if association is not None else None
+            if record.get("controller") is not None or manual_definition is not None:
                 controller_entity = self.combat.next_bot
                 if (not bots.BOT_ENTITY <= controller_entity < 0xD0000000
                         or controller_entity == bot.entity
@@ -1045,6 +1051,7 @@ class Match:
                 manual_rialto_spawn=manual_rialto_spawn,
                 **context,
                 controller_entity=controller_entity, match=self,
+                manual_controller_definition=manual_definition, body_position=bot.position,
                 difficulty_index=bot.spawner.get("difficulty_index"),
             )
             component = getattr(bot.body_script, "component", None)
