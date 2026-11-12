@@ -82,6 +82,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   manager/public-constant observations reconciled; retain those errors.
 - Whole-line/client acceptance remains open. No second bubble/impulse driver,
   new acceptance matrix, client session, network operation or push.
+### Mount delivered Torbjorn Overload health and reuse consumers
+
+- Mount the original1721 active-state armour grant, expiry and once-per-source
+  depletion, with a separate passive wire pool and snapshot state. Retain Rally
+  cohorts and existing temporary-shield behavior. Overload absorbs ahead of
+  recoverable shields and shares one flat reduction with later base armour.
+- Carry the original Overload cooldown through reselect/switch and preserve an
+  already-applied cast's authored cooldown path under control. Retain normal
+  death/body replacement cleanup and authored speed/fire modifiers.
+- Preserve the original periodic-damage armour-reduction opt-out. All17 original
+  Overload checks pass, including actual pool snapshots, depleted reselect,
+  modified cooldown, expiry, damage ordering and death/respawn. All30 shared
+  damage/Rally/Doomfist resource checks pass. No source assertion was changed.
+- Turret/hammer/Molten Core and Torbjorn charge/resource consumers remain to be
+  reconciled. Original-client acceptance remains unexecuted; no whole-line
+  completion or new acceptance matrix is claimed.
 
 ### Reconcile reflected projectile ownership with original Echo behavior
 
@@ -136,6 +152,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   files changing during the long run, so the group is not a valid acceptance
   result. Keep the log/guards; future long journal checks require a frozen
   committed detached worktree and never gate owner submissions.
+### Reconcile reflected projectile ownership with original Echo behavior
+
+- Hand authoritative source_entity to every normal reflector alongside shooter,
+  team and source_body. Reflected Echo stickies previously kept their original
+  Echo source and incorrectly applied self_scale0.5 against that now-hostile
+  player: all six25-point blasts became12.5. Preserve the original full enemy
+  damage and the existing self-damage policy for the current projectile owner.
+- Keep the Barrage curve local separate from the sticky gravity-config loop;
+  unrelated projectiles no longer store that loop's final config as a curve.
+  The explicit Barrage marker, gravity and reflected budget remain intact.
+- All29 original Echo sticky/Helix/Doomfist/Pharah curve/reflection checks passed.
+  The unchanged copied-Genji charge assertion still differs718 vs663. Read-only
+  per-command auditing proves two correct331.5 damage awards plus eleven5-point
+  grants from the already hosted Genji0B8B normal passive profile. Retain the
+  old assertion and both implementations; do not suppress that passive solely
+  to reproduce the older Echo fixture's zero-debug-fill assumption.
 
 ### Retain delivered Pharah charge, flight and source sight consumers
 

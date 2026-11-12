@@ -66,6 +66,7 @@ from ow174.game import (
     graviton,
     health_packs,
     healing,
+    hero_torbjorn,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -589,6 +590,14 @@ class ConditionalPool:
 
 
 @dataclass
+class OverloadArmour:
+    source: tuple | None = None
+    amount: float = 0.0
+    most: float = 0.0
+    pool_id: int = 0
+
+
+@dataclass
 class TemporaryArmour:
     amount: float
     until: float
@@ -661,6 +670,7 @@ class Vitals:
         self.invulnerable_until = 0.0
 
         self.bonus_armour: list[TemporaryArmour] = []
+        self.over_armour = OverloadArmour()
         self.bonus_declared = False
         self.temporary_shield: TemporaryShield | None = None
         self.healing_block = (0.0, 0.0)
@@ -779,7 +789,7 @@ class Vitals:
     def total(self) -> float:
         shield = self.temporary_shield
         wave = self.wave_health.current if self.wave_health is not None else 0.0
-        base = sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values()) + wave + self.temporary_armour
+        base = sum(self.now.values()) + sum(pool.now for pool in self.conditional_pools.values()) + wave + self.temporary_armour + self.over_armour.amount
         return base + (shield.amount if shield else 0.0) + sum(pool.now for pool in self.extra.values())
 
     @property
@@ -789,6 +799,19 @@ class Vitals:
     @property
     def base_maximum(self) -> float:
         return sum(self.most.values()) + sum(pool.most for pool in self.conditional_pools.values())
+
+    def set_over_armour(self, source, amount: float = 0.0) -> bool:
+        """Grant once per authored activation; expiry discards the unspent remainder."""
+        pool = self.over_armour
+        if pool.source == source:
+            return False
+        pool.source = source
+        pool.amount = pool.most = max(0.0, amount) if source is not None else 0.0
+        if source is not None and not pool.pool_id:
+            pool.pool_id = self.next_pool
+            self.next_pool += 1
+        self.changed.add(ARMOUR_POOL)
+        return True
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -900,6 +923,7 @@ class Vitals:
         preview.extra = {key: copy(pool) for key, pool in self.extra.items()}
         preview.conditional_pools = {key: copy(pool) for key, pool in self.conditional_pools.items()}
         preview.bonus_armour = [copy(pool) for pool in self.bonus_armour]
+        preview.over_armour = copy(self.over_armour)
         preview.temporary_shield = copy(self.temporary_shield)
         preview.wave_health = copy(self.wave_health)
         return preview.damage(amount, minimum_health, armour_scalar=armour_scalar, beam=beam)
@@ -908,6 +932,7 @@ class Vitals:
         """Take a hit from shields, then armour, then health (unverified, as OW1 did: what reaches armour
         while it has some is ARMOUR_BLOCK less, at most halved). Returns what the pools lost."""
         left = max(0.0, amount)
+        armour_reduced = False
         taken = self.spend_temporary_shield(left)
         left -= taken
         # The delivered adaptive shield absorbs hits before Sound Barrier.
@@ -920,6 +945,17 @@ class Vitals:
                     taken += take
                     left -= take
                     self.changed.add(kind)
+            if kind == SHIELDS_POOL and left > 0 and self.over_armour.amount > 0:
+                if not beam and armour_scalar is None:
+                    left = max(left - ARMOUR_BLOCK, left / 2)
+                    armour_reduced = True
+                scale = BEAM_ARMOR_FACTOR if beam and armour_scalar is None else 1.0 if armour_scalar is None else armour_scalar
+                take = min(left * scale, self.over_armour.amount)
+                if take > 0:
+                    self.over_armour.amount -= take
+                    taken += take
+                    left = max(0.0, left - take / scale)
+                    self.changed.add(ARMOUR_POOL)
             if left <= 0.0:
                 break
             if (pool := self.conditional_pools.get(kind)) is not None:
@@ -931,7 +967,7 @@ class Vitals:
                     self.changed.add(kind)
             if left <= 0.0:
                 break
-            if kind == ARMOUR_POOL and self.now[kind] + self.temporary_armour > 0.0:
+            if kind == ARMOUR_POOL and self.now[kind] + self.temporary_armour + self.over_armour.amount > 0.0:
                 beam_overflow = beam
                 beam_factor = BEAM_ARMOR_FACTOR if armour_scalar is None else armour_scalar
                 if beam_overflow:
@@ -940,7 +976,8 @@ class Vitals:
                         continue
                     left *= beam_factor
                 elif armour_scalar is None:
-                    left = max(left - ARMOUR_BLOCK, left / 2)
+                    if not armour_reduced:
+                        left = max(left - ARMOUR_BLOCK, left / 2)
                 else:
                     left *= armour_scalar
                 # Reconstruction: consume temporary cohorts oldest first;
@@ -1017,6 +1054,17 @@ class Vitals:
                                         ARMOUR_POOL, amount, amount))
             part[18] = 1
             parts[ARMOUR_POOL * POOLS + 1] = bytes(part)
+        over = self.over_armour
+        if ARMOUR_POOL in kinds and over.pool_id:
+            occupied = {pool.slot for pool in self.extra.values() if pool.kind == ARMOUR_POOL}
+            if self.bonus_declared or ARMOUR_POOL in self.conditional_pools:
+                occupied.add(1)
+            slot = next((slot for slot in range(1, POOLS) if slot not in occupied), None)
+            if slot is None:
+                raise ValueError("temporary armour wire slots exhausted")
+            packed = bytearray(world.pool(over.pool_id, ARMOUR_POOL, over.most, over.amount))
+            packed[18] = 1
+            parts[ARMOUR_POOL * POOLS + slot] = bytes(packed) if over.source is not None else bytes(20)
         if self.temporary_shield is not None:
             shield = self.temporary_shield
             pool_id = shield.pool_id
@@ -2455,6 +2503,8 @@ class Combat:
                             and (not isinstance(script, BodyScript)
                                  or (not lucio.keep_active_amp_on_stun(script, state)
                                      and support.interrupt_on_stun(script, state)))):
+                        if hero_torbjorn.preserve_cast_during_control(state):
+                            continue
                         state.stop()  # authored exit/cooldown paths for running channels
         component.run_now()
         if impact > component.now:
@@ -2811,6 +2861,7 @@ class Combat:
         self._shadow(player, command)
         self._winston_health(player, script)
         self.winston_jump.command(player, command, dead=self.is_dead(player))
+        hero_torbjorn.overload(self, player, script)
         shots, script.component.shots[:] = list(script.component.shots), []
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
@@ -8018,13 +8069,15 @@ class Combat:
         hit_tags: tuple[int, ...] = (), armour_scalar: float | None = None,
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
-        reflected_reaper_shell: bool = False, source_entity: int | None = None,
+        reflected_reaper_shell: bool = False, source_entity: int | None = None, armour_reduction: bool = True,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         if source_entity is not None:
             if source_body is not None and source_body != source_entity:
                 raise ValueError("conflicting damage source_body and source_entity")
             source_body = source_entity
+        if not armour_reduction:
+            armour_scalar = 1.0  # delivered periodic damage bypasses per-tick armour reduction.
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
             return False
         vitals = self.vitals_of(target)
@@ -8126,6 +8179,7 @@ class Combat:
         victim = target.owner
         copy_break = killed and not isinstance(victim, bots.Bot) and self.echo_duplicates.active(victim)
         if killed and not copy_break:
+            vitals.set_over_armour(None)
             vitals.now[HEALTH_POOL] = 0.0
             vitals.died_at = self.now
             vitals.death_tick = self.match.tick if world_tick is None else world_tick

@@ -246,6 +246,7 @@ class Player:
         self.loaded_at: float | None = None
         self.steps_done = 0
         self.spawned = False
+        self.overload_cooldown_until = 0.0
         # The n-th player of the team takes the team's n-th spawn point; in a free-for-all everyone is
         # on a team of his own, so the n-th player of the match.
         if match.game_map.free_for_all:
@@ -1901,10 +1902,11 @@ class Match:
             pose = (tuple(mover.position), mover.yaw, mover.pitch,
                     mover.velocity, mover.flags_word, mover.air_ticks)
         old = player.body if player.has_body else None
-        from ow174.game import lucio
+        from ow174.game import hero_torbjorn, lucio
 
         old_hero = player.hero.guid if old is not None else None
         ult_fraction = 0.0
+        overload_cooldown = 0.0
         charge_ratio = orisa_charge.replacement_ratio(player, hero.guid) if old is not None else None
         if old is not None:
             entity = self._next_body_id(player)
@@ -1916,6 +1918,12 @@ class Match:
                 ult_fraction = player.body_script.ult_fraction()
             if old_hero == hero.guid == lucio.HERO:
                 charge_ratio = lucio.replacement_charge_ratio(player.body_script, hero.guid, entity)
+            if old_hero == hero_torbjorn.HERO:
+                overload_cooldown = hero_torbjorn.overload_cooldown_remaining(player)
+                if hero.guid != old_hero:
+                    player.overload_cooldown_until = self.combat.now + overload_cooldown
+            elif hero.guid == hero_torbjorn.HERO:
+                overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
             self.combat.retire_player_body(player)
         player.hero = hero
         if old is not None:
@@ -1932,6 +1940,8 @@ class Match:
             components = self._possession(player)
             player.client.queue_entities(self.own_body_updates(player, start_frame=start_frame, ult_fraction=ult_fraction,
                                                                    charge_ratio=charge_ratio))
+            if hero.guid == hero_torbjorn.HERO and overload_cooldown > 0:
+                hero_torbjorn.set_overload_cooldown(player, overload_cooldown)
             player.client.queue_possession(
                 EntityUpdate(player.entity, OP_UPDATE, lambda origin: world.update(origin, components)),
                 player.body,
