@@ -202,6 +202,7 @@ TRACK_TARGET_RAY_CATEGORIES = {
     0x069000000000002D: 0x1FDF,  # default 104319 tracker profile, using its static CBC flags
 }
 SHOCKWAVE_GROUND_CATEGORY = 0x1F9F  # 104319 ground probe profile 0016.097
+SLAM_LANDING_CATEGORY = 0x1F9F  # static category of 104319 profile 010C.097
 DOOMFIST_PASSIVE_GRAPH = 0x0DDD
 DOOMFIST_SHIELD_GRAPH = 0x0DF3
 UPPERCUT_TARGET_GRAPH = 0x0E7D
@@ -356,6 +357,38 @@ class BodyWorld(runtime.World):
                 or any(value not in (None, 0) for key, value in config.items() if key not in fields)):
             return None
         return self.static_ray(request.origin, request.direction, request.length, category)
+
+    def select_landing(self, state: runtime.State):
+        if self.match is None or (state.instance.graph.index, state.node.pos) != (0x0B27, 15):
+            return NotImplemented
+        fields = state.node.fields
+        query = fields.get("m_castFilter") or {}
+        profile = query.get("m_C1903771") or {}
+        if (expr.guid_of(profile.get("m_C1903771")) != 0x069000000000010C
+                or state.evaluate(fields.get("m_DC05B2EE"), watch=False) != Entity(self.body)):
+            return NotImplemented
+        geometry = self.match.collision_world
+        position = self.match.script_body_position(self.body, self.body)
+        direction = self.match.script_body_facing(self.body, self.body, pitched=True)
+        eye_y = state.evaluate(fields.get("m_6E8CA10B"), watch=False)
+        cast_fields = (
+            "m_6386E7B4", "m_3656A811", "m_B3094B0E", "m_2ADABA5F", "m_B42B2BEB",
+            "m_60B6AF94", "m_15F880A4",
+        )
+        length, radius, step, slope, spacing, clearance_height, reach_height = (
+            state.evaluate(fields.get(key), watch=False)
+            for key in cast_fields
+        )
+        values = (eye_y, length, radius, step, slope, spacing, clearance_height, reach_height)
+        if (geometry is None or position is None or direction is None
+                or not all(nodes._finite_number(value) for value in values)):
+            return None
+        point = geometry.landing_point(
+            (position.x, eye_y, position.z), tuple(direction), length,
+            radius=radius, step=step, slope=slope, sample_spacing=spacing, category=SLAM_LANDING_CATEGORY,
+            clearance_height=clearance_height, reach_height=reach_height,
+        )
+        return Vec3(*point) if point is not None else None
 
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:

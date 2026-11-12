@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "case_id": "seismic-slam.airborne-placement.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "14c9f7b4afc69d56c98f8fd9a0bb8fb113316d0a",
+    "paths": ["src/ow174/game/script/runtime.py", "src/ow174/game/script/nodes.py"],
+    "reference": "104319 graph 0B27 st6 (position 15), nodes 155, 76, 164 and st9 (position 18). RVAs 8E92D2, C83C50, CB76C7 through CB775F."
+  },
+  "evidence": "synthetic-reference",
+  "client_acceptance": "pending",
+  "input": {
+    "owner": 123,
+    "frame_ms": 16,
+    "seed": 1,
+    "old_destination": [2.0, 1.0, 3.0],
+    "old_entity": 2147483649,
+    "speed": 25.0,
+    "ticks": [
+      {"frame": 1, "confirm": false, "point": null},
+      {"frame": 2, "confirm": true, "point": null},
+      {"frame": 3, "confirm": true, "point": [0.0, -2.5, 5.25]}
+    ]
+  },
+  "expected": {
+    "query_frames": [2, 3],
+    "ticks": [
+      {"valid": null, "destination": [2.0, 1.0, 3.0], "entity": 2147483649, "selector_active": true, "move_to": null},
+      {"valid": false, "destination": [2.0, 1.0, 3.0], "entity": 2147483649, "selector_active": true, "move_to": null},
+      {"valid": true, "destination": [0.0, -2.5, 5.25], "entity": 0, "selector_active": false, "move_to": [[0.0, -2.5, 5.25], 25.0]}
+    ],
+    "confirmed_preview": [0.0, -2.5, 5.25],
+    "manual_confirm_plug_followed": false
+  }
+}

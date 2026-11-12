@@ -363,6 +363,42 @@ def hull_box(x0, x1, y0, y1, z0, z1, mask=0x1FDF) -> tuple:
     return mask, centroid, corners, planes, faces, edges
 
 
+class StaticLandingTests(unittest.TestCase):
+    category = 0x1F9F  # 104319 010C category, which excludes 0x40
+
+    def landing(self, world, direction):
+        return world.landing_point(
+            (0, 2.5, 0), direction, 15, radius=0.1, step=0.5, slope=0.15, sample_spacing=3,
+            category=self.category, clearance_height=1.5, reach_height=1.0,
+        )
+
+    def test_sphere_cast_filters_by_category_and_returns_contact(self):
+        world = World(FLOOR, masks=[0x40] * len(FLOOR))
+        self.assertIsNone(world.static_sphere_cast((0, 3, 0), (0, 0, 0), 0.115, self.category))
+        hit = world.static_sphere_cast((0, 3, 0), (0, 0, 0), 0.115, 0x40)
+        self.assertAlmostEqual(hit.fraction, (3 - 1.115) / 3, places=4)
+        self.assertAlmostEqual(hit.point[1], 1.01, places=4)
+        self.assertAlmostEqual(hit.normal[1], 1.0, places=4)
+
+    def test_horizontal_aim_can_find_ground_after_missing_the_primary_cast(self):
+        world = World(FLOOR)
+        point = self.landing(world, (0, 0, 1))
+        self.assertAlmostEqual(point[1], 1.0, delta=0.02)
+        self.assertGreater(point[2], 10.0)
+        self.assertIsNone(self.landing(world, (0, 1, 1)))
+
+    def test_each_obstructed_offset_falls_back_and_both_obstructed_reject(self):
+        direction = (0, -1, 1)
+        point = self.landing(World(FLOOR), direction)
+        normal_obstacle = box(-0.15, 0.15, 1.4, 1.5, 1.45, 1.54)
+        aim_obstacle = box(-0.09, 0.09, 1.25, 1.28, 1.0, 1.035)
+        alternate = self.landing(World(FLOOR + normal_obstacle), direction)
+        self.assertAlmostEqual(alternate[1], 1.0, delta=0.02)
+        self.assertLess(alternate[2], point[2] - 0.3)
+        self.assertEqual(self.landing(World(FLOOR + aim_obstacle), direction), point)
+        self.assertIsNone(self.landing(World(FLOOR + normal_obstacle + aim_obstacle), direction))
+
+
 class ShockwaveGroundTests(unittest.TestCase):
     def test_flat_floor_and_ramp_propagate_but_gap_does_not(self):
         self.assertTrue(World(FLOOR).shockwave_ground((0, 2.8, -3), (0, 1, 3), 1.45, 1.45, 1.45, MOVER))

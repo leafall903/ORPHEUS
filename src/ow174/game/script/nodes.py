@@ -3818,47 +3818,79 @@ class ActiveQuery(State):
         return super().plug_enter(input_path)
 
 
-@state_class("STU_4C96470A", strict_only=True)
-class SummonerPlacement(State):
-    """Confirm the map-authored placement sent by the Summoner's controller."""
+@state_class("STU_4C96470A")
+class PlacementSelector(State):
+    """Resolve the placement through its authored confirmation path."""
+
+    def airborne_slam(self) -> bool:
+        return (self.instance.graph.index, self.node.pos) == (0x0B27, 15)
 
     def on_created(self):
         self.confirmed = False
-        if (self.instance.graph.index, self.node.pos) != (0x156B, 57):
+        self.sampled = False
+        if (self.instance.component.strict and not self.airborne_slam()
+                and (self.instance.graph.index, self.node.pos) != (0x156B, 57)):
             self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
 
     def on_enter(self):
-        self.ticks()
+        if self.airborne_slam():
+            if (self.node.field("m_B02B1FD7") is not None
+                    and truthy(self.evaluate(self.node.field("m_A6BB0869"), watch=False))):
+                self.ticks()
+        elif self.instance.component.strict:
+            self.ticks()
 
     def plug_enter(self, input_path: str) -> bool:
-        if input_path != "m_6647ED22":
+        if input_path != "m_6647ED22" or not (self.airborne_slam() or self.instance.component.strict):
             return super().plug_enter(input_path)
         if self.active:
             self.confirmed = True
         return True
 
     def tick(self):
+        instance, node = self.instance, self.node
+        if self.airborne_slam():
+            # 8E92D2 gates the ordinary cast on #1321. The authored transition
+            # consumes validity and starts MoveTo while this state is active.
+            frame_ms = instance.component.frame_ms
+            if ((not self.sampled or self.now % frame_ms == frame_ms - 1)
+                    and truthy(self.evaluate(node.field("m_B02B1FD7"), watch=False))):
+                self.sampled = True  # C83C50 permits the first sample before the frame boundary.
+                point = instance.component.world.select_landing(self)
+                if point is NotImplemented:
+                    if instance.component.strict:
+                        instance.component.unsupported(instance, "landing selection", node.cls, node)
+                else:
+                    self.publish(point, "m_C3240FFC")
+                    if point is not None:
+                        self.request_check()
+            return
         if not self.confirmed:
             return
-        instance, node = self.instance, self.node
         place = getattr(instance.component.world, 'summoner_placement', None)
         point = place(instance) if place is not None else NotImplemented
         if point is NotImplemented:
             instance.component.unsupported(instance, "Summoner placement source", node.cls, node)
-        valid = point is not None
-        if valid:
-            instance.write(expr.dynamic(node.field('m_2FECD1E3')), expr.Entity(0))
-            instance.write(expr.dynamic(node.field('m_1549F0F9')), expr.Entity(0))
-            instance.write(expr.dynamic(node.field('m_30710B76')), point)
-        instance.write(expr.dynamic(node.field('m_2339572B')), valid)
+        self.publish(point, "m_2339572B")
         self.confirmed = False
-        instance.follow(node, 'm_F6955E81' if valid else 'm_425337C6', self)
+        instance.follow(node, 'm_F6955E81' if point is not None else 'm_425337C6', self)
+
+    def publish(self, point, validity_field: str) -> None:
+        instance, node = self.instance, self.node
+        if point is not None:
+            instance.write(lvalue(node.field("m_2FECD1E3")), Entity(expr.INVALID_ENTITY))
+            instance.write(lvalue(node.field("m_1549F0F9")), Entity(expr.INVALID_ENTITY))
+            instance.write(lvalue(node.field("m_30710B76")), point)
+        instance.write(lvalue(node.field(validity_field)), point is not None)
 
     def on_cleanup(self):
         self.confirmed = False
+        self.sampled = False
 
     def payload(self):
-        return {'m_B4802CE3': int(self.confirmed)}
+        if self.airborne_slam() or self.instance.component.strict:
+            return {"m_B4802CE3": int(self.confirmed)}
+        return {}
 
 
 @state_class("STUStatescriptStatePet", strict_only=True)

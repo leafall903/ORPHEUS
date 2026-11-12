@@ -74,6 +74,7 @@ _STATE_LAYOUTS = {
     nodes.AIFireWeapon: (("button_id",), ()),
     nodes.DisableLogicalButton: ((), ("button_id",)),
     nodes.Wait: ((), ("ms",)), nodes.WaitForServerFrames: ((), ()),
+    nodes.TimedGraphState: ((), ()), nodes.PlacementSelector: (("confirmed", "sampled"), ()),
     nodes.WaitFrames: (("target",), ()),
     nodes.ChaseVar: (("cur", "reached", "remaining", "last", "var", "interrupted"), ()),
     nodes.WeaponVolley: (
@@ -100,6 +101,7 @@ _STATE_LAYOUTS = {
     nodes.CosmeticEntity: ((), ("var",)),
     nodes.GamePadVibration: ((), ()),
     nodes.TrackTargets: (("count_var", "targets", "managed", "checked_frame"), ()),
+    nodes.Shockwave: (("target", "managed"), ()),
     nodes.TargetEffects: (("children",), ()), nodes.Effect: ((), ()),
     nodes.ModifyHealth: (("last_applied", "hit_entities"), ()),
     nodes.SprayPlacement: (("placement",), ()),

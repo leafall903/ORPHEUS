@@ -161,6 +161,12 @@ The 104319 `0B27` graph supplies the two landing effect actions at positions
 effect callback at `97BF00`. The callback consults the client's predicted
 effect record at `A09910`.
 
+Airborne confirmation follows the 104319 selector's `8E92D2` gate,
+`C83C50` update cadence and `CB76C7` output assignments. The static
+reconstruction uses the `010C.097` category and the aim sweep and candidate
+checks at `C8EB30`, `CA0E50`, `C9E800` and `C9DA00`. The selector's
+wire byte is the latch reset at `8E8770`.
+
 ## The Best Defense
 
 The local 104319 graph export supplies the damage-dealt listener in `0DDD`,

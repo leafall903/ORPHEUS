@@ -1,22 +1,23 @@
-"""Run grounded Seismic Slam through real command input and static collision."""
+"""Run Seismic Slam through real command input and static collision."""
 
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
 from ow174.game import bodytrace, bots, combat, movelog, observers
+from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import World
 from ow174.game.content import SOLDIER
 from ow174.game.script import decode, nodes
 from ow174.game.script.driver import BodyStream
-from ow174.game.script.expr import Entity
+from ow174.game.script.expr import Entity, Vec3
 from ow174.game.world import OP_CREATE
 from tests.runtime import test_game_move_to as movement
 from tests.runtime.test_game_combat import in_world
 from tests.runtime.test_game_mover import FLOOR, box, wall
 
 
-class GroundedSeismicSlamTests(unittest.TestCase):
+class SeismicSlamTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(bodytrace, "ENABLED", False))
         self.enterContext(patch.object(movelog, "ENABLED", False))
@@ -87,6 +88,70 @@ class GroundedSeismicSlamTests(unittest.TestCase):
         recipients = [notice["+0x78"]["+0x0"]["+0x0"] for notice in player.client.messages(combat.HIT)]
         self.assertEqual(recipients, hit_bodies)
 
+    def leave_ledge(self, geometry):
+        player, slam = self.spawn(geometry)
+        self.harness.command(player, movement.START + 1)
+        for frame in range(movement.START + 2, movement.START + 25):
+            self.harness.command(player, frame, forward=127, pitch=8192)
+            if slam.state(6).active:
+                return player, slam, frame
+        self.fail("Seismic Slam's airborne selector did not open after leaving the ledge")
+
+    def test_airborne_press_selects_a_static_point_and_lands_with_impact(self):
+        geometry = World(box(-4, 4, 0, 1, -5, 0) + box(-30, 30, -6, -5, -30, 30))
+        player, slam, frame = self.leave_ledge(geometry)
+        export_body_vm(player.body_script)
+        for snap in (player.body_script.snapshot(), observers.snapshot(player.body_script)):
+            self.assertEqual(dict(snap.states[slam.id, 6][2]), {"m_B4802CE3": 0})
+        self.assertFalse(slam.vars[1627].value())
+
+        for cast in range(frame + 1, frame + 4):
+            started = self.harness.command(player, cast, pitch=8192, buttons=0x10)
+            if slam.state(9).move_request() is not None:
+                break
+        else:
+            self.fail("Airborne Seismic Slam did not start MoveTo")
+        point = slam.vars[431].value()
+        self.assertIsInstance(point, Vec3)
+        self.assertEqual(slam.vars[1883].value(), Entity(0))
+        self.assertTrue(slam.vars[1627].value())
+        self.assertEqual(slam.state(9).move_request(), (point, 25.0))
+        self.assertAlmostEqual(point.y, -5.0, delta=0.03)
+        self.assertGreater(point.z, started.position[2] + 1.0)
+        self.assertFalse(slam.state(6).active)
+        export_body_vm(player.body_script)
+
+        targets = self.place_targets(
+            player.match, (point.x, -5.0, point.z), (("near landing", 1, 1.25, 0.3),),
+        )
+        travel = self.harness.command(player, cast + 1, pitch=8192)
+        self.assertLess(travel.position[1], started.position[1])
+        self.assertGreater(travel.position[2], started.position[2])
+        for landed in range(cast + 2, cast + 50):
+            self.harness.command(player, landed)
+            if slam.state(58).active:
+                break
+        else:
+            self.fail("Airborne Seismic Slam did not reach the impact phase")
+        self.assertEqual(slam.vars[59].value(), 3)
+        self.assertFalse(slam.state(9).active)
+        self.assertAlmostEqual(player.mover.position[2], point.z, delta=0.02)
+        self.assert_hit_targets(player, slam, landed, targets, 1)
+        self.assertFalse(player.mover.airborne)
+        self.assertAlmostEqual(player.mover.position[1], -5.0, delta=0.03)
+        self.assertEqual(slam.state(44).counter, 1)
+
+    def test_airborne_press_over_empty_space_keeps_move_to_inactive(self):
+        player, slam, frame = self.leave_ledge(World(box(-4, 4, 0, 1, -5, 0)))
+        for cast in range(frame + 1, frame + 4):
+            self.harness.command(player, cast, pitch=8192, buttons=0x10)
+            self.assertFalse(slam.vars[1627].value())
+            self.assertIsNone(slam.state(9).move_request())
+        self.assertEqual(slam.vars[59].value(), 2)
+        self.harness.commands(player, range(cast + 1, cast + 8))
+        self.assertFalse(slam.state(0).flags & nodes.Ability.RUNNING)
+        self.assertIsNone(slam.state(9).move_request())
+
     def test_ground_press_launches_lands_and_applies_close_damage_once(self):
         geometry = World(FLOOR + wall(-0.7, 5.0, -0.7, 12.0, 1.0, 4.0))
         player, slam = self.spawn(geometry)
@@ -117,6 +182,7 @@ class GroundedSeismicSlamTests(unittest.TestCase):
         self.assertEqual(slam.vars[375].value(), (Entity(targets[1].body),))
         self.assertFalse(slam.state(44).active)
         self.assertFalse(slam.state(42).active)
+        export_body_vm(player.body_script)
 
     def test_ground_impact_actions_reach_owner_and_observer_with_stable_stamps(self):
         player, slam = self.spawn(movement.flat_world(1.0))

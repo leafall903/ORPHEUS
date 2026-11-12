@@ -32,6 +32,13 @@ with the close impact. Run it with the prepared runtime described in
 covers lifecycle. Exact ground contacts, displacement, presentation and
 original-client acceptance need separate observations.
 
+The [airborne placement fixture](../fixtures/behavior/seismic-slam-placement-v1.json)
+checks an idle selector, a miss retaining its prior point, and a success that
+publishes the destination before MoveTo starts. The prepared runtime test
+walks off a ledge and presses E with the original graph. It covers travel to
+the lower floor, the impact hit, and cancellation over empty space. Client
+targeting preview and dynamic filters remain pending.
+
 ## Body short actions
 
 The [short-action retry fixture](../fixtures/behavior/body-short-action-retry-v1.json)

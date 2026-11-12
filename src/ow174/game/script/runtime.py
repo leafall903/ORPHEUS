@@ -421,6 +421,9 @@ class World:
     def raycast_provider(self, instance: "Instance", node: Node):
         return self.raycast
 
+    def select_landing(self, state: "State"):
+        return NotImplemented
+
     def physics_explosion(self, state: "State"):
         return NotImplemented
 

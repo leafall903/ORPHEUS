@@ -535,6 +535,16 @@ class RayHit:
     attachment: RayAttachment | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class StaticSweepHit:
+    """First static contact along a swept sphere's centre segment."""
+
+    fraction: float
+    point: tuple[float, float, float]
+    normal: tuple[float, float, float]
+    surface: int
+
+
 class _TriangleScene:
     """Shared triangle queries on a grid of vertical columns."""
 
@@ -692,6 +702,113 @@ class World(_TriangleScene):
             mesh = soup_mesh(triangles, self.masks, self.surfaces)
             engine = contacts.StaticWorld([contacts.StaticShape(mesh)] if len(triangles) else [])
         self.engine = engine
+
+    def static_sphere_cast(self, start, end, radius: float, category: int) -> StaticSweepHit | None:
+        """Sweep against the static scene. Radius zero uses the expanded ray geometry when present."""
+        length = math.dist(start, end)
+        if not math.isfinite(length) or length <= 0.0 or not math.isfinite(radius) or radius < 0.0:
+            return None
+        if radius == 0.0:
+            geometry = self.ray_geometry or self
+            direction = tuple((b - a) / length for a, b in zip(start, end, strict=True))
+            hit = geometry.cast_ray(start, direction, length, category)
+            if hit is None:
+                return None
+            return StaticSweepHit(hit.distance / length, hit.point, hit.normal, hit.surface)
+
+        hit = contacts.scene_sweep(self.engine, start, end, ((0.0, 0.0, 0.0),), radius, category)
+        if hit is None:
+            return None
+        fraction, point, normal, shape, triangle = hit
+        surface = shape.geometry.surfaces[triangle] if triangle >= 0 else 0
+        return StaticSweepHit(fraction, point, normal, surface)
+
+    def landing_point(
+        self, origin, direction, length: float, *,
+        radius: float, step: float, slope: float, sample_spacing: float, category: int,
+        clearance_height: float, reach_height: float,
+    ) -> tuple[float, float, float] | None:
+        """Resolve a 104319 selector's ordinary static landing geometry.
+
+        C8EB30 sweeps along aim and tests two offsets from the contact. CA0E50
+        searches those candidates back toward the eye and checks their ground.
+        """
+        values = (
+            *origin, *direction, length, radius, step, slope, sample_spacing, clearance_height, reach_height,
+        )
+        if (not all(math.isfinite(value) for value in values) or min(length, step, sample_spacing) <= 0.0
+                or min(radius, clearance_height, reach_height) < 0.0 or not 0.0 < slope < math.pi / 2):
+            return None
+        magnitude = math.hypot(*direction)
+        if not math.isfinite(magnitude) or magnitude <= 0.0:
+            return None
+        aim = contacts.scale(direction, 1.0 / magnitude)
+        skin = 0.015
+        min_normal_y = 0.7193400264
+        end = contacts.add(origin, contacts.scale(aim, length))
+        hit = self.static_sphere_cast(origin, end, radius + skin, category)
+        normal_candidate = aim_candidate = end
+        if hit is not None:
+            offset = (0.0, 1.0, 0.0) if hit.normal[1] > min_normal_y else hit.normal
+            normal_candidate = contacts.add(hit.point, contacts.scale(offset, step))
+            aim_candidate = contacts.sub(hit.point, contacts.scale(aim, step))
+            start = contacts.add(origin, contacts.scale(aim, max(0.0, hit.fraction * length - skin)))
+            normal_blocked = self.static_sphere_cast(start, normal_candidate, radius, category) is not None
+            aim_blocked = self.static_sphere_cast(start, aim_candidate, radius, category) is not None
+            if normal_blocked and aim_blocked:
+                return None
+            if normal_blocked:
+                normal_candidate = aim_candidate
+            elif aim_blocked:
+                aim_candidate = normal_candidate
+
+        # C9C760 bounds the ground cast by the aim angle and the distance
+        # remaining after stepping back from the two endpoint candidates.
+        angle = math.pi - slope - (1.0 - aim[1]) * math.pi / 2
+        depth_scale = math.sin(slope) / math.sin(angle) if angle > 0.0 else None
+        normal_distance = math.dist(origin, normal_candidate)
+        normal_count = int(normal_distance / sample_spacing + 0.5)
+        normal_radius = radius if hit is not None else radius + skin
+        candidates = (
+            (aim_candidate, 2, step, 0.0),
+            (normal_candidate, normal_count, normal_distance / max(1, normal_count), normal_radius),
+        )
+        half_height = clearance_height * 0.5
+        has_clearance = half_height > 0.004
+        middle_height = half_height + 0.1 if has_clearance else reach_height
+        best = None
+        best_height = math.inf
+        for candidate, count, spacing, ground_radius in candidates:
+            distance = math.dist(origin, candidate)
+            if distance <= RAY_EPSILON:
+                continue
+            toward_eye = contacts.scale(contacts.sub(origin, candidate), 1.0 / distance)
+            for index in range(count):
+                retreat = index * spacing
+                remaining = distance - retreat
+                if remaining <= 0.0:
+                    break
+                sample = contacts.add(candidate, contacts.scale(toward_eye, retreat))
+                depth = step + (length if depth_scale is None else min(length, remaining * depth_scale))
+                down = contacts.sub(sample, (0.0, depth, 0.0))
+                ground = self.static_sphere_cast(sample, down, ground_radius, category)
+                if ground is None or ground.normal[1] <= min_normal_y or ground.surface & NOT_GROUND:
+                    continue
+                # C9DA00 checks both directions between eye and the raised hit
+                # point, then checks the remaining vertical clearance.
+                lifted = contacts.add(ground.point, (0.0, min(skin, depth * ground.fraction), 0.0))
+                middle = contacts.add(lifted, (0.0, middle_height, 0.0))
+                if (self.static_sphere_cast(middle, origin, 0.0, category) is not None
+                        or self.static_sphere_cast(origin, middle, 0.0, category) is not None):
+                    continue
+                if has_clearance:
+                    upper = contacts.add(lifted, (0.0, reach_height, 0.0))
+                    if self.static_sphere_cast(middle, upper, 0.0, category) is not None:
+                        continue
+                height = abs(ground.point[1] - normal_candidate[1])
+                if height < best_height:
+                    best, best_height = ground.point, height
+        return best
 
     def shockwave_ground(
         self, centre, feet, max_rise: float, max_drop: float, cast_range: float, category: int

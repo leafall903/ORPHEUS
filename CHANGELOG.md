@@ -6,6 +6,24 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Seismic Slam airborne targeting
+
+- Run the authored confirmation from the owner's first-person anchor and aim
+  through shared static collision. Evaluate both offset paths, landing slope
+  and clearance before publishing a fixed destination to MoveTo.
+- Exercise a real E press off a ledge through travel, landing and impact
+  damage. An empty-space confirmation keeps travel inactive and releases on
+  button-up.
+- Encode the selector's one-byte state for the owner and observers. Add the
+  synthetic confirmation contract and include placement, impact timing and
+  shockwave states in body snapshot validation.
+- Passed Ruff, 929 public Python tests, six dashboard tests and 124 runtime
+  regressions. A headless Practice Range cast used the prepared map collision
+  to travel from the balcony to the lower floor and start its impact.
+- Dynamic target receivers, map clipping, exact surface classification and
+  angle retries remain open. Original-client targeting preview, feel and
+  presentation still require acceptance.
+
 #### Seismic Slam landing effects
 
 - Send the authored body-attached landing effect and ground shockwave effect
