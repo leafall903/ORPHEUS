@@ -60,3 +60,23 @@ This is a review candidate. Complete original-client combat, presentation and
 all hero acceptance are not asserted. Publication uses a source-only snapshot
 based on the reviewed public main and a pull request; local research history is
 preserved separately.
+
+## Additional publication checks
+
+The exact source-only publication checkout repeats the 953-method public result
+(six failing subcases, three errors), passes all 36 CLI/contract checks and all
+six JavaScript checks, and boots successfully with the external runtime on
+separate disposable ports. The disposable services are stopped after inspection.
+All Python files pass undefined-name and duplicate-definition checks.
+
+A further 29-method prepared run preserves seven failing subcases, without
+errors. In addition to the two Slam selector cases, the upstream Roll tests
+expect the active profile in `Mover.data`, while the retained full typed-profile
+implementation keeps its base in `data` and its active profile in `values`.
+Adaptive Shield tests expect wire slot one; the retained full temporary-pool
+allocator reserves that slot and publishes tagged pools in later slots. These
+are unresolved API/wire expectations; the tests have not been rewritten.
+A separate local Piledriver scenario also retains a rifle-hit assertion failure
+after the changed descent timing. Full equivalence and complete acceptance are
+not asserted. These checks are recorded for review rather than submission gates.
+

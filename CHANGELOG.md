@@ -1174,6 +1174,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 #### Reconcile the full local Python hero server with public main
 
+- Publication follow-up records the preserved Roll profile API, shield wire-slot and Slam selector expectations. Exact source-only startup and CLI/contract/dashboard checks pass; complete equivalence remains open.
+
 - Make retained prepared-runtime test prerequisites configurable through environment variables and runtime data paths instead of private workstation paths.
 
 - Adopt the public package, launcher and test paths while retaining the existing 32 hero deliveries and shared implementation.
