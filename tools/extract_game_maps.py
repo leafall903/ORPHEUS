@@ -23,6 +23,12 @@ Rules, from the client (image base 0x7FF788F10000):
   and team 1 the tags 0x341 / 0x3CC / 0x3CD (control stages 0 / 1 / 2). Assault, escort and hybrid
   take the pair from the current objective: its var 10549 (0x2935) is the defenders' room and var
   10550 (0x2936) the attackers' room. Team 1 attacks first; sides swap between rounds.
+- The PvE mission graphs (Uprising 0D28 pos 23, Junkenstein 0C8C, Retribution 100B) write only 0x310,
+  into var 8364 index 0, and then run the shared spawn graph 0C8F, which picks by tag alone. Their
+  start markers (definition 0176) have no spawn component, so an entity the server creates is also a
+  spawn when 0x310 is its only team tag. That leaves out Junkenstein's 0x30D markers (0C8C never
+  writes 0x30D) and, on purpose, the Menu/Havana (Archives) marker tagged for both teams: hosting menu
+  maps is out of scope.
 """
 
 import argparse
@@ -43,6 +49,7 @@ TEAM_TAGS = {0x310: 0, 0x30D: 0, 0x3CE: 0, 0x341: 1, 0x3CC: 1, 0x3CD: 1}
 CONTROL_STAGES = {0x310: 0, 0x341: 0, 0x30D: 1, 0x3CC: 1, 0x3CE: 2, 0x3CD: 2}
 CONTROL_POINT_TAGS = {0x41B: 0, 0x41C: 1, 0x41D: 2}
 FFA_TAG = 0x413
+PVE_START_TAG = 0x310  # the only tag the PvE mission graphs write into var 8364 before 0C8F
 OBJECTIVE_GRAPH = 0xF4C  # the objective graph that holds the spawn tags of assault/escort/hybrid
 POINT_GRAPH = 0xE8E  # capture point graph (its var 0x1DDB is the point name)
 PAYLOAD_GRAPH = 0x1225  # the payload's own graph
@@ -192,6 +199,12 @@ def target_tags(stus: list) -> list:
     return []
 
 
+def is_spawn(components: set, tags: list) -> bool:
+    """Whether a created entity placeable is a spawn point: it has the spawn component, or 0x310 is
+    its only team tag (the PvE mission start markers)."""
+    return SPAWN in components or {t for t in tags if t in TEAM_TAGS} == {PVE_START_TAG}
+
+
 def spawn_teams(stus: list) -> list:
     for stu in stus:
         if stu.tag == "STU_7D175935":
@@ -286,9 +299,9 @@ def build_map(header: dict, raw: Path, ents: Path, defs: dict, mode_ids: dict) -
         placeables.append(flat)
         if entity["identifier"]:
             identifiers[str(flat)] = hex_guid(entity["identifier"])
-        if SPAWN not in found:
-            continue
         tags = target_tags(data)
+        if not is_spawn(found, tags):
+            continue
         team = next((TEAM_TAGS[t] for t in tags if t in TEAM_TAGS), None)
         spawn = {
             "team": team,

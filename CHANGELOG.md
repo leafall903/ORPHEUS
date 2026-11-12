@@ -6,6 +6,32 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Start points for Uprising, Junkenstein and Retribution from the map data
+
+- The three PvE missions had no spawn rows in the extracted map data, so the server refused to
+  host them. Their maps hold no spawn point entity: the players start at plain markers, entity
+  `0176`, which lack the spawn component `STU_737C5C41`.
+- Read from data: the mission scripts write only target tag `0x310` into var 8364 index 0
+  (Uprising `0D28` node 23, Junkenstein `0C8C`, Retribution `100B`) and then run the shared spawn
+  graph `0C8F`, which gathers its candidates by that tag. Uprising has four such markers,
+  Retribution four and Junkenstein six. `docs/research/uprising-mission.md` has the chain.
+- `tools/extract_game_maps.py` now also lists an entity the server creates as a spawn when
+  `0x310` is its only team tag (`is_spawn`). A parse of all 95 maps' entity chunks gives exactly
+  those 14 new rows. Junkenstein's six `0x30D` markers stay out, since `0C8C` never writes
+  `0x30D`, and so does a menu backdrop's marker tagged for both teams.
+- Added a public test of the rule and a runtime test that four team 0 rows make the map hostable
+  and give four players four places. No server code changed.
+- The extractor change is unit-tested only: its entity input needs a DataTool mode the local
+  build lacks, so the tool was not run end to end. Map data made before this change has to be
+  extracted again to get the rows.
+- Original-client check, one player, Uprising (All Heroes) on Normal, with the four rows built
+  by the extractor's own row code and added to the local map data. The player stood on the
+  tracks of an Underground tunnel beside a train marked "KING'S ROW", and the defend box followed.
+- Open: which player gets which marker natively, what receives `0687.025` in Uprising's own
+  controller, whether the native picker also wants the spawn component, and the facing: the view
+  at the start faced the tunnel's side wall. Not checked: a second player, Junkenstein and
+  Retribution with their rows, and the Story mode.
+
 #### Uprising shows its defend and escort phases
 
 - An Uprising match now puts the phase's director graph on the game mode entity: `0D4A` once the
