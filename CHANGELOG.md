@@ -8413,3 +8413,22 @@ client operations performed. Whole nonappearance integration remains active.
   Evidence: parallel-root-widow-catalog-storage-check.log and
   parallel-a25-venom-shared-check.log. Do not count partial owner intake as
   all-source completion. Original client/publication operations not performed.
+
+
+### Preserve explicit original summon input shards
+
+- The existing input composer now accepts original plain JSON graph shards as
+  well as gzip packs, selecting by bytes instead of copying a runtime. Original
+ 0016 summon records add exactly3 graphs and4 entities without shared conflicts.
+  External v5 equals v4 plus those exact original records:18 added graphs,
+ 7 entities,4 Mercy effects and all3528 projectile definitions. Existing v4
+ gzip output is byte-identical after parser extension; source hashes unchanged.
+- Preserve explicit Hanzo startup flags/profiles and record source-only metadata
+ unselected. Source summon shard provenance stays in its original JSON and the
+ generated manifest; no original input modified. NPC aliases remain hardlinks.
+- Frozen canonical6ef42b61 original Widow encrypted-input/stored-state replay1
+ passed438.966s with no code edits during capture/replay. Separate original
+ B18/C20/A26+Genji/body-owner core57 all pass. New committed batches were
+ received in the separate intake tree while that source tree stayed frozen.
+ Evidence: parallel-widow-frozen-replay-check.log and
+ parallel-b18-c20-a26-core-check.log. No original-client or publication action.
