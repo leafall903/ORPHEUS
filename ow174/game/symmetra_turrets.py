@@ -577,6 +577,9 @@ class Turrets:
                         viewer.client.queue_bot_live(bot.entity, snapshot)
             if sentry.attached_at is None:
                 continue
+            if bot.entity in self.combat.sombra_controls.locks:
+                self._clear_slow(sentry)
+                continue
             attach = next(i for i in script.component.instances.values() if i.graph.index == ATTACH_GRAPH)
             charge = attach.state(4)
             fixed = charge.node.field("m_5BEFF040")
