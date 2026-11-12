@@ -799,7 +799,9 @@ class BotWorld(runtime.World):
                         return None  # this NPC has no player possessor
         return super().native(cfg, instance)
 
-    def entity_filter_context(self, entity):
+    def entity_filter_context(self, entity, *, component=None):
+        if component is not None:
+            return NotImplemented  # No source SDK namespace/cache binding is installed here.
         context = self.control_context
         return context if context is not None and entity in (context.body, context.controller) else NotImplemented
 

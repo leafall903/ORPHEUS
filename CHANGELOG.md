@@ -291,6 +291,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original explicit filter and cache APIs
+
+- Restore the original caller-bound SDK and checks, reusing existing kernels.
+  Production controller contexts retain their current path and unknown binding
+  remains strict; no second attached filter/cache host is created.
+- Original42 and shared26 checks pass separately. Mixed-owner fixture and
+  actual dispatcher audits continue; no client acceptance run.
+
 ### Restore original tag kernels on the existing Moira host
 
 - Preserve original tag API and use it on the same Moira candidate path, reusing
