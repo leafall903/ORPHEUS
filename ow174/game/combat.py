@@ -6517,7 +6517,8 @@ class Combat:
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
                         damage_charge=charge_context,
-                        charge_eligible=not (barrage or (not npc and shooter.hero.guid == BASTION
+                        charge_eligible=not (barrage or spawn == graviton.FIELD_ENTITY
+                                             or (not npc and shooter.hero.guid == BASTION
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,

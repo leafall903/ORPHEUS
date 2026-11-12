@@ -574,7 +574,13 @@ class Player:
             superseded=bool(requests) or self.mover.external_impulse or stunned or pulled or punch is not None,
         )
         if pulled:
-            self.mover.step_pose(command, seconds, tick, world_driven=True)
+            from ow174.game import sigma_flux
+
+            if sigma_flux.has_effect(self):
+                self.mover.driven = False
+                self.mover.step_pose(command, seconds, tick, horizontal_drive=(0.0, 0.0))
+            else:
+                self.mover.step_pose(command, seconds, tick, world_driven=True)
         elif punch is not None:
             start = tuple(self.mover.position)
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)

@@ -7,7 +7,7 @@ movement speed, target admission and ability gating are reconstructed policy.
 import math
 from dataclasses import dataclass
 
-from ow174.game import bots, heavy_assault, immunity, moira
+from ow174.game import bots, heavy_assault, immunity, moira, orisa_fortify, reinhardt_charge, sigma_flux
 from ow174.game.mover import Mover, mover_data
 from ow174.game.script import graph
 
@@ -60,12 +60,43 @@ class Gravitons:
                 or self.fight.vitals_of(target).dead
                 or (not self.fight.match.game_map.free_for_all and target.team == field.team)
                 or moira.fading(owner) or self.fight.recalls.active(owner)
-                or immunity.wraith_active(owner, target.entity)):
+                or immunity.wraith_active(owner, target.entity) or immunity.cryo_active(owner, target.entity)):
             return False
         a, b = target.segment()
         return (segment_distance(field.position, a, b) - target.radius <= field.radius
                 and capsule_visible(self.fight._collision(), field.position, a, b, target.radius,
                                     walls=self.fight.walls))
+
+    def includes(self, field, target, *, tick=None):
+        return self._includes(field, target)
+
+    def pulls(self, field, target, *, tick=None):
+        at = self.fight.tick if tick is None else tick
+        fortified = (immunity.fortified(target.owner, target.entity)
+                     and not orisa_fortify.historical_pending(target.owner, at))
+        return at < field.end_tick and not fortified and self.includes(field, target, tick=tick)
+
+    def movement_for(self, actor):
+        target = next((target for target in self.fight._targets() if target.owner is actor), None)
+        if target is None:
+            return None
+        for field in self.fields:
+            if self.pulls(field, target):
+                x, y, z = field.position
+                return (x, y - target.eye, z), PULL_SPEED
+        return None
+
+    def release_player(self, player):
+        self.release(player)
+
+    @staticmethod
+    def _pull_horizontally(mover, destination, duration):
+        x, _, z = destination
+        velocity, fall, driven = mover.velocity, mover.fall, mover.driven
+        mover._move_to(duration, (x, mover.position[1], z), PULL_SPEED)
+        vx, _, vz = mover.velocity
+        mover.velocity, mover.fall, mover.driven = velocity, fall, driven
+        return vx, velocity[1], vz
 
     def update(self, tick, tick_seconds):
         if not self.fields and not self.pulled:
@@ -85,11 +116,13 @@ class Gravitons:
                 if seconds:
                     self.fight._damage(field.shooter, target, DAMAGE_PER_SECOND * seconds,
                                        False, LOADOUT, tick, world_tick=tick,
-                                       source_body=field.source_body, hit_tags=DAMAGE_TAGS)
+                                       source_body=field.source_body, hit_tags=DAMAGE_TAGS,
+                                       award_ult=False, armour_scalar=1.0)
                 if self.fight.vitals_of(target).dead:
                     pulls.pop(target.entity, None)
                     continue
-                if tick < field.end_tick and target.entity not in self.fight.pins.values():
+                if (self.pulls(field, target, tick=tick) and target.entity not in self.fight.pins.values()
+                        and not reinhardt_charge.pinned(self.fight, target.entity)):
                     pulls.setdefault(target.entity, (target, field.position, seconds))
             if tick >= field.end_tick:
                 self.fields.remove(field)
@@ -123,7 +156,8 @@ class Gravitons:
         self.pulled.remove(entity)
         mover = (owner.control_mover or self.npc_movers.pop(entity, None)) if npc else owner.mover
         if mover is not None:
-            mover.velocity = (0.0, 0.0, 0.0)
+            vertical = mover.velocity[1] if sigma_flux.has_effect(owner) else 0.0
+            mover.velocity = (0.0, vertical, 0.0)
             mover.driven = False
             if npc:
                 owner.velocity = mover.velocity
@@ -132,7 +166,8 @@ class Gravitons:
         owner = target.owner
         npc = isinstance(owner, bots.Bot)
         if npc:
-            mover = owner.control_mover or self.npc_movers.get(owner.entity)
+            mover = (owner.impulse_mover if sigma_flux.has_effect(owner) else None)
+            mover = mover or owner.control_mover or self.npc_movers.get(owner.entity)
             if mover is None:
                 mover = Mover(owner.position, int(owner.yaw), self.fight._collision(), mover_data(owner.body))
                 self.npc_movers[owner.entity] = mover
@@ -142,8 +177,12 @@ class Gravitons:
             mover = owner.mover
         x, y, z = position
         before = tuple(mover.position)
-        mover.driven = True
-        mover._move_to(seconds, (x, y - target.eye, z), PULL_SPEED)
+        horizontal_velocity = None
+        if sigma_flux.has_effect(owner):
+            horizontal_velocity = self._pull_horizontally(mover, (x, y - target.eye, z), seconds)
+        else:
+            mover.driven = True
+            mover._move_to(seconds, (x, y - target.eye, z), PULL_SPEED)
         if self.fight.walls.pieces:
             radius, segment = mover._capsule()
             after, normals = self.fight.walls.constrain(
@@ -151,5 +190,6 @@ class Gravitons:
             if normals:
                 self.fight.walls.place_mover(mover, after, normals)
         if npc:
-            owner.position, owner.velocity = tuple(mover.position), mover.velocity
+            owner.position = tuple(mover.position)
+            owner.velocity = horizontal_velocity if horizontal_velocity is not None else mover.velocity
             owner.moved_tick = tick

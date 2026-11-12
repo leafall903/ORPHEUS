@@ -10840,3 +10840,44 @@ mount the missing pieces without another field, mover or charge ledger. Preserve
 A80 expiry/application metadata and C47/C49 projected history, and the two still
 open original sparse projectile-impact timings. Remaining low-confidence5-10
 active hours covers these actual temporal consumers and owner reconciliation.
+
+## A81 — Graviton pull admission and same-mover Flux interoperability
+
+Clean7dbcf96b absorbs explicit root2afc62c9. Existing Gravitons owns all fields,
+pulled identities and NPC movers. Original includes/pulls/movement_for/release
+consumers now use that same host: Cryo is excluded from acquisition, original
+Fortify blocks pull while preserving damage reduction/historical-pending policy,
+and already-pinned Rein victims are not moved. Original Graviton DOT bypasses
+armour and does not fund ult; launch-frozen charge_eligible also excludes its
+original025F direct contact, without adding a charge host. Current fields/source
+identity, snapshots, other projectile-family policies and same NPC mover remain.
+
+Original pure sigma_flux.has_effect queries actual existing1DBC instances (root
+confirmed no WIP), and Graviton horizontal movement preserves that mover's velocity,
+fall and driven state. Actual original overlap initially still failed: same Player
+pulled branch used world_driven=True and never integrated Flux's vertical physics.
+Restored the exact original pulled+Flux horizontal_drive=(0,0) branch on that same
+mover; other pull behavior and C51 collision world stay intact. No second mover,
+extra Flux VM/1177/recipient, new field actor or duplicated movement driver.
+
+Focused original whole methods: Fortify field reduction/no pull until expiry;
+Fortify release on next world tick without input; actual Flux lift+horizontal pull+
+grounded slam; direct5+DOT20; pull then free input after field expiry. All5/5pass
+13.379s, worker-a-zarya-graviton-fortify-flux-joint.log. Original lift/airborne,
+Sigma250 damage, independent field damage<20, ground return and release assertions
+remain. Initial motion failure is preserved in worker-a-zarya-graviton-flux-first.log
+and bounded motion probe, not hidden. Source original ultimate file preserved in
+normal module; its sole player_pulls observation reads existing pulled set. No
+numeric assertion changed. Dedicated original helper/fixture subsets have ordinary
+module imports; no AST runtime bypass or old phase/fake manager shim.
+
+Scope still open, not claimed complete: original flight clock reservation and late
+body/field ticks; original world passive/cast/field charge lock; frozen field-offense
+credit; explicit source mobility-stop and priority consumers and remaining NPC
+lifecycle mapping. Sparse projectile impact1244/1262 vs original1245 existed before
+A80 edges and remains a real frontier, not an observer explanation. Original Ana
+50-vs60 checks and two obsolete zarya_recovery.bodies observations remain recorded.
+Next exact action: original0068 flight/field clock_ticks and charge policy mapped
+onto the existing Rocket/Combat/Gravitons services, keeping original193 assertions.
+Remaining0068 scope remains low-confidence5-10active hours, no whole-suite/client/
+network/publication step and no new acceptance matrix.
