@@ -3,7 +3,7 @@ import math
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
-from test_delivered_ball_mine_factory import MineTests
+import test_delivered_ball_mine_factory as mine_fixtures
 from test_delivered_wrecking_ball_fireball import relocate, prepare_swing
 from test_delivered_wrecking_ball_grapple import hold
 from test_game_combat import Run, KANEZAKA_DM, aim
@@ -21,12 +21,12 @@ def phase_instance(player):
 
 
 class MineContactTests(unittest.TestCase):
-    setUpClass = classmethod(MineTests.setUpClass.__func__)
-    scenario = MineTests.scenario
-    deploy = MineTests.deploy
-    isolated = MineTests.isolated
-    target = MineTests.target
-    flying = MineTests.flying
+    setUpClass = classmethod(mine_fixtures.MineTests.setUpClass.__func__)
+    scenario = mine_fixtures.MineTests.scenario
+    deploy = mine_fixtures.MineTests.deploy
+    isolated = mine_fixtures.MineTests.isolated
+    target = mine_fixtures.MineTests.target
+    flying = mine_fixtures.MineTests.flying
 
     def test_enemy_ball_roll_triggers_armed_mine_and_takes_damage(self):
         run, player, enemy = self.scenario()

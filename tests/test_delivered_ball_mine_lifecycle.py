@@ -2,7 +2,7 @@
 import math
 import unittest
 from dataclasses import replace
-from test_delivered_ball_mine_factory import MineTests
+import test_delivered_ball_mine_factory as mine_fixtures
 from test_delivered_wrecking_ball_fireball import relocate
 from test_game_combat import Run, KANEZAKA_DM, aim
 from ow174.game import ball, combat, sombra_control, world, stats
@@ -27,12 +27,12 @@ class EmpCast(unittest.TestCase):
 
 
 class MineStatusTests(unittest.TestCase):
-    setUpClass = classmethod(MineTests.setUpClass.__func__)
-    scenario = MineTests.scenario
-    deploy = MineTests.deploy
-    isolated = MineTests.isolated
-    target = MineTests.target
-    flying = MineTests.flying
+    setUpClass = classmethod(mine_fixtures.MineTests.setUpClass.__func__)
+    scenario = mine_fixtures.MineTests.scenario
+    deploy = mine_fixtures.MineTests.deploy
+    isolated = mine_fixtures.MineTests.isolated
+    target = mine_fixtures.MineTests.target
+    flying = mine_fixtures.MineTests.flying
 
     def test_actual_emp_disables_armed_mine_and_natural_expiry_restores_trigger(self):
         run, player, sombra = self.scenario()

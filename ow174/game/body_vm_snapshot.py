@@ -80,7 +80,7 @@ _SCRIPT = frozenset((
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("charge_clock", "passive_ult_deadline", "passive_ult_last_command_tick",
-                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth")
+                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth", "cryo_birth")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
