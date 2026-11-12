@@ -4958,10 +4958,15 @@ class Combat:
         return poses
 
 
+    @staticmethod
+    def _owns_shield_recovery(owner):
+        return (symmetra.owns_shield_recovery(owner)
+                or getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068)
+
     def _regenerate_shields(self) -> None:
         for target in self._targets():
             vitals = self.vitals.get(target.entity)
-            if vitals is not None and symmetra.owns_shield_recovery(target.owner):
+            if vitals is not None and self._owns_shield_recovery(target.owner):
                 self._recover_shields(target.owner, vitals, self.now)
 
     def _recover_shields(self, owner, vitals: Vitals, through: float) -> None:
@@ -4971,8 +4976,12 @@ class Combat:
         damage-free world time here reconstructs the server's missing health
         service; it does not implement the unknown B591EBFE native State.
         """
-        if not symmetra.owns_shield_recovery(owner):
+        if not self._owns_shield_recovery(owner):
             return
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            # Original recovery consumes accepted world ticks, not a duplicate
+            # scheduler call carrying a newer wall-time value.
+            through = min(through, self.tick * TICK)
         if vitals.dead or vitals.last_damage_at is None or vitals.most[SHIELDS_POOL] <= 0:
             return
         previous = vitals.shield_accounted_at
@@ -4985,6 +4994,13 @@ class Combat:
                          if i.graph.index == pools.BODY_GRAPH), None)
         if instance is None:
             return
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            # Original Zarya does not invent either missing recovery scalar.
+            for identifier in (21868, 21869):
+                slot = script.component.entity_var(identifier, create=False)
+                if slot is None or slot.value() is None:
+                    vitals.shield_accounted_at = through
+                    return
         wait, heal = instance.state(27), instance.state(2)
         delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
         start = max(previous if previous is not None else through, vitals.last_damage_at + delay)
@@ -9609,7 +9625,7 @@ class Combat:
                                   armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
-        if symmetra.owns_shield_recovery(target.owner):
+        if self._owns_shield_recovery(target.owner):
             vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
         if award_ult:

@@ -1639,3 +1639,33 @@ existing Vitals shield-recovery accounting, then existing Graviton host. Preserv
 C47/C49 projected history and current native Pet/Vitals identity. Scope remains
 6-12 active hours low confidence; partial original check failures do not block
 this independent actual consumer boundary.
+
+## A76 — Zarya shield recovery on existing Vitals accounting
+
+Expanded the existing Combat shield-recovery owner admission to0068 while keeping
+Symmetra behavior. Reuses exactly Vitals.last_damage_at/shield_accounted_at and
+actual shield pool; no source ShieldRecovery.bodies manager/second ledger. Source
+0033 current/maximum-kind queries use the existing pure pool_query provider,
+expanded only to Zarya in the same scoped runtime0033 path (C confirmed no WIP).
+Undeclared21868/21869 scalars do not regenerate or accumulate a backlog. Actual
+world tick caps recovery through-time so a duplicate/older update with inflated
+wall-time cannot grant shields. No duplicate healing/wire/snapshot counters.
+
+Original Recovery normal module preserved in test_zarya_recovery_native with
+original beam fixture setUp/health inlined; all numeric assertions remain.
+Initial5 delay/rate/HUD/Stack-modifier/zero-rate checks now5/5 pass14.718s.
+Full focused Recovery18methods ran42.016s:13pass,1duplicate-time fail (fixed),
+1projectile method with2 beam-damage subcase failures,2old private-ledger observer
+errors. Final duplicate/fully-absorbed/skipped-world3/3pass6.685s; unchanged shared
+Symmetra shield-recovery whole method passes6.469s. Logs
+worker-a-zarya-recovery-{original-all,core-after,clock-final}.log and
+worker-a-zarya-shared-symmetra-recovery.log. No broad acceptance rerun/client run.
+
+Known remaining actual work: integrate original Ana suppression/boost intervals
+into this same ledger, then barrier lifetime/start/cooldown/world-energy and
+Graviton consumers. Projectile recovery test currently stops before recovery at
+original initial beam expected60 loss vs actual122.4; preserve this real owner
+consumer discrepancy for following audit, not an observer excuse. Two source
+zarya_recovery.bodies observer errors remain; do not create a compatibility ledger.
+The source module and every original failed assertion are preserved. This actual
+recovery boundary is independently committable without waiting for those checks.
