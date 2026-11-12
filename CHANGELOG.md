@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve Roadhog's original inclusive reduction deadline
+
+- The existing Breather channel uses original integer-frame ceil and actual body
+  endpoint association; impacts on its inclusive final tick retain reduction.
+  Historical observations no longer overwrite that clock with current time.
+- Original offset0 and all earning-readiness subcases pass with unchanged
+  numbers. Full31 checks had only four stale motion-observer mappings, corrected
+  against the selected ledger in a focused pass. No client acceptance run.
+
 ### Apply WholeHog world motion to the actual controlled mech
 
 - Reuse the owned0407 control mover for external displacement while pilot input

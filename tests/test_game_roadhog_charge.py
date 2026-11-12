@@ -418,9 +418,9 @@ class RoadhogChargeTests(unittest.TestCase):
         self.assertEqual(self.charge(hog), 0)
         for _ in range(65):
             run.step({hog: (*facing, 0)})
-            if enemy.body in fight.knockbacks.active:
+            if enemy.body in fight.knockbacks.whole_hog_motion:
                 break
-        self.assertIn(enemy.body, fight.knockbacks.active)
+        self.assertIn(enemy.body, fight.knockbacks.whole_hog_motion)
         self.assertLess(enemy_pool.total, before)
         self.assertEqual(self.charge(hog), 0)
         for _ in range(475):

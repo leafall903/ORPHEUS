@@ -1682,3 +1682,38 @@ assertions; then remaining source control/vector/victim-credit caller audit and
 non-Flux Sigma. Do not change global clocks/leases or rebuild movement objects.
 Root Flux and A Zarya remain separate. Source NPC/full cross-owner fixture
 couplings remain recorded rather than being counted complete from this batch.
+
+
+## B63 — original inclusive Breather deadline and exact endpoint clock
+
+Restore source note_breather_clock integer ceil/inclusive semantics INSIDE the
+existing Channel. Append optional deadline after existing positional fields.
+Observe the actual Hog body-command endpoint (including B58 healing_tick for
+historical callbacks); the later Combat observer must not overwrite that clock.
+No global time/lease change. Original scalar.5 expires only when world tick is
+GREATER than the declared deadline, keeping the impact-before-input final tick.
+
+Measured source evidence: castworld1001/componentnow16031, Wait.start16016+2000,
+remaining1985ms→ceil125→inclusive world1126. Previous floatuntil18.001 preceded
+world1126=18.016 by15ms. This explains the exact original offset0 difference;
+no damage expectation, timer duration or geometry was adjusted.
+
+Original fullcharge + rawchronology/strictstorage + runtime31 run109.780s retains
+four stale readiness observer subfails ONLY: B57 mapped old impulses.live to the
+then-native queue, while B60 now owns selected whole_hog_motion. Point that same
+original observer to the actual selected ledger; original readiness(all4 earning
+sources) and all six mitigation boundary subcases now2/2 methods pass15.129s.
+All other methods in the31-run pass, including the previously failing offset0,
+history, multipliers, real unequal-epoch late-damage proof, reset and strict
+storage. Original92 assertion-call ASTs match under actual observer mapping.
+The earlier progress statement that the whole charge group had passed was
+premature; final stale-observer result and corrected focused rerun are recorded
+without claiming a single all-green31 rerun. Logs worker-b-hog-inclusive-
+{deadline,readiness-corrected}.log. No client acceptance run.
+
+Next exact action: audit023B non-Flux Accretion/Grasp/barrier/charge/recovery real
+source consumers against sole current services, starting Accretion played control
+and receiver/native callbacks. Hog weapon/self-heal/charge/player-NPC-owned-mech
+motion core is mounted; remaining cross-control/vector/device/victim-credit and
+complete original NPC fixtures are STILL OPEN, not relabelled complete. Root
+owns Sigma Flux and A owns Zarya; do not duplicate those hosts.
