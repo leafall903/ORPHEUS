@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore retained ice-supported sentry damage
+
+- Original eligible ice-supported/airborne Sentries settle on each retained world
+  tick using the existing wall/Sentry hosts. Unit acquisition excludes only solid
+  Ice Wall pillars; existing other Deployable consumers remain.
+- Original expiry check passes contiguous/gap and59 retained beam ticks; cancel
+  and natural-expiry attachment subcases pass. Preserve one actual wall-pool
+  identity break difference for the next owner integration batch.
+- Actual settled mover remains eligible for frozen proof; active displacement is
+  excluded by its real state/control owners. Original31 shared methods pass.
+
 ### Reuse the NPC driver for proven frozen sentry history
 
 - Mount original bounded no-support frozen-lock proof through the existing
