@@ -2,7 +2,7 @@
 import math
 import unittest
 from dataclasses import replace
-from test_delivered_ball_mine_factory import MineTests
+import test_delivered_ball_mine_factory as mine_fixtures
 from test_delivered_wrecking_ball_fireball import relocate
 from test_game_combat import Run, KANEZAKA_DM
 from ow174.game import ball, barriers, combat
@@ -10,11 +10,11 @@ from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
 class MineBarrierTests(unittest.TestCase):
-    setUpClass = classmethod(MineTests.setUpClass.__func__)
-    scenario = MineTests.scenario
-    deploy = MineTests.deploy
-    isolated = MineTests.isolated
-    target = MineTests.target
+    setUpClass = classmethod(mine_fixtures.MineTests.setUpClass.__func__)
+    scenario = mine_fixtures.MineTests.scenario
+    deploy = mine_fixtures.MineTests.deploy
+    isolated = mine_fixtures.MineTests.isolated
+    target = mine_fixtures.MineTests.target
 
     def test_mine_triggers_across_winston_shell_without_damaging_dome(self):
         for mine_inside in (False, True):

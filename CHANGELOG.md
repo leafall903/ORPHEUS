@@ -13,6 +13,102 @@ This log records tested changes and their acceptance status. Entries are grouped
   mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
  52pass and retained oldsnapshot-class/natural-regeneration expectations.
   No assertion changes or duplicate pools; Symm history consumers follow.
+### Select original NPC associations in the combined workspace entry
+
+- Prepared v18 preserves all previously selected graph/entity records and adds
+  only the five exact original NPC associations. Actual same-BotScript pairs,
+  identity/clock/Var ownership/retirement and existing manual-input27 methods
+  pass; original automatic Assassin retains its existing independent host.
+- Select this prepared input through the existing combined launcher. Original
+  source packs, state directory and Python are retained. Manual1177 recipient
+  activation remains A70 work; old Zen observers/assertions remain recorded.
+  No server service or client acceptance session was started.
+
+### Preserve the original Zen Sniper fixture's manual mode selection
+
+- Map its two old special_attack requests to the existing reposition mode;
+  retain every original assertion, numeric expectation and remaining observer.
+- Candidate v18 actual five-pair and shared manual-input27 methods pass in the
+  combined run. The retained Zen suite still references old state_of/sleeps/
+  special_mover observers and one original projected-shot boundary fails; these
+  are recorded without adding runtime aliases or blocking committed consumers.
+
+### Mount the original automatic Sniper retreat consumer
+
+- Restore original013B opt-in retreat state/native/search/advance/interrupt on
+  the existing BotWorld and NPC weapon loop, plus both strict stored fields.
+  Manual navigation no longer aborts this automatic motion when firing stops.
+  Reuse current trap, wall ground/constrain and mover interfaces; retain the
+  separate existing manual reposition path and no additional controller.
+- Configured original baseline retired the VM on missing sniper_target. Actual
+  retreat/storage/resumed-rifle case now passes; opt-in/range/cover, rear wall,
+  EMP interruption and62 shared input/navigation checks pass. Original Ana Dart
+  moving-during-windup assertion remains failing and unchanged. The additional
+  manual Zen fixture needs its explicit NPC_DATA environment; no client run.
+
+### Preserve the original standalone graph-extension reader
+
+- Restore original0200 load_bundle byte for byte for explicit fingerprint-bound
+  read-only consumers, including existing NPC metadata verification. The live
+  server continues using its sole reconciled additive graph provider.
+- Original three extension checks retain all assertions and use the explicit
+  reader at their fixture boundary; those plus six additive supplement checks
+  pass9/9. Source inputs remain unchanged; no client acceptance was run.
+
+### Retain admitted NPC associations when recomposing runtime inputs
+
+- The existing hero-input composer preserves validated original association
+  rows in its minimal output, rather than dropping them during recomposition.
+- Actual selected v17 and candidate v18 supplements both recompose byte for
+  byte; v18 retains all five source rows. Controller/Mine joint54 and actual
+  Cryo/incoming EMP joint5 checks passed on their frozen combined revisions.
+  v18 remains candidate pending actual NPC admission; no client acceptance run.
+
+
+### Mount original explicit NPC controller associations on the existing pair
+
+- Original association accessor/NpcContext now bind real body/root namespaces on
+  the existing optional BotScript controller path. Plain manual pairs retain
+  distinct IDs/clocks and exact causal storage; existing automatic hosts stay sole.
+- Five actual pairs, retirement, authored automatic Assassin isolation and shared
+  manual input pass. Original strict unknown-controller storage rejection passes;
+  actual whole-server paired context changes alter/restore digest. Controller1177
+  recipient submission and authored sleep delay remain subsequent work.
+
+### Admit actual manual Assassin targets in the existing input path
+
+- Fix the leftover Player-versus-Target identity comparison that rejected every
+  manual Assassin input after target_player began returning real combat Targets.
+  Retain the existing control-immunity predicate and sole control/pin hosts.
+- Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
+  pass. Original explicit AI association/recipient coupling remains next; no
+  client acceptance or extra controller allocation added by this fix.
+### Record cross-owner integration and remaining original consumers
+
+- Persist receipts through the controller/manual-target, Mine/Cryo and incoming
+  EMP batches, plus exact conflict resolution preserving Mine application-start
+  deadlines. Keep candidate association inputs separate until actual admission.
+- Controller/Mine joint checks are still running on frozen canonical a021c341;
+  original assertions and client acceptance limits remain unchanged.
+
+### Admit original NPC controller associations without replacing selected definitions
+
+- Extend the existing additive graph supplement with the original five explicit
+  NPC body/controller associations and retain their source hashes. Reject missing,
+  self, invalid or conflicting associations; identical additions remain idempotent.
+- Six supplement checks pass. Candidate external v18 adds only the five original
+  association rows: all 742 selected graphs and 23 entity definitions stay equal.
+  Actual manual controller/context admission remains worker A work; v17 is still
+  selected. Original inputs are unchanged and no client acceptance was run.
+
+### Admit actual manual Assassin targets in the existing input path
+
+- Fix the leftover Player-versus-Target identity comparison that rejected every
+  manual Assassin input after target_player began returning real combat Targets.
+  Retain the existing control-immunity predicate and sole control/pin hosts.
+- Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
+  pass. Original explicit AI association/recipient coupling remains next; no
+  client acceptance or extra controller allocation added by this fix.
 
 ### Keep incoming EMP replay on each actual receiver component clock
 
@@ -153,6 +249,18 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+
+### Replay incoming Sombra applications on their observed recipient clocks
+
+- Record each existing Lock's actual delivery world/component association;
+  replay incoming EMP and retired-source Hack instances without advancing body
+  input, restoring component clocks and preserving live-source world expiry.
+- Ordinary/shifted-epoch and10000-tick gap probes retire actual applications
+  while recipient body clocks remain unchanged. Original70:68pass, two retained
+  snapshot-class/shield-regeneration differences. FullEMP fixture/asserts kept;
+  remaining owner consumer inventory and rough activehours persisted.
+
+
 ### Consume original Sombra ability and logical-button silence policies
 
 - Restore original weapon/passive/drawn-blade classification and logical input
@@ -10103,3 +10211,51 @@ remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
 Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
 then original world-only phase/Cryo/Transcendence and Minefield control interruption
 consumers. Retain source input history and all existing native device/owner paths.
+
+
+### B50 — original Mei Cryo world expiry across actual body epochs
+
+- Parent authorized this narrow shared integration; C confirmed no Mei WIP.
+  Existing cryo_samples is the sole mutable healing integration ledger, not a
+  stable constructor world/body pair; it remains unchanged.
+- Added Mei-only immutable BodyScript.cryo_birth=(actual match.tick,start_frame)
+  at its real constructor, registered in both strict exporters. No input lease,
+  world_frame_anchor, second mover, second healing ledger or VM stepping added.
+- Read the original05FE Chase6 lifetime expression (default4000ms), preserve its
+  body-frame floor, then convert with the real constructor pair to world ticks.
+  Only the existing Mei05FE protection/invulnerability queries stop blocking
+  after that deadline; absent/unknown birth/domain retains prior active-state
+  handling. Existing Mine9588 filtering consumes the same protection query.
+- Added real raw network regression: observed HeroPick constructor pair
+  (1012,1044), actual raw cast body1085, independent original250tick expected
+  worlddeadline1303. Deadline-1 remains protected; deadline accepts actual130
+  damage while state35 and VM(frame1085,now17375) remain frozen. Strict BodyVM
+  and server exports detect pair mutation/restoration. Raw S76->Mei replacement
+  produces newpair(1303,1085); retired originalpair stays unchanged. All pass
+  in the persisted test (84.556s), with world_frame_anchor stillNone.
+- Original same-domain Mine Cryo250vs120 failure is fixed; its subsequent
+  velocity0vs>4 assertion remains (queued impulse with no recipient commands).
+  Restored full original4 Mine phase methods/helpers without weaker assertions.
+  Final phase+barrier7run has4 assertions failing across3phase methods; all3
+  barrier methods and mixedCryo/Transcendence pass. Reaper/Moira change VM/frame
+  during world-idle; direct outcomes are at the apparent body-floor+1. A notes
+  owner birth/lease mapping must be audited before calling this a world-clock
+  regression. No global phase/idle strategy was changed to satisfy old fixtures.
+- Shared original Cryo/Damage/runtime35run32pass with3 existing geometry/held-
+  secondary assertions. A separate diagnostic disabling only the new expiry
+  guard reproduces those same3 assertions; expectations were not changed.
+- Split Mine fixtures now import their source helper module without exporting
+  its TestCase class, so normal unittest discovery does not duplicate another
+  module's tests. Reported prior focused counts used explicit classes already.
+- Original-client acceptance and complete Ball delivery remain open. External
+  logs: worker-b-mei-cryo-raw-regression.log, worker-b-mei-cryo-shared.log,
+  worker-b-mei-cryo-legacy-guard-baseline.log, worker-b-ball-mine-phases-final.log.
+
+Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
+concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
+then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
+blocking delivery on these preserved old boundary assertions.
+
+### Tank owner consumer convergence audit
+
+Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.

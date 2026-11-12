@@ -40,6 +40,7 @@ instance scope (0x7FF78991C270).
 """
 
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -297,6 +298,55 @@ def _data() -> dict:
     return data
 
 
+def load_bundle(path: Path, extension=None) -> dict:
+    """Read one explicit base plus an optional non-replacing fingerprint-bound extension."""
+    raw = path.read_bytes()
+    data = json.loads(gzip.decompress(raw))
+    if extension:
+        extra = json.loads(gzip.decompress(Path(extension).read_bytes()))
+        if (extra.get("format_version") != 1
+                or extra.get("base_sha256") != hashlib.sha256(raw).hexdigest()):
+            raise ValueError("graph extension does not match the selected base bundle")
+        present = {record["index"] for record in data["graphs"]}
+        additions = extra.get("graphs")
+        entities = extra.get("entities")
+        if not isinstance(additions, list) or not isinstance(entities, dict):
+            raise ValueError("invalid graph extension tables")
+        for record in additions:
+            index = record["index"]
+            if type(index) is not int or not 0 <= index <= 0xFFFF or index in present:
+                raise ValueError("graph extension repeats or replaces a graph")
+            present.add(index)
+        current = data.setdefault("entities", {})
+        if any(key in current for key in entities):
+            raise ValueError("graph extension replaces an entity definition")
+        references = set()
+        _collect_graphs([additions, entities], references)
+        for entity in entities.values():
+            references.update(row["graph"] for row in entity.get("graphs", ()))
+        if not references <= present:
+            raise ValueError("graph extension has unresolved graph references")
+        data["graphs"].extend(additions)
+        current.update(entities)
+        controllers = data.setdefault("npc_controllers", {})
+        additions = extra.get("npc_controllers", {})
+        if (not isinstance(controllers, dict) or not isinstance(additions, dict)
+                or any(key in controllers for key in additions)):
+            raise ValueError("graph extension replaces NPC controller associations")
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not GUID_TEXT.fullmatch(body)
+                    or int(body, 16) >> 48 != 0x0400 or not int(body, 16) & 0xFFFFFFFFFFFF
+                    or body not in (data.get("bodies", {}) | current)
+                    or not isinstance(definition, str) or not GUID_TEXT.fullmatch(definition)
+                    or int(definition, 16) >> 48 != 0x0400 or definition == body
+                    or definition not in current):
+                raise ValueError("unresolved NPC controller definition")
+        controllers.update(additions)
+        data["missing"] = [index for index in data.get("missing", ()) if index not in present]
+    return data
+
+
 def add_supplement(data: dict, extra: dict) -> dict:
     """Add prepared entity/graph/effect inputs without overriding base data.
 
@@ -304,8 +354,8 @@ def add_supplement(data: dict, extra: dict) -> dict:
     are errors rather than silent changes to already accepted mode/hero inputs.
     """
     if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
-            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables"}):
-        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables")
+            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables", "npc_controllers"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables/npc_controllers")
     graphs = {record["index"]: record for record in data["graphs"]}
     supplied = set()
     for record in extra.get("graphs", []):
@@ -353,6 +403,24 @@ def add_supplement(data: dict, extra: dict) -> dict:
                 raise ValueError(f"supplement conflicts with deployable {key}")
             deployables[key] = record
         result["deployables"] = deployables
+    if "npc_controllers" in extra:
+        controllers = dict(data.get("npc_controllers") or {})
+        additions = extra["npc_controllers"]
+        if not isinstance(additions, dict):
+            raise ValueError("supplement NPC controller associations must be a mapping")
+        bodies = data.get("bodies", {}) | entities
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not re.fullmatch(r"0x0400[0-9A-F]{12}", body)
+                    or not int(body, 16) & 0xFFFFFFFFFFFF or body not in bodies
+                    or not isinstance(definition, str)
+                    or not re.fullmatch(r"0x0400[0-9A-F]{12}", definition)
+                    or definition == body or definition not in entities):
+                raise ValueError("unresolved NPC controller definition")
+            if body in controllers and controllers[body] != association:
+                raise ValueError(f"supplement conflicts with NPC controller {body}")
+            controllers[body] = association
+        result["npc_controllers"] = controllers
     return result
 
 
@@ -436,6 +504,11 @@ def junkenstein_entity(definition: int) -> dict | None:
 def junkenstein_player_tags(body: int) -> list[int] | None:
     """Return authored tags for the player body, or unknown for older bundles."""
     return _data().get('junkenstein', {}).get('player_target_tags', {}).get(f'0x{body:016X}')
+
+
+def npc_controller(body: int) -> dict | None:
+    """Optional authored AI-entity association; no implicit controller allocation."""
+    return (_data().get("npc_controllers") or {}).get(f"0x{body:016X}")
 
 
 def entity_script_component(definition: int, *, junkenstein: bool = False):

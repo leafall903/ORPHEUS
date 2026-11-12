@@ -80,7 +80,7 @@ _SCRIPT = frozenset((
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("charge_clock", "passive_ult_deadline", "passive_ult_last_command_tick",
-                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth")
+                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth", "cryo_birth")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -124,7 +124,8 @@ _STATE_LAYOUTS = {
     nodes.EncounterTargetTag: ((), ()),
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
-    nodes.AIBehavior: ((), ()),
+    nodes.AIBehavior: (("selected",), ()),
+    nodes.AIBehaviorState: (("record", "remove_record"), ()),
     nodes.ActiveOutput: ((), ()),
     nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
     nodes.AssassinPursuitCallbacks: (("pursuit_hosted", "pursuit_refresh"), ()),
@@ -177,6 +178,7 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    nodes.AIBehaviorRequest: ("kind", "priority", "prefer_later", "shared", "inputs"),
     ControllerVM: ("definition", "retired", "component", "reserved_wire_ids"),
     ControllerFilterInputs: ("owner", "component_masks", "current_bits", "replicated_bits", "primary_status", "health_status", "flags28", "provenance", "revision", "retired", "bound_host"),
     assassin_movement.Sample: ("flags", "axis"),
@@ -576,7 +578,7 @@ class _Export:
                 optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
-                               "controller_inputs", "heavy_counter_stuns"))
+                               "controller_inputs", "heavy_counter_stuns", "control_context", "sniper_target", "sniper_retry_at"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
             if kind is PackWorld:

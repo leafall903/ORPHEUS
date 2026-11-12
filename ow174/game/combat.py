@@ -2758,6 +2758,10 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        if isinstance(actor, bots.Bot):
+            from ow174.game import sniper_retreat
+
+            sniper_retreat.interrupt(actor)
         if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
             ball.interrupt_grapple(self, actor, self.tick)
             self.ball_contacts.pop(actor.body, None)
@@ -5010,6 +5014,8 @@ class Combat:
             return False
         for instance in script.component.instances.values():
             if instance.graph.index == graph_index:
+                if graph_index == mei.CRYO and mei.cryo_world_expired(owner):
+                    return False
                 if graph_index == 0x017B:
                     service = getattr(getattr(getattr(script.world, "match", None), "combat", None), "zenyatta", None)
                     if service is not None and service.stale_ultimate_flag(owner):
@@ -5671,6 +5677,11 @@ class Combat:
                     continue
                 if advanced:
                     archives_thunderstorm.advance(self, bot, script.component)
+                    if (bot.spawner.get("acquire_targets") and bot.spawner.get("acquire_specials")
+                            and getattr(bot, "wall_mover", None) is None):
+                        from ow174.game import sniper_retreat
+
+                        sniper_retreat.advance(self, bot)
                 from ow174.game import assassin
 
                 assassin.refresh_control(script.component.world, script.component)
@@ -8583,6 +8594,8 @@ class Combat:
         if phases is None and fight is not None and fight.meteors.protected(component.entity):
             return True
         for instance in component.instances.values():
+            if instance.graph.index == mei.CRYO and mei.cryo_world_expired(owner):
+                continue
             spec = PROTECTED_PHASES.get(instance.graph.index)
             if spec is None or (phases is not None and instance.graph.index not in phases):
                 continue

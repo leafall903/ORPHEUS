@@ -1110,3 +1110,158 @@ B48 delivered SHA: `3a4da096`.
 Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
 then original world-only phase/Cryo/Transcendence and Minefield control interruption
 consumers. Retain source input history and all existing native device/owner paths.
+
+B49 delivered SHA: `531054f3`; clean canonical49531451 sync: `0b31558b`.
+
+### B50 — original Mei Cryo world expiry across actual body epochs
+
+- Parent authorized this narrow shared integration; C confirmed no Mei WIP.
+  Existing cryo_samples is the sole mutable healing integration ledger, not a
+  stable constructor world/body pair; it remains unchanged.
+- Added Mei-only immutable BodyScript.cryo_birth=(actual match.tick,start_frame)
+  at its real constructor, registered in both strict exporters. No input lease,
+  world_frame_anchor, second mover, second healing ledger or VM stepping added.
+- Read the original05FE Chase6 lifetime expression (default4000ms), preserve its
+  body-frame floor, then convert with the real constructor pair to world ticks.
+  Only the existing Mei05FE protection/invulnerability queries stop blocking
+  after that deadline; absent/unknown birth/domain retains prior active-state
+  handling. Existing Mine9588 filtering consumes the same protection query.
+- Added real raw network regression: observed HeroPick constructor pair
+  (1012,1044), actual raw cast body1085, independent original250tick expected
+  worlddeadline1303. Deadline-1 remains protected; deadline accepts actual130
+  damage while state35 and VM(frame1085,now17375) remain frozen. Strict BodyVM
+  and server exports detect pair mutation/restoration. Raw S76->Mei replacement
+  produces newpair(1303,1085); retired originalpair stays unchanged. All pass
+  in the persisted test (84.556s), with world_frame_anchor stillNone.
+- Original same-domain Mine Cryo250vs120 failure is fixed; its subsequent
+  velocity0vs>4 assertion remains (queued impulse with no recipient commands).
+  Restored full original4 Mine phase methods/helpers without weaker assertions.
+  Final phase+barrier7run has4 assertions failing across3phase methods; all3
+  barrier methods and mixedCryo/Transcendence pass. Reaper/Moira change VM/frame
+  during world-idle; direct outcomes are at the apparent body-floor+1. A notes
+  owner birth/lease mapping must be audited before calling this a world-clock
+  regression. No global phase/idle strategy was changed to satisfy old fixtures.
+- Shared original Cryo/Damage/runtime35run32pass with3 existing geometry/held-
+  secondary assertions. A separate diagnostic disabling only the new expiry
+  guard reproduces those same3 assertions; expectations were not changed.
+- Split Mine fixtures now import their source helper module without exporting
+  its TestCase class, so normal unittest discovery does not duplicate another
+  module's tests. Reported prior focused counts used explicit classes already.
+- Original-client acceptance and complete Ball delivery remain open. External
+  logs: worker-b-mei-cryo-raw-regression.log, worker-b-mei-cryo-shared.log,
+  worker-b-mei-cryo-legacy-guard-baseline.log, worker-b-ball-mine-phases-final.log.
+
+Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
+concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
+then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
+blocking delivery on these preserved old boundary assertions.
+
+B50 delivered SHA: `030e4602`; canonical8fa1a320 sync: `136598d0`.
+
+## Owner consumer convergence audit after B50
+
+Audit tree: own136598d0 (canonical8fa1a320 plus saved B50). Parent subsequently
+reported canonicalad673b00. Source-path-ancestry-audit.json was inspected for all
+seven assigned owners; its head wasa021c341 and its missing paths include many
+inherited or replaced services. These paths are prompts for call-site review,
+not an instruction to copy parallel managers. No owner is marked complete here.
+
+0007 Reinhardt: Hammer/surfaces, Charge drive/capture/counter/NPC flags,
+FireStrike and Shatter propagation/native controls are mounted in Combat plus
+reinhardt_charge/reinhardt_hammer/earthshatter/barriers. No additional unmounted
+core has yet been identified in those saved ranges. Remaining audit is the
+original cross-owner/object/captured-team/filter queries and strict stored
+lifecycle equivalence, including preserved physical edge assertions; do not
+replace other owners' shield/EMP/movement services. Estimate2–4 active B hours.
+
+0009 Winston: source winston.py626 lines is represented by current733-line
+winston.py plus the sole world_bubbles/native dome host. Jump, Primal health/
+melee, Tesla, native dome and charge clocks have actual consumers from earlier
+batches. Standalone legacy Barriers names do not justify a second dome. Remaining
+is original cross-control/target-query equivalence and inherited helpers such as
+protections/weapon_rings/NPC filters, mapped to current defenses/immunity and
+volley/NPC services only when actual behavior is evidenced. No new missing core
+confirmed in this pass. Estimate1–3 active B hours.
+
+0040 Roadhog: confirmed production gap. hook.py exists but Combat never creates
+hook.Hooks and no production command/update/retire call constructs that manager.
+The current234-line prototype also still calls absent old _protected/
+_absorb_body_barrier/external_impulses/_interrupt_body interfaces; it is not a
+ready mounted feature. Original278-line Hooks has actual launch records,
+interrupt/move_player, player_pose_ticks/player_command_cutoffs and timed world
+pull behavior. Next mount that original core on one manager and adapt existing
+hard controls/Knockbacks/player mover and NPC mover reuse, preserving C's
+ensure_manual_mover/impulse reuse changes rather than making another NPC mover.
+Breather is actually mounted via Combat.breathers; Scrap Gun/Whole Hog use current
+generic weapon/volley/projectile services and need source-specific equivalence
+checks rather than copied inherited helpers. Estimate4–8 active B hours.
+
+0068 Zarya: confirmed substantial unmapped owner code. Original zarya.py508 lines
+has no mounted same-file counterpart: Barriers.observe_command, clock_edges,
+start_edges, apply_cleanses, advance_expiries, cooldown-ready mapping and
+ShieldRecovery require an explicit integration audit and consumers. Current
+barriers.live/scripted and native pet pools already own actual personal/projected
+shields and energy admission; extend those hosts rather than introducing a
+zarya_bubbles second pool. Source energy/ultimate world-only clocks are not yet
+proved equivalent. Current graviton.py155 lines versus source215 has a real field
+host, but source clock_ticks/duration_ticks/includes/pulls/movement_for/
+release_player/_pull_horizontally call sites are not reconciled; compare current
+movement/ability gates and shared NPC impulses, not names alone. Current generic
+base-shield regeneration is explicitly Symmetra-only, so the source Zarya
+ShieldRecovery behavior has no established consumer yet. Estimate6–12 B hours.
+
+012F Doomfist: source doomfist.py447 and meteor.py209 are represented by current
+462/212 plus native BodyWorld/Combat/Vitals consumers. Punch, Slam, Meteor,
+Uppercut, Cannon and passive temporary shields were mounted and source-checked
+in saved batches; source audit has no absent production path. Remaining is
+call-site/combined-status reconciliation and preserved endpoint/retained-finished-
+Dash/physical assertions, not a newly identified unmounted core. Do not infer
+completion merely from path presence or weaken original checks. Estimate1–3h.
+
+01CA Wrecking Ball: original ball.py core and Minefield are now mounted with one
+player mover, actual Mine Components/transport, strict exports and tagged shields.
+Remaining actual consumers/audits: late Sleep/Flash/Q report interruption and
+input cutoffs; world-only source/status expiry and queued body impulse timing;
+full cross-owner shield/filter/Nano/Transcendence interactions. Single-EMP8912
+frame-end boundary remains recorded (C44 incoming clocks may change that path;
+root is checking it). Reaper/Moira body/world boundary must use their actual
+owner epoch/lease contract before a global change is justified. Mei-only precise
+birth/expiry fix is delivered in B50. Missing npc_charge/npc_motion/reposition,
+sombra_emp and query helper filenames map to sole npc_control/navigation/Controls
+and typed query services only after caller-level checks; no duplicate controllers.
+No known unmounted Ball core module remains after B43–50, but those consumers are
+not all reconciled. Estimate3–6 active B hours.
+
+023B Sigma: confirmed largest unmounted owner range. Original sigma.py1321 lines
+contrasts with the88-line current legacy Sigma prototype; actual mounted Grasp
+is absorption.Grasp, and Experimental Barrier is sigma_barrier plus existing
+Combat.sigma_barriers. Source Flux1E41/1DBC placement, target selection, played
+receiver, lift/gravity/airborne/impact consumers have no mounted dispatcher found;
+Hanzo's1DBC ownership predicate is not itself a Flux implementation. Existing
+Accretion _accretion_launch/Rocket.accretion_source/_accretion_hit/
+_apply_accretion_impulse is a narrower actual prototype; source played-control/
+receiver/native duration/filter behavior remains to integrate. Source shield
+recovery/charge/hypersphere/Grasp decay must be compared to actual current
+absorption/Vitals/weapon consumers, preserving one shield pool and controller.
+The source filter_context/filter_pipeline/filter_tags and target_aggregate/
+context/geometry/history/index/membership/relation/scan/spatial/store are not
+blind-copy candidates: current entity_filter/entity_queries/entity_relation/
+entity_tags, spatial_queries/spatial_pose/target_volume/target_visibility,
+filter_bits/filter_game/filter_condition/filter_callbacks/controller_filter,
+scene and scopes are the actual unified paths. Equivalence for Sigma's real
+callers remains UNPROVEN; do not mark those absent filenames covered without
+binding their input/context/typed failure semantics. Restore original3 Sigma
+fixtures required by parent's4 verify CLIs using actual APIs, with no fake
+symmetra_beam module. Optional native placement Unicorn absence remains explicit.
+Estimate8–16 active B hours.
+
+Total remaining source integration estimate:25–52 active B hours, low confidence,
+with Sigma/Zarya/Hog accounting for18–36h and the largest uninspected consumers.
+This is this worker's code/audit effort, not a three-worker wall-clock promise;
+original-client acceptance and waiting on preserved legacy assertions are not
+prerequisites to submit the implemented source batches. Source implementations
+and original failed checks remain deliverable throughout.
+
+Next exact implementation action: mount original Roadhog01C8/01C9 Hook through
+actual Combat.command/update/retire and the same mover/control services, in a
+small functional batch; then Sigma Flux and Zarya timer/recovery owner code.

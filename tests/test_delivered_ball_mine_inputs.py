@@ -3,7 +3,7 @@ import math
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
-from test_delivered_ball_mine_factory import MineTests
+import test_delivered_ball_mine_factory as mine_fixtures
 from test_delivered_wrecking_ball_fireball import relocate
 from test_game_combat import Run, KANEZAKA_DM, aim
 from ow174.game import ball, ball_mines, combat, stats, world
@@ -13,11 +13,11 @@ from ow174.game.script import expr, graph, runtime
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
 
 class MineInputTests(unittest.TestCase):
-    setUpClass = classmethod(MineTests.setUpClass.__func__)
-    scenario = MineTests.scenario
-    deploy = MineTests.deploy
-    isolated = MineTests.isolated
-    target = MineTests.target
+    setUpClass = classmethod(mine_fixtures.MineTests.setUpClass.__func__)
+    scenario = mine_fixtures.MineTests.scenario
+    deploy = mine_fixtures.MineTests.deploy
+    isolated = mine_fixtures.MineTests.isolated
+    target = mine_fixtures.MineTests.target
 
     def test_minefield_interrupts_reload_before_fill_and_preserves_reload_exit(self):
         for automatic in (False, True):
