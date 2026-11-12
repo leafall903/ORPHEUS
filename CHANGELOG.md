@@ -10362,3 +10362,12 @@ All original assertions/failures retained. No client session/network/publication
 ### Tank owner consumer convergence audit
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
+
+## A73 — shared controller and nine-owner handoff
+
+Saved final consumer mapping for A64-A72 and retained all known original
+policy/observer/unit differences. Clean1bfd7ec2 absorbs explicit f715efdd; the
+unchanged original airborne Flux/Pulse whole method passes6.827s with355 damage
+and0 Tracer charge. No additional production change, broad suite, source-assert
+edit, client session or publication. Next delegated owner is0068 Zarya after
+root confirms the handoff; existing single barrier/Graviton pools are required.
