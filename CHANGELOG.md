@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### 2026-11-12
+
+#### Rising Uppercut target sampling
+
+- Keep the immediate entry query and sample new targets on the authored
+  three-frame phase. Derive the phase from the owner entity and graph node.
+- Preserve the frame gate in stored VM state. A command-path regression
+  checks that a target entering between samples is hit on the next sample.
+
+#### Seismic Slam and Piledriver ground queries
+
+- Bind shared RayCast outputs for the lifetime of the state and update them on
+  ticks. Preserve the previous point and normal on a miss and restore the
+  underlying values when the state ends.
+- Use the authored `002C.097` static category mask and expanded static geometry
+  when available. Dynamic receivers and original-client acceptance remain open.
+- Passed Ruff, 920 public Python tests, six dashboard tests and 51 prepared
+  runtime tests covering movement, Wrecking Ball and VM snapshots.
+
 ### 2026-11-11
 
 #### Wine and Proton plaintext relay hook compatibility

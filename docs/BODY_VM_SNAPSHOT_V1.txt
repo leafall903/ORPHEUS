@@ -210,7 +210,8 @@ present-with-None must remain distinct.
   CosmeticEntity           none
                            var
   GamePadVibration         none
-  TrackTargets             count_var targets managed
+  TrackTargets             count_var targets managed checked_frame
+  RayCast                  links values
   ModifyHealth             last_applied hit_entities
   Effect                   none
   ClientOnlyPulser         pulses pulsed_at

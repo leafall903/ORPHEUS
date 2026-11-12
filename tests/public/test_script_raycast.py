@@ -1,9 +1,12 @@
-"""Authored raycast actions write complete results before following their graph link."""
+"""Authored raycast actions and states share the world query."""
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from ow174.game.collision import RayWorld, World
 from ow174.game.script import runtime
+from ow174.game.script.driver import BodyWorld
 from ow174.game.script.expr import INSTANCE, Entity, Vec3
 from tests.script_fixtures import graph, node, plug
 
@@ -123,3 +126,63 @@ class RaycastActionTests(unittest.TestCase):
         world = ProviderWorld(runtime.RaycastResult(False, None, Vec3(float("nan"), 0.0, 0.0), None))
         self.assertEqual(self.cast(world), OLD)
         self.assertEqual(len(world.requests), 1)
+
+
+class RaycastStateTests(unittest.TestCase):
+    def test_outputs_bind_until_end_and_a_miss_keeps_the_last_vectors(self):
+        point, normal = Vec3(0.0, 1.5, 4.0), Vec3(0.0, 1.0, 0.0)
+        world = ProviderWorld(runtime.RaycastResult(True, Entity(OTHER), point, normal))
+        component = runtime.Component(OWNER, world=world)
+        instance = component.create(graph((
+            node(
+                0, "STUStatescriptStateRayCast", state=0, m_type=0,
+                m_startPosWS=ORIGIN, m_dirWS=DIRECTION, m_castLength=15, m_castFilter=FILTER,
+                **{name: variable(i) for i, name in enumerate(OUTPUTS, 1)},
+            ),
+        )))
+        for i, value in enumerate(OLD, 1):
+            instance.write((INSTANCE, i), value)
+        variables = tuple(instance.find_var(INSTANCE, i) for i in range(1, 5))
+        state = instance.state(0)
+        zero = Vec3(0.0, 0.0, 0.0)
+
+        state.begin()
+        self.assertEqual(world.requests, [])
+        self.assertEqual(tuple(var.value() for var in variables), (False, Entity(0), zero, zero))
+        self.assertEqual(tuple(var.base for var in variables), OLD)
+
+        component.run_frame(1)
+        self.assertEqual(len(world.requests), 1)
+        self.assertEqual(tuple(var.value() for var in variables), (True, Entity(OTHER), point, normal))
+
+        world.result = runtime.RaycastResult(False, None, ORIGIN, None)
+        component.run_frame(2)
+        self.assertEqual(len(world.requests), 2)
+        self.assertEqual(tuple(var.value() for var in variables), (False, Entity(0), point, normal))
+
+        state.end(finished=True)
+        self.assertEqual(tuple(var.value() for var in variables), OLD)
+        self.assertTrue(all(not var.links for var in variables))
+
+        state.begin()
+        self.assertEqual(len(world.requests), 2)
+        self.assertEqual(tuple(var.value() for var in variables), (False, Entity(0), zero, zero))
+
+    def test_002c_uses_the_expanded_static_geometry_and_profile_mask(self):
+        geometry = World([])
+        triangles = [(-2.0, y, -2.0, 2.0, y, -2.0, 0.0, y, 2.0) for y in (0.5, 0.0)]
+        geometry.ray_geometry = RayWorld(triangles, masks=[0x20, 0x40])
+        world = BodyWorld(0, 0, OWNER, 0)
+        world.match = SimpleNamespace(
+            collision_world=geometry,
+            _script_body_mover=lambda entity, owner: SimpleNamespace(category=0x8),
+        )
+        config = {
+            "$": "STUConfigVarFilter",
+            "m_C1903771": {"$": "STU_20DB8AB5", "m_C1903771": "0x069000000000002C"},
+        }
+        request = runtime.RaycastRequest(ORIGIN, Vec3(0.0, -2.0, 0.0), 3, (), config)
+        self.assertEqual(
+            world.raycast(request),
+            runtime.RaycastResult(True, None, Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0)),
+        )

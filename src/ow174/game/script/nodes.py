@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from types import NotImplementedType
 from typing import TYPE_CHECKING, ClassVar
 
+from ow174.game.commands import FRAME_HALF, FRAME_MASK
 from ow174.game.content import JUNKENSTEIN_MODES
 from ow174.game.mover import (
     ADD,
@@ -3284,6 +3285,7 @@ class TrackTargets(State):
         self.count_var: Var | None = None
         self.targets = ()
         self.managed = False
+        self.checked_frame: int | None = None
 
     def on_enter(self) -> None:
         fields = self.node.fields
@@ -3298,6 +3300,8 @@ class TrackTargets(State):
             return
         self.refresh()
         if self.managed:
+            if self.hostile_body_profile() is not None:
+                self.checked_frame = self.instance.component.frame & FRAME_MASK
             self.ticks()
 
     def refresh(self) -> None:
@@ -3309,6 +3313,20 @@ class TrackTargets(State):
         self.instance.write(lvalue(self.node.field("m_8A2905A0")), tuple(Entity(e) for e in self.targets))
 
     def tick(self) -> None:
+        if self.checked_frame is not None:
+            component = self.instance.component
+            frame = component.frame & FRAME_MASK
+            if frame == self.checked_frame or self.now % component.frame_ms != component.frame_ms - 1:
+                return
+            previous, self.checked_frame = self.checked_frame, frame
+            # 104319 CA9460: mode 1 uses a three-frame stride with an entity and node phase.
+            phase = 0x811C9DC5
+            key = (self.node.rid ^ component.entity) & FRAME_MASK
+            for byte in key.to_bytes(4, "little"):
+                phase = ((phase ^ byte) * 0x01000193) & FRAME_MASK
+            phased_frame = ((phase + frame + FRAME_HALF) & FRAME_MASK) - FRAME_HALF
+            if phased_frame % 3 != 0 and ((previous + 3) & FRAME_MASK) > frame:
+                return
         self.refresh()
 
     def hostile_body_profile(self) -> int | None:
@@ -3367,6 +3385,7 @@ class TrackTargets(State):
         return profile
 
     def on_end(self, finished: bool) -> None:
+        self.checked_frame = None
         if self.count_var is not None:
             self.unlink(self.count_var)
             self.count_var = None
@@ -3941,57 +3960,109 @@ def _raycast_request(instance: Instance, node) -> RaycastRequest | None:
     )
 
 
-def _raycast(instance: Instance, node) -> bool | NotImplementedType:
-    provider = instance.component.world.raycast_provider(instance, node)
-    if provider is None:
-        return NotImplemented
+def _raycast_targets(node) -> list[tuple[int, int] | None] | None:
     targets = []
     for field in _RAYCAST_OUTPUTS:
         config = node.field(field)
         try:
             target = lvalue(config)
         except (IndexError, TypeError, ValueError):
-            return NotImplemented
+            return None
         if config is not None and (target is None or target in targets):
-            return NotImplemented
+            return None
         targets.append(target)
+    return targets
+
+
+def _raycast_result(instance: Instance, node, provider) -> RaycastResult | None:
+    if provider is None:
+        return None
     request = _raycast_request(instance, node)
     if request is None:
-        return NotImplemented
+        return None
     result = provider(request)
     if not isinstance(result, RaycastResult) or type(result.hit) is not bool:
-        return NotImplemented
+        return None
     if result.entity is not None and not _ray_entity(result.entity):
-        return NotImplemented
+        return None
     if any(value is not None and not _finite_vector(value) for value in (result.point, result.normal)):
-        return NotImplemented
-    for target, value in zip(targets, (result.hit, result.entity, result.point, result.normal), strict=True):
-        if target is not None:
-            instance.write(target, value)
-    return True
+        return None
+    return result
 
 
 @handler("STU_08D6BA6E")
 def raycast_action(instance: Instance, node, caller) -> bool | NotImplementedType:
     """Run the authored type-0 cast when a provider can complete it."""
-    result = _raycast(instance, node)
-    if result is True:
-        instance.follow(node, "m_outPlug", None)
-    return result
+    provider = instance.component.world.raycast_provider(instance, node)
+    if provider is None:
+        return NotImplemented
+    targets = _raycast_targets(node)
+    if targets is None:
+        return NotImplemented
+    result = _raycast_result(instance, node, provider)
+    if result is None:
+        return NotImplemented
+    for target, value in zip(targets, (result.hit, result.entity, result.point, result.normal), strict=True):
+        if target is not None:
+            instance.write(target, value)
+    instance.follow(node, "m_outPlug", None)
+    return True
 
 
 @state_class("STUStatescriptStateRayCast")
 class RayCast(State):
-    """Refresh the authored query outputs while its subgraph is active."""
+    """Bind and refresh the cast outputs for the lifetime of the state."""
+
+    INVALID = Entity(expr.INVALID_ENTITY)
+    ZERO = Vec3(0.0, 0.0, 0.0)
+
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.links: tuple[Var, ...] = ()
+        self.values = (False, self.INVALID, self.ZERO, self.ZERO)
 
     def on_enter(self) -> None:
-        self.tick()
+        targets = _raycast_targets(self.node)
+        if targets is None:
+            component = self.instance.component
+            if component.strict:
+                component.unsupported(self.instance, "raycast outputs", self.node.cls, self.node)
+            return
+        self.values = (False, self.INVALID, self.ZERO, self.ZERO)
+        self.links = tuple(
+            self.link(target, slot) for slot, target in enumerate(targets) if target is not None
+        )
         self.ticks()
 
     def tick(self) -> None:
-        component = self.instance.component
-        if _raycast(self.instance, self.node) is NotImplemented and component.strict:
-            component.unsupported(self.instance, "raycast options", self.node.cls, self.node)
+        instance, node = self.instance, self.node
+        component = instance.component
+        provider = component.world.raycast_provider(instance, node)
+        result = _raycast_result(instance, node, provider)
+        if result is None:
+            if component.strict:
+                component.unsupported(instance, "raycast options", node.cls, node)
+            return
+        if result.hit:
+            values = (
+                True, result.entity or self.INVALID, result.point or self.ZERO, result.normal or self.ZERO,
+            )
+        else:
+            # The cached point and normal remain available after a miss.
+            values = (False, self.INVALID, *self.values[2:])
+        if values != self.values:
+            before = tuple(var.value() for var in self.links)
+            self.values = values
+            for var, value in zip(self.links, before, strict=True):
+                instance.changed(var, value)
+
+    def on_end(self, finished: bool) -> None:
+        for var in self.links:
+            self.unlink(var)
+        self.links = ()
+
+    def output(self, slot: int):
+        return self.values[slot]
 
 
 @handler("STUStatescriptActionSetVar")

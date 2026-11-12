@@ -305,6 +305,21 @@ class FixedTargetMoveToTests(unittest.TestCase):
         self.assertEqual(player.stats.value(stats.HERO_DAMAGE), 100.0)
         self.assertEqual([notice["+0x78"] for notice in player.client.messages(combat.HIT)], [hit, hit])
 
+    def test_doomfist_uppercut_samples_targets_on_its_authored_frames(self):
+        player, uppercut, target, vitals = self.uppercut_duel(flat_world(1.0), 1, (0.0, 1.0, 12.0))
+        self.assertEqual((player.body, uppercut.state(9).node.rid), (0xA0000101, 15))
+        self.uppercut_frame(player, 101, SHIFT)
+        self.uppercut_frame(player, 102)
+        target.owner.mover.position[:] = (0.0, 1.0, 2.5)
+        for frame in (103, 104):
+            self.uppercut_frame(player, frame)
+            self.assertEqual(vitals.total, 200.0)
+            self.assertEqual(uppercut.vars[375].value(), ())
+
+        self.uppercut_frame(player, 105)
+        self.assertEqual(vitals.total, 150.0)
+        self.assertEqual(uppercut.vars[375].value(), (Entity(target.entity),))
+
     def test_doomfist_uppercut_ignores_friendly_distant_and_blocked_bodies(self):
         geometry = flat_world(1.0)
         blocked = World(FLOOR + wall(-4.0, 1.4, 4.0, 1.4))

@@ -187,6 +187,7 @@ WHEEL_CALLOUT_TEXTURES = {
 }
 # Static ray categories from the first request word, packed from m_category.
 WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FDF}
+ABILITY_RAY_CATEGORIES = {0x069000000000002C: 0x1FDF}  # 104319 static cast profile
 WHEEL_HEALING_TAG = 0x0D60000000000308
 WHEEL_GREETING_TAG = 0x0D60000000000661
 ASHE_BODY = 0x040000000000251C
@@ -298,7 +299,9 @@ class BodyWorld(runtime.World):
             return self.match.script_owner_movement_sample(self.body)
         return None
 
-    def static_ray(self, origin: Vec3, direction: Vec3, length: float) -> runtime.RaycastResult | None:
+    def static_ray(
+        self, origin: Vec3, direction: Vec3, length: float, category: int,
+    ) -> runtime.RaycastResult | None:
         match = self.match
         if match is None or match.collision_world is None:
             return None
@@ -307,8 +310,8 @@ class BodyWorld(runtime.World):
         if (mover is None or not math.isfinite(norm) or norm == 0 or not math.isfinite(length)
                 or length <= 0 or not all(math.isfinite(axis) for axis in origin)):
             return None
-        hit = match.collision_world.cast_ray(tuple(origin), tuple(axis / norm for axis in direction),
-                                             length, mover.category)
+        geometry = match.collision_world.ray_geometry or match.collision_world
+        hit = geometry.cast_ray(tuple(origin), tuple(axis / norm for axis in direction), length, category)
         if hit is None:
             return runtime.RaycastResult(False, None, None, None)
         return runtime.RaycastResult(True, None, Vec3(*hit.point), Vec3(*hit.normal))
@@ -318,14 +321,15 @@ class BodyWorld(runtime.World):
         config = request.filter_config or {}
         resource = config.get("m_C1903771")
         if (not isinstance(resource, dict) or resource.get("$") != "STU_20DB8AB5"
-                or expr.guid_of(resource.get("m_C1903771")) != 0x069000000000002C
                 or resource.get("m_resourceKey") is not None
                 or request.radius != 0 or request.ignored_entities):
             return None
+        category = ABILITY_RAY_CATEGORIES.get(expr.guid_of(resource.get("m_C1903771")))
         fields = {"$", "m_C1903771", "m_EE729DCB"}
-        if any(value not in (None, 0) for key, value in config.items() if key not in fields):
+        if (category is None
+                or any(value not in (None, 0) for key, value in config.items() if key not in fields)):
             return None
-        return self.static_ray(request.origin, request.direction, request.length)
+        return self.static_ray(request.origin, request.direction, request.length, category)
 
     def resolve_spray(self, length: float) -> dict | None:
         if self.communication_wheel and self.match is not None:
@@ -697,16 +701,17 @@ class BodyWorld(runtime.World):
             )
             return (target,) if target is not None else ()
 
-        if self.match is not None and state.hostile_body_profile() is not None:
+        category = ABILITY_RAY_CATEGORIES.get(state.hostile_body_profile())
+        if self.match is not None and category is not None:
             centre = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
             origin = state.evaluate(state.node.field("m_D59188D5"), watch=False)
             radius = state.evaluate(state.node.field("m_radius"), watch=False)
             if not (nodes._finite_vector(centre) and nodes._finite_vector(origin)
                     and nodes._finite_number(radius) and radius > 0):
                 return ()
-            # 002C.097 admits static category 1FDF. This tracker retains prior hits for the cast.
+            # This tracker retains prior hits for the cast.
             new_targets = self.match.combat.track_hostile_bodies(
-                self.body, tuple(centre), radius, tuple(origin), 0x1FDF, state.targets,
+                self.body, tuple(centre), radius, tuple(origin), category, state.targets,
             )
             return state.targets + new_targets
 

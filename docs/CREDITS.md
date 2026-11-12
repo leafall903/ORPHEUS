@@ -121,8 +121,16 @@ phase at `C31870`. The ordinary body direction queries use the mover pose throug
 The local 104319 export supplies graph `0DD8`'s target filter, cast profile,
 damage amount and loadout. The original client supplies the target query and
 array update at RVA `CAE3B0`, capsule overlap at `C8E660` and sight query at
-`CA3570`. The server reuses the sight query from the integrated communication
+`CA3570`. The frame gate at `CA9460` and tick at `C95590` supply the query
+cadence. The server reuses the sight query from the integrated communication
 wheel work and the existing ORPHEUS combat pipeline.
+
+## Ability ground queries
+
+The 104319 RayCast state binds its outputs at RVA `8EC210` and updates them at
+`8EC270`. Its output accessor is at `C84580` and its end callback at `C841B0`.
+The target-build `002C.097` profile supplies the static category mask for
+Seismic Slam and Piledriver.
 
 ## Wrecking Ball
 
