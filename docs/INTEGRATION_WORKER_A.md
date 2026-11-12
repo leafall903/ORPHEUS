@@ -1904,3 +1904,48 @@ semi-implicit velocity whereas original0068 grenade/Graviton uses the analytic
 half-gravity chord. Restore only original owned flight families on the existing
 Rocket service and keep193 impact assertions, then world charge/frozen offense/
 remaining mobility consumers. No network/client/service/publication/full matrix.
+
+## A83 — original flight/field world replay and first-body birth admission
+
+Restored original0068 world-flight admission to Match.tick for ParticleGrenade
+03DB and Graviton03E2 on the existing Rocket. Their live flight ticks and original
+Gravitons.clock_ticks/duration_ticks join the existing replay loop; reserved
+followups with no live flight/field are skipped. Actual field damage/pull/death
+now interleave before retained frames, not all at a late scheduler endpoint.
+Other projectile families retain their own trajectory and admission policies.
+Actual initial probe showed missing0241/025F m_projectileMotions consumption:
+flat flight had no velocity/gravity. Both use original resource gravity9.8 and
+analytic half-gravity chord in the existing flight service (not a second solver).
+
+Original late-player field methods exposed a separate shared omission:
+Match.switch_hero recorded replacement only for an old body. Original0068 records
+initial bodies too. That existing single call now runs after the optionalnew_body
+branch, once for the actual current body; current ID allocation/VM/hero lifecycle
+are unchanged. Original birth guard uses this same existing replacement_ticks
+record. Root approved and requested lifecycle checks. Initial late-player backdated
+damage12.8/20 vs6.48/.88/.08/0 is fixed; all original numbers remain.
+
+Original first-step vertical acceleration and full4s upward trajectory pass.
+Original late-body4cases and paced/sparse pull/death whole method pass6.188s.
+Combined these with original controller9, replacement/rewind and command handoff
+lifecycle, actualNPC mover/release2 and Flux overlap =21/21pass28.214s.
+Log worker-a-zarya-worldclock-birth-lifecycle-joint.log. No acceptance matrix,
+client/service/network/publication or input-package changes.
+
+Original projectile-recovery193 assertion remains failed at1244 vs1245. The real
+sparse consumer failure is fixed: sparse now also1244, rather than old1262. Exact
+bounded diagnostic from real emitted Rocket/target geometry: g9.8000001907,
+extent0.20000000298, targetradius.5; same analytic launch yields contact1244 with
+current authored extent and1245 with original0068 default sphere_radius0. The
+latter exactly equals damaged1052+193. Root explicitly requested preserving the
+current authored width and original failed assertion; no hidden radius override,
+new geometry mode or rewritten expected number. Evidence
+worker-a-zarya-projectile-point-extent-boundary-final.log. Initial incorrect pure
+probe of None velocity remains recorded, corrected after actual motion was mounted.
+
+Next exact action: original0068 world passive/cast/flight/field charge lock and
+field offense snapshot on existing charge/Rocket/Gravitons hosts; consume root's
+new shared cover_ray once available for original field LOS, and reconcile source
+mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
+193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
+vs native60 assertions remain visible and do not block real code integration.

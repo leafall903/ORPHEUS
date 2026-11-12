@@ -2152,7 +2152,7 @@ class Match:
         player.hero = hero
         if old is not None:
             player.new_body(entity)
-            self.combat.record_replacement(entity)
+        self.combat.record_replacement(player.body)
         if pose is not None:
             mover = player.mover
             mover.use(mover_data(hero.body))
