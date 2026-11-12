@@ -29,6 +29,25 @@ BARRIER_DATA = (Path("D:/overwatch 1.7.4/verification/hero-lanes/0007/runtime-in
                 / "reinhardt_collision_174.json")
 
 
+_BRIGITTE_VIEWS = {}
+
+
+def brigitte_shield(fight, body):
+    """Read the current canonical shield; keep the source observation contract."""
+    shield = fight.brigitte.barriers[body]
+    key = id(shield)
+    if key not in _BRIGITTE_VIEWS:
+        class View:
+            instance = property(lambda self: shield.instance)
+            current = property(lambda self: shield.health)
+
+            def raised(self):
+                owner = next(p for p in fight.match.players if p.body == body)
+                return fight.brigitte._barrier_active(owner, shield)
+        _BRIGITTE_VIEWS[key] = View()
+    return _BRIGITTE_VIEWS[key]
+
+
 class SegmentPairTests(unittest.TestCase):
     def test_crossing_parallel_point_and_skew_segments(self):
         distance = combat.segment_pair_distance
@@ -67,7 +86,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
         case.rein.team, case.other.team = case.other.team, case.enemy.team
     case.run.step({case.other: (yaw, 0, 3)})
     began = fight.tick
-    dash = fight.brigitte_barriers.shields[case.other.body].instance.states[14]
+    dash = brigitte_shield(fight, case.other.body).instance.states[14]
     case.assertTrue(dash.active)
     for _ in range(5):
         case.run.step(hold)
@@ -503,7 +522,7 @@ class HammerTests(unittest.TestCase):
                 hold = {self.enemy: (-32768, 0, 2)}
                 for _ in range(35):
                     self.run.step(hold)
-                shield = fight.brigitte_barriers.shields[self.enemy.body]
+                shield = brigitte_shield(fight, self.enemy.body)
                 self.assertTrue(shield.raised())
                 if case == "cover":
                     charge_wall(self, z=1.5)
@@ -530,7 +549,7 @@ class HammerTests(unittest.TestCase):
             self.run.step(hold)
         fight = self.match.combat
         old = self.enemy.body
-        previous = fight.brigitte_barriers.shields[old]
+        previous = brigitte_shield(fight, old)
         self.run.step({**hold, self.rein: (0, 0, 1)})
         for _ in range(45):
             self.run.step(hold)
@@ -546,7 +565,7 @@ class HammerTests(unittest.TestCase):
         for _ in range(25):
             self.place(self.enemy, (0, 1, 3))
             self.run.step(hold)
-            replacement = fight.brigitte_barriers.shields[old]
+            replacement = brigitte_shield(fight, old)
             if replacement.current < 250:
                 break
         self.assertIsNot(replacement, previous)
@@ -571,7 +590,7 @@ class HammerTests(unittest.TestCase):
             self.run.step(hold)
         self.assertEqual(self.health(self.enemy), 200)
         self.run.step({**hold, self.enemy: (-32768, 0, 3)})
-        dash = fight.brigitte_barriers.shields[self.enemy.body].instance.states[14]
+        dash = brigitte_shield(fight, self.enemy.body).instance.states[14]
         self.assertTrue(dash.active)
         self.run.step(hold)
         self.assertTrue(dash.active)
@@ -605,7 +624,7 @@ class HammerTests(unittest.TestCase):
                 self.assertTrue(combat.defenses.control_immune(self.other))
                 fight = self.match.combat
                 self.run.step({self.enemy: (-32768, 0, 3)})
-                dash = fight.brigitte_barriers.shields[self.enemy.body].instance.states[14]
+                dash = brigitte_shield(fight, self.enemy.body).instance.states[14]
                 self.assertTrue(dash.active)
                 for _ in range(9):
                     self.run.step(hold)
@@ -701,7 +720,7 @@ class FireStrikeTests(unittest.TestCase):
         for _ in range(35):
             self.run.step(hold)
         fight = self.match.combat
-        shield = fight.brigitte_barriers.shields[self.enemy.body]
+        shield = brigitte_shield(fight, self.enemy.body)
         self.assertTrue(shield.raised())
         self.assertEqual(shield.current, 250)
         self.run.step({**hold, self.rein: (0, 0, 16)})
@@ -1637,7 +1656,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.enterContext(patch.dict(os.environ, {"ORPHEUS_REINHARDT_COLLISION": str(BARRIER_DATA)}))
         fight = self.arena()
         self.advance(12, buttons=2)
-        barrier = fight.barriers[self.rein.body]
+        barrier = fight.reinhardt_barriers[self.rein.body]
         self.assertTrue(barrier.active)
         self.run.step({self.rein: (0, 0, 2), self.enemy: (-32768, 0, 8)})
         launched = False
@@ -2091,7 +2110,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
         self.prepare(0x02E0000000000195)
         self.place(self.enemy, (0, 1, 2.7))
         fight = self.match.combat
-        shield = fight.brigitte_barriers.shields[self.enemy.body]
+        shield = brigitte_shield(fight, self.enemy.body)
         hold = {self.enemy: (-32768, 0, 2)}
         self.run.step({self.enemy: (-32768, 0, 3)})
         dash = shield.instance.states[14]
@@ -2200,7 +2219,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     charge_wall(self, z=1.25)
                 fight = self.match.combat
                 self.run.step({self.enemy: (yaw, 0, 3)})
-                self.assertTrue(fight.brigitte_barriers.shields[self.enemy.body].instance.states[14].active)
+                self.assertTrue(brigitte_shield(fight, self.enemy.body).instance.states[14].active)
                 for _ in range(20):
                     self.run.step({self.enemy: (yaw, 0, 2)})
                     self.assertFalse(fight.controlled(self.rein.body))
@@ -2259,7 +2278,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertIn(self.rein.body, fight.charge_drives)
                 self.assertFalse(fight.controlled(self.rein.body))
                 start = self.rein.mover.position[2]
-                shield = fight.brigitte_barriers.shields[self.enemy.body]
+                shield = brigitte_shield(fight, self.enemy.body)
                 self.assertEqual(shield.current, 250)
                 self.run.step({self.enemy: (-32768, 0, 3)})
                 self.assertTrue(shield.instance.states[14].active)
@@ -2767,7 +2786,7 @@ class ReinhardtFlashbangTests(unittest.TestCase):
             self.step(self.run, self.enemy, self.rein, target_buttons=2)
         self.assertEqual(self.health(self.rein), 500)
         self.assertFalse(self.match.combat.is_stunned(self.rein))
-        self.assertEqual(self.match.combat.barriers[self.rein.body].current, 1575)
+        self.assertEqual(self.match.combat.reinhardt_barriers[self.rein.body].current, 1575)
 
     def test_horizontal_flashbang_drops_and_stuns_on_range_expiry(self):
         self.place(self.enemy, (0, 1, 8.25))
@@ -3135,7 +3154,7 @@ class EarthshatterTests(unittest.TestCase):
         for _ in range(30):
             self.run.step(hold)
         old_body = self.enemy.body
-        old_shield = fight.barriers[old_body]
+        old_shield = fight.reinhardt_barriers[old_body]
         self.fill()
         self.run.step({**hold, self.rein: (0, 0, 32)})
         for _ in range(60):
@@ -3154,9 +3173,9 @@ class EarthshatterTests(unittest.TestCase):
         self.run.step({self.enemy: (-32768, 0, 0)})
         for _ in range(25):
             self.run.step(hold)
-            if fight.barriers[old_body].active:
+            if fight.reinhardt_barriers[old_body].active:
                 break
-        shield = fight.barriers[old_body]
+        shield = fight.reinhardt_barriers[old_body]
         self.assertIsNot(shield, old_shield)
         self.assertTrue(shield.active)
         self.assertEqual(shield.current, 1600)
@@ -3177,7 +3196,7 @@ class EarthshatterTests(unittest.TestCase):
         hold = {self.enemy: (-32768, 0, 2)}
         for _ in range(30):
             self.run.step(hold)
-        shield = fight.barriers[self.enemy.body]
+        shield = fight.reinhardt_barriers[self.enemy.body]
         state = fight._barrier_instance(self.enemy).states[17]
         first_raise = state.counter
         self.fill()
@@ -3295,7 +3314,7 @@ class EarthshatterTests(unittest.TestCase):
                 hold = {self.enemy: (-32768, 0, 2)}
                 for _ in range(30):
                     self.run.step(hold)
-                shield = fight.barriers[self.enemy.body]
+                shield = fight.reinhardt_barriers[self.enemy.body]
                 self.assertTrue(shield.active)
 
                 self.fill()
@@ -3475,7 +3494,7 @@ class EarthshatterTests(unittest.TestCase):
                 self.place(self.other, (0, 1, 15))
                 for _ in range(30):
                     self.run.step({self.enemy: (-32768, 0, 2)})
-                shield = self.match.combat.barriers[self.enemy.body]
+                shield = self.match.combat.reinhardt_barriers[self.enemy.body]
                 if outcome == "break":
                     shield.current = 30
                 self.fill()
@@ -3519,7 +3538,7 @@ class EarthshatterTests(unittest.TestCase):
         for _ in range(30):
             self.run.step(hold)
         fight = self.match.combat
-        shield = fight.barriers[self.enemy.body]
+        shield = fight.reinhardt_barriers[self.enemy.body]
         x, _, z = self.other.mover.position
         distance = math.hypot(x, z)
         shield_distance, owner, _ = fight._barrier_contact(
@@ -3548,7 +3567,7 @@ class EarthshatterTests(unittest.TestCase):
         for _ in range(30):
             self.run.step(hold)
         fight = self.match.combat
-        shield = fight.barriers[self.enemy.body]
+        shield = fight.reinhardt_barriers[self.enemy.body]
         self.fill()
         self.run.step({**hold, self.rein: (0, 0, 32)})
         for _ in range(60):
@@ -3791,7 +3810,7 @@ class TalonInteractionTests(unittest.TestCase):
         while fight.now + .032 < deadline:
             self.advance(1, buttons=2)
             self.assertEqual(self.rein.body, old_body)
-            self.assertFalse(fight.barriers[old_body].active)
+            self.assertFalse(fight.reinhardt_barriers[old_body].active)
         self.advance(16, buttons=2)
         self.assertNotEqual(self.rein.body, old_body)
         self.assertNotIn(old_body, fight.barriers)
@@ -3799,7 +3818,7 @@ class TalonInteractionTests(unittest.TestCase):
         self.assertFalse(fight.controlled(old_body))
         self.assertFalse(self.rein.body_script.component.owner_dead)
         self.assertEqual(fight.vitals_of(fight._target_entity(self.rein.body)).total, 500)
-        barrier = fight.barriers[self.rein.body]
+        barrier = fight.reinhardt_barriers[self.rein.body]
         self.assertEqual(barrier.current, 1600)
         self.advance(1, buttons=0)
         self.advance(15, buttons=2)
@@ -4158,7 +4177,7 @@ class TalonInteractionTests(unittest.TestCase):
                     self.place(self.enemy, (0.0, 1.0, 3.0))
                     for _ in range(35):
                         self.run.step({self.enemy: (-32768, 0, 2)})
-                    shield = self.match.combat.barriers[self.enemy.body]
+                    shield = self.match.combat.reinhardt_barriers[self.enemy.body]
                     self.assertTrue(shield.active)
                     before = vitals.total
                     self.run.step({self.rein: (0, 0, 16), self.enemy: (-32768, 0, 2)})
@@ -4187,7 +4206,7 @@ class BarrierTests(unittest.TestCase):
         self.advance(15, buttons=2)
 
     def shield(self, player=None):
-        return self.match.combat.barriers[(player or self.rein).body]
+        return self.match.combat.reinhardt_barriers[(player or self.rein).body]
 
     def test_shield_bash_ends_at_barrier_before_later_drop(self):
         for early_drop in (False, True):
@@ -4202,7 +4221,7 @@ class BarrierTests(unittest.TestCase):
                 shield = self.shield()
                 self.assertTrue(shield.active)
                 self.run.step({**hold, self.enemy: (-32768, 0, 3)})
-                dash = fight.brigitte_barriers.shields[self.enemy.body].instance.states[14]
+                dash = brigitte_shield(fight, self.enemy.body).instance.states[14]
                 self.assertTrue(dash.active)
                 if early_drop:
                     hold[self.rein] = (0, 0, 0)
@@ -4373,7 +4392,7 @@ class BarrierTests(unittest.TestCase):
 
     def test_unseeded_barrier_breaks_to_rifle_then_held_input_recovers(self):
         fight = self.match.combat
-        geometry = fight.barrier_geometry
+        geometry = fight.reinhardt_geometry
         shield = self.shield()
         self.assertEqual(shield.current, 1600)
         for _ in range(2000):
