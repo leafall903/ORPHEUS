@@ -4598,7 +4598,8 @@ class Combat:
         replay_end = max(self.tick + sombra_replay.emp_replay_frames(self),
                          sombra_replay.application_replay_until(self, self.tick))
         early_end = min(first, replay_end + 1)
-        for at in chain(range(self.tick + 1, early_end), range(first, tick + 1)):
+        for at in sorted(set(chain(range(self.tick + 1, early_end), range(first, tick + 1)))
+                         | self.barriers.clock_edges(tick) | self.barriers.start_edges(tick)):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
@@ -4647,6 +4648,7 @@ class Combat:
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
             interception.update_pools(self, at)
+            self.barriers.advance_expiries()
             barriers.advance(self, at)
             reinhardt_charge.sync(self)
             self.photon_barriers.update(at)

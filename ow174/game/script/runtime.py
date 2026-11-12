@@ -882,6 +882,9 @@ class World:
     def ability_start_allowed(self, state: "State") -> bool:
         return True
 
+    def ability_cooldown_floor(self, state: "State") -> float:
+        return 0.0
+
     def track_targets(self, state: "State") -> bool:
         """Return true when the selection must refresh every VM update."""
         return False

@@ -541,12 +541,24 @@ class BodyWorld(runtime.World):
             return False
         if not self.ability_resource_available(state):
             return False
+        if (self.match is not None and self.hero == 0x02E0000000000068
+                and not self.match.combat.barriers.ability_start_allowed(state)):
+            return False
         # The hosted projection supplies its overlap gate while the native
         # 025C recipient effect/tag system is unimplemented.
         if (self.match is not None and self.hero == 0x02E0000000000068
                 and state.instance.graph.index == 0x0244 and state.index == 0):
             return self.match.combat._active_projected_barrier(self.body) is None
         return True
+
+    def ability_cooldown_floor(self, state):
+        if (self.match is None or self.hero != 0x02E0000000000068
+                or state.cur <= 0 or state.cooldown_rate <= 0):
+            return 0.0
+        from ow174.game.combat import TICK
+
+        ready = self.match.combat.barriers.cooldown_ready_tick(state)
+        return min(state.cur, max(0, ready - self.match.tick) * TICK * state.cooldown_rate)
 
     def body_owner_context(self, entity):
         if self.match is None or entity != self.body:

@@ -229,7 +229,7 @@ class NativePetApplicationTests(unittest.TestCase):
                 yaw, pitch = aim(fight._eye(caster), fight._eye(victim)) if projected else (0, 0)
                 frame = caster.body_script.frame + 1
                 caster.take_commands([Command(frame, yaw=yaw, pitch=pitch, buttons=16 if projected else 8)])
-                pet = fight.barriers.authored_for(caster.body)
+                pet = next(b for b in fight.barriers.scripted.values() if b.parent is caster)
                 self.assertIsNotNone(pet)
                 self.assertEqual(pet.application_tick, application)
                 self.assertNotEqual(pet.source.frame, pet.application_tick)
