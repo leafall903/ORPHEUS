@@ -122,3 +122,16 @@ duplicate landing damage and missile extreme-angle policy against frozen source;
 legacy spread call/storage differences alone do not justify removing canonical
 services. Root's sniper integration8f5017b1 reports missing `npc_shields` at
 `test_zenyatta_npcs` import; retain this0020 consumer when that owner is audited.
+
+DVa entry/retirement batch committed `3414016e`. The next batch preserves
+quantized Micro Missiles against a later generic NPC direction overwrite and
+prevents zero-elapsed end_health from replaying the landing250-damage state.
+All18 targeted checks passed. Actual partial Cryo healing matched the prior end
+callback; the29-check Ana/Cryo/healing suite kept exactly five failures/25 subcase
+errors with each callback. Log pair `worker-a-end-health-{regression,baseline}.log`.
+The walk-penalty failure is specifically the Matrix+held-primary phase: firing
+alone has the same3.2998 velocity/.4 stack as source. The newer delivered button
+condition rejects disabled primary, unlike old007A's held-only query. Preserve
+that semantic difference and the original check. Remaining owned-body difference
+also includes the original spread trace expecting the prior private call shape.
+Do not count those alone as an absent gameplay consumer or weaken their assertions.

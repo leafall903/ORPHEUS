@@ -4674,7 +4674,7 @@ class Combat:
                         directions = weapon_spread.authored_ring_directions(state, direction, seed, number)
                     else:
                         split = self._split_volley(state, direction, seed, number)
-                elif npc:
+                elif npc and shooter.hero != dva.HERO:
                     from ow174.game import npc_context
 
                     directions = npc_context.enforcer_directions(shooter, state, direction, number, activation)

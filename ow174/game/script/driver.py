@@ -755,7 +755,9 @@ class BodyWorld(runtime.World):
         return barriers.transcendence_heal(self, state, elapsed_ms) if value is NotImplemented else value
 
     def end_health(self, state):
-        self.modify_health(state, max(0, state.now - state.last_applied))
+        elapsed = max(0, state.now - state.last_applied)
+        if elapsed:
+            self.modify_health(state, elapsed)
 
     def compatibility_message_receiver(self, state):
         from ow174.game import assassin_victim
