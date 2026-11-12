@@ -498,6 +498,10 @@ class Player:
         retained = getattr(self, "valkyrie_pose", None)
         flight_profile = retained.profile if retained is not None and command.frame <= retained.through else None
         charge_start = tuple(self.mover.position) if self.hero.guid == 0x02E0000000000007 else None
+        drive = None
+        if charge_start is not None and not pulled and not stunned:
+            from ow174.game import reinhardt_charge
+            drive = reinhardt_charge.drive(fight, self, command, seconds)
         collision = ice_wall.movement_world(fight, tick)
         self.mover.use(world=collision)
         if pulled:
@@ -505,6 +509,8 @@ class Player:
         elif punch is not None:
             outcome = self._move_pose(command, seconds, tick, move_to=punch, flight_profile=flight_profile)
             fight.punches.movement_result(self, outcome)
+        elif drive is not None:
+            self.mover.step_pose(command, seconds, tick, horizontal_drive=drive)
         elif len(requests) == 1:
             state, (target, speed) = requests[0]
             outcome = self._move_pose(

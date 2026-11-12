@@ -15,6 +15,19 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B12 surfaces986eb818 submitted. B13 restores source Charge horizontal drive
+  and30deg/s steering within the existing charges records and sameMover. New
+  dataclass fields append heading/activation; no positional contract changes.
+  Mover.horizontal_driven is registered in stored physics so vertical release
+  behavior is captured. Original live-target helper is restored for source
+  owner contact lookup. Source input observers read actual existingrecords.
+- Original ChargeMovement7 plus mover/physics-snapshot/runtime/input/epoch98:
+  all105 pass. Logworker-b-reinhardt-charge-drive-second.log. The source armor
+  bypass test setup maps to armour_scalar1.0, preserving identical target health
+  and all assertions. Existing capture/contact remains; still integrate source
+  generation-aware captures/bumps/counter-charge and world-object contacts.
+
+
 - B11 Hammer batch4e383151 submitted. B12 mounts source stateless full capsule
   surface queries through current actor managers, source shell overlap and
   Ice Wall/Supercharger contact consumers. No surface/pool driver is added.
@@ -198,7 +211,7 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B12 surface batch, then continue0007 source full Charge and
+1. Submit B13 drive batch, then continue0007 source full Charge contacts and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve
    a single driver while migrating these consumers. Continue source

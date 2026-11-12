@@ -4076,6 +4076,10 @@ class Combat:
                 found.append(self._deployable_target(actor))
         return [self.pulse_bombs.sampled(target) for target in found]
 
+    def _target_entity(self, entity):
+        """Delivered owner contact lookup over live canonical targets."""
+        return next((t for t in self._targets() if t.entity == entity and not self.vitals_of(t).dead), None)
+
     def player_target(self, player):
         """Resolve a player controller to the body currently taking combat."""
         if player is None or player.gone or not self.match._shown(player):

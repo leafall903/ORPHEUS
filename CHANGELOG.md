@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Reinhardt Charge horizontal drive
+
+- Restore source007D's30-degree-per-second steering and authored16.5m/s drive
+  through the existing Charge record and Mover. Preserve the ordinary gravity,
+  swept collision, external action deltas and vertical momentum on release;
+  source windup/end/cooldown graphs retain their authority.
+- Retain heading/activation in the existing Charge record, register the mover's
+  horizontal-mode state in physics snapshots, and use the bounded heading for
+  the existing contact path. Drain a run queued during an aborted phase exit.
+  Keep positional Charge constructor fields unchanged by appending new fields.
+- All105 original checks pass: seven delivered movement/steering/wall/cooldown/
+  death/retirement/vertical-drive scenarios plus98 existing mover, stored
+  physics, runtime, command and epoch checks. Source observers read existing
+  Charge records; armor-bypass fixture intent maps to armour_scalar1.0.
+- Full source capture/bump, cross-charge, deployable collision and Earthshatter
+  integration continue. Existing contact consumers remain mounted; source
+  original-client acceptance remains open. No network or publication action.
+
+
 ### Mount delivered Reinhardt swing surface and object contacts
 
 - Reuse delivered capsule/mesh and shell overlap queries against existing
