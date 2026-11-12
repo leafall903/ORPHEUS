@@ -5260,6 +5260,10 @@ class Combat:
             # Declared server identity and uniform-radius sampling policy.
             base = weapon_spread.seed_base(shooter.body, state.instance.id, node.pos, activation[0])
             direction = weapon_spread.direction(direction, cone, base, number)
+        if not npc and shooter.hero.guid == 0x02E000000000000A:
+            from ow174.game import weapon_launch
+
+            direction, = weapon_launch.directions(shooter, state, direction, number, time, activation)
         direct = hit_def(state, node.field("m_6396149F"))
         if (not npc and shooter.hero.guid == BASTION and direct is not None
                 and (state.instance.graph.index, node.pos) == (0x012E, 30)
