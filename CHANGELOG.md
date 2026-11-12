@@ -1172,6 +1172,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Restore Practice Range patrol bootstrap after reconciliation
+
+- Restore the existing upstream Bot patrol-key, detour and walkable-floor methods used by the new collision loader. The mixed implementation previously raised `AttributeError: Bot._plan_key` and rejected Practice Range admission.
+- Preserve the full local Bot's explicit movers, manual controls, force and wall behavior. Add a prepared-runtime cold-load regression that loads the real external Practice Range collision and advances its training patrols.
+- Passed all 39 patrol/bootstrap checks and undefined-name/duplicate-definition checks. Original 104319 client acceptance now confirms Training -> Practice Range -> Soldier: 76 selection -> first-person spawn on the fixed local server. Shooting, movement and full hero acceptance were not tested in this check.
+
+### 2026-11-13
+
 #### Reconcile the full local Python hero server with public main
 
 - Publication follow-up records the preserved Roll profile API, shield wire-slot and Slam selector expectations. Exact source-only startup and CLI/contract/dashboard checks pass; complete equivalence remains open.
