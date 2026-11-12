@@ -251,7 +251,7 @@ FIELDS = {
         "combat seen regeneration protection_seen fields field_bindings matrices"
     ),
     healing.HealingEffects: _names("match applied filter_history combat spec anti amp"),
-    healing_status.StatusWorld: _names("hero mode match source owner"),
+    healing_status.StatusWorld: _names("hero mode match source owner source_team"),
     absorption.Grasp: _names("combat converted decay_clocks last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
     graviton.Gravitons: _names("fight fields pulled npc_movers"),

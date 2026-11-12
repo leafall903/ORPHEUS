@@ -606,6 +606,8 @@ class _Export:
                 fields.update(("fight", "entity", "location"))
             if kind in (SupportWorld, StatusWorld):
                 fields.update(("match", "source", "owner"))
+            if kind is StatusWorld:
+                fields.add("source_team")
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
             if kind is MineWorld:

@@ -243,7 +243,7 @@ class HealingEffects(healing_status.Statuses):
                 # One existing victim/cover decision feeds one same-host VM impact.
                 damage_scale = strength * (rocket.boost_credit[1] if rocket.boost_credit else 1.0)
                 self.impact(rocket.shooter, target, damage_scale, boost_credit=rocket.boost_credit,
-                            source_entity=source, healing_scale=strength,
+                            source_entity=source, source_team=rocket.team, healing_scale=strength,
                             broken_particle_barriers=broken_particle_barriers)
                 continue
             if allied:

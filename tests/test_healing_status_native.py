@@ -95,6 +95,11 @@ class NativeHealingStatusTests(unittest.TestCase):
         fight.healing.impact(ana, body)
         item, = fight.healing.applied.values()
         before = snapshot_digest(helper.capture(session))
+        launch_team = item.component.world.source_team
+        item.component.world.source_team = ana.team
+        self.assertNotEqual(snapshot_digest(helper.capture(session)), before)
+        item.component.world.source_team = launch_team
+        self.assertEqual(snapshot_digest(helper.capture(session)), before)
         original = item.last_frame
         item.last_frame += 1
         self.assertNotEqual(snapshot_digest(helper.capture(session)), before)
@@ -193,3 +198,41 @@ class NativeHealingStatusTests(unittest.TestCase):
                 for _ in range(5):
                     fixture.step()
                 self.assertEqual(fixture.fight.healing.factor(target), 1.5 if friendly else 0)
+
+    def test_in_flight_grenade_keeps_existing_launch_team_after_source_changes_team(self):
+        from test_zarya_native_cleanse import ZaryaNativeCleanseTests
+        from test_game_combat import aim
+        for friendly in (False, True):
+            with self.subTest(friendly=friendly):
+                fixture = ZaryaNativeCleanseTests()
+                run, fight, ana, caster, victim = fixture.encounter(False, protect=False)
+                self.assertTrue(run.match.switch_hero(ana, heroes()[ANA]))
+                ana.mover.position[:] = [0, 1, 0]
+                ana.mover.body = None
+                ana.team = victim.team if friendly else 1 - victim.team
+                target = next(t for t in fight._targets() if t.owner is victim)
+                if friendly:
+                    fight.vitals_of(target).damage(150)
+                    fight._sync_body_health(victim, fight.vitals_of(target))
+                before = fight.vitals_of(target).total
+                angles = aim(fight._eye(ana), (victim.mover.position[0], victim.mover.position[1] + 1,
+                                               victim.mover.position[2]))
+                for frame in range(60):
+                    run.step({ana: (*angles, 16 if frame == 0 else 0)})
+                    rocket = next((r for r in fight.rockets if r.definition == 0x0400000000001426), None)
+                    if rocket is not None:
+                        break
+                else:
+                    self.fail("actual Ana grenade did not launch")
+                launch_team = rocket.team
+                ana.team = 1 - ana.team
+                self.assertNotEqual(launch_team, ana.team)
+                for _ in range(60):
+                    run.step({})
+                    if rocket not in fight.rockets:
+                        break
+                self.assertNotIn(rocket, fight.rockets)
+                self.assertEqual(fight.vitals_of(target).total, before + (100 if friendly else -60))
+                expected_graph = 0x0B99 if friendly else 0x0C72
+                self.assertTrue(any(instance.graph.index == expected_graph for item in fight.healing.applied.values()
+                                    if item.target == target.entity for instance in item.component.instances.values()))
