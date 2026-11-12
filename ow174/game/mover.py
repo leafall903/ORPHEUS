@@ -392,6 +392,51 @@ _mover_table: dict[int, MoverData] | None = None
 _mover_table_lock = threading.Lock()
 
 
+def load_mover_bundle(path, extension=None) -> tuple[dict[int, MoverData], dict[str, MoverData]]:
+    """Load immutable base values and optional fingerprint-bound, add-only bodies."""
+    import gzip
+    import hashlib
+
+    raw = path.read_bytes() if path.is_file() else b""
+    table = json.loads(raw) if raw else {}
+    names = {field.name for field in fields(MoverData)}
+    result = {
+        int(body, 16): MoverData(**{key: value for key, value in entry.items() if key in names})
+        for body, entry in table.items()
+    }
+    profiles = {}
+    if extension:
+        from pathlib import Path
+
+        extra = json.loads(gzip.decompress(Path(extension).read_bytes()))
+        if extra.get("format_version") != 1:
+            raise ValueError("unsupported mover extension format")
+        if extra.get("base_mover_sha256") != hashlib.sha256(raw).hexdigest():
+            raise ValueError("mover extension does not match base")
+        def checked(entry):
+            if set(entry) != names or any(
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+                for value in entry.values()
+            ):
+                raise ValueError("mover extension requires complete finite fields")
+            for key in ("ground_circle_rays", "character_collision"):
+                if not isinstance(entry[key], int):
+                    raise ValueError("mover extension requires integer flags/counts")
+            if not 0 <= entry["ground_circle_rays"] <= 64 or entry["character_collision"] not in (0, 1):
+                raise ValueError("invalid mover flags/counts")
+            if any(entry[key] < 0 for key in names):
+                raise ValueError("negative mover extension field")
+            return MoverData(**entry)
+
+        for body, entry in extra.get("movers", {}).items():
+            guid = int(body, 16)
+            if guid in result:
+                raise ValueError("mover extension cannot replace a body")
+            result[guid] = checked(entry)
+        profiles = {name: checked(entry) for name, entry in extra.get("mover_profiles", {}).items()}
+    return result, profiles
+
+
 def _movers() -> dict[int, MoverData]:
     global _mover_table
     with _mover_table_lock:
@@ -401,6 +446,15 @@ def _movers() -> dict[int, MoverData]:
             else:
                 names = {field.name for field in fields(MoverData)}
                 table = json.loads(MOVERS_PATH.read_text(encoding="utf-8"))
+                extension = os.environ.get("ORPHEUS_MOVER_EXTENSION")
+                if extension:
+                    from dataclasses import asdict
+
+                    extended, _profiles = load_mover_bundle(MOVERS_PATH, extension)
+                    for identifier, data in extended.items():
+                        body = f"0x{identifier:016X}"
+                        if body not in table:
+                            table[body] = asdict(data)
                 if MOVERS_SUPPLEMENT_PATH is not None:
                     extra = json.loads(MOVERS_SUPPLEMENT_PATH.read_text(encoding="utf-8"))
                     for body, entry in extra.items():

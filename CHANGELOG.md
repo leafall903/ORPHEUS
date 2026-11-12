@@ -9349,3 +9349,7 @@ existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/char
 ### Worker A synchronization after A46
 
 Absorb committed intake afcec3b8 at a clean boundary before BOB integration; retain all parallel source consumers.
+
+### Worker A47 - strict original BOB mover-extension dependency
+
+- Restore original fingerprint-bound add-only mover bundle API and optional cached-table extension path while retaining current supplementary table/DVa movement. Original malformed-input and current body-form checks: 13 passed. Original/runtime base mismatch remains explicit; no source inputs altered.

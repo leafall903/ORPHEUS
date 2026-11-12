@@ -1252,3 +1252,9 @@ existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/char
 ## Clean synchronization after A46
 
 Absorbed committed intake afcec3b8 after A46. Automatic source merges retain Coach/Dynamite/reload and new Ball/Sombra/root shared consumers; no conflicts, no runtime/base mutation. Continue BOB original lifecycle on this combined boundary.
+
+## A47 - original strict mover extension dependency for BOB
+
+- Restore original pure `load_mover_bundle` fingerprint/add-only complete finite validation and original two-method fixture, preserving all original assertions (including twelve malformed cases). Current global cached mover table keeps current `ORPHEUS_MOVERS_SUPPLEMENT` union and DVa/C34 movement; an explicit `ORPHEUS_MOVER_EXTENSION` first adds only validated missing bodies. No default input/profile switch.
+- Original mover extension plus current body-form/supplement checks: 13 passed using v13 environment (`worker-a-ashe-mover-extension.log`).
+- Source prepared package expects mover base e3943bc4299d43fd5478d5f074d449a1ca70d817a10a66c36466ff3dd33de84c; current immutable base is fcdfa08827099284736677498c0354d2262f4ae00cd70c26dcba259a49af333f and has no25C3. Do not bypass strict mismatch or alter source package. Parent notified; current-bound derived input requires record-level original-base validation. BOB remains unmounted pending real factory/phase consumers, next immediately.
