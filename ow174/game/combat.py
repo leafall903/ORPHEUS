@@ -4302,8 +4302,7 @@ class Combat:
                     self.walls.damage(piece, actor, amount)
         return True
 
-    @staticmethod
-    def _melee_impulse(target, origin, state):
+    def _melee_impulse(self, target, origin, state):
         """Apply the authored melee scalars to the reconstructed mover velocity."""
         mover = getattr(target.owner, "mover", None)
         if mover is None:
@@ -4318,6 +4317,7 @@ class Combat:
         mover.velocity = (vx + dx * scale, vy + vertical, vz + dz * scale)
         if vertical > 0:
             mover.flags_word |= FELL
+            self.knockbacks.record_launch(target, source_entity=state.instance.component.entity)
 
     def _melee(self, player, command, script, command_quanta=None) -> None:
         """Quick melee: 0043 st4 (StateModifyHealth) hits what its st5 TrackTargets finds: a sphere of
@@ -9121,7 +9121,7 @@ class Combat:
         """Scoped radial/upward Helix force; native resistance/order remain open."""
         self._radial_impulse(target, point, blast.horizontal_impulse * scalar, blast.vertical_impulse * scalar)
 
-    def _radial_impulse(self, target: Target, point, horizontal: float, vertical: float) -> None:
+    def _radial_impulse(self, target: Target, point, horizontal: float, vertical: float, *, replay_source=None) -> None:
         if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
             return  # object pools receive the blast, not a character mover response
         if defenses.fortify_scale(target.owner) is not None:
@@ -9146,6 +9146,8 @@ class Combat:
             mover.add_external_impulse(impulse)
             if mover.velocity[1] > 0:
                 mover.fall = 0.0
+            if replay_source is not None:
+                self.knockbacks.record_launch(target, source_entity=replay_source)
 
     def _landed(self, rocket: Rocket, *, release: bool = True, ground_point=None, continuation_point=None) -> None:
         """Finish authority and release or retire the predicted copy."""
@@ -10073,6 +10075,10 @@ class Combat:
                                                      fight=self, frame=frame)
                 else:
                     reinhardt_charge.lateral_impulse(attacker.position, target, state, forward)
+                    if (state.instance.graph.index == 0x1408 and state.node.pos == 35
+                            and target.owner in self.match.players
+                            and _number(state.evaluate(health.get("m_583C208B"), watch=False), 0.0) > 0):
+                        self.knockbacks.record_launch(target, source_entity=attacker.entity)
 
     def heavy_melee(self, state) -> None:
         attacker = self._npc_melee_attacker(state)
