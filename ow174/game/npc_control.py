@@ -124,6 +124,8 @@ def stop(match):
         bot.attack_input = False
         if bot.attack_mode == "reposition":
             sniper_reposition.stop(bot, match.tick)
+        elif sniper_reposition.primary_scoped(bot):
+            sniper_reposition.stop_primary(bot)
         bot.attack_mode = "primary"
         npc_navigation.stop(bot, land=True)
         reposition = npc_navigation.reposition_state(bot)
@@ -270,7 +272,9 @@ def update_input(fight, bot):
         enabled = not fight._control_immune(target)
     if previous_target is not None and previous_target != bot.attack_target:
         _retire_target_input(bot, value)
-    if bot.attack_mode == "primary" and heavy_assault.update(bot, component, enabled):
+    if bot.attack_mode == "primary" and (
+            heavy_assault.update(bot, component, enabled)
+            or sniper_reposition.update_primary(fight, bot, enabled)):
         enabled = False
     context = getattr(bot.body_script, 'control_context', None)
     if context is not None and bot.hero == assassin.HERO:
