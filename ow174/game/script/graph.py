@@ -304,8 +304,8 @@ def add_supplement(data: dict, extra: dict) -> dict:
     are errors rather than silent changes to already accepted mode/hero inputs.
     """
     if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
-            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables"}):
-        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables")
+            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables", "npc_controllers"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables/npc_controllers")
     graphs = {record["index"]: record for record in data["graphs"]}
     supplied = set()
     for record in extra.get("graphs", []):
@@ -353,6 +353,24 @@ def add_supplement(data: dict, extra: dict) -> dict:
                 raise ValueError(f"supplement conflicts with deployable {key}")
             deployables[key] = record
         result["deployables"] = deployables
+    if "npc_controllers" in extra:
+        controllers = dict(data.get("npc_controllers") or {})
+        additions = extra["npc_controllers"]
+        if not isinstance(additions, dict):
+            raise ValueError("supplement NPC controller associations must be a mapping")
+        bodies = data.get("bodies", {}) | entities
+        for body, association in additions.items():
+            definition = association.get("definition") if isinstance(association, dict) else None
+            if (not isinstance(body, str) or not re.fullmatch(r"0x0400[0-9A-F]{12}", body)
+                    or not int(body, 16) & 0xFFFFFFFFFFFF or body not in bodies
+                    or not isinstance(definition, str)
+                    or not re.fullmatch(r"0x0400[0-9A-F]{12}", definition)
+                    or definition == body or definition not in entities):
+                raise ValueError("unresolved NPC controller definition")
+            if body in controllers and controllers[body] != association:
+                raise ValueError(f"supplement conflicts with NPC controller {body}")
+            controllers[body] = association
+        result["npc_controllers"] = controllers
     return result
 
 

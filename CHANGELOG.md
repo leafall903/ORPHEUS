@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Admit original NPC controller associations without replacing selected definitions
+
+- Extend the existing additive graph supplement with the original five explicit
+  NPC body/controller associations and retain their source hashes. Reject missing,
+  self, invalid or conflicting associations; identical additions remain idempotent.
+- Six supplement checks pass. Candidate external v18 adds only the five original
+  association rows: all 742 selected graphs and 23 entity definitions stay equal.
+  Actual manual controller/context admission remains worker A work; v17 is still
+  selected. Original inputs are unchanged and no client acceptance was run.
+
 ### Preserve controller Pin services in causal server storage
 
 - Exact original Pin/message storage and current scalar/vector modifier records
