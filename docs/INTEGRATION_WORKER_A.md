@@ -9,7 +9,48 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
-## Current owner reconciliation after A27
+## Current nine-owner handoff after A63
+
+A owns the original seven hero cores plus reassigned0065 Junkrat and0200 Ashe.
+All nine currently have actual original-language consumers; no known remaining
+owner-specific core omission is identified. This means owner code reconciliation
+is ready for root intake, not whole cross-owner frozen-ref ancestry or completed
+client acceptance. Keep every existing failed/original check visible. Root owns
+formal source admission and global final reconciliation; no appearance/Rust work.
+
+- Seven original refs and their mounted boundaries remain listed below; subsequent
+  A28-A32 preserve shared charge/filter consumers, including actual adaptive-loss
+  deduction and one native registry contract. Later checkpoints supersede old next-actions.
+- 0065 source c31d926214d74bbb6d5f308cabce92c65d8a48fc: original cannon/bounce,
+  Mine/SteelTrap true actor and Vitals/contact/root/health/deadlines, RipTire sole
+  possessed mover/actor/lifecycle/explosion, charge/source inputs, Mayhem and NPC
+  death-volley are mounted (A33-A42). Root took the shared34924 Thunderstorm branch
+  and source tools. No duplicate deployable actor/Vitals/clock or old manager.
+- 0200 source 8b991768223a98ff97f2618a53f0947dc6477c4b: original Viper/Coach/reload,
+  Dynamite/burn and BOB real gun/charge/uppercut/Heavy carry/lateral/lifecycle are
+  mounted (A43-A61). Original source-only impulse pools map to current sole
+  Knockbacks and Bot.impulse_mover. Current-bound mover extension has explicit
+  base/source hash provenance; original inputs remain unchanged. Root's shared
+  PlayerController/filter/wire/lifecycle/snapshot consumer is now absorbed.
+- A57 exact Matrix amount/source output restored on existing interception;
+  A58 BOB uses actual recipient-frame silence history; A59 real NPC hard-control
+  interruption no longer crashes in Photon guard. All original expectations and
+  old observer/private API differences retained. A62 classified two older Ana
+  warmup-vulnerability checks as conflicting with original0003/000A both-phase
+  Recall protection; retain owner policy and both original failed checks.
+- Clean synchronization7b410a4c incorporates intake d7139d1a. New composed boundary
+  check on v17 ran original PlayerController9, EMP refresh1, both BOB EMP expiry2,
+  real sleep/freeze/Blizzard3 and actual Matrix1 =16/16 passed21.646s, log
+  worker-a-ashe-composed-owner-boundary.log. This is limited verification, not a
+  new matrix or claim that all original source fixtures pass.
+
+Latest own implementation changes are A57 e62a0033, A58 dba31c23 and A59 f1acf65c;
+A60 6e894f87/A61 4bdf09ee preserve real-host source assertions, A62 241d6c8d source
+policy evidence. Root has all SHAs. Next concrete work is any newly identified
+actual source-consumer gap from root's final cross-owner reconciliation, rather
+than fabricate compatibility state or weaken source checks to make a broad group green.
+
+## Original seven-owner reconciliation after A27
 
 All seven assigned hero cores have actual consumers; no additional missing own
 hero-core consumer is currently identified. This is an owner boundary, not a

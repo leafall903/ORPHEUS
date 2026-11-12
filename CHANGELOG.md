@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Record nine-owner source reconciliation boundary
+
+- Worker A records actual original-language consumers for seven initial heroes,
+  Junkrat and Ashe, including shared PlayerController received from root. Formal
+  whole-ref cross-owner admission remains with root; old failing checks stay visible.
+- Latest composed v17 controller/EMP refresh/BOB clocks/real hard controls/Matrix
+  boundary16/16 passed. No additional production changes or client acceptance.
+
 ### Reconcile delivered Recall protection contracts
 
 - Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
