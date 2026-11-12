@@ -504,6 +504,11 @@ class Controls:
             script = getattr(target.owner, "body_script", None)
             if script is None:
                 continue
+            # Original0200 recipient invocation replaces the previous graph,
+            # including its start-entry lifetime, before submitting this request.
+            for prior in tuple(script.component.instances.values()):
+                if prior.graph.index == definition.index:
+                    script.component.destroy(prior)
             application = self.invoke(script.component, definition, request)
             if application is not None and definition.index == EFFECT:
                 duration = expr.to_float(application.evaluate(application.graph.node(96).field("m_value")))

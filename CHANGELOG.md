@@ -44,6 +44,14 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Refresh original Hack receiver graph lifetimes on EMP
+
+- Apply the original recipient graph replacement before the existing PlayScript
+  request, retiring the stale first effect while retaining actual source, params,
+  pools and world-lock intervals.
+- Original refresh, whole AsheHack, Sombra cooldown/world-only EMP, retirement,
+  all15charge and shared VM queue/runtime pass79/79. No fixture or value changes;
+  actual device and incoming-clock integration remains recorded work.
 
 ### Retain original recipient-frame skill admission through the expiry edge
 
