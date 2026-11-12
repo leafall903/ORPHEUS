@@ -706,7 +706,7 @@ class Match:
                 updates.append(self.remote_body_create(viewer, other))
         return updates
 
-    def _prepare_bot_script(self, bot: bots.Bot) -> None:
+    def _prepare_bot_script(self, bot: bots.Bot, *, respawned: bool = False) -> None:
         from ow174.game import heavy_assault, npc_context
 
         if graph.entity_body(bot.body) is None:
@@ -724,6 +724,7 @@ class Match:
                 manual_nameplate=manual_rialto_spawn,
                 nameplate_name=bot.name if manual_rialto_spawn else None,
                 manual_rialto_spawn=manual_rialto_spawn,
+                respawned=respawned,
                 **context,
             )
             if (components is not None

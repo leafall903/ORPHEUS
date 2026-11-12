@@ -2059,7 +2059,7 @@ class Combat:
         entity = self.next_bot
         self.next_bot += 1
         fresh = bots.respawned(bot, entity, match.tick + match_record_delay())
-        match._prepare_bot_script(fresh)
+        match._prepare_bot_script(fresh, respawned=True)
         match.bots[match.bots.index(bot)] = fresh
         self.vitals.pop(bot.entity, None)
         self.record_replacement(fresh.entity)

@@ -109,6 +109,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-11
 
+#### Training Bot rebuild after a respawn
+
+- A bot made again at its spawner now gets game message `0013.025` on its body graph `0BA8` before
+  its first frame is built. The graph's entry for that message starts the Anim that puts a Training
+  Bot together, and nothing delivered it there, so a respawned bot appeared whole. A first spawn is
+  unchanged. Retail's sender of the message is not known, so this is a reconstruction; the
+  [research note](docs/research/bot-rebuild.md) has the graph reading.
+- Added runtime tests: no rebuild on a first spawn, the Anim on in a respawned bot's first frame as
+  the client reads it, the state staying on as authored, and a kill in a Practice Range match
+  bringing back only that bot rebuilding. Ruff and the focused bot, NPC and combat tests passed.
+- Original-client acceptance is pending. The animation was seen in a separate offline service on a
+  revived body with the same remote state on; ORPHEUS plays it on a new entity.
+
 #### Tab board in Deathmatch and Team Deathmatch
 
 - `combat.MODE_GRAPHS` lists the mode graph and board state of Deathmatch and Team Deathmatch
