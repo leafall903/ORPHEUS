@@ -74,7 +74,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import entity_hostility, entity_tags, fold, scopes, support_effects
+from ow174.game.script import entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -84,7 +84,7 @@ from ow174.game.content import GameMap, Hero, Spawn
 from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
-from ow174.game.script import body_owner, driver, entity_link, entity_queries, expr, play, runtime, spatial_queries
+from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -161,6 +161,7 @@ FIELDS = {
     junkrat.Junkrat: _names("combat mines traps roots next_entity pending tire charge"),
     junkrat_charge.ChargeSystem: _names("combat catalog catalog_hash bindings tag_overrides reserves"),
     junkrat_charge.ChargeBinding: _names("system player script body instance enabled next_ms targets hostility tags relation_target relation filtered"),
+    entity_relation.Context: _names("owner context_present lookup relate watch_context retired"),
     junkrat_tire.TireSystem: _names("combat actors recovery next_entity last_error last_result"),
     venom.Mines: _names("combat flights mines poison next_number last_tick"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
@@ -291,7 +292,8 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
-    Command,
+    Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
+    entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
     combat_profiles.Profiles,
     junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
     entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,

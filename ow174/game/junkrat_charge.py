@@ -13,10 +13,11 @@ import json
 import logging
 import math
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from ow174.game import bots
-from ow174.game.script import entity_filter, entity_hostility, entity_queries, entity_tags, expr, runtime
+from ow174.game.script import entity_filter, entity_hostility, entity_queries, entity_relation, entity_tags, expr, runtime
 from ow174.game.script.entity_team import FilterBits
 
 HERO = 0x02E0000000000065
@@ -44,6 +45,53 @@ def load_catalog(path):
             raise ValueError('invalid owned body tags')
         catalog[body] = tuple(tags)
     return catalog, hashlib.sha256(raw).hexdigest()
+
+
+@dataclass
+class ChargeActor:
+    entity: int
+    bits: FilterBits
+    tags: entity_tags.Tags
+    retired: bool = False
+
+
+@dataclass
+class ChargeFilterHost:
+    binding: object
+    retired: bool = False
+
+    def retire(self):
+        self.retired = True
+
+    def lookup(self, entity):
+        if self.retired or not self.binding.owned():
+            return NotImplemented
+        record = self.binding.record(entity)
+        return (entity_filter.Target(entity, True, record[3].bits.bits)
+                if record is not None else None)
+
+    def source(self, instance):
+        return self.lookup(self.binding.body)
+
+    def relation(self, source, target):
+        return entity_filter.RelationResult(source.entity == target.entity,
+                                            self.binding.enemy(False, target, source))
+
+    def tags(self, target):
+        record = self.binding.record(target.entity)
+        if record is None:
+            return None
+        tags = record[3].tags
+        return entity_filter.TagSet(frozenset(tags.base), frozenset(tags.added), frozenset(tags.removed))
+
+    def watch(self, *args):
+        return None  # original binding declares polling, no dependency hub.
+
+    def custom(self, target, cfg, instance):
+        return 2  # original catalog declares the per-entity extension registry absent.
+
+    def post(self, target, cfg, instance):
+        return True  # original catalog declares the optional component4/list absent.
 
 
 class ChargeSystem:
@@ -152,6 +200,8 @@ class ChargeSystem:
             binding.advance(self.combat.tick * 16)
 
     def damage(self, shooter, target, dealt, loadout, source=None):
+        if getattr(getattr(shooter, "hero", None), "guid", None) != HERO:
+            return
         if isinstance(shooter, bots.Bot) or target.construct is not None or target.owner is shooter:
             return
         if source is not None and source != shooter.body:
@@ -176,15 +226,13 @@ class ChargeBinding:
         self.enabled = True
         self.next_ms = None
         self.targets = {}
-        self.hostility = entity_hostility.Context(self.body, True, lookup=self.hostility_target,
-            fallback_owner=self.no_owner, same_group=self.same_group, watch_environment=None)
+        self.hostility = entity_relation.Context(self.body, True, lookup=self.relation_actor,
+            relate=self.relate, watch_context=None)
         self.tags = entity_tags.Context(self.body, True, lookup=self.tag_target, watch_tags=self.observe)
         self.relation_target = entity_queries.Target(self.body, possessor=entity_queries.Possession(player.entity))
         self.relation = entity_queries.Context(self.body, True, True, True,
             lookup=self.lookup_relation, watch_environment=None, watch_possessor=self.observe)
-        self.filtered = entity_filter.Context(self.body, True, lookup=self.filter_target,
-            source=self.filter_target(self.body), relation_enemy=self.enemy,
-            watch_environment=None, watch_filter=self.observe, watch_tags=self.observe)
+        self.filtered = ChargeFilterHost(self)
 
     def owned(self):
         player = self.player
@@ -215,7 +263,7 @@ class ChargeBinding:
             if cached is not None:
                 cached[3].retired = True
             tags = entity_tags.Tags(self.system.catalog[definition])
-            target = entity_filter.Target(entity, FilterBits(1), True, tags, None, None)
+            target = ChargeActor(entity, FilterBits(1), tags)
             cached = (owner, generation, definition, target, entity_tags.Target(entity, tags))
             self.targets[entity] = cached
         added, removed = self.system.tag_overrides.get(entity, ((), ()))
@@ -239,6 +287,15 @@ class ChargeBinding:
             return None
         team = -1 if self.system.combat.match.game_map.free_for_all else found[0].team
         return entity_hostility.Target(entity, team, False, None)
+
+    def relation_actor(self, entity):
+        target = self.hostility_target(entity)
+        return entity_relation.Target(entity, target) if target is not None else None
+
+    def relate(self, target, source, flag, watcher):
+        return entity_hostility.compare(target.payload if target is not None else None,
+            source.payload if source is not None else None, flag, lookup=self.hostility_target,
+            fallback_owner=self.no_owner, same_group=self.same_group)
 
     def lookup_relation(self, entity):
         return self.relation_target if entity == self.body and self.owned() else None

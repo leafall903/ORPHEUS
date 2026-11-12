@@ -1057,3 +1057,39 @@ no base runtime copy/change or client run/publication. Next exact action: origin
 then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
 0065 actual integration estimate now low-confidence2-5 active worker hours,
 excluding root intake/conflicts and acceptance-only residuals.
+
+A38 clean-boundary sync: absorbed submitted intake2c6fb142 automatically, retaining root control/Frost/Trap ordering and current shield/Shatter paths. Continue source0065 charge integration.
+
+
+## A39 - original single0B8B Junkrat charge host
+
+Activated original charge attach/detach, same-hero reserve, explicit catalog,
+world passive deadline and actual pool-loss012 lifecycle. Current native
+entity_filter.admit host, component76 key provider and possessor query remain
+unique; original hostility backend supplies the current relationship frontend.
+Catalog descriptors contain declared filter/tag inputs, never duplicate health.
+Generic Junkrat passive/damage gains are disabled so only original0B8B awards;
+shared award_ult/source-body/actor guards remain. No second012 emitter or old
+entity_filter manager was installed. Exact callback/target/filter storage is
+registered for actual current dataclasses and lifetime contexts.
+
+Actual original timing expectation passes: passive15 after160 silent ticks,
+no owner-frame advance, no duplicate or late-input extra award. Primary actual
+40 direct+80 splash sends corresponding two loss events totaling120 and awards
+120 once overall. Same-hero body handoff retains120; other-hero switch detaches.
+Actual original tag priorities pass:3C3->60,11E->90,both->60 for real120 loss.
+Original charge snapshot test passes, including deadline/tags/context retirement/
+reserve/detach causal storage. Current filter/tag/mask/collect/queries plus
+Damage/ProjectileTiming76 checks run,73 pass;3 existing errors are the unchanged
+entity_filter missing WILDCARD constant used in its old record backend. Next tiny
+boundary restores its already-inline native0x3FFFFFFF constant, no schema waiver.
+
+Complete original charge resource/combat/snapshot fixtures preserved unchanged.
+Resource fixtures retain old six-argument Target/Context constructor errors;
+normal combat fixture still inherits original NPC health_query import failure
+and pending death-volley constants. No assertion/observer alias workaround.
+Logs: worker-a-junkrat-charge-{original,actual-second,tags,shared}.log.
+Original input hero-lanes/0065/charge-entity-inputs.json configured by
+ORPHEUS_CHARGE_ENTITY_INPUTS. No client run/publication. Next: native filter
+constant, original Mayhem/death-volley on current bot/body hosts, normal fixture
+contract reconciliation and residual actual consumers. Root owns input/ref admission.

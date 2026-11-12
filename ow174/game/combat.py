@@ -8896,6 +8896,8 @@ class Combat:
         if symmetra.owns_shield_recovery(target.owner):
             vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
+        if award_ult:
+            self.junkrat.charge.damage(shooter, target, dealt, loadout, attacker)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
             if vitals.dead or vitals.now[HEALTH_POOL] <= EPSILON:
