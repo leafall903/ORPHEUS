@@ -3990,7 +3990,7 @@ class Combat:
         count = sum(
             segment_distance(origin, *target.segment()) - target.radius <= radius
             for target in self._targets()
-            if target.owner is not player
+            if target.owner is not player and not isinstance(target.owner, ball_mines.Mine)
             and (self.match.game_map.free_for_all or target.team != player.team)
             and not self.vitals_of(target).dead
         )
@@ -4908,6 +4908,10 @@ class Combat:
             if actor.health > 0:
                 found.append(self._deployable_target(actor))
         found.extend(self.junkrat.targets())
+        for mine in self.ball_mines.devices.values():
+            if not mine.removing:
+                found.append(Target(mine.body, mine.team, mine.position, 0.46, 0.23, 0.23,
+                                    mine, critical_allowed=False))
         return [self.pulse_bombs.sampled(target) for target in found]
 
     def _target_entity(self, entity):
@@ -4954,7 +4958,10 @@ class Combat:
     def body_vitals(self, entity: int, owner) -> Vitals:
         found = self.vitals.get(entity)
         if found is None:
-            if isinstance(owner, (bots.Bot, actors.Deployable)):
+            if isinstance(owner, ball_mines.Mine):
+                found = Vitals(entity, 50)
+                found.now[HEALTH_POOL] = owner.health
+            elif isinstance(owner, (bots.Bot, actors.Deployable)):
                 found = Vitals(entity, owner.health)
             else:
                 found = Vitals(entity, *pools.active_pools(owner.hero.guid, owner.hero.body))
@@ -5083,6 +5090,8 @@ class Combat:
             if isinstance(shooter, bots.Bot) and shooter.owner and target.entity == shooter.source_body:
                 continue
             if isinstance(target.owner, actors.Deployable) and target.owner.owner is shooter:
+                continue
+            if isinstance(target.owner, ball_mines.Mine) and target.owner.source == source:
                 continue
             if not free_for_all and target.team == team:
                 continue
@@ -5241,7 +5250,7 @@ class Combat:
         return [
             target for target in self._targets()
             if target.entity != source and target.owner is not shooter
-            and not isinstance(target.owner, actors.Deployable)
+            and not isinstance(target.owner, (actors.Deployable, ball_mines.Mine))
             and target.team == shooter.team and not self.vitals_of(target).dead
         ]
 
@@ -5376,11 +5385,13 @@ class Combat:
             owner = self.deployables.get(entity)
         if owner is None:
             owner = self.junkrat.lookup(entity)
+        if owner is None:
+            owner = self.ball_mines.devices.get(entity)
         if owner is not None:
             vitals = self.vitals.get(entity)
             if vitals is not None:
                 return vitals.total, vitals.maximum
-            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+            maximum = (50.0 if isinstance(owner, ball_mines.Mine) else owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
                        else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
             return float(maximum), float(maximum)
         if (entity == world.GAME_MODE_ENTITY
@@ -8448,7 +8459,7 @@ class Combat:
         """Heal the healer and his teammates (everyone's own team in a free-for-all is his alone) whose body
         is within `radius` of `centre` (unverified: to the body's capsule)."""
         for target in self._targets():
-            if isinstance(target.owner, actors.Deployable):
+            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
                 continue
             ally = self._ally(healer, target)
             if target.owner is not healer and not ally:
@@ -8474,7 +8485,7 @@ class Combat:
         if component is not None:
             self._write_scene_health(component, vitals)
             return
-        if isinstance(owner, actors.Deployable):
+        if isinstance(owner, (actors.Deployable, ball_mines.Mine)):
             owner.health = vitals.total
         script = getattr(owner, "body_script", None)
         if script is not None:
@@ -9344,6 +9355,24 @@ class Combat:
             if source_body is not None and source_body != source_entity:
                 raise ValueError("conflicting damage source_body and source_entity")
             source_body = source_entity
+        if isinstance(target.owner, ball_mines.Mine):
+            mine = target.owner
+            if self.ball_mines.devices.get(mine.body) is not mine or mine.removing or amount <= 0:
+                return False
+            vitals = self.vitals_of(target)
+            if vitals.dead:
+                return False
+            if not source_scaled:
+                from ow174.game import nano
+                amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
+                amount *= nano.offense(self, _source_entity(shooter) if source_body is None else source_body)
+            if maximum_damage is not None:
+                amount = min(amount, maximum_damage)
+            dealt = vitals.damage(amount)
+            self._sync_body_health(mine, vitals)
+            if dealt and not isinstance(shooter, (bots.Bot, SceneHazard)):
+                self._tell_hit(shooter, target, dealt, KILLING if vitals.dead else 0, frame)
+            return dealt > 0
         if not armour_reduction:
             armour_scalar = 1.0  # delivered periodic damage bypasses per-tick armour reduction.
         if isinstance(target.owner, bots.Bot) and target.owner not in self.match.bots:
@@ -9932,7 +9961,7 @@ class Combat:
         client = getattr(viewer, "client", None)
         if client is None:
             return
-        if not isinstance(actor, (bots.Bot, SceneHazard)) and actor.body == entity:
+        if not isinstance(actor, (bots.Bot, SceneHazard, ball_mines.Mine)) and actor.body == entity:
             self.match.ensure_remote_body(viewer, actor)
         client.queue_combat_notice(entity, msg_id, value)
 

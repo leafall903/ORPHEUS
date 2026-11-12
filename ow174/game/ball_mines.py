@@ -133,6 +133,14 @@ class MineWorld(runtime.World):
         self.manager = manager
         self.mine = mine
 
+    @property
+    def match(self):
+        return self.manager.fight.match
+
+    def source_script(self):
+        script = self.mine.owner.body_script
+        return script if script is not None and script.component.entity == self.mine.source else None
+
     def track_targets(self, state):
         if state.instance.graph.index != LIFECYCLE or state.node.pos != 50:
             return super().track_targets(state)
@@ -166,7 +174,7 @@ class MineWorld(runtime.World):
                 return expr.Vec3(*(self.mine.normal or (0.0, 1.0, 0.0)))
             if (cls == "STU_2B2E2F6D" and cfg.get("m_7BDB02D1") == 0
                     and instance.evaluate(cfg.get("m_81A364DE")) == expr.Entity(self.mine.body)):
-                return expr.Entity(self.mine.source)
+                return expr.Entity(self.mine.source if self.source_script() is not None else 0)
         return super().native(cfg, instance)
 
     def entity_var(self, entity, var):
@@ -426,7 +434,8 @@ class Mines:
         for mine in tuple(self.devices.values()):
             if tick < mine.last_tick:
                 raise ValueError("Minefield world clock moved backwards")
-            if mine.owner.gone or mine.owner.body != mine.source or mine.component.fault is not None:
+            if (mine.owner.gone or mine.owner.body != mine.source or mine.component.fault is not None
+                    or mine.health <= 0):
                 self.remove(mine)
                 continue
             for at in range(mine.last_tick + 1, tick + 1):
@@ -509,7 +518,7 @@ class Mines:
                 mine.owner, target, amount, False, loadout.guid, tick, world_tick=tick, source_scaled=True, source_entity=mine.source, award_ult=False,
             )
             if (not self.fight.vitals_of(target).dead
-                    and not self.fight._has_protection(target, combat.CRYO_STATES)
+                    and not self.fight._has_protection(target, {0x02E00000000000DD: (0x05FE, 35)})
                     and (horizontal > 0 or vertical > 0)):
                 dx, dz = target.feet[0] - centre.x, target.feet[2] - centre.z
                 distance = math.hypot(dx, dz)
@@ -518,4 +527,4 @@ class Mines:
                 impulse = (horizontal * dx/distance if distance > 1e-9 else 0.0,
                            max(0.0, vertical-vy),
                            horizontal * dz/distance if distance > 1e-9 else 0.0)
-                self.fight.knockbacks.apply(target, impulse, impact_frame=tick)
+                self.fight.knockbacks.apply(target, expr.Vec3(*impulse), impact_frame=tick)
