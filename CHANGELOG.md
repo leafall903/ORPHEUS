@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount original Sombra authored charge on its existing shared graph
+
+- Connect original012E natural0B8B cadence, resolved damage/tag admission,
+  multipliers/cap, active-EMP suppression, debug pause and same-hero respawn
+  retention in a Sombra-only host. Preserve current Reinhardt/Genji/Roadhog and
+  other owner charge hosts; prevent generic Sombra double credit when selected.
+- Select original ultimate-context data through the explicit prepared profile;
+  reuse real player controller/body records. Keep original optional
+  preserve_ultimate=False API alongside current pose/frame options, supplying
+  True only for Sombra automatic respawn.
+- Original Sombra core11 pass42.025s; first full player15 retained four missing
+  world-replay cases for the following batch. Shared Genji/Symmetra/runtime39
+  active checks pass; additional Orisa/Torb17 pass5original NPC-data skips.
+  Original constants/expectations remain unchanged; full NPC fixture imports
+  and accepted world-only replay remain open, not a submission gate.
+
 ### Retain actual Sombra skill-lock history for original Grapple queries
 
 - Record original lock windows from the same applied Hack/EMP instances in

@@ -72,6 +72,7 @@ from ow174.game import (
     mei_blizzard,
     sombra_camo,
     sombra_spread,
+    sombra_charge,
     translocators,
     torbjorn_mark,
     torbjorn_charge,
@@ -2136,6 +2137,7 @@ class Combat:
         self.barrier = barrier.BarrierField(self)
         self.deployables: dict[int, actors.Deployable] = {}
         self.translocators = translocators.Translocators(self)
+        self.sombra_charge = sombra_charge.Charge(self)
 
     def allocate_combat_entity(self):
         entity = self.next_bot
@@ -2271,6 +2273,10 @@ class Combat:
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
             self.sentries.retire_owner(player)
             self.portals.retire_owner(player)
+        if player.hero.guid == sombra_charge.SOMBRA:
+            if next_hero is None and player.gone:
+                self.sombra_charge.prepare_retirement(player, False)
+            self.sombra_charge.retire_body(player.body)
         self.translocators.retire_body(player.body)
         self.blizzard.retire(player.body)
         self.cryo_samples.pop(player.body, None)
@@ -9064,6 +9070,8 @@ class Combat:
                 from ow174.game import dva
 
                 dva.charge_damage(credit, shooter, dealt - extra)
+        if award_ult:
+            self.sombra_charge.damage(shooter, target, dealt, hit_tags)
         if boost_credit is not None and extra > EPSILON:
             from ow174.game.script import charge
 
@@ -9155,6 +9163,7 @@ class Combat:
             if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
@@ -9790,7 +9799,9 @@ class Combat:
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
-        if not self.match.switch_hero(player, player.hero):
+        switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
+                    if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
+        if not switched:
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
         if points is not None and player.body_script is not None:

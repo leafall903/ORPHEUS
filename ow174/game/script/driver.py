@@ -2331,6 +2331,8 @@ class BodyScript(ReplicatedBody):
                     continue
                 if _reads(node.field("m_150F0D92"), ULT_CHARGE):  # the ultimate: starts on its charge
                     self.ultimates.append(instance.state(node.state))
+        if self.world.match is not None and self.hero == 0x02E000000000012E:
+            self.world.match.combat.sombra_charge.initialize(self)
 
     def set_health(self, health: float, most: float) -> None:
         """The owner's health: #253e for the graphs (01CF st13: 0 or less is dead), #1732e/#1737e for the
@@ -2441,7 +2443,12 @@ class BodyScript(ReplicatedBody):
             self.world.scope_host.set_frame(frame)
             self.world.scope_host.run_frame(frame, edges)
         else:
-            self.component.run_frame(frame, edges)
+            charge = self.world.match.combat.sombra_charge if self.world.match is not None else None
+        if charge is not None:
+            charge.sync(self)
+        self.component.run_frame(frame, edges)
+        if charge is not None:
+            charge.sync(self)
         self.self_healing += regeneration.report(self, frame)
         for windows in (self.control_windows, self.sleep_windows, self.frost_windows):
             windows[:] = [(low, high) for low, high in windows if high > frame]
@@ -2725,6 +2732,9 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.world.match is not None and self.world.match.combat.sombra_charge.enabled(self):
+            return  # Original Sombra0B8B now owns passive cadence and arithmetic.
+
 
         if self.world.match is not None and (self.hero == 0x02E0000000000065
                 or self.world.match.combat.junkrat.tire.busy(self.entity)):
