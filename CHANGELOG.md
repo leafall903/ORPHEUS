@@ -10165,3 +10165,7 @@ Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
 concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
 then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
 blocking delivery on these preserved old boundary assertions.
+
+### Tank owner consumer convergence audit
+
+Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
