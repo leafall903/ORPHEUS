@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore existing sentry cover-history consumers
+
+- Sentry damage integration receives actual expired/broken Photon and Winston
+  actors and their original clocks, plus existing Mei constructor-domain expiry.
+  Plane/mesh/sphere geometry remains owned by the existing barrier hosts.
+- Real64-tick sphere expiry probe: prior28.672 excess-window damage becomes2.24
+  after cover ends; all14 original Sentry and8 Damage methods pass. Retained Ana
+  observer errors and2 original Cryo cover/exit failures are documented unchanged.
+- Preserve the full original0016 Cryo checks and all7-field body-history data.
+  Generic phase/frozen replay and remaining support helpers follow separately.
+
 ### Restore original shield-only EMP damage notifications
 
 - Existing damage pipeline now consumes original shield_drain mode, touching only

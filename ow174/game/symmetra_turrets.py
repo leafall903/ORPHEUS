@@ -658,7 +658,8 @@ class Turrets:
 
     def _recorded_pose(self, target, previous_tick):
         history = self.combat.history.get(target.entity, ())
-        return (previous_tick, target.feet, target.height, target.eye) in history
+        return any(sample[:4] == (previous_tick, target.feet, target.height, target.eye)
+                   for sample in history)
 
 
 def _attached_barrier(fight, owner):

@@ -304,6 +304,17 @@ class Barriers:
                 best = distance, actor
         return best
 
+    def cover_end(self, shooter, origin, target, ended):
+        from ow174.game.symmetra_turrets import _capsule_ray
+
+        direction, reach = _capsule_ray(origin, target)
+        owner = getattr(shooter, "combat_owner", shooter)
+        return max((at for actor, at in ended
+                    if actor.owner is not owner
+                    and (self.fight.match.game_map.free_for_all or actor.team != shooter.team)
+                    and self.contact(actor, origin, direction, reach) is not None),
+                   default=None) if reach else None
+
     def damage(self, actor, amount):
         actor.health = expr.f32(max(0, actor.health - max(0, amount)))
         if actor.health <= 0:
