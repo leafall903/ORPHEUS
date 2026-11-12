@@ -1,5 +1,14 @@
 # Full Python hero integration with public main
 
+## Practice Range admission correction
+
+The first original-client entry attempt exposed an omitted upstream Bot patrol
+method: service-only startup had not exercised collision-loader patrol planning.
+Restore the original patrol-key, detour and floor-query methods alongside the
+existing full Bot implementation. All 39 patrol/cold-map-bootstrap checks pass.
+The original 104319 client now loads Practice Range, selects Soldier: 76 and
+reaches the first-person spawn. This receipt covers admission and spawn only.
+
 This candidate reconciles the local full original-language integration at
 `eaf33b759efc307eb1d92a2d36600bae03c7814e` with public Python main at
 `7164b85c79c6603936c6c74ba8bcbe386f020385`. It does not migrate gameplay to Rust.

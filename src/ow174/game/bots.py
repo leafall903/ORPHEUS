@@ -671,6 +671,96 @@ class Bot:
         x, y, z = feet
         return contacts.v3(x, y + self.pogo, z)
 
+    def _plan_key(self, start, goal) -> tuple:
+        return tuple(self.route), self.category, self.radius, self.capsule_top, self.pogo, start, goal
+
+    def _leg_detour(self, collision: World) -> tuple:
+        start = tuple(self.spawner["position"])
+        first_index = (self.spawner.get("vars", {}).get(INDEX, 0) + 1) % len(self.route)
+        if self.position != start or self.index != first_index:
+            start = self.route[self.index - 1]
+            if planar_distance(self.position, start) > ARRIVED or abs(self.position[1] - start[1]) > STEP_UP:
+                return ()
+        with _PATROL_PLANS_LOCK:
+            plans = _PATROL_PLANS.get(collision)
+        if plans is not None:
+            planned = plans.get(self._plan_key(start, self.target))
+            if planned is not None:
+                return planned
+        return self._detour(collision, start, self.target)
+
+    def _detour(self, collision: World, start, goal) -> tuple:
+        """Check authored waypoints before testing a bounded detour to each side."""
+        length = planar_distance(start, goal)
+
+        def same_floor(point):
+            return abs(point[1] - start[1]) <= ARRIVED
+
+        if length <= ARRIVED or not same_floor(goal):
+            return ()
+        points = contacts.CharacterBody(self.radius, self.capsule_top).local_points()
+        diameter = 2.0 * self.radius
+
+        def clear(a, b):
+            return contacts.scene_sweep(
+                collision.engine, self._body_position(a), self._body_position(b),
+                points, self.radius, self.category,
+            ) is None
+
+        def walkable(a, b, tolerance):
+            return self._floor_path(collision, a, b, diameter, tolerance) and clear(a, b)
+
+        if clear(start, goal):
+            return ()
+        candidates = sorted(
+            (
+                point for point in self.route
+                if same_floor(point) and planar_distance(start, point) > ARRIVED
+                and planar_distance(point, goal) > ARRIVED
+            ),
+            key=lambda point: planar_distance(start, point) + planar_distance(point, goal),
+        )
+        for point in candidates:
+            if walkable(start, point, STEP_UP) and walkable(point, goal, STEP_UP):
+                return (point,)
+
+        sx, sy, sz = start
+        gx, gy, gz = goal
+        dx, dz = gx - sx, gz - sz
+        scale = diameter / length
+        ox, oz = dz * scale, -dx * scale
+        for sign in (1, -1):
+            near = (sx + sign * ox, sy, sz + sign * oz)
+            far = (gx + sign * ox, gy, gz + sign * oz)
+            segments = ((start, near), (near, far), (far, goal))
+            if all(walkable(a, b, ARRIVED) for a, b in segments):
+                return (near, far)
+        return ()
+
+    def _floor_path(self, collision: World, start, end, spacing: float, tolerance: float) -> bool:
+        dx, dy, dz = (b - a for a, b in zip(start, end, strict=True))
+        steps = math.ceil(math.hypot(dx, dz) / spacing)
+        if not 0 < steps <= MAX_DETOUR_FLOOR_STEPS:
+            return False
+        sx, sy, sz = start
+        for i in range(steps + 1):
+            t = i / steps
+            x, y, z = sx + t * dx, sy + t * dy, sz + t * dz
+            if self._walkable_floor(collision, x, z, y + tolerance, y - tolerance) is None:
+                return False
+        return True
+
+    def _walkable_floor(
+        self, collision: World, x: float, z: float, top: float, bottom: float,
+    ) -> float | None:
+        ground = collision.ground(x, z, top, bottom, self.category)
+        return ground.y if ground is not None and not ground.surface & NOT_GROUND else None
+
+
+
+
+
+
 
 
 
