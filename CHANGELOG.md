@@ -4,6 +4,29 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Storm Arrow one-bounce flight
+
+- Capture00B9 Storm/Sonic-in-Storm's single bounce budget, honor the original
+  conditional gravity row, and reflect actual impact velocity on the selected
+  static surface. Continue unspent time through the current analytic sweep and
+  retain deflector exclusion history, original source/lease and travelled path.
+- Restore the original00B9 center-ray static contact policy and store its actual
+  terminal point. The combined projectile previously stopped at its last free
+  pose and used sphere padding against static walls. Preserve all other heroes'
+  collision policies. Map the original distance_flown write to stored travelled.
+- Retain complete original ricochet/owned-mech/Self-Destruct fixture files, with
+  import/constant adapters only. Allseven original core ricochet methods pass:
+  angled head/body, second-wall/ally/no-Storm controls, Sonic terminal field,
+  skipped path, Genji normal/final-Sonic return and shared range budget. Original
+  three Storm range/lifetime/stored-ledger methods plus42 projectile/Bastion
+  lifecycle checks pass45/45. The added Barrage module remains unimportable due
+  to its pre-existing missing sigma_grasp fixture dependency; record that error.
+- Full13 original ricochet audit preserves missing launch-frozen
+  matrix_absorbable/old Zarya private observations and the existing before-wall
+  Sonic70-versus140 contact result. The terminal-position failures are fixed by
+  the actual contact bridge; no assertion changed. Continue launch admission and
+  cross-owner reconciliation without blocking this implementation commit.
+
 ### Restore normal-module entry for delivered Hanzo checks
 
 - Retain complete original NPC, Matrix, Winston and Experimental Barrier test

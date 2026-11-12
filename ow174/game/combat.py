@@ -1529,6 +1529,7 @@ class Rocket:
     motion: tuple = ()
     motion_phase_offset: float = 0.0
     deflect_lifetime: float | None = None
+    storm_ricochets: int = 0
     continuation: dragon.Profile | None = None
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
@@ -1543,6 +1544,10 @@ class Rocket:
     @property
     def distance_flown(self):
         return self.travelled
+
+    @distance_flown.setter
+    def distance_flown(self, value):
+        self.travelled = value
 
     @property
     def distance(self):
@@ -5155,6 +5160,10 @@ class Combat:
         if (hanzo_bow and direct is not None
                 and (node.field("m_6396149F") or {}).get("m_A872C70E") is None):
             direct = replace(direct, critical=2.0, projectile_headshot=True)
+        storm_arrow = hanzo_bow and (definition == 0x040000000000270F or (
+            node.pos == 114 and (enabled := state.instance.find_var(expr.INSTANCE, 18944)) is not None
+            and enabled.value() is True
+        ))
         dragon_initial = (not npc and shooter.hero.guid == dragon.HANZO
                           and definition == dragon.INITIAL)
         continuation = self.dragon_profile if dragon_initial else None
@@ -5186,7 +5195,8 @@ class Combat:
             if hanzo_bow:
                 gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                               for motion in node.field("m_projectileMotions") or ()
-                              if motion.get("$") == "STU_E1A5B579")
+                              if motion.get("$") == "STU_E1A5B579"
+                              and not expr.truthy(state.evaluate(motion.get("m_D0C4CF49"), watch=False)))
             if field_canister:
                 gravity = projectiles.unconditional_gravity(state)
             if flashbang_gravity is not None:
@@ -5354,6 +5364,7 @@ class Combat:
                                              and source_graph == 0x024F)),
                         motion=curve_motion, deflect_lifetime=lifetime if barrage else None,
                         barrage_source=(shooter, state, number) if barrage else None,
+                        storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
                                       / state.instance.component.frame_ms if hanzo_bow or continuation is not None else None),
@@ -6065,7 +6076,7 @@ class Combat:
                 for direction in split.directions
             )
 
-    def _fly_step(self, rocket: Rocket, duration: float) -> None:
+    def _fly_step(self, rocket: Rocket, duration: float, *, reflected=None) -> None:
         """One linear sweep after any authored acceleration update."""
         if duration <= 0.0:
             self._expire(rocket)
@@ -6090,9 +6101,9 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected)
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -6113,7 +6124,7 @@ class Combat:
             return
         # Re-sweep the unspent slice after redirects. Bound overlapping
         # deflectors that could repeatedly collide at distance zero.
-        reflected = set()
+        reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
             continuation = self._sweep_rocket(rocket, duration, reflected)
             if isinstance(continuation, Rocket):
@@ -6134,8 +6145,37 @@ class Combat:
                 nearest = hit[0], hit[1], manager
         return nearest
 
+    def _bounce_storm(self, rocket, direction, normal, distance, step, duration,
+                      integrated_duration, reflected):
+        """Mount the delivery's one specular wall bounce and unspent flight slice."""
+        rocket.storm_ricochets -= 1
+        consumed = duration * distance / step if step > EPSILON else 0.0
+        if rocket.velocity is not None:
+            vx, vy, vz = rocket.velocity
+            incoming = (vx, vy + rocket.gravity * (integrated_duration - consumed), vz)
+        else:
+            incoming = tuple(axis * rocket.speed for axis in direction)
+        normal_speed = _dot(incoming, normal)
+        velocity = tuple(expr.f32(axis - 2 * normal_speed * n)
+                         for axis, n in zip(incoming, normal, strict=True))
+        rocket.position = _along(_along(rocket.position, direction, distance), normal, 0.001)
+        rocket.velocity = velocity
+        rocket.speed = math.hypot(*velocity)
+        if rocket.speed > EPSILON:
+            rocket.direction = tuple(axis / rocket.speed for axis in velocity)
+        rocket.flown += consumed
+        rocket.left -= consumed
+        rocket.travelled += distance
+        if rocket.range_limit is not None:
+            rocket.range_left = max(0.0, rocket.range_limit - rocket.travelled)
+        if rocket.left <= EPSILON or rocket.range_left == 0.0:
+            self._expire(rocket)
+        elif duration - consumed > EPSILON:
+            self._fly_step(rocket, duration - consumed, reflected=reflected)
+
     def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
+        integrated_duration = duration
         step = rocket.speed * duration
         heading = rocket.direction
         range_ends = False
@@ -6188,7 +6228,18 @@ class Combat:
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
         wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
-        if padding > 0 and not assisted_contact and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
+        storm_normal = None
+        if rocket.storm_ricochets:
+            hit = collision.cast_ray(rocket.position, heading, step)
+            wall = hit.distance if hit is not None else None
+            if hit is not None:
+                storm_normal = hit.normal
+                if _dot(heading, storm_normal) > 0:
+                    storm_normal = tuple(-axis for axis in storm_normal)
+                if _dot(heading, storm_normal) >= -EPSILON:
+                    storm_normal = None
+        if (padding > 0 and not assisted_contact and rocket.source_graph != 0x00B9
+                and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT)):
             swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
@@ -6317,6 +6368,12 @@ class Combat:
             self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
             return 0.0
 
+        if (storm_normal is not None and best == (wall, None)
+                and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
+                                                  redirect, absorption, scripted_shield))):
+            self._bounce_storm(rocket, heading, storm_normal, wall, step, duration,
+                               integrated_duration, reflected)
+            return 0.0
         flight = step if best is None else best[0]
         self._amplify_flight(rocket, heading, flight, self.tick - duration / TICK,
                              duration / (TICK * step) if step > EPSILON else 0.0)
@@ -7263,6 +7320,8 @@ class Combat:
         """Finish authority and release or retire the predicted copy."""
         if rocket in self.rockets:
             self.rockets.remove(rocket)
+            if rocket.source_graph == 0x00B9 and continuation_point is not None:
+                rocket.position = continuation_point
             if release and rocket.continuation is not None:
                 if continuation_point is not None:
                     rocket.position = continuation_point

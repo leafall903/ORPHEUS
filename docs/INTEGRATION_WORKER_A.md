@@ -407,3 +407,30 @@ runtime/code conflict. Root curve_motion, reflected source identity/retirement,
 Damage alias ordering/armor adapter and new B/C native fields all retained.
 Next exact action remains original Storm one-bounce metadata and contact response.
 Sync verification:30 normal profile/journal/Damage/runtime checks passed in worker-a-canonical62-sync.log.
+
+
+Worker sync69b19882 absorbs canonical62dd2bf0;30 checks passed. A19 mounts
+original single Storm ricochet budget/conditional gravity, static specular
+impact and remaining analytic time with existing deflector exclusion history.
+Original00B9 static center-ray and actual terminal position restored; other hero
+collision paths stay intact. distance_flown setter bridges stored travelled.
+Complete ricochet, owned-mech and Self-Destruct fixtures retained; only import
+identities adapted to current hosts (including McCree). Every original assert
+and unittest assertion call remains AST-identical. Seven normal core ricochet
+methods pass in worker-a-hanzo-storm-ricochet-core-final.log; three original
+Storm range/lifetime/storage checks plus42 projectile/Bastion pass45/45 in
+worker-a-hanzo-storm-range-shared.log. Its extra Barrage module import still
+fails because test_pharah_defenses imports absent sigma_grasp; this known
+cross-owner fixture error is preserved, not changed here.
+Full13 source audit before terminal fix is in
+worker-a-hanzo-storm-ricochet-second.log: matrix_absorbable old launch flag and
+old Combat.zarya_barriers observations remain missing; before-wall Sonic hit
+140 instead of70 remains. Actual terminal-point/ray bridge fixed the second
+wall and both returned-arrow endpoint checks (all seven core methods now pass).
+Next exact action: mount launch-frozen absorption eligibility metadata into the
+existing Matrix/Grasp consumers, preserving None/default catalog behavior for
+old explicit Rocket construction. Then reconcile Zarya/owned-mech observer
+fixture APIs with actual current native managers; do not build fake state just
+to satisfy a private-dictionary assertion. Complete source0005 consumer audit,
+then Tracer0003/Widowmaker000A. Keep original failing checks in Git and submit
+actual batches without waiting for all client/native acceptance to close.
