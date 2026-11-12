@@ -5,14 +5,14 @@ from unittest.mock import patch
 
 from ow174.game import body_entities, world
 from ow174.game.content import find_hero
-from test_dva_delivery_created_body import CreatedBodyTests
+import test_dva_delivery_created_body as created
 from test_game_combat import KANEZAKA_DM, Run
 
 
 class DvaPossessionHandoffTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        CreatedBodyTests.setUpClass()
+        created.CreatedBodyTests.setUpClass()
 
     def test_pick_publishes_created_mech_as_current_and_view_target(self):
         run = Run(KANEZAKA_DM, ("Pilot", "Other"))
@@ -32,7 +32,7 @@ class DvaPossessionHandoffTests(unittest.TestCase):
                             for row in pilot.client.entities))
 
     def test_ready_control_release_and_rebind_publish_both_camera_handoffs(self):
-        run, pilot, _, _, mech = CreatedBodyTests().scenario()
+        run, pilot, _, _, mech = created.CreatedBodyTests().scenario()
         self.assertTrue(pilot.body_script.create_arrived)
         with patch.object(pilot.client, "queue_possession", wraps=pilot.client.queue_possession) as queue:
             body_entities.release_control(pilot)
