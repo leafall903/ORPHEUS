@@ -13,10 +13,12 @@ import random
 import struct
 import types
 import weakref
+import uuid
 from collections import deque
 from pathlib import Path
 
-from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard
+from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, npc_controller_storage
+from ow174.game.script import scene
 from ow174.game import (
     assassin_controller,
     enforcer_controller,
@@ -262,6 +264,7 @@ FIELDS = {
     runtime.World: _names("hero mode"),
     enforcer_controller.TargetWorld: _names("hero mode fight body selected"),
     assassin_controller.TargetWorld: _names("hero mode fight body candidates attack_target windup_target"),
+    assassin_controller.Phase2World: _names("hero mode fight body") | frozenset(npc_controller_storage.SCENE_WORLD_FIELDS),
     LinkCipher: _names("key_in key_out salt_in salt_out"),
     ReceiveWindow: _names("expected bits"),
     world.EntityUpdate: _names(
@@ -282,6 +285,7 @@ FIELDS = {
     npc_navigation.LedgeDrop: _names("started released"),
 }
 OPTIONAL_FIELDS = {
+    assassin_controller.Phase2World: _names("auto_scene auto_target sample"),
     venom.Mines: _names("properties"),
     BotWorld: _names("body _body_owner_context _entity_query_context _spatial_query_context _entity_link_context pool_profile"),
     driver.BodyWorld: _names("passive_charge_due scope_host pending_ult_credits historical_boost_award advancing_valkyrie_clock _spatial_query_context passive_healing_scales hanzo_climb"),
@@ -295,6 +299,7 @@ OPTIONAL_FIELDS = {
 DATACLASSES = (
     Command, junkrat_charge.ChargeActor, junkrat_charge.ChargeFilterHost, entity_relation.Target,
     entity_queries.Target, entity_queries.Possession, entity_queries.BodyField, entity_team.FilterBits,
+    scene.SceneEntity, scene.Placement,
     combat_profiles.Profiles,
     junkrat.Mine, junkrat.Trap, junkrat_tire.Tire, junkrat_tire.WallClimb,
     entity_hostility.Context, entity_hostility.Target, entity_hostility.Relation,
@@ -368,6 +373,8 @@ class _Graph:
             _fail("stored graph value budget exhausted")
         if obj is NotImplemented:
             return ["sentinel", "NotImplemented"]
+        if type(obj) is uuid.UUID:
+            return ["uuid", format(obj.int, "032x")]
         if obj is None or type(obj) in (bool, int, float, str, bytes):
             return replay_values.encode(obj)
         boundary = self.boundaries.get(id(obj))
@@ -493,6 +500,11 @@ class _Graph:
             data = []
         elif kind is types.MethodType:
             data = {"self": self.value(obj.__self__), "function": self.value(obj.__func__)}
+        elif kind is types.BuiltinMethodType and type(obj.__self__) is dict and obj.__name__ == "get":
+            data = {"self": self.value(obj.__self__), "method": "get"}
+        elif kind is runtime.Var and npc_controller_storage.is_scene_revision(obj):
+            data = {name: self.value(object.__getattribute__(obj, name))
+                    for name in ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")}
         elif kind is types.FunctionType:
             data = self._function(obj)
         elif kind is World:
