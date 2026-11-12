@@ -815,16 +815,75 @@ alone is not evidence that a line's consumers are actually mounted.
   passive/spread/charge and actual Minefield manager, and exact control/Hack/EMP
   fixture consumers. Root owns original tools CLI intake; do not touch tools.
 
+## B41 — Original Quad Cannon spread and effective combat charge
+
+- Mount actual original ball.cannon_direction in existing _shoot after owner
+  aim/scoped launch handlers. It returns unchanged for other owners; current
+  generic volley geometry remains available, no second ray driver or lost muzzle
+  option. Real native1514 ramp, f32 table/seed identity and emitted indices used.
+- Original Ball combat award now excludes Minefield loadout1ED and all effective
+  temporary-shield losses, preserving damage stats/body death. Exact general
+  ruleset253C/combat32DE factors and cost cap/death/running checks route through
+  Ball-only add/gain methods; other owners' return/policy behavior unchanged.
+- worker-b-ball-spread-charge-second.log6/6: source spread3, Minefield/overkill,
+  actual cannon/melee charge and real ultimate cost/rejection/cap. Original
+  Spread23 assertion AST fully unchanged. First log4subfail came from my typo
+  treating descriptive#342e/#338e as hex; fixed to imported driver constants
+  before committing, not by changing an expectation.
+- worker-b-ball-native-shield-charge-probe.log: actual1566 native command creates
+ 175 tagged shields; real200 damage spends175 shields+20armour, total580 and
+  source Ball receives20 charge only. No old numeric-only pool/setter alias used.
+  worker-b-ball-combat-charge-regression.log25/25 Damage8+runtime17(v15 inputs).
+- Root restores original missing EYE map entries independently, including real
+  Ball body200B1.83/1.5. B did not change/guesstune EYE data; preserve original
+  source checks if newly composed data reveals another boundary.
+- NEXT B42 source natural Ball0B8B passive gate/owner query/ruleset/cadence,
+  reusing exact existing VM services and same charge helper; no double passive
+  timer. Then actual Minefield manager, original remaining control fixtures and
+  owner feature audit. Old Vitals setter/Grasp fields require real existing-pool
+  fixture adaptation or actual owner consumer proof, not a fake second pool.
+
+## B42 — Natural Ball0B8B passive gate/owner query/settings/cadence
+
+- Default live Ball ult_secondsNone selects original0B8B, with original fallback
+  when the graph is absent. Explicit numeric diagnostic fill (including0) keeps
+  original separate general/passive settings and is not added over native timer.
+- Original pre-frame2426 gate/9532 general/12918 passive inputs feed the same VM.
+  Exact non-strict real Ball/0B8B/self F726 query delegates actual player lookup;
+  gone/retired old instance returnsNone. Other F726 graphs/heroes remain on their
+  existing formal services, no global context overwrite or fake player record.
+- worker-b-ball-passive-third.log4/4 actual original generation/combat settings,
+  owner live/gone/retired/replacement, cadence/cap/Qlockout and gap/duplicate.
+  Initial first log used wrong class name(loader errors); second4skip was real
+  original resource gate, not counted. Correct class plus actual selected input
+  ran the actual cases. Full worker-b-ball-passive-full.log33:30pass,3errors only
+  still-unmounted Combat.mines manager. Natural death/replacement also passes.
+- All original Cooldown72 assertion AST unchanged. No tests/skips weakened.
+- worker-b-ball-natural-passive-storage.log: actual controlled raw input, live
+  ult_secondsNone/native2426 and first5 points with numeric timer disabled.
+  Active strict BodyVM/server capture succeeds; actual12918 base-factor mutation
+  changes both digests and restoration restores both. No new whitelist/state stub.
+- Actual input audit: original01CA/ball-mine-runtime pack hash
+  ee12b2d6dfa31a099311427c847d1f8f307c203f6b71d9f1051e1b46b9ff9549;
+ 2578 actor roots151A/261E, closure2,1graph+entity absent,0 conflicts. Only exact
+  rows were combined through strict add_supplement. Ignored work/ball-mine-addon
+  json.gz6778B hash78107cb5ed059f25953693279d80ef4d532b7be0f094cc9df0ba62bb2c3e8874
+  with provenance per-row/entity hashes sent to root v17 composer; inputs unmodified.
+- Cooldown BallUltimateBufferTests env is presence-only, no provider patch. Tests
+  used actual composed closure plus original full-pack path as selector. Original
+  future MineTests would patch graph.GRAPHS_PATH; B43 must adapt that fixture to
+  actual combined provider, never replace it with old whole pack/fake marker.
+- NEXT B43 actual Minefield manager/launch/land/contact/expiry/retire consumers,
+  source original fixture imports/providers and explicit body/world clock scope.
+  Preserve all errors/remaining boundaries until feature-level owner audit.
+
 ## Exact next work
 
-1. Commit B40 actual expiry/birth-pair saved boundary, then clean-sync latest
-   canonical. Continue source Ball shield API/passive/spread/charge and actual
-   Minefield manager. Cross-hero Hack/EMP lock acquisition and body-domain
-   historical bounds still need original consumer evidence; no fake windows.
-   Keep source stale first-command activationNone, Piledriver high-origin/pull/
-   steering and Fireball half-push11.0 expectations unchanged. No full-line claim.
-   Root owns original tools CLI; preserve tools and remaining Sigma original
-   fixtures for its actual CLI dependency audit.
+1. Commit B42 natural passive saved boundary, clean-sync latest canonical/v17
+   composed mine metadata. Next B43 mount original actual Minefield manager and
+   exact original Mine fixtures without old whole-pack graph override. Then
+   source Ball controls/Hack/EMP, shield/Grasp interface inputs and physical
+   boundaries. Root owns EYE/tool metadata. No completed Ball/other-line claim.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

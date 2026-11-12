@@ -439,7 +439,7 @@ class Player:
             frame = lucio.effect_gap_frame(script, frame, end)
             self._advance_body_frame(Command(frame, buttons=retained_buttons), posed=False, defer_effects=world_idle)
 
-    def _step_body_pose(self, command: Command, seconds: float, tick: int) -> None:
+    def _step_body_pose(self, command: Command, seconds: float, tick: int, *, replay_accepted: bool = False) -> None:
         script = self.body_script
         if script is not None and script.world_frame_anchor is not None and command.frame <= script.frame:
             return
@@ -464,14 +464,14 @@ class Player:
             from ow174.game import tracer
 
             tracer.hold_pose(self, command)
-            self._advance_body_frame(command)
+            self._advance_body_frame(command, replay_accepted=replay_accepted)
             return
         if fight.junkrat.rooted(self.body, tick):
             # Restrain movement after the existing status and Recall admission.
             self.mover.velocity = (0.0, 0.0, 0.0)
             movement = replace(command, forward=0, right=0, buttons=command.buttons & ~JUMP)
             self.mover.step_pose(movement, seconds, tick)
-            self._advance_body_frame(command)
+            self._advance_body_frame(command, replay_accepted=replay_accepted)
             return
         if stunned or fight.recalls.locked(self):
             command = replace(command, forward=0, right=0, buttons=0, action=0)
@@ -496,7 +496,7 @@ class Player:
         forced = self.match.combat.orisa.movement(self)
         if forced is not None:
             self.mover.step_pose(command, seconds, tick, move_to=forced)
-            self._advance_body_frame(command)
+            self._advance_body_frame(command, replay_accepted=replay_accepted)
             return
         if (not stunned and not pulled and not fight.is_asleep(self, tick=tick)
                 and self.body not in fight.sombra_controls.locks):
@@ -518,7 +518,7 @@ class Player:
             self.mover.use(data)
         if echo_request is not None and not pulled:
             self.mover.step_pose(command, seconds, tick, move_to=echo_request)
-            self._advance_body_frame(command)
+            self._advance_body_frame(command, replay_accepted=replay_accepted)
             return
         # Arbitration between simultaneous world-target states is unresolved.
         slam = None if stunned or pulled else fight.slams.movement(self)
@@ -610,7 +610,7 @@ class Player:
             self.match.combat.punch_wall_contact(self, command, tick)
         self._advance_body_frame(
             command, posed=not input_suppressed, movement_end=movement_end,
-            charge_start=charge_start, seconds=seconds,
+            charge_start=charge_start, seconds=seconds, replay_accepted=replay_accepted,
         )
         if not self.mover.airborne and not self.mover.landed:
             fight.translocators.recall_poses.discard(self.body)
@@ -637,7 +637,7 @@ class Player:
     def _advance_body_frame(
         self, command: Command, *, posed: bool = True, movement_end: tuple[runtime.State, bool] | None = None,
         charge_start: tuple[float, float, float] | None = None, seconds: float = 0.0,
-        defer_effects: bool = False,
+        defer_effects: bool = False, replay_accepted: bool = False,
     ) -> None:
         """Resolve body input and consume combat reports from this simulation step."""
         command = self.match.combat.punches.command_input(self, command)
@@ -685,7 +685,9 @@ class Player:
                             script.orisa_fortify_pending = True
                         script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
-                self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
+                self.match.combat.command(self, command if posed and not replay_accepted else None,
+                                          defer_effects=defer_effects,
+                                          replay_aim=command if replay_accepted else None)
                 if self.body_script is script and script.hero == 0x02E00000000001CA:
                     from ow174.game import ball
                     ball.settle_grapple_interrupt(self.match.combat, self, command.frame)

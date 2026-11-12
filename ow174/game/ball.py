@@ -84,6 +84,69 @@ def cannon_direction(shooter, state, forward, number: int, time: int, activation
     return weapon_spread.direction(forward, cone, base, number)
 
 
+def generation_factor(script, key):
+    value = script.world.ruleset(key)
+    if value is None:
+        return 1.0
+    factor = expr.to_float(value)
+    return factor if 0 <= factor < float("inf") else 0.0
+
+
+def add_ult_charge(script, points):
+    """Delivered Ball combat award, including exact general/category settings."""
+    from ow174.game.script.driver import ULT_CHARGE, ULT_COST
+    if (script.retired or script.component.owner_dead
+            or any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
+        return 0.0
+    points *= generation_factor(script, 0x253C) * generation_factor(script, 0x32DE)
+    cost = expr.to_float(script.component.entity_var(ULT_COST).value())
+    charge = expr.to_float(script.component.entity_var(ULT_CHARGE).value())
+    if not 0 < points < float("inf") or cost <= charge:
+        return 0.0
+    target = min(cost, expr.f32(charge + points))
+    script.set_ult_charge(target)
+    return target - charge
+
+
+def prepare_passive(script):
+    enabled = script.ult_seconds is None and not script.retired and not script.component.owner_dead
+    gate = script.component.entity_var(2426, create=False)
+    if enabled or (gate is not None and expr.truthy(gate.value())):
+        script.component.set(2426, enabled)
+    if enabled:
+        script.component.set(9532, generation_factor(script, 0x253C))
+        script.component.set(12918, generation_factor(script, 0x3276))
+
+
+def diagnostic_charge(script):
+    from ow174.game.script.driver import ULT_CHARGE, ULT_COST
+    if (script.retired or script.component.owner_dead or not script.ult_seconds
+            or script.ult_seconds < 0
+            or any(state.flags & nodes.Ability.RUNNING for state in script.ultimates)):
+        return
+    cost = expr.to_float(script.component.entity_var(ULT_COST).value())
+    charge = expr.to_float(script.component.entity_var(ULT_CHARGE).value())
+    if cost > 0 and charge < cost:
+        factor = generation_factor(script, 0x253C) * generation_factor(script, 0x3276)
+        step = expr.f32(cost * script.frame_ms / (1000.0 * script.ult_seconds) * factor)
+        if step > 0:
+            script.set_ult_charge(min(cost, expr.f32(charge + step)))
+
+
+def passive_owner(world, cfg, instance):
+    """Original0B8B own-body possessor query; retirement cannot rebind an old VM."""
+    if (world.match is None or instance.graph.index != 0x0B8B
+            or cfg.get("$") != "STU_F7262B36"
+            or (cfg.get("m_801B298F") or {}).get("$") != "STU_B5A0CAF0"
+            or instance.component.entity != world.body):
+        return NotImplemented
+    if instance.stopped or instance.teardown:
+        return None
+    owner = next((p for p in world.match.players
+                  if p.has_body and p.body == world.body and not p.gone), None)
+    return expr.Entity(owner.entity) if owner is not None else None
+
+
 def feedback(player):
     """Feed actual collision/mover state into the bounded Piledriver graph contract."""
     graph = instance(player)

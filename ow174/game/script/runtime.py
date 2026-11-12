@@ -392,9 +392,25 @@ class InstanceContext(Context):
 
         component = self.instance.component
         if (not component.strict and self.instance.graph.index == 0x0B8B
+                and getattr(component.world, "hero", None) == 0x02E00000000001CA
+                and getattr(component.world, "body_definition", None) is not None
+                and getattr(component.world, "match", None) is not None
+                and cls == "STU_F7262B36"
+                and (cfg.get("m_801B298F") or {}).get("$") == "STU_B5A0CAF0"):
+            result = component.world.native(cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
+        if (not component.strict and self.instance.graph.index == 0x0B8B
                 and getattr(component.world, 'hero', None) == 0x02E000000000012E
                 and getattr(component.world, 'match', None) is not None):
             result = component.world.match.combat.sombra_charge.native(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
+        if (not component.strict and self.instance.graph.index in (0x0B1F, 0x0B32)
+                and getattr(component.world, 'match', None) is not None):
+            result = component.world.match.combat.sombra_controls.native(component.entity, cfg, self.instance)
             if result is not NotImplemented:
                 self.poll_native(cfg)
                 return result

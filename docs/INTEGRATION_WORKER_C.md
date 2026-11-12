@@ -1342,3 +1342,230 @@ retained sentry/Pharah impulse cover/Bastion NPC boundary audits. Current remain
 rough14-28 active C hours (low confidence, overlapping categories), not a calendar
 promise; largest unreviewed surface is shared consumer equivalence, not raw old
 observer names. Do not hold functional batch for these unmounted replay checks.
+
+
+## C37: original Sombra owner replay on actual world/body anchors
+
+Parent base3ae8e793, includes root16e57a68 Mercy driver indentation fix.
+No driver._run edits in this batch. Mounted the original012E sombra_replay
+owner functions and bounded480-step accepted-reaction scheduler, adapting the
+actual sole sombra_charge/translocators hosts. The old Camo-only world consumer
+now delegates to this single scheduler. It selects original Camo/EMP/throw/recall
+and sparse natural-charge deadlines, not fresh player input. Original64-frame
+EMP early replay precedes retained combat tail. Endpoint remains open; retained
+intermediate ticks finish their accepted reactions after world contacts.
+
+body_frame/world_frame derive solely from actual script.world_frame_anchor.
+Temporary match/combat clocks are restored after replay; application releases
+use their mapped world time. Neutral replay accepts only original Translocator
+volley0C19, not pistol fire. Airborne recall uses the existing physical Mover and
+Player._step_body_pose, with explicit replay_accepted propagated through early
+branches. Optional flags defaultFalse. Beacon expiry cooldown now translates
+world expiry into the same owner body clock, instead of assuming identical epochs.
+
+Fixture adaptation: one original charge assertion reads round(Lock.until/TICK)
+instead of absent old until_tick. Expected at+334 and all original literals/
+assertions unchanged; no new runtime alias/duplicate Lock expiry clock.
+
+v15 environment/test_environment selected, original inputs unchanged. Normal
+python -B -m unittest test_game_sombra_charge.SombraChargeTests plus original
+SombraCombatTests damage-Camo-world-gap/camo-speed/primary-exit/lethal-Helix and
+ test_game_script_runtime -v:36run63.218s,35pass1preservedfailure. All15 normal
+charge methods now pass, including all4 formerly pending world-only methods.
+Original Helix lethal fixture still death_tick None vs cast+2=1053; assertion
+retained (also part of original C33 known lethal-world difference), not claimed
+fixed. worker-c-sombra-replay-owner-check.log. Initial run14pass1oldLock APIerror
+was corrected only by the real expiry query adaptation above.
+
+Five selected original TranslocatorTests methods compiled as untouched class AST
+with real globals (normal full module still imports unmounted old control/NPC
+protocols): world_only_throw_releases_on_time_and_unlocks_recall;
+world_only_airborne_recall_matches_descent_and_landing;
+camo_replay_preserves_an_already_accepted_throw;
+world_only_authored_lifetime_starts_cooldown_at_expiry;
+authored_manual_recycle_starts_cooldown_on_the_device_clock.
+All5 pass44.677s, worker-c-sombra-replay-translocator-check.log. No method/assert
+AST edits. Existing10 C34 basic cases not represented as rerun here.
+
+Actual differing-clock probe: switch original Sombra with start_frame2000 on
+actual world1050 => anchor(1050,2000); original charge deadline body2063 maps to
+world1113, update1114 yields exactly5/faultNone, bodyframe2063. Log
+worker-c-sombra-replay-clock-probe-corrected.log. Earlier probe(1050,1000) also
+awarded5 but had an invalid probe-only at<1000 assumption; not implementation
+failure and not used as passing evidence. Parse/duplicate-method audit clean.
+Initial shared command misspelled test_game_npc_navigation/test_game_movement;
+13actual Genji cases passed but two module imports errored. Corrected command
+uses actual test_npc_navigation/test_game_mover, not altered test fixtures.
+
+Remaining original sombra_replay application_replay_until/advance_applications
+not yet mounted: actual non-Sombra recipients often lack world_frame_anchor.
+Next C38 must record known application recipient-clock/world-clock association
+on the same actual Lock, consume incoming EMP/source-retirement waits without
+recipient input, and preserve live-source world expiry policy. Do not guess
+body1000+/world50 correspondence or create another application manager/timer.
+Then actual Sombra device Portal/Sentry/Torb consumers; remaining Mei wall,
+Symm retained-sentry/placement, Pharah impact cover, Bastion NPC boundaries remain
+as previously recorded. Functional C37 is independent of those remaining gaps.
+
+Final corrected shared command: python -B -m unittest test_genji_passive_charge
+ test_npc_navigation test_game_mover test_game_mercy_charge
+ test_game_sombra_charge.SombraChargeTests.test_world_only_natural_charge_caps_and_admits_a_fresh_emp
+ -v :115tests allpass175.104s,worker-c-sombra-replay-shared-corrected-check.log.
+Includes all original Mercy scope/idle/retained charge and physical Mover checks;
+no Python source edits during this corrected group. All original checks retained.
+Next C38 priority refined by A55 actual evidence: canonical Controls.play uses
+play_loaded_graph(contextKind0), so real0B1F has no Wait58 despite existing Lock.
+Audit original0200 sombra_hack.invoke Queue.submit(request) and restore real
+request start entries first, then incoming replay; no fake Wait/query alias.
+
+
+## C38: actual Hack/EMP request start entries and receiver predicate
+
+Parent-authorized narrow runtime.Context.native bridge; root confirms no overlap.
+A55 found actual0B1F application with no Wait58 despite outer Controls Lock.
+Both existing Controls body/device delivery sites now use original PlayScript
+Queue.submit(request) with already-loaded graph, native request params/context/
+wire flag/schema and existing policy. Ready transient request executor only;
+no second manager, resource provider, target acquisition or retained queue.
+Cross-component device value deepcopy is retained via immutable Request/Resource
+replacement, preserving original tags/source/pools.
+
+Queue alone restored actual BB4AC733 start events/parameter bindings but did not
+reach Wait58: generic typed filter returnedFalse for original0B1F node21. Mounted
+original0200 predicate semantics on exact cfg identity in sole Controls.native:
+0B1F node21 can_receive reads actual live recipient BodyScript/component and
+existing14679 reject var;0B32 node8 is body receiverFalse, attached shields use
+existing drain service. Context.native non-strict early forwarding only those
+graphs and recognized exactcfg; all other cfgs returnNotImplemented before the
+existing typed paths. Existing HACK owner native clauses now explicitly guarded
+by graph ID so EFFECT/PULSE cannot dereference absent HACK node204. Strict mode,
+existing typed body-owner unavailable guard and health/filter checks retained.
+
+Actual ordinaryHack65tick and paidEMP31tick both produce real0B1F Wait58 active,
+5000ms, faultNone; original parameters/source bindings now execute. First queue-
+only probe failed Wait58; first predicate draft hit absent HACK node204 and was
+fixed by exact graph guard before final checks. No fabricated Wait/state used.
+Actual Ashe recipient with both attacks also passes exact original0200
+instance_for/locked functions compiled unchanged AST: lockedTrue, start-inclusive,
+end-exclusive andfaultNone. worker-c-sombra-ashe-original-query-probe.log;
+worker-c-sombra-request-receiver-probe-corrected.log.
+
+Original SombraCombat fixture old .hacks reads adapted to actual
+.sombra_controls.locks; old until_tick queries use math.ceil(real until/TICK).
+Same rounding used by C37 charge fixture. All original literals Counter exactly
+matches frozen012E for both modules; expected values/assertions unchanged. No
+runtime until_tick alias or duplicate expiry timer created.
+
+v15 environment/test_environment; python -B -m unittest
+ test_game_sombra_combat.SombraCombatTests
+ test_game_sombra_charge.SombraChargeTests test_script_play_queue
+ test_script_play_loaded test_script_body_owner test_script_entity_filter
+ test_game_script_runtime -v:129run88.667s,123casepass,5failedmethods(8failure
+records due4initialize subcases),1importerror. All15 charge and all76shared queue/
+loaded/body-owner/filter/runtime cases pass. Combat32pass/5casefail/1error.
+Actual paid EMP pulse/expiry without recipient commands now passes normally.
+Remaining source assertions retained: Hack initialized start1270vs1271 normal
+and1050vs1271 idle(4subcases); three old888 flag/sprint/Helix release cases still
+None (C33 already had None flags); original lethalHelix death_tick Nonevs1053.
+Source replacement method imports missing original test_game_sombra_grenade;
+module not faked/skipped. Full log worker-c-sombra-request-start-check.log.
+
+No Python source edits during final129 group. Duplicate-method and diff checks
+clean. No client acceptance/network/publication. This is a functional delivery
+batch; not held for incoming clock/source-retirement or old888 modifier consumers.
+Next C39: actual recipient application/world clock association and original
+advance_applications/source-retirement waits; audit original888 modifier and
+restore raw original grenade/control helpers with real dependencies. Root owns
+C37 mapped pose tick/history-tail correction; sync its accepted boundary before
+editing replay further. Device Portal/Sentry/Torb original consumers remain.
+
+
+## C39: original body-silence variable lifetime on existing Controls
+
+Clean boundary merged root9f2da275 as a807cd83, preserving C37 root mapped pose
+world tick and all7 history fields plus A55 original read-only Hack helpers.
+Only CHANGELOG conflict, both entries retained. C39 does not modify replay/driver.
+
+Original012E apply_body_hack explicitly saves entity_var888.base and setsTrue;
+retire_body_hacks restores saved base after final effect. This was not a graph
+modifier feature. Integrated on same Controls host as body_bases[entity] =
+(actual component, originalbase). Body Lock creation setsTrue; final world expiry,
+retire/death/replacement restores same component's base. Overlapping effects do
+not overwrite the original value. Device locks do not receive character888 policy.
+Exact causal field body_bases added to existing Controls snapshot registration;
+no new pool/manager/input controller and no original expiry values changed.
+
+v16 actual same profile plus original view catalog now selected. Exact command:
+python -B -m unittest
+ test_game_sombra_combat.SombraCombatTests.test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry
+ test_game_sombra_combat.SombraCombatTests.test_hack_keeps_enemy_primary_fire_and_melee_available
+ test_game_sombra_combat.SombraCombatTests.test_hack_interrupts_enemy_sprint_while_its_input_stays_held
+ test_game_sombra_combat.SombraCombatTests.test_hacked_body_death_retires_effect_and_ownership
+ test_game_sombra_combat.SombraCombatTests.test_hero_replacement_does_not_inherit_the_retired_body_silence
+ test_ashe_hack test_ashe_emp test_sombra_replay_pose_adapter
+ test_game_sombra_charge.SombraChargeTests.test_full_snapshot_captures_context_pause_and_deferred_respawn_charge
+ -v:21run63.770s,13casepass/5failedmethods/2erroredmethods/1originalSigmameshskip.
+Error records5 = refreshWait58missing1 + four oldworld_barriers observer subcases
+in one method. All original assertions unchanged. Log
+worker-c-sombra-body-silence-check.log. Actual Soldier Helix suppressed then reused
+at expiry, held Sprint interrupted, body death/replacement cleanup now pass.
+Root C37 pose adapter and source full snapshot method pass.
+
+Exact remaining failures: Soldier actualrifle health160vs180 (before final888
+assert); diagnostic on same v16 with ONLY silence_body monkeypatched off gives
+same160/888None, restored implementation gives160/888True. This diagnostic is
+not a passing acceptance test; it separates888 code from changed baseline ray/
+weapon geometry. Log worker-c-sombra-flag-rifle-baseline-probe.log.
+AsheHack69/AsheEMP74 fail onlyexpiryQ spent0vs2240: earlier heldskills, ordinary
+fire/ADS/reload/movement checks passed; root independently reproduces sameC38.
+BOB charge test253 shots0vs1 and activegun test131 shots7vs6 are expiry edge
+comparisons, not proof of wholly absent pause; detailed stacks sent A who owns
+actual ashe/companions. EMP refresh142 realWait58 missing afterreapply needs
+receiver lifecycle audit. Shell case only old fight.world_barriers AttributeError,
+actual shared Win shell host remains fight.barriers.world. No dummy alias added.
+
+Actual flag restoration probe starts888False, appliesrealHack65frames, confirms
+saved(component,False)/888True, advances through originalworldexpiry1404 to1405:
+888False/basesempty/faultNone. worker-c-sombra-body-base-restore-probe.log.
+Next C40: exact original input latch/expiry-frame admission, reapply request
+entry and incoming application world/body clock association/source-retirement;
+keep true accepted pose anchors and preserve root C377-field history adapter.
+Other retained nonappearance owner boundaries unchanged; no client/network test.
+
+
+## C40: consume actual recipient lock history at the expiry input boundary
+
+Read-only originalAsheHack endpoint probe observed world1504/time24.064,
+Lock.until24.056 alreadyremoved, but authored Wait58 ends within recipient
+frame1504. IncomingQ32 was unmasked andspent2240; no assertion/expiry value changed.
+worker-c-sombra-expiry-input-probe.log retains failing baseline and exactinputs.
+
+Existing Controls.lock_history now observes actual0B1F Wait58 start+ms and
+retains its real end in the existing application interval. Original impact start
+and first_lock_after component-domain API remain unchanged. input() admits
+SKILL_INPUT using that same actual recipient component/frame window as well as
+live world Locks, then uses the existing held bits/release path. It does not
+extend Lock.until, add a timer/manager, assume equal epochs, mask ordinary fire/
+reload/melee or use generic hard-control histories. Latest original window still
+survives effect expiry as before; owner/component retirement cleanup is unchanged.
+
+v16 environment/test_environment; python -B -m unittest
+ test_ashe_hack.AsheHackTests.test_hack_locks_ashe_abilities_but_preserves_ads_reload_and_movement
+ test_ashe_emp.AsheEmpTests.test_emp_blocks_abilities_without_suppressing_viper_and_releases_at_expiry
+ test_game_sombra_combat.SombraCombatTests.test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry
+ test_game_sombra_charge.SombraChargeTests test_sombra_replay_pose_adapter
+ test_game_script_runtime -v:36allpass53.598s,
+worker-c-sombra-expiry-admission-check.log. Both originalAshe methods now pass
+complete—including heldlock/fire/ADS/reload/movement, exactexpiryQrejection,
+release andfreshQresource spend—and originalSoldierHelix release remains correct.
+All15Sombracharge plusroot7-field/differing-epoch replay adapter/runtime pass.
+No fixture/assert changes, no Python edits during group, diff check clean.
+
+Next C41: incoming application reapply/start clocks/source-retirement and actual
+Portal/Sentry/Torb device routing. Audit found legacy DeviceWorld assumes
+fight.symmetra_portals andoldmodule endpoint APIs, while actualhost is
+fight.portals + actor-backed PortalPair; actualSentries are fight.sentries
+(symmetra_turrets.Turrets), actualTorb fight.turrets. These must consume their
+real actors/components and unique Vitals, not mount legacy duplicate managers.
+A owns BOB timeout/gun continuation; its exactexpiry/refresh stack sent separately.
+C39/body888 remains merged unchanged. No client/network acceptance performed.

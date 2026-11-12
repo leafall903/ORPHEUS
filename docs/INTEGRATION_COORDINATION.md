@@ -818,7 +818,7 @@ that a server/client was started during integration.
 
 ```powershell
 Set-Location 'D:/overwatch 1.7.4/verification/combined-server'
-$profile = Get-Content '../parallel-merge/runtime-inputs-v15/environment.json' -Raw | ConvertFrom-Json
+$profile = Get-Content '../parallel-merge/runtime-inputs-v17/environment.json' -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) {
     [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process')
 }
@@ -854,3 +854,119 @@ committed template after canonical fast-forward, and verify byte identity.
 It selects combined-server, runtime-inputs-v15 and existing ORPHEUS Python.
 The earlier manual invocation remains valid; default wrapper handoff below
 supersedes its statement that workspace RUN_SERVER still selects original main.
+
+
+A50 eee40dff received1daf9b2b mounts original Heavy/BOB capture on the actual
+Combat1408/1407 and heavy_assault stop service; it does not enable the copied
+legacy heavy_charge manager. B40 42d18f6c received3467abc6 stores Ball-only
+actual construction pair without changing input leases; source frames=False
+expiry uses the existing tagged pool. Worker actual raw unequal birth(1012,1044),
+world1053/body1085,175shield→expiryWorld1615,VM frozen,HUD600 and strict causal
+storage are verified; failed raw Sombra-lock acquisition remains explicit.
+A51 2af1bf5e received440e6c0f binds original spies to actual APIs without numeric
+changes. A52 2d46cfe7 receivedc040c8cd restores only original Ashe eye heights
+1.445/1.0115, preserving all other maps and catalog priority.
+
+Root frozen22744 terminal24run22pass1retained old add_impulse observer failure
+and1original PvE-input skip51.672s. Original exact outer Coach distances now
+match all three values; inner launch observation remains A's actual queue
+fixture task. Eye/ADS/player spread/world-only Adaptive expiry/runtime pass.
+Ashe PvE fixture still calls obsolete load_bundle/cache_clear; A53 owns its
+real composed-input/locked-mover adaptation, with original numbers intact.
+
+Workspace RUN_SERVER is copied from the committed template, original wrapper
+backed up at parallel-merge/RUN_SERVER.pre-combined-65319706.cmd. Byte identity,
+all referenced files and receipt are verified. The template also passes existing
+--data-dir to original ORPHEUS operational state so accounts/settings remain in
+the existing location; no profile/runtime copies. This handoff is now complete,
+superseding the earlier pending default-launcher statements. No services or
+client were started; occupied-port guard remains effective. Remaining runtime
+source consumers are still being integrated by all three persistent workers.
+
+
+Root all32 source EYE_STANDING/EYE_CROUCHED audit finds35 missing original
+literal fields, zero source conflicts/differences. Three symbolic DVa.MECH
+keys resolve to original0407, whose1.74 values are already present. Current
+VIEW_OFFSETS selection was absent, so missing fields actually hit generic
+fallbacks. Source33body catalog006E/prepared/view_offsets_174.json is unchanged,
+SHA1ad16eacd4464f13db61725f99b212cb6a2f7c4d2ab7bf2c3853348c65290d10
+matches original input-hash receipt. Every current+original legacy field found
+in that catalog matches exactly. Root merges35 original code fields preserving
+all existing maps and the current strict catalog-first reader. Provenance lives
+in parallel-merge/original-eye-field-union.json; no runtime/game archive copied.
+Candidatev16 adds only original ORPHEUS_VIEW_OFFSETS via existing loader. Source
+bodies verified from canonical graph data:0024Reinhardt,08BAMei,200BBall,2AB1Sigma;
+prior informal chat labels were corrected, exact GUIDs alone drive integration.
+Original all32hero ray/stance checks are next; current default entry remainsv15
+until v16 has actual checks, while the code fields are committed independently.
+A53 df1f8a9c receivedd873f2e1 normalizes original PvE fixtures to actual composed
+graph provider/locked mover without old loaders. B41 493093e2 received21e1b364
+mounts original Cannon spread/combat charge; no separate temporary pool.
+
+
+A54 d412a283 received40a43036 preserves actual Heavy/BOB source carry semantics:
+impact retires only that BOB1407; original Player recovery and stop phase remain.
+Root frozen99790 on40a43036 usingv16 terminal25run52.368s with9retained subcases
+across2original all32hero methods (5fail4error),23other methods pass,no skips.
+The retained cases are only DVa007A _targets StopIteration after fixture clears
+mover.body and crouch restriction proof, and Tracer0003 standing critical proxy
+20vs40. Source fixture assumptions versus current DVa/Tracer owners are assigned
+A; no numerical expectations or geometry are changed. All other catalog/Ashe eye/
+actual BOB carry/Ball spread/runtime methods execute. Original33body catalog
+activation is source-preserving and not blocked by complete acceptance.
+Workspace input selection promotesv16; all27original source hashes reverified.
+
+New original shared source gap reported by A:0200 player_controller.py and
+controller_filter.py, actual empty000E Player controller VM, PinEffectServices,
+wire namespace, lifecycle, heroselect and stored state integration. Root owns
+this audit/merge. Canonical graph base already has exact original000E metadata.
+Existing current Player/heroselect encodes controller wire without this VM;
+root must preserve that sole wire ownership rather than enable another manager.
+Original filter_bits prerequisite also missing. A owns only its hero/status
+consumers and does not duplicate these hosts. Overall goal remains incomplete.
+
+
+C37 original9ec17472 accepted owner replay is mounted in actual existing
+Combat/Player/Translocator paths. Root found two current-contract differences:
+_step_body_pose tick is world-at, not body-frame; target history has seven
+fields after B37, not four. Root corrects the passed tick and preserves all
+history tail fields. C confirmed both current contracts. Root91995 terminal
+31pass48.227s onv16: normal original SombraCharge15, focused adapter history/
+epoch/clocks, prepared entry and runtime. No changed original numbers. Worker
+also reports normal shared Genji/nav/mover/Mercy115pass175.104s and5original
+accepted Translocator world checks44.677s. Incoming application replay remains
+unmounted; C38 owns real Queue/start-entry/gate delivery, no fake Wait states.
+
+A actual contract evidence for v16 retained source cases: parked DVa Player
+040A has a different mover from live mech Bot0407; actual combat.player_target
+is the mech, eye1.74 and original21/SET/0 crouch restriction. The old uniform
+fixture queries Player ownership/parked modifiers/body catalog. Tracer raw
+proxy ray1.09 misses the unchanged original head sphere localY1.56701195,
+radius.16, so actual20 follows the source0003 geometry. This is static same-source
+plus actual combined evidence, not an alleged full frozen-source baseline run.
+Do not alter original body/head geometry or numeric assertions to force green.
+
+
+A55 8d225ff0 received4bc9cb7d preserves original read-only Hack queries and14
+existing original status fixtures, without another lock host. A56 1d6df8fc
+received9f2da275 routes actual Heavy graze force through existing BOB mover.
+C38 6adbbabf received62a9a253 restores real Queue start entries and precise
+receiver predicates; C39 50161bd8 receivedf0dbf99d restores original888 base
+lifetime in the same Controls, preserving exact stored state. Root C38 check
+1678 terminal42run40pass2preserved expiry-Q failures9.691s. During lock the
+ordinary fire/movement/reload and interruption/lethal checks pass; at receiver
+expiry the same-frame Q spends0vsoriginal2240. C40 has actual endpoint evidence
+and owns input history/latch consumption, with no extended world timer.
+
+B42 553cf2e2 receivede425fc34 mounts original Ball0B8B gate/factors/own-body
+query and natural cadence, numeric fill separate. Root small-input union uses
+original6778B addon rows, original full pack SHAee12b2d6dfa31a099311427c847d1f8f307c203f6b71d9f1051e1b46b9ff9549.
+Both rows/entity exactly match source;151A already exists, so only261E/2578 add.
+Minimal composed supplement now40graphs17entities,0conflicts. Source inputs
+unchanged. Original passive fixture selector is presence-only and points the
+real selected source pack; it never patches provider. Future actual MineTests
+must use composed provider, not overwrite GRAPHS_PATH with the old full pack.
+Root52988 terminal24pass33.215s with actual passive factors/owner/gap/death,
+spread/Mercy/entry/runtime. Three missing Mine manager checks remain B43 scope.
+All root sessions terminal. Workspace selection promotesv17 without waiting for
+full Mine acceptance; root must still integrate shared000E ControllerVM next.

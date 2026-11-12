@@ -1340,3 +1340,7 @@ Absorbed committed intake440e6c0f at the clean A52 boundary, retaining all paral
 - Broad39 methods:28pass/11error; all11 WidowGrasp errors at unchanged fixture sigma.HERO lookup before combat. Keep original values/assertions; no dead alias/second host. worker-a-matrix-output-shared.log. Original Ashe Matrix proxy fixtures not claimed green.
 - v16 audit: real DVa target/control/crouch VM belongs to owned mech while source proxy tests parked pilot. Original0003/current Tracer head Y1.5670119524/radius.1599999964 misses uniform eye proxy ray1.09, yielding20 rather than proxy40. Constants match frozen source; no frozen baseline rerun claimed. Geometry/assertions unchanged. Logs worker-a-v16-dva-body-contract.log and worker-a-v16-tracer-head-contract.log; parent confirmed these do not block production integration.
 - Next clean sync intake with C38/C39/C40, bind BOB lock reads to actual recipient-frame Controls.locked_at without extending world locks. Broader fixture observer/API and Junkrat/Tracer differences retained; no whole0200 completion claim.
+
+## Clean synchronization after A57
+
+Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/recipient-frame windows, root v17 input selection and all Ball/shared changes. Only changelog union conflict resolved by retaining both entries; production code merged automatically. Next actual BOB recipient-frame lock admission.

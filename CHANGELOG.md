@@ -8,6 +8,109 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 - Existing Matrix contacts now emit original007A state fields/plug with actual payload/source, including tagged flight, Dynamite and Widow zero-payload mine. Current defense admission, ownership and Sigma consumers retained.
 - Actual owned mech/BOB regression plus shared damage/Helix/Grasp/Deflect:14 passed. Broader original WidowGrasp11 errors remain at old sigma.HERO fixture API, assertions unchanged. Client acceptance not run. DVa parked-pilot and Tracer uniform-eye fixture contract differences recorded without changing geometry.
+### Select original Mine closure alongside the integrated Ball passive host
+
+- Select v17 with exactly one missing261E graph and2578 entity from the original
+  Mine pack;151A already matches the base. Keep all previous composed graphs,
+  controller names and inputs, without replacing the provider or copying assets.
+- Original source/addon rows and hashes match; scoped passive factors/owner/gap/
+  retirement, Cannon spread, Mercy, entry and runtime24pass33.215s. Full Minefield
+  host remains workerB43; original three missing-manager checks remain explicit.
+- Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
+  9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+
+### Retain original recipient-frame skill admission through the expiry edge
+
+- Observe the real Hack Wait in existing lock history and apply its recipient
+  frame window through the existing input/held-bit path. World timers, ordinary
+  weapon input and body/world epoch separation stay intact.
+- Original Ashe Hack/EMP expiry methods and Soldier Helix reuse pass completely;
+  joint36 including all15Sombra charge, replay adapter and VM runtime all pass.
+  Incoming reapply/clock and actual device-consumer boundaries remain recorded.
+
+### Preserve original body silence state across Hack lifetimes
+
+- Existing Sombra Controls now saves/restores the original body888 base for
+  overlapping actual effects, expiry and body retirement, with causal snapshot
+  storage. Device and character pools remain unchanged.
+- Original Helix lock/release, held Sprint interruption and death/replacement
+  checks pass. Selected21:13pass,5failedmethods,2erroredmethods,1originalskip;
+  remaining expiry, refresh and observer differences are retained. ActualFalse
+  base restores after expiry. No client acceptance or assertion changes.
+
+### Start original Hack and EMP recipient graph entries
+
+- Route the existing Sombra receiver through original PlayScript requests and
+  exact authored body predicates. Real Hack/EMP now start their original 5-second
+  Wait state; original Ashe lock queries read that actual state directly.
+- Joint129:123casepass,5failedmethods with8subcase failure records and one missing
+  original test dependency. All15 charge and76shared VM/filter checks pass;
+  source constants/assertions retained. Recipient-clock/retirement and existing888
+  modifier gaps remain; no original-client acceptance performed.
+
+
+### Retain current pose clocks and target history during original Sombra replay
+
+- Receive original accepted owner replay, retaining separate body/world epochs.
+  Root resolves the current movement adapter with world tick and preserves all
+  existing history shape/critical fields when updating only recall feet.
+- Original SombraCharge15 plus adapter, entry and runtime31pass48.227s onv16.
+  The adapter check covers distinct epochs and seven-field history with restored
+  scheduling clocks; it does not replace the original live ability checks.
+  Incoming application replay and actual Hack start entries remain C38 work.
+
+
+### Select original FirstPerson inputs for the integrated local entry
+
+- Workspace entry now selects v16, adding only the existing original33body
+  FirstPerson catalog. All recorded source hashes and every legacy eye field
+  match; current native constants and input loaders remain unchanged.
+- Original all32hero ray checks plus actual BOB carry, Ball spread, Ashe eye and
+  runtime execute25 methods52.368s. Nine retained subcases in two methods concern
+  DVa body/stance fixture and Tracer critical proxy;23other methods pass, no skips.
+  No original value or assertion was changed and acceptance does not block merge.
+
+
+### Restore all delivered FirstPerson fallback fields and original catalog selection
+
+- Union35 missing original standing/crouched fields from32 delivered source
+  maps, preserving every current field and external catalog priority. Shared
+  source values have zero conflicts; all fields match the original33body catalog.
+- Prepare v16 selecting unchanged006E view_offsets_174.json through the existing
+  strict loader, with its original recorded SHA256 verified. No camera feature,
+  eye value, geometry, source input or assertion was invented or rewritten.
+- Static original-source/current/catalog comparison passes. Existing original
+  all32hero view/ray and shared checks follow; no acceptance gate blocks commit.
+### Start original Hack and EMP recipient graph entries
+
+- Route the existing Sombra receiver through original PlayScript requests and
+  exact authored body predicates. Real Hack/EMP now start their original 5-second
+  Wait state; original Ashe lock queries read that actual state directly.
+- Joint129:123casepass,5failedmethods with8subcase failure records and one missing
+  original test dependency. All15 charge and76shared VM/filter checks pass;
+  source constants/assertions retained. Recipient-clock/retirement and existing888
+  modifier gaps remain; no original-client acceptance performed.
+
+### Replay original Sombra accepted owner reactions and charge deadlines
+
+- Replace Camo-only idle replay with the original bounded owner scheduler for
+  natural charge, accepted EMP/Translocator releases and physical recall descent.
+  Use actual world/body anchors, retain open endpoints and one existing Mover.
+- Original charge15 pass; selected untouched original Translocator5 pass;
+  runtime/Camo joint36 has35pass and one retained original lethal-Helix failure.
+  Genji/navigation/Mover/Mercy shared115 all pass; real different-epoch charge
+  probe passes. Incoming application retirement and
+  remaining device consumers are still pending; no client acceptance performed.
+
+### Retain existing operational state in the combined workspace launcher
+
+- The versioned workspace entry selects combined server code and original
+  composed inputs while retaining existing account/settings state through the
+  unchanged--data-dir CLI. The old workspace wrapper is backed up externally.
+- Root joint24run22pass, one original NPC-input skip and one preserved old
+  add_impulse observer failure51.672s; exact Ashe eye/outer distances and actual
+  Ball world-only shield expiry now execute together. No original values changed.
+
 
 ### Connect prepared integration inputs to the existing local server entry
 
@@ -22,6 +125,46 @@ This log records tested changes and their acceptance status. Entries are grouped
   Python CLI--help passes; native CMD entry correctly refuses an occupied local
   port without starting services. Original unconfigured CLI test import lacked
   external descriptors, fixed by selecting existing inputs rather than copying.
+### Mount delivered Ball natural passive charge and owner query
+
+- Use original0B8B gate/general/passive factors in its existing body VM; keep
+  natural None versus explicit numeric diagnostic fill separate, without a
+  second timer. Restore exact Ball0B8B own-body owner-query shape and retirement.
+- Original passive/settings/owner/cadence/gap/death cases pass. Full Cooldown,
+  Spread/runtime33 retains only three genuine unmounted Minefield-manager errors.
+  Cooldown72 assertion AST remains unchanged.
+- Actual raw natural0B8B produces5 points with numeric fill disabled. Active
+  strict BodyVM/server exports and category-factor causal mutation/restore pass.
+- Select real original mine entity/graph closure through strict additive inputs
+  for the original fixture presence gate; never patch in an old full runtime pack.
+  Full Minefield and original-client acceptance remain open.
+
+### Connect delivered Quad Cannon spread and Ball combat charge
+
+- Mount original deterministic1514 cone/ramp through the existing shot path;
+  retain actual volley/muzzle options and duplicate-command rejection.
+- Restore source Ball effective-permanent-damage charge, exclude Minefield1ED,
+  and use original general/combat ruleset factors plus cap/death/ultimate guards.
+  Other heroes retain their existing charge API behavior.
+- All six original spread/charge/cap cases pass; actual native175 tagged shield
+  hit for200 loses20 armor and grants only20 charge. Damage/runtime25 pass.
+  Source Spread23 assertion AST unchanged. No extra pool/acceptance matrix.
+- Natural passive generation and full Ball/client acceptance remain open.
+
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
 
 
 ### Preserve Mercy scope execution during Sombra charge integration

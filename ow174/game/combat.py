@@ -74,6 +74,7 @@ from ow174.game import (
     sombra_camo,
     sombra_spread,
     sombra_charge,
+    sombra_replay,
     translocators,
     torbjorn_mark,
     torbjorn_charge,
@@ -156,6 +157,24 @@ EYE_STANDING = {
     0x0400000000001B1B: 1.58, 0x04000000000002A3: 1.425,
     0x0400000000002593: 1.7, 0x0400000000000225: 1.2,
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
+    0x040000000000001C: 1.5,
+    0x0400000000000022: 1.55,
+    0x0400000000000024: 1.8,
+    0x04000000000000E4: 1.45,
+    0x0400000000000141: 1.35,
+    0x04000000000001C0: 1.5,
+    0x04000000000001FD: 1.82,
+    0x0400000000000216: 1.55,
+    0x040000000000028F: 1.6,
+    0x0400000000000380: 1.25,
+    0x04000000000003CF: 1.55,
+    0x04000000000003FC: 1.175,
+    0x04000000000008BA: 1.3,
+    0x040000000000121C: 1.3,
+    0x0400000000001498: 1.78,
+    0x040000000000200B: 1.83,
+    0x04000000000026F0: 1.3,
+    0x04000000000028B6: 1.0,
 }
 EYE_CROUCHED = {
     0x040000000000251C: 1.0115,
@@ -168,6 +187,23 @@ EYE_CROUCHED = {
     0x04000000000003CF: 1.085, 0x0400000000001B1B: 1.2, 0x04000000000002A3: 0.9975,
     0x0400000000002593: 1.1, 0x0400000000000225: 0.84,
     0x0400000000002AB1: 1.75, 0x04000000000003BF: 1.12,
+    0x040000000000001C: 1.05,
+    0x0400000000000022: 1.085,
+    0x0400000000000024: 1.26,
+    0x04000000000000E4: 1.015,
+    0x0400000000000141: 0.945,
+    0x04000000000001C0: 1.05,
+    0x04000000000001FD: 1.35,
+    0x0400000000000216: 1.15,
+    0x040000000000028F: 1.12,
+    0x0400000000000380: 0.875,
+    0x04000000000003FC: 0.8225,
+    0x04000000000008BA: 0.91,
+    0x040000000000121C: 0.91,
+    0x0400000000001498: 1.246,
+    0x040000000000200B: 1.5,
+    0x04000000000026F0: 0.91,
+    0x04000000000028B6: 0.7,
 }
 EYE_CROUCHED_DEFAULT = 1.15
 TRACER_BODY = 0x0400000000000001
@@ -3298,8 +3334,9 @@ class Combat:
         except Exception:
             log.exception("[game] %s: %s's combat targets failed", self.match.label(), player.name)
 
-    def command(self, player, command: Command | None, *, defer_effects: bool = False) -> None:
-        """Consume the body's reports. Only a frame with a pose can affect targets."""
+    def command(self, player, command: Command | None, *, defer_effects: bool = False,
+                replay_aim: Command | None = None) -> None:
+        """Consume posed reports and explicitly replayed accepted ability releases."""
         if self.match.collision_world is None:
             return
         script = player.body_script
@@ -3428,6 +3465,10 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif replay_aim is not None and script.hero == sombra_camo.HERO:
+            for state, number, time, activation, *launch in shots:
+                if translocators.accepted_volley(state):
+                    self._shoot(player, replay_aim, state, number, time, activation=activation)
         elif player.hero.guid == 0x02E000000000006E:
             for state, number, time, activation, *launch in shots:
                 if state.instance.graph.index != 0x0257 or state.node.pos != 4:
@@ -4285,19 +4326,8 @@ class Combat:
             if target > script.frame:
                 player._advance_body_gap(target + 1, world_idle=True)
             return
-        if (script is not None and script.hero == sombra_camo.HERO
-                and script.world_frame_anchor is not None and not script.retired
-                and not script.component.owner_dead and player.spawned and player.has_body):
-            anchor_tick, anchor_frame = script.world_frame_anchor
-            elapsed = max(0, self.tick-anchor_tick) * round(TICK*1000)
-            target = min(projectiles.MAX_LEASE_FRAME-1, anchor_frame+elapsed//script.frame_ms-1)
-            for _ in range(480):  # original bounded accepted-reaction replay budget
-                frame = sombra_camo.next_frame(script)
-                if frame is None or frame > target:
-                    break
-                player._advance_body_gap(frame+1, world_idle=True)
-                if player.body_script is not script:
-                    break
+        if script is not None and script.hero == sombra_camo.HERO:
+            sombra_replay.replay_player(self, player, self.tick - 1, TICK)
             return
         if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
                 or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
@@ -4418,7 +4448,10 @@ class Combat:
         if self.dragons and field_first < first:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
-        for at in range(first, tick + 1):
+        from itertools import chain
+
+        early_end = min(first, self.tick + sombra_replay.emp_replay_frames(self) + 1)
+        for at in chain(range(self.tick + 1, early_end), range(first, tick + 1)):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
@@ -4526,6 +4559,7 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             if at < tick:
+                sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
         molten_core.update(self)
@@ -5835,6 +5869,7 @@ class Combat:
 
             direction = mccree.fan_direction(shooter, state, direction, number, time, activation)
             direction = sombra_spread.direction(shooter, state, direction, number, time, activation)
+            direction = ball.cannon_direction(shooter, state, direction, number, time, activation)
             if (viper_launch is not None and shooter.hero.guid == 0x02E0000000000200
                     and state.instance.component is shooter.body_script.component):
                 direction = ashe.viper_direction(direction, number, viper_launch)
@@ -9345,6 +9380,7 @@ class Combat:
         amount *= self.zenyatta.boost(target)
         self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
+        temporary_before = vitals.temporary_shields
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
         if self.now < vitals.nano_until:
@@ -9492,10 +9528,13 @@ class Combat:
                     and not reflected_reaper_shell
                     and hero not in (0x02E00000000000DD, symmetra_charge.HERO, hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not (hero == sombra_charge.SOMBRA and self.sombra_charge.enabled(script))
+                    and not (hero == ball.HERO and loadout == 0x0B900000000001ED)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero in (0x02E000000000013B, 0x02E0000000000029) else dealt
                 if hero == doomfist.HERO:
                     points = max(0.0, base_before - vitals.base_total)
+                if hero == ball.HERO:
+                    points = dealt - (temporary_before - vitals.temporary_shields)
                 if hero == 0x02E000000000006E:
                     definition = victim.body if isinstance(victim, bots.Bot) else getattr(
                         getattr(victim, "hero", None), "body", getattr(victim, "definition", None))

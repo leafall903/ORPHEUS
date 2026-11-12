@@ -5,7 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 
 from ow174.game import actors, bots, health_packs
-from ow174.game.script import entity_queries, expr, graph, nodes, play, runtime
+from ow174.game.script import entity_queries, expr, graph, nodes, play, play_queue, runtime
 from ow174.game.world import SHIELDS_POOL
 
 HERO = 0x02E000000000012E
@@ -76,6 +76,19 @@ class Controls:
         self.held = {}
         self.device_receivers = {}
         self.lock_history = {}  # body -> (actual recipient component, component-ms windows)
+        self.body_bases = {}  # original888 base on the actual recipient component
+
+    def silence_body(self, component):
+        entity = component.entity
+        if entity not in self.body_bases:
+            self.body_bases[entity] = component, component.entity_var(888).base
+        component.set(888, True)
+
+    def restore_body(self, entity):
+        previous = self.body_bases.pop(entity, None)
+        if previous is not None:
+            component, base = previous
+            component.set(888, base)
 
     def remember_lock(self, application, duration):
         """Retain the original skill-lock window on its actual recipient clock."""
@@ -91,6 +104,26 @@ class Controls:
             windows.pop()
         windows.append((start,end))
         self.lock_history[component.entity] = component, windows
+
+    def observe_lock(self, application):
+        """Retain the end of the real authored recipient wait, not a new timer."""
+        wait = application.states.get(58) if application.graph.index == EFFECT else None
+        row = self.lock_history.get(application.component.entity)
+        if (not isinstance(wait, nodes.Wait) or row is None
+                or row[0] is not application.component):
+            return
+        for index, (start, end) in enumerate(row[1]):
+            if start <= application.start <= end:
+                row[1][index] = start, max(end, wait.start + wait.ms)
+                break
+
+    def locked_at(self, script, frame):
+        component = getattr(script, "component", None)
+        row = self.lock_history.get(getattr(component, "entity", None))
+        if row is None or row[0] is not component:
+            return False
+        now = frame * component.frame_ms
+        return any(start <= now < end for start, end in row[1])
 
     def first_lock_after(self, script, frame, tick):
         """Original first-lock query; both bounds are recipient body frames.
@@ -112,7 +145,7 @@ class Controls:
         """Latch held skills until a received command releases them."""
         entity = player.body
         masked = self.held.get(entity, 0) & command.buttons
-        if entity in self.locks:
+        if entity in self.locks or self.locked_at(player.body_script, command.frame):
             masked |= command.buttons & SKILL_INPUT
         if masked:
             self.held[entity] = masked
@@ -153,6 +186,7 @@ class Controls:
         self.device_receivers.pop(entity, None)
         for lock in self.locks.pop(entity, ()):
             self.destroy(lock)
+        self.restore_body(entity)
 
     @staticmethod
     def destroy(lock):
@@ -180,6 +214,7 @@ class Controls:
                 continue
             keep = []
             for lock in locks:
+                self.observe_lock(lock.application)
                 if self.fight.now < lock.until:
                     keep.append(lock)
                 else:
@@ -189,6 +224,7 @@ class Controls:
             else:
                 del self.locks[entity]
                 self.device_receivers.pop(entity, None)
+                self.restore_body(entity)
 
     def enemies(self, player):
         return (target for target in self.fight._enemies(player)
@@ -237,6 +273,17 @@ class Controls:
                     device_tags = symmetra_portal.ENDPOINT_TAGS[index]
                 yield Target(device.body, None, (x, y - radius, z), 2 * radius, radius, radius, device), device_tags
 
+    @staticmethod
+    def invoke(component, definition, request):
+        """Start the actual loaded request with its authored start-entry context."""
+        before = {instance.id for instance in component.instances.values()}
+        queue = play_queue.Queue(component, lambda _: play_queue.Load("ready", definition))
+        queue.submit(request)
+        matches = [instance for instance in component.instances.values()
+                   if instance.graph.index == definition.index]
+        return next((instance for instance in matches if instance.id not in before),
+                    matches[0] if matches and request.policy == 2 else None)
+
     def apply_devices(self, instance, definition, resource, request, caster):
         from ow174.game import symmetra_sentry
 
@@ -258,10 +305,9 @@ class Controls:
             if component is not instance.component:
                 # Transfer values without sharing either component's private VM storage.
                 params, overrides = deepcopy((params, overrides))
-            application = component.play_loaded_graph(
-                definition, source=request.context.caller, params=params,
-                overrides=overrides, policy=request.policy, instigator=request.context.instigator,
-            )
+            transferred = replace(request, params=params,
+                                  resource=replace(request.resource, overrides=overrides))
+            application = self.invoke(component, definition, transferred)
             if application is None:
                 if target.entity not in self.locks:
                     self.device_receivers.pop(target.entity, None)
@@ -319,6 +365,23 @@ class Controls:
 
     def native(self, body, cfg, instance):
         cls = cfg.get("$")
+        if (instance.graph.index == EFFECT and cls == "STU_AC829876"
+                and cfg is instance.graph.node(21).field("m_condition")):
+            # Original receiver predicate: the actual body can receive Hack.
+            target = next((target for target in self.fight._targets()
+                           if target.entity == body), None)
+            script = getattr(getattr(target, "owner", None), "body_script", None)
+            if (script is None or getattr(script, "retired", False)
+                    or script.component is not instance.component or script.component.owner_dead):
+                return False
+            reject = script.component.entity_var(14679, create=False)
+            return reject is None or not expr.truthy(reject.value())
+        if (instance.graph.index == PULSE and cls == "STU_AC829876"
+                and cfg is instance.graph.node(8).field("m_condition")):
+            # Body receiver; attached barrier pools use the existing drain bridge.
+            return False
+        if instance.graph.index != HACK:
+            return NotImplemented
         if cls == "STU_AC829876" and cfg is instance.graph.node(204).field("m_condition"):
             player = self.player(body)
             entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
@@ -441,10 +504,7 @@ class Controls:
             script = getattr(target.owner, "body_script", None)
             if script is None:
                 continue
-            application = script.component.play_loaded_graph(
-                definition, source=request.context.caller, params=request.params,
-                overrides=resource.overrides, policy=request.policy, instigator=request.context.instigator,
-            )
+            application = self.invoke(script.component, definition, request)
             if application is not None and definition.index == EFFECT:
                 duration = expr.to_float(application.evaluate(application.graph.node(96).field("m_value")))
                 if math.isfinite(duration) and duration > 0:
@@ -452,6 +512,7 @@ class Controls:
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
                     locks.append(Lock(application, fight.now + duration, pulse))
+                    self.silence_body(script.component)
                     self.remember_lock(application, duration)
                     held = getattr(script, "buttons", 0) & SKILL_INPUT
                     if held:
