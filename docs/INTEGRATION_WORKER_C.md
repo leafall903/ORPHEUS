@@ -2677,3 +2677,46 @@ Server identity/splash/hash; no duplicate rerun requested from C.
 Next C62 actual NPCProjected frozen-support guard, then Heavycapture source
 boundary with real existing drive/1407; estimates4–10 activeC hours lowconfidence.
 No client/network/publication action.
+
+
+## C62 actual projected-NPC frozen-support replay admission
+
+Synced root5ca8f867, including original native NPC recipient and strict Pet
+boundary (777e1c9c), into clean tree dfaea595 before this batch. The existing
+single-projection proof now identifies actual native NPC recipient/Pet/Vitals.
+Ten original projected-talon/Helix setup cases (all5NPC primary/nextNPC receiver,
+capacities200/30) proved realrecipientTrue, sourceproofTrue, readonly inputs, but
+the outer Combat.frozen_sentry_replay blanket Zarya guard still rejected each.
+Baseline ../worker-c-c62-projected-admission-baseline.log (10/10driverFalse).
+
+Narrow only that outer guard to personal actors (recipient isNone). Projected
+actors now reach the existing original single-projection/support impact proof;
+multiple/unproven projections still decline there. Preserve personal/respawn/
+other-defense guards and the same world/NPC driver. No new actor, health pool,
+projection manager, scheduler or lifetime. The real native Pet driver alone
+handles damage/expiry/removal, including root strict storage changes.
+
+Actual producer comparison then ran each original setup in contiguous and single
+accepted gap schedules. All10 cases have EXACTLY equal12-field outcomes:
+primary/recipient HP,position,dead;actual samePet pool;support/sentry existence;
+ownerHERO_DAMAGE;bothbodyfaultNone. Terminal10sameTrue/no exceptions, log
+../worker-c-c62-projected-causal-check.log, reproducer
+../parallel-merge/worker-c-projected-support-causal-probe.py. Original setup's
+constant Hero maps realbarriers.ZARYA; contact observation maps actual
+barriers.authored_for(caster.body).parent/Pet; remaining uses actual.vitals.total
+and explicit same pool capacity write. No fake legacy manager or pool view.
+
+This is original-setup plus actual-world causal evidence, NOT a claim that the
+entire original huge observation fixture passes. Original full observer still
+uses absent oldbody-impact and oldcontact signatures/absolute destruction
+expectations; some current stepped outcomes retain support in this complex
+projection scene. Keep those boundaries for further source consumer audit.
+Normal shared Sentry/nativePet-query/Damage:25/25pass33.732s,
+../worker-c-c62-projected-shared-check.log. No source assertion/literal expectation
+modified, no client/network/publication action.
+
+Next C63 original projected full-observer/retarget impact consumers and remaining
+player/respawn phase windows; Heavy capture still original source boundary.
+Remaining estimate4–10activeC hours, lowconfidence. Actor/service uniqueness and
+actual current no-fault/causal outcomes take precedence over ancestry/testcounts
+when recording integration completeness.

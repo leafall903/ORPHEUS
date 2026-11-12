@@ -291,6 +291,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Admit proven projected-NPC Sentry history through the existing driver
+
+- Replace the blanket projected-barrier rejection with the original strict
+  single-projection/support proof, preserving personal and other unproven guards.
+- Ten actual NPC/Pet scenarios have identical contiguous and gap outcomes;
+  25 shared checks pass. Full older observer/absolute-outcome differences and
+  client acceptance remain open without blocking the consumer integration.
+
 ### Preserve the authored Trooper melee position gate
 
 - Add actual producer coverage for valid close contact and rejected farther
