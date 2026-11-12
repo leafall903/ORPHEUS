@@ -144,7 +144,48 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--npc-hotkeys", action="store_true",
                         help="enable the NPC sandbox console keys in the local retail game window")
+    parser.add_argument(
+        "--reconstructed-hanzo-sonic-profile", type=Path,
+        help="external Sonic profile; opt into reconstructed search/attachment geometry",
+    )
+    parser.add_argument(
+        "--reconstructed-hanzo-dragon-profile", type=Path,
+        help="external Dragonstrike profile; opt into reconstructed volume/damage-rate units",
+    )
+    parser.add_argument(
+        "--reconstructed-projectile-tags", type=Path,
+        help="external104319 tags; opt into reconstructed Matrix/Grasp admission",
+    )
     return parser.parse_args(argv)
+
+
+def _combat_profiles(args):
+    sonic_path = args.reconstructed_hanzo_sonic_profile
+    dragon_path = args.reconstructed_hanzo_dragon_profile
+    tags_path = args.reconstructed_projectile_tags
+    if sonic_path is None and dragon_path is None and tags_path is None:
+        return None
+    if args.mode in ("join", "join-tournament") or args.game_port <= 0:
+        raise LaunchError("Reconstructed combat inputs require a local game server (--game-port > 0).")
+    from ow174.game import dragon, matrix, sonic
+    from ow174.game.combat_profiles import Profiles
+
+    try:
+        definitions = None if tags_path is None else matrix.load_admitted_definitions(tags_path)
+    except (OSError, ValueError) as error:
+        raise LaunchError(f"Invalid reconstructed projectile tag catalog: {error}") from error
+    try:
+        return Profiles(
+            sonic=None if sonic_path is None else sonic.load_profile(
+                sonic_path, reconstructed_geometry=True,
+            ),
+            dragon=None if dragon_path is None else dragon.load_profile(
+                dragon_path, reconstructed_rates=True,
+            ),
+            projectile_absorption=definitions,
+        )
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LaunchError(f"Invalid reconstructed Hanzo profile: {error}") from error
 
 
 def ask_mode() -> str:
@@ -250,6 +291,7 @@ def _paths(args: argparse.Namespace) -> Paths:
 
 
 def run(args: argparse.Namespace) -> None:
+    combat_profiles = _combat_profiles(args)
     if args.npc_hotkeys and (args.mode not in ("retail", "host") or args.no_launch or not args.game_port):
         raise LaunchError("--npc-hotkeys requires a local retail launch with the game server enabled.")
     if args.no_launch and args.mode in ("join", "join-tournament"):
@@ -281,6 +323,7 @@ def run(args: argparse.Namespace) -> None:
         test_players=max(0, args.test_players),
         paths=_paths(args),
         build_missing_collision=launches_game,
+        combat_profiles=combat_profiles,
     )
     game = relay = None
     if launches_game:

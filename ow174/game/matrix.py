@@ -128,3 +128,20 @@ def active_boxes(player, origin, direction, reach, anchor, forward, graph, *, st
                 if hit is not None and (best is None or hit < best[0]):
                     best = hit, state
     return best
+
+
+def load_admitted_definitions(path):
+    catalog = json.loads(path.read_bytes())
+    if (not isinstance(catalog, dict) or type(catalog.get("version")) is not int
+            or catalog["version"] != 1 or catalog.get("build") != "1.74.0.0.104319"
+            or not isinstance(catalog.get("entities"), dict)):
+        raise ValueError("Matrix requires projectile tag catalog version 1 for build 104319")
+    admitted = set()
+    for definition, tags in catalog["entities"].items():
+        if (not re.fullmatch(r"0x0400[0-9A-F]{12}", definition) or not isinstance(tags, list)
+                or any(not isinstance(tag, str) or not re.fullmatch(r"0x0D60[0-9A-F]{12}", tag)
+                       for tag in tags)):
+            raise ValueError("invalid projectile definition or target tags")
+        if EXCLUDED_TAG not in {int(tag, 16) for tag in tags}:
+            admitted.add(int(definition, 16))
+    return frozenset(admitted)
