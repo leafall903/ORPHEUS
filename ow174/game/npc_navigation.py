@@ -465,6 +465,10 @@ def step(match, bot, tick, seconds, *, plan_budget=PLAN_SLICE):
 
 
 def _step(match, bot, tick, seconds, search_budget):
+    if match.combat.junkrat.rooted(bot.entity, tick):
+        stop(bot)
+        bot._pause(tick)
+        return
     if bot.impulse_mover is not None and not bot.dead:
         bot._impulse_step(tick, seconds, match.collision_world)
         return
@@ -785,7 +789,8 @@ def refresh_obstacles(bot, pieces):
 
 def update(fight, bot, target, reach):
     pursuit = bot.pursuit
-    if getattr(bot, "wall_mover", None) is not None or fight.is_stunned(bot):
+    if (getattr(bot, "wall_mover", None) is not None or fight.is_stunned(bot)
+            or fight.junkrat.rooted(bot.entity, fight.tick)):
         stop_pursuit(bot)
         return
     if target is None:

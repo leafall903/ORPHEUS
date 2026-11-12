@@ -154,6 +154,7 @@ def remove_body(match, bot) -> None:
         pilot = match._message_player(bot.source_body)
         if pilot is not None and pilot.controlled_mech is bot:
             body_entities.release_control(pilot)
+    match.combat.junkrat.release_trap_victim(bot.entity)
     match.combat.clear_pins(bot.entity)
     match.combat.knockbacks.retire(bot.entity)
     match.combat.support_effects.retire(bot.entity)
@@ -285,7 +286,8 @@ def update_acquisition(fight, bot):
         admitted = enforcer_controller.admit(fight, bot, selected)
     else:
         admitted = selected is not None
-    ground_motion = specials and not locked and getattr(bot, "wall_mover", None) is None
+    ground_motion = (specials and not locked and getattr(bot, "wall_mover", None) is None
+                     and not fight.junkrat.rooted(bot.entity, fight.tick))
     retreating = ground_motion and sniper_retreat.acquire(bot, selected if admitted else None)
     if pursuit is not None:
         destination = None

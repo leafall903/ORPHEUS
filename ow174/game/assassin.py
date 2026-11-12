@@ -67,7 +67,8 @@ def contact(match, source, target):
     from ow174.game.mover import mover_data
 
     data = mover_data(source.body)
-    return (npc_navigation.pin_contact(match.collision_world, source.position, target, data)
+    return (not match.combat.junkrat.rooted(source.entity, match.tick)
+            and npc_navigation.pin_contact(match.collision_world, source.position, target, data)
             and npc_navigation.teammate_clear(match, source, source.position, target.feet, data))
 
 
@@ -177,6 +178,9 @@ def refresh_control(world, component):
             or world.controller_components is None):
         return
     fight = world.match.combat
+    if fight.junkrat.rooted(component.entity, fight.tick):
+        fight.release_pin(component.entity)
+        return
     for instance in component.instances.values():
         if instance.graph.index != GRAPH:
             continue

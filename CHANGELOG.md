@@ -8812,3 +8812,33 @@ worker-a-junkrat-trap-clock-{first,parity,shared}.log. Tests use external v9 pro
 No client run/publication. Next exact action: mount original NPC restraint against
 current actual navigation/impulse/Heavy charge and Assassin consumers, keeping
 ranged/melee fire available; then Tire and charge. A35 residuals remain recorded.
+
+
+## A37 - Steel Trap consumers on actual NPC movement and charge hosts
+
+Mounted source0065 restraint on current shared NPC route/manual navigation,
+current knockback and Bot impulse entry points. Capture retires pending physical
+impulse, cancels the actual existing Heavy1408 charge and Assassin contact owner;
+rooted Heavy cannot start its movement charge, while ordinary ranged/melee input
+is retained. Existing actual NPC removal now releases Trap/status/root immediately.
+No old duplicate heavy_charge/assassin manager or displacement field restored.
+
+External v9 real five-body probe passes: actual damage, same Trap Vitals, root,
+blocked impulse, fixed pose and release; four ordinary NPCs regain impulse while
+Heavy1254's native modifier26 zero response remains authoritative after release.
+Current difficulty/conditional-pool mitigation yields78.8 on Enforcer/Assassin;
+do not replace it with old raw80 expectations. Actual live Heavy charge begins,
+then capture resets its real phase, and removal synchronously retires09BC/root:
+all pass. Trooper actual ranged attack while rooted deals120 and does not move.
+Sniper120-tick probe produced no shot and is retained for follow-up, not called a
+passing source assertion. Original NPC control/navigation62 checks all pass.
+
+Preserved entire original test_junkrat_npc_combat.py with assertions unchanged;
+its normal import currently fails on old script.health_query (richer current
+health_queries provider exists), and original script.bot death-volley constants
+are also pending. No fake aliases/observer pools added. Mayhem/death-volley is
+confirmed A-owned and follows Tire/charge activation. Logs outside Git:
+worker-a-junkrat-npc-{original-baseline,actual-final,attacks-second,heavy,shared-final}.log.
+No client run/publication. Next exact action: original Tire039C actor/control/
+climb/recovery and command hooks, then original0B8B charge and Mayhem/death-volley;
+follow up unchanged original NPC import contract and current Sniper clock evidence.

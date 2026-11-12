@@ -70,6 +70,8 @@ def _target(bot, state, query_position):
     if (match is None or match.ended or match.collision_world is None
             or not bot.firing or bot.dead or match.combat.is_stunned(bot)):
         return None
+    if query_position == CHARGE_QUERY and match.combat.junkrat.rooted(bot.entity, match.tick):
+        return None
     target = next((target for target in match.combat._enemies(bot)
                    if getattr(target.owner, "client", None) is not None
                    and not target.owner.gone and target.owner.entity == bot.attack_target), None)
@@ -101,7 +103,8 @@ def charge_lane(match, bot, target):
 
     world = match.collision_world
     x, y, z = target.mover.position
-    if (world is None or not 8 <= math.dist(bot.position, target.mover.position) <= 16
+    if (world is None or match.combat.junkrat.rooted(bot.entity, match.tick)
+            or not 8 <= math.dist(bot.position, target.mover.position) <= 16
             or abs(bot.position[1] - y) >= CHARGE_FLOOR_TOLERANCE):
         return False
     data = mover_data(bot.body)
@@ -123,7 +126,9 @@ def update(bot, component, enabled):
             component.edges([(CHARGE_BUTTON, False)])
         phase = charge.instance.vars.get(59)
         if phase is not None and expr.to_int(phase.value()) != 0:
-            if not bot.firing or bot.attack_target is None or component.world.match.combat.is_stunned(bot):
+            fight = component.world.match.combat
+            if (not bot.firing or bot.attack_target is None or fight.is_stunned(bot)
+                    or fight.junkrat.rooted(bot.entity, fight.tick)):
                 stop_charge(component, charge)
             return True
         if enabled and not state.flags & nodes.Ability.RUNNING and charge.remaining() <= 0:
@@ -200,6 +205,10 @@ def charge_motion(bot):
     component = script.component
     charge = ability(component, CHARGE_GRAPH, CHARGE_ABILITY)
     if charge is None:
+        return None
+    fight = component.world.match.combat
+    if fight.junkrat.rooted(bot.entity, fight.tick):
+        stop_charge(component, charge)
         return None
     instance = charge.instance
     phase = instance.vars.get(59)
