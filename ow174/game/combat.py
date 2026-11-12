@@ -128,7 +128,7 @@ from ow174.game.mover import FELL, PITCH_LIMIT, PITCH_RADIANS, REPEAT, STEP, Mov
 from ow174.game.props import ModelPose
 from ow174.game.script import entity_link, entity_queries, expr, graph, message_receive, nodes, regeneration, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, BodyScript, Snapshot
+from ow174.game.script.driver import BASTION, MAX_GAP, OWNER_HEALTH, ULT_CHARGE, ULT_COST, BodyScript, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -10669,6 +10669,9 @@ class Combat:
             points = old_script.component.entity_var(ULT_CHARGE).value()
             if player.hero.guid == regeneration.MERCY:
                 pending = getattr(old_script.world, "pending_ult_credits", ())
+        if (old_script is not None and player.hero.guid == 0x02E000000000023B
+                and old_script.entity == player.body):
+            points = max(0.0, expr.to_float(old_script.component.entity_var(ULT_CHARGE).value()))
         switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
                     if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
         if not switched:
@@ -10680,6 +10683,8 @@ class Combat:
             script = player.body_script
             from ow174.game import mei_ultimate
 
+            if player.hero.guid == 0x02E000000000023B:
+                points = min(expr.to_float(script.component.entity_var(ULT_COST).value()), points)
             if player.hero.guid != 0x02E00000000000DD or not mei_ultimate.spawn_ready(script):
                 script.set_ult_charge(points)
             if player.hero.guid == symmetra_charge.HERO:

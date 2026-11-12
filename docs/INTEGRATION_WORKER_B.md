@@ -1905,3 +1905,21 @@ Next exact action: source respawn preservation actualconsumer within existing
 Match snapshot/restore hooks, followed Grasp/other original contexts. Root owns
 Flux effects; this batch does not modify that dispatcher or add target effects.
 Still no original-client acceptance run or whole Sigma completion claim.
+
+
+## B70 — original Sigma respawn credit through existing replacement hook
+
+Recover original023B Combat._respawn charge snapshot/restore on the existing
+points path: snapshot only the same Sigma body script before switch, preserve
+the untouched old body when ID allocation requests retry, and cap restoration
+to the new body's actual cost. A spent Flux remains0; explicit hero replacement
+still discards credit. No player field or persistence registration added.
+Initial local check exposed missing ULT_COST import; import the actual driver
+constant and rerun rather than replacing the original expectation.
+
+Original two-branch death/respawn(retry included) and hero replacement methods
++Damage8/runtime13 =23/23 pass5.470s. Logs worker-b-sigma-respawn-charge{,
+-corrected}.log. Remaining B69Field5.210vs5 source geometry case remains
+unchanged. No original-client acceptance run. Next exact action: Grasp typed
+interception/temporary-pool/current-clock consumers on existing sole hosts,
+then cross-owner original helper adapters and CLI fixture imports.

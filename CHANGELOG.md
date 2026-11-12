@@ -4,6 +4,12 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve original Sigma charge across respawn
+
+- Existing respawn/replacement hook retains the same Sigma body's earned
+  charge, caps it to the new cost and preserves spent Flux and allocation retry.
+- Original respawn/replacement plus shared23 checks pass; no client run.
+
 ### Restore Sigma source charging policy
 
 - Normal Sigma uses its original392s passive cycle. Its three authored hosted
