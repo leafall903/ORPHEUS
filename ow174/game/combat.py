@@ -74,6 +74,7 @@ from ow174.game import (
     sombra_camo,
     sombra_spread,
     sombra_charge,
+    sombra_replay,
     translocators,
     torbjorn_mark,
     torbjorn_charge,
@@ -3333,8 +3334,9 @@ class Combat:
         except Exception:
             log.exception("[game] %s: %s's combat targets failed", self.match.label(), player.name)
 
-    def command(self, player, command: Command | None, *, defer_effects: bool = False) -> None:
-        """Consume the body's reports. Only a frame with a pose can affect targets."""
+    def command(self, player, command: Command | None, *, defer_effects: bool = False,
+                replay_aim: Command | None = None) -> None:
+        """Consume posed reports and explicitly replayed accepted ability releases."""
         if self.match.collision_world is None:
             return
         script = player.body_script
@@ -3463,6 +3465,10 @@ class Combat:
                     self._shoot(player, command, state, number, time, activation=activation, **options)
                 except Exception:
                     log.exception("[game] %s: %s's shot failed", self.match.label(), player.name)
+        elif replay_aim is not None and script.hero == sombra_camo.HERO:
+            for state, number, time, activation, *launch in shots:
+                if translocators.accepted_volley(state):
+                    self._shoot(player, replay_aim, state, number, time, activation=activation)
         elif player.hero.guid == 0x02E000000000006E:
             for state, number, time, activation, *launch in shots:
                 if state.instance.graph.index != 0x0257 or state.node.pos != 4:
@@ -4320,19 +4326,8 @@ class Combat:
             if target > script.frame:
                 player._advance_body_gap(target + 1, world_idle=True)
             return
-        if (script is not None and script.hero == sombra_camo.HERO
-                and script.world_frame_anchor is not None and not script.retired
-                and not script.component.owner_dead and player.spawned and player.has_body):
-            anchor_tick, anchor_frame = script.world_frame_anchor
-            elapsed = max(0, self.tick-anchor_tick) * round(TICK*1000)
-            target = min(projectiles.MAX_LEASE_FRAME-1, anchor_frame+elapsed//script.frame_ms-1)
-            for _ in range(480):  # original bounded accepted-reaction replay budget
-                frame = sombra_camo.next_frame(script)
-                if frame is None or frame > target:
-                    break
-                player._advance_body_gap(frame+1, world_idle=True)
-                if player.body_script is not script:
-                    break
+        if script is not None and script.hero == sombra_camo.HERO:
+            sombra_replay.replay_player(self, player, self.tick - 1, TICK)
             return
         if (script is None or script.hero != defenses.SOLDIER or script.world_frame_anchor is None
                 or script.retired or script.component.owner_dead or not player.spawned or not player.has_body):
@@ -4453,7 +4448,10 @@ class Combat:
         if self.dragons and field_first < first:
             self.dragons[:] = [flight for flight in self.dragons
                                if dragon.advance(self, flight, first - 1, poses=dragon_poses)]
-        for at in range(first, tick + 1):
+        from itertools import chain
+
+        early_end = min(first, self.tick + sombra_replay.emp_replay_frames(self) + 1)
+        for at in chain(range(self.tick + 1, early_end), range(first, tick + 1)):
             if field_first < at:
                 self.projectiles.heal_fields(field_first, at - 1)
                 field_first = at
@@ -4561,6 +4559,7 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             if at < tick:
+                sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
         molten_core.update(self)

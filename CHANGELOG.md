@@ -4,6 +4,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain current pose clocks and target history during original Sombra replay
+
+- Receive original accepted owner replay, retaining separate body/world epochs.
+  Root resolves the current movement adapter with world tick and preserves all
+  existing history shape/critical fields when updating only recall feet.
+- Original SombraCharge15 plus adapter, entry and runtime31pass48.227s onv16.
+  The adapter check covers distinct epochs and seven-field history with restored
+  scheduling clocks; it does not replace the original live ability checks.
+  Incoming application replay and actual Hack start entries remain C38 work.
+
+
 ### Select original FirstPerson inputs for the integrated local entry
 
 - Workspace entry now selects v16, adding only the existing original33body
@@ -26,6 +37,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Static original-source/current/catalog comparison passes. Existing original
   all32hero view/ray and shared checks follow; no acceptance gate blocks commit.
 
+### Replay original Sombra accepted owner reactions and charge deadlines
+
+- Replace Camo-only idle replay with the original bounded owner scheduler for
+  natural charge, accepted EMP/Translocator releases and physical recall descent.
+  Use actual world/body anchors, retain open endpoints and one existing Mover.
+- Original charge15 pass; selected untouched original Translocator5 pass;
+  runtime/Camo joint36 has35pass and one retained original lethal-Helix failure.
+  Genji/navigation/Mover/Mercy shared115 all pass; real different-epoch charge
+  probe passes. Incoming application retirement and
+  remaining device consumers are still pending; no client acceptance performed.
 
 ### Retain existing operational state in the combined workspace launcher
 

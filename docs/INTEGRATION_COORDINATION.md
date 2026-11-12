@@ -924,3 +924,24 @@ Existing current Player/heroselect encodes controller wire without this VM;
 root must preserve that sole wire ownership rather than enable another manager.
 Original filter_bits prerequisite also missing. A owns only its hero/status
 consumers and does not duplicate these hosts. Overall goal remains incomplete.
+
+
+C37 original9ec17472 accepted owner replay is mounted in actual existing
+Combat/Player/Translocator paths. Root found two current-contract differences:
+_step_body_pose tick is world-at, not body-frame; target history has seven
+fields after B37, not four. Root corrects the passed tick and preserves all
+history tail fields. C confirmed both current contracts. Root91995 terminal
+31pass48.227s onv16: normal original SombraCharge15, focused adapter history/
+epoch/clocks, prepared entry and runtime. No changed original numbers. Worker
+also reports normal shared Genji/nav/mover/Mercy115pass175.104s and5original
+accepted Translocator world checks44.677s. Incoming application replay remains
+unmounted; C38 owns real Queue/start-entry/gate delivery, no fake Wait states.
+
+A actual contract evidence for v16 retained source cases: parked DVa Player
+040A has a different mover from live mech Bot0407; actual combat.player_target
+is the mech, eye1.74 and original21/SET/0 crouch restriction. The old uniform
+fixture queries Player ownership/parked modifiers/body catalog. Tracer raw
+proxy ray1.09 misses the unchanged original head sphere localY1.56701195,
+radius.16, so actual20 follows the source0003 geometry. This is static same-source
+plus actual combined evidence, not an alleged full frozen-source baseline run.
+Do not alter original body/head geometry or numeric assertions to force green.
