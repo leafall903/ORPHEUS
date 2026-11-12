@@ -9053,11 +9053,24 @@ class Combat:
             target.owner.position, target.owner.velocity = tuple(mover.position), tuple(mover.velocity)
             target.owner.moved_tick = self.tick
 
+    def _release_heavy_companion(self, source):
+        # Original companion carry ends at impact; Player native recovery stays unchanged.
+        for actor in tuple(self.companions.active.values()):
+            script = actor.bot.body_script
+            if script is None:
+                continue
+            for application in tuple(script.component.instances.values()):
+                if application.graph.index == 0x1407 and application.source_entity() == source:
+                    script.component.destroy(application)
+
     def advance_heavy_capture(self, component) -> None:
         """Sweep the source and captured player, then feed contact into the authored transition."""
         instance = next((i for i in component.instances.values() if i.graph.index == 0x1408), None)
         if instance is None:
             return
+        phase = instance.find_var(runtime.INSTANCE_SCOPE, 59, create=False)
+        if phase is not None and phase.value() == 2:
+            self._release_heavy_companion(component.entity)
         recovery = instance.states.get(instance.graph.node(10).state)
         if recovery is not None and recovery.active:
             gate = instance.graph.node(15)
@@ -9124,6 +9137,9 @@ class Combat:
             instance.write(expr.lvalue(contact.node.field("m_26DA7CF8")), True)
             drive.try_complete()
             component.run_now()
+            phase = instance.find_var(runtime.INSTANCE_SCOPE, 59, create=False)
+            if phase is not None and phase.value() == 2:
+                self._release_heavy_companion(component.entity)
             return
         # The close trackers belong to the drive. Sample them before the separate body tracker.
         for pos in (85, 100, 134):

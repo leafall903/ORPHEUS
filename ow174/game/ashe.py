@@ -440,6 +440,20 @@ class Companions:
 
         actor = self.active.pop(body, None)
         if actor is not None:
+            from ow174.game import heavy_assault
+
+            victim_script = actor.bot.body_script
+            if victim_script is not None:
+                for application in tuple(victim_script.component.instances.values()):
+                    if application.graph.index != 0x1407:
+                        continue
+                    source = application.source_entity()
+                    carrier = next((bot for bot in self.combat.match.bots if bot.entity == source), None)
+                    if carrier is not None and carrier.body_script is not None:
+                        charge = heavy_assault.ability(carrier.body_script.component,
+                            heavy_assault.CHARGE_GRAPH, heavy_assault.CHARGE_ABILITY)
+                        if charge is not None:
+                            heavy_assault.stop_charge(carrier.body_script.component, charge)
             npc.remove_body(self.combat.match, actor.bot)
             script = actor.owner.body_script
             if script is not None and script.entity == body:

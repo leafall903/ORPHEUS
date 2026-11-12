@@ -14,7 +14,7 @@ import test_ashe_pve_npcs as fixtures
 from test_ashe_combat import aim
 from test_ashe_impulses import wall_scene
 
-from ow174.game import combat, heavy_charge, immunity, npc, npc_console, npc_control, stats
+from ow174.game import combat, heavy_assault, immunity, npc, npc_console, npc_control, stats
 from ow174.game.mover import statescript_mods
 from ow174.game.script import expr, graph
 from ow174.game.script.driver import ULT_CHARGE, ULT_COST
@@ -333,7 +333,7 @@ class BobNpcTests(unittest.TestCase):
         owner.mover.yaw, owner.mover.pitch = aim(run.match.combat._eye(owner), (0, 2, 12))
         self.assertEqual(npc_control.start(run.match, owner), bot.entity)
         charge = next(item for item in bot.body_script.component.instances.values()
-                      if item.graph.index == heavy_charge.CHARGE)
+                      if item.graph.index == heavy_assault.CHARGE_GRAPH)
         owner.body_script.set_ult_charge(2240)
         return run, owner, bot, charge
 
