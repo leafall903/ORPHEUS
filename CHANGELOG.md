@@ -4,6 +4,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve unbound native pillar exposure
+
+- Deduplicate prediction body splash only for the same actual pillar bound to
+  solid-wall geometry. Unbound native pillars remain ordinary damage targets.
+- Actual unbound-pillar80 splash and whole-server readonly state checks pass;
+  actual Winston query checks now pass with its real world/input clock driven.
+
+
 ### Restore shared original Sentry geometry queries
 
 - Restore original cover/target/barrier/splash prediction entry points over the

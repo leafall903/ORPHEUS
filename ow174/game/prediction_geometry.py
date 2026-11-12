@@ -7,7 +7,7 @@ health. The returned actors and services are the same objects used by combat.
 import math
 from functools import partial
 
-from ow174.game import contacts, cryo, deflection, ice_wall, mei_wall, reinhardt_barrier, sigma_barrier
+from ow174.game import contacts, cryo, deflection, mei_wall, reinhardt_barrier, sigma_barrier
 from ow174.game.collision import MOVER
 
 
@@ -154,7 +154,7 @@ def splash_targets(fight, rocket, point, visible_from, *, targets=None):
         return
     if targets is None:
         targets = (t for t in fight._enemies(rocket.shooter, team=rocket.team)
-                   if getattr(t.owner, "definition", None) != ice_wall.PILLAR)
+                   if (piece := fight.walls.pieces.get(t.entity)) is None or piece.actor is not t.owner)
     for target in targets:
         distance = max(0.0, segment_distance(point, *target.segment()) - target.radius)
         scalar = blast.splash(distance)
