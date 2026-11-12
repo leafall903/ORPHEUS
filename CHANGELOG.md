@@ -7575,3 +7575,22 @@ This log records tested changes and their acceptance status. Entries are grouped
   implementation was found in those relay copies. Preserve research snapshots.
 - No original-client acceptance or network publication performed. Remaining
   hero consumer integration stays open and is not blocked by acceptance.
+
+
+### Original Torbjorn input selection
+
+- Compose source0006 additions with current prepared inputs:15 added graphs,
+  3 entities,4 original Mercy effect bindings and original deployables mapping;
+  full3528 projectile definitions retained. Existing Junkenstein metadata stays.
+  Source-only status_effects remains in its original pack, recorded explicitly
+  as unselected; no current source consumer was found. The source Molten path
+  uses deployables and graph16DE and remains a separate integration batch.
+- Compare shared metadata when present in both packs; source packs need not
+  repeat other modes' metadata. Record all unselected top-level metadata in
+  provenance. Both shared graph conflicts and differing shared mode_scripts
+  reject before creating output. All source input hashes remain unchanged.
+- Normal Hanzo profile/journal9 passed. Normal Sonic/Dragon32 completed with
+  30 passes and2 optional input skips, original assertions retained. Evidence:
+  parallel-a18-normal-profile-check.log and parallel-a18-normal-sonic-dragon-check.log.
+- B14 original capture/bump lifecycle and C16 actor-backed turrets are received;
+  joint canonical checks follow. No original-client or publication actions.
