@@ -1,5 +1,34 @@
 # Changelog
 
+## A96 — retain original0065 component72 explicit query provider
+
+Source pet_relation is not merely the current entity_link filename: original
+Context has separate context/namespace availability and captures a mutable Pet
+pointer across watch_pet before reading its fresh uint32 field. Current decoded
+entity_link.Target is immutable; it remains the existing DVa host. Preserved
+source pet_relation.py and its12 originaltests byte-exact (SHA256 A43C9D14A12EF9EBB968249A488E24AAD64FCA79E370DFD511A1CB7D1B12FE13;
+2590CEA06D10C50078D65B787B90EB733ABF34882B6D137FBF72D7EC0BED2B62).
+Added original World.pet_relation_context defaultNotImplemented. The unique
+runtime F76C486C evaluation chain invokes this explicit provider before the
+current entity_link fallback. No manager, pool, inferred pet ownership, oldname
+facade or fabricated game context was added. Original0065 likewise declares
+only an explicit primitive provider, not a game-world override. Unknown services
+still reject strictly; namespace absence preserves output without selector;
+observer retirement poisons as original. Existing DVa actual decoded identity
+and direct-owner separation are retained.
+
+Original pure12 pass0.019s; original12 plus actualDVa BodyVariable12 =24/24pass
+56.307s, log worker-a-pet-relation-sdk-check.log. No source numeric/assert changes.
+This is an active runtime consumer, not just a retained unmounted module.
+
+Next A97: root transferred0004 healing_status actualStatusWorld/Applied0C71→
+0B99/0C72/dynamicCombatModFilter/history to A exclusively. ExistingHealingEffects
+already supplies ordinaryanti/amp/timers, tags, immunity and Mercy passive-scale
+history, but originaldynamicVM/filter state consumers are genuinely missing.
+Integrate them into that solemanager while preserving A75/A77 recovery/interval
+integration and exact whole-server storage. Do not instantiate originalStatuses
+as a second manager. Root owns Volskaya and Match/Lift seams; C owns AIBehavior.
+
 ## A95 — native particle projectile contact retains original splash continuation
 
 Restored frozen0068 Combat._fly lines2252–2259: one nonsticky particle

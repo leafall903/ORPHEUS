@@ -462,7 +462,7 @@ class InstanceContext(Context):
             return play.minimum_value(self.instance, cfg, watcher=self.watcher)
         self.poll_native(cfg)
         from ow174.game.script import (
-            body_owner, controller_heroes, controller_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries,
+            body_owner, controller_heroes, controller_queries, entity_filter, entity_link, entity_queries, entity_team, health_queries, pet_relation,
         )
 
         component = self.instance.component
@@ -551,6 +551,10 @@ class InstanceContext(Context):
             from ow174.game import orisa_charge
 
             result = orisa_charge.native(component.world, cfg, self.instance)
+        if result is NotImplemented:
+            # An explicit component72 provider owns its captured Pet pointer and
+            # observer callbacks; otherwise retain the existing decoded host.
+            result = pet_relation.evaluate(self, cfg)
         if result is NotImplemented:
             result = entity_link.evaluate(self, cfg)
         if result is NotImplemented:
@@ -1276,6 +1280,10 @@ class World:
         return NotImplemented
 
     def entity_link_context(self, entity):
+        return NotImplemented
+
+    def pet_relation_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit component72 lookup and observation;no creation/owner relation is inferred."""
         return NotImplemented
 
     def confirm_portal(self, state):
