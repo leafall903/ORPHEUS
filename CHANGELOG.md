@@ -4,6 +4,53 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Fire Strike and shattered Winston shell consumers
+
+- Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
+  damage their single native pool once and continue through the body. Read
+  captured rocket affiliation in these and actual native impact cover queries.
+- Retain a shell's actual centre/radius only when this Shatter wave breaks it.
+  Already blocked rays stay stopped; later rays distinguish natural expiry,
+  rifle destruction and destruction by this wave, without another actor.
+- All43 focused original Winston physical interactions, Shatter31 and causal
+  snapshot checks pass. Full original14 retains exact1.1 versus nativef32
+  1.10000002384 and two existing Brigitte host errors. Keep original49
+  assertions/expected values; only current query/getter fixture adapters change.
+- Original-client acceptance remains open.
+
+### Restore native shield impact splash recipient handling
+
+- Keep the actual native mesh hit as this impact's cover before damaging its
+  pool, then resolve exposed bodies through the existing explosion path. This
+  preserves protection when the same hit breaks the shield without swallowing
+  splash onto an exposed body. Exclude duplicate area damage from the same
+  body's separate collision-descriptor adapter; never exchange the descriptors.
+- Reuse the exact native mesh transform in one stateless trace helper. Preserve
+  front-side near-surface splash/falloff; rear explosions do not damage the
+  forward shield. Other shield and sticky-projectile paths retain their hosts.
+- All60 original focused four shield splash cases, existing near-shield falloff,
+  Pharah primary/edge and runtime checks pass. Complete original suites retain
+  known Echo488/380, missing sigma_grasp import, Brigitte and pending team-bound
+  observations; assertions and original numeric expectations are unchanged.
+- Original-client acceptance remains open.
+
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
+
 ### Mount delivered Junkrat grenade launch and terrain physics
 
 - Restore source0065 Frag/Mayhem launch metadata on the existing Rocket host:
@@ -70,6 +117,23 @@ This log records tested changes and their acceptance status. Entries are grouped
   Actual nonempty control probe verifies input/movement gating, no duplicate
   stuns write, repeatable passive capture and causal deadline sensitivity.
 - Main original1399 assertions and expectations remain; client acceptance open.
+### Connect original Mei per-source frost aggregation
+
+- Mount original0B77 per-body/channel samples, max/additive policies, settings,
+  exact non-refreshing freeze deadline and body-variable/control consumers in
+  the existing Frost host. Share one causal source dictionary; keep legacy
+  constructor behavior and current aggregate/control interfaces.
+- Clear samples with Cryo, active attached shields, death, replacement and
+  detached-mech cleanup. Preserve an already active Tactical Visor during freeze
+  through an optional existing interruption argument; default other controls
+  remain unchanged. Standard NPC movement receives the same frost modifier.
+- Original frost9/9 pass7.117s; selected original source-aggregation methods11/11
+  pass28.976s. Punch/Damage/NPC36 pass17.452s. Actual Frost mutations share the
+  source dictionary and change server stored digest. Raw source checks remain
+  unchanged apart from frost fixture import naming; no client check implied.
+- Autonomous navigator partial slow still needs its authorized narrow bridge;
+  Blizzard, sampled Cryo history and full pending fixture imports remain open.
+
 ### Connect original Mei input resources and ultimate settings
 
 - Mount original Mei05FE entry completion, automatic real reload/low-ammo
@@ -8876,3 +8940,5 @@ no base runtime copy/change or client run/publication. Next exact action: origin
 then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
 0065 actual integration estimate now low-confidence2-5 active worker hours,
 excluding root intake/conflicts and acceptance-only residuals.
+
+A38 clean-boundary sync: absorbed submitted intake2c6fb142 automatically, retaining root control/Frost/Trap ordering and current shield/Shatter paths. Continue source0065 charge integration.

@@ -1057,3 +1057,5 @@ no base runtime copy/change or client run/publication. Next exact action: origin
 then Mayhem/death-volley and preserved original NPC fixture contract. Remaining
 0065 actual integration estimate now low-confidence2-5 active worker hours,
 excluding root intake/conflicts and acceptance-only residuals.
+
+A38 clean-boundary sync: absorbed submitted intake2c6fb142 automatically, retaining root control/Frost/Trap ordering and current shield/Shatter paths. Continue source0065 charge integration.

@@ -484,9 +484,55 @@ alone is not evidence that a line's consumers are actually mounted.
 - Next: clean sync canonical and restore original explosion surface/recipient
   queries, explicit source team contact context, and remaining native surfaces.
 
+## B28 native mesh impact cover and exposed-body splash
+
+- Current scripted native Rein shield path previously consumed direct+blast and
+  returned, omitting exposed-body splash. Use exactly its existing raw native
+  mesh transform for this impact's cover, before damage, and pass protected
+  recipients to existing _explode. Damage its pool once and exclude same-body
+  sourceRaised area duplication; no actor/VM copy or descriptor interchange.
+- Native ray_hit now reuses stateless mesh_trace, preserving its original math.
+  Forward near-surface splash remains even without a body in range; signed
+  source plane side prevents rear Flashbang damage. Forced impacts keep cover
+  and no same-hit overflow after shield break. Source/client physics still open.
+- `worker-b-rein-native-splash-focused.log`:60/60 pass, original four shield
+  splash/rear Flashbang cases, existing Echo near-shield falloff and Pharah
+  primary/edges/runtime. `worker-b-rein-native-splash-shared.log` full43 earlier
+  preserves old Echo488/380, missing sigma_grasp import, Brigitte and old team
+  keyword errors. An over-restrictive recipient gate was caught by unchanged
+  Echo near-surface falloff and corrected before final60; no assertion edits.
+- Root owns source team projection now. Original collision input confirmed for
+  unified profile:0007/runtime-inputs/reinhardt_collision_174.json; do not use
+  it as raw00C ORPHEUS_REINHARDT_BARRIER_MODEL. New team primitive exposes original
+  lethal body/raised shield ordering1.9cm difference, keep original expectation.
+- Next: clean sync root team service, wire native impact queries to rocket.team,
+  mount FireStrike other barrier/deployable contacts and retained source checks;
+  continue source NPC/Brigitte cross-owner audit using complete v7 inputs.
+
+## B29 native Winston shell contacts and retained Shatter shadow
+
+- Existing FireStrike contact collection reads actual WorldBubbles.trace and
+  existing damage service, per-actor body key and rocket.team. Its native mesh
+  splash recipient cover now also uses the restored root explicit rocket.team.
+- Source Wave.dome_poses stores actual centre/radius when this wave breaks it;
+  existing captured trace uses the shell query. Do not retain naturally expired
+  or independently rifle-broken shells as new blockers. No duplicate actor/VM.
+- Source fixture controlled/ray observations use actual current control and
+  WorldBubbles.trace helpers. All49 original assertion calls/order and expected
+  arguments remain; earlierB12 deploy getter used added graph selector Constants
+  in its LHS, so raw complete assertion AST is not identical to frozen source.
+- `worker-b-rein-native-winston-focused.log`:43/43 (eleven original physical
+  cases +Shatter31 +causal wave snapshot). Full14 original remains1fail2errors:
+  exactdouble1.1 vsnativef32 point, and two Brigitte shield-bash host errors.
+  Logs keep all three original boundaries; no tolerance/expectation edits.
+- Next: clean sync latest root integration, retain protected_out/native_impact
+  union and actual source team contract. Mount original Orisa/Sigma/deployable
+  FireStrike consumers, reuse C29 Photon contact(actor,...) plane/mesh API when
+  merged. No metadata alias alone counts as complete owner integration.
+
 ## Exact next work
 
-1. Commit B27, then clean-sync canonical after parent acceptance. Continue
+1. Commit B29, then clean-sync canonical after parent acceptance. Continue
    source0007 actual shield retirement/death/control/break/recast consumers,
    real native pool fixture inputs, source frozen-team queries and remaining
    surface histories. Preserve original grenade incident-side occlusion and
