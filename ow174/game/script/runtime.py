@@ -930,6 +930,10 @@ class World:
         return NotImplemented
 
 
+    def ai_behavior_context(self, entity: int, *, component: "Component | None" = None):
+        """Explicit component87 callback state; no default selection host."""
+        return NotImplemented
+
     def selects_ai_behavior(self, instance: "Instance") -> bool:
         return False
 

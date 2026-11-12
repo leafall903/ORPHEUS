@@ -1,5 +1,15 @@
 # Changelog
 
+## C67 — original explicit AI callback and search APIs
+
+Restored original0008 component87 AI timer/cleanup callbacks through the existing
+91EF node while preserving current manual selection, plus pure target-search
+routing/masks/condition/radial API. No new search/controller host. Original SDK
+35run34pass1 retained strict-unknown-search failure; current NPC/manual/runtime
+47/47pass. Source assertions unchanged and passive ai_previous snapshot registered.
+Volskaya real production chain is root-owned; other original path consumers remain
+under exact mapping audit. No client/network action.
+
 ## C66 — omitted projectile and active sphere retained respawns
 
 Restored original0016 early projectile-death tracking across update calls on the
