@@ -2154,3 +2154,28 @@ Root confirms current target_volume and its11kernel tests exactly sourceAST,
 actualflux_targets uses that sameVolume; do not duplicate it. Keep original
 horizontalcap3 vs current9.988 residual until originalbaseline/soleMover proof.
 Then complete source barrier/owner and actual Sentry CLI consumer adapters.
+
+
+## B78 — original FluxTargets mixed-owner observations on actual services
+
+Keep Flux calls on actualsigma_flux, but bind Grasp/Accretion/Fortify metadata
+and queries to actualabsorption/combat/fortify, never production alias names.
+Observe actual nativeZarya scriptedPet recipient/body and the same Vitals;
+source40HP seeding calls its Vitals.damage(total-40), not a detached shadow
+particle_barriers map or a damage event that incorrectly credits160energy.
+Read nativeactive pool amounts directly. Existing Grasp activation, living
+pool-group/zero tombstone observers are reused from sourcefixture adapters.
+All original assertion-call ASTs equal under exact real observation mappings;
+all numeric expectations remain. No source effect driver changed this batch.
+
+Original8 formerly blocked mixed-owner methods run35.291s:7pass,1realcleanup
+fail. Grasp preservation, lethal entry, all three airborne Accretion scenarios,
+all nativeZarya entry/slam subcases and bothFortify scenarios pass. Only lethal
+slam retains converted[deadbody]=(5,1) until later replacement: original expects
+immediate removal. This is a missing owner-death consumer, not another getter
+mismatch; preserve the failed assertion and restore existingabsorption.retire
+on actualdeath next. Log worker-b-sigma-flux-mixed-owner.log.
+
+Root owns original field33 horizontalkernel and has restored that sameMover
+consumer independently; do not change mover.py. Root has no deathcleanup WIP
+and authorizes B79 narrow existingowner cleanup. No original-client run.
