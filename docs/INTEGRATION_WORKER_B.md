@@ -26,8 +26,11 @@ alone is not evidence that a line's consumers are actually mounted.
 - First submitted batch: `41d6de0e`, accepted by canonical as `a51925d5`.
 - Both delivered `doomfist.py` and `meteor.py` implementations are retained.
   Slams now mount ground-hop velocity, aerial target/movement, landing, wave,
-  hit/pull and shield awards. Meteors are not yet mounted; do not claim the
-  whole Doomfist line.
+  hit/pull and shield awards (batch `856ce426`, canonical `94ec713f`).
+- Meteors now mount confirmation/input filtering, target locking, ground warp,
+  capsule-range/falloff/cover selection, real health loss, launch, protection,
+  interruption/death/retirement and snapshots. Do not claim the whole Doomfist
+  line while Uppercut and remaining shared-service consumers are unresolved.
 - The source null-case Switch semantics now run authored indexed phases while
   retaining the earlier1248 weapon-combo adapter. Positive external launches
   leave their floor before the authored landing limit can attach them again.
@@ -35,6 +38,14 @@ alone is not evidence that a line's consumers are actually mounted.
   Original Slam expectations remain; four reads of the source persistent
   `temporary_pool_used` field use the canonical retained shield-object presence.
   McCree Roll, numeric modifier and Lucio velocity regressions: all41 pass.
+- Meteor's original capsule-boundary range test passes both subcases. Its
+  enclosing-server active snapshot passes getter-free repeatability and stored
+  confirmation causality after real neutral-input charging. The full28-check
+  original suite is running at this submission boundary; the unmodified
+  behavior assertions remain present, including older shared-service API reads
+  which still need reconciliation if reported by the run.
+- Synchronized accepted parallel batches from `a51925d5` in local merge
+  `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
   The active enclosing-server snapshot probe is recorded outside Git at
   `verification/worker-b-doomfist-active-punch-snapshot.log`.
@@ -44,16 +55,18 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount `meteor.Meteors` targeting,
-   protection/landing/damage through the current collision/health services.
-   Preserve current Doomfist Uppercut/passive implementation while reconciling
-   its older unmounted `doomfist_passive.py` consumers.
-2. Reconcile native body-forward, ray/ground and velocity-action adapters and
+1. Consume the running Meteor suite result from
+   `verification/worker-b-doomfist-meteor-full.log` (exec session34963).
+   Reconcile original shared-service observations against current APIs without
+   dropping behavior assertions; report known failures rather than hiding them.
+2. Mount source Uppercut target/damage consumers while preserving/reconciling
+   the older unmounted `doomfist_passive.py` consumers.
+3. Reconcile native body-forward, ray/ground and velocity-action adapters and
    actual original source checks. Do not replace shared files wholesale.
-3. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
+4. Retain source docs and remaining Doomfist checks; reconcile reflected damage,
    resource charge, NPC and status interlocks. Then perform a feature-level
    completion audit before a formal line merge.
-4. Advance the remaining six tank deliveries, auditing canonical equivalents
+5. Advance the remaining six tank deliveries, auditing canonical equivalents
    before importing similarly named helpers. Missing source modules are not
    automatically missing behavior; existing narrow prototypes are not proof of
    complete owner implementation either.

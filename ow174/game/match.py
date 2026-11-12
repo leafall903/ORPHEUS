@@ -571,6 +571,7 @@ class Player:
             # A late movement pose cannot resample an ability on an already evaluated body frame.
             return
         if self.body_script is not None:
+            command = self.match.combat.meteors.prepare_command(self, command)
             if posed:
                 self.match.combat.slams.observe(self)
                 self.match.combat.prepare(self, command)

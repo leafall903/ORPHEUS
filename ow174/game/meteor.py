@@ -190,7 +190,10 @@ class Meteors:
             instance.write((0, 680), instance.evaluate(metric_expr))
             amount = float(instance.evaluate(amount_expr))
             instance.write((0, 476), amount)
-            dealt = self.combat._damage(player, target, amount, False, LOADOUT, command.frame)
+            vitals = self.combat.vitals_of(target)
+            before = vitals.total
+            self.combat._damage(player, target, amount, False, LOADOUT, command.frame)
+            dealt = before - vitals.total
             if dealt > 0:
                 found.append(target.entity)
                 amounts.append((target.entity, amount, dealt))
