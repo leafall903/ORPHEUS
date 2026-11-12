@@ -4,6 +4,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Read delivered physical movement predicates from existing owners
+
+- Restore Reinhardt/NPC known-mask3 movement queries using existing player,
+  Graviton, Halt, Knockback and ordinary Bot movement output. Preserve scoped
+  Baptiste/Assassin projections and DVa's separate controlled-mover contract;
+  unsupported bits and flows remain unsupported. No new movement driver.
+- The32 original NPC contact/team-change and runtime checks now run without
+  movement API errors or Assassin initialization failures. Two original side
+  contact health assertions remain (340.56/490.56 versus300/450); retain them
+  for the source health/charge audit. No original expectations were edited.
+- Original-client acceptance remains open.
+
 ### Restore delivered Charge immovable receiver contacts
 
 - Restore source9161/6601 receiver handling before capture or side damage,

@@ -518,6 +518,10 @@ class World:
     def respawn_body(self, instance, node):
         return NotImplemented
 
+    def movement_flags(self, entity):
+        """Authored movement flags, missing mover, or an unavailable host."""
+        return NotImplemented
+
     def movement_flag_projection(self, instance, node):
         """Explicitly supported (known-bit mask, value), or unknown engine input."""
         return None

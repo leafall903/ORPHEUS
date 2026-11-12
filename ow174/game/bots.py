@@ -543,6 +543,11 @@ class Bot:
         period = max(1, SETTLE_TICKS // every)
         return (tick // every) % period == self.entity % period
 
+    @property
+    def movement_flags(self):
+        """Expose the ordinary body's existing movement output without new state."""
+        return self.movement(self.last_tick or 0).flags
+
     def movement(self, tick: int) -> Movement:
         """Its state for the clients, as a player body's (match.Player.movement). The 3P animation takes
         the throttles as the input direction against the body's yaw and its speed from the velocity:

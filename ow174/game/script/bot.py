@@ -227,6 +227,10 @@ class AssassinControllerWorld(runtime.World):
                     if state is not None and state.active:
                         state.dependency_changed()
 
+    def movement_flags(self, entity):
+        resolver = getattr(self.match, "script_movement_flags", None)
+        return resolver(entity, 0) if callable(resolver) else NotImplemented
+
     def movement_flag_projection(self, instance: runtime.Instance, node: graph.Node):
         if instance.graph.index == 0x1158 and node.pos == 19:
             return 3, self.movement_bits
@@ -259,6 +263,15 @@ class BotWorld(runtime.World):
     @property
     def combat(self):
         return self.match.combat if self.match is not None else None
+
+    movement_flags = BodyWorld.movement_flags
+
+    def movement_flag_projection(self, instance, node):
+        # DVa's controlled mover keeps its existing separate owner contract.
+        if self.hero == 0x02E000000000007A:
+            return None
+        from ow174.game.script.driver import project_movement_flags
+        return project_movement_flags(self, instance, node)
 
     def search_position(self, state):
         from ow174.game import sniper_special

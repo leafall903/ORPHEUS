@@ -1525,6 +1525,26 @@ class Match:
                      if player.body == entity and player.has_body and player.client is not None
                      and not player.gone and (player.spawned or entity == owner)), None)
 
+    def script_movement_flags(self, entity, owner):
+        """Read delivered physical flags with existing movement-owner priority."""
+        for player in self.players:
+            if (player.body == entity and player.has_body and player.client is not None
+                    and (player.spawned or entity == owner)):
+                return player.mover.flags
+        for bot in self.bots:
+            if bot.entity != entity:
+                continue
+            if bot.control_mover is not None:
+                return NotImplemented  # the controlled DVa contract is separate
+            mover = self.combat.zarya_gravitons.npc_movers.get(entity)
+            pull = self.combat.orisa.pulls.get(entity)
+            if mover is None and pull is not None:
+                mover = pull.mover
+            if mover is None:
+                mover = self.combat.knockbacks.active.get(entity)
+            return mover.flags if mover is not None else bot.movement_flags
+        return None
+
     def script_body_position(self, entity: int, owner: int) -> expr.Vec3 | None:
         """The current match pose of a body, including the owner during its own create."""
         player = self.script_player_body(entity, owner)
