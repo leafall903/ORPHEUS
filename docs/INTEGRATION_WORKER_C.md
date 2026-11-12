@@ -111,13 +111,36 @@ C6 full server-snapshot process53540/session33339 remains active after26 CPU
 minutes, with buffered PowerShell output still empty. Do not label it green or
 start another copy; other concrete batches continue independently.
 
+Tenth batch SHA: `c9b4f9e7`, root received as9b93d738; integrated profile62 pass.
+Eleventh batch: `feat: integrate delivered prepared NPC impulse bodies` mounts
+root-delegated narrow Bot/manual physics and owned Mei/Pharah target adapters,
+plus the existing hook module's future shared-body handoff. Root attack_mode and
+reposition cleanup are preserved; npc_control/npc_navigation are unchanged.
+Original12 NPC cases:11 pass,1 Combat.hooks missing-consumer error remains.
+All96 Bot/control/navigation checks pass, three original wall/team scenarios pass,
+and explicit navigation resumes after settling in a direct handoff probe.
+NPC inputs: ../retribution/npc-runtime/data; ../hero-lanes/0008/asset-research/
+five-npc-ai-candidate.json.gz; ../hero-lanes/007A/mech-npc-movers.json.
+Logs: worker-c-pharah-npc-impulse-integrated-check.log,
+worker-c-npc-physics-shared-final-check.log, worker-c-pharah-npc-wall-focused-check.log,
+worker-c-npc-impulse-navigation-probe.log. No source assertion was changed.
+
+C6 full snapshot run is FINISHED:70/2615s,2 failures,10 errors,3 skips.
+Three journal errors are INVALID as implementation evidence because ongoing
+worker edits changed the captured model manifest; guards correctly rejected it.
+Other legacy observation errors and Zarya/Moira assertions remain in the log.
+Root explicitly requires any future long journal run on a frozen committed SHA
+in a detached worktree, never the actively edited worker tree, and never a gate.
+No running long test remains from session33339/process53540.
+
 ## Exact next work
 
-1. At this clean boundary synchronize latest root canonical (retain all owners),
-   then review original Pharah charge, flight boundaries, NPC and barrier/phase
-   interlocks. Splash/self-splash/impulse, curve reflection and002B interruption
-   are mounted. Do not replace the combined host. Root owns NPC bots/navigation/
-   snapshot entry edits; reconcile their adapters without replacing that work.
+1. Submit/reconcile C11, then perform root-authorized narrow Moira Deployable
+   definition dispatch correction (do not remove damageable targets). Review
+   remaining Pharah defense/barrier/control equivalence and continue the other
+   six owner families. Core charge/flight/edges45 pass; NPC physical11/12 pass.
+   Root/worker B still owns complete Roadhog hooks and root owns NPC input/nav;
+   preserve the C11 narrow physical-body adapter when bringing those implementations in.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
    just ancestry or file names. Core combat/charge49 checks already pass.
 3. Continue the other six deliveries. Substantial missing owner families include

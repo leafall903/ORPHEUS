@@ -7,7 +7,7 @@ from itertools import pairwise
 from ow174.game import collision, contacts
 from ow174.game.collision import Ground
 from ow174.game.commands import Command
-from ow174.game.mover import IN_AIR, Mover, mover_data
+from ow174.game.mover import IN_AIR, Mover, mover_data, loaded_mover_table
 from ow174.game.script import expr, graph, runtime
 
 MEI = 0x02E00000000000DD
@@ -157,8 +157,15 @@ class Walls:
         for target in self.combat._targets():
             owner = target.owner
             if isinstance(owner, Bot) and owner.spawner.get("manual_spawn") and not owner.dead:
-                mover = getattr(owner, "wall_mover", None) or Mover(
-                    owner.position, round(owner.yaw), self.combat.match.collision_world, mover_data(owner.body),
+                from ow174.game.collision import MOVER, TEAM0, TEAM1
+
+                match = self.combat.match
+                category = MOVER if match.game_map.free_for_all or owner.team not in (0, 1) else (TEAM0, TEAM1)[owner.team]
+                if owner.body not in (loaded_mover_table() or {}):
+                    continue
+                known = mover_data(owner.body)
+                mover = getattr(owner, "impulse_mover", None) or Mover(
+                    owner.position, round(owner.yaw), match.collision_world, known, category=category,
                 )
             else:
                 mover = getattr(owner, "mover", None)
@@ -188,7 +195,8 @@ class Walls:
             for owner, mover, position in lifts:
                 self.place_mover(mover, position, ((0., 1., 0.),))
                 if isinstance(owner, Bot):
-                    owner.wall_mover = mover
+                    owner.impulse_mover = owner.wall_mover = mover
+                    owner.last_tick = self.combat.tick
                     owner.position, owner.velocity = tuple(mover.position), mover.velocity
                     owner.moved_tick = self.combat.tick
         return created
