@@ -337,6 +337,13 @@ mod tests {
                 rooms: Vec::new(),
                 truncated: false,
                 timing: None,
+                faults: vec![crate::game_debug::RoomFault {
+                    room: "00000000000000050000000000000008".into(),
+                    stage: "finish_tick",
+                    connection: None,
+                    tick: 41,
+                    reason: "panic",
+                }],
             })
         })
         .unwrap();
@@ -363,7 +370,10 @@ mod tests {
             ),
             (
                 "state",
-                json!({"tick": 42, "rooms": [], "truncated": false}),
+                json!({"tick": 42, "rooms": [], "truncated": false,
+                    "faults": [{"room": "00000000000000050000000000000008",
+                        "stage": "finish_tick", "connection": null,
+                        "tick": 41, "reason": "panic"}]}),
             ),
         ] {
             let response = request(

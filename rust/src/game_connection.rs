@@ -92,6 +92,13 @@ pub struct GameConnections {
     connections: HashMap<u32, Connection>,
 }
 
+/// A transmitter borrowed from one active connection, without the connection map.
+pub struct Sender<'a> {
+    connection: u32,
+    cipher: &'a LinkCipher,
+    peer: &'a mut Peer,
+}
+
 impl GameConnections {
     /// Reserve a seat using the same directional keys as its lobby message.
     pub fn reserve_handoff(&mut self, handoff: &Handoff, seat: u64, now: Duration) -> bool {
@@ -141,6 +148,13 @@ impl GameConnections {
             }
             _ => false,
         }
+    }
+
+    /// Immediately discard a waiting or active connection after a room fault.
+    /// Returns whether it existed; repeat calls have no effect. The caller owns
+    /// seat cleanup. No reply is encoded and no timeout notification is queued.
+    pub fn revoke(&mut self, connection: u32) -> bool {
+        self.connections.remove(&connection).is_some()
     }
 
     pub fn handoff_pending(&self, connection: u32, now: Duration) -> bool {
@@ -254,16 +268,27 @@ impl GameConnections {
         Ok(received)
     }
 
-    pub fn transmit(&mut self, packet: Packet) -> Result<Outgoing, TransmitError> {
-        let Some(Connection {
+    /// Borrow only the selected peer's transmission state for room-local work.
+    pub fn sender(&mut self, connection: u32) -> Option<Sender<'_>> {
+        let Connection {
             cipher,
             state: State::Active(peer),
             ..
-        }) = self.connections.get_mut(&packet.conn)
+        } = self.connections.get_mut(&connection)?
         else {
-            return Err(TransmitError::UnknownPeer);
+            return None;
         };
-        peer.seal(cipher, packet)
+        Some(Sender {
+            connection,
+            cipher,
+            peer,
+        })
+    }
+
+    pub fn transmit(&mut self, packet: Packet) -> Result<Outgoing, TransmitError> {
+        self.sender(packet.conn)
+            .ok_or(TransmitError::UnknownPeer)?
+            .transmit(packet)
     }
 
     /// Begin the leave grace period once, preserving its original deadline.
@@ -309,6 +334,15 @@ impl GameConnections {
         });
         expired.sort_unstable_by_key(|entry| entry.connection);
         expired
+    }
+}
+
+impl Sender<'_> {
+    pub fn transmit(&mut self, packet: Packet) -> Result<Outgoing, TransmitError> {
+        if packet.conn != self.connection {
+            return Err(TransmitError::UnknownPeer);
+        }
+        self.peer.seal(self.cipher, packet)
     }
 }
 
@@ -529,6 +563,156 @@ mod tests {
         );
         assert_eq!(game.expire(Duration::ZERO, false)[0].seat, SEAT);
         assert!(!game.cancel_handoff(CONN));
+    }
+
+    #[test]
+    fn sender_requires_an_active_peer_and_rejects_another_connection_id() {
+        let (mut game, client, address, _) = setup();
+        assert!(game.sender(CONN).is_none());
+        assert!(game.sender(CONN + 1).is_none());
+        game.receive(&datagram(&client, 0, SYN | ACK, &[]), address, secs(1))
+            .unwrap();
+        let mut sender = game.sender(CONN).unwrap();
+        assert_eq!(
+            sender.transmit(Packet {
+                conn: CONN + 1,
+                kind: KIND_FRAME,
+                payload: vec![9],
+                ..Packet::default()
+            }),
+            Err(TransmitError::UnknownPeer)
+        );
+        let outgoing = sender
+            .transmit(Packet {
+                conn: CONN,
+                kind: KIND_FRAME,
+                payload: vec![5],
+                ..Packet::default()
+            })
+            .unwrap();
+        let packet = client.open(&outgoing.datagram).unwrap();
+        assert_eq!(packet.conn, CONN);
+        assert_eq!(packet.seq, 1);
+        assert_eq!(packet.payload, [5]);
+        assert!(game.revoke(CONN));
+        assert!(game.sender(CONN).is_none());
+    }
+
+    #[test]
+    fn revoke_discards_waiting_handoffs_without_a_timeout_notification() {
+        let (mut game, client, address, _) = setup();
+        assert!(game.handoff_pending(CONN, Duration::ZERO));
+        assert!(game.revoke(CONN));
+        assert!(!game.revoke(CONN));
+        assert!(!game.handoff_pending(CONN, Duration::ZERO));
+        assert_eq!(
+            game.receive(&datagram(&client, 0, SYN, &[]), address, Duration::ZERO),
+            Err(Rejected::UnknownConnection)
+        );
+        assert_eq!(
+            game.transmit(Packet {
+                conn: CONN,
+                ..Packet::default()
+            }),
+            Err(TransmitError::UnknownPeer)
+        );
+        assert!(game.expire(HANDOFF_TIME, true).is_empty());
+    }
+
+    #[test]
+    fn revoke_discards_open_peers_even_during_leave_grace() {
+        for leaving in [false, true] {
+            let (mut game, client, address, _) = setup();
+            let syn = datagram(&client, 0, SYN, &[]);
+            assert!(game.receive(&syn, address, secs(1)).unwrap().admitted);
+            assert!(
+                game.receive(&datagram(&client, 1, ACK, &[5]), address, secs(2))
+                    .unwrap()
+                    .opened
+            );
+            if leaving {
+                assert!(game.begin_leaving(CONN, secs(2)));
+            }
+            assert!(game.revoke(CONN));
+            assert!(!game.revoke(CONN));
+            for stale in [syn, datagram(&client, 2, ACK, &[7])] {
+                assert_eq!(
+                    game.receive(&stale, address, secs(2)),
+                    Err(Rejected::UnknownConnection)
+                );
+            }
+            assert_eq!(
+                game.transmit(Packet {
+                    conn: CONN,
+                    kind: KIND_FRAME,
+                    payload: vec![9],
+                    ..Packet::default()
+                }),
+                Err(TransmitError::UnknownPeer)
+            );
+            assert!(!game.begin_leaving(CONN, secs(2)));
+            assert!(game.expire(secs(5), true).is_empty());
+        }
+    }
+
+    #[test]
+    fn revoking_one_peer_preserves_another_peers_window_and_transmit_sequence() {
+        let (mut game, client, address, other_address) = setup();
+        let other_connection = CONN + 1;
+        let other_client = LinkCipher::new([44; 32], [33; 32]);
+        assert!(game.reserve(
+            other_connection,
+            SEAT + 1,
+            LinkCipher::new([33; 32], [44; 32]),
+            HANDOFF_TIME,
+        ));
+        let other_datagram = |sequence, flags, payload: &[u8]| {
+            other_client
+                .seal(&Packet {
+                    conn: other_connection,
+                    kind: KIND_FRAME,
+                    seq: sequence,
+                    flags,
+                    payload: payload.into(),
+                    ..Packet::default()
+                })
+                .unwrap()
+        };
+        assert!(
+            game.receive(&datagram(&client, 0, SYN | ACK, &[]), address, secs(1))
+                .unwrap()
+                .opened
+        );
+        let other_syn = other_datagram(0, SYN | ACK, &[]);
+        let opened = game.receive(&other_syn, other_address, secs(1)).unwrap();
+        assert!(opened.opened);
+        assert_eq!(opened.control.unwrap().unwrap().sequence, 0);
+
+        assert!(game.revoke(CONN));
+        assert!(!game.revoke(CONN));
+        assert_eq!(
+            game.receive(&other_syn, other_address, secs(2)),
+            Err(Rejected::StaleSequence)
+        );
+        let next = game
+            .receive(&other_datagram(1, ACK, &[5]), other_address, secs(2))
+            .unwrap();
+        assert_eq!((next.connection, next.seat), (other_connection, SEAT + 1));
+        assert!(!next.admitted && !next.opened && !next.closed);
+        assert_eq!(next.payload, Some(vec![5]));
+        let outgoing = game
+            .transmit(Packet {
+                conn: other_connection,
+                kind: KIND_FRAME,
+                payload: vec![8],
+                ..Packet::default()
+            })
+            .unwrap();
+        assert_eq!(outgoing.address, other_address);
+        let packet = other_client.open(&outgoing.datagram).unwrap();
+        assert_eq!((packet.seq, packet.ack, packet.ack_bits), (1, 2, 3));
+        assert_eq!(packet.payload, [8]);
+        assert!(game.expire(secs(2), false).is_empty());
     }
 
     #[test]

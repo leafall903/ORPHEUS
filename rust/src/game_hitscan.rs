@@ -525,7 +525,11 @@ mod tests {
             .unwrap();
         let schemas = Schemas::load(root.join("data/game_schemas_174.json")).unwrap();
         let (bots, queries) = scene.bot_simulation();
-        let bot = bots.bodies().find(|bot| bot.spawn.team == 1).unwrap();
+        let bot = bots
+            .bodies()
+            .unwrap()
+            .find(|bot| bot.spawn.team == 1)
+            .unwrap();
         let target = queries.target(bot);
         let trace = |yaw, distance, height, frame| {
             let [x, y, z] = target.feet;

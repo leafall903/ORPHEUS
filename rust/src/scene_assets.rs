@@ -10,6 +10,8 @@ use std::{
 
 use serde::Deserialize;
 
+pub use crate::game_combat::CombatError;
+
 use crate::{
     accounts::parse_guid,
     bits::BitWriter,
@@ -207,7 +209,7 @@ impl SceneAssets {
             controller,
             mode_ui,
             initial_board,
-            simulation: RoomSimulation::new(bots),
+            simulation: RoomSimulation::new(bots).map_err(io::Error::other)?,
             scripted_bots,
             movers: Arc::clone(&self.movers),
             heroes: Arc::clone(&self.heroes),
@@ -392,13 +394,18 @@ impl PreparedScene {
         &self.mode_ui
     }
 
-    pub fn bots(&self) -> impl ExactSizeIterator<Item = &Bot> {
+    pub fn bots(&self) -> Result<impl ExactSizeIterator<Item = &Bot>, CombatError> {
         self.simulation.bodies()
     }
 
     #[cfg(any(test, feature = "inspector"))]
-    pub(crate) fn bot_actors(&self) -> impl ExactSizeIterator<Item = Actor> {
+    pub(crate) fn bot_actors(&self) -> Result<impl ExactSizeIterator<Item = Actor>, CombatError> {
         self.simulation.debug_actors()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn invalidate_bot_component(&mut self) -> bool {
+        self.simulation.invalidate_bot_component()
     }
 
     pub(crate) fn bot_simulation(&mut self) -> (&mut RoomSimulation, BotQueries<'_>) {
@@ -416,7 +423,11 @@ impl PreparedScene {
         self.simulation.clear_projectiles();
     }
 
-    pub(crate) fn step_bots(&mut self, tick: u32, patrol: &PatrolScript) {
+    pub(crate) fn step_bots(
+        &mut self,
+        tick: u32,
+        patrol: &PatrolScript,
+    ) -> Result<(), CombatError> {
         let floor = self.ground.triangles();
         let map = &self.map;
         self.simulation.for_each_body_mut(|bot| {
@@ -430,11 +441,16 @@ impl PreparedScene {
                     bot.entity
                 );
             }
-        });
+        })
     }
 
     pub fn initial_world(&self, viewer: &PlayerAppearance<'_>) -> io::Result<Vec<EntityUpdate>> {
-        initial_world(&self.map, viewer, self.initial_board.clone(), self.bots())
+        initial_world(
+            &self.map,
+            viewer,
+            self.initial_board.clone(),
+            self.bots().map_err(io::Error::other)?,
+        )
     }
 }
 
@@ -533,7 +549,7 @@ mod tests {
             first.contacts.as_ref().unwrap(),
             second.contacts.as_ref().unwrap()
         ));
-        let before = first.bots().next().unwrap().position;
+        let before = first.bots().unwrap().next().unwrap().position;
         let after = [before[0] + 1.0, before[1], before[2]];
         second
             .bot_simulation()
@@ -541,8 +557,8 @@ mod tests {
             .body_mut(BOT_ENTITY)
             .unwrap()
             .position = after;
-        assert_eq!(first.bots().next().unwrap().position, before);
-        assert_eq!(second.bots().next().unwrap().position, after);
+        assert_eq!(first.bots().unwrap().next().unwrap().position, before);
+        assert_eq!(second.bots().unwrap().next().unwrap().position, after);
     }
 
     #[test]
@@ -834,7 +850,7 @@ mod tests {
         let mut scene = assets.prepare(GameMap::practice_range()).unwrap();
         assets.enable_contact_trace();
         let mut traced = assets.prepare(GameMap::practice_range()).unwrap();
-        assert_eq!(scene.bots().len(), 15);
+        assert_eq!(scene.bots().unwrap().len(), 15);
         let scripted = if assets.graphs.graph_indexes().count() == 373 {
             0
         } else {
@@ -845,6 +861,7 @@ mod tests {
         let mut previous = bots.map(|entity| {
             scene
                 .bots()
+                .unwrap()
                 .find(|bot| bot.entity == entity)
                 .unwrap()
                 .position
@@ -853,11 +870,19 @@ mod tests {
         let mut visited = [0; 2];
         let patrol = PatrolScript::load().unwrap();
         for tick in 1001..=2900 {
-            scene.step_bots(tick, &patrol);
-            traced.step_bots(tick, &patrol);
+            scene.step_bots(tick, &patrol).unwrap();
+            traced.step_bots(tick, &patrol).unwrap();
             for (slot, entity) in bots.into_iter().enumerate() {
-                let bot = scene.bots().find(|bot| bot.entity == entity).unwrap();
-                let traced_bot = traced.bots().find(|bot| bot.entity == entity).unwrap();
+                let bot = scene
+                    .bots()
+                    .unwrap()
+                    .find(|bot| bot.entity == entity)
+                    .unwrap();
+                let traced_bot = traced
+                    .bots()
+                    .unwrap()
+                    .find(|bot| bot.entity == entity)
+                    .unwrap();
                 assert_eq!(
                     traced_bot.movement(tick),
                     bot.movement(tick),

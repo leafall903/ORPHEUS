@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "case_id": "room-isolation.synthetic-policy.v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "437a6eb494df0cf535ba882b7163e1a2468a7c9f",
+    "paths": [
+      "docs/RUST_FOUNDATION_REVIEW.md"
+    ],
+    "basis": "Room-fault acceptance criteria; this is a server recovery policy, not a captured original-server result."
+  },
+  "evidence": "synthetic-recovery-policy",
+  "client_acceptance": "pending",
+  "input": {
+    "fault_room": [
+      5,
+      8
+    ],
+    "survivor": [
+      5,
+      9
+    ],
+    "new_room": [
+      5,
+      10
+    ],
+    "failed_room_players": 2,
+    "survivor_players": 1,
+    "new_room_players": 1,
+    "cases": [
+      {
+        "stage": "finish_tick",
+        "kind": "result"
+      },
+      {
+        "stage": "finish_tick",
+        "kind": "panic"
+      },
+      {
+        "stage": "receive",
+        "kind": "panic"
+      },
+      {
+        "stage": "debug",
+        "kind": "panic"
+      }
+    ]
+  },
+  "expected": {
+    "retired_seats_absent": true,
+    "retired_link_rejects": true,
+    "survivor_ping_after_fault": true,
+    "new_room_handshake": true,
+    "fault_records": 1
+  }
+}

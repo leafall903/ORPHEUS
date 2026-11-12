@@ -64,6 +64,19 @@
       <p id="timing-input" class="notes"></p>
     </section>
 
+    <section id="fault-panel" class="entity-panel" aria-labelledby="fault-heading" hidden>
+      <h2 id="fault-heading">Retired rooms <span id="fault-count" class="code"></span></h2>
+      <p class="notes">Latest 64 room faults since worker startup, newest first. Other rooms continue running. Reasons are categories; private diagnostics remain in the local server log.</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Tick</th><th scope="col">Room</th><th scope="col">Stage</th><th scope="col">Connection</th><th scope="col">Reason</th></tr>
+          </thead>
+          <tbody id="fault-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="entity-panel" aria-labelledby="actor-heading">
       <h2 id="actor-heading">Actors <span id="actor-count" class="code"></span></h2>
       <div class="table-scroll">

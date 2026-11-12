@@ -15,7 +15,8 @@ use crate::{
     game_bots::BOT_RECORD_DELAY,
     game_clock::{MAX_LEASE_FRAME, SEND_EVERY, TICK_PERIOD},
     game_combat::{
-        AdmittedFlight, BotReplacement, FlightOutcome, PosedHitscan, PosedProjectile, PosedShot,
+        AdmittedFlight, BotReplacement, CombatError, FlightOutcome, PosedHitscan, PosedProjectile,
+        PosedShot,
     },
     game_controller::ControllerFrame,
     game_egress::{DeliveryReport, FrameRecords, GameEgress, RecordSource, SendError, SentFrame},
@@ -1029,8 +1030,12 @@ impl WorldDelivery {
         tick: u32,
     ) -> io::Result<()> {
         let records = scene.initial_world(viewer)?;
-        self.bots
-            .extend(scene.bots().map(|bot| (bot.entity, BotLifetime::Live)));
+        self.bots.extend(
+            scene
+                .bots()
+                .map_err(io::Error::other)?
+                .map(|bot| (bot.entity, BotLifetime::Live)),
+        );
         for update in records {
             if self.bots.contains_key(&update.entity) {
                 self.push(Record {
@@ -1163,7 +1168,10 @@ impl WorldDelivery {
             return Ok(());
         };
         if let Some(entity) = self.next_body(now) {
-            let hero = scene.heroes().get(hero).expect("active hero");
+            let hero = scene
+                .heroes()
+                .get(hero)
+                .ok_or_else(|| invalid("active player hero is absent from the scene catalog"))?;
             self.switch(scene, viewer, tick, quanta, entity, (hero, skin))?;
         }
         Ok(())
@@ -1268,7 +1276,7 @@ impl WorldDelivery {
                     tick,
                     received,
                 } => {
-                    let _ = self.game_message(scene, viewer, tick, received, quanta, &message);
+                    self.game_message(scene, viewer, tick, received, quanta, &message)?;
                     remaining -= 1;
                 }
                 InputWork::Skin {
@@ -1276,7 +1284,7 @@ impl WorldDelivery {
                     tick,
                     received,
                 } => {
-                    let _ = self.apply_skin(scene, viewer, hero, tick, received, quanta);
+                    self.apply_skin(scene, viewer, hero, tick, received, quanta)?;
                     remaining -= 1;
                 }
                 InputWork::Command {
@@ -1523,22 +1531,26 @@ impl WorldDelivery {
         Ok(())
     }
 
-    pub(crate) fn movement(&self, scene: &PreparedScene, tick: u32) -> Vec<EntityUpdate> {
+    pub(crate) fn movement(
+        &self,
+        scene: &PreparedScene,
+        tick: u32,
+    ) -> Result<Vec<EntityUpdate>, CombatError> {
         if !self
             .started
             .is_some_and(|started| tick.saturating_sub(started) >= BOT_RECORD_DELAY)
         {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        scene
-            .bots()
+        Ok(scene
+            .bots()?
             .filter(|bot| self.created.contains(&bot.entity) && bot.record_due(tick, SEND_EVERY))
             .map(|bot| EntityUpdate {
                 entity: bot.entity,
                 movement: Some(bot.movement(tick)),
                 ..EntityUpdate::default()
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -1800,6 +1812,102 @@ mod tests {
         assert_eq!(input.admitted, Some(MAX_PENDING_INPUT as u32));
         assert!(matches!(input.work.back(), Some(InputWork::Leave)));
         assert_eq!(input.processed, None);
+    }
+
+    #[test]
+    #[ignore = "requires a prepared 104319 Practice Range pack without bot VM graphs"]
+    fn queued_player_requests_ignore_invalid_input_but_propagate_replacement_failure() {
+        let assets = SceneAssets::load(std::env::var_os("ORPHEUS_RUNTIME_DIR").unwrap()).unwrap();
+        let mut scene = assets.prepare(GameMap::practice_range()).unwrap();
+        // Script support is independently optional in this developer preview.
+        scene.owner_body_factory = None;
+        let owner = 0xa000_0100;
+        let card = PlayerCard::default();
+        let viewer = PlayerAppearance {
+            entity: owner,
+            slot: 0,
+            team: 0,
+            card: &card,
+        };
+        let mut world = WorldDelivery::new(owner);
+        world.start(&scene, &viewer, FIRST_TICK).unwrap();
+        world.created.insert(owner);
+        world.present(&scene, FIRST_TICK).unwrap();
+        let pick = |entity, hero: u64| Message {
+            id: CLIENT_GAME_MESSAGE,
+            fields: Fields::from([
+                (
+                    0x78,
+                    Value::Struct(Fields::from([(0, Value::Unsigned(u64::from(entity)))])),
+                ),
+                (0x80, Value::Blob(hero.to_le_bytes().to_vec())),
+                (0xa8, Value::Unsigned(PICK_HERO)),
+                (0xb0, Value::Signed(3)),
+            ]),
+        };
+        for message in [
+            Message {
+                id: 0,
+                fields: Fields::new(),
+            },
+            pick(owner + 1, SOLDIER),
+            pick(owner, 0),
+        ] {
+            world.queue_game_message(FIRST_TICK, Duration::ZERO, message);
+        }
+        world.queue_skin(SOLDIER, FIRST_TICK, Duration::ZERO);
+        assert_eq!(
+            world
+                .advance_input(&scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (4, false)
+        );
+        assert!(world.body.is_none());
+
+        world.generation = u64::MAX;
+        world.queue_game_message(FIRST_TICK, Duration::ZERO, pick(owner, SOLDIER));
+        let error = world
+            .advance_input(&scene, &viewer, RETAIL_QUANTA, 16)
+            .unwrap_err();
+        assert_eq!(error.to_string(), "player body lifetime exhausted");
+        assert!(world.body.is_none());
+        world.generation = 0;
+        world.queue_game_message(FIRST_TICK, Duration::ZERO, pick(owner, SOLDIER));
+        assert_eq!(
+            world
+                .advance_input(&scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (1, false)
+        );
+        let body = world.body.unwrap();
+        assert!(world.body_script.is_none());
+
+        let mut card = PlayerCard::default();
+        card.skins.insert(
+            SOLDIER,
+            SkinTheme {
+                guid: 1,
+                ..SkinTheme::default()
+            },
+        );
+        let viewer = PlayerAppearance {
+            card: &card,
+            ..viewer
+        };
+        world.queue_skin(0, FIRST_TICK, Duration::ZERO);
+        assert_eq!(
+            world
+                .advance_input(&scene, &viewer, RETAIL_QUANTA, 16)
+                .unwrap(),
+            (1, false)
+        );
+        world.generation = u64::MAX;
+        world.queue_skin(SOLDIER, FIRST_TICK, Duration::ZERO);
+        let error = world
+            .advance_input(&scene, &viewer, RETAIL_QUANTA, 16)
+            .unwrap_err();
+        assert_eq!(error.to_string(), "player body lifetime exhausted");
+        assert_eq!(world.body.unwrap().id, body.id);
     }
 
     #[test]
