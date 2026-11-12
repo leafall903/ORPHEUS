@@ -6860,8 +6860,29 @@ class Combat:
         point = _along(rocket.position, heading, t)
         rocket.ended = "body" if struck is not None else "world"
         if scripted_shield is not None:
+            native = scripted_shield[1]
+            if native.component.world.hero == barrier.REINHARDT and rocket.sticky_delay is None:
+                # Freeze cover using the exact native mesh that was struck,
+                # independently from the source collision-descriptor entry point.
+                protected = set()
+                origin = _along(point, heading, -0.0001)
+                for target in self._enemies(rocket.shooter, damageable=True):
+                    a, b = target.segment()
+                    axis = _sub(b, a)
+                    squared = _dot(axis, axis)
+                    share = max(0., min(1., _dot(_sub(point, a), axis) / squared)) if squared > EPSILON else 0.
+                    delta = _sub(_along(a, axis, share), origin)
+                    length = math.sqrt(_dot(delta, delta))
+                    if length and barriers.mesh_trace(native, origin, tuple(v / length for v in delta), length) is not None:
+                        protected.add(target.entity)
+                amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
+                barriers.damage(self, native, amount, attacker=_source_entity(rocket.shooter))
+                self._explode(rocket, point, protected=protected,
+                              native_impact_body=native.parent_body, incident_direction=heading)
+                self._landed(rocket, continuation_point=point)
+                return 0.0
             amount = sum(hit.amount for hit in (rocket.direct, blast) if hit is not None)
-            barriers.damage(self, scripted_shield[1], amount, attacker=_source_entity(rocket.shooter))
+            barriers.damage(self, native, amount, attacker=_source_entity(rocket.shooter))
             if rocket.sticky_delay is not None:
                 self._stick(rocket, point, duration - contact_time)
             else:
@@ -7345,7 +7366,7 @@ class Combat:
 
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
                  struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
-                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0)):
+                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0), native_impact_body=None):
         damage_point = point if damage_point is None else damage_point
         incident_direction = rocket.direction if incident_direction is None else incident_direction
         blast = rocket.blast
@@ -7411,6 +7432,7 @@ class Combat:
         ))
         protected.update(self.barriers.reinhardt.explosion(
             rocket.shooter, point, blast, visible_from, raised,
+            excluded=() if native_impact_body is None else (native_impact_body,),
         ))
         for bubble in self.barriers.enemies(rocket.shooter):
             if not isinstance(bubble, barriers.Bubble):

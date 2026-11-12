@@ -4,6 +4,39 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore native shield impact splash recipient handling
+
+- Keep the actual native mesh hit as this impact's cover before damaging its
+  pool, then resolve exposed bodies through the existing explosion path. This
+  preserves protection when the same hit breaks the shield without swallowing
+  splash onto an exposed body. Exclude duplicate area damage from the same
+  body's separate collision-descriptor adapter; never exchange the descriptors.
+- Reuse the exact native mesh transform in one stateless trace helper. Preserve
+  front-side near-surface splash/falloff; rear explosions do not damage the
+  forward shield. Other shield and sticky-projectile paths retain their hosts.
+- All60 original focused four shield splash cases, existing near-shield falloff,
+  Pharah primary/edge and runtime checks pass. Complete original suites retain
+  known Echo488/380, missing sigma_grasp import, Brigitte and pending team-bound
+  observations; assertions and original numeric expectations are unchanged.
+- Original-client acceptance remains open.
+
+### Restore delivered native Barrier Field lowering and retirement
+
+- Run original0095 Ability/Pet lowering when the owner is controlled, dead,
+  disconnected or unspawned. Update actual cached activity immediately and use
+  the same native path on death; strict VM hosts retain their separate policy.
+- Source pre-damaged fixtures now target the real authored Vitals and retirement
+  observations read the actual manager registry. No pool/controller duplicates.
+- With the composedv6 environment, all41 focused break/recast/death/leave,
+  native pool, Shatter ownership, actual nonempty shield snapshot and runtime
+  checks pass. Full original Barrier34 retains2fail3errors: rear Flashbang area
+  shield damage, exposed-ally splash, original frozen-team keyword and Brigitte
+  host observations. Keep all1399 original assertions/order/Constants intact.
+- Correct long B21 Genji replay attribution: its error is strict manifest
+  rejection while this worker continued changing source during the2325s run,
+  not evidence of a Genji defect. Keep the rejection; long journal acceptance
+  requires the parent's frozen canonical run. Client acceptance remains open.
+
 ### Mount delivered Junkrat grenade launch and terrain physics
 
 - Restore source0065 Frag/Mayhem launch metadata on the existing Rocket host:

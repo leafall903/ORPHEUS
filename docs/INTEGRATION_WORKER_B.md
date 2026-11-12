@@ -484,9 +484,34 @@ alone is not evidence that a line's consumers are actually mounted.
 - Next: clean sync canonical and restore original explosion surface/recipient
   queries, explicit source team contact context, and remaining native surfaces.
 
+## B28 native mesh impact cover and exposed-body splash
+
+- Current scripted native Rein shield path previously consumed direct+blast and
+  returned, omitting exposed-body splash. Use exactly its existing raw native
+  mesh transform for this impact's cover, before damage, and pass protected
+  recipients to existing _explode. Damage its pool once and exclude same-body
+  sourceRaised area duplication; no actor/VM copy or descriptor interchange.
+- Native ray_hit now reuses stateless mesh_trace, preserving its original math.
+  Forward near-surface splash remains even without a body in range; signed
+  source plane side prevents rear Flashbang damage. Forced impacts keep cover
+  and no same-hit overflow after shield break. Source/client physics still open.
+- `worker-b-rein-native-splash-focused.log`:60/60 pass, original four shield
+  splash/rear Flashbang cases, existing Echo near-shield falloff and Pharah
+  primary/edges/runtime. `worker-b-rein-native-splash-shared.log` full43 earlier
+  preserves old Echo488/380, missing sigma_grasp import, Brigitte and old team
+  keyword errors. An over-restrictive recipient gate was caught by unchanged
+  Echo near-surface falloff and corrected before final60; no assertion edits.
+- Root owns source team projection now. Original collision input confirmed for
+  unified profile:0007/runtime-inputs/reinhardt_collision_174.json; do not use
+  it as raw00C ORPHEUS_REINHARDT_BARRIER_MODEL. New team primitive exposes original
+  lethal body/raised shield ordering1.9cm difference, keep original expectation.
+- Next: clean sync root team service, wire native impact queries to rocket.team,
+  mount FireStrike other barrier/deployable contacts and retained source checks;
+  continue source NPC/Brigitte cross-owner audit using complete v7 inputs.
+
 ## Exact next work
 
-1. Commit B27, then clean-sync canonical after parent acceptance. Continue
+1. Commit B28, then clean-sync canonical after parent acceptance. Continue
    source0007 actual shield retirement/death/control/break/recast consumers,
    real native pool fixture inputs, source frozen-team queries and remaining
    surface histories. Preserve original grenade incident-side occlusion and

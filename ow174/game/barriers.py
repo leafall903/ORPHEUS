@@ -655,6 +655,23 @@ def _live(fight, barrier):
             and state.counter == barrier.activation and _recipient_live(fight, barrier))
 
 
+def mesh_trace(barrier, origin, direction, length, *, padding=0.0):
+    """Read the actual native shield mesh in its existing body transform."""
+    owner = barrier.parent
+    mover = owner.mover
+    yaw, pitch = mover.yaw * math.tau / 65536, mover.pitch * math.tau / 65536
+    sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
+    basis = ((cy, 0, -sy), (sy*sp, cp, cy*sp), (sy*cp, -sp, cy*cp))
+    height = ANCHOR_CROUCHED_HEIGHT if mover.crouched else ANCHOR_HEIGHT
+    anchor = tuple(mover.position[k] + (height if k == 1 else 0)
+                   + basis[2][k] * ANCHOR_FORWARD for k in range(3))
+    delta = tuple(origin[k] - anchor[k] for k in range(3))
+    local_origin = tuple(barrier_geometry._dot(delta, axis) for axis in basis)
+    local_direction = tuple(barrier_geometry._dot(direction, axis) for axis in basis)
+    return barrier_geometry.ray_mesh(barrier.mesh, local_origin, local_direction, length,
+                                     padding=padding)
+
+
 def ray_hit(fight, shooter, origin, direction, length, *, padding=0.0):
     """Closest live enemy defensive Pet using its reconstructed collision.
 
@@ -690,18 +707,7 @@ def ray_hit(fight, shooter, origin, direction, length, *, padding=0.0):
             continue
         if not barrier.mesh:
             continue
-        mover = owner.mover
-        yaw, pitch = mover.yaw * math.tau / 65536, mover.pitch * math.tau / 65536
-        sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
-        basis = ((cy, 0, -sy), (sy*sp, cp, cy*sp), (sy*cp, -sp, cy*cp))
-        height = ANCHOR_CROUCHED_HEIGHT if mover.crouched else ANCHOR_HEIGHT
-        anchor = tuple(mover.position[k] + (height if k == 1 else 0)
-                       + basis[2][k] * ANCHOR_FORWARD for k in range(3))
-        delta = tuple(origin[k] - anchor[k] for k in range(3))
-        local_origin = tuple(barrier_geometry._dot(delta, axis) for axis in basis)
-        local_direction = tuple(barrier_geometry._dot(direction, axis) for axis in basis)
-        distance = barrier_geometry.ray_mesh(barrier.mesh, local_origin, local_direction, length,
-                                            padding=padding)
+        distance = mesh_trace(barrier, origin, direction, length, padding=padding)
         if distance is not None and (best is None or distance < best[0]):
             best = distance, barrier
     return best
