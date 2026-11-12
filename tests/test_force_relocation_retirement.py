@@ -1,5 +1,6 @@
 """Original force retirement on actual Shadow, Halt and Translocator entry."""
 import unittest
+import math
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -117,3 +118,45 @@ class RelocationRetirementTests(unittest.TestCase):
             owner.take_commands([Command(completed[1],buttons=1)])
         self.assertEqual(fired.call_count,0)
         self.assertEqual(tuple(owner.mover.position),position)
+
+
+    def test_halt_release_does_not_resume_old_npc_force_pose(self):
+        fixture=halt.HaltTests()
+        run,caster,enemy=fixture.arena()
+        enemy.spawned=False
+        catalog=npc.load_catalog(Path(os.environ['ORPHEUS_PVE_NPC_DATA'])/'pve_npcs_174.json')
+        definition=next(d for d in catalog.values() if d.name=='Enforcer')
+        x,y,z=caster.mover.position
+        bot=npc.spawn(run.match,definition,(x,y,z+5),team=1-caster.team)
+        fixture.detonate(run,caster)
+        fight=run.match.combat
+        target=next(t for t in fight._targets() if t.owner is bot)
+        self.assertTrue(fight.knockbacks.apply(target,expr.Vec3(1.,2.,0.)))
+        retained=bot.impulse_mover
+        self.assertIsNotNone(retained)
+        data=retained.data
+        previous=bot.position
+        active_before=False
+        entered=False
+        released=False
+        after=0
+        for _ in range(120):
+            run.step({})
+            active=fight.orisa.controls(bot.entity)
+            entered |= active
+            if entered and active_before and not active:
+                released=True
+            if released:
+                self.assertLess(math.dist(previous,bot.position),0.5)
+                self.assertIs(bot.impulse_mover,retained)
+                self.assertIs(retained.data,data)
+                self.assertFalse(retained.external_impulse)
+                after+=1
+                if after==6:
+                    break
+            previous=bot.position
+            active_before=active
+        self.assertTrue(entered)
+        self.assertTrue(released)
+        self.assertEqual(after,6)
+        self.assertIsNone(bot.body_script.component.fault)
