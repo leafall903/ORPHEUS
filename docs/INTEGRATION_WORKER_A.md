@@ -506,3 +506,13 @@ Next clean-boundary action: absorb canonicale875ed87 or newer, then audit0003
 Tracer recall/Pulse/weapon source consumers and000A Widowmaker core. Do not keep
 expanding acceptance instead of progressing these owners. Preserve all source
 checks and commit actual code batches even when old/client acceptance is open.
+
+
+A21 committed `48bdb2db`. Clean boundary sync now absorbs canonicale875ed87,
+including root original volley_geometry and real NPC per-pellet paths plus new
+native field layouts. Only CHANGELOG union conflict; combat auto-merged without
+code conflict. Tracer frozen ref8a3ece2db99405a6c14e3e36c0492fc71d4bb48c;
+Widowmaker0bbf016a88d6272db5358c5e4f6a611d4db5b327. Next: compare Tracer
+tracer.py/tracer_pistol.py and Pulse Bomb delivery with current Recalls/PulseBombs
+managers; inventory Widowmaker modules/driver/combat hooks without appearance.
+Sync verification:30 profile/journal/Damage/runtime normal checks passed in worker-a-canonicale875-sync.log.

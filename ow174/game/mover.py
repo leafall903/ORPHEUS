@@ -926,6 +926,7 @@ class Mover:
         self, command: Command, seconds: float, tick: int,
         *, move_to: tuple[tuple[float, float, float], float] | None = None,
         horizontal_drive: tuple[float, float] | None = None,
+        suppress_throttle: bool = False,
         movement_limit: Callable[[tuple[float, float, float], float], float | None] | None = None,
         fall_limit: float | None = None,
         speed_scale: float = 1.0,
@@ -993,6 +994,8 @@ class Mover:
             self.input_frame = frame
 
         right, forward = modified_throttles(active, right, forward)
+        if suppress_throttle:
+            right = forward = 0.
         wall_velocity = False
         if wall_ride is not None and not grounded and move_to is None:
             from ow174.game.wall_ride import advance

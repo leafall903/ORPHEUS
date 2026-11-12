@@ -260,3 +260,109 @@ pool, with actual owner credit/geometry/snapshot/lifetime bridges. Its collectio
 is fight.turrets(owner.entity->source Turret); legacy prototype torbjorn_turret
 manager has not been a production consumer. Hammer repair and Steel Trap
 contact remain explicit pending owner consumers, not completed by empty maps.
+
+Clean C15 boundary synchronizes root7b6c99ac, including B9 Winston jump/primal
+and root reflected flight lifetime boundaries. Keep both Overload and Winston
+command consumers, source Overload armour and B9 beam-factor overflow, and all
+changelog entries. Functional C15 remains ea89b37d; do not replay this merge.
+
+## C16 actor-backed turret and marks checkpoint
+
+C15 SHAea89b37d has been received; root latest62dd2bf0 includes A/B/C batches,
+not yet synchronized because C16 WIP was active. C16 mounts the remaining
+source hero_torbjorn turret functions and torbjorn_mark actual impact/update/
+priority paths. Existing NPC bodies, vitals and single gun driver are used.
+NPC optional current_health/selected entities/aim_at are authorized by root;
+bots owner/geometry, combat target/credit/muzzle, driver bound query/message,
+body-switch reuse and snapshot fields connect production consumers. All
+existing control/navigation paths remain. Throw uses original point contact,
+not a carrier-radius hit hovering0.35m above its permitted landing surface.
+
+Evidence: first turret8 run5pass/1fail/2errors exposed missing throw spawn;
+source spawn/gravity then exposed collision-height. Final five throw/owner-death/
+repair checks pass22.933s. Owner8 + NPC/damage15 pass in45.651s (run24 also
+records one unexecuted mark fixture import); five mark core checks pass11.486s.
+After preserving original defense/phase fixtures unchanged, imports resolve.
+Last shared NPC/damage15 pass2.136s. Logs worker-c-torbjorn-turret-{first,throw,
+throw-final,owner}-check.log and worker-c-torbjorn-mark-first-check.log.
+Test fixtures import unmounted molten_core/phase_defenses/torbjorn_charge;
+explicit test-only ow174.game.__path__ appended frozen0006/source/ow174/game.
+No such fallback exists in production; no Molten or charge integration claimed.
+
+Input comparison: worker-c-torbjorn-input-differences.json. Current combined
+base/supplement shared graphs/entities/effect_scripts equal original0006 pack;
+no differing records. Add graphs1688,1689,16DE,16FB,16FC; entities28B7,2903;
+original deployables format_version1/turret/molten_core/primary_mark. Narrow
+loader accepts that mapping, idempotent equal keys, rejects unequal collisions,
+nonmapping entries and invalid version. For local checks only, external
+worker-c-torbjorn-supplement.json.gz adds these records to the existing profile.
+Root tools/prepare_hero_inputs.py owns final prepared profile composition.
+No original input or full asset collection was copied/modified.
+
+Exact next: submit C16 immediately, then synchronize root62dd2bf0 or its latest
+clean descendant and reuse B12 reinhardt_hammer.surfaces with Torb's sphere to
+reconcile native shield faces (do not duplicate manager/damage). Mount Molten
+Core actual launch/rebound/area/status/damage/lifetime and source charge next.
+Retain original hammer repeat differences53vs47/boosted33. Review remaining
+NPC/phase/defense/reflect/mark contexts against combined owners; no complete
+0006/0008 line or client acceptance is claimed. Other assigned owner families
+remain as previously recorded and must continue after this owner batch.
+
+C16 SHA b889f287 delivered to root. Clean boundary synchronizes root9ec59b74,
+preserving its Hanzo/Orisa/Winston/Rein consumers plus Torb marks/turrets,
+all snapshot fields and all changelog entries. Resolve conflicts by retaining
+both turret update and Orisa pending cleanup, root command ordering, and
+root expanded snapshot fields plus torbjorn_marks. Do not replay this merge.
+
+C17 reuses B12 reinhardt_hammer.surfaces for Torb sphere volumes; keep the
+original live-bubble path but exclude RaisedBarrier from that old route to
+avoid duplicate surface damage. Default area callers are unchanged. Actual
+probe uses ReinhardtWinstonBarrierTests.deploy(7), switches case.rein to Torb,
+places at(0,1,0), waits35, sendsCommand(action=2), waits45, then twice advances
+45frames(buttons=1)+25(buttons=0). Native shell700->590; body500 unchanged;
+HERO_DAMAGE0. Initial probes without the35-frame fresh-body equip wait were
+setup-invalid and left the rifle selected; no runtime timing was changed.
+Three Torb original delayed/late/distinct-target hammer tests plus original
+Rein native-shell hammer test pass4/4 in4.056s. No new tests/matrix were added.
+Root C16 received0854671e, v4 inputs e1c5e6fd actually add15graphs/3entities/
+4effects+deployables to canonical base, root23owner/NPC/damage checks pass.
+
+Next immediately mount original Molten Core; status_effects topmetadata has
+no direct reader anywhere in frozen0006/source/ow174 (rg confirmed). Original
+Molten Core reads deployables.molten_core and directly resolves status_graph
+16DE and its scopes. Root preserves status_effects as unselected input evidence;
+do not silently import it into production or claim a consumer without evidence.
+
+## C18 Molten Core checkpoint
+
+C17 SHA0790f14f received7b921893. Rootlatestb6859d9b; C18 WIP was not interrupted
+for synchronization. Actual original molten_core module now lives in this tree;
+no production/source-package import fallback is used. Connect16DA spawn/gravity/
+point chord/segment rebound/reflection speed to actual projectile sweeps;
+16DD pool delivery/ack/FX,16DE status/scopes, overlap union, armour-only boundary
+settlement and lifecycle all have real consumers. Existing managers handle
+world cover, immunity, incoming scaling, legacy attached bubbles and damage.
+Combined pool ordering includes temporary/extra/conditional/wave/Rally rather
+than dropping their implementations. Exact scopes.Registry(states) is now
+passively registered in both storage exporters (source reader preserved).
+
+Original flight five pass9.426s: ceiling, double bounce, shallow/steep ramp,
+ten-shot held ultimate, same-tick hero switch. Area five behavior pass; original
+passive pool/status snapshot passes21.430s after Registry registration. Seven
+area/lifecycle + NPC/damage15 pass in6.567s; that23-check group additionally
+retains a Pharah fixture sigma_grasp import error, not an executed curve test.
+Actual three Barrage curve checks separately pass after the same previously
+recorded test-only0008 source package fallback. Logs:
+worker-c-torbjorn-molten-{area,area-final,flight,flight-final,shared,barrage-shared}-check.log.
+Initial source-constant adapter typo and exact Registry omission were corrected;
+two edit guards rejected stale shared-file text before changing combat.py, so
+those early flight errors are not final implemented behavior. No assertion was
+edited. Core original Molten checks no longer require the frozen Molten import
+fallback, and original turret fixture's formerly missing module is truly local.
+
+Next: submit C18 promptly, synchronize latest clean canonical at batch boundary,
+then mount original Torbjorn charge184-line host and reconcile Molten source
+barrier/phase/NPC/reflect/expiry edges against current combined managers. Those
+broader original checks are retained, not declared green by ancestry/imports.
+Original0008 impact-time cover and Bastion NPC capture/movement differences
+remain visible. The other six assigned families must continue afterward.

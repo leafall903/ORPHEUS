@@ -29,6 +29,22 @@ BARRIER_DATA = (Path("D:/overwatch 1.7.4/verification/hero-lanes/0007/runtime-in
                 / "reinhardt_collision_174.json")
 
 
+def controlled(fight, entity, *, tick=None):
+    target = next((t for t in fight._targets() if t.entity == entity), None)
+    return target is not None and fight.is_stunned(target.owner, tick=tick)
+
+
+def pinned(fight, entity):
+    from ow174.game import reinhardt_charge
+    return (reinhardt_charge.pinned(fight, entity) or entity in fight.pins.values()
+            or any(c.captured == entity for c in fight.charge_contacts.values()))
+
+
+def control_deadline(fight, entity):
+    # Selected counter tests read the current canonical native stun clock.
+    return fight.stuns.get(entity, 0)
+
+
 _BRIGITTE_VIEWS = {}
 
 
@@ -97,7 +113,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
     if allied:
         case.assertEqual(deployment.health, health)
         case.assertEqual(case.health(case.rein), 497.5)
-        case.assertTrue(fight.controlled(case.rein.body))
+        case.assertTrue(controlled(fight, case.rein.body))
         case.assertEqual(len(case.other.client.messages(combat.HIT)), 1)
         return hold, stopped
     case.assertGreater((stopped[2] - start) * direction, 0.8)
@@ -106,7 +122,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
     case.assertEqual(case.other.mover.velocity[2], 0)
     case.assertEqual(deployment.health, health)
     case.assertEqual(case.health(case.rein), 500)
-    case.assertFalse(fight.controlled(case.rein.body))
+    case.assertFalse(controlled(fight, case.rein.body))
     if expiry is not None:
         for _ in range(9):
             case.run.step(hold)
@@ -118,7 +134,7 @@ def shield_bash_at_deployment(case, deployment, origin_z, direction, *, expiry=N
             case.run.step(hold)
         case.assertEqual(tuple(case.other.mover.position), stopped)
         case.assertEqual(case.health(case.rein), 500)
-        case.assertFalse(fight.controlled(case.rein.body))
+        case.assertFalse(controlled(fight, case.rein.body))
         case.assertEqual(case.other.client.messages(combat.HIT), [])
     return hold, stopped
 
@@ -179,10 +195,10 @@ class HammerTests(unittest.TestCase):
                 self.run.step(hold)
                 fight = self.match.combat
                 self.assertEqual(self.health(self.rein), 497.5)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
                 for _ in range(70):
                     self.run.step(hold)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 self.assertEqual(self.health(self.enemy), 200)
                 self.assertEqual(self.rein.client.messages(combat.HIT), [])
 
@@ -642,7 +658,7 @@ class HammerTests(unittest.TestCase):
                 self.assertEqual(tuple(self.enemy.mover.position), stopped)
                 self.assertEqual(self.health(self.rein), 500)
                 self.assertEqual(self.health(self.other), 250)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 self.assertEqual(self.enemy.client.messages(combat.HIT), [])
 
     def test_actual_flank_shield_bash_releases_charge_victim_before_wall(self):
@@ -661,22 +677,22 @@ class HammerTests(unittest.TestCase):
             self.run.step(hold)
         self.assertGreaterEqual(self.rein.mover.position[2], 7.5)
         self.assertIn(self.rein.body, fight.charges)
-        self.assertTrue(fight.pinned(self.enemy.body))
-        self.assertEqual(fight.charge_contacts[self.rein.body].pinned, self.enemy.body)
+        self.assertTrue(pinned(fight, self.enemy.body))
+        self.assertEqual(fight.charges[self.rein.body].pinned, self.enemy.body)
         self.assertEqual(self.health(self.enemy), 200)
 
         self.place(self.other, (2.7, 1, self.rein.mover.position[2] + .5))
         self.run.step({self.other: (-16384, 0, 3)})
         self.run.step(hold)
         self.assertEqual(self.health(self.rein), 497.5)
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
-        self.assertFalse(fight.pinned(self.enemy.body))
-        self.assertFalse(fight.controlled(self.enemy.body))
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
+        self.assertFalse(pinned(fight, self.enemy.body))
+        self.assertFalse(controlled(fight, self.enemy.body))
         self.assertFalse(fight.charges)
-        self.assertFalse(fight.charge_contacts)
+        self.assertFalse(fight.charges)
         for _ in range(65):
             self.run.step(hold)
-        self.assertFalse(fight.controlled(self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.assertLess(self.enemy.mover.position[2], 12)
         self.assertEqual(self.health(self.enemy), 200)
         self.assertEqual(self.rein.client.messages(combat.HIT), [])
@@ -773,7 +789,7 @@ class FireStrikeTests(unittest.TestCase):
                     self.run.step({self.enemy: (-16384, 0, 3)})
                     self.run.step(hold)
                     self.assertEqual(self.health(self.rein), 497.5)
-                    self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+                    self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
                     self.assertIs(launched(), original)
                     if button == 16:
                         self.assertFalse(self.ability().flags & self.ability().RUNNING)
@@ -785,7 +801,7 @@ class FireStrikeTests(unittest.TestCase):
                         self.run.step(hold)
                         if not released:
                             self.assertIsNone(launched())
-                    self.assertFalse(fight.controlled(self.rein.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
                     expected = 200 - damage if released else 200
                     self.assertEqual(self.health(self.other), expected)
                     self.assertEqual(len(self.rein.client.messages(combat.HIT)), int(released))
@@ -809,20 +825,20 @@ class FireStrikeTests(unittest.TestCase):
         for _ in range(26):
             self.run.step({self.other: (-16384, 0, 0)})
         fight = self.match.combat
-        self.assertFalse(fight.controlled(self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.run.step({self.rein: (0, 0, 16), self.other: (-16384, 0, 0)})
         ability = self.ability()
         self.assertTrue(ability.flags & ability.RUNNING)
         for _ in range(29):
             self.run.step({self.other: (-16384, 0, 0)})
             self.assertFalse(fight.rockets)
-            if fight.controlled(self.rein.body):
+            if controlled(fight, self.rein.body):
                 break
-        self.assertTrue(fight.controlled(self.rein.body))
+        self.assertTrue(controlled(fight, self.rein.body))
         self.assertFalse(ability.flags & ability.RUNNING)
 
         for _ in range(600):
-            if not fight.controlled(self.rein.body) and ability.remaining() == 0:
+            if not controlled(fight, self.rein.body) and ability.remaining() == 0:
                 break
             self.advance(1, buttons=0)
             self.assertFalse(fight.rockets)
@@ -995,7 +1011,7 @@ class ReinhardtWindupRetirementTests(unittest.TestCase):
                 self.assertEqual(self.rein.hero.guid, combat.REINHARDT)
                 self.assertEqual(self.health(self.rein), 500)
                 self.assertEqual(self.health(self.other), 200)
-                self.assertFalse(fight.controlled(self.other.body))
+                self.assertFalse(controlled(fight, self.other.body))
                 self.assertFalse(self.rein.client.messages(combat.HIT))
 
                 self.place(self.rein, (0, 1, 0))
@@ -1008,9 +1024,9 @@ class ReinhardtWindupRetirementTests(unittest.TestCase):
                 self.advance(52, buttons=held)
                 self.assertEqual(self.health(self.other), expected)
                 if button == 8:
-                    self.assertTrue(fight.pinned(self.other.body))
+                    self.assertTrue(pinned(fight, self.other.body))
                 elif button == 32:
-                    self.assertTrue(fight.controlled(self.other.body))
+                    self.assertTrue(controlled(fight, self.other.body))
 
 
 class ChargeMovementTests(unittest.TestCase):
@@ -1163,13 +1179,13 @@ class ChargeContactTests(unittest.TestCase):
     def test_frontal_capture_transports_without_initial_damage_and_expires_without_wall_damage(self):
         self.cast()
         fight = self.match.combat
-        self.assertEqual(fight.charge_contacts[self.rein.body].pinned, self.enemy.body)
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertEqual(fight.charges[self.rein.body].pinned, self.enemy.body)
+        self.assertTrue(controlled(fight, self.enemy.body))
         self.assertGreater(self.enemy.mover.position[2], 7)
         self.assertEqual(self.health(self.enemy), 200)
         self.advance(200, buttons=0)
-        self.assertFalse(fight.controlled(self.enemy.body))
-        self.assertFalse(fight.charge_contacts)
+        self.assertFalse(controlled(fight, self.enemy.body))
+        self.assertFalse(fight.charges)
         self.assertEqual(self.health(self.enemy), 200)
 
     def test_charge_interrupts_actual_roadhog_hook_windup_and_whole_hog(self):
@@ -1196,18 +1212,18 @@ class ChargeContactTests(unittest.TestCase):
                         if self.rein.mover.position[2] >= 3.15:
                             break
                     self.assertIn(self.rein.body, fight.charges)
-                    self.assertFalse(fight.pinned(self.enemy.body))
+                    self.assertFalse(pinned(fight, self.enemy.body))
                 self.run.step({self.enemy: (16384, 0, button)})
                 self.assertTrue(ability.flags & ability.RUNNING)
                 for _ in range(70):
                     self.advance(1, buttons=0)
-                    if fight.pinned(self.enemy.body):
+                    if pinned(fight, self.enemy.body):
                         break
-                self.assertTrue(fight.pinned(self.enemy.body))
+                self.assertTrue(pinned(fight, self.enemy.body))
                 self.assertEqual(self.health(self.enemy), 600)
                 self.assertFalse(ability.flags & ability.RUNNING)
                 self.advance(45, buttons=0)
-                self.assertFalse(fight.pinned(self.enemy.body))
+                self.assertFalse(pinned(fight, self.enemy.body))
                 self.assertEqual(self.health(self.enemy), 300)
                 self.assertFalse(ability.flags & ability.RUNNING)
                 if button == 8:
@@ -1233,15 +1249,15 @@ class ChargeContactTests(unittest.TestCase):
         charge_wall(self, 12)
         self.cast()
         fight = self.match.combat
-        self.assertTrue(fight.pinned(self.enemy.body))
+        self.assertTrue(pinned(fight, self.enemy.body))
         position = tuple(self.enemy.mover.position)
         component = self.rein.body_script.component
         instance = next(i for i in component.instances.values() if i.graph.index == 0x7D)
 
         self.enemy.team = self.rein.team
         self.advance(1, buttons=0)
-        self.assertFalse(fight.pinned(self.enemy.body))
-        self.assertNotIn(self.rein.body, fight.charge_contacts)
+        self.assertFalse(pinned(fight, self.enemy.body))
+        self.assertNotIn(self.rein.body, fight.charges)
         self.assertFalse(instance.states[3].active)
         self.assertEqual(tuple(self.enemy.mover.position), position)
         self.advance(80, buttons=0)
@@ -1257,14 +1273,14 @@ class ChargeContactTests(unittest.TestCase):
         body = self.rein.body
         victim = self.enemy.body
         instance = next(i for i in self.rein.body_script.component.instances.values() if i.graph.index == 0x7D)
-        self.assertEqual(fight.charge_contacts[body].pinned, victim)
-        self.assertTrue(fight.pinned(victim))
+        self.assertEqual(fight.charges[body].pinned, victim)
+        self.assertTrue(pinned(fight, victim))
         victim_pose = tuple(self.enemy.mover.position)
 
         self.rein.team = self.enemy.team
         self.advance(1, buttons=0)
-        self.assertFalse(fight.pinned(victim))
-        self.assertNotIn(body, fight.charge_contacts)
+        self.assertFalse(pinned(fight, victim))
+        self.assertNotIn(body, fight.charges)
         self.assertNotIn(body, fight.charges)
         self.assertFalse(instance.states[3].active)
         self.assertEqual(tuple(self.enemy.mover.position), victim_pose)
@@ -1276,7 +1292,7 @@ class ChargeContactTests(unittest.TestCase):
         self.advance(1, buttons=8)
         self.advance(60, buttons=0)
         self.assertNotIn(body, fight.charges)
-        self.assertNotIn(body, fight.charge_contacts)
+        self.assertNotIn(body, fight.charges)
         self.assertGreater(cooldown.value(), 0)
         for _ in range(650):
             if cooldown.value() <= 0:
@@ -1290,25 +1306,25 @@ class ChargeContactTests(unittest.TestCase):
         self.advance(1, buttons=8)
         for _ in range(85):
             self.advance(1, buttons=0)
-            if fight.pinned(self.other.body):
+            if pinned(fight, self.other.body):
                 break
-        contact = fight.charge_contacts[body]
+        contact = fight.charges[body]
         self.assertEqual(contact.pinned, self.other.body)
         self.assertNotIn(victim, {entity for entity, _ in contact.hit})
-        self.assertFalse(fight.pinned(victim))
+        self.assertFalse(pinned(fight, victim))
         self.advance(45, buttons=0)
         self.assertEqual(self.health(self.enemy), 200)
         self.assertEqual(self.health(self.other), 0)
-        self.assertFalse(fight.pinned(self.other.body))
-        self.assertNotIn(body, fight.charge_contacts)
+        self.assertFalse(pinned(fight, self.other.body))
+        self.assertNotIn(body, fight.charges)
 
     def test_side_contact_deals_native_50_once_and_cannot_replace_captured_target(self):
         self.place(self.other, (1.6, 1, 3))
         self.cast(100)
         self.assertEqual(self.health(self.other), 150)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertEqual(self.match.combat.charge_contacts[self.rein.body].pinned, self.enemy.body)
-        self.assertFalse(self.match.combat.controlled(self.other.body))
+        self.assertEqual(self.match.combat.charges[self.rein.body].pinned, self.enemy.body)
+        self.assertFalse(controlled(self.match.combat, self.other.body))
         self.advance(40, buttons=0)
         self.assertEqual(self.health(self.other), 150)
 
@@ -1316,7 +1332,7 @@ class ChargeContactTests(unittest.TestCase):
         self.place(self.other, (0, 1, 6))
         self.cast(100)
         self.assertEqual(self.health(self.other), 150)
-        self.assertEqual(self.match.combat.charge_contacts[self.rein.body].pinned, self.enemy.body)
+        self.assertEqual(self.match.combat.charges[self.rein.body].pinned, self.enemy.body)
 
     def test_target_capsule_hits_wall_before_owner_and_applies_300_with_armour_rule(self):
         self.match.switch_hero(self.enemy, heroes()[combat.REINHARDT])
@@ -1326,8 +1342,8 @@ class ChargeContactTests(unittest.TestCase):
         self.assertEqual(self.health(self.enemy), 205)  # 300 native damage minus existing armour5
         self.assertLess(self.enemy.mover.position[2], 8)
         self.assertLess(self.rein.mover.position[2], self.enemy.mover.position[2] - .5)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
-        self.assertFalse(self.match.combat.charge_contacts)
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
+        self.assertFalse(self.match.combat.charges)
         self.advance(100, buttons=0)
         self.assertEqual(self.health(self.enemy), 205)
 
@@ -1348,8 +1364,8 @@ class ChargeContactTests(unittest.TestCase):
         self.cast(100)
         self.assertEqual(self.health(self.enemy), 200)
         self.assertEqual(self.enemy.mover.position[2], 3)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
-        self.assertFalse(self.match.combat.charge_contacts)
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
+        self.assertFalse(self.match.combat.charges)
 
     def test_allied_rear_and_lateral_misses_are_excluded(self):
         self.match.game_map = self.match.game_map.__class__(
@@ -1361,7 +1377,7 @@ class ChargeContactTests(unittest.TestCase):
         self.assertEqual(self.enemy.mover.position[2], 3)
         self.assertEqual(self.health(self.enemy), 200)
         self.assertEqual(self.health(self.other), 200)
-        self.assertIsNone(self.match.combat.charge_contacts[self.rein.body].pinned)
+        self.assertIsNone(self.match.combat.charges[self.rein.body].pinned)
 
     def test_pinned_target_cannot_shoot_or_escape_with_throttle_jump_and_crouch(self):
         self.cast()
@@ -1381,23 +1397,23 @@ class ChargeContactTests(unittest.TestCase):
             with self.subTest(retirement=retirement):
                 self.setUp()
                 self.cast()
-                self.assertTrue(self.match.combat.controlled(self.enemy.body))
+                self.assertTrue(controlled(self.match.combat, self.enemy.body))
                 if retirement:
                     self.match.switch_hero(self.rein, self.rein.hero)
                 else:
                     target = self.match.combat._target_entity(self.rein.body)
                     self.match.combat._damage(self.other, target, 1000, False, None, self.run.frame)
-                self.assertFalse(self.match.combat.controlled(self.enemy.body))
-                self.assertFalse(self.match.combat.charge_contacts)
+                self.assertFalse(controlled(self.match.combat, self.enemy.body))
+                self.assertFalse(self.match.combat.charges)
 
     def test_control_from_another_source_survives_pin_release_and_expires(self):
         self.cast()
         target = self.match.combat._target_entity(self.enemy.body)
-        self.match.combat.control(target, self.other.body, "stun", .5)
+        self.match.combat.stun(target, .5)
         self.match.combat.charge_blocked(self.rein, impact=False)
-        self.assertTrue(self.match.combat.controlled(self.enemy.body))
+        self.assertTrue(controlled(self.match.combat, self.enemy.body))
         self.advance(40, buttons=0)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
 
     def test_actual_allied_earthshatter_survives_charge_owner_disconnect(self):
         self.match.game_map = self.match.game_map.__class__(
@@ -1413,9 +1429,9 @@ class ChargeContactTests(unittest.TestCase):
         self.advance(1, buttons=8)
         for _ in range(55):
             self.advance(1, buttons=0)
-            if fight.pinned(target):
+            if pinned(fight, target):
                 break
-        self.assertTrue(fight.pinned(target))
+        self.assertTrue(pinned(fight, target))
         self.assertEqual(self.health(self.enemy), 500)
         self.other.body_script.set_ult_charge(1540)
         self.run.step({self.other: (0, 0, 32)})
@@ -1425,21 +1441,21 @@ class ChargeContactTests(unittest.TestCase):
             if key in fight.controls:
                 break
         self.assertIn(key, fight.controls)
-        self.assertTrue(fight.pinned(target))
+        self.assertTrue(pinned(fight, target))
         self.assertEqual(self.health(self.enemy), 455)
         deadline = fight.controls[key]
         self.match.leave(self.rein)
         self.run.players.remove(self.rein)
-        self.assertFalse(fight.pinned(target))
+        self.assertFalse(pinned(fight, target))
         self.assertEqual(fight.controls[key], deadline)
-        self.assertTrue(fight.controlled(target))
+        self.assertTrue(controlled(fight, target))
         for _ in range(10):
             self.run.step({self.enemy: (0, 0, 1)})
             self.assertEqual(self.enemy.body_script.buttons, 0)
         for _ in range(160):
             self.run.step({})
         self.assertNotIn(key, fight.controls)
-        self.assertFalse(fight.controlled(target))
+        self.assertFalse(controlled(fight, target))
         self.assertEqual(self.health(self.enemy), 455)
 
     def test_charge_pin_outlasts_an_earlier_actual_earthshatter(self):
@@ -1464,29 +1480,29 @@ class ChargeContactTests(unittest.TestCase):
         self.advance(1, buttons=8)
         for _ in range(85):
             self.advance(1, buttons=0)
-            if fight.pinned(target):
+            if pinned(fight, target):
                 break
-        self.assertTrue(fight.pinned(target))
+        self.assertTrue(pinned(fight, target))
         self.assertIn(key, fight.controls)
         for _ in range(160):
             self.advance(1, buttons=0)
             if key not in fight.controls:
                 break
         self.assertNotIn(key, fight.controls)
-        self.assertTrue(fight.pinned(target))
+        self.assertTrue(pinned(fight, target))
         self.run.step({self.enemy: (0, 0, 1)})
         self.assertEqual(self.enemy.body_script.buttons, 0)
         self.advance(120, buttons=0)
-        self.assertFalse(fight.controlled(target))
+        self.assertFalse(controlled(fight, target))
         self.assertEqual(self.health(self.enemy), 150)
 
     def test_stun_interrupts_owner_drive_and_releases_victim_without_wall_damage(self):
         self.cast()
         fight = self.match.combat
-        fight.control(fight._target_entity(self.rein.body), self.other.body, "stun", .5)
-        self.assertFalse(fight.controlled(self.enemy.body))
-        self.assertTrue(fight.controlled(self.rein.body))
-        self.assertFalse(fight.charge_contacts)
+        fight.stun(fight._target_entity(self.rein.body), .5)
+        self.assertFalse(controlled(fight, self.enemy.body))
+        self.assertTrue(controlled(fight, self.rein.body))
+        self.assertFalse(fight.charges)
         z = self.rein.mover.position[2]
         self.advance(1, buttons=0)  # old Charge throttle modifiers still cover this pose
         self.assertEqual(self.rein.mover.position[2], z)
@@ -1498,34 +1514,34 @@ class ChargeContactTests(unittest.TestCase):
         self.cast()
         fight = self.match.combat
         fight._damage(self.other, fight._target_entity(self.enemy.body), 1000, False, None, self.run.frame)
-        self.assertFalse(fight.controlled(self.enemy.body))
-        self.assertIsNone(fight.charge_contacts[self.rein.body].pinned)
+        self.assertFalse(controlled(fight, self.enemy.body))
+        self.assertIsNone(fight.charges[self.rein.body].pinned)
         before = len(self.rein.client.messages(combat.HIT))
         self.advance(100, buttons=0)
         self.assertEqual(len(self.rein.client.messages(combat.HIT)), before)
 
     def test_departed_owner_releases_pin_without_waiting_for_another_pose(self):
         self.cast()
-        self.assertTrue(self.match.combat.pinned(self.enemy.body))
+        self.assertTrue(pinned(self.match.combat, self.enemy.body))
         self.rein.gone = True
         self.advance(1, buttons=0)
-        self.assertFalse(self.match.combat.pinned(self.enemy.body))
+        self.assertFalse(pinned(self.match.combat, self.enemy.body))
         self.assertFalse(self.match.combat.charges)
-        self.assertFalse(self.match.combat.charge_contacts)
+        self.assertFalse(self.match.combat.charges)
 
     def test_owner_disconnect_releases_captured_player_on_the_same_tick(self):
         self.cast()
         fight = self.match.combat
         old = self.rein.body
-        self.assertTrue(fight.pinned(self.enemy.body))
+        self.assertTrue(pinned(fight, self.enemy.body))
         tick = fight.tick
         self.match.leave(self.rein)
         self.run.players.remove(self.rein)
         self.assertEqual(fight.tick, tick)
-        self.assertFalse(fight.controlled(self.enemy.body))
-        self.assertNotIn(old, fight.charge_contacts)
+        self.assertFalse(controlled(fight, self.enemy.body))
         self.assertNotIn(old, fight.charges)
-        self.assertNotIn(self.enemy.body, fight.knockbacks)
+        self.assertNotIn(old, fight.charges)
+        self.assertNotIn(self.enemy.body, fight.knockbacks.active)
         before = tuple(self.enemy.mover.position)
         for _ in range(15):
             self.run.frame += 1
@@ -1538,21 +1554,21 @@ class ChargeContactTests(unittest.TestCase):
         self.place(self.other, (0, 1, 20))
         self.cast()
         fight = self.match.combat
-        self.assertTrue(fight.pinned(self.enemy.body))
+        self.assertTrue(pinned(fight, self.enemy.body))
         old = self.enemy.body
         self.match.leave(self.enemy)
         self.run.players.remove(self.enemy)
-        self.assertIsNone(fight.charge_contacts[self.rein.body].pinned)
-        self.assertFalse(fight.controlled(old))
+        self.assertIsNone(fight.charges[self.rein.body].pinned)
+        self.assertFalse(controlled(fight, old))
         self.assertIn(self.rein.body, fight.charges)
         for _ in range(100):
             self.advance(1, buttons=0)
-            if fight.pinned(self.other.body):
+            if pinned(fight, self.other.body):
                 break
-        self.assertEqual(fight.charge_contacts[self.rein.body].pinned, self.other.body)
+        self.assertEqual(fight.charges[self.rein.body].pinned, self.other.body)
         self.assertEqual(self.health(self.other), 200)
         self.advance(200, buttons=0)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
         self.assertEqual(self.health(self.other), 200)
 
     def test_running_charge_captures_replacement_with_the_first_victims_id(self):
@@ -1562,9 +1578,9 @@ class ChargeContactTests(unittest.TestCase):
         self.advance(1, buttons=8)
         for _ in range(70):
             self.advance(1, buttons=0)
-            if fight.pinned(old):
+            if pinned(fight, old):
                 break
-        contact = fight.charge_contacts[self.rein.body]
+        contact = fight.charges[self.rein.body]
         self.assertEqual(contact.pinned, old)
         self.assertEqual(self.health(self.enemy), 200)
 
@@ -1574,23 +1590,23 @@ class ChargeContactTests(unittest.TestCase):
             self.assertTrue(self.match.switch_hero(self.enemy, heroes()[combat.REINHARDT]))
         self.assertEqual(self.enemy.body, old)
         self.assertIsNone(contact.pinned)
-        self.assertFalse(fight.controlled(old))
+        self.assertFalse(controlled(fight, old))
         self.place(self.enemy, (0, 1, 9))
 
         for _ in range(35):
             self.advance(1, buttons=0)
-            if fight.pinned(old):
+            if pinned(fight, old):
                 break
-        self.assertIs(fight.charge_contacts.get(self.rein.body), contact)
+        self.assertIs(fight.charges.get(self.rein.body), contact)
         self.assertEqual(contact.pinned, old)
         self.assertEqual(self.health(self.enemy), 500)
 
         for _ in range(50):
             self.advance(1, buttons=0)
-            if self.rein.body not in fight.charge_contacts:
+            if self.rein.body not in fight.charges:
                 break
-        self.assertNotIn(self.rein.body, fight.charge_contacts)
-        self.assertFalse(fight.pinned(old))
+        self.assertNotIn(self.rein.body, fight.charges)
+        self.assertFalse(pinned(fight, old))
         self.assertEqual(self.health(self.enemy), 205)
         self.assertEqual([notice['+0x78']['+0x4'] for notice in self.rein.client.messages(combat.HIT)], [295])
 
@@ -1640,14 +1656,14 @@ class ReinhardtChainHookTests(unittest.TestCase):
                         if not caught:
                             captured_at = self.rein.mover.position[2]
                         caught = True
-                        self.assertTrue(fight.controlled(self.rein.body))
+                        self.assertTrue(controlled(fight, self.rein.body))
                         self.assertNotIn(self.rein.body, fight.charges)
                         self.assertEqual(self.health(self.rein), 475)
-                    self.assertFalse(fight.pinned(self.enemy.body))
+                    self.assertFalse(pinned(fight, self.enemy.body))
                 self.assertTrue(caught)
                 self.assertEqual(drove, saw_drive)
                 self.assertFalse(fight.hooks.flights)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 self.assertGreater(self.rein.mover.position[2], captured_at)
                 self.assertEqual(self.health(self.rein), 475)
 
@@ -1663,7 +1679,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         for _ in range(55):
             self.run.step({self.rein: (0, 0, 2), self.enemy: (-32768, 0, 0)})
             launched |= self.enemy.body in fight.hooks.flights
-            self.assertFalse(fight.controlled(self.rein.body))
+            self.assertFalse(controlled(fight, self.rein.body))
         self.assertTrue(launched)
         self.assertTrue(barrier.active)
         self.assertEqual(barrier.current, 1570)
@@ -1678,7 +1694,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
             if fight.hooks.pulling(self.rein.body):
                 break
         self.assertTrue(fight.hooks.pulling(self.rein.body))
-        self.assertTrue(fight.controlled(self.rein.body))
+        self.assertTrue(controlled(fight, self.rein.body))
         self.assertEqual(self.health(self.rein), 475)
         for _ in range(4):
             self.run.step({self.enemy: (-32768, 0, 0)})
@@ -1687,7 +1703,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.match.leave(self.enemy)
         self.run.players.remove(self.enemy)
         self.assertFalse(fight.hooks.flights)
-        self.assertFalse(fight.controlled(self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.advance(20, buttons=0)
         self.assertEqual(tuple(self.rein.mover.position), position)
         self.assertEqual(self.health(self.rein), 475)
@@ -1710,7 +1726,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.assertTrue(vitals.dead)
         self.assertEqual(vitals.killer, self.other.body)
         self.assertFalse(fight.hooks.flights)
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         corpse = tuple(self.rein.mover.position)
         for _ in range(800):
             self.advance(1, buttons=0)
@@ -1722,7 +1738,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.assertTrue(old_script.retired)
         self.assertEqual(self.rein.hero.guid, combat.REINHARDT)
         self.assertEqual(self.health(self.rein), 500)
-        self.assertFalse(fight.controlled(self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.assertEqual(self.rein.mover.velocity, (0.0, 0.0, 0.0))
 
     def test_actual_hook_retirement_clears_pull_and_fresh_cast_hits_reused_body_id(self):
@@ -1737,7 +1753,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.assertNotEqual(self.rein.body, old_body)
         self.assertTrue(old_script.retired)
         self.assertFalse(fight.hooks.flights)
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         self.advance(1, buttons=0)
         with patch.object(self.rein.client, "body_id_available", side_effect={old_body}.__contains__):
             self.assertTrue(self.match.switch_hero(self.rein, self.rein.hero))
@@ -1747,13 +1763,13 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.advance(550, buttons=0)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(tuple(self.rein.mover.position), (0, 1, 0))
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         self.assertFalse(fight.hooks.flights)
         fresh = self.hook_until_pull(fight)
         self.assertIsNot(fresh, original)
         self.assertEqual(fresh.target, old_body)
         self.assertEqual(self.health(self.rein), 475)
-        self.assertTrue(fight.controlled(old_body))
+        self.assertTrue(controlled(fight, old_body))
 
     def test_actual_rifle_kills_hook_caster_while_flight_is_still_outbound(self):
         fight = self.arena()
@@ -1772,7 +1788,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
         position = tuple(self.rein.mover.position)
         for _ in range(65):
             self.advance(1, buttons=0)
-            self.assertFalse(fight.controlled(self.rein.body))
+            self.assertFalse(controlled(fight, self.rein.body))
         self.assertEqual(tuple(self.rein.mover.position), position)
         self.assertEqual(self.health(self.rein), 500)
         self.assertFalse(fight.hooks.flights)
@@ -1830,13 +1846,13 @@ class ReinhardtChainHookTests(unittest.TestCase):
         self.run.players.remove(self.enemy)
         self.assertFalse(fight.hooks.flights)
         self.assertEqual(fight.controls[knockdown], deadline)
-        self.assertTrue(fight.controlled(self.rein.body))
+        self.assertTrue(controlled(fight, self.rein.body))
         for _ in range(160):
             self.advance(1, buttons=0)
             if fight.now >= deadline:
                 break
-            self.assertTrue(fight.controlled(self.rein.body))
-        self.assertFalse(fight.controlled(self.rein.body))
+            self.assertTrue(controlled(fight, self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.assertEqual(self.health(self.rein), 430)
 
     def test_actual_charge_capture_of_roadhog_releases_third_players_live_hook(self):
@@ -1853,19 +1869,19 @@ class ReinhardtChainHookTests(unittest.TestCase):
                 self.enemy: (16384, 0, 8 if offset == 32 else 0),
             })
             caught |= fight.hooks.pulling(self.other.body)
-            if fight.pinned(self.enemy.body):
+            if pinned(fight, self.enemy.body):
                 break
         self.assertTrue(caught)
-        self.assertTrue(fight.pinned(self.enemy.body))
+        self.assertTrue(pinned(fight, self.enemy.body))
         self.assertFalse(fight.hooks.flights)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
         self.assertEqual(self.health(self.other), 170)
         position = tuple(self.other.mover.position)
         self.advance(60, buttons=0)
         self.assertEqual(tuple(self.other.mover.position), position)
         self.assertEqual(self.health(self.other), 170)
         self.assertEqual(self.health(self.enemy), 300)
-        self.assertFalse(fight.pinned(self.enemy.body))
+        self.assertFalse(pinned(fight, self.enemy.body))
 
     def test_actual_hook_respects_allies_static_cover_and_range(self):
         for reason in ("team", "cover", "range"):
@@ -1884,7 +1900,7 @@ class ReinhardtChainHookTests(unittest.TestCase):
                 for _ in range(75):
                     self.run.step({self.enemy: (-32768, 0, 0)})
                     launched |= self.enemy.body in fight.hooks.flights
-                    self.assertFalse(fight.controlled(self.rein.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
                 self.assertTrue(launched)
                 self.assertFalse(fight.hooks.flights)
                 self.assertEqual(self.health(self.rein), 500)
@@ -1919,20 +1935,20 @@ class MutualChargeTests(unittest.TestCase):
 
     def wait_for_counter(self, maximum=120):
         for _ in range(maximum):
-            if self.match.combat.controlled(self.rein.body):
+            if controlled(self.match.combat, self.rein.body):
                 return
             self.advance(1)
         self.fail("actual Shift commands did not produce counter-charge")
 
     def assert_counter(self):
         fight = self.match.combat
-        self.assertTrue(fight.controlled(self.rein.body))
-        self.assertTrue(fight.controlled(self.enemy.body))
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 125)
-        self.assertEqual(fight.control_deadline(self.enemy.body) - fight.tick, 125)
+        self.assertTrue(controlled(fight, self.rein.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 125)
+        self.assertEqual(control_deadline(fight, self.enemy.body) - fight.tick, 125)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
-        self.assertFalse(fight.charge_contacts)
+        self.assertFalse(fight.charges)
         self.assertFalse(fight.charges)
         self.assertEqual(self.rein.client.messages(combat.HIT), [])
         self.assertEqual(self.enemy.client.messages(combat.HIT), [])
@@ -1946,11 +1962,11 @@ class MutualChargeTests(unittest.TestCase):
         self.assert_counter()
         positions = [tuple(p.mover.position) for p in self.run.players]
         self.advance(124)
-        self.assertTrue(self.match.combat.controlled(self.rein.body))
+        self.assertTrue(controlled(self.match.combat, self.rein.body))
         self.assertEqual([tuple(p.mover.position) for p in self.run.players], positions)
         self.advance(1)
-        self.assertFalse(self.match.combat.controlled(self.rein.body))
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.rein.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
         self.advance(20)
         self.assertEqual([tuple(p.mover.position) for p in self.run.players], positions)
 
@@ -1983,7 +1999,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (0, 1, 3))
         self.start()
         self.advance(70)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
 
@@ -1991,7 +2007,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (0, 1, 3))
         self.start(yaw=0)
         self.advance(60, yaw=0)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(len(self.match.combat.charges), 2)
 
     def test_perpendicular_charge_windups_do_not_counter_at_contact_range(self):
@@ -1999,7 +2015,7 @@ class MutualChargeTests(unittest.TestCase):
         self.run.step({self.rein: (16384, 0, 8), self.enemy: (-32768, 0, 8)})
         for _ in range(5):
             self.run.step({self.rein: (16384, 0, 0), self.enemy: (-32768, 0, 0)})
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         for player in (self.rein, self.enemy):
             self.assertIs(player.body_script.component.entity_var(596).value(), True)
 
@@ -2007,7 +2023,7 @@ class MutualChargeTests(unittest.TestCase):
         self.place(self.enemy, (3, 1, .1))
         self.start()
         self.advance(60)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertEqual(len(self.match.combat.charges), 2)
 
     def test_static_wall_blocks_counter_and_both_end_at_the_obstacle(self):
@@ -2015,7 +2031,7 @@ class MutualChargeTests(unittest.TestCase):
         charge_wall(self, 1.5)
         self.start()
         self.advance(80)
-        self.assertFalse(self.match.combat.controls)
+        self.assertFalse(self.match.combat.stuns)
         self.assertFalse(self.match.combat.charges)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 500)
@@ -2025,9 +2041,9 @@ class MutualChargeTests(unittest.TestCase):
         self.start()
         self.assert_counter()
         self.match.switch_hero(self.rein, self.rein.hero)
-        self.assertTrue(self.match.combat.controlled(self.enemy.body))
+        self.assertTrue(controlled(self.match.combat, self.enemy.body))
         self.advance(125)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
 
     def test_both_cooldowns_expire_and_fresh_input_can_counter_again(self):
         self.place(self.enemy, (0, 1, 3))
@@ -2055,18 +2071,18 @@ class CounterChargeInteractionTests(unittest.TestCase):
     def trigger(self, hero):
         self.run.step({self.rein: (0, 0, 8),
                        self.enemy: (-32768, 0, 0 if hero == 0x02E000000000012F else 3)})
-        if not self.match.combat.controlled(self.rein.body):
+        if not controlled(self.match.combat, self.rein.body):
             self.advance(1)
 
     def assert_counter(self, hero):
         fight = self.match.combat
         for player in (self.rein, self.enemy):
-            self.assertTrue(fight.controlled(player.body))
-            self.assertEqual(fight.control_deadline(player.body) - fight.tick, 125)
+            self.assertTrue(controlled(fight, player.body))
+            self.assertEqual(control_deadline(fight, player.body) - fight.tick, 125)
             self.assertFalse(player.body_script.component.held)
         self.assertEqual(self.health(self.rein), 500)
         self.assertEqual(self.health(self.enemy), 250 if hero == 0x02E000000000012F else 200)
-        self.assertFalse(fight.charge_contacts)
+        self.assertFalse(fight.charges)
         self.assertEqual(self.rein.client.messages(combat.HIT), [])
         self.assertEqual(self.enemy.client.messages(combat.HIT), [])
 
@@ -2079,8 +2095,8 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.trigger(hero)
                 self.assert_counter(hero)
                 self.advance(130)
-                self.assertFalse(self.match.combat.controlled(self.enemy.body))
-                self.assertFalse(self.match.combat.controlled(self.rein.body))
+                self.assertFalse(controlled(self.match.combat, self.enemy.body))
+                self.assertFalse(controlled(self.match.combat, self.rein.body))
                 self.assertEqual(self.rein.mover.position[2], 0)
                 flag = self.enemy.body_script.component.entity_var(596, create=False)
                 self.assertFalse(flag is not None and bool(flag.value()))
@@ -2118,12 +2134,12 @@ class CounterChargeInteractionTests(unittest.TestCase):
         self.assertEqual(self.health(self.rein), 500)
         self.run.step(hold)
         self.assertEqual(self.health(self.rein), 497.5)
-        self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
+        self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
         self.assertFalse(dash.active)
         self.assertEqual(len(self.enemy.client.messages(combat.HIT)), 1)
         for _ in range(47):
             self.run.step(hold)
-        self.assertFalse(fight.controlled(self.rein.body))
+        self.assertFalse(controlled(fight, self.rein.body))
         self.place(self.rein, (0, 1, 0))
         self.place(self.enemy, (0, 1, 2.7))
         self.run.step({self.enemy: (-32768, 0, 3)})
@@ -2164,12 +2180,12 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.run.step(hold)
                 self.assertEqual(self.health(self.rein), 497.5)
                 self.assertEqual(self.health(self.enemy), 200)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 47)
-                self.assertFalse(fight.controlled(self.enemy.body))
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 47)
+                self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertFalse(charge.states[40].active)
                 self.assertEqual(cooldown.value(), 10)
                 self.assertFalse(fight.charges)
-                self.assertFalse(fight.charge_contacts)
+                self.assertFalse(fight.charges)
                 self.assertEqual(len(self.enemy.client.messages(combat.HIT)), 1)
                 self.assertEqual(self.rein.client.messages(combat.HIT), [])
 
@@ -2182,16 +2198,16 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.step(held_charge if keep_held or elapsed < 60 else {})
                     self.assertLessEqual(cooldown.value(), remaining)
                     self.assertFalse(fight.charges)
-                    self.assertFalse(fight.charge_contacts)
+                    self.assertFalse(fight.charges)
                 self.assertEqual(cooldown.value(), 0)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 stopped = tuple(self.rein.mover.position)
                 if not keep_held:
                     self.advance(12)
                     self.assertFalse(charge.states[40].active)
                     self.assertEqual(tuple(self.rein.mover.position), stopped)
                 self.assertFalse(fight.charges)
-                self.assertFalse(fight.charge_contacts)
+                self.assertFalse(fight.charges)
 
                 # A currently held start button can start a new activation once ready.
                 # A released button must leave the charge stopped until a new press.
@@ -2222,7 +2238,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.assertTrue(brigitte_shield(fight, self.enemy.body).instance.states[14].active)
                 for _ in range(20):
                     self.run.step({self.enemy: (yaw, 0, 2)})
-                    self.assertFalse(fight.controlled(self.rein.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
                 self.assertEqual(self.health(self.rein), 500)
                 self.assertEqual(self.enemy.client.messages(combat.HIT), [])
 
@@ -2242,7 +2258,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     with patch.object(fight, "control", wraps=fight.control) as applied:
                         self.run.step({self.rein: (rein_yaw, 0, 8), self.enemy: (-32768, 0, 3)})
                         for _ in range(2):
-                            if fight.controlled(self.rein.body):
+                            if controlled(fight, self.rein.body):
                                 break
                             self.run.step({self.rein: (rein_yaw, 0, 0), self.enemy: (-32768, 0, 2)})
                     if cover:
@@ -2258,8 +2274,8 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.assertIs(applied.call_args_list[0].args[0].owner, self.enemy)
                     self.assertIs(applied.call_args_list[1].args[0].owner, self.rein)
                     self.advance(125)
-                    self.assertFalse(fight.controlled(self.rein.body))
-                    self.assertFalse(fight.controlled(self.enemy.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
+                    self.assertFalse(controlled(fight, self.enemy.body))
 
     def test_charge_and_shield_bash_both_move_before_counter_contact(self):
         hero = 0x02E0000000000195
@@ -2276,14 +2292,14 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                 self.assertGreaterEqual(self.rein.mover.position[2], 24 - gap)
                 self.assertIn(self.rein.body, fight.charges)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 start = self.rein.mover.position[2]
                 shield = brigitte_shield(fight, self.enemy.body)
                 self.assertEqual(shield.current, 250)
                 self.run.step({self.enemy: (-32768, 0, 3)})
                 self.assertTrue(shield.instance.states[14].active)
                 for _ in range(12):
-                    if fight.controlled(self.rein.body):
+                    if controlled(fight, self.rein.body):
                         break
                     self.run.step({self.enemy: (-32768, 0, 2)})
                 self.assert_counter(hero)
@@ -2294,10 +2310,10 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 end = tuple(tuple(player.mover.position) for player in players)
                 self.advance(124)
                 for player in players:
-                    self.assertTrue(fight.controlled(player.body))
+                    self.assertTrue(controlled(fight, player.body))
                 self.advance(1)
                 for player in players:
-                    self.assertFalse(fight.controlled(player.body))
+                    self.assertFalse(controlled(fight, player.body))
                     flag = player.body_script.component.entity_var(596, create=False)
                     self.assertFalse(flag is not None and combat.expr.truthy(flag.value()))
                 self.advance(4)
@@ -2317,21 +2333,21 @@ class CounterChargeInteractionTests(unittest.TestCase):
                         break
                 self.assertIn(self.rein.body, fight.charges)
                 self.assertGreaterEqual(self.rein.mover.position[2], 8)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 self.run.step({self.enemy: (-32768, 0, 0 if hero == 0x02E000000000012F else 3)})
                 for _ in range(12):
-                    if fight.controlled(self.rein.body):
+                    if controlled(fight, self.rein.body):
                         break
                     self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assert_counter(hero)
                 self.assertFalse(fight.charges)
                 poses = [tuple(actor.mover.position) for actor in (self.rein, self.enemy)]
                 self.advance(124)
-                self.assertTrue(fight.controlled(self.rein.body))
-                self.assertTrue(fight.controlled(self.enemy.body))
+                self.assertTrue(controlled(fight, self.rein.body))
+                self.assertTrue(controlled(fight, self.enemy.body))
                 self.advance(1)
-                self.assertFalse(fight.controlled(self.rein.body))
-                self.assertFalse(fight.controlled(self.enemy.body))
+                self.assertFalse(controlled(fight, self.rein.body))
+                self.assertFalse(controlled(fight, self.enemy.body))
                 self.advance(20)
                 self.assertEqual([tuple(actor.mover.position) for actor in (self.rein, self.enemy)], poses)
 
@@ -2355,7 +2371,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 decay_start = fight.now + 1
                 if fire_strike:
                     self.advance(32)
-                    self.assertFalse(fight.controlled(self.rein.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
                     self.run.step({self.rein: (0, 0, 16)})
                     for _ in range(55):
                         if self.health(self.enemy) < 250:
@@ -2390,8 +2406,8 @@ class CounterChargeInteractionTests(unittest.TestCase):
                         break
                     self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assertAlmostEqual(self.health(self.rein), 409.960726, places=5)
-                self.assertEqual(fight.control_deadline(self.rein.body) - fight.tick, 32)
-                self.assertFalse(fight.controlled(self.enemy.body))
+                self.assertEqual(control_deadline(fight, self.rein.body) - fight.tick, 32)
+                self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertNotIn(self.enemy.body, fight.punches.dashes)
                 self.assertIn(self.rein.body, fight.punches.impacts)
                 if scenario == "source_switch":
@@ -2405,7 +2421,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 else:
                     self.assertAlmostEqual(self.health(self.rein), 409.960726, places=5)
                     self.assertEqual(len(self.enemy.client.messages(combat.HIT)), 1)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 self.assertNotIn(self.rein.body, fight.punches.impacts)
 
     def test_rocket_punch_starts_counter_outside_reinhardts_charge_cone(self):
@@ -2422,7 +2438,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 with patch.object(fight, "control", wraps=fight.control) as applied:
                     self.run.step({self.rein: (rein_yaw, 0, 8), self.enemy: (-32768, 0, 0)})
                     for _ in range(3):
-                        if fight.controlled(self.rein.body):
+                        if controlled(fight, self.rein.body):
                             break
                         self.run.step({self.rein: (rein_yaw, 0, 0), self.enemy: (-32768, 0, 0)})
                 self.assert_counter(hero)
@@ -2448,7 +2464,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                 self.assertGreaterEqual(self.rein.mover.position[2], enemy_z - gap)
                 self.assertIn(self.rein.body, fight.charges)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 start = self.rein.mover.position[2]
                 self.run.step({self.enemy: (-32768, 0, 0)})
                 motion = fight.punches.instance(self.enemy).states[7]
@@ -2457,9 +2473,9 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assertIn(self.enemy.body, fight.punches.dashes)
                 self.assertLess(self.enemy.mover.position[2], enemy_z)
-                self.assertFalse(fight.controlled(self.rein.body))
+                self.assertFalse(controlled(fight, self.rein.body))
                 for _ in range(16):
-                    if fight.controlled(self.rein.body):
+                    if controlled(fight, self.rein.body):
                         break
                     self.run.step({self.enemy: (-32768, 0, 0)})
                 self.assert_counter(hero)
@@ -2470,10 +2486,10 @@ class CounterChargeInteractionTests(unittest.TestCase):
                 end = tuple(tuple(player.mover.position) for player in players)
                 self.advance(124)
                 for player in players:
-                    self.assertTrue(fight.controlled(player.body))
+                    self.assertTrue(controlled(fight, player.body))
                 self.advance(1)
                 for player in players:
-                    self.assertFalse(fight.controlled(player.body))
+                    self.assertFalse(controlled(fight, player.body))
                 self.advance(4)
                 self.assertEqual(tuple(tuple(player.mover.position) for player in players), end)
 
@@ -2515,7 +2531,7 @@ class CounterChargeInteractionTests(unittest.TestCase):
             flag = self.enemy.body_script.component.entity_var(596, create=False)
             released |= flag is not None and flag.value() is True
             moved |= self.enemy.body in fight.punches.dashes and self.enemy.mover.position[2] < 12
-            if fight.controlled(self.rein.body):
+            if controlled(fight, self.rein.body):
                 break
         self.assertTrue(drove)
         self.assertTrue(released)
@@ -2684,14 +2700,14 @@ class KnockbackTests(unittest.TestCase):
         fight.control(target, self.rein.body, "stun", .5)
         fight.knockback(target, (10, 5, 0), self.run.frame)
         self.advance(10, buttons=0)
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
         self.assertGreater(self.enemy.mover.position[0], 1)
         self.assertGreater(self.enemy.mover.position[1], 1)
 
     def test_pin_anchors_target_against_unrelated_impulses(self):
         self.cast()
         fight = self.match.combat
-        self.assertTrue(fight.pinned(self.enemy.body))
+        self.assertTrue(pinned(fight, self.enemy.body))
         self.assertEqual(fight.knockback(fight._target_entity(self.enemy.body), (10, 5, 0), self.run.frame),
                          (0, 0, 0))
 
@@ -2703,7 +2719,7 @@ class KnockbackTests(unittest.TestCase):
         self.assertGreater(self.other.mover.position[1], 1)
         self.assertGreater(self.other.mover.position[2], 3)
         self.advance(160, buttons=0)
-        self.assertFalse(self.match.combat.pinned(self.enemy.body))
+        self.assertFalse(pinned(self.match.combat, self.enemy.body))
         self.assertEqual(self.health(self.enemy), 200)
         self.assertGreater(self.enemy.mover.velocity[1], 0)
 
@@ -2771,7 +2787,7 @@ class ReinhardtFlashbangTests(unittest.TestCase):
         self.advance(43, buttons=0)
         self.assertIn(self.rein.body, self.match.combat.charges)
         self.cast_flash()
-        self.assertFalse(self.match.combat.charge_contacts)
+        self.assertFalse(self.match.combat.charges)
         z = self.rein.mover.position[2]
         for _ in range(90):
             self.step(self.run, self.enemy, self.rein)
@@ -3070,11 +3086,11 @@ class EarthshatterTests(unittest.TestCase):
             if self.health(self.enemy) < 200:
                 break
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(self.match.combat.control_deadline(self.enemy.body) - self.match.combat.tick, 157)
+        self.assertEqual(control_deadline(self.match.combat, self.enemy.body) - self.match.combat.tick, 157)
         self.advance(156)
-        self.assertTrue(self.match.combat.controlled(self.enemy.body))
+        self.assertTrue(controlled(self.match.combat, self.enemy.body))
         self.advance(1)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
         self.assertEqual(self.health(self.enemy), 150)
 
     def test_live_earthshatter_hits_replacement_only_when_front_reaches_it(self):
@@ -3085,7 +3101,7 @@ class EarthshatterTests(unittest.TestCase):
         self.advance(1, 32)
         for _ in range(80):
             self.advance(1)
-            if fight.controlled(old_body):
+            if controlled(fight, old_body):
                 break
         wave = fight.shatters[self.rein.body]
         self.assertEqual(wave.hit, {old_key})
@@ -3095,20 +3111,20 @@ class EarthshatterTests(unittest.TestCase):
         replacement = self.enemy.body
         self.assertNotEqual(replacement, old_body)
         self.place(self.enemy, (0, 1, 17))
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         self.advance(2)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(fight.controlled(replacement))
+        self.assertFalse(controlled(fight, replacement))
 
         for _ in range(40):
             self.advance(1)
-            if fight.controlled(replacement):
+            if controlled(fight, replacement):
                 break
         self.assertEqual(wave.hit, {old_key, (replacement, fight.replacement_ticks[replacement])})
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(fight.control_deadline(replacement) - fight.tick, 157)
+        self.assertEqual(control_deadline(fight, replacement) - fight.tick, 157)
         self.advance(157)
-        self.assertFalse(fight.controlled(replacement))
+        self.assertFalse(controlled(fight, replacement))
         self.assertEqual(self.health(self.enemy), 150)
 
     def test_earthshatter_hits_replacement_that_reuses_the_first_victims_id(self):
@@ -3118,9 +3134,9 @@ class EarthshatterTests(unittest.TestCase):
         self.advance(1, 32)
         for _ in range(80):
             self.advance(1)
-            if fight.controlled(old_body):
+            if controlled(fight, old_body):
                 break
-        self.assertTrue(fight.controlled(old_body))
+        self.assertTrue(controlled(fight, old_body))
         self.assertEqual(self.health(self.enemy), 150)
         self.assertIn(self.rein.body, fight.shatters)
 
@@ -3132,15 +3148,15 @@ class EarthshatterTests(unittest.TestCase):
         self.place(self.enemy, (0, 1, 17))
         self.advance(2)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         for _ in range(40):
             self.advance(1)
-            if fight.controlled(old_body):
+            if controlled(fight, old_body):
                 break
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertEqual(fight.control_deadline(old_body) - fight.tick, 157)
+        self.assertEqual(control_deadline(fight, old_body) - fight.tick, 157)
         self.advance(157)
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         self.assertEqual(self.health(self.enemy), 150)
 
     @unittest.skipUnless(BARRIER_DATA.is_file(), 'prepared external barrier collision required')
@@ -3185,7 +3201,7 @@ class EarthshatterTests(unittest.TestCase):
         self.assertEqual(old_shield.current, 1550)
         self.assertEqual(self.health(self.enemy), 500)
         self.assertEqual(self.health(self.other), 200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     @unittest.skipUnless(BARRIER_DATA.is_file(), 'prepared external barrier collision required')
     def test_earthshatter_hits_a_later_shield_raise_in_an_unblocked_lane(self):
@@ -3230,7 +3246,7 @@ class EarthshatterTests(unittest.TestCase):
         })
         self.assertEqual(self.health(self.enemy), 500)
         self.assertEqual(self.health(self.other), 200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     def test_disconnect_retires_front_but_preserves_existing_knockdown(self):
         self.place(self.other, (0, 1, 18))
@@ -3240,22 +3256,22 @@ class EarthshatterTests(unittest.TestCase):
         self.advance(1, buttons=32)
         for _ in range(65):
             self.advance(1)
-            if fight.controlled(self.enemy.body):
+            if controlled(fight, self.enemy.body):
                 break
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
         self.assertEqual(self.health(self.enemy), 150)
         self.assertEqual(self.health(self.other), 200)
         self.assertIn(old, fight.shatters)
         self.match.leave(self.rein)
         self.run.players.remove(self.rein)
         self.assertNotIn(old, fight.shatters)
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
         for _ in range(200):
             self.run.step({})
-        self.assertFalse(fight.controlled(self.enemy.body))
+        self.assertFalse(controlled(fight, self.enemy.body))
         self.assertEqual(self.health(self.enemy), 150)
         self.assertEqual(self.health(self.other), 200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     def test_range_cone_and_rear_misses(self):
         for position in ((0, 1, 21.5), (5, 1, 8.66), (0, 1, -3)):
@@ -3264,7 +3280,7 @@ class EarthshatterTests(unittest.TestCase):
                 self.place(self.enemy, position)
                 self.cast()
                 self.assertEqual(self.health(self.enemy), 200)
-                self.assertFalse(self.match.combat.controlled(self.enemy.body))
+                self.assertFalse(controlled(self.match.combat, self.enemy.body))
 
     def test_team_filter_and_miss_still_spend_charge(self):
         self.match.game_map = self.match.game_map.__class__(
@@ -3291,12 +3307,12 @@ class EarthshatterTests(unittest.TestCase):
 
         self.advance(65)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(fight.controlled(self.enemy.body))
+        self.assertFalse(controlled(fight, self.enemy.body))
         self.assertEqual(self.health(self.other), 150)
-        self.assertTrue(fight.controlled(self.other.body))
+        self.assertTrue(controlled(fight, self.other.body))
         self.assertEqual(wave.hit, {(self.other.body, fight.replacement_ticks.get(self.other.body))})
         self.advance(200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
         self.assertEqual(self.health(self.other), 150)
 
     @unittest.skipUnless(BARRIER_DATA.is_file(), 'prepared external barrier collision required')
@@ -3338,9 +3354,9 @@ class EarthshatterTests(unittest.TestCase):
                 self.assertEqual(50 in wave.blocked, shield_becomes_hostile)
                 self.assertEqual(bool(wave.shield_hit), shield_becomes_hostile)
                 self.assertEqual(self.health(self.enemy), 500)
-                self.assertFalse(fight.controlled(self.enemy.body))
+                self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertEqual(self.health(self.other), 200 if shield_becomes_hostile else 150)
-                self.assertEqual(fight.controlled(self.other.body), not shield_becomes_hostile)
+                self.assertEqual(controlled(fight, self.other.body), not shield_becomes_hostile)
 
     def test_caster_team_change_preserves_knockdown_and_updates_later_contacts(self):
         self.match.game_map = replace(self.match.game_map, free_for_all=False)
@@ -3369,15 +3385,15 @@ class EarthshatterTests(unittest.TestCase):
                 break
         self.assertEqual(self.health(self.enemy), 150)
         self.assertEqual(fight.controls[first], deadline)
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
         self.assertEqual(self.health(self.other), 150)
         self.assertGreater(fight.controls[later], deadline)
         while fight.now < deadline:
             self.advance(1)
-        self.assertFalse(fight.controlled(self.enemy.body))
-        self.assertTrue(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.enemy.body))
+        self.assertTrue(controlled(fight, self.other.body))
         self.advance(25)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     def test_release_heading_is_used_and_wave_does_not_turn_with_later_view(self):
         self.fill()
@@ -3397,7 +3413,7 @@ class EarthshatterTests(unittest.TestCase):
         charge_wall(self, 6)
         self.cast()
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
 
     def test_wall_stops_wave_after_hitting_exposed_body_in_the_same_step(self):
         angle = math.radians(25)
@@ -3421,10 +3437,10 @@ class EarthshatterTests(unittest.TestCase):
         self.assertIn(100, wave.blocked)
         self.assertAlmostEqual(wave.fronts[100][2], wall_z, places=4)
         self.assertEqual(self.health(self.enemy), 150)
-        self.assertTrue(fight.controlled(self.enemy.body))
+        self.assertTrue(controlled(fight, self.enemy.body))
         self.advance(45)
         self.assertEqual(self.health(self.other), 200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     def test_wave_cannot_hit_a_capsule_touching_the_far_face_of_a_wall(self):
         wall_z = 9.75
@@ -3434,7 +3450,7 @@ class EarthshatterTests(unittest.TestCase):
         self.cast(55)
         self.assertEqual(self.enemy.mover.position[2] - wall_z, target.radius)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(self.match.combat.controlled(self.enemy.body))
+        self.assertFalse(controlled(self.match.combat, self.enemy.body))
 
     def test_near_modifier_is_occluded_and_late_entry_behind_front_is_not_a_new_hit(self):
         self.place(self.enemy, (0, 1, 3))
@@ -3515,7 +3531,7 @@ class EarthshatterTests(unittest.TestCase):
                     self.advance(60)
                 self.assertEqual(self.health(self.enemy), 500)
                 self.assertEqual(self.health(self.other), 200)
-                self.assertFalse(self.match.combat.controlled(self.enemy.body))
+                self.assertFalse(controlled(self.match.combat, self.enemy.body))
                 self.assertEqual(shield.current, 0 if outcome == "break" else 1550)
                 if outcome == "team_change":
                     self.fill()
@@ -3523,7 +3539,7 @@ class EarthshatterTests(unittest.TestCase):
                     for _ in range(90):
                         self.run.step({self.enemy: (-32768, 0, 2)})
                     self.assertEqual(self.health(self.other), 150)
-                    self.assertTrue(self.match.combat.controlled(self.other.body))
+                    self.assertTrue(controlled(self.match.combat, self.other.body))
                     self.assertTrue(shield.active)
                     self.assertEqual(shield.current, 1550)
 
@@ -3553,7 +3569,7 @@ class EarthshatterTests(unittest.TestCase):
             self.run.step(hold)
         self.assertEqual(shield.current, 1550)
         self.assertEqual(self.health(self.other), 200)
-        self.assertFalse(fight.controlled(self.other.body))
+        self.assertFalse(controlled(fight, self.other.body))
 
     @unittest.skipUnless(BARRIER_DATA.is_file(), "prepared external barrier collision required")
     def test_dropping_shield_does_not_block_a_ray_that_has_not_reached_it(self):
@@ -3586,7 +3602,7 @@ class EarthshatterTests(unittest.TestCase):
         self.assertNotIn(20, wave.blocked)
         self.assertEqual(self.health(self.enemy), 500)
         self.assertEqual(self.health(self.other), 150)
-        self.assertTrue(fight.controlled(self.other.body))
+        self.assertTrue(controlled(fight, self.other.body))
 
     def test_insufficient_charge_cannot_start_and_retirement_retires_wave(self):
         self.rein.body_script.set_ult_charge(1000)
@@ -3632,7 +3648,7 @@ class EarthshatterTests(unittest.TestCase):
             self.assertNotIn(self.rein.body, fight.shatters)
         self.assertAlmostEqual(self.rein.mover.position[1], 1, places=2)
         self.assertEqual(self.health(self.enemy), 200)
-        self.assertFalse(fight.controlled(self.enemy.body))
+        self.assertFalse(controlled(fight, self.enemy.body))
         self.assertLess(meter.value(), 100)
 
     def test_windup_movement_modifiers_deny_throttle_but_release_does_not_lock_it_forever(self):
@@ -3815,7 +3831,7 @@ class TalonInteractionTests(unittest.TestCase):
         self.assertNotEqual(self.rein.body, old_body)
         self.assertNotIn(old_body, fight.barriers)
         self.assertNotIn(old_body, fight.vitals)
-        self.assertFalse(fight.controlled(old_body))
+        self.assertFalse(controlled(fight, old_body))
         self.assertFalse(self.rein.body_script.component.owner_dead)
         self.assertEqual(fight.vitals_of(fight._target_entity(self.rein.body)).total, 500)
         barrier = fight.reinhardt_barriers[self.rein.body]
@@ -3918,10 +3934,10 @@ class TalonInteractionTests(unittest.TestCase):
                 self.advance(1, buttons=32)
                 self.advance(90, buttons=0)
                 self.assertEqual(vitals.total, before - 50)
-                self.assertTrue(self.match.combat.controlled(bot.entity))
+                self.assertTrue(controlled(self.match.combat, bot.entity))
                 self.advance(200, buttons=0)
                 self.assertEqual(vitals.total, before - 50)
-                self.assertFalse(self.match.combat.controlled(bot.entity))
+                self.assertFalse(controlled(self.match.combat, bot.entity))
 
     def test_shatter_near_damage_uses_original_250_plus_wave_50_on_each_actual_npc(self):
         for key, definition in self.catalog.items():
@@ -3948,12 +3964,12 @@ class TalonInteractionTests(unittest.TestCase):
                 self.assertFalse(any(call.args[1] == 0x0240000000000012 for call in sent.call_args_list))
                 self.assertIn(meter.value() - starting_charge, (0, 5))
                 if definition.name == "Heavy Assault":
-                    self.assertFalse(self.match.combat.controlled(bot.entity))
+                    self.assertFalse(controlled(self.match.combat, bot.entity))
                     self.assertEqual(bot.position[2], 3)
                     self.assertEqual(vitals.total, before)
-                    self.assertFalse(self.match.combat.charge_contacts)
+                    self.assertFalse(self.match.combat.charges)
                     continue
-                self.assertTrue(self.match.combat.controlled(bot.entity))
+                self.assertTrue(controlled(self.match.combat, bot.entity))
                 self.assertGreater(bot.position[2], 5)
                 self.assertEqual(vitals.total, before)
                 starting_charge = meter.value()
@@ -3965,9 +3981,9 @@ class TalonInteractionTests(unittest.TestCase):
                 self.assertEqual([(event[0x13], event[0x15]) for event in events],
                                  [(expected, expr.Entity(bot.entity))])
                 self.assertIn(meter.value() - starting_charge, (expected, expected + 5))
-                self.assertFalse(self.match.combat.controlled(bot.entity))
+                self.assertFalse(controlled(self.match.combat, bot.entity))
                 self.assertLess(bot.position[2], 8)
-                self.assertFalse(self.match.combat.charge_contacts)
+                self.assertFalse(self.match.combat.charges)
 
     def test_live_charge_releases_each_capturable_npc_on_team_change(self):
         for definition in self.catalog.values():
@@ -3981,13 +3997,13 @@ class TalonInteractionTests(unittest.TestCase):
                 self.advance(1, buttons=8)
                 self.advance(60, buttons=0)
                 fight = self.match.combat
-                self.assertTrue(fight.pinned(bot.entity))
+                self.assertTrue(pinned(fight, bot.entity))
                 position = bot.position
                 health = vitals.total
                 bot.team = self.rein.team
                 self.advance(1, buttons=0)
-                self.assertFalse(fight.pinned(bot.entity))
-                self.assertNotIn(self.rein.body, fight.charge_contacts)
+                self.assertFalse(pinned(fight, bot.entity))
+                self.assertNotIn(self.rein.body, fight.charges)
                 self.advance(80, buttons=0)
                 self.assertEqual(bot.position, position)
                 self.assertEqual(vitals.total, health)
@@ -4015,8 +4031,8 @@ class TalonInteractionTests(unittest.TestCase):
         self.assertIn(self.rein.body, fight.charges)
         for _ in range(220):
             self.advance(1, buttons=0)
-            self.assertFalse(fight.controlled(bot.entity))
-            contact = fight.charge_contacts.get(self.rein.body)
+            self.assertFalse(controlled(fight, bot.entity))
+            contact = fight.charges.get(self.rein.body)
             if contact is not None:
                 self.assertNotIn(bot.entity, {entity for entity, _ in contact.hit})
         if case == "cover":
@@ -4027,7 +4043,7 @@ class TalonInteractionTests(unittest.TestCase):
         self.assertEqual(vitals.total, before)
         self.assertNotIn(bot.entity, fight.knockbacks)
         self.assertNotIn(self.rein.body, fight.charges)
-        self.assertNotIn(self.rein.body, fight.charge_contacts)
+        self.assertNotIn(self.rein.body, fight.charges)
         charge = next(i for i in self.rein.body_script.component.instances.values() if i.graph.index == 0x7D)
         self.assertGreater(charge.find_var(0, 61).value(), 0)
 
@@ -4073,15 +4089,15 @@ class TalonInteractionTests(unittest.TestCase):
                 if pinned:
                     self.advance(1, buttons=8)
                     self.advance(60, buttons=0)
-                    self.assertTrue(self.match.combat.pinned(bot.entity))
+                    self.assertTrue(pinned(self.match.combat, bot.entity))
                 else:
                     self.match.combat.knockback(target, (5, 2, 0), self.run.frame)
                     self.assertIn(bot.entity, self.match.combat.knockbacks)
                 self.assertIn(bot.entity, npc.remove_spawned(self.match))
-                self.assertFalse(self.match.combat.controlled(bot.entity))
+                self.assertFalse(controlled(self.match.combat, bot.entity))
                 self.assertNotIn(bot.entity, self.match.combat.knockbacks)
                 self.assertFalse(any(c.pinned == bot.entity
-                                     for c in self.match.combat.charge_contacts.values()))
+                                     for c in self.match.combat.charges.values()))
 
     def test_ranged_attacks_filter_cover_range_and_team_for_each_actual_npc(self):
         for definition in self.catalog.values():
@@ -4110,7 +4126,7 @@ class TalonInteractionTests(unittest.TestCase):
             self.assertNotIn(self.rein.body, self.match.combat.shatters)
             self.assertEqual(wave.travelled, 20)
             self.assertEqual(50 in wave.blocked, case == "cover")
-            self.assertFalse(self.match.combat.controlled(bot.entity))
+            self.assertFalse(controlled(self.match.combat, bot.entity))
         else:
             self.advance(1, buttons=16)
             self.advance(32, buttons=0)
@@ -4232,7 +4248,7 @@ class BarrierTests(unittest.TestCase):
                 self.assertFalse(dash.active)
                 if early_drop:
                     self.assertEqual(self.health(self.rein), 497.5)
-                    self.assertTrue(fight.controlled(self.rein.body))
+                    self.assertTrue(controlled(fight, self.rein.body))
                 else:
                     self.assertTrue(shield.active)
                     self.assertGreater(self.enemy.mover.position[2], 1.9)
@@ -4245,7 +4261,7 @@ class BarrierTests(unittest.TestCase):
                     self.assertFalse(shield.active)
                     self.assertEqual(tuple(self.enemy.mover.position), stopped)
                     self.assertEqual(self.health(self.rein), 500)
-                    self.assertFalse(fight.controlled(self.rein.body))
+                    self.assertFalse(controlled(fight, self.rein.body))
                 self.assertEqual(shield.current, shield.maximum)
 
     def test_hard_control_lowers_barrier_and_held_input_recovers_after_expiry(self):
@@ -4298,7 +4314,7 @@ class BarrierTests(unittest.TestCase):
             self.run.step({self.enemy: (-32768, 0, 2)})
         self.assertEqual(self.health(self.enemy), 205)
         self.assertEqual(self.shield(self.enemy).current, 1600)
-        self.assertFalse(self.match.combat.charge_contacts)
+        self.assertFalse(self.match.combat.charges)
 
     def fire(self, target=(0.0, 2.0, 0.0), shooter=None, *, yaw=0, pitch=0, raised=2, buttons=1):
         shooter = shooter or self.enemy
@@ -4726,7 +4742,7 @@ class BarrierTests(unittest.TestCase):
                     self.assertEqual(self.health(self.enemy), 405 if shield_damage == 100 else 500)
                     rear_damage = 100 if button == 16 else (50 if starts_hostile else 0)
                     self.assertEqual(self.health(self.other), 200 - rear_damage)
-                    self.assertEqual(fight.controlled(self.other.body), button == 32 and starts_hostile)
+                    self.assertEqual(controlled(fight, self.other.body), button == 32 and starts_hostile)
 
     def test_melee_can_damage_barrier_without_reaching_owner(self):
         self.place(self.enemy, (0.0, 1.0, 3.5))

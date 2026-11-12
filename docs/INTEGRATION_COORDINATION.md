@@ -328,3 +328,90 @@ capture/bump; A continues source ricochet and missing fixture imports.
 All three workers remain assigned persistently; external coordination.json is
 the resume ledger. Keep all original code, report differences, and commit even
 when complete acceptance has not passed. Exclude appearance and Rust cutover.
+
+
+## Original input and actor checkpoint
+
+A18 source81c6ce34 is integrated as9ec59b74: original Hanzo dependency fixtures
+now import normally, with minimal real-host import/getter adaptation. Normal
+profile/journal9 pass; Sonic/Dragon32 run30 pass and2 optional input skips.
+No original assertion was weakened. B14 source5d1b6b78 is integrated as
+ a4b14efc: source Charge captures/bumps use the same charges record and mover.
+Original54 combined Movement/Contact/runtime/epoch checks have52 passes and
+2 retained old.controls key observation errors, assigned to B's Shatter work.
+C16 sourceb889f287 is integrated as0854671e: actual turret NPC entity, pool,
+owner credit, geometry, build/fire/repair/cleanup and mark consumers. Original
+8 selected turret checks plus NPC/Damage produce23 passes on canonical inputs.
+Only fixture imports for unmounted Molten use the frozen source fallback;
+selected production turret code is canonical, no second server manager.
+
+Root composer77e27576/e1c5e6fd now reads explicit delivered packs and selects
+only additive graphs/entities/effects/deployables. Shared records and metadata
+must agree. The original output remains byte-identical; duplicate input is
+idempotent and shared graph/metadata conflicts reject before output creation.
+Prepared manifest ../parallel-merge/runtime-inputs-v4/environment.json retains
+base Junkenstein and all3528 projectile definitions; adds15 graphs,3 entities,
+4 effects and original deployables metadata, with source SHA256 provenance.
+Explicit Hanzo CLI arguments are preserved. Source-only status_effects is
+recorded as unselected: original Molten code uses deployables/status graph,
+with no direct reader of this top-level field found. Molten remains pending.
+
+All32 original source repositories are clean. Original main e1128509 is already
+incorporated; original OWLib/liz-runtime/lobby-upstream repos are clean. External
+local relay copies add no implementation beyond canonical (port-only changes
+or older missing gallery installer). Keep research snapshots and original packs.
+No root tests remain live at this checkpoint. A continues Storm/launch-frozen
+admission, B continues mutual/counter/Charge/Shatter, C continues shared surface
+reuse/Molten/charge. Preserve their WIP and receive only exact committed batches.
+
+
+### Shared contact and ricochet intake checkpoint
+
+C17 source0790f14f is integrated as7b921893, B15 source57932359 as e331ce2a,
+and A19 sourcee799f60c as31f18682. Original Mutual10, Torb/native shell4 and
+Storm ricochet7 checks all21 pass on the frozen canonical batch. The actual
+Torb command probe independently confirms two55 hammer contacts reduce the
+single Winston bubble700->590 while body500 and HERO_DAMAGE0 remain unchanged.
+Evidence: parallel-a19-b15-c17-check.log and parallel-c17-actual-torb-shell-check.log.
+No original expectations changed. Two old Shatter controls-key observation
+errors remain documented; A20 launch-frozen admission, B cross-hero/object
+counters, C Molten/charge remain pending. All three workers continue separately.
+All root tests are terminal. Keep original languages, source packs and every
+implementation; incomplete acceptance is not a merge gate. No publication or
+client operations performed. Whole nonappearance integration remains active.
+
+
+## Explicit geometry, frozen absorption and Molten checkpoint
+
+Root0b8d98cb restores byte-identical0005 volley_geometry and its original
+checks, real explicit bool selection and per-NPC-pellet observer records through
+existing Projectiles. Original RingGeometry, actual Enforcer two-volley50
+launches/damage/stop, NPC controls/navigation and projectile checks109 pass.
+Default current paths and DVa owned geometry stay unchanged. Flag is causal
+snapshot state. The original fake PelletCombat fixture lacks current state.index;
+its errors remain intact and do not gate source implementation submission.
+
+A20 source40623ea1 is integrated as6891462b: launch-frozen Matrix/Grasp
+qualification and actual owned0407 Matrix contact. C18 source08c8d1bf is
+integrated as783de900: original Molten area/status/scopes/damage/flight/rebound/
+lifetime with real16DA launch. Original Molten9+turret snapshot1+projectile/
+Bastion/runtime/Damage checks73 all pass on frozen783de900 using canonical base
+and v4 additions. Molten imports now use the canonical production module;
+no frozen-source fallback is needed for the turret fixture. Evidence:
+parallel-root-explicit-volley-actual-check.log and
+parallel-a20-c18-shared-check.log. All root test processes are terminal.
+
+External ../parallel-merge/npc-fixture-v4/data holds hardlinks only to original
+catalog and canonical702-graph base, used with the v4 graph supplement. The old
+NPC668-graph fixture pack is a strict identical shared-graph subset, and cannot
+alone satisfy current Mercy effect references. Source packs remain unchanged.
+Source associated pack adds17 graphs/5 entities with only ai_entity fields
+added to five shared records; no shared graph changes. Do not blindly replace
+current entity records to select that unrelated metadata.
+
+Remaining root integration:0005 manual Sniper authored long-distance search
+alongside existing0015 nearby destination fallback, using one142C VM and mover.
+Original Hanzo NPC tests at16m expose the missing explicit search consumer;
+do not weaken those expectations or erase nearby fallback. A continues finite/
+range owned Matrix; B continues source cross-hero/NPC/object counters; C continues
+original Torb charge. Whole nonappearance integration goal remains incomplete.

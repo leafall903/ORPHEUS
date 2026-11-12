@@ -15,6 +15,44 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Current integration
 
+- B14 capture5d1b6b78 submitted/root accepteda4b14efc. Local sync9ec59b74
+ 763582a6 preserves canonical Hanzo-climb/Charge ordering plus both modes.
+- Original assertion audit atB14: frozen0007 test_game_reinhardt.py and delivered
+  module contain1399 assert calls in the same per-method order.229 raw AST
+  differences are observer/fixture mappings accumulated sinceB11; all1399
+  assertions' numeric/boolean/string/None Constants remain identical, zero
+  changed. Raw AST is deliberately not claimed byte-identical: original
+  controlled/pinned/map/deadline observations must read actual canonical state.
+  Source _charge_knockback explicitly uses behind5.0 for index15 and2.0 otherwise;
+  the newfight parameter path calls only15 bump/49 release. Legacy Heavy paths
+  still evaluate the original payload offset.
+- B15 restores source posed command counter hook, which covers close007D
+  windups before the running drive. Preserve tolerant facing comparison,
+  source IceWall cover and phase-exit cleanup after Ability.stop. Mutual10
+  behavior checks pass on the native stun clock; only the old controls-empty
+  observer errors were mapped to the actual native stuns for this class.
+  Joint originalMutual10+Movement7+Contact21+Punch21+shared98=157 run155 pass
+  and2 retained originalShatter controls-key observer errors. Log
+  worker-b-reinhardt-mutual-shared.log.
+
+
+- B13 drive3e09ac2d submitted/root accepted71d04534. Synchronized accepted
+ 59c15a5a in local merge0abbce5b (preserved Hanzo climb plus Charge drive).
+- B14 discovers old Combat.charge_contact was still the actual capture consumer;
+  reinhardt_charge.advance was unused. Route the source-adapted advance to the
+  same charges records as movement; legacy helper remains unrouted. No second
+  capture manager remains. Restore generation contacts, immunity-aware bumps,
+  team changes, source death/leave and captured-body death cleanup, native
+  control throttle suppression and additive shared impulse consumers.
+- Original Movement7/Contact21+shared98 ran126:124 pass and2 retained missing
+  controls-key observations for independent Earthshatter sources. Original
+  assertions are intact; test controlled/pinned views read actual existing
+  statuses, and maps read actual charges. Logworker-b-reinhardt-contact-fourth.log.
+- Remaining0007: full mutual/counter charge (Doom/Heavy/Brigitte), charge world
+  deployable consumers/windup interruption and full owner Earthshatter/Fire
+  Strike/lifecycle/credit scope. Do not call the delivery complete yet.
+
+
 - B12 surfaces986eb818 submitted. B13 restores source Charge horizontal drive
   and30deg/s steering within the existing charges records and sameMover. New
   dataclass fields append heading/activation; no positional contract changes.
@@ -211,7 +249,8 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Submit B13 drive batch, then continue0007 source full Charge contacts and
+1. Submit B15 mutual batch, then synchronizee1c5e6fd or newer canonical at
+   a clean boundary and continue0007 source counter/deployable Charge and
    Earthshatter. Source charge_drive/blocked/contact step live in original
    combat.py around812-1388 and match._step_body_pose around365-411. Preserve
    a single driver while migrating these consumers. Continue source
