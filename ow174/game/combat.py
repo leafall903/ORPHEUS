@@ -9397,6 +9397,8 @@ class Combat:
         pet = self._personal_barrier_pet(target.owner)
         if pet is None:
             return None
+        if isinstance(pet, nodes.CompatiblePet) and pet.pet_entity is not None:
+            return None  # this actual native factory owns its sole finite pool, even during break handoff
         activation = pet.instance.id, pet.counter
         prior = self.personal_barriers.get(target.entity)
         if prior is not None and prior[:2] == activation:

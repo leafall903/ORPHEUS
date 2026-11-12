@@ -2228,3 +2228,52 @@ worker-a-zarya-early-break-cooldown-runtime-check.log. No serializer changes.
 Next A92: source silent ACTIVE break contact/body-gap/cooldown path audit (distinct
 from this already-ended-ahead branch), then final0068 source mapping handoff.
 Root owns A90 exact cross-VM value boundary; all original strict errors remain.
+
+## A92 — source silent active break and exact ctor/world pair
+
+Restored the distinct original0068 ACTIVE break branch on same duration's FINISH
+request/BarrierExpiry: label parent end with mapped actual contact, leave that
+frame available for real input, and use existing next-world-edge neutral gap.
+The actual child/Pet actor retires immediately. Native child cleanup can enqueue
+its original cooldown write at the idle parent cursor; after the contact-frame
+gap, the same Ability cur/rate gets the real contact-frame origin with its retained
+within-frame phase. A naturally reached duration keeps its ordinary end path;
+early child cleanup still supplies the original gap even if it already stopped
+the parent. No new pending ledger/state fields/timer/body VM or time override.
+
+Found A80 ctor binding off by one: BodyScript.frame is committed after command
+returns, but the native ctor is already in component.frame. _schedule_expiry now
+pairs the actual duration component ctor frame with actual Match.tick (they may
+be40frames apart), instead of the previous accepted BodyScript.frame. Original
+silent test exposed1067vs1068 after the first bridge; the actual ctor pair fixes
+that. This changes real expiry admission one tick as restored original causality;
+no source expected value changed and no frame==world assumption was introduced.
+
+Single native finite pool remains authoritative during that short break handoff:
+legacy personal absorption recognizes actual CompatiblePet.pet_entity, regardless
+of linked output mode; stale Barriers.Bubble references cannot synthesize a second
+pool without the scripted actor. Break clears only this activation's old personal/
+matching-source projected/live proxy caches. The next same-tick contact damages
+the body, while the breaking event has no overflow. No alias manager/observer.
+
+Normal module now also contains source silent-break whole method: fiveNPC
+projected plus personal, original script.frame/start/hit, energy2,8/10s cooldown,
+repress/generation assertions retained. All6cases baseline failed old bodyframe
+1001vs1068 (personal1002vs1069), then actual parent rawcooldown6.928vs8 traced to
+old-cursor queued native cleanup; both causality consumers are now restored.
+Final source2methods (includes A91) pass9.537s. Combined source no-overflow and exact
+capacity/40energy, nativeapplication2/lifetime2/worldenergy1 and actualNPC lifecycle3
+=12/12pass19.228s. Log worker-a-zarya-silent-break-ctor-lifetime-joint-check.log.
+Bounded original-cause evidence worker-a-zarya-native-break-causal-trace.log;
+source baseline worker-a-zarya-silent-active-break-baseline.log. No assertion or
+source numeric value was changed, and no serializer/shared runtime was changed.
+
+Remaining actual known implementation gap A93: legacy target overlap gates still
+reject second projected caster and personal+projected combination that original
+0068 candidates/interception support. Current unique actors/Vitals can already
+hold independent casts and choose one absorbing pool; restore admission consumers
+without changing C54 unique replay query. Root owns A90 value-copy boundary and
+has completed its strict whole-server verification. Verification tails (193 width,
+old private API, source geometry/contract differences, externalclient OPEN) are not
+production-merge blockers. Final source/shared mover replacement mapping follows
+A93; do not add legacy mover facades merely because names differ.
