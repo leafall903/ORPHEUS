@@ -229,6 +229,7 @@ WHEEL_CALLOUT_MS = 2000
 # Other heroes retain the unverified 60s passive fallback. Explicit 0 disables
 # passive charging; a positive override retains the legacy test/GM curve.
 ULT_CHARGE, ULT_COST = 342, 338
+ULT_GENERATION, ULT_COMBAT_GENERATION, ULT_PASSIVE_GENERATION = 0x253C, 0x32DE, 0x3276
 ULT_GAIN_ENABLED = 2426
 ULT_GAIN_GRAPH = 0x0B8B
 ULT_SECONDS = 60.0
@@ -1006,6 +1007,10 @@ class BodyWorld(runtime.World):
 
         if self.hero == 0x02E00000000001CA and instance is not None:
             cls = cfg.get("$")
+            from ow174.game import ball
+            owner = ball.passive_owner(self, cfg, instance)
+            if owner is not NotImplemented:
+                return owner
             if cls in {"STU_8CBDD81C", "STU_71A87E92"}:
                 entity = instance.evaluate(cfg.get("m_entity"))
                 if isinstance(entity, Entity) and self.match is not None:
@@ -2276,8 +2281,10 @@ class BodyScript(ReplicatedBody):
 
             ult_seconds = mei_ultimate.DEFAULT_SECONDS
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
-                                               0x02E0000000000005):
+                                               0x02E0000000000005, 0x02E00000000001CA):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
+        if ult_seconds is None and hero == 0x02E00000000001CA and match is None:
+            ult_seconds = ULT_SECONDS
         self.ult_seconds = ult_seconds
         self.passive_charge_ms = 0
         self.reaper_charge_ms = 0
@@ -2307,6 +2314,9 @@ class BodyScript(ReplicatedBody):
             self.component.disconnect_foreign_watchers()
             self.world.match = None
             raise
+        if (hero == 0x02E00000000001CA and self.ult_seconds is None
+                and not any(i.graph.index == 0x0B8B for i in self.component.instances.values())):
+            self.ult_seconds = ULT_SECONDS
         if hero == 0x02E0000000000016 and match is not None:
             self.charge_clock = match.tick, self.component.now
         if hero == 0x02E00000000000DD:
@@ -2453,6 +2463,9 @@ class BodyScript(ReplicatedBody):
     def _run(self, frame: int, edges: list) -> None:
         from ow174.game import mei, mei_ultimate, symmetra_charge, torbjorn_charge
 
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            from ow174.game import ball
+            ball.prepare_passive(self)
         if self.hero == mei.HERO:
             edges = mei_ultimate.command_edges(self, mei.command_edges(self, edges))
         authored_symmetra = self.hero == symmetra_charge.HERO and self.world.match is not None
@@ -2787,6 +2800,10 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E00000000001CA and self.world.match is not None:
+            from ow174.game import ball
+            ball.diagnostic_charge(self)
+            return  # Natural0B8B owns its original passive cadence; explicit numeric fill is separate.
         if self.world.match is not None and self.world.match.combat.sombra_charge.enabled(self):
             return  # Original Sombra0B8B now owns passive cadence and arithmetic.
 

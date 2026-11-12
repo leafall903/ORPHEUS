@@ -80,6 +80,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   Python CLI--help passes; native CMD entry correctly refuses an occupied local
   port without starting services. Original unconfigured CLI test import lacked
   external descriptors, fixed by selecting existing inputs rather than copying.
+### Mount delivered Ball natural passive charge and owner query
+
+- Use original0B8B gate/general/passive factors in its existing body VM; keep
+  natural None versus explicit numeric diagnostic fill separate, without a
+  second timer. Restore exact Ball0B8B own-body owner-query shape and retirement.
+- Original passive/settings/owner/cadence/gap/death cases pass. Full Cooldown,
+  Spread/runtime33 retains only three genuine unmounted Minefield-manager errors.
+  Cooldown72 assertion AST remains unchanged.
+- Actual raw natural0B8B produces5 points with numeric fill disabled. Active
+  strict BodyVM/server exports and category-factor causal mutation/restore pass.
+- Select real original mine entity/graph closure through strict additive inputs
+  for the original fixture presence gate; never patch in an old full runtime pack.
+  Full Minefield and original-client acceptance remain open.
+
 ### Connect delivered Quad Cannon spread and Ball combat charge
 
 - Mount original deterministic1514 cone/ramp through the existing shot path;
