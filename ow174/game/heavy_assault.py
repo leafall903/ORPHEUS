@@ -186,6 +186,9 @@ def stop_charge(component, ability_state):
     ability_state.stop()
     component.edges([(CHARGE_BUTTON, False)])
     instance.write((expr.INSTANCE, 59), 0)
+    match = getattr(component.world, "match", None)
+    if match is not None:
+        match.combat.release_heavy_capture(component.entity)
     pending = [instance.states.get(instance.graph.node(pos).state) for pos in (137, 71)]
     for state in pending:
         if state is not None and state.active:
