@@ -209,6 +209,111 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve projectile source scaling on the same Mei wall pools
+
+- Connect wall direct/splash damage to the existing source modifiers once,
+  preserving Zarya's original launch Nano snapshot and current live projectile
+  policy. Keep readonly geometry predictions raw and existing callers compatible.
+- Actual live Nano and expired-in-flight launch Nano interact correctly with the
+  same native wall pools; 19 wall/cover/projectile/damage checks pass. Restore the
+  retained retarget guard's actual raised-barrier service; full phase/retarget
+  acceptance and client checks remain open.
+
+### Preserve Pharah force cover through the same impact
+
+- Read original Pharah impulse exposure before the blast breaks its cover, then
+  apply once through the existing mover after damage. Keep native particle
+  protection and same-shot broken-barrier protection.
+- Actual near-wall interaction fails the old path and passes the restored path;
+  26 actual-cover/Pharah/damage checks pass. Original Helix on/after-thaw's10
+  subcases also pass. Client acceptance and remaining owner interlocks stayopen.
+
+### Restore original projectile contact and splash on bound Mei walls
+
+- Resolve same-entity native pillars through their solid geometry instead of a
+  duplicate early body capsule. Apply original closest-face blast exposure once
+  through each existing pillar pool, preserving impact exclusion.
+- Original frozen-support Helix scene passes all five NPC stepped/gap subcases;
+ 16 projectile/damage/wall checks pass. On/after-thaw source coverage is pending,
+  and original-client acceptance remains open without blocking the code merge.
+
+### Connect original frozen Sentry support-impact proofs
+
+- Adapt the retained-impact proof to the actual shared geometry queries,
+  original projectile fields, current defense states and existing NPC pose driver.
+  Proven admission runs the same world loop; no actor or health pool is added.
+- Five actual NPC/Helix setup queries admit an82tick gap without mutating inputs;
+ 25 Sentry/damage/native-Pet checks pass. C53's25 original expiry/cancel subcases
+  also reached a passing terminal outcome. Original Helix full-method baseline
+  timing failures remain recorded, and projected/respawn admission stays pending.
+- Original-client acceptance remains unperformed; implementation is saved without
+  waiting for the complete acceptance group.
+### Preserve unbound native pillar exposure
+
+- Deduplicate prediction body splash only for the same actual pillar bound to
+  solid-wall geometry. Unbound native pillars remain ordinary damage targets.
+- Actual unbound-pillar80 splash and whole-server readonly state checks pass;
+  actual Winston query checks now pass with its real world/input clock driven.
+
+
+### Restore shared original Sentry geometry queries
+### Verify actual bounced Hypersphere storage
+
+- Raw HeroPick/input/wall contact proves same-body VM identity, separate epochs,
+  and read-only strict storage for actual bounce budget, response, velocity and
+  remaining lifetime. Inputless world flight retains the current body frame.
+- The causal raw-server check passes; no runtime change or client acceptance run.
+
+### Restore original Hypersphere wall response
+
+- Same Rocket consumes the original wall radius, fractional gravity, normalized
+  reflection and remaining bounce budget; final contact retires without airburst.
+  Existing other projectile flight and amplification accounting remain connected.
+- Original response/retirement and cross-projectile shared29 checks pass with
+  unchanged numeric assertions. Full interaction/storage audit continues; no
+  original-client acceptance run.
+
+
+### Restore explicit NPC mover export options
+
+- Restore original006E --base/--npc-catalog/--output on the existing mover export
+  tool, retaining stance metadata and the original34 physical fields.
+- Actual extraction/loader checks preserve base records and bytes, reject base
+  overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+### Mount original Hypersphere airburst and impact consumers
+
+- Existing Rocket flight reads original Sigma profile gravity/expiry; missing
+  ring scalars use original1 while explicit0 stays0. Damage and impulse now
+  share the original direct/blast path, including declared owner self damage.
+- Original sphere5 plus Accretion/shared32 checks pass. Original normalized
+  wall response remains the next batch. No original-client acceptance run.
+
+### Reconnect Sigma base-shield recovery
+
+- Sigma uses the existing0033 recovery integrator and own-body current/maximum
+  pool query; no additional pool or healing scheduler is created.
+- Original rifle/respawn checks and shared recovery/Damage/runtime25 checks
+  pass. Original projectile timing differences and legacy recovery getters stay
+  recorded with unchanged assertions. No original-client acceptance run.
+
+### Restore Accretion caster blast and original impulse guards
+
+- Existing Accretion explosions settle the caster's original self damage and
+  declared recoil, including zero-damage blasts, through existing pools/movers.
+  Fortify/protected targets reject impulse; original224E remains the sole host.
+- Six source cases plus Damage/runtime27 checks pass. Original2.65m attenuation
+  difference and legacy observer/helper errors remain recorded unchanged.
+  No original-client acceptance run.
+
+### Preserve Roadhog's original inclusive reduction deadline
+
+- The existing Breather channel uses original integer-frame ceil and actual body
+  endpoint association; impacts on its inclusive final tick retain reduction.
+  Historical observations no longer overwrite that clock with current time.
+- Original offset0 and all earning-readiness subcases pass with unchanged
+  numbers. Full31 checks had only four stale motion-observer mappings, corrected
+  against the selected ledger in a focused pass. No client acceptance run.
+
 ### Restore shared original Sentry geometry queries
 
 - Restore original cover/target/barrier/splash prediction entry points over the

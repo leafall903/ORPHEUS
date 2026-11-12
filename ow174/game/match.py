@@ -1948,6 +1948,8 @@ class Match:
                 airborne=player.mover.airborne if posed else None,
                 healing_tick=healing_tick if script.hero == 0x02E0000000000040 else None,
             )
+            if script.hero == 0x02E0000000000040 and player.body_script is script and not script.retired:
+                self.combat.breathers.observe(player, tick=healing_tick)
         except Exception as error:
             bodytrace.failed(script, error)
             log.exception("[game] %s: %s's body statescript failed", self.label(), player.name)

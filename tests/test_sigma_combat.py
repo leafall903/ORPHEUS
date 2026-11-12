@@ -327,12 +327,12 @@ class SigmaCombatTests(unittest.TestCase):
                 run.step({shooter: (0, 0, FIRE if frame == 0 else 0)})
                 for sphere in fight.rockets:
                     if sphere.definition not in launched:
-                        self.assertEqual(sphere.bounces, 100)
-                        sphere.bounces = 0
+                        self.assertEqual(sphere.terrain_bounce_limit, 100)
+                        sphere.terrain_bounce_limit = 0
                         launched[sphere.definition] = sphere
         self.assertEqual(len(launched), 2)
         for sphere in launched.values():
-            self.assertEqual(sphere.bounces, -1)
+            self.assertEqual(sphere.terrain_bounce_limit, -1)
             self.assertGreater(sphere.left, 0)
             self.assertLess(sphere.velocity[2], 0)
         explode.assert_not_called()
@@ -350,12 +350,14 @@ class SigmaCombatTests(unittest.TestCase):
         run.match.collision_world = World(floor + box(x - 4, x + 4, y, y + 4, z + 6, z + 7))
         fight = run.match.combat
         bounced = set()
-        sweep = fight._sweep_projectile
+        from ow174.game import sigma_projectiles
 
-        def observe(rocket, duration, velocity):
-            budget = rocket.bounces
-            remaining = sweep(rocket, duration, velocity)
-            if budget == 100 and rocket.bounces == 99:
+        sweep = sigma_projectiles.bounce
+
+        def observe(fight, rocket, direction, normal, distance, step, duration, velocity, reflected):
+            budget = rocket.terrain_bounce_limit
+            remaining = sweep(fight, rocket, direction, normal, distance, step, duration, velocity, reflected)
+            if budget == 100 and rocket.terrain_bounce_limit == 99:
                 self.assertGreater(remaining, 0)
                 self.assertLess(remaining, duration)
                 vx, vy, vz = velocity
@@ -365,11 +367,11 @@ class SigmaCombatTests(unittest.TestCase):
                 bounced.add(rocket.definition)
             return remaining
 
-        with patch.object(fight, "_sweep_projectile", side_effect=observe):
+        with patch.object(sigma_projectiles, "bounce", side_effect=observe):
             for frame in range(65):
                 run.step({shooter: (0, 0, FIRE if frame == 0 else 0)})
                 for rocket in fight.rockets:
-                    if rocket.bounces == 99:
+                    if rocket.terrain_bounce_limit == 99:
                         self.assertLess(rocket.velocity[2], 0)
                         self.assertLess(rocket.position[2], z + 5.95)
                         self.assertGreater(rocket.position[2], z + 5.4)
@@ -523,7 +525,7 @@ class SigmaCombatTests(unittest.TestCase):
                 self.assertEqual(200 - health[behind].total, expected)
                 self.assertEqual(fight.is_stunned(behind), protection == "phase")
                 self.assertEqual(script.component.entity_var(342).value(), expected)
-                ability = self.ability(shooter, sigma.ACCRETION)
+                ability = self.ability(shooter, combat.ACCRETION)
                 for _ in range(65):
                     if ability.remaining() > 0:
                         break
@@ -2146,7 +2148,7 @@ class SigmaCombatTests(unittest.TestCase):
         self.wall(run, sideways=False, offset=1.25)
         fight = run.match.combat
         health = fight.vitals_of(next(t for t in fight._targets() if t.owner is shooter))
-        ability = self.ability(shooter, sigma.ACCRETION)
+        ability = self.ability(shooter, combat.ACCRETION)
         ability.instance.write((graph.INSTANCE, 11863), 0.0)
         with patch.object(
             shooter.mover, "add_external_impulse", wraps=shooter.mover.add_external_impulse,
@@ -2158,7 +2160,7 @@ class SigmaCombatTests(unittest.TestCase):
                     break
             rock, = fight.rockets
             self.assertEqual(rock.blast.amount, 0)
-            self.assertEqual(rock.blast.self_impulse_scale, 1)
+            self.assertEqual(rock.blast.source_impulse_scale, 1)
             for _ in range(20):
                 run.step({})
         impact.assert_called_once()
@@ -2364,7 +2366,7 @@ class SigmaCombatTests(unittest.TestCase):
         x, y, z = shooter.mover.position
         reply = aim(fight._eye(enemy), (x, y + 0.8, z))
         run.step({shooter: (*forward, 0x10)})
-        self.assertTrue(self.ability(shooter, sigma.ACCRETION).flags & nodes.Ability.RUNNING)
+        self.assertTrue(self.ability(shooter, combat.ACCRETION).flags & nodes.Ability.RUNNING)
         self.assertFalse(fight.rockets)
         old_body = shooter.body
         if launched:

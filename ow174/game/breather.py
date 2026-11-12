@@ -19,6 +19,7 @@ class Channel:
     heal_duration: float = 0.0
     heal_amount: float = 0.0
     heal_accounted: float = 0.0
+    deadline: int | None = None
 
 
 class Breathers:
@@ -26,7 +27,7 @@ class Breathers:
         self.fight = fight
         self.channels = {}
 
-    def observe(self, player):
+    def observe(self, player, *, tick=None, clock=True):
         if player.hero.guid != HERO:
             return
         component = player.body_script.component
@@ -44,6 +45,13 @@ class Breathers:
                 channel = self.channels[player.body] = Channel(
                     instance.id, wait.counter, self.fight.now + remaining,
                 )
+            if clock or channel.deadline is None:
+                # Original0040 note_breather_clock: world impacts precede body
+                # input on the inclusive final tick. Use the actual endpoint
+                # association during historical body callbacks.
+                remaining = max(0, wait.start + wait.ms - component.now)
+                frames = (remaining + component.frame_ms - 1) // component.frame_ms
+                channel.deadline = (self.fight.tick if tick is None else tick) + frames
             heal = instance.states.get(instance.graph._by_pos[18].state)
             if channel.heal_started is None and heal is not None and heal.active and not heal.ending:
                 self._start_healing(channel, heal)
@@ -68,7 +76,8 @@ class Breathers:
 
     def scale(self, owner, entity):
         channel = self.channels.get(entity)
-        if channel is None or self.fight.now > channel.until:
+        if channel is None or (self.fight.tick > channel.deadline if channel.deadline is not None
+                               else self.fight.now > channel.until):
             return 1.0
         script = owner.body_script
         if (script is None or script.retired or script.component.owner_dead

@@ -2351,3 +2351,174 @@ inside Sentry proof. Source imports phase_defenses and calls old heavy phase/
 instance, zarya_barriers.projected, rocket.implicit_absorbable/impact_damage,
 Match.step_bot_pose; these are not yet real current consumers. Generic owner
 phase-expiry/respawn history remains separate. Preserve original guards/asserts.
+
+
+## C53 terminal outcome and C54 retained-impact service adapters
+
+C53 handle60071 reached its natural terminal: original two selected Ice-supported
+Sentry expiry/cancel methods,25 source subcases,allpass134.540s. Earlier pending
+text above is superseded by this terminal result. Original expectations unchanged.
+
+C54 synchronized faec1f1c (root five readonly geometry queries plus current A/B
+hosts). The original support-impact proof now consumes actual Walls identity,
+Heavy charge active instance, phased-out/Deflect/Grasp/Matrix state, original
+Pharah launch marker and the actual Rocket direct falloff fields. Route previews
+use the same Bot.step/data/modifiers/pause/pillar inputs as the sole live NPC
+host. Preview rejects owned physical movers rather than mutating them through a
+shallow copy; this is an explicit conservative impact-proof boundary, distinct
+from C50's natural-expiry admission of already-settled manual movers.
+
+Combat now actually enables support-impact admission into the existing world/NPC
+loop. Five original-source setup scenarios (Trooper/Enforcer/Sniper/Assassin/Heavy)
+with actual in-flight Helix and82tick frozen gap all return nonempty admission;
+world tick,flight position,actual support health and NPC pose are unchanged by
+the query. Reproducer ../parallel-merge/worker-c-frozen-impact-admission-probe.py,
+log ../worker-c-frozen-impact-admission-probe.log. This extracts the original
+fixture setup up to its observer phase, preserving its setup assertions; it is
+not a passing full source method or a second driver.
+
+Original full selected Helix method remains5failure records19.238s: every
+stepped baseline fails the original sentry-presence assertion at source line2173,
+before comparison with the skipped schedule. No assertion or numeric expectation
+was removed. Its old nonexistent _projectile_body_impact observer is excluded for
+this support-only scenario (no body-contact outcome), and its explosion observer
+forwards the current keyword-only signature. Both changes are external fixture
+adaptations, not production aliases. Reproducer
+../parallel-merge/worker-c-frozen-ice-impact-source-check.py; log
+../worker-c-symm-frozen-ice-impact-check.log. Earlier5missing helper errors2.852s
+are retained diagnostics, superseded by loading the original rifle helper.
+
+The single projected-recipient query reads the existing native Pet/activation/
+slot536 and actual Vitals pool, not the old separate Zarya manager. Actual native
+cast identifies the same recipient without running components or changing the
+pool; actual break retires it and query returnsNone. New focused regression plus
+Sentry and Damage suites:25/25pass26.969s, log
+../worker-c-c54-shared-check.log. The old encounter(protect=True) fixture itself
+still fails its cast-active precondition; the real NativePetApplicationTests
+setup/cast is used for this single-host query evidence.
+
+Remaining: the global projected-barrier/respawn guard still declines those
+complex replay windows; restoring the read query does not claim their complete
+consumer admission. Next C55 audit phase/respawn and actual projected windows,
+then Pharah impact-force and Bastion Heavy stance/push interlocks. Preserve all
+original files/assertions and current A/B hosts. Estimated remaining C effort
+6–15 active hours, low confidence; largest uncertainty is complex old phase/
+retarget timing versus actual native owner lifecycles. No client operation,
+publication or network access performed.
+
+
+## C55 actual bound-pillar projectile geometry and blast consumers
+
+C54 source Helix failures were actual shared-consumer omissions, not merely old
+observation names. The generic Rocket body sweep saw the same native0932 pillar
+before its solid slab face, so it destroyed support before the original expected
+contact tick. _sweep_rocket now excludes ONLY a target whose same entity maps to
+a Walls piece AND whose owner is that exact piece.actor. Native pillars without
+this geometry binding and every other device/Mine remain body candidates.
+
+With that fix, all five original methods advanced beyond the former presence
+assertion and stopped at source2569: adjacent columns had no splash damage.
+Actual _explode had never consumed original wall closest-face splash; it instead
+tried generic pillar capsule exposure, which was blocked by the pillar's own
+solid geometry. It now samples original _splash_barriers before health changes,
+retains only the existing Walls service, excludes the exact impact piece, skips
+same-bound actor body splash, and applies each sampled amount through existing
+Walls.damage into the same actual native actor/Vitals. No extra pool/actor,
+geometry provider or driver. No query run when no physical pieces exist.
+
+Original selected test_in_flight_helix_breaks_ice_sentry_support_before_npc_thaw:
+all5NPC stepped/gap subcases pass34.340s, unchanged original assertions/numbers.
+Same external observation/signature adaptations documented C54. Log
+../worker-c-c55-helix-splash-check.log. The intermediate geometry-only result
+retained5failures17.764s at adjacent-wall expectation (superseded by the complete
+source algorithm). Focused original DamageTests+ProjectileTimingTests+WallTests.
+test_projectiles_stop_damage_one_pillar_and_do_not_hit_body_behind:16/16pass3.715s,
+../worker-c-c55-projectile-shared-check.log.
+
+Original on/after-thaw source method (5NPC x2 offsets) remains running as
+handle1866; not countedpass. Reproducer
+../parallel-merge/worker-c-frozen-ice-thawed-impact-source-check.py, log
+../worker-c-c55-thawed-impact-check.log. Current implementation is saved without
+waiting for that whole-family result. Next persist terminal outcome, continue
+actual projected-recipient replay admission/phase clocks and Pharah impact cover;
+Bastion Heavy stance/push interlocks remain. Remaining C effort6–14 active hours,
+low confidence. No client/network/publication action.
+
+
+## C55 terminal and C56 Pharah impact-time force cover
+
+C55 handle1866 terminal: original on/after-thaw method,10NPC/offset subcases,
+allpass89.317s. With preceding5before-thaw cases, all15selected Helix original
+step/gap comparisons pass. Original expectations unchanged.
+
+C56 restores original0008 frozen impact exposure for force: compute the existing
+Pharah radial impulses before this blast spends wall/shield health, keep only a
+local tuple for this call, then dispatch once through the same existing physical
+mover/Bot.apply_impulse after damage. Still recheck alive/protected at dispatch.
+Actual scripted Zarya bodies and broken_particle_barriers protect the same shot's
+force. No stored queue/provider/second force or pool. Accretion branch B64 remains
+owned B/root and must be preserved when receiving overlapping _explode context.
+
+Initial diagnostic was invalid evidence: switch_hero relocated the shooter onto
+the same side of the wall. Its nonzero velocity did not prove leaking cover.
+Corrected explicit opposite-side3m fixture was outside force range (old/new2pass).
+Final actual opposite-side2m wall scenario proves the boundary: old2828ff70
+_explode/_pharah_impulses AST functions fail wall assertion with Mei position
+Y1→1.021484375 and Z42.1474609375→42.1318359375; current functions pass without
+motion. Actual20HP native projected Pet same-shot case passes old and new,
+retaining prior behavior. Old1pass1fail2.451s/current2pass1.067s in
+../worker-c-c56-near-cover-baseline-check.log. No original source assertion
+modified; these are actual producer interaction regressions, not mocked shields.
+
+Final actual cover2 + originalPharahImpulse/PharahCombat/Damage suites:
+26/26pass16.142s, ../worker-c-c56-final-cover-shared-check.log. Earlier initial
+incorrect-fixture2fail24pass20.920s remains recorded in
+../worker-c-c56-cover-shared-check.log. Tests now explicitly position shooter
+following actual hero replacement, preserving the intended geometry.
+
+Next C57: source live boost for new Walls splash/direct consumers (Walls.damage
+uses source_scaled=True, so source outgoing modifiers must be consumed once),
+and _support_retarget_isolated old reinhardt_barriers.states→actual raised actor
+service. Root owns pure five geometry adapters; A owns true projected-NPC Pet
+recipient admission (current _recipient_live onlyplayers); no alias manager.
+Mei/Symm phase/retarget, Pharah remaining cover interlocks and Bastion Heavy
+stance/push audit stayopen. Estimated5–12active C hours, lowconfidence; no client,
+network or publication performed.
+
+
+## C57 projectile wall source scaling and raised-barrier proof guard
+
+Synchronized root96ec3824 afterC56, retaining B64 Accretion caster damage/force,
+A86 launchNano/offense_scale and its optional field positional compatibility.
+Walls.damage keeps its original source_scaled=True default for already-scaled
+cross-owner callers; adds optional source_scaled/source_body forwarding into the
+same Combat._damage. Only three existing _explode wall direct/splash consumers
+opt into current source rules. offense_scale=None routes raw amount through the
+existing live team/supercharger/Nano host once. NonNone amounts already contain
+original03DB/03E2 launchNano; multiply only current team/supercharger then pass
+source_scaled=True, preserving frozenNano without double multiplication.
+Readonly splash prediction still returns raw authored amounts, no boost/query side
+effects or second source provider. Other Walls.damage callers retain defaults;
+their individual pre-scaling contracts require separate owner audit.
+
+Actual producer evidence: Ana casts Nano on Pharah, command-deployed five native
+Mei pillars share their actual Vitals; original center120 becomes180 and all four
+adjacent face splash amounts are exactly1.5 times unboosted amounts. Pre-fix real
+probe confirmed current liveNanoTrue but center remained280HP (raw120 loss).
+Actual Zarya launches secondary underNano1.5 with blast70.5, Nano expires during
+flight, and same real wall receives70.5 once (400→329.5), retaining launch snapshot.
+New live/frozen wall2 + sameimpact2 + originalDamage8/ProjectileTiming7:
+19/19pass8.053s, ../worker-c-c57-frozen-source-check.log. Earlier live-only18pass
+6.144s is superseded by this broader original-launch-aware scope.
+
+_support_retarget_isolated no longer reads nonexistent oldmanager.states; it
+conservatively checks existing fight.barriers.reinhardt.actors without syncing or
+creating a shield. Root requested this actual service mapping. Complex retarget/
+projected admission remains unaccepted until its original scenarios execute;
+this guard correction does not claim that wholefamily complete.
+
+Next: original phase damage-start transitions through already-owned idle clocks,
+retarget/projected actual windows (NPC target mount owned A), remaining0008
+cross-owner source force and0015 Heavy Sentry stance/displacement. No client,
+network/publication action. Remaining C estimate5–12 activehours, lowconfidence;
+shared geometry/phase timing is the largest unknown.

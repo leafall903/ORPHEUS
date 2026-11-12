@@ -1439,8 +1439,9 @@ def hit_def(state, cfg) -> HitDef | None:
                 state.evaluate(ring.get("m_radius"), watch=False) if ring.get("m_radius") is not None else 0.0
             )
             scalar = ring.get("m_B399CACB")
-            scalar = state.evaluate(scalar, watch=False) if scalar is not None else 0.0
-            rings.append((_number(radius, 0.0), _number(scalar, 0.0)))
+            sigma_ring = graph_index in (0x1BBB, 0x187F)
+            scalar = state.evaluate(scalar, watch=False) if scalar is not None else None
+            rings.append((_number(radius, 0.0), _number(scalar, 1.0 if sigma_ring else 0.0)))
     impulse_rings = []
     for ring in modify.get("m_knockbackRings") or []:
         if not isinstance(ring, dict):
@@ -1467,7 +1468,10 @@ def hit_def(state, cfg) -> HitDef | None:
             else "m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
         impulse_rings=tuple(sorted(impulse_rings)),
         vertical_impulse_minimum=(force("m_583C208B") if modify.get("m_583C208B") is not None else None),
-        source_impulse_scale=value("m_2FE97560", 0.0) if cfg.get("m_49F60FB8") else 0.0,
+        source_impulse_scale=value("m_2FE97560", 1.0 if (
+            cfg.get("$") == "STU_4AA6CA44" and isinstance(loadout, expr.Asset)
+            and loadout.guid in (0x0B9000000000028A, 0x0B9000000000028C)
+        ) else 0.0) if cfg.get("m_49F60FB8") else 0.0,
         source_impulse_ignores_los=bool(cfg.get("m_2A970629")),
         deflectable=any(
             (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
@@ -1491,7 +1495,7 @@ def hit_def(state, cfg) -> HitDef | None:
 
 
 def _accretion_knockback(state, modify) -> tuple[float, float, tuple] | None:
-    if state.instance.graph.index != ACCRETION or state.node.pos != 9:
+    if (state.instance.graph.index, state.node.pos) not in ((ACCRETION, 9), (0x187F, 45), (0x187F, 56)):
         return None
     rows = modify.get("m_knockbackRings") or ()
     if not rows:
@@ -1685,7 +1689,6 @@ class Rocket:
     last_tick: int | None = None  # last world tick, or None before player input is simulated
     spray: "moira.SprayTrace | None" = None
     dose_scalar: float | None = None
-    offense_scale: float | None = None  # Original0068 launch Nano snapshot; other families keep impact policy.
     gravity: float = 0.0  # authored projectile acceleration; zero preserves linear projectiles
     velocity: tuple | None = None  # stored velocity for accelerated flight
     detonate_on_expiry: bool = False  # declared Flashbang range/lifetime-end policy
@@ -1740,6 +1743,7 @@ class Rocket:
     started_tick: float | None = None
     sonar: sonic.Profile | None = None
     barrage_source: tuple | None = None
+    offense_scale: float | None = None  # Original0068 launch Nano snapshot; other families keep impact policy.
 
 
     @property
@@ -3570,7 +3574,7 @@ class Combat:
         reinhardt_barrier.sync(self, player)
         self.brigitte.passive_command(player, script)
         self.hooks.command(player, command)
-        self.breathers.observe(player)
+        self.breathers.observe(player, clock=False)
         self.sound_barriers.observe(player)
         if player.hero.guid == lucio.HERO and (command is not None or self.lucio_auras.leases):
             self.lucio_auras.refresh(script.frame)
@@ -4562,9 +4566,9 @@ class Combat:
                 or any(cryo.active(player) for player in self.match.players)
                 or any(bot.firing or _external_motion(self, bot) for bot in self.match.bots)):
             return ()
-        # Natural/cancelled allied support uses this same real world loop.
-        # Impact/projected retarget proofs await their actual service adapters.
-        return self.sentries.frozen_history_candidates(tick, support_impacts=False)
+        # Supported impact proofs read the same actors and preview route poses;
+        # admission still feeds the sole world/NPC update loop.
+        return self.sentries.frozen_history_candidates(tick)
 
     def update(self, now: float, tick: int, frames: bool = True) -> None:
         """Each tick: keep where the bodies are, fly the rockets, respawn, send health that changed. The
@@ -5127,7 +5131,8 @@ class Combat:
     @staticmethod
     def _owns_shield_recovery(owner):
         return (symmetra.owns_shield_recovery(owner)
-                or getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068)
+                or getattr(getattr(owner, "hero", None), "guid", None) in (
+                    0x02E0000000000068, 0x02E000000000023B))
 
     def _regenerate_shields(self) -> None:
         for target in self._targets():
@@ -6362,9 +6367,13 @@ class Combat:
         from ow174.game import junkrat_projectile
 
         junkrat_profile = junkrat_projectile.profile(state) if not npc else None
+        from ow174.game import sigma_projectiles
+
+        sphere_profile = (sigma_projectiles.hypersphere_motion(state)
+                          if not npc and shooter.hero.guid == 0x02E000000000023B else None)
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
-            gravity = flashbang_gravity
+            gravity = sphere_profile[0] if sphere_profile is not None else flashbang_gravity
             if hanzo_bow:
                 gravity = sum(_number(state.evaluate(motion.get("m_599AB8D7"), watch=False), 0.0)
                               for motion in node.field("m_projectileMotions") or ()
@@ -6605,7 +6614,8 @@ class Combat:
                         offense_scale=offense_scale,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
-                        detonate_on_expiry=flashbang_gravity is not None or pulse or junkrat_profile is not None,
+                        detonate_on_expiry=(flashbang_gravity is not None or pulse or junkrat_profile is not None
+                                            or sphere_profile is not None),
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=(
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
@@ -6619,8 +6629,10 @@ class Combat:
                         matrix_absorbable=(definition in self.matrix_definitions
                                            if self.matrix_definitions is not None
                                            else projectile_tags.absorbable(definition)),
-                        terrain_bounce=junkrat_profile[2] if junkrat_profile is not None else None,
-                        terrain_bounce_limit=junkrat_profile[3] if junkrat_profile is not None else 0,
+                        terrain_bounce=(sphere_profile[2], sphere_profile[4], sphere_profile[5]) if sphere_profile is not None
+                            else junkrat_profile[2] if junkrat_profile is not None else None,
+                        terrain_bounce_limit=(sphere_profile[3] if sphere_profile is not None
+                                              else junkrat_profile[3] if junkrat_profile is not None else 0),
                         storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
@@ -7441,7 +7453,9 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
-        if rocket.terrain_bounce is not None or rocket.mine is not None:
+        sphere = rocket.source_graph == 0x187F and rocket.terrain_bounce is not None
+        previous_velocity = rocket.velocity
+        if (rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None:
             # Source0065's direction/speed pair is authoritative for each chord.
             rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
@@ -7454,7 +7468,7 @@ class Combat:
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
             if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
                     or hanzo_arrow or _zarya_world_timed_flight(rocket.definition, rocket.spawn)
-                    or rocket.terrain_bounce is not None or rocket.mine is not None):
+                    or (rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -7463,10 +7477,11 @@ class Combat:
             rocket.speed = math.sqrt(_dot(sweep, sweep))
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
-        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining)
+        self._fly_slice(rocket, duration, self.tick, reflected=reflected, expiry_remaining=expiry_remaining,
+                        previous_velocity=previous_velocity)
         if rocket.mine is not None:
             self.junkrat.sync_pose(rocket.mine)
-        if (rocket.terrain_bounce is not None or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
+        if ((rocket.terrain_bounce is not None and not sphere) or rocket.mine is not None) and rocket.velocity is not None and rocket in self.rockets:
             # The delivered grenade stores the end velocity after sweeping its
             # ballistic chord; the next frame and public direction share it.
             rocket.speed = math.hypot(*rocket.velocity)
@@ -7474,7 +7489,7 @@ class Combat:
                 rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
 
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0) -> Rocket | None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None, expiry_remaining=0.0, previous_velocity=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -7497,7 +7512,8 @@ class Combat:
         # deflectors that could repeatedly collide at distance zero.
         reflected = set() if reflected is None else reflected
         for _ in range(8 + rocket.target_limit):
-            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining)
+            continuation = self._sweep_rocket(rocket, duration, reflected, expiry_remaining=expiry_remaining,
+                                              previous_velocity=previous_velocity)
             if isinstance(continuation, Rocket):
                 return continuation
             duration = continuation
@@ -7544,7 +7560,7 @@ class Combat:
         elif duration - consumed > EPSILON:
             self._fly_step(rocket, duration - consumed, reflected=reflected)
 
-    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0) -> float | Rocket:
+    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int], *, expiry_remaining=0.0, previous_velocity=None) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
         integrated_duration = duration
         step = rocket.speed * duration
@@ -7586,6 +7602,11 @@ class Combat:
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))
         assisted = None
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                # This same native pillar is already represented by its actual
+                # solid slab below; its generic body capsule must not hit early.
+                continue
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
                 continue
             if (target.entity in rocket.hit_entities or self._has_protection(target, PHASE_STATES)
@@ -7612,7 +7633,12 @@ class Combat:
         if rocket.terrain_bounce is not None:
             from ow174.game import junkrat_projectile
 
-            wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
+            if rocket.source_graph == 0x187F:
+                from ow174.game import sigma_projectiles
+
+                wall, terrain_normal = sigma_projectiles.surface(rocket, collision, heading, step)
+            else:
+                wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
         storm_normal = None
         if rocket.storm_ricochets:
             hit = collision.cast_ray(rocket.position, heading, step)
@@ -7776,8 +7802,14 @@ class Combat:
         if (terrain_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
                                                   redirect, absorption, scripted_shield))):
-            junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
-                                      integrated_duration, reflected, range_ends)
+            if rocket.source_graph == 0x187F:
+                remaining = sigma_projectiles.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                                     previous_velocity, reflected)
+                if remaining is not None and remaining > 0:
+                    self._fly_step(rocket, remaining, reflected=reflected)
+            else:
+                junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                          integrated_duration, reflected, range_ends)
             return 0.0
         if (storm_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
@@ -7967,6 +7999,7 @@ class Combat:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None:
                         self._accretion_hit(rocket, struck, before - self.vitals_of(struck).total)
+                    if rocket.accretion_source is not None or rocket.source_graph == 0x187F:
                         self._apply_accretion_impulse(rocket, struck, direct)
         if struck is not None and blast is None and len(rocket.hit_entities) + 1 < rocket.target_limit:
             rocket.ended = None
@@ -8440,8 +8473,29 @@ class Combat:
                 rocket, point, self._ice_wall_blockers(), shield_los=False,
             ))
             return 0.0
+        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
+        impulse_protected = set(protected) | set(broken_particle_barriers or ())
+        if pharah:
+            impulse_protected.update(
+                actor.recipient_body or actor.parent_body for actor in self.barriers.scripted.values()
+                if actor.component.world.hero == barriers.ZARYA and actor.vitals is not None
+                and actor.vitals.total > 0 and barriers._live(self, actor)
+            )
+        pharah_impulses = (self._pharah_impulses(
+            rocket, damage_point, point, protected=impulse_protected,
+            heading=incident_direction, normal=surface_normal, defer=True,
+        ) if pharah else ())
         boost = self.orisa.superchargers.scale(rocket.shooter)
+        wall_source_scaled = rocket.offense_scale is not None
+        wall_scale = self._team_damage(rocket.shooter, 1.0) * boost if wall_source_scaled else 1.0
         source = _along(point, incident_direction, -0.0001)
+        # Sample the original solid-wall exposure before any impact can remove
+        # cover. Bound native pillars share these geometry objects and pools.
+        ice_splash = (() if not self.walls.pieces or blast is None or blast.amount <= 0.0 else tuple(
+            (piece, amount) for piece, manager, amount in self._splash_barriers(
+                rocket, point, source, None if ice is None else (ice[1], self.walls),
+            ) if manager is self.walls
+        ))
         blockers = tuple((actor, manager)
                          for manager in (self.orisa_barriers, self.orisa.superchargers)
                          for actor in manager.opponents(rocket.shooter))
@@ -8459,24 +8513,29 @@ class Combat:
                     manager.splash(actor, blast, distance, multiplier=boost)
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
+        accretion = rocket.accretion_source is not None
+        hypersphere = rocket.source_graph == 0x187F and blast is not None and blast.loadout == 0x0B9000000000028C
+        if accretion and blast is not None and blast.amount <= 0:
+            candidates = []
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
-        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or blast.loadout == 0x0B9000000000020B
+                or accretion or hypersphere
                 or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
-                and blast.self_scale > 0
+                and (blast.self_scale > 0 or (accretion and blast.source_impulse_scale > 0))
                 and rocket.source_entity == _source_entity(rocket.shooter)):
             candidates = list(candidates)
             candidates.extend(t for t in self._targets() if t.entity == rocket.source_entity)
         ice_damage = rocket.direct.amount if ice is not None and rocket.direct is not None else 0.0
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
-        if blast is None or blast.amount <= 0.0:
+        if blast is None or (blast.amount <= 0.0 and not (accretion and blast.source_impulse_scale)):
             if pharah:
-                self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+                self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
             if ice is not None:
-                self.walls.damage(ice[1], rocket.shooter, ice_damage, team=rocket.team)
+                self.walls.damage(ice[1], rocket.shooter, ice_damage * wall_scale, team=rocket.team,
+                                  source_scaled=wall_source_scaled, source_body=rocket.source_body)
             for barrier, amount in shield_damage:
                 self.brigitte.damage_barrier(barrier, amount)
             if deployed is not None:
@@ -8515,8 +8574,11 @@ class Combat:
             protected_out.update(protected)
         victims = []
         for target in candidates:
+            piece = self.walls.pieces.get(target.entity)
+            if piece is not None and piece.actor is target.owner:
+                continue  # same actual pillar is settled by its solid geometry below
             if ice is not None and target.entity == ice[1].entity:
-                continue  # same actual pillar is settled by the impact surface below
+                continue
             if target.entity in protected or immunity.wraith_active(target.owner, target.entity):
                 continue
             if target.owner is not None and self.vitals_of(target).dead:
@@ -8530,10 +8592,12 @@ class Combat:
             centre_distance = math.sqrt(_dot(delta, delta))
             distance = max(0.0, centre_distance - target.radius)
             scalar = blast.splash(distance)
-            if target.entity == rocket.source_entity:
-                scalar *= blast.self_scale
             if scalar <= 0.0:
                 continue
+            if target.entity == rocket.source_entity:
+                scalar *= blast.self_scale
+                if scalar <= 0.0 and not (accretion and blast.source_impulse_scale):
+                    continue
             centre = (a[0], min(b[1], max(a[1], point[1])), a[2])
             delta = _sub(centre, point)
             length = math.sqrt(_dot(delta, delta))
@@ -8563,8 +8627,11 @@ class Combat:
                     continue
             victims.append((target, blast.amount * scalar))
         if ice is not None:
-            self.walls.damage(ice[1], rocket.shooter, ice_damage + blast.amount * blast.splash(0.0),
-                              team=rocket.team)
+            self.walls.damage(ice[1], rocket.shooter, (ice_damage + blast.amount * blast.splash(0.0)) * wall_scale,
+                              team=rocket.team, source_scaled=wall_source_scaled, source_body=rocket.source_body)
+        for piece, amount in ice_splash:
+            self.walls.damage(piece, rocket.shooter, amount * wall_scale, team=rocket.team,
+                              source_scaled=wall_source_scaled, source_body=rocket.source_body)
         for barrier, amount in shield_damage:
             self.brigitte.damage_barrier(barrier, amount)
         for barrier, amount in deployed_splash:
@@ -8580,7 +8647,7 @@ class Combat:
             for target, amount in victims:
                 if rocket.offense_scale is not None:
                     amount = self._team_damage(rocket.shooter, amount) * self.orisa.superchargers.scale(rocket.shooter)
-                landed = self._damage(
+                landed = (not accretion or amount > 0) and self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
@@ -8601,15 +8668,23 @@ class Combat:
                     if victims_out is not None:
                         victims_out.add(target.entity)
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
-                    if rocket.accretion_source is not None and (
-                        target is not struck or rocket.direct is None or rocket.direct.knockback is None
-                    ):
-                        self._apply_accretion_impulse(rocket, target, blast, point=point)
+                own_accretion = (accretion or hypersphere) and target.entity == rocket.source_entity
+                if (landed or (own_accretion and blast.source_impulse_scale)) and (accretion or hypersphere) and (
+                    target is not struck or rocket.direct is None or rocket.direct.knockback is None
+                ):
+                    self._apply_accretion_impulse(
+                        rocket, target, blast, point=point,
+                        strength=blast.source_impulse_scale if own_accretion else 1.0,
+                    )
 
         if pharah:
-            self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+            self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
 
-    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None, normal=(0.0, 0.0, 0.0)):
+    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None,
+                         normal=(0.0, 0.0, 0.0), defer=False):
+        # Freeze exposure before the same impact can destroy its cover. The
+        # local plan is applied once after damage by the existing physical host.
+        impulses = []
         blast = rocket.blast
         heading = rocket.direction if heading is None else heading
         candidates = self._enemies(rocket.shooter)
@@ -8661,6 +8736,15 @@ class Combat:
             length = math.hypot(dx, dz)
             scale = flat / length if length > EPSILON else 0.0
             impulse = (dx * scale, upward, dz * scale)
+            impulses.append((target, impulse))
+        if not defer:
+            self._apply_pharah_impulses(impulses, protected=protected)
+        return tuple(impulses)
+
+    def _apply_pharah_impulses(self, impulses, *, protected=()):
+        for target, impulse in impulses:
+            if target.entity in protected or self.vitals_of(target).dead:
+                continue
             if isinstance(target.owner, bots.Bot):
                 from ow174.game.collision import TEAM0, TEAM1
 
@@ -8728,12 +8812,14 @@ class Combat:
         }, body)
         component.run_now()
 
-    def _apply_accretion_impulse(self, rocket: Rocket, target: Target, hit: HitDef, *, point=None) -> None:
-        strength = hit.knockback
-        if strength is None or self.vitals_of(target).dead:
+    def _apply_accretion_impulse(self, rocket: Rocket, target: Target, hit: HitDef,
+                                 *, point=None, strength=1.0) -> None:
+        profile = hit.knockback
+        if (not strength or profile is None or self.vitals_of(target).dead
+                or defenses.invulnerable(target.owner) or self._control_immune(target)):
             return
         owner = target.owner
-        horizontal, vertical, rings = strength
+        horizontal, vertical, rings = profile
         dx, _, dz = rocket.direction
         distance = 0.0
         if point is not None:
@@ -8755,7 +8841,7 @@ class Combat:
             return
         length = math.hypot(dx, dz)
         scale = horizontal / length if length > EPSILON else 0.0
-        impulse = dx * scale, vertical, dz * scale
+        impulse = dx * scale * strength, vertical * strength, dz * scale * strength
         if isinstance(owner, bots.Bot):
             owner.impulse(
                 impulse, self.tick, self._collision(), free_for_all=self.match.game_map.free_for_all,
@@ -9356,7 +9442,9 @@ class Combat:
         if not math.isfinite(scalar):
             scalar = fallback
         channel = self.breathers.channels.get(entity)
-        if (scalar == 0.5 and channel is not None and self.now > channel.until
+        expired = (self.tick > channel.deadline if channel is not None and channel.deadline is not None
+                   else channel is not None and self.now > channel.until)
+        if (scalar == 0.5 and expired
                 and getattr(getattr(owner, 'hero', None), 'guid', None) == breather.HERO):
             return 1.0
         return max(0.0, scalar)
