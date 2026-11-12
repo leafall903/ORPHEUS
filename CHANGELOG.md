@@ -49,6 +49,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+### Restore delivered Ball form and critical-hit history
+
+- Current targets read the original active Roll form to reject head criticals;
+  capture that same flag in history and restore it at the actual viewed tick.
+  Append after existing head-offset/sentry-yaw positions to retain other layouts.
+- Restore original Quad Cannon189 omitted-scalar reconstruction2x, restricted
+  to1514; explicit authored critical operands still win.
+- All six original Roll cases plus runtime17 pass23/23. Existing Bastion core/
+  head2, replacement rewind1 and Tracer viewed-stance1 pass. Original assertion
+  AST unchanged. This does not claim native sphere collision/client acceptance.
+
 ### Mount delivered Piledriver damage, impulse and steering lock consumers
 
 - Consume the original160A landing-search activation, actual origin/distance

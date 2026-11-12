@@ -1308,6 +1308,8 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if graph_index == 0x1514 and isinstance(loadout, expr.Asset) and loadout.guid == 0x0B90000000000189:
+        critical_default = 2.0  # Delivered Ball omitted native bullet scalar; explicit value still wins.
     if (state.instance.component.world.hero == 0x02E000000000000A
             and graph_index == 0x001B and node_index in (6, 9)):
         critical_default = value("m_66D29548", 1.0) * max(1.0, value("m_BC54C84B", 0.0))
@@ -4719,7 +4721,7 @@ class Combat:
                 head_offset = (hx * cos_yaw + hz * sin_yaw, hy, hz * cos_yaw - hx * sin_yaw)
             found.append(
                 Target(player.body, player.team, tuple(player.mover.position), height, data.stand_radius, eye,
-                       player, head_offset=head_offset, sentry_yaw=(round(player.mover.yaw)
+                       player, critical_allowed=not ball.rolling(player), head_offset=head_offset, sentry_yaw=(round(player.mover.yaw)
                            if player.hero.guid == BASTION and player.body_script is not None
                            and player.body_script.component.entity_var(1216).value() == 2 else None))
             )  # fmt: skip
@@ -4944,6 +4946,9 @@ class Combat:
     @staticmethod
     def _target_sample(tick, target, *, feet=None):
         sample = (tick, target.feet if feet is None else feet, target.height, target.eye)
+        if getattr(getattr(target.owner, "hero", None), "guid", None) == ball.HERO:
+            # Append after existing head-offset/sentry-yaw positions; retain other owner layouts.
+            return (*sample, target.head_offset, target.sentry_yaw, target.critical_allowed)
         if (getattr(getattr(target.owner, "hero", None), "guid", None) == BASTION
                 or target.sentry_yaw is not None):
             return (*sample, target.head_offset, target.sentry_yaw)
@@ -4979,8 +4984,9 @@ class Combat:
         _, _, height, eye, *region = sample
         head_offset = region[0] if region else None
         sentry_yaw = region[1] if len(region) > 1 else None
+        critical_allowed = region[2] if len(region) > 2 else target.critical_allowed
         return Target(target.entity, target.team, feet, height, target.radius, eye, target.owner,
-                      target.critical_allowed, target.capsule, head_offset, sentry_yaw)
+                      critical_allowed, target.capsule, head_offset, sentry_yaw)
 
     def script_targets(self, source: int, state):
         """Reconstructed Mercy staff selection, restricted to its actual query states.
