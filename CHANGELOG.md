@@ -4,6 +4,28 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Pharah blast and impulse consumers
+
+- Mount authored self-damage, independent force rings, source force scaling,
+  vertical minimum and owner blast geometry. Zero-damage Concussion gets an
+  authoritative host even without a prediction lease; it applies force through
+  existing world/shield services without damage, charge or hit markers.
+- Retain the original modifier26 response and one-frame vector ADD adapter,
+  applied after persistent SET. Body replacement retires queued local impulses.
+  Use true impact distance/normal and incident chord separately from cover bias;
+  preserve source LOS admission, Fortify/phase exclusions and existing health pools.
+- Fix the C6 cross-owner motion collision reported by worker B: only an explicit
+  source002B/barrage_source tag enters the seven-field curve parser, curve-eye
+  selection or curve redirect. Preserve other owners' motion payloads and their
+  ordinary gravity/sticky lifecycle rather than guessing from tuple shape.
+- All34 original Pharah impulse/Helix/Tank/physics checks pass; all five original
+  curve/reflection checks still pass after the tag fix. Echo Deflect completes
+  eight checks without a motion-parser error: six pass, two retained payload/
+  copied-charge expectations differ in this pre-A7 worktree. Source checks stay
+  unchanged; latest root Echo code will be synchronized at the clean boundary.
+- Full C6 server-snapshot run remains active; no complete Pharah/client or
+  remaining NPC/control/charge acceptance is claimed by this batch.
+
 ### Mount delivered Pharah curved reflection and launch contacts
 
 - Retain reflected Barrage eye origin, original-state seed replay,5s lifetime/

@@ -732,6 +732,43 @@ class Mover:
         if self.history:
             self.history[-1] = self.snapshot(self.history[-1].frame)
 
+    def add_impulse(self, velocity, frame: int, *, next_pose: bool = False, carry: bool = False) -> tuple:
+        """Local velocity-delta interpretation of authored response modifier26.
+
+        A queued delta applies on the specified pose after persistent SET.
+        Native health-to-mover scheduling remains open.
+        """
+        active = sorted((mod for mod in self.mods.values() if mod.acts(frame)), key=Mod.order)
+        response = max(0.0, intent(active, 26, 1.0))
+        applied = tuple(f32(float(value)*response) for value in velocity)
+        if not any(applied):
+            return applied
+        if carry:
+            self.driven = False
+            self.external_impulse = True
+        if next_pose:
+            key = (-1, 0, frame)  # local one-frame ADD, distinct from statescript keys
+            previous = self.mods.get(key)
+            queued = applied if previous is None else tuple(
+                f32(a+b) for a, b in zip(previous.value, applied, strict=True)
+            )
+            self.mods[key] = Mod(0, ADD, queued, frame, frame + 1, key=key)
+            return applied
+        self._add_impulse_velocity(applied)
+        return applied
+
+    def _add_impulse_velocity(self, delta) -> None:
+        self.velocity = tuple(f32(a+b) for a, b in zip(self.velocity, delta, strict=True))
+        if self.velocity[1] > 0:
+            self.flags_word |= FELL
+            self.fall = 0.0
+
+    def retire_impulses(self) -> None:
+        self.external_impulse = False
+        for key in tuple(self.mods):
+            if key and key[0] == -1:
+                del self.mods[key]
+
     def apply_impulse(self, impulse: tuple[float, float, float]) -> None:
         """Delivered additive world-space velocity change for an owned body."""
         vx, vy, vz = self.velocity
@@ -989,6 +1026,9 @@ class Mover:
             for mod in active:
                 if isinstance(mod.value, tuple) and mod.index == 0 and mod.op == SET:
                     self.velocity = mod.value
+            for mod in active:
+                if isinstance(mod.value, tuple) and mod.index == 0 and mod.op == ADD:
+                    self._add_impulse_velocity(mod.value)
             if any(change.frame == frame for change in self.velocity_changes):
                 from ow174.game.velocity import consume
 

@@ -419,6 +419,35 @@ def segment_distance(point, a, b) -> float:
     return math.sqrt(_dot(d, d))
 
 
+def source_blast_geometry(feet, height: float, radius: float, impact, normal) -> tuple[float, tuple]:
+    """Impulse distance and direction from D6D6C6, with an upright mover anchor."""
+    x, y, z = feet
+    half = height * 0.5
+    center = (x, y + half, z)
+    delta = _sub(center, impact)
+    distance = math.hypot(*delta)
+    reach = max(0.0, distance - radius)
+    if distance <= EPSILON:
+        return reach, (0.0, 0.0, 0.0)
+    direction = tuple(axis / distance for axis in delta)
+    if half * (4.0 / 3.0) <= 0.004 or radius <= 0.0:
+        return reach, direction
+
+    lower, upper = center[1] - half / 3.0, center[1] + half
+    closest = (x, max(lower, min(upper, impact[1])), z)
+    if math.dist(closest, impact) < radius:
+        dx, dz = impact[0] - x, impact[2] - z
+        length = math.hypot(dx, dz)
+        escape = (dx / length, 0.0, dz / length) if length > EPSILON else normal
+        impact = _along((x, impact[1], z), escape, radius)
+    raised = (x, max(lower, min(upper, impact[1])) + 0.2, z)
+    offset = _sub(raised, impact)
+    length = math.hypot(*offset)
+    if length > EPSILON:
+        direction = tuple(axis / length for axis in offset)
+    return reach, direction
+
+
 def capsule_visible(
     collision: World | RayWorld | None, origin, a, b, radius: float, category: int = MOVER,
     *, target_entity: int | None = None, blockers=(), mesh_blocks=None, walls=None, cover_contact=None,
@@ -870,11 +899,18 @@ class HitDef:
     horizontal_impulse: float = 0.0
     vertical_impulse: float = 0.0
     impulse_rings: tuple = ()
+    vertical_impulse_minimum: float | None = None
+    source_impulse_scale: float = 0.0
+    source_impulse_ignores_los: bool = False
 
     @property
     def damage_tags(self):
         """Delivered typed health-event tags backed by the combined tag storage."""
         return tuple(expr.Asset(tag) for tag in self.tags)
+
+    def impulse_scales(self, distance: float) -> tuple[float, float]:
+        return (self._ring_scale(tuple((r, x) for r, x, y in self.impulse_rings), distance),
+                self._ring_scale(tuple((r, y) for r, x, y in self.impulse_rings), distance))
 
     def impulse_scale(self, distance: float, *, own: bool = False) -> float:
         column = 2 if own else 1
@@ -1018,8 +1054,12 @@ def hit_def(state, cfg) -> HitDef | None:
         rings=tuple(sorted(rings)),
         self_scale=value("m_8A3E3883", 0.0),
         horizontal_impulse=force("m_E33EFEE1"),
-        vertical_impulse=force("m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
+        vertical_impulse=force("m_10399AE7" if state.instance.component.world.hero == 0x02E0000000000008
+            else "m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
         impulse_rings=tuple(sorted(impulse_rings)),
+        vertical_impulse_minimum=(force("m_583C208B") if modify.get("m_583C208B") is not None else None),
+        source_impulse_scale=value("m_2FE97560", 0.0) if cfg.get("m_49F60FB8") else 0.0,
+        source_impulse_ignores_los=bool(cfg.get("m_2A970629")),
         deflectable=any(
             (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
             for tag in modify.get("m_148F3152") or [] if isinstance(tag, dict)
@@ -1275,6 +1315,11 @@ class Rocket:
     deflect_lifetime: float | None = None
     barrage_source: tuple | None = None
 
+
+    @property
+    def is_barrage(self):
+        """Only the tagged002B payload owns the seven-field curve sampler."""
+        return self.source_graph == barrage_motion.GRAPH and self.barrage_source is not None
 
     @property
     def distance_flown(self):
@@ -1850,6 +1895,7 @@ class Combat:
         from ow174.game import body_entities
 
         body_entities.retire_source(self.match, player.entity, player.body)
+        player.mover.retire_impulses()
         player.clear_valkyrie_pose()
         self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
         self.projectiles.retire_fields(player)
@@ -4710,7 +4756,9 @@ class Combat:
                     and graviton.FIELD_ENTITY in projectiles._defs(node.field("m_49CBA3BC"))):
                 spawn = graviton.FIELD_ENTITY
                 gravity = projectiles.unconditional_gravity(state)
-            if damaging or shot is not None or deployment or server_ability or field_spec is not None or spawn is not None:
+            pharah_impulse = (not npc and shooter.hero.guid == 0x02E0000000000008
+                              and blast is not None and bool(blast.impulse_rings))
+            if damaging or shot is not None or deployment or server_ability or field_spec is not None or spawn is not None or pharah_impulse:
                 split = None
                 if (npc and shooter.hero == 0x02E0000000000040 and state.instance.graph.index == 0x01C6
                         and node.pos in (26, 29) and self._scene_component(shooter) is state.instance.component):
@@ -5274,7 +5322,7 @@ class Combat:
                 duration -= portion
                 sweep_tick += portion / TICK
             return
-        if rocket.motion:
+        if rocket.is_barrage:
             registered = rocket in self.rockets
             for at in range(self.tick - elapsed + 1, self.tick + 1):
                 if registered and rocket not in self.rockets:
@@ -5494,7 +5542,7 @@ class Combat:
         step = rocket.speed * duration
         heading = rocket.direction
         range_ends = False
-        if rocket.motion:
+        if rocket.is_barrage:
             lateral = barrage_motion.displacement(
                 rocket.motion, heading, rocket.flown + rocket.motion_phase_offset, duration,
             )
@@ -5604,7 +5652,7 @@ class Combat:
         limit = best[0] if best else step
         defense = deflections.intercept(
             self, rocket, limit, reflected, direction=heading,
-            eye_of=self._barrage_defense_eye if rocket.motion else None,
+            eye_of=self._barrage_defense_eye if rocket.is_barrage else None,
             modes=('absorb',) if getattr(rocket, "pulse_bomb", False) else ('reflect', 'absorb'),
         )
         if defense is not None and (best is None or defense[0] < limit):
@@ -5663,7 +5711,7 @@ class Combat:
                 self._stick(rocket, point, duration - contact_time)
                 return 0.0
             self._landed(rocket)
-            self._explode(rocket, point, orisa_impact=(actor, manager))
+            self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
             return 0.0
 
         flight = step if best is None else best[0]
@@ -5694,7 +5742,7 @@ class Combat:
                 self._absorbed(absorption[1], amount)
             return 0.0
         if redirect is not None:
-            if rocket.motion:
+            if rocket.is_barrage:
                 return self._reflect_barrage(rocket, struck, duration, contact_time)
             if rocket.shot is not None:
                 self.projectiles.flown(rocket.shot, rocket.flown)
@@ -5703,7 +5751,7 @@ class Combat:
             rocket.shooter, rocket.team = struck.owner, struck.team
             reflected.add(struck.entity)
             rocket.source_body = struck.entity
-            if rocket.motion:
+            if rocket.is_barrage:
                 rocket.charge_eligible = True  # reflected Barrage belongs to the defender's damage route.
             if getattr(rocket, "pulse_bomb", False):
                 rocket.source_entity = struck.entity
@@ -5822,10 +5870,18 @@ class Combat:
         damage_point = (_along(point, heading, 1e-4)
                         if struck is None and rocket.direct is not None
                         and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
-                             or (rocket.source_graph == 0x024F and not rocket.charge_eligible)) else point)
+                             or (rocket.source_graph == 0x024F and not rocket.charge_eligible)
+                             or rocket.source_graph in (0x23, 0x7B, 0x2B)) else point)
+        surface_normal = (0.0, 0.0, 0.0)
+        if (rocket.source_graph in (0x23, 0x7B, 0x2B) and struck is None and wall is not None
+                and abs(t - wall) <= EPSILON and ice is None and shield is None and deployed is None
+                and impact_barrier is None):
+            surface = collision.cast_ray(rocket.position, heading, t + EPSILON)
+            if surface is not None:
+                surface_normal = surface.normal
         self._explode(rocket, point, impact_barrier=impact_barrier, ice=ice, shield=shield,
                       deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers,
-                      damage_point=damage_point)
+                      damage_point=damage_point, incident_direction=heading, surface_normal=surface_normal)
         return 0.0
 
     def _barrage_defense_eye(self, owner):
@@ -6167,8 +6223,9 @@ class Combat:
 
     def _explode(self, rocket, point, *, impact_barrier=None, ice=None, shield=None, deployed=None,
                  struck=None, broken_particle_barriers=None, protected=(), world_shields=(), orisa_impact=None,
-                 damage_point=None):
+                 damage_point=None, incident_direction=None, surface_normal=(0.0, 0.0, 0.0)):
         damage_point = point if damage_point is None else damage_point
+        incident_direction = rocket.direction if incident_direction is None else incident_direction
         blast = rocket.blast
         if blast is not None and blast.healing:
             self._apply_blast_hits(rocket, self._blast_hits(
@@ -6176,7 +6233,7 @@ class Combat:
             ))
             return 0.0
         boost = self.orisa.superchargers.scale(rocket.shooter)
-        source = _along(point, rocket.direction, -0.0001)
+        source = _along(point, incident_direction, -0.0001)
         blockers = tuple((actor, manager)
                          for manager in (self.orisa_barriers, self.orisa.superchargers)
                          for actor in manager.opponents(rocket.shooter))
@@ -6195,7 +6252,8 @@ class Combat:
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
-        if (blast is not None and (blast.loadout == SOLDIER_WEAPON_LOADOUT
+        pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
+        if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
                 and blast.self_scale > 0
@@ -6206,6 +6264,8 @@ class Combat:
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
         if blast is None or blast.amount <= 0.0:
+            if pharah:
+                self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
             if ice is not None:
                 self.walls.damage(ice[1], rocket.shooter, ice_damage, team=rocket.team)
             for barrier, amount in shield_damage:
@@ -6220,7 +6280,7 @@ class Combat:
             self, rocket.shooter, point, blast, struck=deployed[1] if deployed is not None else None,
         )
         protected = set(protected)
-        visible_from = _along(point, rocket.direction, -0.0001)
+        visible_from = _along(point, incident_direction, -0.0001)
         fixed = tuple(shield for shield in world_shields if isinstance(shield, world_bubbles.FixedBubble))
         raised = tuple(s for s in world_shields if isinstance(s, barriers.reinhardt_barrier.RaisedBarrier))
         protected.update(self.barriers.world.explosion(
@@ -6234,7 +6294,7 @@ class Combat:
                 continue
             distance = max(0.0, math.dist(point, bubble.centre()) - barriers.RADIUS)
             scalar = blast.splash(distance)
-            visible_from = _along(point, rocket.direction, -0.0001)
+            visible_from = _along(point, incident_direction, -0.0001)
             centre = bubble.centre()
             if (scalar > 0
                     and capsule_visible(self._collision(), visible_from, centre, centre, barriers.RADIUS)):
@@ -6325,6 +6385,84 @@ class Combat:
                         target is not struck or rocket.direct is None or rocket.direct.knockback is None
                     ):
                         self._apply_accretion_impulse(rocket, target, blast, point=point)
+
+        if pharah:
+            self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
+
+    def _pharah_impulses(self, rocket, impact, sight, *, protected=(), heading=None, normal=(0.0, 0.0, 0.0)):
+        blast = rocket.blast
+        heading = rocket.direction if heading is None else heading
+        candidates = self._enemies(rocket.shooter)
+        candidates.extend(t for t in self._targets() if t.owner is rocket.shooter)
+        for target in candidates:
+            own = target.owner is rocket.shooter
+            if target.entity in protected or self.vitals_of(target).dead:
+                continue
+            if (defenses.fortify_scale(target.owner) is not None or immunity.wraith_active(target.owner, target.entity)
+                    or moira.fading(target.owner) or self.pulse_bombs.recalling(target)
+                    or defenses.cryo_protected(target.owner)):
+                continue
+            source_scale = blast.source_impulse_scale if own and target.entity == rocket.source_body else 0.0 if own else 1.0
+            if not source_scale:
+                continue
+            distance = max(0.0, segment_distance(impact, *target.segment()) - target.radius)
+            direction = None
+            vertical_direction = 1.0
+            if own:
+                distance, direction = source_blast_geometry(target.feet, target.height, target.radius, impact, normal)
+                vertical_direction = direction[1]
+            horizontal, vertical = blast.impulse_scales(distance)
+            if direction is not None and math.hypot(direction[0], direction[2]) <= EPSILON:
+                horizontal = 0.0
+            upward = blast.vertical_impulse * vertical * vertical_direction * source_scale
+            if vertical > 0.0 and blast.vertical_impulse_minimum is not None:
+                velocity_y = 0.0 if own else target.owner.velocity[1] if isinstance(target.owner, bots.Bot) else target.owner.mover.velocity[1]
+                upward = max(upward, blast.vertical_impulse_minimum - velocity_y)
+            flat = blast.horizontal_impulse * horizontal * source_scale
+            if not (flat or upward):
+                continue
+            if own:
+                origin = _along(impact, heading, -.2)
+                x, y, z = target.feet
+                nearest = (x, max(y, min(y + target.height, origin[1])), z)
+                if not blast.rings or math.dist(origin, nearest) - target.radius >= blast.rings[-1][0]:
+                    continue
+                visible = blast.source_impulse_ignores_los or self._pharah_impulse_path(origin, target, rocket.shooter)
+            else:
+                visible = self._pharah_impulse_path(sight, target, rocket.shooter)
+            if not visible:
+                continue
+            if direction is None:
+                dx, dz = target.feet[0] - impact[0], target.feet[2] - impact[2]
+            else:
+                dx, _, dz = direction
+            length = math.hypot(dx, dz)
+            scale = flat / length if length > EPSILON else 0.0
+            impulse = (dx * scale, upward, dz * scale)
+            if isinstance(target.owner, bots.Bot):
+                from ow174.game.collision import TEAM0, TEAM1
+
+                category = MOVER if self.match.game_map.free_for_all or target.team not in (0, 1) else (TEAM0, TEAM1)[target.team]
+                target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
+            else:
+                target.owner.mover.add_impulse(impulse, self.tick)
+
+    def _pharah_impulse_path(self, origin, target, shooter):
+        a, b = target.segment()
+        if not capsule_visible(self._collision(), origin, a, b, target.radius):
+            return False
+        centre = (a[0], max(a[1], min(b[1], origin[1])), a[2])
+        delta = _sub(centre, origin)
+        length = math.hypot(*delta)
+        if length <= EPSILON:
+            return True
+        direction = tuple(axis / length for axis in delta)
+        reach = max(0.0, length - target.radius)
+        return (self.walls.cast(origin, direction, reach) is None
+                and self._barrier_hit(shooter, origin, direction, reach) is None
+                and self._orisa_deployable_hit(shooter, origin, direction, reach) is None
+                and self.brigitte.barrier_ray(shooter, origin, direction, reach) is None
+                and sigma_barrier.barrier_intersection(self, shooter, origin, direction, reach) is None)
 
     def _accretion_hit(self, rocket: Rocket, target: Target, dealt: float) -> None:
         """Feed the tagged direct damage to the caster's authored control entry."""
