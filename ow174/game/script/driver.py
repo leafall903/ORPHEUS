@@ -2342,7 +2342,7 @@ class BodyScript(ReplicatedBody):
 
             ult_seconds = mei_ultimate.DEFAULT_SECONDS
         if ult_seconds is None and hero not in (BASTION, 0x02E0000000000195, baptiste.HERO, 0x02E000000000006E,
-                                               0x02E0000000000005, 0x02E00000000001CA):
+                                               0x02E0000000000005, 0x02E00000000001CA, 0x02E0000000000040):
             ult_seconds = 0.0 if hero == GENJI else ULT_SECONDS
         if ult_seconds is None and hero == 0x02E00000000001CA and match is None:
             ult_seconds = ULT_SECONDS
@@ -2792,6 +2792,12 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+                return 0.0
+            return self._gain_roadhog_points(roadhog_charge.combat_points(self, points, kind))
         if self.hero == 0x02E00000000001CA:
             from ow174.game import ball
             return ball.add_ult_charge(self, points)
@@ -2841,6 +2847,17 @@ class BodyScript(ReplicatedBody):
         self.set_ult_charge(after)
         return after - before
 
+    def _gain_roadhog_points(self, points: float) -> float:
+        if not self._ult_charge_allowed() or not math.isfinite(points) or points <= 0:
+            return 0.0
+        cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+        charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+        if cost <= 0 or charge >= cost:
+            return 0.0
+        after = min(cost, f32(charge + points))
+        self.set_ult_charge(after)
+        return after - charge
+
     def interrupt_control(self) -> None:
         """Scoped Barrage abort for the reconstructed authoritative control service.
 
@@ -2861,6 +2878,15 @@ class BodyScript(ReplicatedBody):
 
     def _charge_ult(self) -> None:
         from ow174.game import mei, mei_ultimate, torbjorn_charge
+        if self.hero == 0x02E0000000000040:
+            from ow174.game import roadhog_charge
+
+            if not self._ult_charge_allowed() or (self.ult_seconds is not None and self.ult_seconds <= 0):
+                self.passive_charge_ms = 0
+                return
+            if self.ult_seconds is None:
+                roadhog_charge.passive_points(self)
+                return
         if self.hero == 0x02E00000000001CA and self.world.match is not None:
             from ow174.game import ball
             ball.diagnostic_charge(self)

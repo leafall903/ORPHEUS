@@ -1476,3 +1476,40 @@ source still includes authored combat expressions, natural cadence, victim-side
 01C7/node111 multiplier and source eligibility; these require real caller audit,
 not only getters. Source fullresource19-run prior baseline completed86.049s with
 seven lifecycle subfailures and two old force observer errors, now narrowed.
+
+
+## B57 — original Roadhog charge expressions and natural cadence
+
+Restored original0040 ultimate.py as scoped stateless roadhog_charge.py on the
+existing0B8B instance. The bound source helper _gain_ult_points maps to
+_gain_roadhog_points because combined already has a different three-argument
+helper; preserve that combined contract and all other heroes. Source module AST
+matches under that one name mapping, and driver method-name audit is unique.
+Hog defaultsNone/natural authored passive cadence; explicit numeric override
+remains. Actual damage/self-heal charge uses original expressions/gate/cap,
+including zero multipliers. Healing credits only eligible enemy-caused missing
+HP. Hog attacker to Hog victim consumes original01C7/node111 multiplier without
+starting its client-only stack. Other attackers remain a caller audit boundary.
+
+Full original charge+retirement/runtime29-run:3 numeric history/deadline subfails
+and6errors55.686s. Four were old impulses.live observations and one legacy
+native_replay hash rejecting NotImplementedType; now query actual Knockbacks.active
+and strict BodyVM digest for the original passive-budget hash probe. The remaining
+missing healing_damage is a REAL chronological consumer gap. Focused passive/hash,
+damage/buffered-damage/heal/passive full-cost Q readiness, all9 released-life
+subcases and runtime13 now16/16 pass62.848s. Other full-run actual primary/slug/
+Hook/melee charge, mitigated/overkill, miss/ally/wall, damage/healing multipliers,
+victim.75, reduction and full-Q spend/no-active-gain cases pass. Original assertion
+AST calls match under only the actual observer path mapping; no values changed.
+
+First WIP invocation exposed the different _gain_ult_points signatures, corrected
+before delivery; duplicate-method AST audit and original Doom/runtime regression
+pass. Logs worker-b-hog-charge-{mount,restored,storage-readiness}.log. No client
+acceptance run or completed owner claim.
+
+Next exact action B58: source healing_tick body-command association plus Vitals
+healing_damage/historical capacity through the same health pool. Current gap
+replay wrongly heals damage after the channel; source offset0 reduction differs
+20vs10. Keep original assertions; do not invent global frame anchors or advance
+input VM. Then original WholeHog damping/world-only and owned-DVa same-host epoch
+consumer, cross-owner victim credit and non-Flux Sigma. Root owns Flux, A Zarya.

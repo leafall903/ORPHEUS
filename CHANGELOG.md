@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore Roadhog authored charge and natural passive cadence
+
+- Existing0B8B hosts original Hog damage/healing multipliers, gate/cap and natural
+  cadence; eligible self healing and Hog victim credit use actual pools. Preserve
+  the separate combined charge helper and other heroes' contracts.
+- Original passive strict-storage/readiness/lifecycle/runtime16/16 pass. Full
+  charge checks retain real historical-heal/deadline gaps and original numbers;
+  observer mappings use actual services. No client acceptance run.
+
 ### Retire released Roadhog pellets with their original body
 
 - Retiring an actual Hog removes its unleased01C6 pellets/fragments; death alone
