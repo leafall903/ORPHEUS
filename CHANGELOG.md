@@ -90,6 +90,14 @@ old private API, source geometry/contract differences, externalclient OPEN) are 
 production-merge blockers. Final source/shared mover replacement mapping follows
 A93; do not add legacy mover facades merely because names differ.
 
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
 
 ## A91 — original earlier break rebase after an ahead body end
 
