@@ -1478,3 +1478,56 @@ advance_applications/source-retirement waits; audit original888 modifier and
 restore raw original grenade/control helpers with real dependencies. Root owns
 C37 mapped pose tick/history-tail correction; sync its accepted boundary before
 editing replay further. Device Portal/Sentry/Torb original consumers remain.
+
+
+## C39: original body-silence variable lifetime on existing Controls
+
+Clean boundary merged root9f2da275 as a807cd83, preserving C37 root mapped pose
+world tick and all7 history fields plus A55 original read-only Hack helpers.
+Only CHANGELOG conflict, both entries retained. C39 does not modify replay/driver.
+
+Original012E apply_body_hack explicitly saves entity_var888.base and setsTrue;
+retire_body_hacks restores saved base after final effect. This was not a graph
+modifier feature. Integrated on same Controls host as body_bases[entity] =
+(actual component, originalbase). Body Lock creation setsTrue; final world expiry,
+retire/death/replacement restores same component's base. Overlapping effects do
+not overwrite the original value. Device locks do not receive character888 policy.
+Exact causal field body_bases added to existing Controls snapshot registration;
+no new pool/manager/input controller and no original expiry values changed.
+
+v16 actual same profile plus original view catalog now selected. Exact command:
+python -B -m unittest
+ test_game_sombra_combat.SombraCombatTests.test_hack_blocks_actual_helix_and_releases_it_after_effect_expiry
+ test_game_sombra_combat.SombraCombatTests.test_hack_keeps_enemy_primary_fire_and_melee_available
+ test_game_sombra_combat.SombraCombatTests.test_hack_interrupts_enemy_sprint_while_its_input_stays_held
+ test_game_sombra_combat.SombraCombatTests.test_hacked_body_death_retires_effect_and_ownership
+ test_game_sombra_combat.SombraCombatTests.test_hero_replacement_does_not_inherit_the_retired_body_silence
+ test_ashe_hack test_ashe_emp test_sombra_replay_pose_adapter
+ test_game_sombra_charge.SombraChargeTests.test_full_snapshot_captures_context_pause_and_deferred_respawn_charge
+ -v:21run63.770s,13casepass/5failedmethods/2erroredmethods/1originalSigmameshskip.
+Error records5 = refreshWait58missing1 + four oldworld_barriers observer subcases
+in one method. All original assertions unchanged. Log
+worker-c-sombra-body-silence-check.log. Actual Soldier Helix suppressed then reused
+at expiry, held Sprint interrupted, body death/replacement cleanup now pass.
+Root C37 pose adapter and source full snapshot method pass.
+
+Exact remaining failures: Soldier actualrifle health160vs180 (before final888
+assert); diagnostic on same v16 with ONLY silence_body monkeypatched off gives
+same160/888None, restored implementation gives160/888True. This diagnostic is
+not a passing acceptance test; it separates888 code from changed baseline ray/
+weapon geometry. Log worker-c-sombra-flag-rifle-baseline-probe.log.
+AsheHack69/AsheEMP74 fail onlyexpiryQ spent0vs2240: earlier heldskills, ordinary
+fire/ADS/reload/movement checks passed; root independently reproduces sameC38.
+BOB charge test253 shots0vs1 and activegun test131 shots7vs6 are expiry edge
+comparisons, not proof of wholly absent pause; detailed stacks sent A who owns
+actual ashe/companions. EMP refresh142 realWait58 missing afterreapply needs
+receiver lifecycle audit. Shell case only old fight.world_barriers AttributeError,
+actual shared Win shell host remains fight.barriers.world. No dummy alias added.
+
+Actual flag restoration probe starts888False, appliesrealHack65frames, confirms
+saved(component,False)/888True, advances through originalworldexpiry1404 to1405:
+888False/basesempty/faultNone. worker-c-sombra-body-base-restore-probe.log.
+Next C40: exact original input latch/expiry-frame admission, reapply request
+entry and incoming application world/body clock association/source-retirement;
+keep true accepted pose anchors and preserve root C377-field history adapter.
+Other retained nonappearance owner boundaries unchanged; no client/network test.
