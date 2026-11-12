@@ -4462,13 +4462,18 @@ class ModifyHealth(State):
     def __init__(self, *args):
         super().__init__(*args)
         self.last_applied = 0
+        self.target_body = 0
 
     def on_enter(self):
+        self.target_body = 0
         self.last_applied = self.now
         world = self.instance.component.world
         value = world.modify_health(self, 0)
         if value is not NotImplemented:
-            self.ticks()
+            context = getattr(world, 'control_context', None)
+            if not (value is False and self.instance.graph.index == 0x1157
+                    and context is not None and context.target_host is not None):
+                self.ticks()
         elif self.instance.component.strict:
             self.instance.component.unsupported(self.instance, "health service", self.node.cls, self.node)
         else:

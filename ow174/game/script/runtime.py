@@ -540,6 +540,10 @@ class InstanceContext(Context):
             result = component.world.native(cfg, self.instance)
             if result is not NotImplemented:
                 return result
+        from ow174.game.script import filter_game
+        result = filter_game.evaluate_native(self, cfg)
+        if result is not NotImplemented:
+            return result
         result = health_queries.evaluate(self, cfg)
         if result is NotImplemented:
             result = controller_queries.evaluate(self, cfg)
@@ -1133,6 +1137,10 @@ class World:
         if host is not NotImplemented:
             entity_filter._check_owner(instance)
             return entity_filter.admit(host, entity, cfg, instance=instance, watcher=watcher)
+        return NotImplemented
+
+    def entity_filter_context(self, entity: int):
+        """Explicit original NPC/controller filter scope; no general lookup grant."""
         return NotImplemented
 
     def entity_filter_host(self, instance):

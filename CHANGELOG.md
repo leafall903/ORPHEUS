@@ -88,6 +88,16 @@ This log records tested changes and their acceptance status. Entries are grouped
   v18 remains candidate pending actual NPC admission; no client acceptance run.
 
 
+### Deliver original manual Assassin effects to the real player controller
+
+- Original declared target-filter provider, paired native queries and PlayScript
+  submission now select and affect the unique controller1177 host. Preserve the
+  current body-control record without creating a second body effect; contact,
+  delayed health, replacement and release use actual source/body identities.
+- Four original core methods pass unchanged; shared filter/Match/manual17 pass.
+  An active whole-server pair has one controller effect, no body effect and causal
+  snapshot roundtrip. Authored sleep delay remains next; no client acceptance run.
+
 ### Mount original explicit NPC controller associations on the existing pair
 
 - Original association accessor/NpcContext now bind real body/root namespaces on

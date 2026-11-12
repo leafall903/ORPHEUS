@@ -576,6 +576,14 @@ class BotWorld(runtime.World):
     def play_script_host(self, instance: runtime.Instance, node: graph.Node) -> bool:
         if self.play_archives_modifier(instance, node):
             return True
+        if (self.hero == ASSASSIN_HERO and self.control_context is not None
+                and self.control_context.target_host is not None
+                and (instance.graph.index, node.pos) == (0x1157, 45)):
+            from ow174.game import assassin
+            resource = play.resolve_resource(instance, node)
+            if resource is not None and assassin.effect_host(self, instance, node) is not None:
+                self.play_resolved_script(instance, node, resource)
+            return True  # original permissive profile without declared effect services
         if self.hero == ASSASSIN_HERO and self.match is not None:
             return self.match.combat.assassin_play_capture(instance, node)
         if (self.hero != HEAVY_ASSAULT_HERO or self.match is None
@@ -612,7 +620,8 @@ class BotWorld(runtime.World):
         return super().velocity_action(instance, node)
 
     def ai_weapon_button(self, slot: int) -> int | None:
-        if self.hero == assassin.HERO and self.controller_components is not None and slot == 0:
+        if (self.hero == assassin.HERO and self.controller_components is not None and slot == 0
+                and self.control_context is None):
             return 36
         return self.weapon_buttons.get(str(slot))
 
@@ -645,6 +654,14 @@ class BotWorld(runtime.World):
 
     def native(self, cfg: dict, instance: runtime.Instance):
         from ow174.game import assassin, npc_context, npc_shields, orisa_halt
+
+        if self.control_context is not None and self.control_context.target_host is not None:
+            value = self.control_context.native(cfg, instance)
+            if value is not NotImplemented:
+                return value
+            value = assassin.target_health(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         if instance is not None and self.match is not None:
             from ow174.game import sigma_flux
@@ -790,6 +807,11 @@ class BotWorld(runtime.World):
         if self.control_context is not None:
             return self.control_context.play_script_context(instance, node)
         return super().play_script_context(instance, node)
+
+    def submit_script_request(self, instance, node, request):
+        from ow174.game import assassin
+        if not assassin.submit_pin_effect(self, instance, node, request):
+            super().submit_script_request(instance, node, request)
 
     def body_health(self, entity):
         lookup = getattr(self.match.combat, "body_health", None) if self.match is not None else None
