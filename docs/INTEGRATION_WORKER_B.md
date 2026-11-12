@@ -2502,3 +2502,29 @@ public registries, document actual strongerAIBehaviorState/AIControlOverride
 sameclassID mappings without attaching a second production registration host.
 Then originalAssassinServices vs actualmanual13C2 path equivalence audit and
 final frozen/staged012Fpositive delta inventory. No fullmatrix delivery gate.
+
+
+## B89 — retain original direct distance and possession registry SDKs
+
+Restore original01CA distance_constraints and possession_requests modules
+byte-for-byte. They expose Entry/Registry priority+sequence registration and
+Inputs/Selection/Request/Registry request ordering/lifetime APIs respectively.
+Current b61/component86/AIBehaviorState/AIControlOverride store richer state,
+sourcecomponent, instance/node IDs and reactive payloads under the SAME original
+stateclassIDs. Their API/record types are not the original directSDK interface.
+Do not discard existing directAPI merely because currentgameplay uses another
+implementation; also do not replace stronger actualstate handlers or attach
+another automatic registration host. This batch preserves directSDK only.
+
+Exactsource-byte audit passed; imports/actualdirect register/order/unregister
+and requestinsert/order/remove checks passed. No runtime consumers, storedfields
+or dependencies changed. No original-client acceptance or matrix requirement.
+
+Remaining explicitAPI boundary: original Scene.set_distance_constraints and
+set_possession_requests fed oldstateclasses with source owner+clock records.
+Current World has actualregister_ai_behavior_request/control/weapon methods
+backed by its existingsolehost. Mapping those sourceScene APIs requires checking
+that original lifecycle/selection acceptance can be retained without a second
+sameGUID registry; not yet declared equivalent/complete. Root notified. Next
+exact action: boundedassassin_filter actual13C2 caller audit; sourceAPI registry
+adapter decision follows explicitconsumer evidence, no host duplication.
