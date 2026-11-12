@@ -34,7 +34,7 @@ class DeviceWorld(runtime.World):
         return entity_queries.Component76Keys(self.tags) if entity == self.body else NotImplemented
 
     def native(self, cfg, instance):
-        portals = getattr(self.fight, "symmetra_portals", None)
+        portals = getattr(self.fight, "portals", None)
         if (portals is not None and instance is not None and instance.graph.index == PULSE
                 and cfg.get("$") == entity_queries.POSSESSED):
             for pos in (15, 16):
@@ -45,17 +45,7 @@ class DeviceWorld(runtime.World):
         return super().native(cfg, instance)
 
     def entity_var_slot(self, entity, var, *, create=False):
-        from ow174.game.symmetra_portal import ENDPOINT_SLOTS
-
-        portals = getattr(self.fight, "symmetra_portals", None)
-        if portals is None or var not in ENDPOINT_SLOTS:
-            return NotImplemented
-        pair, owner = portals.endpoint_owner(self.body)
-        if owner is None or owner.entity != entity:
-            return None
-        endpoint = pair.endpoints[ENDPOINT_SLOTS.index(var)]
-        slot = owner.entity_var(var, create=False)
-        return slot if slot is not None and slot.value() == expr.Entity(endpoint.body) else None
+        return self.fight.sombra_controls.endpoint_slot(self.body, entity, var)
 
     def play_script_selected(self, instance, node):
         return self.fight.sombra_controls.play(instance, node)
@@ -105,6 +95,26 @@ class Controls:
         windows.append((start,end))
         self.lock_history[component.entity] = component, windows
 
+    def observe_lock(self, application):
+        """Retain the end of the real authored recipient wait, not a new timer."""
+        wait = application.states.get(58) if application.graph.index == EFFECT else None
+        row = self.lock_history.get(application.component.entity)
+        if (not isinstance(wait, nodes.Wait) or row is None
+                or row[0] is not application.component):
+            return
+        for index, (start, end) in enumerate(row[1]):
+            if start <= application.start <= end:
+                row[1][index] = start, max(end, wait.start + wait.ms)
+                break
+
+    def locked_at(self, script, frame):
+        component = getattr(script, "component", None)
+        row = self.lock_history.get(getattr(component, "entity", None))
+        if row is None or row[0] is not component:
+            return False
+        now = frame * component.frame_ms
+        return any(start <= now < end for start, end in row[1])
+
     def first_lock_after(self, script, frame, tick):
         """Original first-lock query; both bounds are recipient body frames.
 
@@ -125,7 +135,7 @@ class Controls:
         """Latch held skills until a received command releases them."""
         entity = player.body
         masked = self.held.get(entity, 0) & command.buttons
-        if entity in self.locks:
+        if entity in self.locks or self.locked_at(player.body_script, command.frame):
             masked |= command.buttons & SKILL_INPUT
         if masked:
             self.held[entity] = masked
@@ -194,6 +204,7 @@ class Controls:
                 continue
             keep = []
             for lock in locks:
+                self.observe_lock(lock.application)
                 if self.fight.now < lock.until:
                     keep.append(lock)
                 else:
@@ -205,12 +216,41 @@ class Controls:
                 self.device_receivers.pop(entity, None)
                 self.restore_body(entity)
 
+    def endpoint_slot(self, body, entity, var):
+        from ow174.game.symmetra_portals import ENDPOINT_SLOTS
+
+        pair, _ = self.fight.portals.endpoint_pair(body)
+        if pair is None or var not in ENDPOINT_SLOTS:
+            return NotImplemented
+        _, owner = self.fight.portals.endpoint_owner(body)
+        if owner is None or owner.entity != entity:
+            return None
+        endpoint = pair.endpoints[ENDPOINT_SLOTS.index(var)]
+        slot = owner.entity_var(var, create=False)
+        return slot if slot is not None and slot.value() == expr.Entity(endpoint.entity) else None
+
+    def device_binding(self, entity):
+        """Original device tags on the existing summoned actor, without another host."""
+        from ow174.game import symmetra_portals
+
+        for turret in self.fight.turrets.values():
+            if turret.actor.entity == entity:
+                return turret.actor, frozenset((0x34,)), True
+        for sentry in self.fight.sentries.sentries:
+            if sentry.bot.entity == entity:
+                return sentry.bot, frozenset((0x36F,)), sentry.attached_at is not None
+        pair, index = self.fight.portals.endpoint_pair(entity)
+        if pair is not None:
+            return pair.endpoints[index], symmetra_portals.ENDPOINT_TAGS[index], True
+        return None
+
     def enemies(self, player):
         from ow174.game import ball_mines
 
         return (target for target in self.fight._enemies(player)
                 if not isinstance(target.owner, (actors.Deployable, ball_mines.Mine))
                 and getattr(target.owner, "body_script", None) is not None
+                and self.device_binding(target.entity) is None
                 and not self.fight.damage_immune(target.owner))
 
     def hackable(self, player, *, emp=False):
@@ -223,7 +263,7 @@ class Controls:
                 yield Target(pack.entity, None, pack.position, 0.7, 0.35, 0.35, pack)
 
     def device_targets(self, player, *, emp=False):
-        from ow174.game import ball_mines, symmetra_portal, symmetra_sentry, torbjorn_turret
+        from ow174.game import ball_mines
         from ow174.game.combat import Target
 
         fight = self.fight
@@ -232,27 +272,21 @@ class Controls:
             if (actor.health > 0 and actor.owner is not player and not actor.owner.gone
                     and (fight.match.game_map.free_for_all or actor.team != player.team)):
                 yield fight._deployable_target(actor), frozenset((0x6E6,))
-        managers = (
-            (getattr(fight, "torbjorn_turrets", None), torbjorn_turret.DEVICE_RADIUS, frozenset((0x34,))),
-            (getattr(fight, "symmetra_sentries", None), symmetra_sentry.DEVICE_RADIUS, frozenset((0x36F,))),
-            (getattr(fight, "symmetra_portals", None), symmetra_portal.DEVICE_RADIUS, None),
-        )
-        if emp:
-            managers += ((getattr(fight, "ball_mines", None), ball_mines.DEVICE_RADIUS, ball_mines.TAGS),)
-        for manager, radius, tags in managers:
-            if manager is None:
+        for target in fight._targets():
+            binding = self.device_binding(target.entity)
+            if binding is None:
                 continue
-            devices = (manager.enemies(player, include_flights=True) if manager is getattr(fight, "ball_mines", None)
-                       else manager.enemies(player))
-            for device in devices:
-                if isinstance(device, symmetra_sentry.Sentry) and not device.attached:
-                    continue
+            actor, tags, attached = binding
+            owner = getattr(actor, "combat_owner", None)
+            if (attached and not actor.dead and owner is not None and owner is not player
+                    and not owner.gone and (fight.match.game_map.free_for_all or target.team != player.team)):
+                yield target, tags
+        manager = getattr(fight, "ball_mines", None)
+        if emp and manager is not None:
+            radius = ball_mines.DEVICE_RADIUS
+            for device in manager.enemies(player, include_flights=True):
                 x, y, z = device.centre()
-                device_tags = tags
-                if manager is getattr(fight, "symmetra_portals", None):
-                    _, index = manager.endpoint_pair(device.body)
-                    device_tags = symmetra_portal.ENDPOINT_TAGS[index]
-                yield Target(device.body, None, (x, y - radius, z), 2 * radius, radius, radius, device), device_tags
+                yield Target(device.body, None, (x, y-radius, z), 2*radius, radius, radius, device), ball_mines.TAGS
 
     @staticmethod
     def invoke(component, definition, request):
@@ -266,7 +300,7 @@ class Controls:
                     matches[0] if matches and request.policy == 2 else None)
 
     def apply_devices(self, instance, definition, resource, request, caster):
-        from ow174.game import symmetra_sentry, ball_mines
+        from ow174.game import ball_mines
 
         if caster is None:
             return
@@ -275,7 +309,8 @@ class Controls:
                 continue
             component = self.device_receivers.get(target.entity)
             if component is None:
-                component = getattr(target.owner, "component", None)
+                script = getattr(target.owner, "body_script", None)
+                component = script.component if script is not None else getattr(target.owner, "component", None)
                 if component is None:
                     world = DeviceWorld(self.fight, target.entity, tags)
                     component = runtime.Component(target.entity, world=world)
@@ -307,8 +342,9 @@ class Controls:
                         until = (application.start + round(duration * 1000)) / 1000
                     locks.append(Lock(application, until, pulse))
                     self.remember_lock(application, duration)
-                    if isinstance(target.owner, symmetra_sentry.Sentry):
-                        self.fight.symmetra_sentries.set_target(target.owner, None)
+                    for sentry in self.fight.sentries.sentries:
+                        if sentry.bot is target.owner:
+                            self.fight.sentries._clear_slow(sentry)
             elif component is not instance.component:
                 component.run_now()
             if target.entity not in self.locks:
@@ -317,9 +353,8 @@ class Controls:
     def drain_device(self, state):
         entity = state.instance.component.entity
         amount = expr.to_float(state.evaluate(state.node.field("m_modifyHealth")["m_amount"], watch=False))
-        portals = getattr(self.fight, "symmetra_portals", None)
-        if portals is not None and math.isfinite(amount) and amount > 0:
-            portals.drain_shields(entity, amount)
+        if self.device_binding(entity) is not None:
+            self.drain(state)
 
     def body_barrier(self, target):
         from ow174.game import barriers
@@ -351,9 +386,20 @@ class Controls:
 
     def native(self, body, cfg, instance):
         cls = cfg.get("$")
+        binding = self.device_binding(body)
+        if binding is not None and instance.graph.index in (EFFECT, PULSE):
+            if cls == "STU_25ECB55F" and expr.to_entity(instance.evaluate(cfg.get("m_entity"))) == body:
+                return (expr.guid_of(cfg.get("m_88B0050A")) & 0xFFFFFFFFFFFF) in binding[1]
+            if instance.graph.index == PULSE and cls == entity_queries.POSSESSED:
+                for position in (15, 16):
+                    if cfg is instance.graph.node(position).field("m_targets")["m_configVars"][0]:
+                        _, owner = self.fight.portals.endpoint_owner(body)
+                        return expr.Entity(owner.entity if owner is not None else 0)
         if (instance.graph.index == EFFECT and cls == "STU_AC829876"
                 and cfg is instance.graph.node(21).field("m_condition")):
             # Original receiver predicate: the actual body can receive Hack.
+            if binding is not None:
+                return False
             target = next((target for target in self.fight._targets()
                            if target.entity == body), None)
             script = getattr(getattr(target, "owner", None), "body_script", None)
@@ -483,7 +529,7 @@ class Controls:
                 else:
                     health_packs.submit(pack.component, definition, resource, request)
         for target in fight._targets():
-            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)):
+            if isinstance(target.owner, (actors.Deployable, ball_mines.Mine)) or self.device_binding(target.entity) is not None:
                 continue
             if target.entity not in request.targets or fight.vitals_of(target).dead or fight.damage_immune(target.owner):
                 continue
@@ -492,6 +538,11 @@ class Controls:
             script = getattr(target.owner, "body_script", None)
             if script is None:
                 continue
+            # Original0200 recipient invocation replaces the previous graph,
+            # including its start-entry lifetime, before submitting this request.
+            for prior in tuple(script.component.instances.values()):
+                if prior.graph.index == definition.index:
+                    script.component.destroy(prior)
             application = self.invoke(script.component, definition, request)
             if application is not None and definition.index == EFFECT:
                 duration = expr.to_float(application.evaluate(application.graph.node(96).field("m_value")))

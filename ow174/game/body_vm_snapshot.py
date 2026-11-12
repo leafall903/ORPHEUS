@@ -15,6 +15,8 @@ import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
 from ow174.game import npc_controller_storage
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld
+from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
@@ -175,6 +177,8 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    ControllerVM: ("definition", "retired", "component", "reserved_wire_ids"),
+    ControllerFilterInputs: ("owner", "component_masks", "current_bits", "replicated_bits", "primary_status", "health_status", "flags28", "provenance", "revision", "retired", "bound_host"),
     assassin_movement.Sample: ("flags", "axis"),
     scene.SceneEntity: npc_controller_storage.SCENE_ENTITY_FIELDS,
     scene.Placement: npc_controller_storage.PLACEMENT_FIELDS,
@@ -553,7 +557,7 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
-        if kind in (runtime.World, BodyWorld, BotWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
+        if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
                     PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
@@ -561,6 +565,8 @@ class _Export:
                 raise BodyVMSnapshotError("foreign VM world reference")
             fields = {"hero", "mode"}
             optional = ()
+            if kind is ControllerWorld:
+                fields.update(("readers", "filter_inputs", "pin_services", "linked_target_inputs", "numeric_modifiers"))
             if kind is BodyWorld:
                 optional = ("beam_barrier", "passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",

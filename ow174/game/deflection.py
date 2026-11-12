@@ -25,6 +25,15 @@ MAX_DEFLECTIONS = 8  # explicit bounded host cycle policy, not a recovered nativ
 TICK = .016
 
 
+def reflected_projectile(state, source, amount):
+    """Send the accepted physical reflection through the authored output."""
+    instance = state.instance
+    instance.write(expr.lvalue(state.node.field("m_F6CDC81C")), expr.f32(amount))
+    instance.write(expr.lvalue(state.node.field("m_0A2CABA3")), expr.Entity(source))
+    instance.follow(state.node, "m_160B5DBE", state)
+    instance.component.run_now()
+
+
 @cache
 def _rows(blob):
     data = json.loads(blob)

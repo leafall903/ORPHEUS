@@ -4,6 +4,62 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain original Mine arithmetic identity with the actual controller and factory
+
+- Merge original Minefield factory, real MineScript/transport and f32 flight on
+  the sole current manager; preserve both MineWorld and000E ControllerWorld in
+  strict stored VM exports. Keep existing scene/bot create tracking.
+- Record original scalar_math.profile in the existing typed replay configuration,
+  covering qualified Windows x64 RSQRTSS/MXCSR/probe identity without a math
+  fallback or game binaries. Profile mutation changes replay configuration hash.
+- Actual Mine flight/factory, controller/filter/lifetime and replay manifest43
+  checks pass25.969s. Remaining target/lifetime/EMP consumers follow B44.
+
+
+### Mount original empty player controller VM lifecycle and exact stored state
+
+- Restore original0200 ControllerVM/ControllerWorld, explicit controller filter
+  inputs and source filter primitives. Create the actual independent000E VM on
+  player admission only when original metadata exists, preserve it across body
+  death/switch, advance on world ticks and retire it on leave/fault.
+- Reserve the existing controller encoder's exact instance IDs through extracted
+  controller_instances/controller_wire_ids; no body variables or another wire
+  encoder are substituted.16 existing menu/mode combinations are byte/bit equal.
+- Register exact empty/filter-bound controller storage in both exporters.28
+  original filter/namespace/lifetime checks pass4.941s. Actual controlled server
+  allocator mutation changes VM/server digests and restores both identically.
+- Original controller effect wire emission, manual Assassin recipient/coupling
+  and PinEffectServices stored callbacks remain the next root integration batch;
+  the independent empty VM core is mounted without claiming that scope complete.
+### Reconcile delivered Recall protection contracts
+
+- Preserve original Tracer/Widow warmup-and-playback protection. Two older Ana checks expect warmup vulnerability, so retain their failures and exact source evidence rather than change either original assertion or the mounted owner policy.
+- Current original both-phase immunity and actual Dart playback/expiry checks pass; full AnaRecall group7pass/2known conflicting failures. No runtime or client behavior changed in this audit.
+
+### Bind original BOB no-launch checks to the real force host
+
+- Original corpse/head-on no-force assertions now inspect the existing Knockbacks active host, retaining assertion intent and original numerical checks without a compatibility queue.
+- Selected lifecycle/cooldown10 methods reached8 passes and old-observer errors in two methods; the two corrected entry methods now pass both cast orders. No production behavior or client acceptance changed.
+
+### Retain original BOB control expectations on the sole Frost host
+
+- Save real-host spray/Blizzard checks alongside the original table-based fixtures, reading actual Frost deadlines without compatibility state. Preserve original damage, exact thaw resume and fixed lifetime assertions.
+- Native-host sleep/spray/Blizzard methods all pass (3 methods, including both contiguous/skipped sleep paths). No production behavior changed; original observer differences remain recorded, client acceptance not run.
+
+### Preserve NPC control interruption through Photon guards
+
+- Non-Symmetra BotScript no longer crashes in the shared Photon windup interrupt guard; real Symmetra handling is unchanged. Actual Sleep Dart now pauses BOB on existing Vitals and resumes its authored gun.
+- Real contiguous/skipped BOB sleep regression preserves original hit schedule and fixed lifetime. Together with original BOB and shared VM:28 passed. Original sleeps/freezes/Photon observer API errors retained; no client acceptance run.
+
+### Read BOB silence through its actual recipient clock
+
+- Existing companion pose/gun consumers query the sole Controls.locked_at with the frame used by their actual component driver. Preserve original Wait window, world locks and fixed BOB lifetime; avoid stale BotScript wrapper frames.
+- Original active-gun and charging EMP expiry boundaries now pass unchanged; owner-only pulse isolation, original BOB and actual Matrix regression jointly18/18 passed. Client acceptance not run; remaining original fixture observers retained.
+
+### Restore Matrix authored absorption output on the actual mech
+
+- Existing Matrix contacts now emit original007A state fields/plug with actual payload/source, including tagged flight, Dynamite and Widow zero-payload mine. Current defense admission, ownership and Sigma consumers retained.
+- Actual owned mech/BOB regression plus shared damage/Helix/Grasp/Deflect:14 passed. Broader original WidowGrasp11 errors remain at old sigma.HERO fixture API, assertions unchanged. Client acceptance not run. DVa parked-pilot and Tracer uniform-eye fixture contract differences recorded without changing geometry.
 ### Select original Mine closure alongside the integrated Ball passive host
 
 - Select v17 with exactly one missing261E graph and2578 entity from the original
@@ -14,7 +70,32 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Route original Sombra device effects into existing summoned actors
 
+- Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,
+  using original device tags and live endpoint owner slots. Same entities/Vitals;
+  Sentry locks stop beam/slow and endpoint locks block PortalPair interaction.
+- Real10-second Torb/Sentry Hack probes and near/remote PortalEMP relay pass;
+  original device/shared32 and control/charge43 all pass. No oldprototype manager
+  aliases or copied pools. Fulllegacy fixture/retirement boundaries remain recorded.
+
+### Refresh original Hack receiver graph lifetimes on EMP
+
+- Apply the original recipient graph replacement before the existing PlayScript
+  request, retiring the stale first effect while retaining actual source, params,
+  pools and world-lock intervals.
+- Original refresh, whole AsheHack, Sombra cooldown/world-only EMP, retirement,
+  all15charge and shared VM queue/runtime pass79/79. No fixture or value changes;
+  actual device and incoming-clock integration remains recorded work.
+
+### Retain original recipient-frame skill admission through the expiry edge
+
+- Observe the real Hack Wait in existing lock history and apply its recipient
+  frame window through the existing input/held-bit path. World timers, ordinary
+  weapon input and body/world epoch separation stay intact.
+- Original Ashe Hack/EMP expiry methods and Soldier Helix reuse pass completely;
+  joint36 including all15Sombra charge, replay adapter and VM runtime all pass.
+  Incoming reapply/clock and actual device-consumer boundaries remain recorded.
 
 ### Preserve original body silence state across Hack lifetimes
 
@@ -99,6 +180,10 @@ This log records tested changes and their acceptance status. Entries are grouped
   add_impulse observer failure51.672s; exact Ashe eye/outer distances and actual
   Ball world-only shield expiry now execute together. No original values changed.
 
+### Restore Matrix authored absorption output on the actual mech
+
+- Existing Matrix contacts now emit original007A state fields/plug with actual payload/source, including tagged flight, Dynamite and Widow zero-payload mine. Current defense admission, ownership and Sigma consumers retained.
+- Actual owned mech/BOB regression plus shared damage/Helix/Grasp/Deflect:14 passed. Broader original WidowGrasp11 errors remain at old sigma.HERO fixture API, assertions unchanged. Client acceptance not run. DVa parked-pilot and Tracer uniform-eye fixture contract differences recorded without changing geometry.
 
 ### Connect prepared integration inputs to the existing local server entry
 

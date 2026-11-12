@@ -242,6 +242,9 @@ def runtime_configuration(*, quanta_us: int, run_options: dict) -> dict:
     from ow174.game.barrier import model_identity
 
     values["ow174.game.barrier.model_sha256"] = model_identity()
+    from ow174.game import scalar_math
+
+    values["ow174.game.scalar_math.profile"] = scalar_math.profile()
     # Return detached raw values without changing their Python types.
     _typed(values, "configuration")
     return copy.deepcopy(values)
