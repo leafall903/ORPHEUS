@@ -53,3 +53,24 @@ keeps the original75 slam (target25 versus old100). Preserve023B's explicit
 phase boundary and retain the original0003 failing assertion. This is source
 contract comparison plus an actual combined trace, not a full frozen baseline.
 Probe: ../parallel-merge/root-flux-caster-death-domain-probe.py and matching log.
+
+Original023B Flux placement/targets/actor-point tests and their full Sigma combat
+fixture are now retained. Only the unrelated missing Symmetra import moves into
+its six original using methods; no production alias is supplied. Flux tests bind
+to actual sigma_flux functions and read the existing impulse_mover. AST comparison
+preserves all985 original assertions, including the old mover-retirement checks.
+Receipt: ../parallel-merge/root-flux-restored-test-assertions.json.
+
+Actual five-NPC source test exposed a real missing consumer: current generic
+STU_22926252 stops rather than immediately destroys1DBC at its terminal actions.
+Restore the exact original023B non-strict Match scope3/5/45/61 inside the existing
+handler. The Heavy6601 branch now completes with50 damage and no lift/effect.
+Six actual actor-point checks pass. The other four bodies meet entry/airborne/
+height/landing checks before the old dedicated-mover-is-None assertions: current
+shared impulse_mover persists on the ground. Preserve the shared object and old
+assertions rather than deleting another owner's mover to satisfy an observer.
+Combined seven-method run has six passing methods and five assertion records in
+the one NPC method (four old None checks plus dependent final count1vs5).
+The original post-None damage assertions have not yet executed in that method;
+do not claim they passed. Logs root-flux-original-five-npc-check and
+root-flux-npc-terminal-query-check record the before/after evidence.

@@ -4,6 +4,30 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Reuse the NPC driver for proven frozen sentry history
+
+- Mount original bounded no-support frozen-lock proof through the existing
+  Match NPC/combat tick loop. Historical frost reads use the recorded frame;
+  current navigation/control/mover ownership stays intact.
+- All five actual Mei-freeze/Sentry/NPC producers match89 normal ticks to one
+  skipped update; the prior empty admission loses25 beam ticks. Original31
+  Frost/Sentry/Damage methods pass; old optional-NPC-mover fixture errors remain.
+- Observe barrier removals from final Torb turret attacks before beam settlement.
+  Ice-support/projected-impact/phase/respawn history consumers remain partial.
+
+### Preserve original Flux receiver terminals and five-NPC source checks
+
+- Original1DBC terminal actions3/5/45/61 now destroy that exact receiver on its
+  non-strict Match host; generic stop-event behavior remains for other resources.
+  This repairs the Heavy6601 early-exit branch exposed by actual NPC input.
+- Restore original Flux placement/targets/actor-point modules and full Sigma
+  fixture, retaining985 original assertions after namespace/mover-name mapping.
+  Unrelated missing Symmetra imports stay in their original using methods.
+- Six actor-point checks pass. Original five-NPC test now reaches correct Heavy
+  early exit; four other bodies lift and land but retain their existing shared
+  impulse mover, conflicting with old dedicated-mover None assertions. Those
+  assertions and the dependent final count remain unchanged. No client run.
+
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the
@@ -10337,6 +10361,10 @@ Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
 concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
 then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
 blocking delivery on these preserved old boundary assertions.
+
+### Tank owner consumer convergence audit
+
+Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
 
 ## A72 — Tracer authored damage-tag and charge entry reconciliation
 

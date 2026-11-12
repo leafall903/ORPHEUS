@@ -1483,7 +1483,12 @@ class Match:
             return
         if ready:
             first = tick
-            if (self.combat.tick and tick > self.combat.tick + 1
+            frozen_sentries = self.combat.frozen_sentry_replay(tick)
+            if frozen_sentries:
+                # The delivered lock proof admits only one freeze plus the
+                # normal retained window. Reuse this same route/nav driver.
+                first = self.combat.tick + 1
+            elif (self.combat.tick and tick > self.combat.tick + 1
                     and self.combat.lucio_auras.has_moving_npc_recipients()):
                 first = max(self.combat.tick + 1, tick - combat.COMBAT_CATCH_UP + 1)
             for at in range(first, tick + 1):

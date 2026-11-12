@@ -2066,3 +2066,73 @@ mount proven frozen-history selection and per-tick update calls. Source0016
 phase_clocks, respawn isolation, replay_ice/replay_owners/frozen policies remain
 explicit gaps. Cryo cancellation exit and source0016 bare-world healing do not
 justify disabling the current single HealingEffects ledger or B50 raw epoch gate.
+
+
+## C49 — bounded frozen sentry replay through the sole NPC driver (2026-11-12)
+
+C48 saved asd2c0cae04d625bc9887bd39ef6469db2aeea0fcf; clean sync40b523a4
+included original Flux/Player/native and A70 consumers before this batch.
+Combat.frozen_sentry_replay mounts the original bounded proof for the no-support
+case: original COMBAT_CATCH_UP=64 plusceil(1300/16), one recorded frozen lock,
+no respawn/live protective world actors/Cryo/Blizzard/firing/impulse exceptions.
+Match.update reuses its existing _advance_bots→Combat.update loop from the old
+tick+1 when admitted, rather than endpoint route stepping followed by another
+mover. Current Hook/Orisa/Knockback/navigation/controller driver remains sole.
+Sentry._held_frozen_pose explicitly samples previous_tick: current frost defaults
+to Match.tick, already the incoming endpoint, which would hide the prior freeze.
+Original concussion exclusion maps to actual Rocket.source_graph007B, not a
+fake field. Actual projected-barrier presence reads the one existing scripted
+Zarya host. No new actor/health/mover/control/history pool or stored state.
+
+The original ice-support/projected-impact proofs are NOT enabled by this partial
+boundary: walls/projected actors still decline admission until their actual
+phase/Heavy/splash/collision consumers map. All retained source implementation
+and assertions remain. Do not call0016 complete. Earlier notes assuming300
+retained frames were mistaken; both frozen source and current COMBAT_CATCH_UP
+are64. This batch uses the real constant, never that assumption.
+
+Cover sampling now also runs after existing hero_torbjorn.update_turrets and
+before final Sentry settlement. A single local observer handles in-loop and
+end-of-update removals; same barriers/geometry/expiry records, no double damage.
+
+Original frozen source test selection (2 methods from frozen0016
+ test_symmetra_npc_combat.SymmetraNpcResourceTests):
+ test_sentry_keeps_damage_and_slow_through_actual_mei_freeze_on_all_five_npcs,
+ test_sentry_kills_at_same_tick_in_a_single_gap_through_thaw_on_all_five_npcs.
+AST loads these original methods/create/sentry_across_npc_thaw plus pure
+Photon fixture move/add_target, not alternate production modules. First run
+4.638s leaves15subcase errors before the feature at missing Bot.movement_data.
+Original npc.Definition also lacks delivered optional mover/controller metadata;
+root explicitly took that original consumer gap. Did not turn the identity
+assert into a tautology, add fake Bot fields, or count source methods as passed.
+Log ../worker-c-symm-frozen-original-check.log. Sole observer adaptation in the
+unexecuted later helper: Frost object.sample[2] instead of old tuple[2].
+
+Separate ACTUAL producer evidence (not the failed original methods):
+`python -B ../parallel-merge/worker-c-frozen-probe.py` with v18 env+testenv.
+Each of the five selected real NPC definitions spawns in the same server,
+actual Symm deploys/attaches a Sentry, actual Mei spray causes full freeze,
+then the actual NPC receives its route. Normal89 consecutive world updates vs
+one89tick gap produce identical damage/pose/death/target/source-stat tuples:
+Trooper56.96 atz1.97152; Enforcer56.96/z1.8448; Sniper56.96/z1.76032;
+Assassin53.76/z4.36302 (leaves beam range and clears target in both);
+Heavy56.96/z1.37171. All actual frozen proofs nonempty/all VMfaultNone.
+Same89tick Trooper producer with only the new admission disabled reproduces
+prior40.96damage instead of56.96 (25 lost beam ticks), same pose/faultNone.
+Logs ../worker-c-symm-frozen-producer-corrected-probe.log and
+../worker-c-symm-frozen-basic-baseline-probe.log. Initial producer caught old
+missing Rocket.concussion before mapping it; retained diagnostic log, notpass.
+
+Stable source checks after all code edits:
+`python -B -m unittest test_mei_frost test_symmetra_turrets
+ test_game_combat.DamageTests`:31/31pass77.780s, no source edits during group.
+Log ../worker-c-symm-frozen-shared-check.log. Diff parse/whitespace clean.
+
+Next C50: original ice-support/projected-impact retained proofs. Map old
+fight.ice_wall/trace_barrier/cover_ray/visible_target/_splash_targets/
+_splash_barriers and old Heavy/phase/Zarya queries to actual existing hosts;
+route-preview stepping must use current Bot.step signature/modifiers/pillars,
+not copy the old Match.step_bot_pose over the real NPC driver. Then lift the
+partial admission exclusions and exercise the corresponding original cases.
+Generic phase transition/respawn history, wall support expiry/replay families
+remain real gaps, not acceptance-only labels. No client/full replay claim.
