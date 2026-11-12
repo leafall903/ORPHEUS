@@ -159,11 +159,21 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 ### Record worker A seven-owner reconciliation boundaries
+### Connect delivered actor-backed Symmetra sentry core
 
-- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
-  completed hero-core integration from root-owned cross-owner/history admission.
-  Preserve every known source/native observation and pending frozen replay result;
-  no production code, feature or check changed in this documentation batch.
+- Launch actual2658 NPCs through existing spawn/health/replication/retirement;
+  original157F boot and1590 beam read their authored rate/range/slow graph01E7.
+  One owner manager drives flight and beam; the generic bot gun path skips these
+  same actors. Existing combat geometry supplies the source1m/0.2m capsule.
+- Preserve owner death, owner credit, charge limit, exact cleanup and independent
+  slow aura teardown. Connect actual Mei supporting-pillar removal; keep the
+  existing prototype module and other owner cleanup intact.
+- All14 original sentry core checks pass17.417s with actual source3graphs/4actors
+  added to base+v4 in memory through add_supplement; source assertions unchanged.
+  Shared Damage/NPC/Symmetra36 pass15.682s. Explicit root composed input profile
+  rerun is still pending. Original frozen/ice-support/phase/barrier expiry replay
+  functions remain preserved but their source service/caller protocols still
+  need mounting; no whole0016 or client acceptance claimed.
 
 ### Mount delivered Widowmaker weapon launch cone policy
 
@@ -251,6 +261,49 @@ This log records tested changes and their acceptance status. Entries are grouped
   or original-client acceptance is claimed.
 
 ### Mount delivered Torbjorn original charge and owner gates
+### Record worker A seven-owner reconciliation boundaries
+
+- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
+  completed hero-core integration from root-owned cross-owner/history admission.
+  Preserve every known source/native observation and pending frozen replay result;
+  no production code, feature or check changed in this documentation batch.
+
+### Mount delivered Widowmaker weapon launch cone policy
+
+- Connect source000A weapon_launch.directions at actual001B/node9/19 weapon
+  emission, scoped to Widowmaker. Retain current McCree and optional Enforcer
+  geometry consumers. Preserve recovered native emitted-index sampling instead
+  of the source's older post-count spread view; scoped zero cone stays exact.
+- Actual20-frame launch trace emits indexes0/1/2/3 with authored0/1/2/3-degree
+  cones and one ammo per ray. Original scoped-zero-angle test passes. Three
+  original spread checks retain first-shot/old eye-cover expectations and fail;
+  assertions preserved. Original rifle12 plus Damage/runtime21 all33 pass.
+- Preserve complete original spread and actual-NPC fixtures with only current
+  body/hero identity imports; no NPC acceptance claim or source asset copy.
+
+### Restore delivered world-clock guard queries and Widow reveal filtering
+
+- Port source000A pure countdown/state/world-active/Matrix-deadline queries.
+  Selected-player0407 Matrix now reads its retained native budget on world time,
+  including the existing absorption trace route; preserve owned-mech clock logic.
+  Gate Genji fallback body/trace/melee queries through the existing authored Wait
+  window, so future or stalled expired native states do not keep intercepting.
+- Preserve Infra's original living-target observation search across phase/Recall,
+  retaining current owned-pet exclusions instead of changing shared damage filters.
+- Original Infra clock/buffer12 pass. Original MatrixClock6 pass; DeflectClock2
+  pass and2 retain cadence expectations (current26 versus old13 damage after the
+  guard ends). Broader original edge23 audit preserves residual ammo and authored
+  eye-offset differences. Existing Genji/Blade/TracerMatrix/Damage/runtime56 has
+  6fail/2error; AnaDeflect/Damage/runtime34 has2fail/3error, including old health
+  field/catalog APIs and old damage expectations. No assertions changed.
+- Preserve original replay fixture. Its first run was invalidated by source edits
+  during manifest verification; rerun only at a frozen committed boundary.
+
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
+
 ### Integrate delivered Widowmaker Venom Mine and poison consumers
 
 - Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
@@ -310,6 +363,8 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### Mount delivered Torbjorn original charge and owner gates
 
+
+### Mount delivered Torbjorn original charge and owner gates
 ### Mount delivered Widowmaker rifle and Infra-Sight consumers
 
 

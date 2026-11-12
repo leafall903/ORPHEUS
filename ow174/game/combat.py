@@ -72,6 +72,7 @@ from ow174.game import (
     torbjorn_mark,
     torbjorn_charge,
     symmetra_charge,
+    symmetra_turrets,
     symmetra,
     ice_wall,
     reinhardt_charge,
@@ -2045,6 +2046,7 @@ class Combat:
         self.torbjorn_marks = {}
         self.hammer_contacts = {}
         self.turrets = {}  # Owner controller -> original actor-backed turret.
+        self.sentries = symmetra_turrets.Turrets(self)
         self.melee_seen: dict[int, dict[tuple[int, int], int]] = {}  # body -> counters by instance/state
         self.tesla_frames: dict[int, int] = {}
         self.genji_strikes: dict[int, tuple] = {}  # body -> (instance, activation, previous centre, victims)
@@ -2212,6 +2214,9 @@ class Combat:
         from ow174.game import body_entities
 
         body_entities.retire_source(self.match, player.entity, player.body)
+        if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
+            self.sentries.retire_owner(player)
+        self.sentries.release_target(player.body)
         player.mover.retire_impulses()
         player.clear_valkyrie_pose()
         self.pending_attacks[:] = [attack for attack in self.pending_attacks if attack.shooter is not player]
@@ -4122,6 +4127,7 @@ class Combat:
                 player.body_script.orisa_fortify_pending = False
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
+        self.sentries.update({}, {}, ())
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
         self._flush_deadeye_notices()
@@ -5041,7 +5047,7 @@ class Combat:
 
         host = getattr(self.match, 'scene_host', None)
         for bot in self.match.bots:
-            if bot.body == hero_torbjorn.TURRET and bot.combat_owner is not None:
+            if bot.body in (hero_torbjorn.TURRET, symmetra_turrets.BODY) and bot.combat_owner is not None:
                 continue  # Original turret manager advances this VM and is its sole gun driver.
             if bot.control_mover is not None:
                 continue
@@ -5266,6 +5272,9 @@ class Combat:
         self, shooter, command, state, number: int, time: int,
         *, activation: tuple[int, int], snapshot: Snapshot | None = None, launch_tick: int | None = None, command_quanta=None,
     ) -> None:
+        if (not isinstance(shooter, bots.Bot) and command is not None
+                and self.sentries.fired(shooter, command, state)):
+            return
         node = state.node
         shot_frame = time // state.instance.component.frame_ms
         if (not isinstance(shooter, bots.Bot) and shooter.hero.guid == 0x02E000000000013B
