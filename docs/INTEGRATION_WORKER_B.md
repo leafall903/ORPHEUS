@@ -557,6 +557,28 @@ alone is not evidence that a line's consumers are actually mounted.
   FireStrike deployment objects, Photon plane/mesh and Brigitte cross-owner
   host audit. Keep source tests and all numerical boundaries intact.
 
+## B31 — Fire Strike Photon and Supercharger consumers
+
+- Add actual Photon actors via C29 contact() (original plane or configured mesh)
+  and actual Orisa Supercharger geometry to existing ordered Fire Strike loop.
+  Captured rocket.team preserved, same penetration ledger suppresses repeat
+  hits, actual Supercharger damage owns registry/aura retirement.
+- worker-b-photon-strike-plane-probe.log: real Q actor, original plane, shield
+  loss100 and downstream body100 once. No invented mesh/second pool.
+- worker-b-device-native-pool-probe.log: real device200->100->0 before lifetime,
+  active registry/buff removal and scale1. Original ordinary Fusion aim records
+  actual CRITICAL loss17; do not change source expected6 to green.
+- worker-b-rein-device-focused.log:19/19 allied Fire Strike150/charge, allied
+  Charge and runtime. Full worker-b-rein-native-device-second.log:25 tests,
+  9 subfail/1error. Last error charge_contacts old getter now maps actual
+  charges and focused case passes; retain original numerical failures.
+- Complete original Fusion69/Supercharger69 assertion order and Constants
+  preserved. Adapters read absorption.GRASP, temporary_shields, actual manager
+  and rocket metadata, source controls/pins, native pool and armour_scalar1.0.
+- NEXT B32: source Charge tracker deployment contact/175 damage on existing
+  Charge/Device pool respecting wall/team order. Remaining owner estimate16–36
+  effective hours, uncertain Ball/Sigma/shared NPC/Brigitte. No acceptance wait.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue

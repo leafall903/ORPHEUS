@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Fire Strike deployment object contacts
+
+- Route existing Photon plane/mesh actors and Orisa Superchargers through the
+  same ordered Fire Strike contacts, captured affiliation and one-hit ledger.
+  Damage the actual owner pool; retain penetrating body hits and aura teardown.
+- Actual Photon Q plane probe: shield100/body100 damage once. Actual deployed
+  device probe:200->100->0 before expiry, actor/buff removal and scale reset.
+  Allied Fire Strike150 damage/charge, allied Charge and runtime19 checks pass.
+- Retain complete original Fusion/Supercharger suites:69 assertions each, order
+  and Constants unchanged. Full25 retains9 failures/1 obsolete getter error;
+  final getter mapped to actual charges passes focused check. Known gaps include
+  Charge device175 damage, native Fusion critical17 versus original ordinary6,
+  shield-break contact and reflected projectile metadata. Client acceptance open.
+
 ### Restore delivered Orisa and Sigma barrier attack consumers
 
 - Add actual Orisa/Sigma actors to existing ordered Fire Strike contacts and
