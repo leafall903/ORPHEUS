@@ -85,8 +85,9 @@ class Hooks:
         if flight is not None and flight.npc_mover is not None:
             for bot in self.fight.match.bots:
                 if bot.entity == flight.target:
-                    bot.velocity = (0.0, 0.0, 0.0)
-                    bot.moved_tick = self.fight.tick
+                    bot.velocity = flight.npc_mover.velocity = (0.0, 0.0, 0.0)
+                    flight.npc_mover.last_command = Command(self.fight.tick, yaw=round(bot.yaw), pitch=round(bot.pitch))
+                    bot.last_tick = bot.moved_tick = self.fight.tick
                     break
 
     def release_target(self, entity):
@@ -166,7 +167,12 @@ class Hooks:
         fight._interrupt_body(caught.owner)
         if isinstance(caught.owner, bots.Bot):
             bot = caught.owner
-            flight.npc_mover = Mover(bot.position, round(bot.yaw), fight._collision(), mover_data(bot.body))
+            from ow174.game.collision import MOVER, TEAM0, TEAM1
+
+            category = MOVER if fight.match.game_map.free_for_all or bot.team not in (0, 1) else (TEAM0, TEAM1)[bot.team]
+            flight.npc_mover = bot.ensure_manual_mover(fight.tick, fight._collision(), category)
+            if flight.npc_mover is None:
+                flight.npc_mover = Mover(bot.position, round(bot.yaw), fight._collision(), mover_data(bot.body), category=category)
         return True
 
     def _pull(self, flight, target, elapsed):
@@ -191,10 +197,16 @@ class Hooks:
         feet = target.feet
         if flight.npc_mover is not None and elapsed > 0 and flight.arrived_at is None:
             mover = flight.npc_mover
-            mover.step_pose(Command(fight.tick), elapsed, fight.tick, move_to=(destination, flight.pull_speed))
+            command = Command(fight.tick, yaw=round(target.owner.yaw), pitch=round(target.owner.pitch))
+            before = tuple(mover.position)
+            ground = fight.walls.ground(mover) if fight.walls.pieces else None
+            mover.step_pose(command, elapsed, fight.tick, move_to=(destination, flight.pull_speed), ground_override=ground)
+            if fight.walls.pieces:
+                fight.walls.move_mover(mover, before)
             feet = target.owner.position = tuple(mover.position)
             target.owner.velocity = mover.velocity
-            target.owner.moved_tick = fight.tick
+            mover.last_command = command
+            target.owner.last_tick = target.owner.moved_tick = fight.tick
         if flight.arrived_at is None and math.dist(feet, destination) < 0.15:
             flight.arrived_at = fight.now
         return flight.arrived_at is None or fight.now - flight.arrived_at < flight.recovery

@@ -1916,6 +1916,9 @@ class Combat:
     # --- hooks (match.py) --------------------------------------------------------------------------
 
     def is_dead(self, player) -> bool:
+        if isinstance(player, bots.Bot):
+            vitals = self.vitals.get(player.entity)
+            return player.dead or (vitals is not None and vitals.dead)
         vitals = self.vitals.get(player.body) if player.has_body else None
         return vitals is not None and vitals.dead
 
@@ -6526,6 +6529,8 @@ class Combat:
         candidates.extend(t for t in self._targets() if t.owner is rocket.shooter)
         for target in candidates:
             own = target.owner is rocket.shooter
+            if not isinstance(target.owner, bots.Bot) and not hasattr(target.owner, "mover"):
+                continue  # deployables receive blast damage, not a character velocity response.
             if target.entity in protected or self.vitals_of(target).dead:
                 continue
             if (defenses.fortify_scale(target.owner) is not None or immunity.wraith_active(target.owner, target.entity)

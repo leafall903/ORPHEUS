@@ -4,6 +4,31 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered prepared-NPC impulse and shared wall body consumers
+
+- Mount0008's prepared manual-body impulse admission, actual mover lookup,
+  modifier26 response, bool return and category/world refresh. Retain persistent
+  manual body physics and wire gravity while keeping the existing route and
+  possessed-body force paths. Active explicit navigation regains ownership once
+  displacement settles; attack_mode/reposition initialization and cleanup stay.
+- Reuse one body mover for actual Mei pillar lifts and subsequent displacement;
+  do not allocate a permanent mover merely because a nearby wall was considered.
+  Admit Bot death queries by entity identity and keep nonphysical Deployables
+  in blast damage while excluding character-only velocity operations.
+- Preserve the original NPC/PvE check files unchanged. With explicit read-only
+  five-body graph/catalog/mover inputs,11 of12 NPC impulse checks pass. The one
+  retained error is the unmounted complete Roadhog Combat.hooks consumer; prepare
+  its existing module's narrow shared-mover/release adapter without claiming the
+  Roadhog line or that check complete. Root/worker B owns its full integration.
+- All96 existing Bot/control/navigation checks pass. Three original wall/team
+  cases pass across five actual bodies; an active-navigation handoff probe passes.
+  Do not replace npc_control/npc_navigation or erase the root attack-mode work.
+- The extra full C6 snapshot run finished70 checks with2 failures,10 errors and
+  3 skips. Three journal ManifestMismatch errors were caused by worker model
+  files changing during the long run, so the group is not a valid acceptance
+  result. Keep the log/guards; future long journal checks require a frozen
+  committed detached worktree and never gate owner submissions.
+
 ### Retain delivered Pharah charge, flight and source sight consumers
 
 - Preserve the original charge, flight-boundary and rocket-edge suites unchanged.
