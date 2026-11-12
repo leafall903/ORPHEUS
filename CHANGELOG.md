@@ -1,5 +1,36 @@
 # Changelog
 
+## A88 — original idle reload on existing world Wait/body VM
+
+Restored original0068 _advance_idle_zarya_reloads and BodyScript.finish_idle_reload
+on the existing0241 refill/recovery Wait instances and A79 world_deadline. World
+update finishes only after deadline (boundary remains available for input), clears
+stale buffered primary/secondary presses, supplies one neutral body gap when
+needed, then finishes that same Wait without consuming a future command frame.
+Refill is handled before recovery, same VM/buttons/stream and Combat command
+consumer. No new reload timer, ledger, actor or accepted-frame epoch.
+
+Current Player no longer has source sync_movement_mods: both this consumer and
+A87's Player-only booster stop now call the existing same mover.track_mods over
+Combat.movement_mods+statescript_mods, posed=False. Actual ownedMech uses its
+already-existing Bot/control_mover path. No obsolete wrapper API was added.
+
+Baseline original2 idle methods failed75vs100, and original future melee counter
+was2vs1 (separate next batch). Original paced secondary cadence already passed,
+so do not blindly restore a second scheduler there. After idle consumer and real
+mover adapter, original idle2/futureReload1/beam reload1/paced secondary1 plus
+worldenergy1/Pet lifetime2/actualownedMech stop1 all9pass11.064s. All original
+ammo/deadline/frame assertions retained, including future command frame equality.
+Initial direct use of removed sync method failed and disabled the body as expected;
+corrected through actual current interface before final checks. Log
+worker-a-zarya-idle-reload-original-joint-check.log; baseline
+worker-a-zarya-idle-cadence-baseline.log retained.
+
+Next: original world melee cooldown (actual accepted cast/world pair) and assess
+secondary future-clock consumer only if real original failure; then native Pet
+projection to eligible actualNPC recipients on sole Barriers/scripted/Vitals.
+
+
 ## A87 — original Graviton mobility interruption on existing owners
 
 Restored original stop_genji_strike/stop_boosters consumers and original pure

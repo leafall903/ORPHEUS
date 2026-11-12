@@ -2115,7 +2115,8 @@ class Combat:
         instance.component.run_now()
         self.booster_contacts.pop(instance.component.entity, None)
         if not isinstance(player, bots.Bot):
-            player.sync_movement_mods(instance.component.frame)
+            player.mover.track_mods(self.movement_mods(player, statescript_mods(instance.component)),
+                                    instance.component.frame, posed=False)
 
 
     def stop_genji_strike(self, player) -> None:
@@ -4837,6 +4838,7 @@ class Combat:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
                 self.match.deliver_body_messages()
+        self._advance_idle_zarya_reloads()
         molten_core.update(self)
         for player in self.match.players:
             if player.body_script is not None and hasattr(player.body_script, "orisa_fortify_pending"):
@@ -9370,6 +9372,47 @@ class Combat:
                 modifier = _number(state.evaluate(state.node.field("m_50530EAB"), watch=False), 0.0)
                 return max(0.0, 1.0 + modifier) if math.isfinite(modifier) else 1.0
         return 1.0
+
+    def _advance_idle_zarya_reloads(self) -> None:
+        from ow174.game import zarya
+
+        if self.match.ended:
+            return
+        for owner in self.match.players:
+            script = owner.body_script
+            if (script is None or script.hero != zarya.HERO or script.retired
+                    or owner.gone or not owner.has_body or self.is_dead(owner)):
+                continue
+            weapon = next((i for i in script.component.instances.values() if i.graph.index == 0x0241), None)
+            if weapon is None:
+                continue
+            for index in (46, 12):  # Refill before recovery if a world update crosses both deadlines.
+                wait = weapon.states.get(index)
+                deadline = getattr(wait, "world_deadline", None)
+                if deadline is None or not wait.active or self.tick <= deadline:
+                    continue
+                # The deadline frame remains available to real input.
+                # An idle completion must not spend a press buffered before recovery.
+                for button_index in (5, 16):
+                    button = weapon.states.get(button_index)
+                    if isinstance(button, nodes.LogicalButton):
+                        button.pressed_at = None
+                frame = (wait.start + wait.ms) // script.frame_ms
+                owner._advance_body_gap(frame + 1)
+                if owner.body_script is not script:
+                    break
+                if not wait.active:
+                    continue
+                try:
+                    script.finish_idle_reload(wait)
+                    self.command(owner, None)
+                    owner.mover.track_mods(self.movement_mods(owner, statescript_mods(script.component)),
+                                           script.frame, posed=False)
+                except Exception:
+                    log.exception("[game] %s: %s's idle reload failed", self.match.label(), owner.name)
+                    self.match.stop_body_script(owner, failed=True)
+                    break
+
 
     def _zarya_charge_script(self, player, source: int):
         from ow174.game import zarya
