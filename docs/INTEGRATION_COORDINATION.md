@@ -214,11 +214,19 @@ check passed without skips. These are server checks, not game-client acceptance.
 Reproduce from this worktree:
 
 ```powershell
-& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-v2
-$profile = Get-Content ../parallel-merge/runtime-inputs-v2/environment.json -Raw | ConvertFrom-Json
+& ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-reproduced
+$profile = Get-Content ../parallel-merge/runtime-inputs-reproduced/environment.json -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
 ```
 
 Use the loaded process environment for the existing Python server entry point
 and checks. A new output directory is required when recomposing; original packs
 and prior generated profiles stay intact. The profile has no appearance input.
+
+Root's final composer code was rerun to runtime-inputs-v2; its supplement SHA256
+is identical to v1 (8c2ebcb5de5b9dd6fd94e0c8db2ee2630f0da12ed82a422dcd977c2e5664d3c1).
+C10 `c9b4f9e7` is received as `9b93d738`; all62 original Pharah/Helix checks
+passed using the integrated input profile. A9 `6be926ba` is received by the
+merge named `merge: receive worker A Mercy regeneration chronology`; all66
+combined original timing/passive/Valkyrie/runtime/boost/effect checks passed
+with that same profile, without skips. Retained anti/amp history joins snapshots.

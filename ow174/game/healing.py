@@ -80,17 +80,43 @@ class HealingEffects:
             expr.truthy(var.value()) for key in self.spec.immunity
             if (var := component.entity_var(key, create=False)) is not None)
 
+    def record_regeneration(self, entity):
+        """Retain delivered Mercy passive scale changes at status timer boundaries."""
+        from ow174.game.script import regeneration
+
+        target = next((t for t in self.combat._targets() if t.entity == entity), None)
+        script = getattr(target.owner, "body_script", None) if target is not None else None
+        if (getattr(script, "hero", None) != regeneration.MERCY or script.entity != entity
+                or script.retired or script.component.owner_dead):
+            return
+        tick = self.combat.tick
+        history = getattr(script.world, "passive_healing_scales", ())
+        previous = history[-1][0] if history else script.frame
+        anti, amp = self.anti.get(entity), self.amp.get(entity)
+        boundaries = {effect.end for effect in (anti, amp)
+                      if effect is not None and previous < effect.end <= tick}
+        for boundary in sorted(boundaries):
+            scale = (1.0 if self.spec is None else
+                     self.spec.anti if anti is not None and anti.start <= boundary < anti.end else
+                     self.spec.amp if amp is not None and amp.start <= boundary < amp.end else 1.0)
+            regeneration.record_healing_scale(script, boundary, scale)
+        regeneration.record_healing_scale(script, tick, self.factor(target))
+
     def prepare(self):
         """Clean dead/retired recipients, retaining expired intervals for current HOT integration."""
         targets = {t.entity: t for t in self.combat._targets()}
         for entity in set(self.anti) | set(self.amp):
+            self.record_regeneration(entity)
             target = targets.get(entity)
             if target is None or self.combat.vitals_of(target).dead:
                 self.retire(entity)
             elif self.immune(target):
                 self.anti.pop(entity, None)
+                self.record_regeneration(entity)
 
     def prune(self):
+        for entity in set(self.anti) | set(self.amp):
+            self.record_regeneration(entity)
         for table in (self.anti, self.amp):
             for entity, effect in list(table.items()):
                 if effect.end <= self.combat.tick:
@@ -119,10 +145,12 @@ class HealingEffects:
         return sum((b - a) * at((a + b) / 2) for a, b in pairwise(sorted(points))) / (end - start)
 
     def _install(self, table, entity, source, start, end):
+        self.record_regeneration(entity)
         previous = table.get(entity)
         if previous is not None and previous.start <= self.combat.tick < previous.end:
             start = previous.start
         table[entity] = Modifier(source, start, end)
+        self.record_regeneration(entity)
 
     def accepts(self, rocket):
         if rocket.blast is None or rocket.blast.effect != GRENADE or isinstance(rocket.shooter, bots.Bot):

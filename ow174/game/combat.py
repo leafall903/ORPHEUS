@@ -4316,7 +4316,9 @@ class Combat:
                     self.timed_hits.remove(dose)
 
     def cleanse_ana_effects(self, entity):
+        self.healing.record_regeneration(entity)
         self.healing.anti.pop(entity, None)
+        self.healing.record_regeneration(entity)
         self.timed_hits[:] = [hit for hit in self.timed_hits if hit.target != entity or hit.healing]
 
     def body_clearance(self, player, point, *, radius=None):
@@ -7872,7 +7874,7 @@ class Combat:
             return True
         self._sync_body_health(victim, vitals)
         if not killed and not isinstance(victim, bots.Bot) and victim.body_script is not None:
-            regeneration.damaged(victim.body_script, _source_entity(shooter))
+            regeneration.damaged(victim.body_script, _source_entity(shooter), self.tick)
         if isinstance(victim, bots.Bot) and isinstance(victim.body_script, BotScript):
             from ow174.game import npc_shields
 
