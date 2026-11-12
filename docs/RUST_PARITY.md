@@ -17,6 +17,8 @@ The [migration guide](RUST_MIGRATION.md) defines the acceptance gate. The [resto
 
 ## Reference and cutover policy
 
+The [shared World query contract](BEHAVIOR_CONTRACTS.md#strict-world-queries) pins Python strict-host semantics at `50ba408` for known positions, known unset variables and unavailable queries. It compares typed query results and diagnostic categories through production expression paths. Python stops a strict component on an unavailable query; Rust records an expression issue and rejects the affected operation. This fixture supplies no evidence of equivalent fault recovery or original-client acceptance.
+
 - Use the Python code on `main`, from a separate checkout, as the behavioral reference. Keep Python `main` and Rust `rust` contributions on their respective branches.
 - Evaluate new Python behavior against the target build and the cutover checklist. Record the source and expected result before deciding whether to port it. Community estimates remain provisional.
 - Pin the Python comparison commits before starting cutover acceptance. During the cutover window, keep the pinned reference limited to fixes that unblock verification. Any change to community development policy on `main` belongs in a separate maintainer decision.

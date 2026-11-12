@@ -32,6 +32,10 @@ path = "rust/tests/runtime_preflight.rs"
 name = "protocol"
 path = "rust/tests/protocol.rs"
 
+[[test]]
+name = "world_queries"
+path = "rust/tests/world_queries.rs"
+
 [features]
 default = []
 inspector = ["dep:httparse"]

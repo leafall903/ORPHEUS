@@ -174,13 +174,11 @@ pub trait World {
         None
     }
 
-    fn entity_variable(&mut self, _entity: u32, _id: u32) -> Value {
-        Value::Null
-    }
+    /// Some(Null) is a known unset variable. None means the query is unavailable.
+    fn entity_variable(&mut self, entity: u32, id: u32) -> Option<Value>;
 
-    fn position(&mut self, _entity: u32) -> [f64; 3] {
-        [0.0; 3]
-    }
+    /// None means unavailable; a known entity at the origin returns Some([0.0; 3]).
+    fn position(&mut self, entity: u32) -> Option<[f64; 3]>;
 
     /// The implicit owner's movement sample, if the world knows all its bits.
     fn movement_sample(&self, _site: Site) -> Option<u16> {
@@ -269,7 +267,15 @@ pub trait World {
 #[derive(Default)]
 pub struct EmptyWorld;
 
-impl World for EmptyWorld {}
+impl World for EmptyWorld {
+    fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+        None
+    }
+
+    fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+        None
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StateKind {
@@ -4781,9 +4787,9 @@ impl<W: World> Context for InstanceContext<'_, W> {
         Value::Entity(self.site.entity)
     }
 
-    fn entity_member(&mut self, entity: u32, id: u32) -> Value {
+    fn entity_member(&mut self, entity: u32, id: u32) -> Option<Value> {
         if entity == self.site.entity {
-            self.read(VarKey::Entity(id))
+            Some(self.read(VarKey::Entity(id)))
         } else {
             self.world.entity_variable(entity, id)
         }
@@ -4796,7 +4802,7 @@ impl<W: World> Context for InstanceContext<'_, W> {
         }
     }
 
-    fn position(&mut self, entity: u32) -> [f64; 3] {
+    fn position(&mut self, entity: u32) -> Option<[f64; 3]> {
         self.world.position(entity)
     }
 
@@ -4923,6 +4929,129 @@ mod tests {
         json!({"$":"STU_919FD47C","m_expression":{
             "m_opcodes":[10,1,0,0], "m_dynamicVars":[var(id, false)]
         }})
+    }
+
+    #[test]
+    fn missing_world_queries_report_expression_sites_without_writing_guessed_values() {
+        let foreign = 0xa000_0101;
+        for (opcodes, expected) in [
+            (
+                json!([8, 0, 50, 0]),
+                EvalError::UnavailableEntityPosition(foreign),
+            ),
+            (
+                json!([8, 0, 7, 1, 15, 0]),
+                EvalError::UnavailableEntityVariable {
+                    entity: foreign,
+                    id: 100,
+                },
+            ),
+        ] {
+            let config = json!({"$":"STU_919FD47C","m_expression":{
+                "m_opcodes":opcodes,"m_dynamicVars":[var(99, true), var(100, true)]
+            }});
+            let fixture = graph(
+                42,
+                vec![
+                    node(
+                        0,
+                        "STUStatescriptEntry",
+                        None,
+                        json!({"m_outPlug":plug(&[(1,"m_inPlug")], &[])}),
+                    ),
+                    node(
+                        1,
+                        "STUStatescriptActionSetVar",
+                        None,
+                        json!({"m_out_Var":var(101, true), "m_value":config}),
+                    ),
+                ],
+                json!([]),
+                json!([0]),
+            );
+            let snapshot = initialize(
+                &store(vec![fixture]),
+                0xa000_0100,
+                Variables::from([(99, Value::Entity(foreign))]),
+                vec![Root::new(1, 42)],
+                &mut EmptyWorld,
+                MAX_INIT_WORK,
+            )
+            .unwrap();
+            assert!(!snapshot.initialization_complete());
+            assert!(!snapshot.variables.contains_key(&101));
+            assert_eq!(
+                snapshot.diagnostics,
+                [Diagnostic {
+                    site: Site {
+                        entity: 0xa000_0100,
+                        instance: 1,
+                        graph: 42,
+                        node: Some(1),
+                    },
+                    issue: Issue::Expression(expected),
+                }],
+            );
+        }
+    }
+
+    #[test]
+    fn own_entity_member_keeps_known_unset_values_and_reactive_variable_reads() {
+        let entity = 0xa000_0100;
+        let condition = json!({"$":"STU_919FD47C","m_expression":{
+            "m_opcodes":[8,0,7,1,15,0],"m_dynamicVars":[var(99,true),var(100,true)]
+        }});
+        let fixture = graph(
+            42,
+            vec![
+                node(
+                    0,
+                    "STUStatescriptEntry",
+                    None,
+                    json!({"m_outPlug":plug(&[(1,"m_beginPlug")], &[])}),
+                ),
+                node(
+                    1,
+                    "STUStatescriptStateBooleanSwitch",
+                    Some(0),
+                    json!({"m_condition":condition}),
+                ),
+            ],
+            json!([1]),
+            json!([0]),
+        );
+        let mut component = Component::start(
+            Arc::new(store(vec![fixture])),
+            entity,
+            Variables::from([(99, Value::Entity(entity))]),
+            vec![Root::new(1, 42)],
+            0,
+            &mut EmptyWorld,
+            MAX_INIT_WORK,
+        )
+        .unwrap();
+        for (value, expected) in [
+            (None, false),
+            (Some(Value::Bool(true)), true),
+            (Some(Value::Null), false),
+        ] {
+            if let Some(value) = value {
+                component
+                    .set_entity_variable(100, value, &mut EmptyWorld)
+                    .unwrap();
+                component.run_now(&mut EmptyWorld).unwrap();
+            }
+            let snapshot = component.snapshot().unwrap();
+            assert!(
+                snapshot.initialization_complete(),
+                "{:?}",
+                snapshot.diagnostics
+            );
+            assert_eq!(
+                snapshot.instances[&1].states[&0].kind,
+                StateKind::BooleanSwitch(expected),
+            );
+        }
     }
 
     #[test]
@@ -5129,6 +5258,14 @@ mod tests {
     fn movement_sample_updates_only_changed_authored_outputs() {
         struct SampleWorld(Option<u16>);
         impl World for SampleWorld {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn movement_sample(&self, _: Site) -> Option<u16> {
                 self.0
             }
@@ -5347,6 +5484,14 @@ mod tests {
         struct TagWorld(Vec<(TargetTagEffect, bool)>);
 
         impl World for TagWorld {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn set_target_tag_effect(
                 &mut self,
                 _: Site,
@@ -5453,6 +5598,14 @@ mod tests {
 
         struct PoolWorld(Vitals);
         impl World for PoolWorld {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn body_health(&self, _: Site, kind: Option<PoolKind>, maximum: bool) -> Option<f64> {
                 Some(self.0.amount(kind, maximum))
             }
@@ -5741,6 +5894,14 @@ mod tests {
         }
 
         impl World for Conditions {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn native(&mut self, _site: Site, config: &Json) -> Option<Value> {
                 match config["$"].as_str()? {
                     "test-delayed-positive" => Some(Value::Bool(self.positive)),
@@ -6302,6 +6463,14 @@ mod tests {
         struct Recipients(Value);
 
         impl World for Recipients {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn native(&mut self, _site: Site, config: &Json) -> Option<Value> {
                 (config["$"] == "test-recipients").then(|| self.0.clone())
             }
@@ -6538,6 +6707,14 @@ mod tests {
     struct ReferenceWorld;
 
     impl World for ReferenceWorld {
+        fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+            None
+        }
+
+        fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+            None
+        }
+
         fn native(&mut self, site: Site, config: &Json) -> Option<Value> {
             // Values observed in the Python fixtures, for this test only.
             match (site.graph, config.get("$")?.as_str()?) {
@@ -6927,6 +7104,14 @@ mod tests {
     }
 
     impl World for SprintWorld {
+        fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+            None
+        }
+
+        fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+            None
+        }
+
         fn native(&mut self, site: Site, config: &Json) -> Option<Value> {
             if site.graph != 0x0255 {
                 return None;
@@ -7197,6 +7382,10 @@ mod tests {
     struct RifleWorld(Arc<GraphStore>);
 
     impl World for RifleWorld {
+        fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+            None
+        }
+
         fn ruleset(&mut self, id: u32) -> Option<Value> {
             match id {
                 0x2538 | 0x2819 | 0x32e8 => Some(Value::Float(1.0)),
@@ -7206,14 +7395,13 @@ mod tests {
             }
         }
 
-        fn entity_variable(&mut self, entity: u32, id: u32) -> Value {
+        fn entity_variable(&mut self, entity: u32, id: u32) -> Option<Value> {
             if entity != 0xd000_0010 {
-                return Value::Null;
+                return None;
             }
             self.0
                 .mode_variables(0x0230_0000_0000_0018)
-                .and_then(|values| values.get(&id).copied())
-                .map_or(Value::Null, Value::from)
+                .map(|values| values.get(&id).copied().map_or(Value::Null, Value::from))
         }
 
         fn native(&mut self, site: Site, config: &Json) -> Option<Value> {
@@ -7928,6 +8116,14 @@ mod tests {
         const FRAME: u32 = 100;
         struct AiWorld(Option<u32>);
         impl World for AiWorld {
+            fn entity_variable(&mut self, _entity: u32, _id: u32) -> Option<Value> {
+                None
+            }
+
+            fn position(&mut self, _entity: u32) -> Option<[f64; 3]> {
+                None
+            }
+
             fn related_entity(
                 &mut self,
                 site: Site,
