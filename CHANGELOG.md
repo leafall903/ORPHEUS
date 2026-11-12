@@ -4,6 +4,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original per-definition NPC movement inputs
+
+- Restore original0016 optional Definition.mover/controller catalog fields and
+  finite complete34-field mover validation. Spawn retains the original controller
+  hint without overriding the composed controller association or adding a host.
+- Actual capsule selection, route/manual/impulse/navigation movers and wire spring
+  data use the same explicit movement_data; absent input retains the global table.
+  Respawn retains the definition input and strict server storage includes it.
+- Four original metadata tests and existing NPC/input/navigation checks73/73 pass.
+  Actual spawned NPC has the same provided data and physical mover; whole-server
+  mutation/restoration changes/restores the digest and unknown fields still fail.
+  Source inputs remain unchanged; no client acceptance run.
+
 ### Reuse the NPC driver for proven frozen sentry history
 
 - Mount original bounded no-support frozen-lock proof through the existing

@@ -5007,7 +5007,7 @@ class Combat:
         for bot in self.match.bots:
             if bot.detached_bomb:
                 continue
-            data = mover_data(bot.body)
+            data = bot.movement_data or mover_data(bot.body)
             controlled = bot.control_mover
             crouched = controlled is not None and controlled.crouched
             height, radius, eye, critical = (getattr(bot, "combat_geometry", None) or (
