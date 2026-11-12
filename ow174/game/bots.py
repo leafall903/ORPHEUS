@@ -129,6 +129,7 @@ class Bot:
         self.attack_target = None  # engaged sandbox NPC's current player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
         self.attack_mode = "primary"
+        self.reposition_body = None  # Original authored search's engaged body.
         self.pitch = 0.0
         self.body_script = None  # optional statescript from the match's prepared graph bundle
         self.owner = 0

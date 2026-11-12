@@ -3280,6 +3280,23 @@ class MoveTo(State):
                 body_entities.begin_control(match, self.instance)
 
 
+@state_class("STU_2107AF60")
+class PositionSearch(State):
+    """Execute an explicitly hosted authored search."""
+
+    def on_enter(self):
+        result = self.instance.component.world.search_position(self)
+        if result is NotImplemented and self.instance.component.strict:
+            self.instance.component.unsupported(self.instance, "state", self.node.cls, self.node)
+
+    def dependency_changed(self):
+        self.timer_at(0, REEVALUATE, transient=True)
+
+    def timer(self, param):
+        if param == REEVALUATE:
+            self.on_enter()
+
+
 @state_class("STUStatescriptStateAnim")
 class Anim(State):
     """Animation state timing (104319 CC19A0 / CC1E70).

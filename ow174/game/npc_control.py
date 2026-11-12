@@ -222,6 +222,12 @@ def target_player(fight, bot):
 
 def update_input(fight, bot):
     """Refresh aim and release input on death, occlusion, range or target loss."""
+    if bot.reposition_body is not None:
+        owner = next((p for p in fight.match.players if p.entity == bot.attack_target), None)
+        if (owner is None or owner.body != bot.reposition_body or not owner.spawned
+                or not owner.has_body or owner.gone or owner.client is None or fight.is_dead(owner)
+                or (not fight.match.game_map.free_for_all and owner.team == bot.team)):
+            sniper_reposition.stop(bot, fight.tick)
     active = not bot.dead and bot.firing and not fight.is_stunned(bot)
     previous_target = bot.attack_target
     target = target_player(fight, bot) if active else None
@@ -229,7 +235,7 @@ def update_input(fight, bot):
     if bot.attack_mode == "reposition":
         if not enabled:
             sniper_reposition.stop(bot, fight.tick)
-        elif sniper_reposition.repositioning(bot):
+        elif bot.reposition_body is None and sniper_reposition.repositioning(bot):
             enabled = False
     if enabled and bot.hero == assassin.HERO and immunity.control_immune(target.owner, target.entity):
         enabled = False

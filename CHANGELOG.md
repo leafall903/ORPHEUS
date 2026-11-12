@@ -7872,3 +7872,28 @@ client operations performed. Whole nonappearance integration remains active.
   manual Sniper long-range gaps remain documented without blocking commits.
 - No original-client acceptance or publication performed; three workers continue
   remaining original-language integrations, excluding appearance migration.
+
+
+### Mount original Sniper authored destination search
+
+- Restore source0005 sniper_special native/search/lifecycle functions and
+  original PositionSearch state/world hook. Bind manual search to its engaged
+  body and drive the existing142C MoveTo through current NPC navigation.
+  The outer navigator retains its tick guard; pass retained sub-tick time to
+  the original drive instead of guarding the same tick twice.
+- Preserve source0015 nearby fallback eligibility and its4m retreat. The
+  original authored search handles requests outside that fallback; keep the
+  same NPC, VM, ownership and source cooldown. Stop, faction/body changes and
+  death retire the active search instead of silently rebinding it.
+- Register PositionSearch storage and causal Bot.reposition_body state. Actual
+  controlled server snapshots repeat, change with engagement and do not invoke
+  the combat getter. Original tests retain all expectations.
+- Original far search3, nearby/retry/cooldown/shared80, Sonic/cooldown/runtime19
+  and final eligibility6 all pass. Evidence outside Git: parallel-root-sniper-
+  authored-search-check.log, parallel-root-sniper-source-boundaries-check.log,
+  parallel-root-sniper-sonic-storage-check.log, parallel-root-sniper-final-
+  eligibility-check.log, parallel-root-sniper-causal-snapshot-check.log.
+- A21 finite/range owned Matrix and B16 source cross counters received as
+  d546d8c6/ffe56d54. Broader original B cross-hero and old private-observer
+  differences remain worker-owned and documented, not commit gates. No client
+  acceptance or network publication performed.
