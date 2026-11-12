@@ -552,6 +552,11 @@ class BodyWorld(runtime.World):
         return component.entity_var(var, create=create) if component is not None else None
 
     def entity_var(self, entity, var):
+        from ow174.game import hero_torbjorn
+
+        value = hero_torbjorn.foreign_turret_var(self, entity, var)
+        if value is not NotImplemented:
+            return value
         from ow174.game import orisa_charge
 
         value = orisa_charge.foreign_var(self, entity, var)
@@ -858,6 +863,11 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
+        from ow174.game import hero_torbjorn
+
+        result = hero_torbjorn.turret_native(self, cfg, instance)
+        if result is not NotImplemented:
+            return result
         from ow174.game import lucio, lucio_movement, mccree, sombra_control
         from ow174.game import hanzo_movement
 
@@ -1728,6 +1738,10 @@ class BodyWorld(runtime.World):
         return NotImplemented
 
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
+        from ow174.game import hero_torbjorn
+
+        if hero_torbjorn.turret_message(self, target, message, sender):
+            return
         from ow174.game import barriers
 
         if barriers.relay_bubble_energy(self, target, message, params, sender):

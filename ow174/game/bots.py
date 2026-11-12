@@ -123,6 +123,8 @@ class Bot:
         self.entity = entity
         self.spawner, self.hero_data, self.hints = spawner, hero, hints  # for a respawn (respawned)
         self.dead = False  # killed (combat.py): it stands still with the dead flag until it is made again
+        self.combat_owner = None  # Original actor-backed deployable's player controller.
+        self.combat_geometry = None  # Optional height/radius/eye/critical tuple.
         self.retain_corpse = False  # opt-in manual NPC lifetime; explicit removal owns retirement
         self.attack_target = None  # engaged sandbox NPC's current player controller
         self.attack_input = False  # last queued primary input, including edges not consumed by the VM yet
