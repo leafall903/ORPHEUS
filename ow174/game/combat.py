@@ -548,8 +548,8 @@ class TemporaryShield:
     maximum: float
     decay_from: float
     rate: float
-    pool_id: int = 0xFFFFFFFF
     activation: tuple[int, int] | None = None
+    pool_id: int = 0xFFFFFFFF
 
 
 @dataclass
@@ -680,7 +680,7 @@ class Vitals:
         if given > 0:
             pool_id = (shield.pool_id if shield is not None else
                        max((*self.ids.values(), self.wave_health_id)) + 1)
-            self.temporary_shield = TemporaryShield(old + given, cap, now + delay, rate, pool_id)
+            self.temporary_shield = TemporaryShield(old + given, cap, now + delay, rate, pool_id=pool_id)
             self.changed.add(SHIELDS_POOL)
         return given
 

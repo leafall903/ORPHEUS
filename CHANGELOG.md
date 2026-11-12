@@ -4,6 +4,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain Doomfist input and Meteor lifecycle checks
+
+- Preserve the original magazine/resource, Flashbang-interrupt, throttle and
+  held-primary suites: all22 checks pass unchanged against the mounted hosts.
+- Reconcile original Meteor observation APIs with canonical sleep deadlines,
+  frost storage, damage immunity, lazy respawn vitals and Hack application/lock
+  deadline. Keep the original5000ms effect check on the actual applied lock.
+  All9 original lifecycle scenarios pass across the seven initial successes
+  and the two focused follow-ups; no assertion or case was dropped.
+- Preserve TemporaryShield's existing fifth positional activation argument;
+  append pool_id after it and use a keyword for the new producer. The original
+  positional snapshot fixture plus13 passive checks pass (14 total).
+- Remaining source defense/barrier/NPC equivalents and full-line audit stay
+  open; original-client acceptance is unchanged. No client, network or push.
+
 ### Mount delivered Hand Cannon scatter and shield-pool policy
 
 - Route0D0A's eleven independently colliding pellets through the delivered

@@ -67,6 +67,17 @@ alone is not evidence that a line's consumers are actually mounted.
   retention and exact pool2/clear-to0 wire checks. Doomfist damage charge uses
   ordinary health loss, excluding temporary shield damage as the source did.
   Combined21+13+the Meteor temporary-shield charge regression: all35 pass.
+- Hand Cannon/pool batch `7f9b0e73` submitted. Preserve TemporaryShield's
+  existing fifth positional activation argument; pool_id is appended after it
+  and the Doomfist producer passes pool_id by keyword. The existing positional
+  snapshot fixture plus13 passive checks pass (14 total).
+- All9 original Meteor lifecycle scenarios now pass across the first7-pass run
+  and the two focused API follow-ups. Their observations use actual sleep
+  deadlines, frost storage, immunity admission, lazy body-vitals acquisition,
+  and Hack's actual application/deadline, retaining the original5000ms check.
+- Retained original resources/interrupts/throttles/held-primary suites: all22
+  checks pass without behavior/assertion changes. These exercise real ability
+  input, magazine clocks, Flashbang exits, movement gates and retained fire.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -78,8 +89,9 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Reconcile Meteor's original shared-service API
-   observations against current APIs without dropping behavior assertions.
+1. Audit remaining Doomfist barrier/defense/NPC source services against mounted
+   canonical equivalents. Preserve original checks and source docs; report
+   actual missing consumers separately from renamed helper APIs.
 2. Reconcile remaining passive/NPC/resource consumers; do not treat a mounted
    Uppercut or Meteor as a complete Doomfist line.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and
