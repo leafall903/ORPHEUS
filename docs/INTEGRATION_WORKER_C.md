@@ -1965,3 +1965,57 @@ phasehost. Retainedsource methods call missing cover_ray/trace_barrier/
 _splash_targets/_splash_barriers/visible_target; map actualcurrenthelpers per
 consumer, notcopy wholelegacyCombat orcreate phase/health ledgers. Sync root
 cleanboundary afterC46 to getB50 and latestsharedSniper/controller source.
+
+
+## C47 — actual sentry cover-history inputs (2026-11-12)
+
+Base: clean merge a0e2e589 of canonical0d9d2254 after C46. C46 is now
+accepted by root as d0ff1ecd. This batch replaces Combat's empty sentry inputs
+with the original0016 finite beam-window consumers, using existing actors only.
+Photon removal records retain actual actor geometry and its world expiry;
+WorldBubbles removal records map the existing00FC Chase11 lifetime from the
+actor's observed born_tick/origin_ms pair. cover_end uses existing Photon
+plane/mesh contact and original sphere entry/exit shell contact, including
+combat_owner/team filtering. No second barrier/phase/health manager or timer.
+Mei's existing B50 cryo_world_deadline supplies per-body and occluding-ray
+cutoffs in the same world domain, without interpreting mutable cryo_samples.at
+as a constructor anchor or stepping body VM. Sentry recorded-pose matching reads
+first4 fields from the actual7-field history, preserving all critical/stance tail.
+
+Validation on this stable WIP with selectedv18 environment+test_environment:
+`python -B -m unittest test_symmetra_turrets test_game_ana_symmetra_sentry
+ test_game_combat.DamageTests`:37run72.287s. All14 original Sentry +8 original
+Damage pass. The15 AnaSentry methods include2skips and13 failed methods,
+with19error records (old symmetra_sentries/ice_wall observer APIs) and1final
+empty-outcome assertion; no fake manager aliases or rewritten assertions.
+Log: ../worker-c-symm-history-core-check.log.
+
+Restored entire frozen0016 tests/test_symmetra_cryo.py byte-for-byte,
+SHA256 c33af8d4ead3f866d07fe8b22cc04027c0cd08eb11cd13be664dda0ebf0fdee4.
+Two selected original methods test_ice_occludes_sentry_to_rear_then_sentry_resumes
+and test_expiring_cryo_only_limits_sentry_catch_up_on_occluded_ray run7.070s,
+both still fail: existing allied Cryo ray fails to occlude (target remainsbody),
+and original cryo.active stillTrue at world-only exit. These are genuine
+remaining cover/phase consumers; deadline inputs alone do not fix them.
+Log: ../worker-c-symm-history-cryo-check.log. Full restored file not yet run.
+
+Actual producer probe uses original ReinhardtWinstonBarrierTests.deploy(8),
+switches its attacking owner to actual Symmetra, launches/attaches a real
+Sentry at(0,2.3,2.01), and crosses original sphere expiry1617 with64worldticks.
+Prior empty-input callback baseline damages armoured Winston28.672; mounted
+history damages2.24 only after expiry, same target and owner faultNone.
+No actual actor health/lifetime/geometry or source assertion changed. Gaps16,
+64,80 each yield2.24; contiguous last-tick delta .448 (28/s against armour).
+Logs: ../worker-c-symm-history-sphere-baseline-probe.log and
+../worker-c-symm-history-sphere-probe.log. This demonstrates real callback
+consumption, not only presence of retained fields. Client/full replay OPEN.
+
+Next C48: actual Cryo cover/exit interpretation, then remaining retained frozen
+Sentry consumers. Generic phase transition damage_starts (Reaper/Moira/etc),
+respawn history, original frozen replay_ice/replay_owners/replay_frozen selection
+are still unmounted. Missing retained-support calls cover_ray/trace_barrier/
+_splash_targets/_splash_barriers/visible_target still need narrow mappings to
+existing shared helpers, not whole old Combat. End-of-update Torb turret attacks
+currently occur after the in-loop removal sampling; include their barrier
+removals before final sentry settlement in the next boundary. Do not claim
+complete0016 equivalence or let these retained failures block this batch.

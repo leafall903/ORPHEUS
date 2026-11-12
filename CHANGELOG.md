@@ -15,6 +15,27 @@ This log records tested changes and their acceptance status. Entries are grouped
   its actual parent setup instead of importing unrelated missing Accretion.
   Full source/shared checks remain next; no client acceptance run.
 
+
+### Restore existing sentry cover-history consumers
+
+- Sentry damage integration receives actual expired/broken Photon and Winston
+  actors and their original clocks, plus existing Mei constructor-domain expiry.
+  Plane/mesh/sphere geometry remains owned by the existing barrier hosts.
+- Real64-tick sphere expiry probe: prior28.672 excess-window damage becomes2.24
+  after cover ends; all14 original Sentry and8 Damage methods pass. Retained Ana
+  observer errors and2 original Cryo cover/exit failures are documented unchanged.
+- Preserve the full original0016 Cryo checks and all7-field body-history data.
+  Generic phase/frozen replay and remaining support helpers follow separately.
+
+### Restore original shield-only EMP damage notifications
+
+- Existing damage pipeline now consumes original shield_drain mode, touching only
+  existing shield records and preserving health/armour, receiver protections,
+  stats/recovery/received-damage callbacks and no-ultimate-credit policy.
+- ActualEMP reports150shield damage/nocharge and existing3-second recovery;
+  mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
+ 52pass and retained oldsnapshot-class/natural-regeneration expectations.
+  No assertion changes or duplicate pools; Symm history consumers follow.
 ### Select original NPC associations in the combined workspace entry
 
 - Prepared v18 preserves all previously selected graph/entity records and adds
@@ -121,6 +142,7 @@ This log records tested changes and their acceptance status. Entries are grouped
   mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
  52pass and retained oldsnapshot-class/natural-regeneration expectations.
   No assertion changes or duplicate pools; Symm history consumers follow.
+
 
 ### Keep incoming EMP replay on each actual receiver component clock
 

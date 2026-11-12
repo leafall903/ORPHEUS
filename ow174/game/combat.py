@@ -4397,6 +4397,21 @@ class Combat:
             return
         from ow174.game import archives_thunderstorm, defenses, npc_shields
 
+        # Original0016 beam integration consumes cover that ended inside the
+        # accepted gap, using the existing actors and their actual clock pairs.
+        sentry_damage_starts, cryo_expiries = {}, {}
+        for player in self.match.players:
+            deadline = mei.cryo_world_deadline(player)
+            if deadline is not None and deadline <= tick:
+                ended = now - (tick - deadline + 1) * TICK
+                sentry_damage_starts[player.body] = ended
+                cryo_expiries[player.body] = ended
+        photon_cover_ends, sphere_cover_ends = [], []
+        barrier_cover_ends = ((self.photon_barriers, photon_cover_ends),
+                              (self.barriers.world, sphere_cover_ends))
+        old_photon = tuple(self.photon_barriers.actors.values())
+        old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
+                            for actor in self.barriers.world.actors.values())
         dragon_poses = self._dragon_gap_poses(tick)
         orisa_fortify.rebase_fortify(self, tick)
         self.echo_duplicates.update(now)
@@ -4601,6 +4616,16 @@ class Combat:
             if at != tick and self.baptiste.fields:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
+            for actor in old_photon:
+                if self.photon_barriers.actors.get(actor.source_body) is not actor:
+                    photon_cover_ends.append((actor, min(self.now, now - (tick - actor.expires) * TICK)))
+            for actor, expiry in old_spheres:
+                if self.barriers.world.actors.get(actor.entity) is not actor:
+                    ended = self.now if expiry is None else min(self.now, now - (tick - expiry) * TICK)
+                    sphere_cover_ends.append((actor, ended))
+            old_photon = tuple(self.photon_barriers.actors.values())
+            old_spheres = tuple((actor, self.barriers.world.expiry_tick(actor))
+                                for actor in self.barriers.world.actors.values())
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -4611,7 +4636,7 @@ class Combat:
                 player.body_script.orisa_fortify_pending = False
         torbjorn_mark.update(self)
         hero_torbjorn.update_turrets(self)
-        self.sentries.update({}, {}, ())
+        self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends)
         self.portals.update()
         self.projectiles.update(tick, first_tick=field_first)
         self.knockbacks.update()
