@@ -1,5 +1,39 @@
 # Changelog
 
+## A94 — source personal-first interception and single contact per recipient
+
+Restored original0068 _candidates/_intercept ordering on the same native actors:
+protect_body selects personal then roster caster; native ray changes only exact
+same-distance/same-recipient Zarya ties, leaving nearest-ray math and cross-family
+ordering intact. Existing Zarya proxy iteration uses the same order. Area/melee
+and actual explosion loops consume at most one pool for each protected body in
+one event. Same-tick next event can reach the surviving projection after personal
+break. No new pool/observer/manager, no damage scalar or collision size changes.
+Resource-backed admission flags remain exactly as A93.
+
+Four genuine baselines from actual projected-first→personal casts: body50 went
+to projection instead of personal; equal ray chose projection; melee30 consumed
+both pools170/170; real emitted Helix80 blast consumed both120/120. New native
+checks preserve independent actual actors/Vitals and original priority policy,
+not an invented getter/second ledger. After fix all5 native overlap methods pass,
+including real same-tick50/150/50 handoff, caster40/10energy/body unchanged, exact
+ray tie and realHelix80/melee30 one-pool damage. Combined original multi-caster
+whole method, A91/A92 original2 and lifetime2 =10/10pass14.683s. Logs
+worker-a-zarya-pool-priority-contact-baseline.log and
+worker-a-zarya-native-pool-priority-contact-check.log. Source/core checks were not
+weakened and C57 wall/offense_scale paths remain untouched.
+
+Remaining precise production consumer A95 found in final _fly comparison:
+frozen0068 Combat._fly calls _explode(excluded=struck.entity) after bubble combined
+interception (source lines2252–2259). Current native Zarya scripted_shield branch
+consumes direct+blast and lands without invoking explosion, so adjacent exposed
+bodies lose original delivered splash. Restore that real continuation with the
+already-consumed recipient excluded, same Rocket/one explosion/one damage service;
+A94 protected-body loop now supplies the correct one-pool exclusion. This is an
+existing source behavior, not a new mechanic. Then complete exact source/shared
+mover mapping and handoff; validation/API/resource conflicts remain tails.
+
+
 ## A93 — retain independent native casts without extra legacy gates
 
 Absorbed root314b1dde in worker merge48903aeb: kept777e1c9c exact BotWorld lookup

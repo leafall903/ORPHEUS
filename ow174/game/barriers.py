@@ -329,6 +329,9 @@ class Barriers:
             if (self.live_source(bubble) and bubble.owner is not shooter
                     and (self.fight.match.game_map.free_for_all or bubble.owner.team != team)):
                 found.append(bubble)
+        roster = {id(player): index for index, player in enumerate(self.fight.match.players)}
+        found.sort(key=lambda bubble: (bubble.phase.instance.graph.index == PROJECTED,
+                                       roster.get(id(bubble.caster), len(roster)), bubble.entity))
         return found + self.world.enemies(shooter, team=team) + self.reinhardt.enemies(shooter, team=team)
 
     def authored_for(self, body, phase=None):
@@ -404,6 +407,8 @@ class Barriers:
 
         protected = set()
         for bubble in self.enemies(shooter):
+            if isinstance(bubble, Bubble) and bubble.body in protected:
+                continue  # source0068 consumes only one pool for this recipient/event
             if contacted is not None and bubble.entity in contacted:
                 if isinstance(bubble, Bubble):
                     protected.add(bubble.body)
@@ -895,6 +900,12 @@ def mesh_trace(barrier, origin, direction, length, *, padding=0.0):
                                      padding=padding)
 
 
+def _particle_priority(fight, actor):
+    roster = next((index for index, player in enumerate(fight.match.players)
+                   if player is actor.parent), len(fight.match.players))
+    return actor.recipient is not None, roster, actor.entity
+
+
 def ray_hit(fight, shooter, origin, direction, length, *, padding=0.0):
     """Closest live enemy defensive Pet using its reconstructed collision.
 
@@ -925,7 +936,13 @@ def ray_hit(fight, shooter, origin, direction, length, *, padding=0.0):
             if target is not None:
                 a, b = target.segment()
                 distance = ray_capsule(origin, direction, a, b, target.radius + padding)
-                if distance is not None and distance <= length and (best is None or distance < best[0]):
+                same_recipient_tie = (best is not None and distance == best[0]
+                                      and best[1].component.world.hero == ZARYA
+                                      and (best[1].recipient_body or best[1].parent_body)
+                                      == (barrier.recipient_body or barrier.parent_body)
+                                      and _particle_priority(fight, barrier) < _particle_priority(fight, best[1]))
+                if distance is not None and distance <= length and (best is None or distance < best[0]
+                                                                  or same_recipient_tie):
                     best = distance, barrier
             continue
         if not barrier.mesh:
@@ -938,7 +955,9 @@ def ray_hit(fight, shooter, origin, direction, length, *, padding=0.0):
 
 def protect_body(fight, target, amount, *, attacker):
     """Route body-directed damage to a live bubble, consuming the impact."""
-    for barrier in fight.barriers.scripted.values():
+    actors = sorted((actor for actor in fight.barriers.scripted.values()
+                     if actor.component.world.hero == ZARYA), key=lambda actor: _particle_priority(fight, actor))
+    for barrier in actors:
         protected = barrier.recipient if barrier.recipient is not None else barrier.parent
         if (protected is target.owner and (barrier.recipient_body or barrier.parent_body) == target.entity
                 and barrier.component.world.hero == ZARYA and barrier.vitals is not None
