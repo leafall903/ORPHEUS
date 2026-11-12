@@ -220,3 +220,25 @@ def _damage_barrier(fight, player, contact, amount):
     if isinstance(actor, barriers.Barrier):
         return barriers.damage(fight, actor, amount * nano.offense(fight, player.body), attacker=player.body)
     return fight._damage_contact_barrier(contact, amount, shooter=player)
+
+
+def owns_shield_recovery(owner):
+    hero = getattr(owner, "hero", None)
+    return getattr(hero, "guid", hero) == HERO
+
+
+def pool_query(world, cfg, instance):
+    """Original0033 own-body current/maximum kind query for shield recovery."""
+    if (world.hero != HERO or world.match is None or instance is None
+            or instance.component.strict or instance.graph.index != 0x0033
+            or cfg.get("$") not in ("STU_783B4CF0", "STU_68883EAC")):
+        return NotImplemented
+    target = instance.evaluate(cfg.get("m_entity"))
+    pool = cfg.get("m_7E8B666C") or {}
+    kind = pool.get("m_7E8B666C")
+    vitals = world.match.combat.vitals.get(world.body)
+    if (target == expr.Entity(world.body) and pool.get("$") == "STU_297E1A30"
+            and type(kind) is int and kind in (0, 1, 2) and vitals is not None):
+        values = vitals.now if cfg["$"] == "STU_783B4CF0" else vitals.most
+        return values[kind]
+    return NotImplemented

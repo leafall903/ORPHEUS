@@ -167,7 +167,7 @@ FIELDS = {
     orisa_barrier.Geometry: _names("world triangles source"),
     mei_wall.Walls: _names("combat pieces inputs anchors"),
     combat.Vitals: _names(
-        "entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
+        "last_damage_at shield_accounted_at entity most now ids wave_health wave_health_id changed died_at death_tick killer bonus_armour bonus_declared over_armour "
         "healing_block healing_boost temporary_shield ult_healing_deficit extra next_pool sleep_until sleep_wake_floor sleep_view nano_until invulnerable_until adaptive_activation conditional_pools"),
     brigitte.BrigitteCombat: _names(
         "combat hits inspire next_inspire whip_seen whips repair_seen repair_casts repair_deliveries "
@@ -223,7 +223,7 @@ FIELDS = {
         "retired first_owner_frame world_frame_anchor server_only ult_seconds passive_charge_ms reaper_charge_ms reaper_charge_tick winston_charge_ms winston_charge_tick winston_primal_clock ult_gain_bonus ultimates reports report_count self_healing support_healing "
         "self_repairs control_windows sleep_windows frost_windows"
     ),
-    driver.BodyWorld: _names("hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
+    driver.BodyWorld: _names("beam_barrier hero mode body body_definition throttles match zenyatta_charge_ammo communication_wheel velocity_requests wheel_callouts emote_aliases emote_blend_trees spray_unlocks voice_effects "
                              "_body_owner_context _entity_query_context"),
     BotScript: _names(
         "component frame server_only latest_live _initial_frame death_frame _produced behavior controller "
