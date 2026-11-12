@@ -450,3 +450,9 @@ Remaining estimate is2–5 continuous days at low confidence. B estimates16–36
 active worker-hours; C16–32, executed concurrently with A and root integration.
 Remaining shared collisions, Ball motion, Sigma pools and Ashe consumers make
 an exact deadline unreliable. No appearance migration or Rust runtime cutover.
+
+
+Latest joint verification session52507 is now terminal: all97 original/shared
+checks passed in55.126s (parallel-merge/latest-joint-check.log). Canonical
+fast-forwarded tob3ca1ee2 after verification, including B25. No live root tests
+remain; all three workers continue their committed-boundary deliveries.
