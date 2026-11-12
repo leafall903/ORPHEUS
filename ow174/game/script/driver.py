@@ -902,7 +902,12 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn, torbjorn_charge
+        from ow174.game import hero_torbjorn, symmetra, torbjorn_charge
+
+        if self.hero == symmetra.HERO:
+            value = symmetra.pool_query(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         if self.hero == torbjorn_charge.HERO and instance is not None:
             value = torbjorn_charge.native(self, cfg, instance)

@@ -476,3 +476,34 @@ and retained scheduling/respawn bridges require separate source comparison;
 constants or source files alone are not completion. Source symmetra placement/
 transit/teleport entry consumers have not yet been copied/mounted. Remaining
 other owners0065/00DD/012E/0200 still require full reconciliation.
+
+C20 SHA cc349c0f delivered. Clean boundary synchronizes root7ba03d3c, preserving
+4999fd44 actual Vitals clock/tag dispatch and numeric/tagged API split, Genji/
+Torb direct native routing, health lifetime and Venom source consumers. Verify
+no duplicate non-property methods remain in touched classes; no whole-file
+replacement or rollback of other owners. This coordination merge is not a new
+delivery. C19's shared regression is fixed and retained by this synchronization.
+
+
+## C21 original Symmetra recovery checkpoint
+
+Original0033 recovery consumes existing Vitals shields. last_damage_at and
+shield_accounted_at reset only for Symm after actual positive damage; recover
+through now-TICK before damage. Read authored delay/rate and modifiers.
+Runtime/BodyWorld native own-kind current/maximum queries are narrowly Symm0033
+nonstrict; unsupported queries preserve typed fallthrough. Root4999fd44 shield
+numeric/tagged APIs and clock/tag decay dispatch are preserved.
+
+Original test_symmetra_combat21/21 pass21.061s; log
+worker-c-symmetra-recovery-final-check.log. With v4/PYTHONPATH tests:
+python -B -m unittest test_game_combat.DamageTests test_game_npc test_doomfist_resources -v
+20/20 pass10.484s; worker-c-symmetra-recovery-shared-check.log.
+Actual ServerSnapshotTests.scene/capture digest independently changes for
+last_damage_at=1.25 and shield_accounted_at=2.5. First probe found C20's actual
+beam_barrier field absent from server registry (VM-only registered); repaired
+here and second actual probe passes. No original assertions changed.
+
+Next: commit recovery and mount original Symm charge, then actual sentry and
+portal/placement managers. Sentry source has substantial retained-history
+replay/defense adapters; copying alone cannot count it integrated. Source25s
+orb and retained flight remain unfinished. Other C20 owner boundaries persist.

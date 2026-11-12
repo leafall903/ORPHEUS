@@ -669,6 +669,8 @@ class Vitals:
         self.next_pool = 0x10000  # leave ordinary and wave pool IDs in the low range
         self.changed: set[int] = set()  # pools that changed since the last update went out
         self.died_at: float | None = None
+        self.last_damage_at: float | None = None
+        self.shield_accounted_at: float | None = None
         self.death_tick: int | None = None
         self.killer: int | None = None
         self.ult_healing_deficit = 0.0
@@ -4130,6 +4132,7 @@ class Combat:
         self.match.deliver_body_messages()
         if frames:
             self.observers.update()
+        self._regenerate_shields()
         # A skipped tick can reach a respawn deadline with the old body's terminal pool still dirty.
         self._send_health()
         for bot in self.match.bots:
@@ -4320,6 +4323,48 @@ class Combat:
                     target, feet=sample.position, height=height, eye=eye_height(body, crouched))
         return poses
 
+
+    def _regenerate_shields(self) -> None:
+        for target in self._targets():
+            vitals = self.vitals.get(target.entity)
+            if vitals is not None and symmetra.owns_shield_recovery(target.owner):
+                self._recover_shields(target.owner, vitals, self.now)
+
+    def _recover_shields(self, owner, vitals: Vitals, through: float) -> None:
+        """Integrate 0033's authored shield recovery after its damage-free delay.
+
+        The data supplies the 3 s delay, 30 DPS and their modifiers. Scheduling
+        damage-free world time here reconstructs the server's missing health
+        service; it does not implement the unknown B591EBFE native State.
+        """
+        if not symmetra.owns_shield_recovery(owner):
+            return
+        if vitals.dead or vitals.last_damage_at is None or vitals.most[SHIELDS_POOL] <= 0:
+            return
+        previous = vitals.shield_accounted_at
+        if previous is not None and through <= previous + EPSILON:
+            return
+        script = getattr(owner, "body_script", None)
+        if script is None:
+            return
+        instance = next((i for i in script.component.instances.values()
+                         if i.graph.index == pools.BODY_GRAPH), None)
+        if instance is None:
+            return
+        wait, heal = instance.state(27), instance.state(2)
+        delay = _number(wait.evaluate(wait.node.field("m_7130456B"), watch=False), 0.0)
+        start = max(previous if previous is not None else through, vitals.last_damage_at + delay)
+        vitals.shield_accounted_at = through
+        if through <= start or vitals.now[SHIELDS_POOL] >= vitals.most[SHIELDS_POOL]:
+            return
+        modify = heal.node.field("m_modifyHealth")
+        rate = _number(heal.evaluate(modify.get("m_amount"), watch=False), 0.0)
+        given = min(max(0.0, rate) * (through - start),
+                    vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+        if given > 0:
+            vitals.now[SHIELDS_POOL] += given
+            vitals.changed.add(SHIELDS_POOL)
+            self._sync_body_health(owner, vitals)
 
     def _targets(self) -> list[Target]:
         found = []
@@ -8497,6 +8542,7 @@ class Combat:
             return False
         self.zenyatta.regenerate_before_damage(target, vitals)
         amount *= self.zenyatta.boost(target)
+        self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
@@ -8514,6 +8560,8 @@ class Combat:
                               armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
+        if symmetra.owns_shield_recovery(target.owner):
+            vitals.last_damage_at = vitals.shield_accounted_at = self.now
         self.zenyatta.damaged(target)
         if isinstance(target.owner, actors.Deployable):
             self._sync_body_health(target.owner, vitals)
