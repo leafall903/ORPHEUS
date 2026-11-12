@@ -9438,3 +9438,8 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A47 - strict original BOB mover-extension dependency
 
 - Restore original fingerprint-bound add-only mover bundle API and optional cached-table extension path while retaining current supplementary table/DVa movement. Original malformed-input and current body-form checks: 13 passed. Original/runtime base mismatch remains explicit; no source inputs altered.
+
+### Worker A48 - original BOB actor factory, lifetime and gun
+
+- Mount actual ultimate factory, one shared NPC/Vitals/mover, authored gun reports, phase/lifetime/owner credit and active charge lock. Restore original companion ally healing and guard shared Sombra hit routing against nonplayer BotScript.
+- Original BOB factory/lifetime/gun14/14 and shared28/28 passed; actual controlled-input strict BOB snapshot passed. Original uppercut/victim handoff remains next, with its baseline error preserved; no whole-line completion claim.

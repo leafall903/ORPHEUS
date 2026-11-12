@@ -2069,6 +2069,7 @@ class Combat:
 
         self.dynamite = ashe.Dynamite(self)
         self.impulses = ashe.Impulses(self)
+        self.companions = ashe.Companions(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2350,6 +2351,7 @@ class Combat:
         self.venom.retire(player.body)
         self.junkrat.retire_body(player.body)
         self.dynamite.retire(player.body)
+        self.companions.retire(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -4240,6 +4242,7 @@ class Combat:
             or any(player.body_script is not None and player.body_script.world_frame_anchor is not None
                    and (defenses.soldier_visor_running(player) or defenses.soldier_field_windup(player))
                    for player in self.match.players)
+            or self.companions.active
             or any(bot.firing and not bot.dead and isinstance(bot.body_script, BotScript)
                 for bot in self.match.bots)
             or any(npc_shields.recovery_pending(bot) for bot in self.match.bots)
@@ -4341,6 +4344,7 @@ class Combat:
             self.translocators.update(at)
             self.venom.update(at)
             self.dynamite.update(at)
+            self.companions.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
@@ -4941,7 +4945,9 @@ class Combat:
         return found
 
     def _ally(self, shooter, target: Target) -> bool:
-        return not self.match.game_map.free_for_all and target.team == shooter.team
+        owner = self._credit_player(shooter)
+        return ((owner is not None and self._credit_player(target.owner) is owner)
+                or (not self.match.game_map.free_for_all and target.team == shooter.team))
 
     def _shot_targets(self, shooter, direct: HitDef | None) -> list[Target]:
         targets = self._enemies(shooter)
@@ -8286,7 +8292,7 @@ class Combat:
         for target in self._targets():
             if isinstance(target.owner, actors.Deployable):
                 continue
-            ally = not self.match.game_map.free_for_all and target.team == healer.team
+            ally = self._ally(healer, target)
             if target.owner is not healer and not ally:
                 continue
             a, b = target.segment()
@@ -9351,7 +9357,7 @@ class Combat:
             self._retire_source_controls(target.entity)
             self._genji_eliminations(target, shooter, vitals.death_tick)
         script = getattr(victim, "body_script", None)
-        if (not killed and script is not None and script.hero == sombra_camo.HERO
+        if (not killed and script is not None and getattr(script, "hero", None) == sombra_camo.HERO
                 and isinstance(script.component, runtime.Component)):
             impact = self.tick if world_tick is None else world_tick
             if script.world_frame_anchor is not None:

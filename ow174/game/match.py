@@ -1382,6 +1382,8 @@ class Match:
             self._npc_planning_turn += 1  # server ticks can skip under load
         pillars = ice_wall.pillar_actors(self.combat)
         for bot in self.bots:
+            if self.combat.companions.actor_for(bot.entity) is not None:
+                continue  # The original phase driver owns this same NPC/mover.
             if self.combat.junkrat.rooted(bot.entity, tick):
                 npc_navigation.stop(bot)
                 bot._pause(tick)
