@@ -5012,8 +5012,14 @@ class Combat:
             return
         modify = heal.node.field("m_modifyHealth")
         rate = _number(heal.evaluate(modify.get("m_amount"), watch=False), 0.0)
-        given = min(max(0.0, rate) * (through - start),
-                    vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
+        amount = max(0.0, rate) * (through - start)
+        if getattr(getattr(owner, "hero", None), "guid", None) == 0x02E0000000000068:
+            target = next((target for target in self._targets() if target.owner is owner), None)
+            if target is None:
+                return
+            amount *= self.healing.factor(target, seconds=through - start, end_tick=through / TICK + 1)
+            amount *= vitals.healing_time(start + TICK, through + TICK) / (through - start)
+        given = min(amount, vitals.most[SHIELDS_POOL] - vitals.now[SHIELDS_POOL])
         if given > 0:
             vitals.now[SHIELDS_POOL] += given
             vitals.changed.add(SHIELDS_POOL)
