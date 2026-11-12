@@ -760,7 +760,7 @@ class Player:
                                                           if credit[0] > script.component.now))
         self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame, posed=posed)
         self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=command.frame + 1) if script else None
-        self.mover.flight_scale = statescript_flight(script.component) if script else None
+        self.mover.flight_scale = statescript_flight(script.component, mover=self.mover, frame=command.frame + 1) if script else None
         retained = getattr(self, "valkyrie_pose", None)
         if retained is not None and command.frame >= retained.through:
             self.clear_valkyrie_pose()
@@ -779,7 +779,7 @@ class Player:
                         mod.end = frame + 1
         self.mover.track_mods(statescript_mods(script.component), script.frame, posed=False)
         self.mover.script_data = statescript_mover_data(script.component, mover=self.mover, frame=script.frame + 1)
-        self.mover.flight_scale = statescript_flight(script.component)
+        self.mover.flight_scale = statescript_flight(script.component, mover=self.mover, frame=script.frame + 1)
 
     def clear_valkyrie_pose(self) -> None:
         retained = vars(self).pop("valkyrie_pose", None)

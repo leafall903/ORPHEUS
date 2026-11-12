@@ -2676,3 +2676,40 @@ consumer. A102 frozen affiliation is implemented. A final read-only comparison
 of original private FLIGHT_ROLE record versus current per-pose statescript_flight
 must distinguish effective mounted behavior from missing old observer symbols;
 no unproved host/clock duplication or acceptance-green gate will be introduced.
+
+## A104 — original flight-role producer and expiry on the same mod clock
+
+Final source audit proved another real original007A record producer/consumer:
+actual permissive C1BA7545 states active/counter1 previously produced no mods,
+and overlapping statescript_flight raisedNotImplemented. Original source emits
+FLIGHT_ROLE records keyed by instance/state/activation generation, with ordinary
+source-publishframe+1 lifetimes and existing priority/start/key ordering.
+
+Restored that producer on the same known Mercy10DA/DVa scope. The existing sole
+Mover.mods selects role value on each actual posed/recovered frame, including
+zero-valued flight and original expiry. Player/ownedMech snapshot previews use
+sameMover/nextframe selector. Current explicit external flight/retained profile
+keeps prior precedence. No new clock, mover field or manager. FLIGHT_ROLE=-2 is
+Mod.index, strictly distinct from B83 dictionary key prefix-2 (worldtick finite
+mods) and prefix-1 (scheduled impulse). Worldtick records remain untouched and
+never become flightroles. Invalid/nonfinite source parameters still reject.
+
+Original six-frame explicit/recovered history equality plus postexpiry height
+assertion preserved verbatim; original flight parameter/retirement passive
+whole-server causal method also preserved. Combined typed/flight actual/source
+8 +Mercy2+Mech recovered1 pass; one added Pharah ForceWorldGap method retains2
+position subfails on both A104 and fixed committedA103+be369 baseline with
+identical positions. Logs worker-a-flight-role-clock-causal-check.log (12run,
+11pass/1method failed) and worker-a-flight-role-force-baseline.log (7.422s).
+Actual multi-hook priority, properframe11, generation restart, expiry and B83
+worldtick100–102 modifier coexistence pass. Original detached boosting bomb moves
+and completes fuse after pilotdeath and wall cover2/2pass8.166s, log
+worker-a-flight-role-detached-bomb-check.log. Earlier original6frame+Mercy+
+Mech recovery3/3pass9.975s. Source assertions/constants unchanged.
+
+Clean sync be36954f was saved as95a28fec before this batch, preserving root
+Volskaya/platform, B83 timedmods/slams retirement, original SDK/filter additions
+and all existing codec/field registrations. Latest C ownedMech melee fixc4290d9c
+is root-owned intake, not reimplemented here. No remaining newly identified
+owned production consumer is currently open; A105 final signed mapping follows,
+without requiring all source/client acceptance to pass.
