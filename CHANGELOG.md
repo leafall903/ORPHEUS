@@ -6,6 +6,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Training Bot rebuild seen in the client
+
+- The rebuild of a respawned Training Bot (`0013.025` to its graph `0BA8`, added on 2026-11-11)
+  was checked in the original client and recorded in `docs/research/bot-rebuild.md`. No code
+  changed.
+- Practice Range: two Training Bots killed together by D.Va's Self-Destruct, a capture every
+  0.3 s. Both burst and their parts lie on the floor. 3.6 s after the death the parts are gone
+  and a new bot is at each place as a bunched cluster of parts, then tilted with its parts
+  apart, then low with dust around it, and 0.9 s after it appeared it stands whole. It does not
+  appear whole.
+- Not resolved: the first 0.3 s of the new bot fell between two captures, and at 17 m the torso
+  and arms cannot be told apart.
+
 #### Target filter behavior contract
 
 - Added a public behavior contract for the six masks of a target filter: sixteen cases over the

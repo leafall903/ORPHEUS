@@ -48,9 +48,27 @@ also the placement's eligibility reset that the firing behaviour waits for.
   live. A bot's first spawn is left as it was. This is a reconstruction: retail's sender of the
   message is not known.
 
+## Seen live against ORPHEUS
+
+Original client, Practice Range, 2026-11-12, commit `a667ef2`'s change in place. Two Training Bots
+17 to 19 m away were killed together by D.Va's Self-Destruct and watched with a capture every
+0.3 s.
+
+- **Death.** Both burst at the blast: a red flash, parts flying, then smoke. Their parts lie on
+  the floor until the new bots come. The server log has both kills and, 3 s later, both respawns
+  under new entity ids.
+- **Rebuild.** 3.6 s after the death the parts on the floor are gone and a new bot is at each
+  place, as a bunched cluster of parts a little above the floor. 0.3 s later it is tilted with
+  its parts apart, 0.3 s after that low and wide with dust around it, and 0.9 s after it appeared
+  it stands whole with its jets on. It does not appear whole.
+- **Not resolved.** The first 0.3 s of the new bot fell between two captures, so parts flying in
+  from far off were not seen, and at that distance the torso and arms cannot be told apart. The
+  kill was by a blast, not by held fire.
+
+So the rebuild also plays on a new entity, as it did on the revived body in the other service.
+
 ## Open
 
-- Not seen in the client against ORPHEUS. There the rebuild plays on a new entity, not on the
-  revived body the other service used.
+- A closer and faster look at the rebuild's first third of a second.
 - Whether retail also rebuilds a bot on its first spawn.
 - Whether a rebuilding bot can be hit.
