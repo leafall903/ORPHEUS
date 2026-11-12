@@ -2084,3 +2084,39 @@ original-client acceptance. Parallel Zarya/Flux work belongs to A/root.
 Next exact action: clean sync root3be70f27, then concrete barrier/typedquery
 consumer audit and coordinate Moira/Sentry source contexts with C. Commit each
 real reusable batch without waiting for all original geometry/client checks.
+
+
+## B76 — original tag kernels with a real existing Moira consumer
+
+Clean sync accepted3be70f27 at worker merge81d151d0; only changelog conflict
+kept both sides and removed one empty duplicate heading. C confirmed no Moira
+WIP. Actual moira._grasp_contact already owns source023Bmoira_beams equivalent
+Volume and static tag lookup; do NOT copy a second beam host.
+
+Restore original filter_tags Tags/any/all/matches/collect_values/evaluate public
+kernels; whole AST equals source exceptcollect delegates to the current owned
+entity_filter.collect_tags, retaining its owner-retirement/depth/work guards.
+Existing entity_filter.TagSet and entity_tags APIs remain intact. Actual sole
+Moira reads the same precollected config tuples/static catalog via original
+Tags/matches, with unknown catalog and visibility/ranking policies unchanged.
+No tag store, component, manager or persistence field added; originalVolume
+stays the same current target_volume class shared with rootFlux.
+
+Restore test_script_filter_tags.py byte-for-byte. Fullsource tags, current tag/
+collection safety checks and actual5NPC Moira tag rejection28/28 pass3.844s
+(worker-b-sigma-filter-tags-mount.log), including real1E41 exclusions and strict
+unknown/dependency/removal/high-key checks. No original-client acceptance run.
+
+Retained prototype gap explicitly confirmed: accretion.control calls
+fight.stun(...extend_only=True), unsupported by current primitive stun. It is
+unmounted (no actualdriver/combat/bot caller); actual1BBB control uses the sole
+Brigitte224E host through current driver. Do not add a facade/second stun clock
+to make an unused prototype appear integrated. Its old rocket identity API
+also differs; preserved pending original caller/context audit, not whole-lane
+completion. OriginalAna/Tracer missing sigma_accretion imports need actual
+consumer adaptation, not fake module aliases.
+
+Next exact action: sourcefilter_context/pipeline explicit SDK and cache API
+versus actual entity_filter_host/controller scope; preserve known-unknown
+backend boundaries and current NPC FilterContext. Then original barrier/owner
+and Sentry CLI actualfactory fixtures. No new acceptance matrix.

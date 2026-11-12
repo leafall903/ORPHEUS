@@ -291,6 +291,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original tag kernels on the existing Moira host
+
+- Preserve original tag API and use it on the same Moira candidate path, reusing
+  current guarded collection and existing catalog/volume/ranking services.
+- Original/current tag safety and real NPC consumer28 checks pass. No second
+  beam host, tag store, serializer change or client acceptance run.
+
 ### Verify Grasp unequal epochs and causal decay storage
 
 - Actual raw producer and entered Wait independently verify original world
