@@ -108,9 +108,11 @@ def state_class(*names: str, strict_only: bool = False):
         registry = STRICT_STATE_CLASSES if strict_only else STATE_CLASSES
         for name in names:
             scope = getattr(cls, "state_scope", None)
-            if strict_only and scope is not None:
-                for position in scope[1]:
-                    SCOPED_STATE_CLASSES[name, scope[0], position] = cls
+            scopes = getattr(cls, "state_scopes", ()) or ((scope,) if scope is not None else ())
+            if strict_only and scopes:
+                for graph_index, positions in scopes:
+                    for position in positions:
+                        SCOPED_STATE_CLASSES[name, graph_index, position] = cls
             else:
                 registry[name] = cls
         return cls
@@ -892,6 +894,9 @@ class World:
         """Optional duration of the resolved finite animation for this activation."""
         return NotImplemented
 
+
+    def body_button_allowed(self, component, button) -> bool:
+        return True
 
     def skill_locked(self, state: "State") -> bool:
         return False

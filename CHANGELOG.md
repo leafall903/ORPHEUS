@@ -4,6 +4,33 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve controller Pin services in causal server storage
+
+- Exact original Pin/message storage and current scalar/vector modifier records
+  use the existing enclosing-domain VM bridge. Validate controller ownership and
+  retain strict rejection of unknown fields and foreign component services.
+- Real1177 whole-server sequence/registry/cache/backend changes alter and restore
+  stored digests; original controller and Match checks pass. Manual NPC recipient
+  coupling remains subsequent work; no client acceptance run.
+
+### Send actual controller effects through the existing Match wire
+
+- Existing controller frames include original live effects and bound flags;
+  changed-content refresh sends removals without repeated identical full frames.
+  Actual LinkedTarget limits use the shared body-command angle clamp.
+- Real1177 entry/flag/removal/angle-release and original controller/state-script
+  checks25/25 pass. Manual NPC pairing and Pin causal storage remain subsequent
+  work; no second body effect or transport and no client acceptance run.
+
+### Restore controller LinkedTarget alongside existing cinematic resources
+
+- Existing LinkedTarget now hosts original1177 activation order, angle cache,
+  network payload and cleanup. Exact resource scopes share the existing registry
+  with original four cinematic handlers; current sleep-view behavior is retained.
+- Real controller effects, missing-sample strict rejection and shared state/VM
+  checks29/29 pass. Match refresh/manual NPC recipient/storage consumers remain
+  subsequent work; no client acceptance run.
+
 ### Encode original controller effects in the existing owner full frame
 
 - Restore optional dynamic instances/bound variables and original LinkedTarget full payload mode in the sole state-script encoder. Preserve existing codec and fragment paths; reject overlapping instance/variable namespaces.
@@ -97,6 +124,16 @@ This log records tested changes and their acceptance status. Entries are grouped
   host remains workerB43; original three missing-manager checks remain explicit.
 - Root C38 AsHe control/queue/runtime42run40pass2preserved endpoint-Q failures
   9.691s. Real Hack/EMP Wait58 now starts; C40 owns recipient-frame expiry input.
+### Consume original Sombra ability and logical-button silence policies
+
+- Restore original weapon/passive/drawn-blade classification and logical input
+  gates in existing BodyWorld/BotWorld, Ability and LogicalButton consumers.
+  Existing hard control, strict execution and budgets remain intact.
+- Original66:64casepass plus two retained Pharah methods with4subcase differences.
+  Actual Hack blocks Tracer RMB while preserving fire and drawn Blade state.
+  Nonempty Portal component/whole-server stored export and existingVar causal
+  mutation probes pass; source-retirement/incoming-clock work remains recorded.
+
 ### Route original Sombra device effects into existing summoned actors
 
 - Target actual Torb/Sentry/Portal actors and invoke their existing body VMs once,

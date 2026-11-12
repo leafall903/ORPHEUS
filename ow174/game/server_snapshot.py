@@ -18,9 +18,9 @@ from collections import deque
 from pathlib import Path
 
 from ow174.game import symmetra_portals, symmetra_turrets, mei_blizzard, translocators, sombra_charge, npc_controller_storage
-from ow174.game.script.player_controller import ControllerVM, ControllerWorld
+from ow174.game.script.player_controller import ControllerVM, ControllerWorld, PinEffectServices
 from ow174.game.script.controller_filter import ControllerFilterInputs
-from ow174.game.script import assassin_movement, scene
+from ow174.game.script import assassin_movement, scene, message_state, message_manager, modifiers
 from ow174.game import (
     assassin_controller,
     enforcer_controller,
@@ -122,6 +122,13 @@ def _names(text):
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
 FIELDS = {
+    PinEffectServices: _names("registry messages"),
+    message_state.Host: _names("contexts current manager"),
+    message_state.Context: _names("component host policy frame priority timer_notify receiver_policy "
+                                 "receiver_generation receiver_filter retired states"),
+    message_manager.Manager: _names("notify consume_work validate channels frame next_sequence "
+                                   "retired _busy _discard_revision"),
+    modifiers.NumericModifiers: _names("_source_frame ready records vector_records"),
     ControllerVM: _names("definition retired component reserved_wire_ids"),
     ControllerFilterInputs: _names("owner component_masks current_bits replicated_bits primary_status health_status flags28 provenance revision retired bound_host"),
     ControllerWorld: _names("hero mode readers filter_inputs pin_services linked_target_inputs numeric_modifiers"),
@@ -313,6 +320,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
     ball_mines.Mine,
     assassin_movement.Sample,
     ashe.Grenade, ashe.Burn, ashe.Bob,
@@ -511,7 +519,13 @@ class _Graph:
         elif kind in (set, frozenset):
             # Registered game sets here are membership sets of immutable plain keys.
             # Causal VM watcher/state sets are handled by the component adapter.
-            encoded = [replay_values.encode(value) for value in obj]
+            if obj and all(type(value) is message_state.Context for value in obj):
+                encoded = [self.value(value) for value in sorted(obj, key=lambda item: item.component.entity)]
+            elif obj and all(isinstance(value, runtime.State) for value in obj):
+                encoded = [self.value(value) for value in sorted(
+                    obj, key=lambda item: (item.instance.component.entity, item.instance.id, item.index))]
+            else:
+                encoded = [replay_values.encode(value) for value in obj]
             data = sorted(encoded, key=_json)
         elif kind in (weakref.WeakKeyDictionary, weakref.WeakSet):
             values = list(obj.items()) if kind is weakref.WeakKeyDictionary else list(obj)
@@ -569,6 +583,26 @@ class _Graph:
             _fail(f"unregistered stored domain type: {label}")
         self.nodes[number] = {"id": number, "type": label, "state": data}
 
+    def _controller_storage_refs(self, component):
+        """Keep declared controller services in this enclosing causal graph."""
+        world = component.world
+        if type(world) is not ControllerWorld:
+            return {}
+        objects = []
+        services = world.pin_services
+        if services is not None:
+            if (type(services) is not PinEffectServices or type(services.registry) is not scopes.Registry
+                    or type(services.messages) is not message_state.Context
+                    or services.messages.component is not component):
+                _fail("invalid controller pin service ownership")
+            objects.extend((services, services.registry, services.messages))
+        backend = world.numeric_modifiers
+        if backend is not None:
+            if type(backend) is not modifiers.NumericModifiers:
+                _fail("invalid controller modifier ownership")
+            objects.append(backend)
+        return {id(item): (item, self.value(item)) for item in objects}
+
     def finish(self):
         index = 0
         while index < len(self.objects):
@@ -581,9 +615,14 @@ class _Graph:
         for number in self.vm_nodes:
             component = self.objects[number]
             extras = self.vm_extra.get(id(component), ())
+            enclosing = self._controller_storage_refs(component)
+            def external_reference(obj):
+                entry = enclosing.get(id(obj))
+                return entry[1] if entry is not None and entry[0] is obj else None
             document, identities = export_component_vm_with_identities(
                 component, extra_roots=extras, _graph_definitions=graph_definitions,
                 _definition_digests=self.definition_digests,
+                external_reference=external_reference if enclosing else None,
             )
             bridges = []
             for storage_id, obj, scope in identities:
