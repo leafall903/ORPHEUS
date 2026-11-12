@@ -4,6 +4,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain delivered Reaper ability interlock checks
+
+- Preserve the original three command-path interlock checks unchanged. All
+  passed: Blossom/Wraith/Shadow suppress incompatible actions, retain authored
+  resource ownership and complete the locked Shadow landing correctly.
+- Core Reaper, damage-charge and shot-pattern modules remain byte-for-byte
+  identical to delivery0002. Other original cross-hero fixtures refer to split
+  source APIs that require reconciliation with combined services; retain their
+  expectations and do not treat old module naming as absent gameplay alone.
+
 ### Reconcile delivered Reaper reflected-shell attribution
 
 - Retain the launch Nano contribution and select the deflector's staff and

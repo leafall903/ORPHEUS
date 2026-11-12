@@ -34,6 +34,12 @@ The original Deflect geometry fixture remains unchanged: combined native contact
 yield222 rather than120 frontal damage, and lethal rather than80 HP back exposure.
 Evidence logs remain outside Git at `verification/worker-a-returned-shell-*.log`.
 
+A2 committed as `1e5e2358`. The original three Reaper ability-interlock checks
+are now retained unchanged and all passed. Core Reaper/damage-charge/ring modules
+match the frozen delivery exactly. Next clean-boundary action is to merge stable
+canonical `a51925d5` into this worker, then reconcile remaining cross-hero services
+and source body/lifetime paths before declaring code-level admission.
+
 Next actions, in order:
 
 1. Audit Reaper source body/lifetime boundaries and remaining cross-hero consumers;
