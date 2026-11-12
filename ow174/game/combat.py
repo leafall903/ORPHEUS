@@ -93,7 +93,7 @@ from ow174.game import (
     world_bubbles,
 )
 from ow174.game.script import support, support_effects
-from ow174.game import doomfist, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
+from ow174.game import doomfist, meteor, knockback, lucio, orisa, orisa_charge, reaper, sombra_control, sound_barrier, wall_ride
 
 NPC_MELEE = {0x1422: (0x0400000000001D40, 5, 4), 0x140E: (0x0400000000001EBB, 6, 5)}
 from ow174.game.bits import BitWriter
@@ -492,6 +492,16 @@ def ray_world(
     """The distance to the first static hit, for callers that only need occlusion."""
     hit = collision.cast_ray(origin, direction, length, category) if collision is not None else None
     return hit.distance if hit is not None else None
+
+
+def ray_cover(collision, origin, direction, length, blockers):
+    """Trace static cover plus the delivered active Cryo capsules."""
+    closest = ray_world(collision, origin, direction, length)
+    for a, b, radius in blockers:
+        hit = ray_capsule(origin, direction, a, b, radius)
+        if hit is not None and hit <= length and (closest is None or hit < closest):
+            closest = hit
+    return closest
 
 
 # --- health -------------------------------------------------------------------------------------------
@@ -1692,6 +1702,7 @@ class Combat:
         self.punch_impacts: dict[int, PunchImpact] = {}
         self.punches = doomfist.Punches(self)
         self.slams = doomfist.Slams(self)
+        self.meteors = meteor.Meteors(self)
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -1852,6 +1863,7 @@ class Combat:
         self.reaper_shadows.pop(player.body, None)
         self.punches.retire(player.body)
         self.slams.casts.pop(player.body, None)
+        self.meteors.casts.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2128,6 +2140,9 @@ class Combat:
         self.walls.cancel_preview(target.owner)
         script = getattr(actor, "body_script", None)
         self.interrupt_controlled(script, actor=actor)
+        cast = self.meteors.casts.get(target.entity)
+        if cast is not None and cast.impacted:
+            cast.finished = True
         if script is not None and mover is not None and not isinstance(actor, bots.Bot):
             active = self.movement_mods(actor, statescript_mods(script.component))
             mover.track_mods(active, script.frame)
@@ -2507,6 +2522,10 @@ class Combat:
         component.run_now()
         component.shots.clear()
 
+        cast = self.meteors.casts.get(target.entity)
+        if cast is not None and cast.impacted:
+            cast.finished = True
+
     def spawned(self, player) -> None:
         """The player's client has the world: the game mode entity gets its UI graph (mode_frame). While
         heroes are assembled the countdown's frames carry it."""
@@ -2580,6 +2599,9 @@ class Combat:
         self._sync_adaptive_shield(player)
         moira.track_clock(self, player, posed=command is not None)
         if self.is_stunned(player):
+            return
+        self.meteors.command(player, command)
+        if self.meteors.protected(player.body):
             return
         if not defer_effects:
             self._blossom(player, register=command is not None)
@@ -6497,6 +6519,9 @@ class Combat:
         component = getattr(getattr(owner, 'body_script', None), 'component', None)
         if not isinstance(component, runtime.Component) or component.owner_dead:
             return False
+        fight = getattr(getattr(component.world, 'match', None), 'combat', None)
+        if phases is None and fight is not None and fight.meteors.protected(component.entity):
+            return True
         for instance in component.instances.values():
             spec = PROTECTED_PHASES.get(instance.graph.index)
             if spec is None or (phases is not None and instance.graph.index not in phases):
@@ -7858,6 +7883,12 @@ class Combat:
         from ow174.game import body_entities
 
         self._interrupt_reaper(victim.body, victim)
+
+        self.punches.dashes.pop(victim.body, None)
+        for casts in (self.slams.casts, self.meteors.casts):
+            cast = casts.get(victim.body)
+            if cast is not None:
+                cast.finished = True
 
         body_entities.retire_source(self.match, victim.entity, victim.body, keep_bombs=True)
         self.sombra_controls.retire(victim.body)

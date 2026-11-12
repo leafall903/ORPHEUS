@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Doomfist Meteor host
+
+- Mount original Meteor targeting/confirmation, authored stages, landing warp,
+  capsule falloff, static/Cryo cover, damage/launch and shield awards. Use actual
+  health loss with the combined damage API. Protect selection/descent and finish
+  interrupted recovery or dead/retired casts without replaying impact.
+- Register Meteor controller/cast state in enclosing-server snapshots. The
+  active real-server probe passes getter-free repeatability and confirmation
+  causality using actual neutral-input charge. The original capsule-boundary
+  test passes both subcases.
+- Preserve all28 original Meteor checks, adapting module names/constants and
+  the retained shield-pool observation. Their full natural-charge run remains
+  in progress at this commit; older shared-service API observations may require
+  follow-up reconciliation. Incomplete acceptance does not block this mounted
+  implementation submission. Uppercut and other Doomfist shared consumers
+  remain pending. Original-client acceptance remains open; no client or push.
+
 ### Mount delivered Bastion Tank projectile consumers
 
 - Retain024F/23's point projectile contact and launch-frozen charge suppression,

@@ -84,3 +84,9 @@ repositioning, but the older manual begin/stop/wait/attack-mode contract is not
 the same API. Preserve the frozen implementation and original NPC checks while
 reconciling actual behavior. A source-package fallback used only to load a Tank
 player fixture does not demonstrate that the manual NPC implementation is merged.
+
+B3 `89d4114e` is received by the merge named `merge: receive worker B Meteor
+host integration`. All14 focused original Meteor range/runtime checks passed.
+Worker B retains and runs the complete28-check neutral-charge suite separately;
+its long-running result does not prevent submission of mounted implementation.
+No complete Doomfist line or client acceptance is inferred from this batch.
