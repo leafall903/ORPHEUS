@@ -29,10 +29,20 @@ Sentry rear-core capsule and historical yaw. Its commit subject is
 this branch before reception. Four owner checks pass; shared checks pass46/49,
 with all three failures reproduced unchanged atcd7cb8f3.
 
+Third batch: `feat: integrate delivered Bastion Tank projectiles` mounts the
+original Tank charge/contact/self-splash/impulse/body-retirement consumers.
+Second batch SHA: `247f0bce`, received by root as canonical566dc09a.
+The11 Tank player checks pass using the frozen real sniper helper solely to
+satisfy the unchanged NPC fixture import; its normal import remains unresolved.
+Shared Helix/Tracer projectile run records7 passes,1 external Matrix skip and
+1 missing sigma_accretion import. No client or NPC acceptance is claimed.
+
 ## Exact next work
 
-1. Reconcile the remaining Tank splash/impulse/lifecycle consumers and external
-   cross-hero helpers; compare owner features, not just ancestry or file names.
+1. At this clean commit boundary merge the latest root canonical locally,
+   retaining input_suppressed and all received shared implementations. Then
+   audit the remaining Bastion cross-hero helpers and original combat checks;
+   compare owner features, not just ancestry or file names.
 2. Continue the other seven deliveries. Substantial missing owner families include
    Torbjorn turret/Molten Core, Symmetra portals/turrets, Junkrat mine/tire,
    Mei Blizzard/frost, Sombra cloak/translocator and Ashe/BOB.

@@ -1028,7 +1028,9 @@ def hit_def(state, cfg) -> HitDef | None:
         duration=0.6 if graph_index == 0x0B94 and node_index in (5, 44) else 0.0,
         projectile_headshot=icicle or graph_index in (0x0304, 0x0BD4, 0x0164),
         knockback=_accretion_knockback(state, modify),
-        projectile_extent=0.0 if graph_index == 0x0BD4 else value("m_57DAE1B5", 0.0),
+        projectile_extent=(0.0 if graph_index == 0x0BD4 or (
+            state.instance.component.world.hero == BASTION and (graph_index, state.node.pos) == (0x024F, 23)
+        ) else value("m_57DAE1B5", 0.0)),
         healing=modify.get("m_93CDFD2F") == 0,
         health_operation=modify.get("m_93CDFD2F") if modify else None,
     )
@@ -1264,6 +1266,7 @@ class Rocket:
     rebound_limit: int | None = None
     rebound_scale: float = 0.0
     hit_entities: set[int] = field(default_factory=set)
+    charge_eligible: bool = True  # Tank suppression is frozen at emission, even after mode expiry.
 
 
     @property
@@ -1894,7 +1897,8 @@ class Combat:
             rocket for rocket in self.rockets
             if rocket.shooter is not player
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
-                and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False))
+                and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
+                and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
         ]
         self.frost_hits.pop(player.body, None)
         self.genji_strikes.pop(player.body, None)
@@ -4683,6 +4687,8 @@ class Combat:
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
                         source_body=_source_entity(shooter) if server_ability or not npc else None,
                         damage_charge=charge_context,
+                        charge_eligible=not (not npc and shooter.hero.guid == BASTION
+                                             and source_graph == 0x024F),
                         boost_credit=(direct.boost_credit if direct is not None else
                                       blast.boost_credit if blast is not None else None),
                         target_limit=target_limit,
@@ -5670,6 +5676,7 @@ class Combat:
                     world_tick=self.tick, hit_tags=direct.tags,
                     broken_particle_barriers=broken_particle_barriers, source_body=rocket.source_body,
                     damage_charge=rocket.damage_charge, boost_credit=rocket.boost_credit,
+                    award_ult=rocket.charge_eligible,
                 )
                 if landed:
                     self._hit_effect(struck, direct.effect, shooter=rocket.shooter)
@@ -5701,7 +5708,8 @@ class Combat:
         self._landed(rocket)
         damage_point = (_along(point, rocket.direction, 1e-4)
                         if struck is None and rocket.direct is not None
-                        and rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT else point)
+                        and (rocket.direct.loadout == SOLDIER_WEAPON_LOADOUT
+                             or (rocket.source_graph == 0x024F and not rocket.charge_eligible)) else point)
         self._explode(rocket, point, impact_barrier=impact_barrier, ice=ice, shield=shield,
                       deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers,
                       damage_point=damage_point)
@@ -6022,7 +6030,10 @@ class Combat:
                     manager.splash(actor, blast, distance, multiplier=boost)
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
-        if (blast is not None and (blast.loadout == SOLDIER_WEAPON_LOADOUT or getattr(rocket, "pulse_bomb", False))
+        tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
+        if (blast is not None and (blast.loadout == SOLDIER_WEAPON_LOADOUT
+                or getattr(rocket, "pulse_bomb", False)
+                or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
                 and blast.self_scale > 0
                 and rocket.source_entity == _source_entity(rocket.shooter)):
             candidates = list(candidates)
@@ -6132,7 +6143,7 @@ class Combat:
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
-                    award_ult=target.owner is not rocket.shooter,
+                    award_ult=rocket.charge_eligible and target.owner is not rocket.shooter,
                 )
                 if (blast.loadout == SOLDIER_WEAPON_LOADOUT and not self.vitals_of(target).dead
                         and (landed or defenses.invulnerable(target.owner))):
@@ -6140,6 +6151,10 @@ class Combat:
                         max(0.0, segment_distance(point, *target.segment()) - target.radius),
                         own=target.entity == rocket.source_entity,
                     ))
+                if (tank and landed and not self.vitals_of(target).dead
+                        and not defenses.invulnerable(target.owner)
+                        and not immunity.fortified(target.owner, target.entity)):
+                    self._tank_impulse(target, damage_point, blast)
                 if landed:
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
                     if rocket.accretion_source is not None and (
@@ -6243,6 +6258,37 @@ class Combat:
             if slot is not None and expr.truthy(slot.value()):
                 vitals.healing_block = vitals.healing_block[0], self.now
                 break
+
+    def _tank_impulse(self, target: Target, point, blast: HitDef) -> None:
+        """Delivered Tank rings resolve independent horizontal and vertical coefficients."""
+        a, b = target.segment()
+        nearest = (a[0], max(a[1], min(point[1], b[1])), a[2])
+        delta = _sub(nearest, point)
+        distance = max(0.0, math.sqrt(_dot(delta, delta)) - target.radius)
+        previous = None
+        for radius, flat, up in blast.impulse_rings:
+            if distance < radius:
+                if previous is not None:
+                    inner_radius, inner_flat, inner_up = previous
+                    share = (distance - inner_radius) / max(0.0001, radius - inner_radius)
+                    flat = inner_flat + (flat - inner_flat) * share
+                    up = inner_up + (up - inner_up) * share
+                x, y, z = delta
+                length, ground = math.hypot(x, y, z), math.hypot(x, z)
+                impulse = (x / ground * blast.horizontal_impulse * flat if ground > EPSILON else 0.0,
+                           y / length * blast.vertical_impulse * up if length else 0.0,
+                           z / ground * blast.horizontal_impulse * flat if ground > EPSILON else 0.0)
+                if any(impulse):
+                    if isinstance(target.owner, bots.Bot):
+                        from ow174.game.collision import TEAM0, TEAM1
+
+                        category = (MOVER if self.match.game_map.free_for_all or target.team not in (0, 1)
+                                    else (TEAM0, TEAM1)[target.team])
+                        target.owner.apply_impulse(impulse, self.tick, self._collision(), category=category)
+                    else:
+                        target.owner.mover.apply_impulse(impulse)
+                return
+            previous = radius, flat, up
 
     def _blast_impulse(self, target: Target, point, blast: HitDef, scalar: float) -> None:
         """Scoped radial/upward Helix force; native resistance/order remain open."""

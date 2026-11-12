@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Bastion Tank projectile consumers
+
+- Retain024F/23's point projectile contact and launch-frozen charge suppression,
+  including a shell landing after Tank ends. Add the delivered owner splash
+  scalar and independently interpolated horizontal/vertical blast force rings;
+  apply actual capsule distance, Fortify/invulnerability and lethal-hit gates.
+- Preserve the true wall contact for damage/impulse while retaining the combined
+  incident-side cover point. Retire unleased Tank shells on body replacement,
+  while already flying shells survive ordinary death with original attribution.
+- Preserve original Tank blast, cadence, lifecycle and NPC fixture checks.
+  Eleven focused player/contact/expiry/cadence/lifecycle checks pass. The unchanged
+  NPC fixture imports an unmerged sniper_reposition helper: this focused run
+  loads that real helper from the frozen external source fallback; no NPC path
+  runs and no NPC acceptance is claimed. Keep the missing normal import visible.
+- Shared projectile run: seven passes, one Matrix external-data skip, one import
+  error from the retained Tracer/Pharah fixture's missing sigma_accretion owner.
+  No check is removed or weakened. Client and remaining cross-hero integration
+  stay open; this does not postpone submission of the functional batch.
+
 ### Mount delivered Bastion spread and Sentry rear core
 
 - Retain Recon239B571E's authored ramp and between-shot decay, Sentry's
