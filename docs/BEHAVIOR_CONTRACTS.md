@@ -42,6 +42,19 @@ python -S -B -m unittest tests.public.test_career_contracts
 
 Client acceptance is partial. The original client showed these four stats for two heroes and for "All Heroes" under All Modes from a prepared profile, and time played in a real match reached the saved profile. The contract does not cover how a match splits its numbers by hero, the per-mode categories, or the stats not counted yet.
 
+## Target filter masks
+
+The [target-filter fixture](../fixtures/behavior/target-filter-v1.json) gives sixteen cases for the six masks of a `STUConfigVarFilter`: three entity-bit masks (any, all, excluded) and three relation masks (any, required, excluded), with relation bit 0 for not hostile, bit 1 for hostile and bit 2 for the owner. The masks are those of Guardian Angel's, the Caduceus Staff's and Hack's target searches, a tagged-enemy filter, and an empty filter. The expected answers follow the client's own test, read from its code at image offset `0xBCAAE0` and recorded in the [TrackTargets note](research/track-targets.md).
+
+The [Python consumer](../tests/public/test_target_filter_contracts.py) calls `combat.filter_admits` with each case's masks, the candidate's bits and its relation to the owner. It needs neither installed dependencies nor prepared runtime data:
+
+```powershell
+$env:PYTHONPATH = 'src'
+python -S -B -m unittest tests.public.test_target_filter_contracts
+```
+
+The contract covers the mask test alone. The filter's condition and tag lists, the search's range, cone, sight and scoring need a collision world and bodies and have runtime tests only. Which bits a body carries is a reconstruction and is not part of the contract. Client acceptance is partial: the original client was seen to fly Mercy to an ally, draw the staff's beam to an ally and cast Hack on an enemy, which exercise the ally and enemy cases and none of the others.
+
 ## Fixture fields
 
 | Field | Meaning |
