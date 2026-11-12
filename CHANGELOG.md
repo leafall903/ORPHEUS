@@ -106,6 +106,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   v18 remains candidate pending actual NPC admission; no client acceptance run.
 
 
+### Restore original sleep view owner queries and authored delay
+
+- Existing strict224E sampler now reads the actual owner's yaw/pitch; sampling
+  follows original Wait29 and retains the initial hit clock after wake shortening.
+  Preserve existing unknown-parent checks and avoid a second sampler world.
+- Real Dart4 cases cover default/explicit authored wait, early damage, continued
+  view hold and exact wake release. Two methods pass; an older Moira fixture's
+  tick-versus-seconds deadline expectation remains unchanged and recorded.
+
 ### Deliver original manual Assassin effects to the real player controller
 
 - Original declared target-filter provider, paired native queries and PlayScript

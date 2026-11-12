@@ -1014,6 +1014,16 @@ class BodyWorld(runtime.World):
                 result = resolve(self, cfg, instance)
                 if result is not NotImplemented:
                     return result
+
+        if (self.match is not None and instance is not None and instance.graph.index == 0x224E
+                and cfg.get("$") in ("STU_CC53F52B", "STU_7BE6D76D")):
+            value = play.evaluate_scalar(instance, cfg.get("m_entity"), initial=expr.EVALUATION_FAILED)
+            if expr.to_entity(value) == self.body:
+                player = self.match.script_player_body(self.body, self.body)
+                if player is not None:
+                    units = player.mover.yaw if cfg["$"] == "STU_CC53F52B" else player.mover.pitch
+                    return expr.f32(units * (360.0 / 65536))
+            return expr.EVALUATION_FAILED
         if (cfg.get("$") == "STU_0762B33A" and self.match is not None and instance is not None
                 and instance.graph.index == 0x1513 and not instance.component.strict):
             value = instance.graph.node(45).field("m_value")
