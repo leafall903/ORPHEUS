@@ -100,6 +100,17 @@ Sentry to Recon (wall295 versus235) and Heavy melee lacks displacement despite
 correct damage. Do not remove original stance/movement bridges or assertions.
 C6 full snapshot process53540/session33339 still runs; do not restart it.
 
+Ninth batch SHA: `e9849f58`, received by root as2378f2d7; explicit motion tag
+removed the Echo parser exception, with two original payload/charge differences
+retained. C8 received asf3989db0. Clean local synchronization:45830030.
+Tenth batch: `feat: retain delivered Pharah source sight and boundary behavior`
+mounts the original independent middle/nearest source sight consumer. All45
+original charge9/flight11/edges18/basic-combat7 checks pass; all17 impulse/Helix
+checks pass. Source checks are unchanged; whole-line equivalence remains open.
+C6 full server-snapshot process53540/session33339 remains active after26 CPU
+minutes, with buffered PowerShell output still empty. Do not label it green or
+start another copy; other concrete batches continue independently.
+
 ## Exact next work
 
 1. At this clean boundary synchronize latest root canonical (retain all owners),
@@ -123,3 +134,7 @@ Focused Self-Repair/resource/death/gap/Tank checks passed7/7 after this batch.
 Further charge and storage results belong to CHANGELOG.md and external logs.
 No complete Bastion or original-client acceptance is claimed. The other seven
 assigned deliveries are not yet reconciled by this worker.
+
+Canonical synchronization after C9: f3989db0; preserve all original worker A/B/root
+consumers. Only CHANGELOG required conflict resolution, retaining both entries.
+C10 must verify received NPC/sniper, Doomfist and retained movement bridges.

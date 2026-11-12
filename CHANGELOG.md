@@ -4,6 +4,45 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Retain delivered Pharah charge, flight and source sight consumers
+
+- Preserve the original charge, flight-boundary and rocket-edge suites unchanged.
+  All45 original charge/flight/edge/basic-combat checks pass after mounting the
+  delivered independent middle/nearest source-impulse sight samples. Source
+  impulse cover admission remains independent of body-damage LOS and uses the
+  existing combined world/shield/path services.
+- All17 Pharah impulse/Helix checks pass after the sight change. Preserve the
+  previous low/high/full-cover assertions rather than adjusting trace counts or
+  push expectations. This completes the reviewed core consumers, while remaining
+  NPC/defense/barrier/control equivalence and original-client scope stay open.
+- Synchronize root canonicalf3989db0 through the local coordination merge,
+  retaining NPC/sniper, worker A/B control and movement implementations.
+  C6's full server-snapshot process remains independently active; root focused
+  storage checks passed and incomplete whole-suite acceptance does not delay
+  submission of this existing implementation.
+
+### Mount delivered Pharah blast and impulse consumers
+
+- Mount authored self-damage, independent force rings, source force scaling,
+  vertical minimum and owner blast geometry. Zero-damage Concussion gets an
+  authoritative host even without a prediction lease; it applies force through
+  existing world/shield services without damage, charge or hit markers.
+- Retain the original modifier26 response and one-frame vector ADD adapter,
+  applied after persistent SET. Body replacement retires queued local impulses.
+  Use true impact distance/normal and incident chord separately from cover bias;
+  preserve source LOS admission, Fortify/phase exclusions and existing health pools.
+- Fix the C6 cross-owner motion collision reported by worker B: only an explicit
+  source002B/barrage_source tag enters the seven-field curve parser, curve-eye
+  selection or curve redirect. Preserve other owners' motion payloads and their
+  ordinary gravity/sticky lifecycle rather than guessing from tuple shape.
+- All34 original Pharah impulse/Helix/Tank/physics checks pass; all five original
+  curve/reflection checks still pass after the tag fix. Echo Deflect completes
+  eight checks without a motion-parser error: six pass, two retained payload/
+  copied-charge expectations differ in this pre-A7 worktree. Source checks stay
+  unchanged; latest root Echo code will be synchronized at the clean boundary.
+- Full C6 server-snapshot run remains active; no complete Pharah/client or
+  remaining NPC/control/charge acceptance is claimed by this batch.
+
 ### Restore delivered manual NPC melee and charge entry points
 
 - Restore the original mutually exclusive melee/charge/reposition selection

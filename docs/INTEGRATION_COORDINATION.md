@@ -215,7 +215,7 @@ Reproduce from this worktree:
 
 ```powershell
 & ../../ORPHEUS/.venv/Scripts/python.exe -B tools/prepare_hero_inputs.py --runtime ../combined-server-runtime --mercy-effects ../combined-server-runtime/mercy-effect-graphs.json.gz --graph-supplement ../hero-lanes/007A/mech-npc-supplement.json.gz --movers-supplement ../hero-lanes/007A/mech-npc-movers.json --projectile-tags ../hero-lanes/006E/prepared/projectile_tags_174.json --output ../parallel-merge/runtime-inputs-v2
-$profile = Get-Content ../parallel-merge/runtime-inputs-v1/environment.json -Raw | ConvertFrom-Json
+$profile = Get-Content ../parallel-merge/runtime-inputs-v2/environment.json -Raw | ConvertFrom-Json
 foreach ($entry in $profile.environment.PSObject.Properties) { [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, 'Process') }
 ```
 
