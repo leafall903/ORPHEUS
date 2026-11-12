@@ -1,4 +1,5 @@
-"""Mercy's target searches on the server: Guardian Angel flies to the ally she aims at, the staff locks one.
+"""Target searches on the server: Guardian Angel flies Mercy to the ally she aims at, her staff locks and
+heals one, Sombra's Hack takes the enemy she aims at.
 
 The search is the client's own (docs/research/track-targets.md): from the eye along the aim, the filter's
 masks, the cone, clear sight, and the best score where one target is asked for.
@@ -17,10 +18,10 @@ from ow174.game.commands import Command
 from ow174.game.content import heroes
 from ow174.game.script.expr import Entity
 
-MERCY = 0x02E0000000000004
-GUARDIAN_ANGEL, STAFF = 0x006E, 0x006B
-TARGET = 375  # both graphs keep their target in #375
-FIRE, ABILITY_1 = 0x01, 0x08
+MERCY, SOMBRA = 0x02E0000000000004, 0x02E000000000012E
+GUARDIAN_ANGEL, STAFF, HACK = 0x006E, 0x006B, 0x0B1B
+TARGET = 375  # the three graphs keep their target in #375
+FIRE, SECONDARY, ABILITY_1 = 0x01, 0x02, 0x08
 GROUND = 1.0  # FLOOR's top
 # The filters as authored: any, all and excluded entity bits, then any, required and excluded relations.
 GUARDIAN_ANGEL_FILTER = (0, 1, 0x200000, 1, 0, 4)
@@ -35,19 +36,19 @@ def degrees(angle: float) -> int:
 
 
 class Arena:
-    """Mercy at the origin facing +Z, and one more player per (ally, position)."""
+    """The hero (Mercy unless named) at the origin facing +Z, and one more player per (ally, position)."""
 
-    def __init__(self, *others, walls=()) -> None:
+    def __init__(self, *others, walls=(), hero=MERCY) -> None:
         self.run = Run(names=tuple("ABC"[: 1 + len(others)]))
         self.match = self.run.match
-        self.mercy, *self.others = self.run.players
-        assert self.match.switch_hero(self.mercy, heroes()[MERCY])
+        self.owner, *self.others = self.run.players
+        assert self.match.switch_hero(self.owner, heroes()[hero])
         self.match.bots.clear()
         world = World(FLOOR + list(walls))
         self.match.collision_world = world
         places = ((True, (0.0, GROUND, 0.0)), *others)
         for player, (ally, position) in zip(self.run.players, places, strict=True):
-            player.team = self.mercy.team if ally else 1 - self.mercy.team
+            player.team = self.owner.team if ally else 1 - self.owner.team
             player.mover.use(world=world)
             player.mover.position[:] = position
         self.steps(30)
@@ -56,21 +57,24 @@ class Arena:
         for _ in range(count):
             self.run.frame += 1
             self.match.update(self.run.frame * combat.TICK, self.run.frame)
-            self.mercy.take_commands([Command(self.run.frame, yaw=yaw, buttons=buttons)])
+            self.owner.take_commands([Command(self.run.frame, yaw=yaw, buttons=buttons)])
             for other in self.others:
                 other.take_commands([Command(self.run.frame)])
 
+    def value(self, graph: int, var: int):
+        instances = self.owner.body_script.component.instances.values()
+        found = next(i for i in instances if i.graph.index == graph).vars.get(var)
+        return found.value() if found is not None else None
+
     def target(self, graph: int) -> tuple:
-        instances = self.mercy.body_script.component.instances.values()
-        var = next(i for i in instances if i.graph.index == graph).vars.get(TARGET)
-        return tuple(var.value() or ()) if var is not None else ()
+        return tuple(self.value(graph, TARGET) or ())
 
     def fly(self, yaw: int = 0) -> float:
         """Hold Shift for a second: how far Mercy went."""
-        start = tuple(self.mercy.mover.position)
+        start = tuple(self.owner.mover.position)
         self.steps(60, ABILITY_1, yaw)
-        assert self.mercy.body_script.component.fault is None
-        return math.dist(start, self.mercy.mover.position)
+        assert self.owner.body_script.component.fault is None
+        return math.dist(start, self.owner.mover.position)
 
 
 class FilterTests(unittest.TestCase):
@@ -133,7 +137,7 @@ class GuardianAngelTests(unittest.TestCase):
         self.assertGreater(arena.fly(), 5.0)
         ally = arena.others[0]
         self.assertEqual(arena.target(GUARDIAN_ANGEL), (Entity(ally.body),))
-        gap = math.dist(arena.mercy.mover.position, ally.mover.position)
+        gap = math.dist(arena.owner.mover.position, ally.mover.position)
         self.assertTrue(2.0 < gap < 4.0, gap)  # the graph stops her short of him
 
     def test_no_flight_without_a_target(self):
@@ -171,7 +175,7 @@ class StaffTests(unittest.TestCase):
     def locked(self, *others, walls=()) -> tuple:
         arena = Arena(*others, walls=walls)
         arena.steps(40, FIRE)
-        self.assertIsNone(arena.mercy.body_script.component.fault)
+        self.assertIsNone(arena.owner.body_script.component.fault)
         return arena, arena.target(STAFF)
 
     def test_fire_at_an_ally_locks_him(self):
@@ -201,7 +205,7 @@ class StaffTests(unittest.TestCase):
         before = vitals.total
         arena.steps(125, FIRE)  # two seconds
         self.assertAlmostEqual(vitals.total - before, 2 * 55.0, delta=2.0)  # 006B #6578
-        self.assertGreater(arena.mercy.stats.value(stats.HEALING), 100.0)
+        self.assertGreater(arena.owner.stats.value(stats.HEALING), 100.0)
 
     def test_the_beam_does_not_heal_an_enemy_or_past_full_health(self):
         arena = Arena((False, (0.0, GROUND, 6.0)))
@@ -213,6 +217,54 @@ class StaffTests(unittest.TestCase):
         vitals = arena.match.combat.body_vitals(arena.others[0].body, arena.others[0])
         arena.steps(120, FIRE)
         self.assertAlmostEqual(vitals.total, 200.0)
+
+
+class HackTests(unittest.TestCase):
+    """Graph 0B1B: the search (node 50), the hold on its target (node 52), the cast and the cooldown."""
+
+    CAST, COOLDOWN = 670, 61  # the cast's length, and the cooldown's seconds left
+
+    def hack(self, *others, walls=(), frames=10):
+        arena = Arena(*others, walls=walls, hero=SOMBRA)
+        arena.steps(frames, SECONDARY)
+        self.assertIsNone(arena.owner.body_script.component.fault)
+        return arena
+
+    def test_secondary_fire_at_an_enemy_takes_him(self):
+        arena = self.hack((False, (0.0, GROUND, 8.0)))
+        self.assertEqual(arena.target(HACK), (Entity(arena.others[0].body),))
+
+    def test_no_target(self):
+        cases = {
+            "an ally": ((True, (0.0, GROUND, 8.0)),),
+            "an enemy past the range": ((False, (0.0, GROUND, 16.0)),),
+            "an enemy outside the cone": ((False, (8.0, GROUND, 8.0)),),
+        }
+        for name, others in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.hack(*others).target(HACK), ())
+
+    def test_no_target_through_a_wall(self):
+        blocked = wall(-5.0, 4.0, 5.0, 4.0, y0=GROUND, y1=GROUND + 6.0)
+        self.assertEqual(self.hack((False, (0.0, GROUND, 8.0)), walls=blocked).target(HACK), ())
+
+    def test_the_cast_takes_the_graphs_time_and_then_the_cooldown_runs(self):
+        arena = self.hack((False, (0.0, GROUND, 8.0)))
+        cast = arena.value(HACK, self.CAST)
+        self.assertGreater(cast, 0.3)
+        self.assertFalse(arena.value(HACK, self.COOLDOWN))
+        frames = 10
+        while not arena.value(HACK, self.COOLDOWN) and frames < 200:
+            arena.steps(1, SECONDARY)
+            frames += 1
+        # From the press: the search, the hold on the target, then the cast.
+        self.assertAlmostEqual(frames * combat.TICK, cast, delta=0.25)
+        self.assertGreater(arena.value(HACK, self.COOLDOWN), 1.0)
+
+    def test_letting_go_before_the_cast_ends_starts_no_cooldown(self):
+        arena = self.hack((False, (0.0, GROUND, 8.0)))
+        arena.steps(120)
+        self.assertFalse(arena.value(HACK, self.COOLDOWN))
 
 
 class BodyFilterBitsTests(unittest.TestCase):

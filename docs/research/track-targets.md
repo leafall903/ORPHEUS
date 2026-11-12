@@ -277,6 +277,23 @@ The body rays are the wheel's (`0xCA3570`; [its notes](../COMMUNICATION_WHEEL.tx
 points and their order: the primary hardpoint, 30 % of the body's height, the secondary hardpoint
 or 60 %). `m_8D13DD07` is 0 on every node, so no lateral rays.
 
+The node's other sight fields, read from the same function (its stack arguments in the order the
+refresh passes them at `0xCAF5A1`):
+
+- **`m_229DD034`** is a list of hardpoints of the candidate, not of the owner. Each is resolved on
+  the candidate's model and a ray is cast to it before any other point; a clear one ends the test
+  (`0xCA3B87`). Hack names `01D5.03C`. If the list holds the primary hardpoint `0001.03C` the
+  default order does not try that one again.
+- **`m_9E1426F6`** is a list of world points and **`m_BA6C9F75`** a list of points in the
+  candidate's own space, tried the same way next (`0xCA3C66`, `0xCA3D24`).
+- **`m_48837057`** is a point, and it is used only when **`m_294660A6`** is true: then it stands
+  in for the 30 % point (`0xCA38BE`). Hack's nodes 50 and 68 set the point and leave the flag
+  empty, so their point is not used.
+- **`m_47AB1887`** is a list of two-leg paths (`0xCA4450`): from the sight origin to a point
+  beside it (`m_start` or the origin, moved by `m_83BE3F26`), then from there to `m_end`. Hack's
+  node 52 has three, 0.2 and 0.3 m off the origin, each ending at the target. How their result
+  and `m_C1B724B2` combine with the body rays (`0xCA3AF6`) is not settled.
+
 ### The order
 
 `0xC89F60` returns at once when `m_43478CAD` is 0. Otherwise `0xCA9570`:
@@ -318,12 +335,30 @@ candidate's own variable `#478`.
 - **Staff**, node 7: the candidate is the target already in `#375`. So this node only says whether
   the present target is still within the radius and in sight, and keeps it one second longer
   (`m_93AB8C13`).
-- **Hack**, nodes 50 and 68: the owner's `#2426`, not `c.#11264`, not the owner's `#61`, then a
-  choice between kinds of target made with `STU_AC829876` (does an entity pass a filter,
-  `0xCF4340`) on five filters, four of them with a required tag (`029C.0D6`, `0034.0D6`,
-  `03A6.0D6`, `06E6.0D6`) and one with a condition of its own on `STU_53F4CA65` (`0xCEAD90`);
-  with `STU_7C005F8F` (`0xCCBF90`), `STU_1A3FA5B0` (`0xCC99A0`) compared with the entity
-  definition `0216.004`, and `c.#7982`, `c.#842` and `c.#14679`. Those evaluators are not read.
+- **Hack**, node 50, opcode by opcode. All of these must hold:
+  1. the owner's `#2426`;
+  2. not `c.#11264`;
+  3. not the owner's `#61`, the cooldown's seconds left;
+  4. a kind of target: either the candidate passes the filter "bit 0, hostile, not the owner"
+     and is not hidden from the owner (`STU_7C005F8F` false, or `c.#7982` set), or it passes one
+     of four more filters, each asking for a tag (`029C.0D6`, `0034.0D6`, `03A6.0D6`,
+     `06E6.0D6`);
+  5. not both "its entity definition is `0216.004`" (`STU_1A3FA5B0`) and `c.#842`;
+  6. not `c.#14679`.
+- **Hack**, node 52: the candidate is the target in `#375`, with the same hidden test.
+- `STU_AC829876` (`0xCF4340`) asks the filter evaluator of the search itself, `0xD0DA20`, about
+  one entity. `STU_7C005F8F` (`0xCCBF90`) takes the two entities' filter components and calls the
+  relation function `0xC1DB00`, which is not read; "hidden from" is what its place in the
+  condition suggests. `STU_1A3FA5B0` (`0xCC99A0`) and `STU_53F4CA65` (`0xCEAD90`, inside the
+  `029C.0D6` filter's own condition) are not read.
+- **`#2426`** is set by graph `01C7`, which graph `004B` mounts on every hero's body: its node 77
+  holds it on while one of two standing messages reaches the body, `0694.025` or `0700.025`, and
+  the game mode's graphs are the senders (`STU_38EE1100` states). Entries for `002D.025` and
+  `054B.025` set it from the mode's phase instead.
+
+Hack's own numbers, read from a run of graph `0B1B`: the search and the hold reach `#1648` = 15 m,
+the cast (the Wait under node 52) lasts `#670` = 0.65 s, and the cooldown `#61` starts from
+`#472` = 8 s when the cast ends. Letting go before the cast ends starts no cooldown.
 
 The cone's width on Guardian Angel, the staff and Hack is the authored angle times `#9582`, `#9583`
 and `#9584`, entity variables that no graph writes.
@@ -331,7 +366,7 @@ and `#9584`, entity variables that no graph writes.
 ## What the server implementation takes on trust
 
 `combat.track_targets` plays the search for the nodes whose source is the owner's eye and whose
-direction is the owner's aim, in Mercy's two graphs: Guardian Angel's and the staff's. Zarya's,
+direction is the owner's aim, in three graphs: Guardian Angel's, the staff's and Hack's. Zarya's,
 Zenyatta's and Ana's ally searches have the same shape and are left unanswered until they are
 checked. Where the decode stops, it does this, and each point is a reconstruction:
 
@@ -353,8 +388,20 @@ checked. Where the decode stops, it does this, and each point is a reconstructio
    on (`#6578`), to the ally in `#468`. Graph `0079` is not mounted on the target: the local
    runtime pack does not hold it, nor `006C`. The boost does nothing on the server.
 
-Hack's nodes are not answered: their sight goes through two hardpoint fields and their condition
-through evaluators that are not read.
+For Hack in particular:
+
+9. **`#2426`** is held on by the server for a body whose search asks, since the server plays no
+   mode sender states. It is sent to the owner like any shared variable.
+10. **`STU_AC829876`** is answered in Hack's graph alone, with the masks and the condition of its
+    filter. A filter that asks for a tag finds nobody: the server keeps no tags for bodies, so
+    Hack takes hostile bodies only, not the tagged kinds of target.
+11. **`STU_7C005F8F`** and **`STU_1A3FA5B0`** are not computed and read as empty: nobody is
+    hidden from Sombra, and no body is the definition `0216.004`.
+12. **Sight** tries the candidate's hardpoint `01D5.03C` first when the body's pose is known, then
+    the body rays, with `002D.097` taken to have the static mask 0x1FDF. Node 52's two-leg paths
+    are not played.
+13. **After the cast** the graph's own nodes run, as far as the server models them. What the hack
+    does to its target is not checked.
 
 ## What the client's own copies of the searches need
 
@@ -400,6 +447,15 @@ The original client in the Practice Range as Mercy, driven by a virtual gamepad.
 - **Could not show.** Healing: the bot was at full health and nothing in the Range damages it.
 - **Not tried.** An ally outside the cone or behind a wall, an enemy, a second player.
 
+**Run 3, the same day, Sombra.**
+
+- **Seen.** Holding secondary fire at a Training Bot about 10 m ahead, a few degrees off the
+  crosshair: purple beams run from her hand to the bot (one picture, taken within 0.3 s of the
+  press). The next picture, 0.6 s later, has no beam: the cast had ended. Seven seconds on, the
+  ability's icon on the HUD shows a countdown.
+- **Not seen.** Any sign on the bot that it was hacked.
+- **Not tried.** An ally, a bot behind cover, letting go early.
+
 ## Not decoded
 
 The server implementation states which of these it had to assume.
@@ -417,5 +473,7 @@ The server implementation states which of these it had to assume.
 - `0xDA8BD0` in the filter, `m_E4A295CE`, `m_1C2A9945` (it reaches the gathering as context
   +0x340 together with a component of the owner) and `m_47AB1887` (a list of segments on Hack's
   node 52).
-- Hack's hardpoint fields `m_229DD034` and `m_48837057` inside `0xCA3570`.
+- The relation function `0xC1DB00` behind `STU_7C005F8F`, and `STU_1A3FA5B0`, `STU_53F4CA65`.
+- How `m_47AB1887`'s paths and `m_C1B724B2` combine with the body rays.
+- What Hack's graph does to its target after the cast (its PlayScript, node 141).
 - The built-in orders without a score.

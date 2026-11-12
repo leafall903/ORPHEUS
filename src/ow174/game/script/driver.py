@@ -135,6 +135,14 @@ WEAPON_SLOTS, DEFAULT_SLOT, OWNER_HEALTH, HUD_HEALTH, HUD_MAX_HEALTH = 29, 16515
 # reconstruction: no graph writes them, so they are taken to be the player's sensitivity options
 # for those abilities, and the server plays the options' 100 %.
 TARGET_SENSITIVITY = (9582, 9583, 9584)
+# Hack's first condition. Graph 01C7 holds it on while one of the mode's standing messages 0694 or
+# 0700 reaches the body. reconstruction: the server plays no mode sender states, so it holds the
+# variable on for a body whose search asks.
+ABILITY_GATE = 2426
+FILTER_MASKS = ("m_84065FD1", "m_1E14CCA8", "m_4EA686DB", "m_27CF71D5", "m_66747E7D", "m_89831602")
+FILTER_TAGS = (
+    "m_93FA1642", "m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3", "m_C1903771", "m_F61726FE", "m_B40362FC",
+)
 NOT_SENT = {OWNER_HEALTH, *TARGET_SENSITIVITY}  # the client derives them itself (never sent)
 BODY_SCALE_OVERRIDE = 31210  # the common body graph's size modifier input
 # The world's config vars whose server answer is the client's for a human player's own body (computed, or
@@ -459,7 +467,14 @@ class BodyWorld(runtime.World):
                         # The match does not attach a pet owner to these player bodies.
                         # Node 120 short-circuits before its component43 comparison.
                         return Entity(0)
-        if cls == "STU_AC829876":  # does an entity pass a filter (teams, tags): not modelled
+        if cls == "STU_AC829876":  # does an entity pass a filter (CF4340, the search's own D0DA20)
+            config = cfg.get("m_filter") or {}
+            # Answered for Hack's graph alone so far, and for bodies: a tag is a kind of entity the
+            # server does not keep, so a filter that asks for one finds none.
+            if self.match is not None and instance is not None and instance.graph.index == 0x0B1B:
+                entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
+                return (all(config.get(name) is None for name in FILTER_TAGS)
+                        and self.filter_admits(instance, config, entity))
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
         return super().native(cfg, instance)
@@ -724,14 +739,13 @@ class BodyWorld(runtime.World):
     def aimed_targets(self, state) -> tuple[int, ...]:
         """One refresh of a search from the owner's eye along its aim (nodes.TrackTargets.aimed_search)."""
         from ow174.game import combat
-        from ow174.game.script import play
 
         fields = state.node.fields
         component = state.instance.component
-        for var in TARGET_SENSITIVITY:
+        for var, value in ((ABILITY_GATE, True), *((var, 1.0) for var in TARGET_SENSITIVITY)):
             found = component.entity_var(var, create=False)
             if found is None or found.value() is None:
-                component.set(var, 1.0)
+                component.set(var, value)
 
         def number(config, default=0.0) -> float:
             return default if config is None else expr.to_float(state.evaluate(config, watch=False))
@@ -747,23 +761,30 @@ class BodyWorld(runtime.World):
             score = (number(screen.get("m_weight")), number(bounds.get("m_ABC68B33")),
                      number(bounds.get("m_2AFC083F")), number(distance.get("m_weight")))
         limit = fields.get("m_C39691D9")
-        condition = search.get("m_condition")
-
-        def admits(entity: int) -> bool:
-            if condition is None:
-                return True
-            # 1B8D970: the filter's condition reads the candidate as parameter 8.
-            with component.parameter_scope({8: Entity(entity)}):
-                return bool(expr.truthy(play.evaluate_scalar(state.instance, condition, initial=True)))
-
+        hardpoint = expr.guid_of((fields.get("m_229DD034") or {}).get("m_hardPoint"))
         # shortcut: m_93AB8C13, the time a lost target is kept (CAF8C2), is not played: a target
         # goes the refresh it is lost. Keep each target's last time on the state to add it.
         return self.match.combat.track_targets(self.body, combat.TargetSearch(
-            radius, aperture,
-            tuple(search.get(name) or 0 for name in (
-                "m_84065FD1", "m_1E14CCA8", "m_4EA686DB", "m_27CF71D5", "m_66747E7D", "m_89831602")),
+            radius, aperture, tuple(search.get(name) or 0 for name in FILTER_MASKS),
             score, None if limit is None else max(0, int(number(limit))),
-        ), state.targets, admits)
+            (hardpoint,) if hardpoint else (),
+        ), state.targets, lambda entity: self.filter_condition(state.instance, search, entity))
+
+    def filter_condition(self, instance, config: dict, entity: int) -> bool:
+        """A filter's condition, which reads the candidate as parameter 8 (1B8D970)."""
+        from ow174.game.script import play
+
+        condition = config.get("m_condition")
+        if condition is None:
+            return True
+        with instance.component.parameter_scope({8: Entity(entity)}):
+            return bool(expr.truthy(play.evaluate_scalar(instance, condition, initial=True)))
+
+    def filter_admits(self, instance, config: dict, entity: int) -> bool:
+        """A filter without tags against a body: its masks, then its condition (D0DA20)."""
+        masks = tuple(config.get(name) or 0 for name in FILTER_MASKS)
+        return (self.match.combat.filter_admits_body(self.body, entity, masks)
+                and self.filter_condition(instance, config, entity))
 
     def modify_health(self, state, elapsed_ms):
         """Queue one hit per body for the supported tracked damage configuration."""

@@ -3282,8 +3282,9 @@ class TrackTargets(State):
     # m_DD792FF0: the frames from one search to the next (CA9460).
     SEARCH_PERIODS = (1, 3, 6, 12, 30)
     # The graphs whose searches from the eye along the aim are answered: Mercy's staff and Guardian
-    # Angel. Other heroes author the same shape (Zarya, Zenyatta, Ana); theirs are not checked yet.
-    AIMED_GRAPHS = (0x006B, 0x006E)
+    # Angel, Sombra's Hack. Other heroes author the same shape (Zarya, Zenyatta, Ana); theirs are
+    # not checked yet.
+    AIMED_GRAPHS = (0x006B, 0x006E, 0x0B1B)
 
     def __init__(self, *args) -> None:
         super().__init__(*args)
@@ -3327,8 +3328,8 @@ class TrackTargets(State):
             self.refresh()
 
     def aimed_search(self) -> bool:
-        """Recognize a search from the owner's eye along the owner's aim: Guardian Angel's and the
-        Caduceus Staff's (docs/research/track-targets.md)."""
+        """Recognize a search from the owner's eye along the owner's aim: Guardian Angel's, the
+        Caduceus Staff's and Hack's (docs/research/track-targets.md)."""
         fields = self.node.fields
 
         def of_owner(value, cls) -> bool:
@@ -3352,13 +3353,16 @@ class TrackTargets(State):
             ordered = ([term.get("$") for term in terms] == ["STU_2FD4C482", "STU_AD7331B0"]
                        and [(terms[0].get(key) or {}).get("m_value") for key in ("m_ABC68B33", "m_2AFC083F")]
                        == [0, 1])
+        # m_48837057 is left out: without m_294660A6 its point is not used (CA38BE).
+        # shortcut: m_47AB1887, the two-leg paths around a corner (CA4450), is accepted and not
+        # played; Hack's node 52 keeps its target by the body rays alone.
         unsupported = (
             "m_3119AD61", "m_B9BEAC7F", "m_2F88C5F2", "m_544C3E6F", "m_8DCA77B6", "m_762A56C0",
-            "m_B3A77CD0", "m_16BDE607", "m_8862A75D", "m_E474FFD6", "m_D59188D5", "m_48837057",
-            "m_294660A6", "m_229DD034", "m_BA6C9F75", "m_9E1426F6", "m_E8474EE8", "m_C1B724B2",
-            "m_CEE20F6F", "m_24A4AB8A", "m_1B89EA79", "m_4A6E0895", "m_8CBE558B", "m_2A0FB8BB",
-            "m_47AB1887",
+            "m_B3A77CD0", "m_16BDE607", "m_8862A75D", "m_E474FFD6", "m_D59188D5", "m_294660A6",
+            "m_BA6C9F75", "m_9E1426F6", "m_E8474EE8", "m_C1B724B2", "m_CEE20F6F", "m_24A4AB8A",
+            "m_1B89EA79", "m_4A6E0895", "m_8CBE558B", "m_2A0FB8BB",
         )
+        aimed_at = fields.get("m_229DD034")  # hardpoints of the candidate, tried first (CA3B87)
         tags = (
             "m_93FA1642", "m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3", "m_C1903771", "m_F61726FE", "m_B40362FC",
         )
@@ -3369,6 +3373,7 @@ class TrackTargets(State):
             and isinstance(search, dict) and search.get("$") == "STUConfigVarFilter"
             and all(search.get(name) is None for name in tags)
             and (cast is None or guid(cast.get("m_C1903771")) == 0x069000000000002C)
+            and (aimed_at is None or aimed_at.get("$") == "STUConfigVarHardPoint")
             and fields.get("m_95FFC3C5") == 1 and fields.get("m_32AFE9AA") == 1
             and not fields.get("m_8D13DD07") and not fields.get("m_2F5FAF65")
             and all(fields.get(name) is None for name in unsupported)
