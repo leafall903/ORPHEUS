@@ -1590,6 +1590,9 @@ class Rocket:
     segment_start: float = 0.0  # Original Molten ballistic segment clock, retained through rebounds.
     deflect_lifetime: float | None = None
     matrix_absorbable: bool | None = None
+    terrain_bounces: int = 0
+    terrain_bounce_limit: int = 0
+    terrain_bounce: tuple | None = None
     storm_ricochets: int = 0
     continuation: dragon.Profile | None = None
     started_tick: float | None = None
@@ -1647,6 +1650,26 @@ class Rocket:
 
     def flight_cursor(self):
         return self.launch_tick if self.last_tick is None else self.last_tick
+
+    @property
+    def radius(self):
+        return self.collision_radius
+
+    @property
+    def max_distance(self):
+        return self.range_limit
+
+    @max_distance.setter
+    def max_distance(self, value):
+        self.range_limit = value
+
+    @property
+    def explode_on_expiry(self):
+        return self.detonate_on_expiry
+
+    @explode_on_expiry.setter
+    def explode_on_expiry(self, value):
+        self.detonate_on_expiry = value
 
     @property
     def collision_radius(self):
@@ -5452,6 +5475,9 @@ class Combat:
                 return
             if not explicit_directions:
                 return
+        from ow174.game import junkrat_projectile
+
+        junkrat_profile = junkrat_projectile.profile(state) if not npc else None
         if speed:
             flashbang_gravity = None if npc else mccree.flashbang_gravity(shooter, state)
             gravity = flashbang_gravity
@@ -5471,6 +5497,10 @@ class Combat:
             if (npc and shooter.hero == 0x02E0000000000065 and state.instance.graph.index == 0x022B
                     and node.pos == 31 and self._scene_component(shooter) is state.instance.component):
                 gravity = projectiles.unconditional_gravity(state)
+            if junkrat_profile is not None:
+                gravity = junkrat_profile[0]
+                if direct is not None:
+                    direct = replace(direct, projectile_extent=junkrat_profile[1])
             lifetime = field("m_projectileLifetime", 5.0) or 5.0
             reach = field("m_FEC435C6")
             blast = hit_def(state, node.field("m_D2D11CE9"))
@@ -5494,7 +5524,7 @@ class Combat:
             curve_motion = ()
             if barrage:
                 direction, curve_motion = barrage_motion.launch(state, activation[0], number, direction)
-            if reach and range_left is None and not field_canister and not barrage and not (hanzo_bow and gravity):
+            if reach and range_left is None and not field_canister and not barrage and junkrat_profile is None and not (hanzo_bow and gravity):
                 lifetime = min(lifetime, reach / speed)
             fire_strike = (definition == 0x04000000000001EA
                            and state.instance.graph.index == 0x00E2 and node.pos == 3
@@ -5616,6 +5646,8 @@ class Combat:
                 projectile_tick = None
                 if npc:
                     projectile_tick = self.tick if launch_tick is None else launch_tick
+                elif junkrat_profile is not None:
+                    projectile_tick = self.tick
                 elif biotic_grenade and command is not None:
                     projectile_tick = max(self.tick, command.frame)
                 elif (getattr(shooter.hero, "guid", None) == 0x02E0000000000020
@@ -5638,7 +5670,7 @@ class Combat:
                         spray=moira.spray_trace(shooter, state, direct), dose_scalar=dose_scalar,
                         definition=definition, accretion_source=accretion_source,
                         deploy_body=shooter.body if deployment else None,
-                        detonate_on_expiry=flashbang_gravity is not None or pulse,
+                        detonate_on_expiry=flashbang_gravity is not None or pulse or junkrat_profile is not None,
                         scale_direct=len(directions) > 1 or bool(direct and direct.projectile_headshot),
                         split_on_expiry=split, sticky_delay=(
                             field("m_55E8761C.m_F969FA7A", 1.0) if pulse else 1.0 if sticky else None),
@@ -5651,6 +5683,8 @@ class Combat:
                         matrix_absorbable=(definition in self.matrix_definitions
                                            if self.matrix_definitions is not None
                                            else projectile_tags.absorbable(definition)),
+                        terrain_bounce=junkrat_profile[2] if junkrat_profile is not None else None,
+                        terrain_bounce_limit=junkrat_profile[3] if junkrat_profile is not None else 0,
                         storm_ricochets=int(storm_arrow),
                         continuation=continuation,
                         started_tick=(self.tick + time % state.instance.component.frame_ms
@@ -5664,7 +5698,7 @@ class Combat:
                         launch_direction=launch, collide_bodies=source_graph not in (0x0CCB, 0x0BD7, 0x0CF5),
                         deployment=field_spec, range_left=range_left, penetration_radius=penetration_radius,
                         penetrated=set() if fire_strike else None,
-                        range_limit=reach if field_canister or barrage or hanzo_bow or continuation is not None else None,
+                        range_limit=reach if field_canister or barrage or hanzo_bow or continuation is not None or junkrat_profile is not None else None,
                         rebound_limit=rebound_limit if field_canister else None,
                         rebound_scale=rebound_scale,
                     )
@@ -6398,6 +6432,9 @@ class Combat:
         if rocket.spray is not None:
             moira.fly_spray(self, rocket, duration)
             return
+        if rocket.terrain_bounce is not None:
+            # Source0065's direction/speed pair is authoritative for each chord.
+            rocket.velocity = tuple(axis * rocket.speed for axis in rocket.direction)
         if rocket.velocity is not None and not molten_core.is_globule(rocket):
             from ow174.game import mccree
 
@@ -6406,7 +6443,8 @@ class Combat:
             velocity = rocket.velocity
             hanzo_arrow = (rocket.source_graph == 0x00B9
                            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) == 0x02E0000000000005)
-            if (rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False)) or hanzo_arrow:
+            if ((rocket.sticky_delay is not None and not getattr(rocket, "pulse_bomb", False))
+                    or hanzo_arrow or rocket.terrain_bounce is not None):
                 vx, vy, vz = velocity
                 rocket.velocity = (vx, vy - rocket.gravity * duration, vz)
                 sweep = (vx, vy - rocket.gravity * duration * 0.5, vz)
@@ -6416,6 +6454,13 @@ class Combat:
             if rocket.speed:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
         self._fly_slice(rocket, duration, self.tick, reflected=reflected)
+        if rocket.terrain_bounce is not None and rocket.velocity is not None and rocket in self.rockets:
+            # The delivered grenade stores the end velocity after sweeping its
+            # ballistic chord; the next frame and public direction share it.
+            rocket.speed = math.hypot(*rocket.velocity)
+            if rocket.speed > EPSILON:
+                rocket.direction = tuple(axis / rocket.speed for axis in rocket.velocity)
+
 
     def _fly_slice(self, rocket: Rocket, duration: float, tick: int, *, reflected=None) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
@@ -6520,6 +6565,11 @@ class Combat:
             if remaining <= step:
                 duration *= remaining / step if step > EPSILON else 0.0
                 step, range_ends = remaining, True
+        if rocket.terrain_bounce is not None and rocket.range_limit is not None:
+            remaining = max(0.0, rocket.range_limit - rocket.travelled)
+            if step >= remaining:
+                duration *= remaining / step if step > EPSILON else 0.0
+                step, range_ends = remaining, True
         blast = rocket.blast
         padding = rocket.direct.projectile_extent if rocket.direct is not None else 0.0
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
@@ -6550,6 +6600,11 @@ class Combat:
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
         wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
+        terrain_normal = None
+        if rocket.terrain_bounce is not None:
+            from ow174.game import junkrat_projectile
+
+            wall, terrain_normal = junkrat_projectile.surface(rocket, collision, heading, step)
         storm_normal = None
         if rocket.storm_ricochets:
             hit = collision.cast_ray(rocket.position, heading, step)
@@ -6560,7 +6615,7 @@ class Combat:
                     storm_normal = tuple(-axis for axis in storm_normal)
                 if _dot(heading, storm_normal) >= -EPSILON:
                     storm_normal = None
-        if (padding > 0 and not assisted_contact and rocket.source_graph != 0x00B9
+        if (padding > 0 and rocket.terrain_bounce is None and not assisted_contact and rocket.source_graph != 0x00B9
                 and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT)):
             swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
@@ -6708,6 +6763,12 @@ class Combat:
             self._explode(rocket, point, incident_direction=heading)
             return 0.0
 
+        if (terrain_normal is not None and best == (wall, None)
+                and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
+                                                  redirect, absorption, scripted_shield))):
+            junkrat_projectile.bounce(self, rocket, heading, terrain_normal, wall, step, duration,
+                                      integrated_duration, reflected, range_ends)
+            return 0.0
         if (storm_normal is not None and best == (wall, None)
                 and all(item is None for item in (scene_barrier, ice, shield, echo_shield, deployed,
                                                   redirect, absorption, scripted_shield))):
