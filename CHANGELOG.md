@@ -12975,3 +12975,40 @@ confirmedunmountedproductionconsumer. Legacyfullsource numeric/arena/resource/
 SDKdefaultbackend conflicts andclienttransport verification are separate tails,
 not code-delivery gates. Nextexactaction: finalstrictSDKarg boundary review and
 reportboundedclosure to root; do not manufactureadditionalfeatures or matrice(s).
+
+
+## B100 — preserve strict vector-base argument boundaries
+
+B94 retained both the original omitted-base replacement query and the current
+base-provided vector pipeline. Final review found that using None as the default
+also accepted an explicitly supplied None, which the stronger current pipeline
+previously rejected. A private omitted-argument sentinel now selects only the
+original no-base API. An explicit invalid base still raises TypeError; ordinary
+Vec3 ADD/MULTIPLY/REPLACE evaluation and the single vector record store remain
+unchanged. No new backend, gameplay path, or modifier operation was introduced.
+
+Modifier/runtime checks: 30/30 passed in 2.498s with the existing v19 inputs,
+including original replacement and current vector-operation assertions plus the
+explicit-None boundary. The first run omitted external inputs and had 10 missing
+graph-file errors; it is retained in worker-b-vector-strict-base-check.log rather
+than reported as a code failure or hidden. Correct input run is recorded in
+worker-b-vector-strict-base-profile-check.log. Original assertions were retained.
+
+Bounded owner handoff: all six B-owner source refs and their actual runtime
+consumer mappings are listed in B96; Doom additionally covers both frozen 58d8e57e
+and staged sibling b6d0581c without deleting the richer frozen consumers. B97
+retains the second original explicit controller SDK, B98 restores actual tool
+fixtures/tag queries, B99 closes the confirmed foreign-force endpoint gap, and
+this batch restores the final strict API boundary. There is no further confirmed
+unmerged production implementation in this bounded B inventory. This is not a
+claim that every source test, optional backend, geometry expectation, or client
+transport check passes. The documented numerical/source conflicts remain intact.
+
+Remaining work outside this B inventory: A106/root own the static NPC audit tool
+API adapters and primary Sniper consumer; root owns Flux and Volskaya; A owns
+Zarya; C owns the broader Assassin/22F0 work. Do not duplicate their hosts or use
+those owners' verification tails to withhold the delivered B code. Remaining B
+code time for presently confirmed gaps is zero after this batch; receiving review
+and old numerical/resource/client verification are separate, unbounded tails.
+Next exact action: send B100 SHA and bounded source-consumer handoff to root,
+then respond only to concrete integration findings with focused commits.
