@@ -1090,3 +1090,23 @@ Next exact action: continue source Mine world-only phase/Cryo/Transcendence and
 projected/personal expiry contexts without assuming body/world clocks are equal.
 Keep B45's single-EMP frame-end discrepancy and all original checks. Then audit
 remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
+
+B48 delivered SHA: `3a4da096`.
+
+### B49 — preserve original Minefield Q/reload/death/replacement checks
+
+- Restored5 original Minefield input/lifecycle checks and the original partial-Q
+  real-rifle death helper against the already mounted actor/VM. No runtime
+  feature or alternate input controller was added in this batch.
+- v17 all5 pass (94.782s): manual/automatic reload before/after ammo fill;
+  partial Q real-rifle death retains only released reports; deployed mines arm
+  and hit after their owner is actually killed; natural replacement can deploy
+  a fresh Minefield after cleaning the old one; respawn destroys old mines for
+  both viewers. Original expectations, values, timing inputs and assertions
+  remain unchanged; this is retained source evidence, not a new acceptance matrix.
+- Existing actual Mine source/protection/status boundaries remain in preceding
+  records. No original-client acceptance or formal full Ball completion claim.
+
+Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
+then original world-only phase/Cryo/Transcendence and Minefield control interruption
+consumers. Retain source input history and all existing native device/owner paths.
