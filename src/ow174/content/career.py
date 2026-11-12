@@ -9,6 +9,7 @@ from ow174.content.identity import Identity
 from ow174.content.menu_hero import MenuHero
 from ow174.content.player import PlayerMessages, endorsement
 from ow174.content.ranked import ROLES, Ranked, wins_of
+from ow174.game import stats
 from ow174.jam.groups import LOBBY, MODE_RULES, PROFILES
 
 TIME_PLAYED_STAT = 0x0860000000000021  # a hero's lifetime "Time Played" (062/021), in seconds
@@ -22,6 +23,16 @@ MATCHES_WON_STAT = 0x0860000000000039
 ALL_MODES = 0
 SEASON_KEY_KIND = 3
 SEASON_KEY_FLAG = 0x20
+# What a match counts per hero (game/match.py's Player.career, by the stat "All Heroes" has for it) and
+# the stat a single hero has for the same number. "All Heroes" is a hero of its own in the stat lists.
+ALL_HEROES = 0x02E00000FFFFFFFF
+HERO_STAT = {
+    stats.TIME_PLAYED: TIME_PLAYED_STAT,
+    stats.ELIMINATIONS: 0x086000000000001F,
+    stats.DEATHS: 0x086000000000002A,
+    stats.HERO_DAMAGE: 0x08600000000004B7,
+}
+# Shown while the profile has no match of its own: one main hero and a few others.
 MAIN_HERO_HOURS = 500.0
 OTHER_HEROES_SHOWN = 4
 
@@ -46,7 +57,14 @@ class CareerMessages:
         won, and the running competitive season with its matches won."""
         played = self._hours_played(profile)
         won = self._matches_won(profile, played)
-        all_modes = {hero: [_stat(TIME_PLAYED_STAT, hours * 3600)] for hero, hours in played}
+        counted = _counted(profile)
+        all_modes = {
+            hero: [_stat(HERO_STAT[stat], total) for stat, total in totals.items()]
+            for hero, totals in counted.items()
+        } or {hero: [_stat(TIME_PLAYED_STAT, hours * 3600)] for hero, hours in played}
+        if counted:
+            whole = {stat: sum(totals.get(stat, 0.0) for totals in counted.values()) for stat in HERO_STAT}
+            all_modes[ALL_HEROES] = [_stat(stat, total) for stat, total in whole.items() if total]
         for hero, wins in won.items():
             all_modes.setdefault(hero, []).append(_stat(MATCHES_WON_STAT, wins))
         season = {hero: [_stat(MATCHES_WON_STAT, wins)] for hero, wins in won.items()}
@@ -61,6 +79,10 @@ class CareerMessages:
         """The heroes shown as played, most first. The hero picked for the menu is the main one;
         without one the main hero comes from the player's name, so the favourites stay put (a random
         menu hero changes between runs)."""
+        counted = _counted(profile)
+        if counted:  # his own matches: the heroes he played, by their time
+            hours = [(hero, totals.get(stats.TIME_PLAYED, 0.0) / 3600) for hero, totals in counted.items()]
+            return sorted(hours, key=lambda item: -item[1])
         heroes = self._collection.heroes
         main = self._menu_hero.picked(profile)
         if not main:
@@ -124,6 +146,26 @@ class CareerMessages:
             "+0x138": profile.player_name,
             "+0x160": "",
         }
+
+
+def count_match(profile: Profile, played: dict[int, dict[int, float]]) -> bool:
+    """Add what a player did in one match, per hero, to his career. True when something was added."""
+    added = False
+    for hero, counted in played.items():
+        for stat, amount in counted.items():
+            if stat in HERO_STAT and amount:
+                totals = profile.career.setdefault(f"0x{hero:016X}", {})
+                totals[f"0x{stat:016X}"] = totals.get(f"0x{stat:016X}", 0.0) + amount
+                added = True
+    return added
+
+
+def _counted(profile: Profile) -> dict[int, dict[int, float]]:
+    """The profile's career as hero -> {counted stat: total}, without what this version does not show."""
+    return {
+        int(hero, 16): {int(stat, 16): total for stat, total in totals.items() if int(stat, 16) in HERO_STAT}
+        for hero, totals in profile.career.items()
+    }
 
 
 def _stat(stat: int, value: float) -> dict:
