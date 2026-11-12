@@ -642,3 +642,58 @@ Next: original PortalPair/confirm/factory/interaction via existing NPC pool,
 with original actor inputs already supplied by v5. Preserve current strict map
 Summoner and configured Photon paths while completing these missing consumers.
 Source sentry retained phase/ice/projected-history boundaries remain above.
+
+
+C25 SHA433cd727 delivered; root will receive without strict-result gate.
+0065 Junkrat now assigned A; no workerC WIP existed there. A owns trap/tire/charge;
+Torb hammer trap consumer will coordinate actual manager API with A, no duplicate.
+
+## C26 original PortalPair checkpoint
+
+Original symmetra_portals.Portals factory/confirm/ready/interaction/dismiss/
+retirement/lifecycle mounted as Combat.portals.272D/26F2 endpoints are real NPCs
+with existing Vitals/health scripts/replication,50HP+250SHIELD, actual1.5m/.5m
+geometry. No prototype Portals manager created under alternate health views.
+Source MovementOverlay and pillar triangles are local temporary exit probes over
+immutable map engine; _body_at preserves current mover stance/lift/category and
+canonical peer_mask. Never replace shared mover, collision world or NPC/nav.
+Player._advance_body_frame narrow sourcepressed bridge dismisses before body
+command, interacts after it before combat consumes reports: actual same-frame
+held beam/orb and hit discontinuity tests pass. Existing drivers remain intact.
+Original samehero death retention/switch/leave cleanup, own/ally/range/static
+LOS, blocked exits, current crouch, lockout, actualdamage/cooldown all connected.
+
+First attempts exposed npc->navigation->Combat.Target import cycle (defer npc
+imports inside actual factory/retire) and original fixture missing Winston
+HERO/DEFINITION constants. Restore those actual0009/01C3 metadata only; B approved,
+no Winston manager/behavior change. Full29 first run41.751s:
+- Cancel-preview reentry failed because original source Anim.portal_cancel1571/30
+  finish branch missing. Mount only nonstrict match-owned branch, original generic
+  and strict flag paths retained; originalcancel now passes1.306s.
+- Eight errors across sixcases still read old ice_wall/zarya_barriers/
+  winston_barriers observation names; do not invent runtime manager aliases.
+- Cryo termination onefail and projected bubble target three failing subcases
+  remain original cross-owner differences; no changed literal/assertion.
+Final21 owner cases (exclude exactly those8 cross-owner cases) allpass33.697s,
+worker-c-symmetra-pair-owner-final-check.log. Corecancel fix not full29 rerun.
+Original test_symmetra_portals.py remains byte-identical. Shared exact command:
+python -B -m unittest test_script_animation_timing test_game_npc test_game_combat.DamageTests test_symmetra_teleport_action -v
+27run26pass1generic Anim.client_playback flag failure4.057s. The preexisting
+Anim suppress expression combines154DBA91/2DEAE6A9; C26 only ORs source1571/30
+match role which that generic fixture does not enter. Do not claim that check
+passed or alter its assertion; broader native flag reconciliation remains.
+
+Actual controlled storage probe with v5 (not _data patch):
+ServerSnapshotTests.scene(two=True), peers[1].message(21616,pick(owner.entity,
+symmetra.HERO),now=100.8); for buttons16,0,1,0 use
+peers[1].commands(owner.body_script.frame+1,4,button). Actualpair count1;
+ready_at+=.016 changes serverdigest; actualendpoint Vitals.now[2]-=5 independently
+changes it again. Export is passive; no original client or full journal gate.
+
+Remaining worker low-confidence16–32 active hours: Symm retained/strict role/
+cross-owner3–7h, Mei2–5h, Sombra1–3h, Ashe6–12h, Pharah impact-cover/Bastion
+interlock/conflict closure4–5h. These overlap ranges and are not a calendar promise;
+0065 now A. Next actual batch: current-owner fixture references can be adapted
+without changing literal assertions, then original Mei modules/Blizzard and
+Sombra/Ashe missing consumers. Do not linger on every private observer before
+mounting actual missing code. Preserve all boundaries above and no new matrix.
