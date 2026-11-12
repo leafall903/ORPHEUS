@@ -39,6 +39,17 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Bind Ice Wall geometry to its original graph actor
+
+- Geometry, collision support and real0932 pillars now use the same entity IDs,
+  Vitals and expiry fields. Retire the actor/geometry/child VM together, and debit
+  body/surface contacts once through the existing pools.
+- Actual Mei server produces5shared actors with strict causal storage; original
+  IceSentry2 checks pass. Original rotated/partial/lift confirmation4 checks pass;
+  remaining overlap, old-observer and shared geometry differences stay recorded.
+- Implementation checkpoint0dcad5d2 is accepted. Source checks and known failures
+  remain intact; native/client acceptance and remaining owner consumers are open.
+
 ### Restore retained ice-supported sentry damage
 
 - Original eligible ice-supported/airborne Sentries settle on each retained world
