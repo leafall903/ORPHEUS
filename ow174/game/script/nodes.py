@@ -39,6 +39,7 @@ from ow174.game.script import (
     modifiers,
     placement,
     play,
+    possession_requests,
     record_assignment,
     scopes,
     self_heal,
@@ -1015,11 +1016,21 @@ class NumericPropertyModifiers(State):
         value = play.evaluate_scalar(self.instance, cfg, initial=failed, watcher=self)
         return default if value is failed else f32(expr.to_float(value, default))
 
+    def replacement_vector(self, cfg):
+        value = play.evaluate_scalar(self.instance, cfg, initial=None, watcher=self)
+        # F65E70 accepts Vec3 and recursively selects the first array member.
+        while isinstance(value, tuple) and value:
+            self.instance.component.consume_work("vector modifier array member")
+            value = value[0]
+        return (value.x, value.y, value.z) if isinstance(value, expr.Vec3) else (0.0, 0.0, 0.0)
+
     def record(self, row, key, start):
         cls = row["$"]
         if cls in _VECTOR_ROWS:
             operation, default = _VECTOR_ROWS[cls]
-            value = play.evaluate_scalar(self.instance, row.get("m_9B7A63EA"), initial=default, watcher=self)
+            value = (expr.Vec3(*self.replacement_vector(row.get("m_9B7A63EA")))
+                     if cls == "STU_09F9B1FE" else
+                     play.evaluate_scalar(self.instance, row.get("m_9B7A63EA"), initial=default, watcher=self))
             priority = self.number(row.get("m_priority"), 0.0)
             return modifiers.VectorRecord(1, key, start, row.get("m_CFEC5F76", 0), operation,
                                           value if isinstance(value, expr.Vec3) else default, priority)
@@ -1144,12 +1155,28 @@ class B61ExtendedState(B61State):
         )
 
 
+def _declared_stack_priority(state, feature, *, default):
+    config = state.node.field("m_priority")
+    if config is None:
+        return default, False
+    asset = expr.guid_of(config.get("m_priority")) if isinstance(config, dict) else 0
+    if (not asset or asset >> 48 != 0x0C40
+            or (asset & 0xFFFFFFFFFFFF) not in expr.STACK_PRIORITIES):
+        instance = state.instance
+        instance.component.unsupported(instance, feature, state.node.cls, state.node)
+    return stack_priority(config)
+
+
 @state_class("STU_CF8C7CC5")
 class Component86State(State):
     """C77F60/C78640 target registration with explicit scene host data."""
 
     registry = None
     watch_priority = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.registry = None
 
     def registration(self, registry):
         return None
@@ -1171,6 +1198,13 @@ class Component86State(State):
         if not expr.valid_entity(entity):
             self.request(ABORT)
             return
+        if self.node.cls in ("STU_473549CA", "STU_CF8C7CC5", "STU_066B4605"):
+            explicit = component.world.possession_request_registry(entity)
+            if explicit is not NotImplemented:
+                priority, above = _declared_stack_priority(
+                    self, "possession request priority", default=9999.0)
+                AIControlOverride._explicit_request(self, entity, explicit, priority, above)
+                return
         registry = component.world.component86(entity)
         if registry is None:
             self.request(ABORT)
@@ -1214,6 +1248,20 @@ class Component86SelectionState(Component86State):
 @state_class("STU_473549CA", strict_only=True)
 class Component86NumericPairState(Component86State):
     """C78AE0 supplies a kind 1 pair in the primary component86 list."""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.registry = None
+        self.request_registration = None
+
+    def on_cleanup(self):
+        if self.request_registration is not None:
+            registry, request = self.request_registration
+            registry.remove(request)
+            self.request_registration = None
+        super().on_cleanup()
+
+    on_failed = on_destroyed = on_cleanup
 
     def registration(self, registry):
         default = f32(math.pi)
@@ -1683,16 +1731,22 @@ class AIFacingRecord:
 
 
 @state_class("STU_FC16FF45", strict_only=True)
-class JunkensteinAIFacing(State):
+class JunkensteinAIFacing(Component86VectorState):
     """Own a direction record in component 86's separate BC2E40 list."""
 
     def __init__(self, *args):
         super().__init__(*args)
         self.record = self.remove_record = None
+        self.component86_mode = False
 
     def on_enter(self) -> None:
         instance, node = self.instance, self.node
         component = instance.component
+        self.component86_mode = False
+        if component.world.component86_backend_declared():
+            self.component86_mode = True
+            Component86State.on_enter(self)
+            return
         priority_asset = play._asset(play.evaluate_scalar(instance, node.field("m_priority")))
         if ((instance.graph.index, node.pos) not in ((0x0C95, 5), (0x185D, 57))
                 or node.field("m_baseEntity") is not None
@@ -1717,10 +1771,16 @@ class JunkensteinAIFacing(State):
                 self.instance, "AI facing direction", self.node.cls, self.node)
         return direction
 
+    def dependency_changed(self):
+        if self.component86_mode:
+            Component86VectorState.dependency_changed(self)
+
     def tick(self) -> None:
         self.record.direction = self._direction()
 
     def on_cleanup(self) -> None:
+        if self.registry is not None:
+            Component86State.on_cleanup(self)
         remove, self.remove_record = self.remove_record, None
         self.record = None
         if remove is not None:
@@ -1731,17 +1791,25 @@ class JunkensteinAIFacing(State):
 
 
 @state_class("STU_473549CA", "STU_CF8C7CC5", "STU_066B4605")
-class AIControlOverride(State):
+class AIControlOverride(Component86State):
     """Own a record in the target component 86's two separate override lists."""
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.component86_mode = False
         self.remove_record = None
+        self.request_registration = None
 
     def on_begin(self):
         instance = self.instance
         component = instance.component
         if not component.strict:
+            return
+        self.component86_mode = False
+        if component.world.component86_backend_declared():
+            # The existing Scene setter explicitly selected this original API.
+            # Defer its selector/descriptor evaluation to the original OnEnter.
+            self.component86_mode = True
             return
         priority_cfg = _field(self, "m_priority")
         priority, prefer_later = 9999.0, False
@@ -1751,6 +1819,12 @@ class AIControlOverride(State):
                 component.unsupported(instance, "AI control priority resource", self.node.cls, self.node)
             priority, prefer_later = expr.STACK_PRIORITIES[priority_asset & 0xFFFFFFFF]
         target = expr.to_entity(play.evaluate_scalar(instance, _field(self, "m_00D49978"))) & 0xFFFFFFFF
+        registry = component.world.possession_request_registry(target)
+        if registry is not NotImplemented:
+            priority, prefer_later = _declared_stack_priority(
+                self, "possession request priority", default=9999.0)
+            self._explicit_request(target, registry, priority, prefer_later)
+            return
         if self.node.cls == "STU_066B4605":
             slot_cfg = _field(self, "m_D66E7D68")
             slot_value = play.evaluate_scalar(instance, slot_cfg, initial=9999)
@@ -1777,12 +1851,67 @@ class AIControlOverride(State):
             component.unsupported(instance, "AI control component", self.node.cls, self.node)
         self.remove_record = remove
 
+    def on_enter(self):
+        if self.component86_mode:
+            Component86State.on_enter(self)
+        else:
+            State.on_enter(self)
+
+    def registration(self, registry):
+        if self.node.cls == "STU_066B4605":
+            return Component86SelectionState.registration(self, registry)
+        return None
+
+    def _explicit_request(self, target, registry, priority, above_equal):
+        """Use the original explicitly supplied request backend for this state."""
+        instance = self.instance
+        component = instance.component
+        selection = payload = None
+        if self.node.cls == "STU_066B4605":
+            if not expr.valid_entity(target) or registry is None:
+                self.request(ABORT)
+                return
+            if registry.accepted_selections is NotImplemented:
+                component.unsupported(instance, "possession selection service", self.node.cls, self.node)
+            slot, success = play.evaluate_scalar_result(instance, _field(self, "m_D66E7D68"))
+            slot = expr.to_int(slot, 9999) if success else 9999
+            identifier = play._asset(play.evaluate_scalar(instance, _field(self, "m_F2810377")))
+            flag = truthy(play.evaluate_scalar(instance, _field(self, "m_F8585ABF")))
+            if (slot, identifier) not in registry.accepted_selections:
+                self.request(ABORT)
+                return
+            selection = possession_requests.Selection(slot, identifier, flag)
+        elif self.node.cls == "STU_473549CA":
+            fallback = f32(math.pi)
+            payload = tuple(f32(to_float(
+                play.evaluate_scalar(instance, _field(self, field), initial=fallback, watcher=self),
+                fallback,
+            )) for field in ("m_49EEBB65", "m_FD4D6C19"))
+        inputs = registry.inputs(self)
+        if (type(inputs) is not possession_requests.Inputs or not self.active or self.ending
+                or component.world.possession_request_registry(target) is not registry):
+            component.unsupported(instance, "possession request inputs", self.node.cls, self.node)
+        component.ensure_valid()
+        request = possession_requests.Request(
+            inputs.owner, inputs.clock, kind=1 if payload is not None or selection is not None else 2,
+            priority=priority, above_equal=above_equal, payload=payload, selection=selection,
+        )
+        registry.insert(request)
+        self.request_registration = registry, request
+
     def on_cleanup(self):
+        if self.registry is not None:
+            self.registry.remove(self)
+            self.registry = None
+        if self.request_registration is not None:
+            registry, request = self.request_registration
+            registry.remove(request)
+            self.request_registration = None
         remove, self.remove_record = self.remove_record, None
         if remove is not None:
             remove()
 
-    on_failed = on_cleanup
+    on_failed = on_destroyed = on_cleanup
 
 
 @state_class("STU_97B1B3EC")
@@ -1825,6 +1954,7 @@ class AIBehaviorState(State):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.registration = None
         self.record = None
         self.remove_record = None
 
@@ -1857,6 +1987,13 @@ class AIBehaviorState(State):
             if asset >> 48 != 0x0C40 or (asset & 0xFFFFFFFF) not in expr.STACK_PRIORITIES:
                 component.unsupported(instance, "AI behavior priority resource", self.node.cls, self.node)
             priority, prefer_later = expr.STACK_PRIORITIES[asset & 0xFFFFFFFF]
+        # An explicitly selected original SDK registry owns this same state's
+        # registration instead of the default richer AI request backend.
+        if self.node.cls in ("STU_B61E6681", "STU_600E3C59"):
+            registry = component.world.distance_constraint_registry(component.entity)
+            if registry is not NotImplemented:
+                self.registration = registry, registry.register(self, priority, prefer_later)
+                return
         record = AIBehaviorRequest(self.node.cls, priority, prefer_later, *self._inputs())
         remove = component.world.register_ai_behavior_request(self, record)
         if remove is NotImplemented:
@@ -1869,6 +2006,10 @@ class AIBehaviorState(State):
             self.record.shared, self.record.inputs = self._inputs()
 
     def on_cleanup(self):
+        if self.registration is not None:
+            registry, entry = self.registration
+            registry.unregister(entry)
+            self.registration = None
         self.record = None
         remove, self.remove_record = self.remove_record, None
         if remove is not None:
@@ -5394,6 +5535,44 @@ class StaticTagTarget(State):
 # --- actions and conditions ------------------------------------------------------------------------
 
 
+def find_tagged_entities(instance: Instance, node, caller) -> bool | NotImplementedType:
+    """CB8EC0: publish the ordered matches of a declared world tag query."""
+    component = instance.component
+    if not component.strict:
+        return NotImplemented
+    output = node.field('m_4AEEE6A1')
+    target = expr.dynamic(output)
+    if target is None and output is not None and (
+            not isinstance(output, dict) or output.get('$') not in expr.CONSTANTS):
+        component.unsupported(instance, 'target-tag query destination', node.cls, node)
+    if target is not None and target[1]:
+        configs = [node.field(name) for name in ('m_9C7BD8B8', 'm_B486603E', 'm_8B2A4DF3')]
+        if not any(cfg is not None for cfg in configs) or node.field('m_F8274C10') is not None:
+            component.unsupported(instance, 'target-tag query configuration', node.cls, node)
+        candidates = component.world.target_tag_candidates()
+        if candidates is NotImplemented:
+            component.unsupported(instance, 'target-tag candidate catalog', node.cls, node)
+        var = instance.find_var(*target)
+        if var.links:
+            component.unsupported(instance, 'target-tag linked destination', node.cls, node)
+        before = var.value()
+        var.base = ()  # CB8FAC clears before evaluating the three input groups.
+        any_tags, required, excluded = (
+            {value.guid & 0xFFFFFFFF for value in play._iter_values(instance, cfg)
+             if isinstance(value, expr.Asset) and value.guid}
+            for cfg in configs
+        )
+        matches = []
+        for entity, tags in candidates:
+            component.consume_work('target-tag candidate filter')
+            if (not any_tags or not any_tags.isdisjoint(tags)) and required <= tags and excluded.isdisjoint(tags):
+                matches.append(expr.Entity(entity))
+        var.base = tuple(matches)
+        instance.changed(var, before)
+    instance.follow(node, 'm_outPlug', None)
+    return True
+
+
 @handler('STU_42578342')
 def collect_targets(instance: Instance, node, caller) -> bool:
     """Write the collected entity array before following the action output."""
@@ -5405,6 +5584,11 @@ def collect_targets(instance: Instance, node, caller) -> bool:
         entity_queries.collect_tagged(instance, node)
         instance.follow(node, 'm_outPlug', None)
         return True
+    if filter_config is None and (
+        node.field('m_9C7BD8B8') is not None or node.field('m_8B2A4DF3') is not None
+        or component.world.target_tag_candidates() is not NotImplemented
+    ):
+        return find_tagged_entities(instance, node, caller)
     output = lvalue(node.field('m_4AEEE6A1'))
     if (output is None or node.field('m_ADEB6E05') not in (None, 1) or node.field('m_2BBEEAB8') not in (None, 0)
             or any(node.field(key) is not None for key in ('m_9C7BD8B8', 'm_8B2A4DF3'))):

@@ -10,6 +10,323 @@ source and6/6pass; actual body-VM causal case also passes. Broad45run41pass reta
 three original Mei absolute differences and one old sigma_grasp fixture import
 error, without blocking code. No new defense pool, input bundle or client action.
 
+## A102 — preserve existing grenade launch affiliation in native status routing
+
+A98's original victim loop uses Rocket.team, but StatusWorld's original standalone
+faction predicate read live actor.team. Confirmed genuine integration mismatch:
+real hostilegrenade after source joins recipientteam healed/left400 instead of
+340; real friendlygrenade after source changesenemy dealt60 (190 instead of350).
+No invented new faction rule: the preexisting Rocket affiliation is authoritative
+for this existing flight victim decision.
+
+Passed optional source_team from that same Rocket to the same Applied StatusWorld
+and exactowner source predicate. Original manual impact defaultNone continues
+its prior live-source semantics. Refresh replaces only that actual host's captured
+team for the current accepted application. Source IDs remain exact, no inferred
+body/team, no second host or ledger. Registered only actual source_team storage
+on StatusWorld; SupportWorld unaffected, unknownfield/exporter guards retained.
+
+Native full10methods pass47.651s, including two real switch-team flights with
+original100/60 results and correct0B99/0C72 branch, Matrix, shield cleanse, actual
+5NPCdeath, Zarya sparse ledger and whole-server storage. After adding explicit
+source_team causal perturbation/restoration to actualServerSession capture,
+focused whole method passes51.064s. Logs worker-a-native-status-launch-team-baseline.log,
+worker-a-native-status-launch-team-check.log and
+worker-a-native-status-launch-team-storage-check.log. No original assertions
+or expected constants changed.
+
+Next A103 original007A/0068 typed-row ordering must use actual sameMover.Mod.start
+first-publish frame+1, not guess from component/state clock. Restore original
+component_data strict parser and typed_data on current sole mod ledger, preserve
+explicit flight/profile/ownedMech and root Volskaya mover hooks. A101 Moira
+suspicion is closed; no Moira production changes authorized or needed by evidence.
+
+## A101 — original Moira single consumer proved; duplicate suspicion withdrawn
+
+Read frozen01A2 df51065e8163f569f75f1f1596d626210ffea119 original
+Combat.command→moira.grasp/coalescence and the current same path. Critical
+registry check corrects A100: BEAM_STATES admits only Symmetra/Zarya, not Moira.
+Thus two generic _weapon_beam calls return immediately for Moira; its actual
+single grasp uses current Match.grasp_command context/real selected contacts.
+The old generic function's Moira comment was insufficient evidence of a live
+consumer. No production defect or missing source implementation was proved.
+
+Read-only wraps on an actual secondary command record2 generic calls for that
+Moira but exactly1 actual _damage event0.8 and netloss0.8 (original50/s*.016).
+worker-a-moira-single-event-check.log. Unchanged original full secondary60frames
+health52/damage48 and20frames target84/self107.68 methods both pass2.067s.
+No new field, scheduler, manager or de-dup feature added. A100's first queued
+production gap is withdrawn based on concrete registry/source/health evidence.
+
+A remaining actual work is A102 Rocket.team frozen affiliation through the same
+native status VM, then A103 original typed mover multirow ordering. Root and C
+notified; C owns no samebeam WIP and will not duplicate the audit. Other generic
+owners remain as documented: Symmetra excluded from secondcall, Echo own seen
+frame, Zarya original activation/bodytime/worldelapsed gate. No global deletion
+of the second query call or unsupported all-beams claim.
+
+## A100 — current consumer convergence and actual Matrix preservation
+
+Actual original Matrix geometry fixture now observes real native Applied child
+arrival instead of polling obsolete Modifier dictionaries. Original80 hostile /
+200 friendly health and0/1.5 factor expectations pass1.914s, including actual
+matrix-crossed grenade and original100/60 instant event strength. No fallback
+observer/second status table, no changed numeric expectation. Normal original
+Baptiste fixture remains unchanged; its old table/timer observations are a
+verification adapter tail, not an absent grenade/Matrix consumer. New proof is
+in test_healing_status_native.NativeHealingStatusTests.
+
+This supersedes earlier no-known-omission summaries: nine owned hero cores,
+shared000E and0068 boundaries are integrated as described A27/A63/A72 and A74–99,
+with these newly identified original production gaps queued explicitly:
+- A101: current Moira generic grasp is called twice per Combat.command with
+  fixedframe sample and no own dedup; root delegated original01A2 source/fixture
+  proof and same-host restoration. Source Beam/HOT/orb clocks must not mix.
+- A102: original grenade victim selection uses Rocket.team, while new native
+  faction predicate currently re-reads live source team. Preserve that existing
+  frozen flight affiliation/exactsource in same StatusWorld, no new host.
+- A103: original007A/0068 typed mover reconstruction chooses last active typed
+  row bypriority/start/key; current single-profile statescript_mover_data rejects
+  multiple profiles. This is a real missing original consumer policy, not missing
+  API spelling. Restore samehelper/order, sameMover.script_data and scalar mods.
+
+Shared mover symbol audit precise map (names alone were not completion evidence):
+- 0003 embedded_mover_data and0068/007A component_data parsing is in current
+  statescript_mover_data, consumed by Player synchronization and actual owned
+  Mech body_entities mover. Singletyped profile is mounted; multirow above open.
+- active_data is current sameMover.values, selected from flight/script_data/base
+  and scalar modded values in step_pose. Current body geometry/physics reads it.
+- 0004 movement_throttles /007A throttle_mods are modified_throttles, actually
+  called after active mod selection before movement integration.
+- 0200 knockback_scale is actual add_impulse category26 priority/order reduction;
+  old load_movers was just load_mover_bundle(...)[0], and that original strict
+  immutable/fingerprint-bound loader already serves Ashe actual BOB profiles.
+- 0002 lateral move_toward_horizontal callers map to same mover._move_to/displace
+  in current navigation/Player movement and original Graviton horizontal branch.
+  Old launch callers belonged shared Doomfist motion; current sole impulse/
+  velocity host consumes them, not a missing Reaper ability. No alias added.
+- 0065 pet_relation was not fully equivalent to entity_link: A96 preserved its
+  original explicitSDK/provider behavior in the unique runtime query chain;
+  no default inferred game ownership or duplicate Pet manager introduced.
+
+Owner handoff remains source-reconciliation, not full client/matrix acceptance.
+0004 dynamic healing_status now actually mounted (A97–99), superseding A72's
+static-ordinary-only assumption. All original source assertions/known numerical
+or geometry/policy conflicts remain. Root owns source ancestry/history and
+Volskaya platform, defaultv19 activation, appearance exclusion and otherowners.
+No uncommitted implementation here beyond next named tasks. Low-confidence A
+remaining activework2–5h for these three concrete gaps/mapping, not a merge gate.
+
+## A99 — preserve original Mercy status checks and immediate lifecycle consumers
+
+Preserved normal tests/test_game_mercy_healing_status.py from original0004:
+all28 testmethods/all128 assertion calls. Per-assert numeric constants are equal
+when normalizing the actual boost_credit[1] field access to former damage_scale;
+that index is an observation adapter, not a changed expected value. Fixture uses
+current composed MercyChain provider instead of old boost_tests package swapping,
+sole fight.healing and actual immunity phase query with the same2 original hero
+constants. Original1.3/health/credit/clock assertions are unchanged. No AST-only
+execution bypass, runtime observer alias or check removal; the normal unittest
+module imports and executes the original cases.
+
+Genuine original lifecycle gap: original immediate targetdeath case left0C71+
+0C72 live in component.instances. Mounted sole healing.retire at existing Player
+death, NPC death and npc.remove_body cleanup; no other cleanup removed. Root
+must preserve newer B83 slams.retire_target calls alongside these additions
+(not present in this worker base). Replacement/resurrection already retired.
+
+Original hostile/staff, friendly100/1.5/healingcredit and lateMercy passive3methods
+pass20.197s. Original launchboost and overkill2methods pass10.757s, preserving1.3
+and effective-credit assertions. Original5NPC friendlyamp/manual removal method
+passes1.594s. New actual5NPC lethal lifecycle plus originalPlayer immediate death
+=2/2pass2.836s; genuine baseline originaldeath failure retained. Logs
+worker-a-original-mercy-healing-status-check.log,
+worker-a-original-healing-boost-check.log,
+worker-a-original-healing-npc-remove-check.log and
+worker-a-native-status-death-check.log. Native7 preceding scope also executed
+without failures while old damage_scale observation raised3errors; mapping to
+actual captured credit then made both full originalboost methods pass.
+
+Next: precise source/consumer handoff mapping, nativeMatrix and currentBaptiste
+fixture actualtimer observations. Original28 module not all rerun; old pose/API/
+resource conflicts remain validation tails, not unsubmitted production work.
+Root owns defaultv19 activation and Volskaya. Original runtime/source inputs
+unchanged. No new acceptance matrix or feature added.
+
+## A98 — actual grenade and cleanse consume the same original status VMs
+
+Existing grenade victim/cover loop now invokes the same HealingEffects native
+impact when the explicit0267 binding is loaded. Original0004 Combat1778 documents
+that original instant100 heal/60 damage replaces the carrier outer50 event;
+no second health event is applied. Retain existing Matrix strength, captured
+Mercy damage scalar/boost credit, exact Rocket.source_entity and same-event
+broken-particle protection. Instant healing uses current _heal_target with that
+source identity; original damage uses current _damage with actual source/credit.
+Unbound profile retains existing explicit ordinary status path, not a guessedVM.
+Deployable/source admission and collision decisions are unchanged.
+
+Accepted cleanse now retires only actual0C72 negative children in the same host,
+preserving positive0B99, while retaining actual filter transitions and passive/
+shield ledgers. Pooled healing queries same native status presence. Cryo history
+includes native filter boundaries; no new status dictionary, actor or timer.
+A75 future-Pet fixture identity reads the real active0C72 instance when binding
+exists, retaining all original assertIs/lifetime/value assertions; without binding
+it still observes its original Modifier. No fake runtime observer alias added.
+
+Rootv19 supplies immutable source0267 binding (same3 full graph objects). Actual
+native/grenade/server-storage7 methods plus originalNativePetApplication2 =9/9
+pass30.942s, worker-a-native-healing-grenade-check.log. Includes actual hostile
+Ana0267 grenade60 once, no outer50; friendly100 once/actual
+0B99/1.5; pooled anti-heal; real personal/projected accepted cleanse and future
+application including changed-team rejection; same Zarya sparse ledger and
+whole-server causal hash+unknown rejection. All assertions/numbers preserved.
+
+Review scope: original Statuses._scale initializes bonus1, returns0 for value<=0,
+otherwise max(bonus,value). Thus positive0.5 becomes1 already in original policy;
+not an A97 neutral merge change. Real original/loaded modifiers are0B99/node8
+Float1.5 and0C72/node17 Int0; no unsupported new fractional-debuff feature added.
+
+Next A99: preserve/adapt original0004 healing-status fixtures to current composed
+provider/phase/sole-host observation, extend native Matrix/credit regression and
+complete exact consumer mapping/handoff. Existing Baptiste fixture still polls
+legacy amp/anti Modifier tables; adapt to actual native graph/timer observations
+without changing original expected health/timing values or adding runtime aliases.
+Those observations are validation tails, not missing or unsubmitted A98 code.
+
+## A97 — original healing status VMs on the sole received-healing host
+
+Restored0004 script/healing_status StatusWorld, Applied and original status
+implementation. HealingEffects inherits those methods/storage; Combat still
+constructs exactly one HealingEffects, never a second Statuses manager. Original
+impact API drives actual0C71→PlayScript0B99/0C72, active CombatModFilter values,
+authored timers, filter_history and Mercy passive_healing_scales. Existing ordinary
+anti/amp intervals, Spec, tags/immunity and A75/A77 shield ledger remain. factor
+merges effective status policies without multiplying positive statuses. Sparse
+integration includes actual filter transition boundaries; before pruning source
+history, settle the same Zarya shield ledger. No source expected values changed.
+Two necessary real-host adaptations: damage_immune receives target.owner; scoped
+StatusWorld.play_script_selected routes actual0C71 through current resolved
+PlayScript/Queue (the old plays_scripts property alone no longer has a consumer).
+Exact StatusWorld/Applied/HealingEffects storage is registered; strict exporter
+and unknown-field rejection remain unchanged.
+
+Input evidence: original0004/research/game_graphs_support_status_174.json.gz has
+0267→0C71 binding absent from v18. Its0C71/0B99/0C72 complete graph objects equal
+current composed objects. External worker-a-healing-status-graphs.json.gz derives
+v18 plus that one binding; no source/runtime input changed. Root owns unifiedv19.
+New5 actual methods pass32.926s: child/filter/4s expiry, same-host retirement,
+component timer causal hash+unknown rejection, paced/sparse same Zarya ledger,
+and actual ServerSession full storage hash mutation/restoration/unknown rejection.
+Log worker-a-native-healing-status-storage-check.log. Earlier35-method native+
+Baptiste+Zarya run retained6subfails/2errors: Enforcer/Assassin originalNPC burst
+netloss4 values, old zarya_recovery.bodies2 errors, original projectile193-impact
+boundary2 values. These source assertions are unchanged; not all were rerun as
+pre-A97 baselines and no claim of newly green acceptance is made.
+
+Next A98 actual remaining consumers: route the existing grenade victim loop
+through that sole native application without duplicate damage/healing, retain
+Matrix strength/source ownership and same-event shield exclusion; integrate
+native filters into cleanse/pooled-heal and Cryo historical boundary consumers.
+The present manual original impact API is active and verified, while ordinary
+projectile grenades deliberately still use existing single health/status path.
+Preserve original healing-status fixtures/assertions when adapting existing
+composed graph/current phase interfaces; do not add observer aliases/secondhost.
+
+## A96 — retain original0065 component72 explicit query provider
+
+Source pet_relation is not merely the current entity_link filename: original
+Context has separate context/namespace availability and captures a mutable Pet
+pointer across watch_pet before reading its fresh uint32 field. Current decoded
+entity_link.Target is immutable; it remains the existing DVa host. Preserved
+source pet_relation.py and its12 originaltests byte-exact (SHA256 A43C9D14A12EF9EBB968249A488E24AAD64FCA79E370DFD511A1CB7D1B12FE13;
+2590CEA06D10C50078D65B787B90EB733ABF34882B6D137FBF72D7EC0BED2B62).
+Added original World.pet_relation_context defaultNotImplemented. The unique
+runtime F76C486C evaluation chain invokes this explicit provider before the
+current entity_link fallback. No manager, pool, inferred pet ownership, oldname
+facade or fabricated game context was added. Original0065 likewise declares
+only an explicit primitive provider, not a game-world override. Unknown services
+still reject strictly; namespace absence preserves output without selector;
+observer retirement poisons as original. Existing DVa actual decoded identity
+and direct-owner separation are retained.
+
+Original pure12 pass0.019s; original12 plus actualDVa BodyVariable12 =24/24pass
+56.307s, log worker-a-pet-relation-sdk-check.log. No source numeric/assert changes.
+This is an active runtime consumer, not just a retained unmounted module.
+
+Next A97: root transferred0004 healing_status actualStatusWorld/Applied0C71→
+0B99/0C72/dynamicCombatModFilter/history to A exclusively. ExistingHealingEffects
+already supplies ordinaryanti/amp/timers, tags, immunity and Mercy passive-scale
+history, but originaldynamicVM/filter state consumers are genuinely missing.
+Integrate them into that solemanager while preserving A75/A77 recovery/interval
+integration and exact whole-server storage. Do not instantiate originalStatuses
+as a second manager. Root owns Volskaya and Match/Lift seams; C owns AIBehavior.
+
+## A95 — native particle projectile contact retains original splash continuation
+
+Restored frozen0068 Combat._fly lines2252–2259: one nonsticky particle
+contact consumes combined direct+blast on the existing native Pet/Vitals and
+continues exactly one explosion with the already intercepted actual recipient
+excluded. The native capsule branch previously landed without splash. Default
+sphere aliases reach the same actor: A94 dedup exposed their direct-only40 loss;
+this batch restores source combined120 before the protected-body explosion.
+Capture recipient before damage/retirement, so shield20 breaking cannot leak
+same-event health or impulse. Sticky/fuse, other native families, C56 Pharah
+prehealth impulse planning, C57 wall/source_scaled, B64 Accretion and A86 optional
+launch snapshot fields remain intact. Current team/supercharger/live Nano applies
+once; captured launch Nano skips live Nano, captured Mercy is not reapplied.
+No second pool, geometry change, new feature or serializer change.
+
+Actual new regression uses real Pharah emissions/personal and projected casts,
+capacity200/20 and both default sphere and isolated authored capsule geometry:
+8 subcases assert120 shield loss, no recipient health/pose/velocity change,
+one actual _explode call and actual exposed-neighbour splash. Native-capsule
+isolation suppresses only the competing sphere query, not actor/damage services.
+Baseline default capacity200 failed160 instead of80 (2 cases). Final newmethod,
+Pharah ImpactCover2 and native overlap5 =8/8pass8.086s; log
+worker-a-zarya-native-projectile-splash-check.log. Earlier Nano+overlap+new9methods
+had8pass/1 original projected Nano horizontal-input7.5 health-loss failure,
+previously recorded. Accretion two originalmethods retain one distance2.65 loss20
+vs<20 failure and two sigma.particle_barrier old-observer errors; assertions and
+numbers untouched, not claimed newly green or production-completion blockers.
+
+Next: exact remaining original-consumer mapping/handoff including0065
+pet_relation versus current entity_link (same F76C486C query), shared soleMover
+symbol replacements, and root-requested0004 healing_status dynamic filters,
+passive_healing_scales and status timers. Root independently owns any healing_status/
+projectile_defense/sleep_view implementation; do not create duplicate hosts.
+
+## A94 — source personal-first interception and single contact per recipient
+
+Restored original0068 _candidates/_intercept ordering on the same native actors:
+protect_body selects personal then roster caster; native ray changes only exact
+same-distance/same-recipient Zarya ties, leaving nearest-ray math and cross-family
+ordering intact. Existing Zarya proxy iteration uses the same order. Area/melee
+and actual explosion loops consume at most one pool for each protected body in
+one event. Same-tick next event can reach the surviving projection after personal
+break. No new pool/observer/manager, no damage scalar or collision size changes.
+Resource-backed admission flags remain exactly as A93.
+
+Four genuine baselines from actual projected-first→personal casts: body50 went
+to projection instead of personal; equal ray chose projection; melee30 consumed
+both pools170/170; real emitted Helix80 blast consumed both120/120. New native
+checks preserve independent actual actors/Vitals and original priority policy,
+not an invented getter/second ledger. After fix all5 native overlap methods pass,
+including real same-tick50/150/50 handoff, caster40/10energy/body unchanged, exact
+ray tie and realHelix80/melee30 one-pool damage. Combined original multi-caster
+whole method, A91/A92 original2 and lifetime2 =10/10pass14.683s. Logs
+worker-a-zarya-pool-priority-contact-baseline.log and
+worker-a-zarya-native-pool-priority-contact-check.log. Source/core checks were not
+weakened and C57 wall/offense_scale paths remain untouched.
+
+Remaining precise production consumer A95 found in final _fly comparison:
+frozen0068 Combat._fly calls _explode(excluded=struck.entity) after bubble combined
+interception (source lines2252–2259). Current native Zarya scripted_shield branch
+consumes direct+blast and lands without invoking explosion, so adjacent exposed
+bodies lose original delivered splash. Restore that real continuation with the
+already-consumed recipient excluded, same Rocket/one explosion/one damage service;
+A94 protected-body loop now supplies the correct one-pool exclusion. This is an
+existing source behavior, not a new mechanic. Then complete exact source/shared
+mover mapping and handoff; validation/API/resource conflicts remain tails.
 ## C69 — original AI search contract and actual Assassin target IDs
 
 Corrected the existing13C2 provider to return raw IDs to its one typed TrackTargets
@@ -161,6 +478,14 @@ old private API, source geometry/contract differences, externalclient OPEN) are 
 production-merge blockers. Final source/shared mover replacement mapping follows
 A93; do not add legacy mover facades merely because names differ.
 
+## C64 — original owner consumer closeout
+
+Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
+and Symmetra actual portal mappings. Superseded stale C44 work estimates with
+root completed0016 orb-route and handed C the retained-respawn review. Preserved
+all original assertions and separated old fixture/numeric differences from
+unmounted implementation. Documentation only; no tests rerun. Latest functional
+C63 body-size group remains16/16pass. No client or network action.
 
 ## A91 — original earlier break rebase after an ahead body end
 
@@ -461,6 +786,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original scaled Mei/Genji methods and mover/damage checks pass16/16. Old
   fixture/contract differences remain recorded separately; no new runtime host
   or client acceptance is implied.
+### Preserve original directly callable target SDK
+
+- Restore original root/index/history/geometry/membership/temporal APIs where
+  current World wrappers do not replace their public interfaces; explicit
+  backend requirements stay unchanged, with no second attached runtime host.
+- Ten original modules and eleven fixtures are byte-identical; all58 checks
+  pass. Existing Volume/gameplay paths remain; no client acceptance run.
+
 ### Restore original victim-side credit for supported weapons
 
 - Reconnect original Hog/Doom/Ball/Quad credit consumers to actual permanent
@@ -11776,3 +12109,459 @@ vs native60 assertions remain visible and do not block real code integration.
   budget and actual time-dependent NPC pace. No new mover, VM or stored field.
 - All20 actual stepped/gap causal pairs match; retain two original Assassin
   absolute-position failures instead of altering their expected numbers.
+
+## B82 — restore frozen Doomfist visibility and target ranking
+
+Correct prior convergence claim: source-checkpoints/012F b6d0581c and frozen
+58d8e57e are siblings, not successive delivery versions. The working source
+simplified away existing frozen production consumers. Audit both; retain the
+richer frozen behavior without replacing stronger current VectorRecord/nodes.
+
+Restore frozen _two_height_visible verbatim: 30%-height LOS then60%, same
+ray_cover including existing Cryo blockers. Actual Punch command now uses the
+original prior-pose view anchor eye-.5 and mode2 resolved-feet distance ranking,
+while preserving capsule admission, current completion/control and finished
+Dash history. Actual Slam wave restores original+1.8m origin and same two-height
+LOS. No new state, pool, controller or numerical expectation. Original Punch,
+Slam and runtime56/56 pass42.000s, worker-b-doom-sibling-contact.log.
+
+Still UNMOUNTED confirmed frozen58 production: Slam initial close_contact;
+next-world-tick queued additive impulse, native modifier26 scale and320ms ground
+braking, plus lifecycle/snapshot integration. Next exact action: restore these
+through sole existing mover (NPC control_mover/impulse_mover, explicit movement
+inputs retained), no second movement driver. Scene.unbind already clears both
+records and vector_records; no missing cleanup there. General strict tagged
+catalog and retained SDK7 interfaces still need bounded equivalence audit.
+No original-client acceptance. Original checks remain unchanged.
+
+
+## B83 — mount frozen Slam close contact and scheduled impulse lifecycle
+
+Restore frozen58 original near-contact graph0B27/152+154 query, authored offset/
+radius/vector, two-height cover, admitted-set wave exclusion (including blocked
+damage), and next-world-tick impulse queue. Source literal category26 resolver
+reads actual active NumericPropertyModifiers in native insertion order; scales
+once before queue. Exact scheduled tick only, no late replay; target death/body
+retirement/NPC removal clear pending records, source-owner retirement does not
+silently erase another target's already emitted effect.
+
+Existing Combat._launch gains original optional add_vertical (default behavior
+preserved). Players use their same mover; NPC uses existing raw body adapter and
+same control_mover/impulse_mover/explicit movement_data, including route bodies.
+No second mod26 application or input-clock queue. Original finite ground brake
+is DECEL_GROUND*.01 for20 worldticks (320ms), in already registered Mover.mods.
+Reserved key prefix-2 avoids current-1 impulse records. track_mods retains it;
+step_pose admits/expires it on worldtick, preserving currentfield33 and all
+body-frame state mods. Slams.impulses exactfield added to strictserver export.
+
+Original Punch/Slam/runtime56/56 pass45.985s. New causal checks verify nexttick
+only, additive existingY, no repeated delivery, retirement/past rejection,
+world200..219 vscommand10001+ braking and end220, all5 actualNPC existingmover
+reuse/explicitdata, realServer pending queue+applied mod mutation/restore and
+strictBodyVM export. Full latter joint with originalSlam/Mod/runtime46/46 pass
+71.835s (worker-b-doom-impulse-joint.log). Initial newprobes wrongly counted all
+preexisting mods and ignored actualHeavy1254 SET26=0; corrected those newfixture
+assumptions, retained logs. A first mount targeted identicalactive-list text in
+add_impulse instead ofstep_pose; causal epoch probe caught it and code corrected
+before commit. Original assertions untouched. No client acceptance.
+
+Next exact action: restore original explicit general tag-candidate strictVM
+consumer alongside current stronger0D76/required/filter paths, and boundedSDK7
+equivalence/publicAPI inventory. Audit HandCannon Cryo cover actual sweep path;
+do not add second projectile/controller. B82 dependency432a38f2. Sixowner closure
+claim remains withdrawn until frozen and staged sibling positive consumers are
+both mapped. Remaining active code audit/merge estimate6–14h, excludes source
+numeric conflicts/legacy observers/fullNPCfixture recovery/client validation.
+
+
+## B84 — restore original explicit general target-tag query consumer
+
+Frozen58 STU42578342 supports ordered explicit world candidate catalogs with
+any/required/excluded tag groups. Current collect_targets only had stronger
+0D76 special consumer, participant filters and single-required-tag path; those
+do not replace this public strictVM behavior. Restore original helper AST
+identically (decorator remains on unified dispatcher), World unknown default,
+Scene explicit setter/getter and retirement removal. The actual same dispatcher
+selects this branch for any/excluded or an explicitly supplied catalog; existing
+0D76/filter/single-tag backend paths remain. No implicit catalog creation, new
+world/cache/host or permissive unknown fallback. Scene exact metadata adds
+_target_tag_candidates to shared SCENE_WORLD_FIELDS for all existing derived
+strict exporters (root/C notified to union their simultaneous fields).
+
+Original source test method restored unchanged: ordered any/all/excluded
+matches replace stale destination; unbound/rebound IDs cannot inherit old tags;
+empty known catalog yields empty output. That method plus entity_queries and
+runtime42/42 pass1.737s. Full Scene/entity_queries/runtime128run126pass1fail1error
+1.855s: retained healthquery initial91 vs0 and movement sample-output strict
+error in unchanged consumers. No assertions edited. Initial attempt omitted
+external profile and produced resource errors; selected-input rerun recorded
+separately. Helper AST source equality checked. Logs worker-b-doom-tag-catalog-
+{selected,bounded}.log. No client acceptance.
+
+Next exact action: frozenHandCannon ray_cover Cryo blocker restoration on actual
+existing rocket sweep (currently static ray_world only), then SDK7 public API/
+classID inventory. Do not overwrite stronger current projectile paths or
+collect_targets branches. B82/B83 restoration remains required, not optional
+validation-tail work. All existing input/unknown boundaries retained.
+
+
+## B85 — restore frozen Hand Cannon active Cryo cover
+
+Original58 rocket sweep uses ray_cover with every active Cryo capsule (except
+shooter) for HandCannon109; staged sibling deleted this production consumer.
+Current generic body/terrain sweep is insufficient: actual alliedMei is absent
+from enemy shot targets, yet her original090B shell is still cover. Real emitted
+pellet beyond alliedCryo incorrectly dealt6HP to the enemy behind it (baseline
+200→194). Restore original exactloadout selector+HAND_CANNON publicmetadata and
+same existing ray_cover before ordinary terrain ordering. All other projectile
+sweeps, geometry, stronger scene/barrier handlers and their ordering remain.
+
+New actual three-player/pick/Cryo/input/emitted-pellet test now stops at ally
+Cryo and preserves200HP behind. With originalDoomdefenses/Damage/runtime32/32
+pass26.981s, worker-b-doom-cryo-cover-corrected.log. Initial newfixture assumed
+smallerMei bodyradius but current authoredradius is.5; corrected to proven ally
+exclusion path, retaining logs. First mount referenced originalHAND_CANNON
+metadata absent in currentdefenses; restored originalconstant, no alias or new
+host. No original assertions changed. No client acceptance.
+
+Next exact action: SDK7 original public interfaces vs currentactualclassID/
+callbacks inventory, preserving sourceAPI only where not replaced. In particular
+source distance/possession state classes HAVE current strongerAIBehaviorState/
+AIControlOverride consumers under the sameGUID; do not overwrite those hosts
+with old registries merely to satisfy sourcefixture import names. Map semantics
+first and retain directly callable SDK where required. General42578342 B84 and
+source58twoheight/Slam B82/B83 are substantive restored code, not matrixgates.
+
+
+## B86 — retain original mask and tag-initialization public SDK
+
+Compare current replacement APIs first: entity_filter.matches_masks accepts a
+config mapping plus resolved RelationResult; original filter_masks exposes the
+Masks value object/combined property and lazy explicitowner/relation callback.
+Current entity_tags models effective runtime tag membership/context queries;
+it does not expose original base_tags(owner_resource,descriptor_resource) that
+validates two resolved uint32 tuples and preserves ordered deduplication.
+
+Preserve these two original directly callable Python SDK modules and their
+original fixtures byte-for-byte. No gameplay dispatch, World binding, automatic
+backend, cache or lifetime is created/replaced. Existing currentmask/tag runtime
+consumers remain. All10 original standalone checks pass0.000s in
+worker-b-mask-tag-sdk.log; all4 files exactsource bytes checked. No client check.
+
+Next exact action: controller_query original explicit watchedContext vs current
+controller_queries.Record; retain original selected backend ahead of default
+record query only when explicitly supplied, strictunknown otherwise. Then NPC
+callback query and distance/possession original public SDK mapping; do not
+replace currentstronger AI state registry registrations. Assassin13C2 service
+needs dependency/caller equivalence audit, not blind copy of its gameplayhost.
+
+
+## B87 — preserve original watched controller-query SDK and explicit dispatch
+
+Original controller_query.Context/Target/Controller implements independent
+CC9BF0 lookup, component43 observation, fresh DA6910 controller resolution and
+callback lifetime/strictunknown guards. Current controller_queries.Record uses
+explicit component43/44 membership records and has no watchedcallback API;
+that is a different, stronger defaultbackend, not this existingpublic interface.
+
+Retain originalmodule and originalfixture byte-for-byte. Add originalWorld
+entity_controller_context unknown default and query in current evaluation chain
+before controller_queries, after healthqueries, only consuming knownresult.
+Unconfigured sourceSDK returnsNotImplemented without selector evaluation itself;
+existing strongerRecord/world fallbacks continue. No autoContext/World/backend,
+second controller or newpersistent state created. Known sourceSDK callback cases
+pass unchanged alongside currententityqueries/runtime:49run47pass2 sourcefixture
+expectation differences2.058s (worker-b-controller-query-sdk.log).
+
+Both differences are real documented combined-backend contracts: originalSDK
+fixture inherits currentSceneWorld, whose boundentity now yields knownrecord
+facts; sourceContext unknown therefore legitimately falls back to currentRecord
+(False) rather than unknown/directworld fallback. A diagnostic newfixture
+explicitly markingrecordbackend unknown left1 orderingdifference, since existing
+strongerRecord must evaluate its selector before lookup even if that backend
+returnsunknown. That experimentalfixture override was REVERTED; finaloriginal
+fixture bytes/assertions remain unchanged. Do not alter strongerRecord behavior
+or add fake absence to force originalfixture green. Originalsource evaluate API
+and its explicitContext behavior preserved. No client acceptance.
+
+Next exact action: originalnpc_queries callback SDK vs actualentity_queries
+A37A/D379 indexed lookup/scalar interfaces; then original distance/possession
+publicregistries vs currentAIBehavior/AIControlOverride exactclassID mapping.
+Retain oldSDK APIs without replacing authoritative currenthost or pretending
+legacyfixture backend conflicts are missing gameplay features.
+
+
+## B88 — retain explicit typed NPC-query backend alongside current services
+
+Original01CA npc_queries.Context exposes explicit entity(owner,selector) and
+pair(owner,target) callbacks with causal binding/instance validation and exact
+Entity/bool result checks. Current sameclassID services use indexed_target_lookup
+and target_record_scalar with typed failed/float semantics. Preserve current
+actual dispatch by default; it does not replace this explicit public callbackSDK.
+
+Restore original module byte-for-byte and original Scene setter/getter, default
+unknown World API, same Scene binding dictionary and unbind/script-retirement
+cleanup. Current scalar evaluation tries this backend before entity_queries;
+unknown sourcebinding returnsNotImplemented without selector effects, leaving
+currentlookup/scalar paths intact. Only explicitly supplied originalcontext uses
+originaltyped contract. No auto callback namespace/controller/host or inferred
+bool-from-currentfloat conversion. Shared strictScene metadata registers exact
+npc_query_contexts field; arbitrary callback exports still obey existingstrict
+callable boundaries. C notified to preserve metadata union.
+
+Original unchanged sourceScene callback/typedargs/retire-ID test plus current
+entity_queries/runtime42/42 pass1.664s, worker-b-npc-query-sdk.log. Clean sync
+root8d973451 at worker34918591 retained bothpet_relation and controller_query
+runtimeimports in sole conflict; root/C SDK and ownerstate additions preserved.
+No original assertions changed, no clientacceptance.
+
+Next exact action: preserve original distance_constraints/possession_requests
+public registries, document actual strongerAIBehaviorState/AIControlOverride
+sameclassID mappings without attaching a second production registration host.
+Then originalAssassinServices vs actualmanual13C2 path equivalence audit and
+final frozen/staged012Fpositive delta inventory. No fullmatrix delivery gate.
+
+
+## B89 — retain original direct distance and possession registry SDKs
+
+Restore original01CA distance_constraints and possession_requests modules
+byte-for-byte. They expose Entry/Registry priority+sequence registration and
+Inputs/Selection/Request/Registry request ordering/lifetime APIs respectively.
+Current b61/component86/AIBehaviorState/AIControlOverride store richer state,
+sourcecomponent, instance/node IDs and reactive payloads under the SAME original
+stateclassIDs. Their API/record types are not the original directSDK interface.
+Do not discard existing directAPI merely because currentgameplay uses another
+implementation; also do not replace stronger actualstate handlers or attach
+another automatic registration host. This batch preserves directSDK only.
+
+Exactsource-byte audit passed; imports/actualdirect register/order/unregister
+and requestinsert/order/remove checks passed. No runtime consumers, storedfields
+or dependencies changed. No original-client acceptance or matrix requirement.
+
+Remaining explicitAPI boundary: original Scene.set_distance_constraints and
+set_possession_requests fed oldstateclasses with source owner+clock records.
+Current World has actualregister_ai_behavior_request/control/weapon methods
+backed by its existingsolehost. Mapping those sourceScene APIs requires checking
+that original lifecycle/selection acceptance can be retained without a second
+sameGUID registry; not yet declared equivalent/complete. Root notified. Next
+exact action: boundedassassin_filter actual13C2 caller audit; sourceAPI registry
+adapter decision follows explicitconsumer evidence, no host duplication.
+
+
+## B90 — retain original scoped Assassin filter service API
+
+Source0009 script.assassin_filter implements existing direct Services/supported/
+evaluate/track_targets APIs for two exact13C2 filters over live Winston player
+inputs. SourceBotWorld used these; current actualBotWorld/AssassinController
+TargetWorld/NpcContext already own13C2 candidate selection, nativecondition and
+manualbinding paths with broader actor/hero support. Do not install a second
+13C2 controller/target producer or replace those current actual consumers with
+this older Winston-only namespace. Preserve original directly callable scoped
+API, including strict unsupported extension/script callbacks, masks/conditions,
+explicit source relationship and bodyvar14695 exclusion boundaries.
+
+Restore source implementation with only actualdependency mapping:
+protections.intangible→defenses.intangible (imports/call). Its lookup already
+requires player.hero==Winston before this expression: originalCryo/Reaper
+branches and currentReaperbranch both reject any otherhero here, so this mapping
+does not broaden protection policy or require a second globalprotection module.
+All other source text exact. ActualRun/hero switch proved bothoriginal authored
+filters accepted, liveWinston identity/component97/bits and gonebody rejection;
+worker-b-assassin-filter-sdk.log. No original assertions edited, no clientrun.
+
+All7 named publicSDK modules now preserved (B86mask/tag, B87controller_query,
+B88npc_queries, B89distance/possession, B90assassin_filter). This is NOT a claim
+that originalScene distance/possession bindinginterfaces have been mapped;
+that explicit sourceAPI/state lifecycle boundary remains. Next exact action:
+resolve that lastoriginalScene binding behavior with sameauthoritative current
+state registration and no secondactive host; report exact pendingimplementation
+rather than test/clienttails. Frozen58/stagedb6 finalpositive diff audit remains
+before finalDoominventory. No wholeline completion based solely on filecopy.
+
+
+## B91 — restore explicit distance registry Scene consumer on the same state
+
+Root approved exact explicitbackend restore, preserving every originalScene API
+rather than claiming sameGUID alone proves equivalence. Restore originalScene
+set_distance_constraints/distance_constraint_registry, unknownWorlddefault and
+unbindclear. AIBehaviorState for originalB61E/600E only chooses this backend when
+actually supplied; same state's registration is mutually exclusive with default
+richerAIBehaviorRequest. Default/CFA338CB path, payload reevaluation, priority
+resource validation and currentproductionhosts unchanged. Cleanup/failure removes
+only its own originalEntry. No secondcontroller/World/automaticregistration.
+
+Strict fields: existingAIBehaviorState addsregistration; distanceRegistry exact
+_entries/_sequence andEntry state/priority/sequence registered in both applicable
+exporters; Scene exactmetadata addsdistance_constraints. OriginalScene method
+assertions unchanged: equalpriority order, failurecleanup leaves otherentries,
+unbindclear andunknown getter pass. Joint27run26pass1 retainednewTargetSearch
+fixture expectation (sourceC test expects strict unsupported thoughC restoration
+now supports it), worker-b-distance-backend.log. Productiondefault branch for
+thatcase never reaches distance explicitbackend.
+
+ActualNPC-backed Phase2World with originalB61E state/explicitRegistry proved
+exactlyoneEntry and no defaultai_behavior_requests, strictComponentVM export,
+_sequence mutation changescausalhash/restoration recoverssamehash;
+worker-b-distance-storage.log. No clientacceptance or originalassertchanges.
+
+Next exact action: possession originalScene binding+Inputs(owner,clock) and
+selectionacceptance on sameAIControlOverride, separatebatch, sourceclasshandler
+not replaced. Preserve currentcomponent86/AIControl default. Then final sibling
+positiveconsumer inventory, do not gate code on legacyexpectation differences.
+
+
+## B92 — mount original explicit possession request Scene backend
+
+Restore originalScene set_possession_requests/getter uniqueness guard and unbind
+clear, Worldunknown default and SCENE_WORLD_FIELDS possession_requests. Current
+sameAIControlOverride chooses this only for an actually supplied targetregistry;
+otherwise existingAI control/weapon producer remains. Originalowner/clock comes
+only from registry.inputs(state), validatedInputs and exactbindinglifetime;
+no body/world time guessed. Originalkind2/plain, kind1/f32pair, separateaccepted
+selection list, authoredpriority, rejectionABORT and cleanup/failure preserved.
+
+Actualstrict473549CA resolves Component86NumericPairState via STRICT_STATE_CLASSES,
+not generalAIControlOverride. Add same explicitbackend choice there while keeping
+its defaultcomponent86 consumer. No factory replacement/secondcontroller or
+simultaneous default+originalregistration for a state. Existinggeneralstate gains
+request_registration; strictNumericPair initializesregistry/request_registration.
+ExactInputs/Selection/Request/Registry and strictstate storage registered in both
+applicableexporters. Reviewedknown dict.get backend permits actualcausal storage;
+unknown arbitrarycallbacks remain strict (no broadcallable allowlist).
+
+OriginaltwoScene methods (floatpair/order, ownerclock/lifecycle/otherrequests)
+plusruntime15/15 pass1.634s, worker-b-possession-backend-corrected.log. ActualNPC-
+backedPhase2World threeoriginalGUIDs proved ownerclock1234/1235/1236, pair1.25/2.5,
+acceptedselection, no defaultAIrecords, strictVM causal requestorder mutation/
+restore and destroycleanup; worker-b-possession-storage-raw.log. Initial storage
+probe used expr.Entity/Asset objects inside syntheticgraphdefinition; strictcodec
+correctly rejectednonraw definition. Correctedprobe rawEntityReference fields,
+no serializer relaxation. Originalassertions unchanged, no clientrun.
+
+Extra originalcomponent86 suite preserves4errors in first joint (onewas4735missing
+branch fixedhere). RemainingCF8C/066B defaultfactory selectsAIControlOverride and
+dynamicpriority/weaponbinding expectations conflict with older explicit
+Scene.set_component86 tests. This is an actual oldexplicitbackend consumer gap,
+not merely a fieldname observation: retain sourceassertions and map exactdeclared
+component86 backend without replacing strongerdefault nextbatch. Root notified.
+This batch does not claim all oldcomponent86 APIs are fullyreached. Next exact
+action: map sameGUID declaredcomponent86 path/strictcurrentVectorState lifecycle,
+then final012F58/b6positiveinventory. Do not wait allmatrix/clientacceptance.
+
+
+## B94 — retain frozen vector replacement API and recursive value consumer
+
+Frozen58 publicVectorReplacement/upsert_vector/retire_vector/no-base resolve/
+clear APIs were absent even though currentVectorRecord is a stronger runtime
+implementation. Retain originalvalueobject validation, convert originalwrite to
+sameVectorRecord operation2, delegate retire tosamevectorarray, clear same two
+arrays. Currentbase-provided resolve_vector contract/ADD/MULTIPLY operations and
+allcurrentnodes remain; omittedbase originalAPI returns lastactiveoperation2
+replacement tuple orNone, not an inventedbase for generaloperations. No parallel
+store or persistentfields. ActualdirectSDK smoke verified bothreadcontracts,
+newVectorRecord storage, expiry andclear; tooloutputrecorded.
+
+Original frozenvectorstate test then exposed a real additionalconsumer gap:
+currentNumericPropertyModifiers used only directVec3, discarding nestedtuple
+firstmembers. Restore originalreplacement_vector helper verbatim, including
+per-memberworkbudget, zero fallback and recursion, solely for original09F9B1FE
+operation2. CurrentnewADD/MULTIPLY row evaluation unchanged. Same generalupsert
+storage/priority/lifecycle is preserved. Restore originaltestmethod unchanged;
+first attempt failed expected(2,3,4) vs(0,0,0), afteractualconsumer restore all29
+original/currentmodifier/runtime checks pass1.895s. Logs worker-b-original-vector-
+api{,-mounted}.log. This was actual sourcecode gap, not an oldobserver rename.
+
+Final58→b6 positive-line audit found no independent newstaged-only production
+consumer: itslaunch signatures/LOS/midpoint/rank/waveorigin/queue removal/vector
+removal/tagcatalog removal/storage slimming are simplifications of frozen58.
+Currentlaunch/soleNPCmover plusB82–85/B94 retain these richer behaviors; current
+VectorRecord/nodes are not rolled back. Scene.unbind alreadyclearsbotharrays.
+Still pending explicitcomponent86 Registry sameGUID adapter (B93), not fulltest/
+clientvalidation. Rootasked to preserve strongerdefault pending precisebackend
+mode boundary; continue scopedadapter after this independentlyreceivable batch.
+
+
+## B93 — recover explicit component86 backend selection without replacing defaults
+
+Root approved an explicit backend-presence boundary. OriginalScene.set_component86
+already declares knownRegistry/knownabsence; currentstatefactory overwrote its
+CF8C/066B and strictFC16 consumers with richerAIControlOverride/JunkensteinAIFacing.
+Restore this oldAPI on the SAME actualstate by Worldreadonly hook(defaultFalse),
+Scene declarationmap presence only. Declaredmode defers to originalComponent86State
+OnEnter selector/descriptor/ABORT lifecycle; undeclaredScene retains existing
+priority/selector/facing producer. No guessedbackend, duplicateactor/statefactory
+replacement or simultaneousregistration. AIControl samecomponent86 class helpers
+retain originaldynamicpriority/order, selectionseparatearray/acceptedtable and
+failurecleanup. When both oldexplicitAPI families exist, actualtarget's declared
+possession registry is checked first, preservingB92; otherwise component86.
+
+ActualstrictFC16 is JunkensteinAIFacing (laterstrictregistration), so adapt that
+sameclass to originalvector registration/dependencyupdates only in declaredmode.
+Defaultnarrowauthoredgraph/priority/direction checks and samefacingrecords intact.
+Cleanup/destroy aliases cover each selectedbackend; reentry recalculatesmode.
+Bothapplicable strict exporters registerexactmode/registry fields, component86
+Registry/Entry/Selection/NumericPair and actualstrictvectorstate layouts. Existing
+unknowncallbacks remainstrict; no broadserialization fallback. Scene no newstate
+field beyond its alreadyregisteredcomponent86_registries.
+
+Originalcomponent86 tests (dynamicvectorpriority/updates, numericpair, knownabsence
+ABORT, selectionacceptance/cleanup), originalpossessionScene methods andruntime
+all19/19 pass1.844s, worker-b-component86-backend-final.log. Initialextraerror exposed
+actualFC16factorypriority; fixedrealclass, no originalassertedvalues changed.
+ActualNPC-backedPhase2World control/vector entries sharedsameoldRegistry, no AI
+recordduplicate, strictVM descriptorhashmutation/restore anddestroycleanup pass;
+separateundeclaredWorld uses actualstrongerAIControl default, one record andmode
+False. worker-b-component86-storage.log. No clientacceptance.
+
+Next exact action: source012E generic externalimpulse world-gap replay actual
+consumer, rootassignedB; coordinateC68 Pharah replay budget and use SAME existing
+Knockbacks+Combat.normal_ticks loop, no oldImpulses manager clone. C source budget:
+REPLAY_LIMIT256; rockets last_tick+ceil(left/dt)+256; pendingbarrage/concussive
+previous+ceil8s/dt+256; airborne8s/fuel4s. Originalprimary/concussive recipient
+motion exactpaced/gap tests retained. Must preservePharah frozenimpactplan and
+sameplayer/NPC mover ownership/clock/replay/strictstorage; sourceSDK adapters are
+now mounted, not acceptance-matrix gated. Estimatedremainingactivecode6–12h for
+newgenericforce integration +boundedsourceclosure, excludingoldnumeric/clienttails.
+
+
+## B95 — restore accepted force replay on sole existing Knockbacks host
+
+Clean sync root3c8e56ad at worker3b0de8a1 includesC68 Pharahreplay, A97–99 and
+B86–92/B94; only ownB93 ahead. Rootassigned original012E fight.impulses world-gap
+consumer toB, C provided actualPharahbudget and sourcefixture. Recover original
+play/test methods on currentSombraCombat arena with originalfloor/Tracer→Pharah
+preparation; everyoriginaldamage/shot/displacement/pose assertion AST unchanged.
+Baseline primary+concussive gap leavesrecipientz0. Diagnostictrace corrected an
+earlier incorrectSET inference: pacedalready movesnormally z-1.3535; actualplan
+(≈0,6.4,-4) reachesmover andpacedvelocity persists. Do NOT replace currentstronger
+force mathematics with oldparallelMotion merely to repair missingworldreplay.
+
+Add originalaccepted-launch tracking/replay to sameKnockbacks. Positive actual
+Pharah appliedimpulse records actualbody/worldtick only after native26 scaling;
+zeroresponse cannotactivateit. SourceREPLAY_LIMIT256 budget unions C68existing
+normal_ticks loop, no secondworldloop. Previous andinterior ticks call same
+Player._step_body_pose(replay_accepted=True) using existing declaredactualanchor,
+lastcommand/scriptframe dedup, samebodycapsule/history and clocksrestoration.
+Retirement clearsmarkers; exactlaunches field registered in strictserver. No
+newImpulsesmanager, sourceMotionclone, guessedepoch or inputlease. Existing
+NPCcontrol/impulse movers and Pharahfrozenforceplan/applyordering unchanged.
+
+CrossoriginalPharahImpulse/NPCImpulse/C68Replay/newrealServer causalstorage/runtime
+27run26pass1existingNPCskip54.991s, worker-b-force-replay-joint.log. ActualServer
+acceptedforce clock mutation/restoration changes/recoversexacthash andretire
+clearsmarker. Originalprimary/concussive gap now passes shots/health/<-1motion;
+remaining exactpose failures are one endpointpose: primarypacedz-1.353515625 vs
+gap-1.2890625; concussive-7.935546875 vs-7.76953125. SourceoldexternalMotion still
+displaced endpoint while currentinputreplay leavesendpoint for realcommand.
+Preserve originalexpectations and genuineendpointinput, do not consumeinput to
+forcegreen. Logs worker-b-force-gap-{baseline,trace,anchor-mounted}.log.
+
+Stillactualmissing consumers: endpointsameforce physicalcompletion and recipients
+without existingdeclaredanchor. Do not call these observerdifferences. Root
+approvedB96 sameKnockbacks actualconstructor/realpose observationpairs, distinguish
+replay, exactstorage andretire/bodyreplacement; no fakehero world_frame_anchor.
+Next exactaction: implement observedpair scope, prove burst/sparse/unequalepoch
+with samebodyphysics; endpointpolicy requires realcause evidence nextbatch.
+Later rootasked source0008 controller_query.matches/World.controller_components
+frozenset directSDK audit against B87same-name module/strongpluralRecord; preserve
+both explicitinterfaces, no automaticcontrollerhost. No allmatrix/clientgate.

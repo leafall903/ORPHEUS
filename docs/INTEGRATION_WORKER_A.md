@@ -2317,3 +2317,321 @@ on same actors/Vitals, keep closest-ray mathematics/cross-family order. Then fin
 precise source mapping/handoff; source private API/geometry/resource conflicts and
 clientOPEN remain verification tails, not blockers to code admission. Shared mover
 old-symbol names will be mapped to actual current consumers rather than facades.
+
+## A94 — source personal-first interception and single contact per recipient
+
+Restored original0068 _candidates/_intercept ordering on the same native actors:
+protect_body selects personal then roster caster; native ray changes only exact
+same-distance/same-recipient Zarya ties, leaving nearest-ray math and cross-family
+ordering intact. Existing Zarya proxy iteration uses the same order. Area/melee
+and actual explosion loops consume at most one pool for each protected body in
+one event. Same-tick next event can reach the surviving projection after personal
+break. No new pool/observer/manager, no damage scalar or collision size changes.
+Resource-backed admission flags remain exactly as A93.
+
+Four genuine baselines from actual projected-first→personal casts: body50 went
+to projection instead of personal; equal ray chose projection; melee30 consumed
+both pools170/170; real emitted Helix80 blast consumed both120/120. New native
+checks preserve independent actual actors/Vitals and original priority policy,
+not an invented getter/second ledger. After fix all5 native overlap methods pass,
+including real same-tick50/150/50 handoff, caster40/10energy/body unchanged, exact
+ray tie and realHelix80/melee30 one-pool damage. Combined original multi-caster
+whole method, A91/A92 original2 and lifetime2 =10/10pass14.683s. Logs
+worker-a-zarya-pool-priority-contact-baseline.log and
+worker-a-zarya-native-pool-priority-contact-check.log. Source/core checks were not
+weakened and C57 wall/offense_scale paths remain untouched.
+
+Remaining precise production consumer A95 found in final _fly comparison:
+frozen0068 Combat._fly calls _explode(excluded=struck.entity) after bubble combined
+interception (source lines2252–2259). Current native Zarya scripted_shield branch
+consumes direct+blast and lands without invoking explosion, so adjacent exposed
+bodies lose original delivered splash. Restore that real continuation with the
+already-consumed recipient excluded, same Rocket/one explosion/one damage service;
+A94 protected-body loop now supplies the correct one-pool exclusion. This is an
+existing source behavior, not a new mechanic. Then complete exact source/shared
+mover mapping and handoff; validation/API/resource conflicts remain tails.
+
+## A95 — native particle projectile contact retains original splash continuation
+
+Restored frozen0068 Combat._fly lines2252–2259: one nonsticky particle
+contact consumes combined direct+blast on the existing native Pet/Vitals and
+continues exactly one explosion with the already intercepted actual recipient
+excluded. The native capsule branch previously landed without splash. Default
+sphere aliases reach the same actor: A94 dedup exposed their direct-only40 loss;
+this batch restores source combined120 before the protected-body explosion.
+Capture recipient before damage/retirement, so shield20 breaking cannot leak
+same-event health or impulse. Sticky/fuse, other native families, C56 Pharah
+prehealth impulse planning, C57 wall/source_scaled, B64 Accretion and A86 optional
+launch snapshot fields remain intact. Current team/supercharger/live Nano applies
+once; captured launch Nano skips live Nano, captured Mercy is not reapplied.
+No second pool, geometry change, new feature or serializer change.
+
+Actual new regression uses real Pharah emissions/personal and projected casts,
+capacity200/20 and both default sphere and isolated authored capsule geometry:
+8 subcases assert120 shield loss, no recipient health/pose/velocity change,
+one actual _explode call and actual exposed-neighbour splash. Native-capsule
+isolation suppresses only the competing sphere query, not actor/damage services.
+Baseline default capacity200 failed160 instead of80 (2 cases). Final newmethod,
+Pharah ImpactCover2 and native overlap5 =8/8pass8.086s; log
+worker-a-zarya-native-projectile-splash-check.log. Earlier Nano+overlap+new9methods
+had8pass/1 original projected Nano horizontal-input7.5 health-loss failure,
+previously recorded. Accretion two originalmethods retain one distance2.65 loss20
+vs<20 failure and two sigma.particle_barrier old-observer errors; assertions and
+numbers untouched, not claimed newly green or production-completion blockers.
+
+Next: exact remaining original-consumer mapping/handoff including0065
+pet_relation versus current entity_link (same F76C486C query), shared soleMover
+symbol replacements, and root-requested0004 healing_status dynamic filters,
+passive_healing_scales and status timers. Root independently owns any healing_status/
+projectile_defense/sleep_view implementation; do not create duplicate hosts.
+
+## A96 — retain original0065 component72 explicit query provider
+
+Source pet_relation is not merely the current entity_link filename: original
+Context has separate context/namespace availability and captures a mutable Pet
+pointer across watch_pet before reading its fresh uint32 field. Current decoded
+entity_link.Target is immutable; it remains the existing DVa host. Preserved
+source pet_relation.py and its12 originaltests byte-exact (SHA256 A43C9D14A12EF9EBB968249A488E24AAD64FCA79E370DFD511A1CB7D1B12FE13;
+2590CEA06D10C50078D65B787B90EB733ABF34882B6D137FBF72D7EC0BED2B62).
+Added original World.pet_relation_context defaultNotImplemented. The unique
+runtime F76C486C evaluation chain invokes this explicit provider before the
+current entity_link fallback. No manager, pool, inferred pet ownership, oldname
+facade or fabricated game context was added. Original0065 likewise declares
+only an explicit primitive provider, not a game-world override. Unknown services
+still reject strictly; namespace absence preserves output without selector;
+observer retirement poisons as original. Existing DVa actual decoded identity
+and direct-owner separation are retained.
+
+Original pure12 pass0.019s; original12 plus actualDVa BodyVariable12 =24/24pass
+56.307s, log worker-a-pet-relation-sdk-check.log. No source numeric/assert changes.
+This is an active runtime consumer, not just a retained unmounted module.
+
+Next A97: root transferred0004 healing_status actualStatusWorld/Applied0C71→
+0B99/0C72/dynamicCombatModFilter/history to A exclusively. ExistingHealingEffects
+already supplies ordinaryanti/amp/timers, tags, immunity and Mercy passive-scale
+history, but originaldynamicVM/filter state consumers are genuinely missing.
+Integrate them into that solemanager while preserving A75/A77 recovery/interval
+integration and exact whole-server storage. Do not instantiate originalStatuses
+as a second manager. Root owns Volskaya and Match/Lift seams; C owns AIBehavior.
+
+## A97 — original healing status VMs on the sole received-healing host
+
+Restored0004 script/healing_status StatusWorld, Applied and original status
+implementation. HealingEffects inherits those methods/storage; Combat still
+constructs exactly one HealingEffects, never a second Statuses manager. Original
+impact API drives actual0C71→PlayScript0B99/0C72, active CombatModFilter values,
+authored timers, filter_history and Mercy passive_healing_scales. Existing ordinary
+anti/amp intervals, Spec, tags/immunity and A75/A77 shield ledger remain. factor
+merges effective status policies without multiplying positive statuses. Sparse
+integration includes actual filter transition boundaries; before pruning source
+history, settle the same Zarya shield ledger. No source expected values changed.
+Two necessary real-host adaptations: damage_immune receives target.owner; scoped
+StatusWorld.play_script_selected routes actual0C71 through current resolved
+PlayScript/Queue (the old plays_scripts property alone no longer has a consumer).
+Exact StatusWorld/Applied/HealingEffects storage is registered; strict exporter
+and unknown-field rejection remain unchanged.
+
+Input evidence: original0004/research/game_graphs_support_status_174.json.gz has
+0267→0C71 binding absent from v18. Its0C71/0B99/0C72 complete graph objects equal
+current composed objects. External worker-a-healing-status-graphs.json.gz derives
+v18 plus that one binding; no source/runtime input changed. Root owns unifiedv19.
+New5 actual methods pass32.926s: child/filter/4s expiry, same-host retirement,
+component timer causal hash+unknown rejection, paced/sparse same Zarya ledger,
+and actual ServerSession full storage hash mutation/restoration/unknown rejection.
+Log worker-a-native-healing-status-storage-check.log. Earlier35-method native+
+Baptiste+Zarya run retained6subfails/2errors: Enforcer/Assassin originalNPC burst
+netloss4 values, old zarya_recovery.bodies2 errors, original projectile193-impact
+boundary2 values. These source assertions are unchanged; not all were rerun as
+pre-A97 baselines and no claim of newly green acceptance is made.
+
+Next A98 actual remaining consumers: route the existing grenade victim loop
+through that sole native application without duplicate damage/healing, retain
+Matrix strength/source ownership and same-event shield exclusion; integrate
+native filters into cleanse/pooled-heal and Cryo historical boundary consumers.
+The present manual original impact API is active and verified, while ordinary
+projectile grenades deliberately still use existing single health/status path.
+Preserve original healing-status fixtures/assertions when adapting existing
+composed graph/current phase interfaces; do not add observer aliases/secondhost.
+
+## A98 — actual grenade and cleanse consume the same original status VMs
+
+Existing grenade victim/cover loop now invokes the same HealingEffects native
+impact when the explicit0267 binding is loaded. Original0004 Combat1778 documents
+that original instant100 heal/60 damage replaces the carrier outer50 event;
+no second health event is applied. Retain existing Matrix strength, captured
+Mercy damage scalar/boost credit, exact Rocket.source_entity and same-event
+broken-particle protection. Instant healing uses current _heal_target with that
+source identity; original damage uses current _damage with actual source/credit.
+Unbound profile retains existing explicit ordinary status path, not a guessedVM.
+Deployable/source admission and collision decisions are unchanged.
+
+Accepted cleanse now retires only actual0C72 negative children in the same host,
+preserving positive0B99, while retaining actual filter transitions and passive/
+shield ledgers. Pooled healing queries same native status presence. Cryo history
+includes native filter boundaries; no new status dictionary, actor or timer.
+A75 future-Pet fixture identity reads the real active0C72 instance when binding
+exists, retaining all original assertIs/lifetime/value assertions; without binding
+it still observes its original Modifier. No fake runtime observer alias added.
+
+Rootv19 supplies immutable source0267 binding (same3 full graph objects). Actual
+native/grenade/server-storage7 methods plus originalNativePetApplication2 =9/9
+pass30.942s, worker-a-native-healing-grenade-check.log. Includes actual hostile
+Ana0267 grenade60 once, no outer50; friendly100 once/actual
+0B99/1.5; pooled anti-heal; real personal/projected accepted cleanse and future
+application including changed-team rejection; same Zarya sparse ledger and
+whole-server causal hash+unknown rejection. All assertions/numbers preserved.
+
+Review scope: original Statuses._scale initializes bonus1, returns0 for value<=0,
+otherwise max(bonus,value). Thus positive0.5 becomes1 already in original policy;
+not an A97 neutral merge change. Real original/loaded modifiers are0B99/node8
+Float1.5 and0C72/node17 Int0; no unsupported new fractional-debuff feature added.
+
+Next A99: preserve/adapt original0004 healing-status fixtures to current composed
+provider/phase/sole-host observation, extend native Matrix/credit regression and
+complete exact consumer mapping/handoff. Existing Baptiste fixture still polls
+legacy amp/anti Modifier tables; adapt to actual native graph/timer observations
+without changing original expected health/timing values or adding runtime aliases.
+Those observations are validation tails, not missing or unsubmitted A98 code.
+
+## A99 — preserve original Mercy status checks and immediate lifecycle consumers
+
+Preserved normal tests/test_game_mercy_healing_status.py from original0004:
+all28 testmethods/all128 assertion calls. Per-assert numeric constants are equal
+when normalizing the actual boost_credit[1] field access to former damage_scale;
+that index is an observation adapter, not a changed expected value. Fixture uses
+current composed MercyChain provider instead of old boost_tests package swapping,
+sole fight.healing and actual immunity phase query with the same2 original hero
+constants. Original1.3/health/credit/clock assertions are unchanged. No AST-only
+execution bypass, runtime observer alias or check removal; the normal unittest
+module imports and executes the original cases.
+
+Genuine original lifecycle gap: original immediate targetdeath case left0C71+
+0C72 live in component.instances. Mounted sole healing.retire at existing Player
+death, NPC death and npc.remove_body cleanup; no other cleanup removed. Root
+must preserve newer B83 slams.retire_target calls alongside these additions
+(not present in this worker base). Replacement/resurrection already retired.
+
+Original hostile/staff, friendly100/1.5/healingcredit and lateMercy passive3methods
+pass20.197s. Original launchboost and overkill2methods pass10.757s, preserving1.3
+and effective-credit assertions. Original5NPC friendlyamp/manual removal method
+passes1.594s. New actual5NPC lethal lifecycle plus originalPlayer immediate death
+=2/2pass2.836s; genuine baseline originaldeath failure retained. Logs
+worker-a-original-mercy-healing-status-check.log,
+worker-a-original-healing-boost-check.log,
+worker-a-original-healing-npc-remove-check.log and
+worker-a-native-status-death-check.log. Native7 preceding scope also executed
+without failures while old damage_scale observation raised3errors; mapping to
+actual captured credit then made both full originalboost methods pass.
+
+Next: precise source/consumer handoff mapping, nativeMatrix and currentBaptiste
+fixture actualtimer observations. Original28 module not all rerun; old pose/API/
+resource conflicts remain validation tails, not unsubmitted production work.
+Root owns defaultv19 activation and Volskaya. Original runtime/source inputs
+unchanged. No new acceptance matrix or feature added.
+
+## A100 — current consumer convergence and actual Matrix preservation
+
+Actual original Matrix geometry fixture now observes real native Applied child
+arrival instead of polling obsolete Modifier dictionaries. Original80 hostile /
+200 friendly health and0/1.5 factor expectations pass1.914s, including actual
+matrix-crossed grenade and original100/60 instant event strength. No fallback
+observer/second status table, no changed numeric expectation. Normal original
+Baptiste fixture remains unchanged; its old table/timer observations are a
+verification adapter tail, not an absent grenade/Matrix consumer. New proof is
+in test_healing_status_native.NativeHealingStatusTests.
+
+This supersedes earlier no-known-omission summaries: nine owned hero cores,
+shared000E and0068 boundaries are integrated as described A27/A63/A72 and A74–99,
+with these newly identified original production gaps queued explicitly:
+- A101: current Moira generic grasp is called twice per Combat.command with
+  fixedframe sample and no own dedup; root delegated original01A2 source/fixture
+  proof and same-host restoration. Source Beam/HOT/orb clocks must not mix.
+- A102: original grenade victim selection uses Rocket.team, while new native
+  faction predicate currently re-reads live source team. Preserve that existing
+  frozen flight affiliation/exactsource in same StatusWorld, no new host.
+- A103: original007A/0068 typed mover reconstruction chooses last active typed
+  row bypriority/start/key; current single-profile statescript_mover_data rejects
+  multiple profiles. This is a real missing original consumer policy, not missing
+  API spelling. Restore samehelper/order, sameMover.script_data and scalar mods.
+
+Shared mover symbol audit precise map (names alone were not completion evidence):
+- 0003 embedded_mover_data and0068/007A component_data parsing is in current
+  statescript_mover_data, consumed by Player synchronization and actual owned
+  Mech body_entities mover. Singletyped profile is mounted; multirow above open.
+- active_data is current sameMover.values, selected from flight/script_data/base
+  and scalar modded values in step_pose. Current body geometry/physics reads it.
+- 0004 movement_throttles /007A throttle_mods are modified_throttles, actually
+  called after active mod selection before movement integration.
+- 0200 knockback_scale is actual add_impulse category26 priority/order reduction;
+  old load_movers was just load_mover_bundle(...)[0], and that original strict
+  immutable/fingerprint-bound loader already serves Ashe actual BOB profiles.
+- 0002 lateral move_toward_horizontal callers map to same mover._move_to/displace
+  in current navigation/Player movement and original Graviton horizontal branch.
+  Old launch callers belonged shared Doomfist motion; current sole impulse/
+  velocity host consumes them, not a missing Reaper ability. No alias added.
+- 0065 pet_relation was not fully equivalent to entity_link: A96 preserved its
+  original explicitSDK/provider behavior in the unique runtime query chain;
+  no default inferred game ownership or duplicate Pet manager introduced.
+
+Owner handoff remains source-reconciliation, not full client/matrix acceptance.
+0004 dynamic healing_status now actually mounted (A97–99), superseding A72's
+static-ordinary-only assumption. All original source assertions/known numerical
+or geometry/policy conflicts remain. Root owns source ancestry/history and
+Volskaya platform, defaultv19 activation, appearance exclusion and otherowners.
+No uncommitted implementation here beyond next named tasks. Low-confidence A
+remaining activework2–5h for these three concrete gaps/mapping, not a merge gate.
+
+## A101 — original Moira single consumer proved; duplicate suspicion withdrawn
+
+Read frozen01A2 df51065e8163f569f75f1f1596d626210ffea119 original
+Combat.command→moira.grasp/coalescence and the current same path. Critical
+registry check corrects A100: BEAM_STATES admits only Symmetra/Zarya, not Moira.
+Thus two generic _weapon_beam calls return immediately for Moira; its actual
+single grasp uses current Match.grasp_command context/real selected contacts.
+The old generic function's Moira comment was insufficient evidence of a live
+consumer. No production defect or missing source implementation was proved.
+
+Read-only wraps on an actual secondary command record2 generic calls for that
+Moira but exactly1 actual _damage event0.8 and netloss0.8 (original50/s*.016).
+worker-a-moira-single-event-check.log. Unchanged original full secondary60frames
+health52/damage48 and20frames target84/self107.68 methods both pass2.067s.
+No new field, scheduler, manager or de-dup feature added. A100's first queued
+production gap is withdrawn based on concrete registry/source/health evidence.
+
+A remaining actual work is A102 Rocket.team frozen affiliation through the same
+native status VM, then A103 original typed mover multirow ordering. Root and C
+notified; C owns no samebeam WIP and will not duplicate the audit. Other generic
+owners remain as documented: Symmetra excluded from secondcall, Echo own seen
+frame, Zarya original activation/bodytime/worldelapsed gate. No global deletion
+of the second query call or unsupported all-beams claim.
+
+## A102 — preserve existing grenade launch affiliation in native status routing
+
+A98's original victim loop uses Rocket.team, but StatusWorld's original standalone
+faction predicate read live actor.team. Confirmed genuine integration mismatch:
+real hostilegrenade after source joins recipientteam healed/left400 instead of
+340; real friendlygrenade after source changesenemy dealt60 (190 instead of350).
+No invented new faction rule: the preexisting Rocket affiliation is authoritative
+for this existing flight victim decision.
+
+Passed optional source_team from that same Rocket to the same Applied StatusWorld
+and exactowner source predicate. Original manual impact defaultNone continues
+its prior live-source semantics. Refresh replaces only that actual host's captured
+team for the current accepted application. Source IDs remain exact, no inferred
+body/team, no second host or ledger. Registered only actual source_team storage
+on StatusWorld; SupportWorld unaffected, unknownfield/exporter guards retained.
+
+Native full10methods pass47.651s, including two real switch-team flights with
+original100/60 results and correct0B99/0C72 branch, Matrix, shield cleanse, actual
+5NPCdeath, Zarya sparse ledger and whole-server storage. After adding explicit
+source_team causal perturbation/restoration to actualServerSession capture,
+focused whole method passes51.064s. Logs worker-a-native-status-launch-team-baseline.log,
+worker-a-native-status-launch-team-check.log and
+worker-a-native-status-launch-team-storage-check.log. No original assertions
+or expected constants changed.
+
+Next A103 original007A/0068 typed-row ordering must use actual sameMover.Mod.start
+first-publish frame+1, not guess from component/state clock. Restore original
+component_data strict parser and typed_data on current sole mod ledger, preserve
+explicit flight/profile/ownedMech and root Volskaya mover hooks. A101 Moira
+suspicion is closed; no Moira production changes authorized or needed by evidence.

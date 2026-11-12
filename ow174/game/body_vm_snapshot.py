@@ -14,11 +14,12 @@ import types
 import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
-from ow174.game import npc_controller_storage
+from ow174.game import npc_controller_storage, volskaya
 from ow174.game.script.player_controller import ControllerVM, ControllerWorld
 from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
+from ow174.game.script.healing_status import StatusWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
 from ow174.game.ball_mines import MineWorld
@@ -91,7 +92,10 @@ _STATE_LAYOUTS = {
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
     nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
-    nodes.AIControlOverride: (("remove_record",), ()),
+    nodes.JunkensteinAIFacing: (("record", "remove_record", "registry", "component86_mode"), ()),
+    nodes.Component86VectorState: (("registry",), ()),
+    nodes.Component86NumericPairState: (("registry", "request_registration"), ()),
+    nodes.AIControlOverride: (("remove_record", "request_registration", "component86_mode", "registry"), ()),
     nodes.BodyPlacement: ((), ()),
     nodes.JunkensteinControllerState: ((), ()),
     nodes.JunkensteinBehaviorBranch: ((), ()),
@@ -99,6 +103,7 @@ _STATE_LAYOUTS = {
     nodes.StaticTagTarget: ((), ()),
     nodes.RecentInputState: (("recent",), ("history",)),
     runtime.State: ((), ()),
+    volskaya.LiftMotion: ((), ("last", "progress_slot")),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.CombatModFilter: (("combat_filter",), ()),
@@ -125,7 +130,7 @@ _STATE_LAYOUTS = {
     nodes.Stack: (("top", "under", "value", "var"), ()),
     nodes.LogicalButton: (("down", "pressed_at", "early_counter"), ()),
     nodes.AIBehavior: (("selected", "ai_previous"), ()),
-    nodes.AIBehaviorState: (("record", "remove_record"), ()),
+    nodes.AIBehaviorState: (("record", "remove_record", "registration"), ()),
     nodes.ActiveOutput: ((), ()),
     nodes.AssassinMovementState: (("movement_outputs", "movement_frame"), ()),
     nodes.AssassinPursuitCallbacks: (("pursuit_hosted", "pursuit_refresh"), ()),
@@ -177,7 +182,20 @@ _STATE_LAYOUTS = {
     nodes.ClientOnlyPulser: (("pulses", "pulsed_at"), ()), nodes.ActiveQuery: ((), ()),
 }
 
+from ow174.game.script import component86, distance_constraints, possession_requests
+
 _VALUE_LAYOUTS = {
+    nodes.AIFacingRecord: ("direction", "priority", "prefer_later"),
+    component86.Registry: ("descriptors", "accepted_selections", "entries", "selection_entries"),
+    component86.Entry: ("state", "source", "instance", "node", "kind", "priority", "before_equal", "selection", "numeric_pair", "vector"),
+    component86.Selection: ("slot", "identifier", "flag"),
+    component86.NumericPair: ("first", "second"),
+    possession_requests.Inputs: ("owner", "clock"),
+    possession_requests.Selection: ("slot", "identifier", "flag"),
+    possession_requests.Request: ("owner", "clock", "kind", "priority", "above_equal", "payload", "selection"),
+    possession_requests.Registry: ("inputs", "accepted_selections", "_requests", "_selections"),
+    distance_constraints.Entry: ("state", "priority", "sequence"),
+    distance_constraints.Registry: ("_entries", "_sequence"),
     nodes.AIBehaviorRequest: ("kind", "priority", "prefer_later", "shared", "inputs"),
     ControllerVM: ("definition", "retired", "component", "reserved_wire_ids"),
     ControllerFilterInputs: ("owner", "component_masks", "current_bits", "replicated_bits", "primary_status", "health_status", "flags28", "provenance", "revision", "retired", "bound_host"),
@@ -559,8 +577,15 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
+        if kind is volskaya.LiftScene:
+            if obj is not self.component.world:
+                raise BodyVMSnapshotError("foreign lift scene reference")
+            local = {"hero", "mode", "map_guid", "entity_start"}
+            return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
+                    "fields": self.fields(obj, volskaya.SCENE_FIELDS,
+                                          exclude=volskaya.SCENE_FIELDS - local)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
-                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, MineWorld,
+                    PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
                     assassin_controller.Phase2World):
             if obj is not self.component.world:
@@ -587,8 +612,10 @@ class _Export:
                 fields.add("barrier")
             if kind is DeviceWorld:
                 fields.update(("fight", "entity", "location"))
-            if kind is SupportWorld:
+            if kind in (SupportWorld, StatusWorld):
                 fields.update(("match", "source", "owner"))
+            if kind is StatusWorld:
+                fields.add("source_team")
             if kind is SombraDeviceWorld:
                 fields.update(("fight", "body", "tags"))
             if kind is MineWorld:

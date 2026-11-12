@@ -84,10 +84,10 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
+from ow174.game.script import healing_status, entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
-from ow174.game.collision import LoadState, World
+from ow174.game.collision import LayeredWorld, LoadState, World
 from ow174.game.collision_fingerprint import WorldRegistry
 from ow174.game.commands import Command, CommandQueue
 from ow174.game.content import GameMap, Hero, Spawn
@@ -95,6 +95,8 @@ from ow174.game.link import LinkCipher, ReceiveWindow
 from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
+from ow174.game import volskaya
+from ow174.game.script import scene_host, startup
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -124,7 +126,19 @@ def _names(text):
 
 # Exact registered classes. Field names are explicit: a newly introduced runtime
 # attribute must be reviewed, rather than silently omitted from a passing hash.
+from ow174.game.script import component86, distance_constraints, possession_requests
+
 FIELDS = {
+    volskaya.LiftScene: volskaya.SCENE_FIELDS,
+    volskaya.LiftHost: _names("world frame_ms seed graph_loader units weapons objective_approaches "
+                              "spawn_searches combatants body_projections frame prepared closed error "
+                              "play_requests_configured _play_acquire lift"),
+    volskaya.Lift: _names("match base origin position scale rotation models offsets route_length "
+                         "segment velocity blocked_riders attached_walls collider"),
+    startup.ComponentStartup: _names("component definition instance_data graph_loader created"),
+    component86.Registry: _names("descriptors accepted_selections entries selection_entries"),
+    possession_requests.Registry: _names("inputs accepted_selections _requests _selections"),
+    distance_constraints.Registry: _names("_entries _sequence"),
     NpcContext: _names("body controller definition body_component controller_component position retired target_entity target_host"),
     PinEffectServices: _names("registry messages"),
     message_state.Host: _names("contexts current manager"),
@@ -181,7 +195,7 @@ FIELDS = {
     ball_mines.MineWorld: _names("hero mode manager mine"),
     ball_mines.MineScript: _names("frame death_frame component server_only latest_live"),
     doomfist.Punches: _names("combat dashes impacts controls"),
-    doomfist.Slams: _names("combat casts"),
+    doomfist.Slams: _names("combat casts impulses"),
     winston.JumpPack: _names("combat seen flights"),
     winston.PrimalPunches: _names("combat seen frames"),
     meteor.Meteors: _names("combat casts"),
@@ -201,7 +215,7 @@ FIELDS = {
     sombra_control.Controls: _names("fight locks held device_receivers lock_history body_bases"),
     sound_barrier.SoundBarriers: _names("fight landings waves shielded seen pending"),
     lucio.Auras: _names("combat leases healing last_tick"),
-    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion"),
+    knockback.Knockbacks: _names("combat serial active whole_hog_seen whole_hog_motion launches"),
     support_effects.Effects: _names("match attachments boost_frames"),
     support_effects.EffectWorld: _names("hero mode match source owner"),
     sombra_control.DeviceWorld: _names("hero mode fight body tags"),
@@ -245,7 +259,8 @@ FIELDS = {
     baptiste.BaptisteEffects: _names(
         "combat seen regeneration protection_seen fields field_bindings matrices"
     ),
-    healing.HealingEffects: _names("combat spec anti amp"),
+    healing.HealingEffects: _names("match applied filter_history combat spec anti amp"),
+    healing_status.StatusWorld: _names("hero mode match source owner source_team"),
     absorption.Grasp: _names("combat converted decay_clocks last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
     graviton.Gravitons: _names("fight fields pulled npc_movers"),
@@ -327,6 +342,10 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller trooper_controller sniper_controller heavy_controller"),
 }
 DATACLASSES = (
+    volskaya.LiftFactory, scene_host.Unit,
+    component86.Entry, component86.Selection, component86.NumericPair,
+    possession_requests.Inputs, possession_requests.Selection, possession_requests.Request,
+    distance_constraints.Entry,
     message_manager.Key, message_manager.Sender, message_manager._Channel, modifiers.Record, modifiers.VectorRecord,
     hook.Flight, whole_hog.Spec, whole_hog.Motion,
     ball_mines.Mine,
@@ -365,7 +384,7 @@ DATACLASSES = (
     genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
     earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
-    healing.Spec, healing.Modifier,
+    healing.Spec, healing.Modifier, healing_status.Applied,
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
@@ -548,7 +567,7 @@ class _Graph:
                     for name in ("base", "key", "links", "partial", "resolving", "watchers", "entity_owner")}
         elif kind is types.FunctionType:
             data = self._function(obj)
-        elif kind is World:
+        elif kind in (World, LayeredWorld):
             data = {"asset": self._asset(obj)}
         elif kind is Mover:
             from ow174.game.commands import Command
@@ -707,7 +726,9 @@ def export_server_state(server, *, archives=(), collision_provider=None, assets=
     for match in matches:
         if type(match) is not Match:
             _fail("unregistered archived match type")
-        if match.scene_host_factory is not None:
+        if match.scene_host_factory is not None and type(match.scene_host_factory) is not volskaya.LiftFactory:
+            _fail('shared scene script runtime storage is not implemented')
+        if match.scene_host is not None and type(match.scene_host) is not volskaya.LiftHost:
             _fail('shared scene script runtime storage is not implemented')
         if (match.environment is not server.environment or match.skin_of is not server.skin_of
                 or match.emote_aliases_of is not server.emote_aliases_of

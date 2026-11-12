@@ -758,6 +758,39 @@ class World(_TriangleScene):
         return world
 
 
+class LayeredEngine:
+    def __init__(self, base, moving):
+        self.base, self.moving = base, moving
+
+    def query(self, low, high):
+        return [*self.base.query(low, high), *self.moving.query(low, high)]
+
+class LayeredWorld:
+    """Query the immutable cached map and the lift at the current frame."""
+
+    def __init__(self, base, moving):
+        if type(base) is not World or type(moving) is not World or base is moving:
+            raise ValueError('a layered collision world requires two distinct World layers')
+        self.base, self.moving = base, moving
+        self.lowest = min(base.lowest, moving.lowest)
+        self.engine = LayeredEngine(base.engine, moving.engine)
+
+    def nearby(self, *args, **kwargs):
+        return [*self.base.nearby(*args, **kwargs), *self.moving.nearby(*args, **kwargs)]
+
+    def ground(self, *args, **kwargs):
+        base, moving = self.base.ground(*args, **kwargs), self.moving.ground(*args, **kwargs)
+        if moving is not None and (base is None or moving.y > base.y):
+            return moving
+        return base
+
+    def cast_ray(self, *args, **kwargs):
+        base, moving = self.base.cast_ray(*args, **kwargs), self.moving.cast_ray(*args, **kwargs)
+        if moving is not None and (base is None or moving.distance < base.distance):
+            return moving
+        return base
+
+
 class RayWorld(_TriangleScene):
     """Explicit static query geometry from the core chunk and indexed static props."""
 
