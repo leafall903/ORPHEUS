@@ -3099,7 +3099,7 @@ class EarthshatterTests(unittest.TestCase):
         self.assertFalse(self.match.combat.shatters)
         self.advance(1)
         wave = self.match.combat.shatters[self.rein.body]
-        self.assertEqual((wave.speed, wave.reach, wave.cone, wave.duration), (40, 20, 50, 2.5))
+        self.assertEqual((wave.speed, wave.reach, wave.cone, wave.stun_seconds), (40, 20, 50, 2.5))
         self.advance(10)
         self.assertAlmostEqual(wave.travelled, 6.4, places=5)
         self.assertEqual(self.health(self.enemy), 200)
@@ -3278,7 +3278,7 @@ class EarthshatterTests(unittest.TestCase):
             self.run.step(hold)
         self.assertEqual(shield.current, 1500)
         generation = fight.replacement_ticks.get(self.enemy.body)
-        self.assertEqual(wave.shield_hit, {
+        self.assertEqual(wave.shields, {
             (self.enemy.body, generation, first_raise),
             (self.enemy.body, generation, state.counter),
         })
@@ -3383,14 +3383,14 @@ class EarthshatterTests(unittest.TestCase):
                 self.assertLess(wave.travelled, 8)
                 self.assertEqual(shield.current, 1600)
                 self.assertFalse(wave.hit)
-                self.assertFalse(wave.shield_hit)
+                self.assertFalse(wave.shields)
 
                 self.rein.team = 1 - initial_team
                 for _ in range(42):
                     self.run.step(hold)
                 self.assertEqual(shield.current, 1550 if shield_becomes_hostile else 1600)
                 self.assertEqual(50 in wave.blocked, shield_becomes_hostile)
-                self.assertEqual(bool(wave.shield_hit), shield_becomes_hostile)
+                self.assertEqual(bool(wave.shields), shield_becomes_hostile)
                 self.assertEqual(self.health(self.enemy), 500)
                 self.assertFalse(controlled(fight, self.enemy.body))
                 self.assertEqual(self.health(self.other), 200 if shield_becomes_hostile else 150)
@@ -3556,9 +3556,9 @@ class EarthshatterTests(unittest.TestCase):
                 for _ in range(60):
                     self.run.step({self.enemy: (-32768, 0, 2)})
                     wave = self.match.combat.shatters.get(self.rein.body)
-                    if wave is not None and wave.shield_hit:
+                    if wave is not None and wave.shields:
                         break
-                self.assertTrue(wave is not None and wave.shield_hit)
+                self.assertTrue(wave is not None and wave.shields)
                 if outcome == "team_change":
                     self.enemy.team = self.rein.team
                     for _ in range(90):

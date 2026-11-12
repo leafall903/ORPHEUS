@@ -375,6 +375,25 @@ alone is not evidence that a line's consumers are actually mounted.
   Earthshatter actual wave/control/surface audit, source NPC health/observer
   reconciliation; then remaining owner functionality beyond Rein/Winston/Doom.
 
+## B23 Earthshatter clipped ground/native shield consumers
+
+- Preserve existing Wave constructor/state lifetime and mount source ground,
+  ice, wall-plane clipping and same-step exposed-body checks. Source blocked
+  ray/endpoints are stored. Current actual held native shields join the existing
+  surface query; damage goes through existing manager and source activation keys.
+  Old helpers remain private and unrouted; no extra controller or health pool.
+- `worker-b-shatter-clipped-shared.log`:44/44 pass. Full source Shatter31 in
+  `worker-b-shatter-clipped-first.log` retains1fail3errors (baseline1fail11errors).
+  Remaining: actual control observer, barrier graph getter/shared contact query,
+  test writes legacy state.current30 but native Vitals resync restores1600.
+  Preserve all original numeric assertions; adapt only real fixture inputs.
+- Main source assertion audit:1399/1399, same per-method call order/count,
+  zero changed Constant lists; raw getter AST maps duration/shield_hit onto
+  actual stun_seconds/shields. B22 expanded83 finished all passing.
+- Next: source destroyed-shield pose history/remaining surfaces; exact native
+  pool fixture input and source control ownership consumers, then completion
+  audit before advancing tank owners. Full B21 snapshot session82747 still live.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

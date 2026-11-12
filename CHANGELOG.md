@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Earthshatter clipped ground and native shield contacts
+
+- Route the existing Wave through source0007's101-ray wall/terrain clipping,
+  retaining blocked rays and clipped endpoints. Exposed bodies can be hit in
+  the same step that reaches a wall; far-side capsules remain excluded. Reuse
+  current native held-shield actors and their actual damage service, with
+  generation/activation dedup. Retain legacy helpers without a second driver.
+- Apply the source near-hit occlusion policy against actual shields and Ice
+  Walls. Keep existing Wave constructor positions and add stored blocked rays.
+- All44 focused original wall/front/terrain/recycled-shield/late-drop, Charge,
+  runtime and causal snapshot checks pass. Full original Shatter31 improves
+  from1fail11errors to1fail3errors: old control/barrier getters and writing the
+  legacy shield cache instead of its native pool remain. Preserve expectations.
+  Main source1399 assertions retain counts/order and unchanged Constants.
+- Original-client acceptance remains open.
+
 ### Mount delivered explicit possession query contexts
 
 - Add source0007's typed POSSESSOR/BODY lookups and subscriptions, append their
