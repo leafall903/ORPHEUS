@@ -141,6 +141,17 @@ class MineWorld(runtime.World):
         script = self.mine.owner.body_script
         return script if script is not None and script.component.entity == self.mine.source else None
 
+    def script_component_present(self, entity):
+        if entity == self.mine.source:
+            return self.source_script() is not None
+        return super().script_component_present(entity)
+
+    def entity_ruleset(self, entity, key):
+        if entity == self.mine.source:
+            script = self.source_script()
+            return script.component.world.ruleset(key) if script is not None else None
+        return super().entity_ruleset(entity, key)
+
     def track_targets(self, state):
         if state.instance.graph.index != LIFECYCLE or state.node.pos != 50:
             return super().track_targets(state)
@@ -182,8 +193,16 @@ class MineWorld(runtime.World):
         return super().native(cfg, instance)
 
     def entity_var(self, entity, var):
-        script = self.mine.owner.body_script
-        if entity == self.mine.source and script is not None and script.component.entity == entity:
+        script = self.source_script() if entity == self.mine.source else None
+        if script is None and var == 9588:
+            # Original second-search filter reads the live candidate Cryo stack.
+            # Keep its same owner VM; no copied or fabricated status flag.
+            for target in self.manager.fight._targets():
+                if (target.entity == entity and self.manager.fight._has_protection(
+                        target, {0x02E00000000000DD: (0x05FE, 35)})):
+                    script = target.owner.body_script
+                    break
+        if script is not None:
             slot = script.component.entity_var(var, create=False)
             return slot.value() if slot is not None else None
         return super().entity_var(entity, var)
@@ -517,6 +536,10 @@ class Mines:
         for entity in primary.evaluate(blast.node.field('m_FA3ECC43')) or ():
             target = targets.pop(expr.to_entity(entity), None)
             if target is None:
+                continue
+            # The original mine consumes a live particle barrier before body
+            # damage and impulse. A breaking shield still owns the whole hit.
+            if barriers.protect_body(self.fight, target, amount, attacker=mine.source) is not None:
                 continue
             self.fight._damage(
                 mine.owner, target, amount, False, loadout.guid, tick, world_tick=tick, source_scaled=True, source_entity=mine.source, award_ult=False,

@@ -333,3 +333,31 @@ class MineStatusTests(unittest.TestCase):
                     self.assertLessEqual(enemy.mover.velocity[1], 5 * scalar)
                     self.assertGreater(enemy.mover.velocity[2], 5 * scalar - 0.4)
                     self.assertLessEqual(enemy.mover.velocity[2], 5 * scalar)
+    def test_native_source_query_rejects_missing_or_replaced_creator_script(self):
+        run, player, enemy = self.scenario()
+        mine = self.isolated(run, player)
+        primary = mine.body_script.primary()
+        cfg = primary.graph.node(33).field('m_condition')['m_value']['m_configVars'][0]
+        self.assertEqual(cfg['$'], 'STU_2B2E2F6D')
+        source_world = primary.component.world
+        player.body_script.component.set(13032, 0.5)
+        enemy.body_script.component.set(13032, 2)
+        self.assertEqual(primary.evaluate(cfg), expr.Entity(mine.source))
+        self.assertEqual(source_world.entity_var(mine.source, 13032), 0.5)
+
+        original = player.body_script
+        try:
+            # Explicit namespace absence/replacement fixtures. Normal hero
+            # retirement already destroys owned mines in the bounded bridge;
+            # these isolate the native query's missing-selected-entity branch.
+            for replacement in (None, enemy.body_script):
+                with self.subTest(replacement=replacement is not None):
+                    player.body_script = replacement
+                    self.assertEqual(primary.evaluate(cfg), expr.Entity(0))
+                    self.assertIsNone(source_world.entity_var(mine.source, 13032))
+                    self.assertIsNone(source_world.entity_ruleset(mine.source, 16349))
+                    self.assertFalse(source_world.script_component_present(mine.source))
+        finally:
+            player.body_script = original
+        self.assertEqual(primary.evaluate(cfg), expr.Entity(mine.source))
+        self.assertEqual(source_world.entity_var(mine.source, 13032), 0.5)

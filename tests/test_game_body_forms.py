@@ -137,6 +137,27 @@ class GraphSupplementTests(unittest.TestCase):
         self.assertNotIn("effect_scripts", self.base)
         self.assertEqual(len(self.base["graphs"]), 1)
 
+    def test_npc_association_keeps_existing_definition_and_source_provenance(self):
+        body, definition = "0x0400000000001D40", "0x0400000000001D41"
+        self.base["entities"] = {body: {}, definition: {"name": "existing controller"}}
+        row = {"definition": definition, "body_source_sha256": "a" * 64,
+               "source_sha256": "b" * 64}
+        extra = {"version": 1, "npc_controllers": {body: row}}
+        result = graph.add_supplement(self.base, extra)
+        self.assertIs(result["entities"][definition], self.base["entities"][definition])
+        self.assertIs(result["npc_controllers"][body], row)
+        self.assertNotIn("npc_controllers", self.base)
+        self.assertEqual(graph.add_supplement(result, extra), result)
+        with self.assertRaises(ValueError):
+            graph.add_supplement(result, {"version": 1, "npc_controllers": {
+                body: {**row, "source_sha256": "c" * 64}}})
+        for invalid_body, invalid_definition in ((body, body), (body, "0x040000000000FFFF"),
+                                                  ("0x040000000000FFFF", definition),
+                                                  ("0x02E0000000001D40", definition)):
+            with self.subTest(body=invalid_body, definition=invalid_definition), self.assertRaises(ValueError):
+                graph.add_supplement(self.base, {"version": 1, "npc_controllers": {
+                    invalid_body: {**row, "definition": invalid_definition}}})
+
     def test_effect_conflict_or_missing_graph_does_not_replace_existing_binding(self):
         key = "0x04A0000000000016"
         self.base["effect_scripts"] = {key: {"graph": 1, "definition": {}}}

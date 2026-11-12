@@ -1013,3 +1013,100 @@ phase/Cryo/Transcendence/bubble admissions and endpoint causal ordering. Keep th
 single-EMP strict frame boundary visible; reconcile it only from original code,
 not by changing expectations. Then remaining Ball control/physical/source tests,
 followed by the large unaudited Hog/Zarya/Sigma owner consumers.
+
+B45 delivered SHA: `bc88c727`.
+
+### B46 — original Mine second-search Cryo member and contact checks
+
+- Restored original MineWorld foreign member9588 lookup only for its actual
+  live Mei05FE/state35 candidate VM. Creator reads still require the original
+  source body; no copied status flags or second health/controller pool exists.
+  The original second-search filter now excludes the active Cryo candidate
+  before its relation query, and admits the same candidate after actual cancel.
+- Restored9 full original Mine contact/filter tests with exact assertions and
+  original real helper inputs: second search controls actual damage; one blast
+  hits each eligible enemy once; overlapping enemy mines remain independent;
+  component76 short-circuit and source8117 candidate routing; Roll/Fireball
+  contact; preparation deadline; Wraith; live Cryo/cancel admission.
+- v17 original9 plus shared runtime13 all22 pass. All original assertion ASTs
+  preserved, no provider substitution. Initial missing hold fixture import was
+  fixed; initial Cryo relation_calls [52,50] vs original[52] exposed and drove
+  the real foreign-member correction rather than an expectation change.
+- B45 single-EMP frame-end8912 boundary remains open with its original test.
+  No original-client acceptance or complete Ball line claim.
+
+Next exact action: original world-only phase/Cryo/Transcendence and shield-surface
+Mine consumers; reconcile actual foreign script/ruleset semantics using current
+host APIs rather than adding old fake modules. Preserve the existing no-double-
+EMP path and C42 native NPC device changes at parent merge.
+
+B46 delivered SHA: `a53bc026`.
+
+### B47 — original Mine creator namespace on current typed host APIs
+
+- Restored original creator script presence and foreign ruleset default semantics
+  through the existing runtime.World.script_component_present/entity_ruleset
+  interfaces. Only the selected original creator body is declared known;
+  missing/replaced creator script yields explicit absence and no body alias.
+  Unknown other entity services retain strict behavior. No old helper-only API
+  or fake module was added to satisfy fixture names.
+- Restored the full original missing/replaced creator query test, mapping only
+  old getter names ruleset_for_entity/has_script_entity to the actual two host
+  interfaces above. Original query values and every expectation remain.
+- v17 original creator-absence/query, lifetime0/.5/2, livecreator knockback0/.5/1
+  and real-client tracked Mine/full-server causal health snapshot all4 pass
+  (24.607s). No original-client acceptance or full Ball completion claimed.
+
+Next exact action: clean merge parent6d51297b (including C42) or its newer
+explicit canonical SHA after this saved boundary; retain both Mine and actual
+NPC-device exclusion predicates and Mine-only expiry clock. Continue actual
+world-only phase/Cryo/Transcendence and barrier Mine consumers, keeping original
+single-EMP frame-end mismatch visible.
+
+B47 delivered SHA: `803bc5e4`; canonical sync6d51297b committed `f7654b15`.
+
+### B48 — original Mine particle-barrier admission before body impulse
+
+- Restored original Minefield particle-barrier priority using the same existing
+  barriers.protect_body actor consumer before body damage/impulse. A non-None
+  consumed impact exits even if it breaks the shield; the same barrier is not
+  charged twice and protected bodies receive no launch from that impact.
+- Restored original personal/projected Zarya and Winston inside/outside shell
+  Mine checks. Zarya fixtures select actual barriers.scripted actors, preserving
+  the original vitals/recipient assertions; the static for_target proxy's cached
+  health is not the actual authored pool observer. No extra shield host/pool.
+  Winston getter adaptation selects existing world.actors and uses its actual
+  owner/health/centre()/radius fields; original numeric values remain unchanged.
+- v17 original3 barrier cases plus original130-hit and eligible-multiple-body2
+  plus shared runtime13 all18 pass (14.026s). Zarya actual200->70 once, energy26,
+  body unchanged and no impulse. Winston700 unchanged while the opposite-shell
+  body takes130 and receives the original impulse in both directions.
+- Initial fixture read static proxy.health200 while actual scripted pool already
+  had70; corrected the getter to the real actor. The original no-impulse checks
+  then exposed actual(0,5,5) movement, driving the restored source priority branch.
+  No expectation was reduced, no matrix added; original-client acceptance open.
+
+Next exact action: continue source Mine world-only phase/Cryo/Transcendence and
+projected/personal expiry contexts without assuming body/world clocks are equal.
+Keep B45's single-EMP frame-end discrepancy and all original checks. Then audit
+remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
+
+B48 delivered SHA: `3a4da096`.
+
+### B49 — preserve original Minefield Q/reload/death/replacement checks
+
+- Restored5 original Minefield input/lifecycle checks and the original partial-Q
+  real-rifle death helper against the already mounted actor/VM. No runtime
+  feature or alternate input controller was added in this batch.
+- v17 all5 pass (94.782s): manual/automatic reload before/after ammo fill;
+  partial Q real-rifle death retains only released reports; deployed mines arm
+  and hit after their owner is actually killed; natural replacement can deploy
+  a fresh Minefield after cleaning the old one; respawn destroys old mines for
+  both viewers. Original expectations, values, timing inputs and assertions
+  remain unchanged; this is retained source evidence, not a new acceptance matrix.
+- Existing actual Mine source/protection/status boundaries remain in preceding
+  records. No original-client acceptance or formal full Ball completion claim.
+
+Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
+then original world-only phase/Cryo/Transcendence and Minefield control interruption
+consumers. Retain source input history and all existing native device/owner paths.

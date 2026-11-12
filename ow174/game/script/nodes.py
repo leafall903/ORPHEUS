@@ -2396,7 +2396,10 @@ class LogicalButton(State):
         return to_int(self.evaluate(_field(self, "m_logicalButton"), watch=False))
 
     def blocked(self) -> bool:
-        if not self.instance.component.disabled.get(self.button_id()):
+        component = self.instance.component
+        if not component.world.body_button_allowed(component, self.button_id()):
+            return True
+        if not component.disabled.get(self.button_id()):
             return False
         ignore = _field(self, "m_53C4B6A6")
         return ignore is None or not truthy(self.evaluate(ignore, watch=False))
@@ -3693,10 +3696,13 @@ class Ability(State):
 
     def held(self, button: int) -> bool:
         component = self.instance.component
-        return button in component.held and not component.disabled.get(button)
+        return (button in component.held and not component.disabled.get(button)
+                and component.world.body_button_allowed(component, button))
 
     def button(self, button: int, pressed: bool) -> None:
-        if not pressed or button == 0 or self.instance.component.disabled.get(button):
+        component = self.instance.component
+        if (not pressed or button == 0 or component.disabled.get(button)
+                or not component.world.body_button_allowed(component, button)):
             return
         if button in self.buttons():
             self.presses = [item for item in self.presses if self.now - item[0] < 2000]
@@ -5871,7 +5877,7 @@ def button_held(instance: Instance, node, caller) -> bool:
     button = to_int(instance.evaluate(node.fields.get("m_logicalButton")))
     component = instance.component
     held = button in component.held
-    accepted = not component.disabled.get(button) and (
+    accepted = component.world.body_button_allowed(component, button) and not component.disabled.get(button) and (
         (component.button == button and (
             (node.fields.get("m_87F97379", 1) and held)
             or (node.fields.get("m_12A75BC7", 0) and not held)
