@@ -4,6 +4,23 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Torbjorn Overload health and reuse consumers
+
+- Mount the original1721 active-state armour grant, expiry and once-per-source
+  depletion, with a separate passive wire pool and snapshot state. Retain Rally
+  cohorts and existing temporary-shield behavior. Overload absorbs ahead of
+  recoverable shields and shares one flat reduction with later base armour.
+- Carry the original Overload cooldown through reselect/switch and preserve an
+  already-applied cast's authored cooldown path under control. Retain normal
+  death/body replacement cleanup and authored speed/fire modifiers.
+- Preserve the original periodic-damage armour-reduction opt-out. All17 original
+  Overload checks pass, including actual pool snapshots, depleted reselect,
+  modified cooldown, expiry, damage ordering and death/respawn. All30 shared
+  damage/Rally/Doomfist resource checks pass. No source assertion was changed.
+- Turret/hammer/Molten Core and Torbjorn charge/resource consumers remain to be
+  reconciled. Original-client acceptance remains unexecuted; no whole-line
+  completion or new acceptance matrix is claimed.
+
 ### Reconcile reflected projectile ownership with original Echo behavior
 
 - Hand authoritative source_entity to every normal reflector alongside shooter,
