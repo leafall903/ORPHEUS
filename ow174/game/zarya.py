@@ -1,5 +1,26 @@
-"""Original0068 world-energy bridge on the existing single body state host."""
+"""Original0068 energy and charge policy on the existing single body state host."""
+from ow174.game.script import nodes
+
+ULT_PASSIVE_PER_SECOND = 5.0
+
 HERO = 0x02E0000000000068
+
+
+def ultimate_charge_ready_frame(script) -> int | None:
+    """Use the cast's authored end wait even when input stalls the body VM."""
+    ready = 0
+    for ability in script.ultimates:
+        if not (ability.flags & nodes.Ability.RUNNING):
+            continue
+        instance = ability.instance
+        if instance.graph.index != 0x025F or ability.node.pos != 7:
+            return None
+        wait = instance.states.get(instance.graph.node(4).state)
+        if not isinstance(wait, nodes.Wait) or not wait.active:
+            return None
+        ready = max(ready, (wait.start + wait.ms) // script.frame_ms + 1)
+    return ready
+
 
 def advance_energy(script, tick: int) -> None:
     from ow174.game.combat import TICK
