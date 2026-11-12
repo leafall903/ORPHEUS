@@ -464,3 +464,45 @@ flight paths as well (existing _deflector return/absorption dispatch must keep
 Sigma amount/grant exclusive to1D02), then source0005 owner reconcile. Keep
 private bonus_shields/Zarya observation differences in logs without delaying
 code-layer integration. Then audit0003 and000A rather than inflating acceptance.
+
+
+A20 committed `40623ea1`, accepted root6891462b. A21 connects actual source
+owned0407 Matrix through existing _deflector, so tagged hitscan, finite/range/
+gravity and field-canister drivers share current matrix.trace/owned close
+projection. Existing time_span maps the actual contact into native close time.
+Sigma's amount/grant dispatch now explicitly requires1D02; Matrix never runs
+that consumer. Actual Ana grenade with a real controlled mech: released Matrix
+545HP, held Matrix600HP in worker-a-owned-matrix-legacy-grenade.log.52 current
+projectile/Bastion/Damage/focused Genji checks pass in
+worker-a-owned-matrix-legacy-shared.log. No private observer fabricated and no
+original assertion edited.
+
+Source0005 owner reconcile boundary (ref2b67b154a11b7e930ee431182d8e3a70cb90b8bb):
+- hanzo_charge.py, hanzo_control.py, sonic.py, dragon.py are byte-exact source.
+- hanzo_movement.py differs only in the missing Sigma Flux import adapter:
+  original1DBC/node12 active-state predicate retained locally. Lunge/climb/ledge
+  native/velocity/pose/cleanup and all five Climb fields are live consumers.
+- Source0101 fixed phases map to the current ConditionalTimer native consumer;
+  original1s/1.2s phase timer and both storage checks pass, no old timer swapped.
+- Original bow/Storm/Sonic launch, crit/gravity/path/lifetime/one-bounce, initial
+  Dragon penetration/subframe/continuation, independent source and historical
+  moving target/Fortify dose consumers are mounted. Explicit CLI/lobby/server/
+  journal inputs are live.32 normal Sonic/Dragon methods and source profile9
+  passed, original movement/chronology/range checks passed as recorded above.
+- Source Matrix owned-body close/volume policy maps to real current owner,
+  source_body, control_mover and current authored box consumer. No second driver.
+- Source arrow_deflection geometry is preserved as a tests-only frozen utility;
+  production uses newer deflection/interception services. Original seven
+  post-bounce/Genji/terminal/path behaviors pass through those actual consumers.
+- Source's old Vitals.bonus_shields/Combat.zarya_barriers observations and one
+  before-wall Sonic70-vs140 geometry expectation are retained. Do not equate
+  those open observations with absent hero feature code or hide them.
+- Whole0005 source also contains Sniper, volley_geometry, Sigma/other hero/shared
+  work. Root is integrating original geometry flag/defaultFalse/snapshot and
+  actual NPC pellets (0b8d98cb,109 passed), plus original16m Sniper search2.5.
+  Root owns cross-owner maps and formal delivery ancestry; no whole-ref claim
+  from this worker. Appearance work stays excluded.
+Next clean-boundary action: absorb canonicale875ed87 or newer, then audit0003
+Tracer recall/Pulse/weapon source consumers and000A Widowmaker core. Do not keep
+expanding acceptance instead of progressing these owners. Preserve all source
+checks and commit actual code batches even when old/client acceptance is open.
