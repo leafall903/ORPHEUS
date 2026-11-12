@@ -154,7 +154,11 @@ class Gravitons:
         if entity not in self.pulled:
             return
         self.pulled.remove(entity)
-        mover = (owner.control_mover or self.npc_movers.pop(entity, None)) if npc else owner.mover
+        if npc:
+            previous = self.npc_movers.pop(entity, None)
+            mover = owner.control_mover or owner.impulse_mover or previous
+        else:
+            mover = owner.mover
         if mover is not None:
             vertical = mover.velocity[1] if sigma_flux.has_effect(owner) else 0.0
             mover.velocity = (0.0, vertical, 0.0)
@@ -166,11 +170,12 @@ class Gravitons:
         owner = target.owner
         npc = isinstance(owner, bots.Bot)
         if npc:
-            mover = (owner.impulse_mover if sigma_flux.has_effect(owner) else None)
-            mover = mover or owner.control_mover or self.npc_movers.get(owner.entity)
+            mover = owner.control_mover or owner.impulse_mover or self.npc_movers.get(owner.entity)
             if mover is None:
-                mover = Mover(owner.position, int(owner.yaw), self.fight._collision(), mover_data(owner.body))
-                self.npc_movers[owner.entity] = mover
+                mover = Mover(owner.position, int(owner.yaw), self.fight._collision(),
+                              owner.movement_data or mover_data(owner.body))
+                owner.impulse_mover = mover
+            self.npc_movers[owner.entity] = mover  # one alias to the existing movement owner
             if owner.control_mover is None:
                 mover.position[:] = owner.position
         else:
