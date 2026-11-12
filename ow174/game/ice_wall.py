@@ -32,6 +32,12 @@ def movement_world(fight, tick):
 @lru_cache(maxsize=8)
 def _with_pillars(base, pillars):
     """Derived immutable movement scene; map rays still use the original World."""
+    from ow174.game.collision import LayeredWorld
+
+    if type(base) is LayeredWorld:
+        # Keep the immutable base layer and put native pillars in the moving
+        # layer's derived engine, preserving the original two-layer contract.
+        return LayeredWorld(base.base, _with_pillars(base.moving, pillars))
     world = copy(base)
     shapes = list(base.engine.shapes)
     order = max((shape.order for shape in shapes), default=-1) + 1
@@ -164,16 +170,33 @@ def spawn(fight, instance, node):
             or not all(isinstance(v, (int, float)) and math.isfinite(v) and v > 0
                        for v in (duration, width, height))):
         return NotImplemented
-    return expr.Entity(_spawn_actor(fight, player, tuple(point), duration, width, height).entity)
+    direction = value(instance, 3192)
+    axis = tuple(direction) if isinstance(direction, expr.Vec3) else None
+    return expr.Entity(_spawn_actor(fight, player, tuple(point), duration, width, height, axis=axis).entity)
 
 
-def _spawn_actor(fight, player, point, duration, width, height):
+def _spawn_actor(fight, player, point, duration, width, height, *, axis=None):
+    from ow174.game import volskaya
+
+    host = fight.match.scene_host
+    lift = host.lift if isinstance(host, volskaya.LiftHost) else None
     health = graph.graph(PILLAR_GRAPH).node(1).field("m_amount")["m_value"]
     actor = fight.create_deployable(player, PILLAR, "Ice Wall pillar", tuple(point), health=health,
-                                    radius=width / 2, height=height, seconds=duration)
+                                    radius=width / 2, height=height, seconds=duration, publish=lift is None)
     actor.body_script = actors.PillarScript(runtime.Component(actor.entity))
     actor.body_script.component.run_frame(fight.tick)
     actor.body_script.set_health(health, health)
+    if lift is not None:
+        if axis is not None:
+            angle = math.atan2(-axis[2], axis[0])
+            actor.rotation = (0., math.sin(angle / 2), 0., math.cos(angle / 2))
+            piece = lift.actor_piece(actor)
+            if lift.supports_wall(piece):
+                lift.attached_walls.add(actor.entity)
+        # Publish this same actor once, after its original parent pose is known.
+        for viewer in fight.match.players:
+            if viewer.spawned and viewer.client is not None:
+                viewer.client.queue_entities([fight.deployable_create(actor)])
     return actor
 
 
@@ -218,7 +241,7 @@ def geometry_actor(fight, instance, point, axis, *, anchor=None):
     duration, width, height = (value(instance, var) for var in (567, 6274, 1165))
     if not all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in (duration, width, height)):
         return None
-    actor = _spawn_actor(fight, player, point, duration, width, height)
+    actor = _spawn_actor(fight, player, point, duration, width, height, axis=axis)
     instance.write(slot, expr.Entity(actor.entity))
     for pos in _PLAY_NODES:
         call = instance.graph.node(pos)

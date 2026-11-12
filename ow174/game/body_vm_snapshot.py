@@ -14,7 +14,7 @@ import types
 import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
-from ow174.game import npc_controller_storage
+from ow174.game import npc_controller_storage, volskaya
 from ow174.game.script.player_controller import ControllerVM, ControllerWorld
 from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
@@ -103,6 +103,7 @@ _STATE_LAYOUTS = {
     nodes.StaticTagTarget: ((), ()),
     nodes.RecentInputState: (("recent",), ("history",)),
     runtime.State: ((), ()),
+    volskaya.LiftMotion: ((), ("last", "progress_slot")),
     HaltPhysicsExplosion: ((), ()),
     nodes.RegisteredState: ((), ()),
     nodes.CombatModFilter: (("combat_filter",), ()),
@@ -576,6 +577,13 @@ class _Export:
             return {"ref": self._graph(obj)}
         if kind is graph.Node:
             return {"ref": self._node(obj)}
+        if kind is volskaya.LiftScene:
+            if obj is not self.component.world:
+                raise BodyVMSnapshotError("foreign lift scene reference")
+            local = {"hero", "mode", "map_guid", "entity_start"}
+            return {"class": _name(kind), "fields_identity": self.identity(vars(obj)),
+                    "fields": self.fields(obj, volskaya.SCENE_FIELDS,
+                                          exclude=volskaya.SCENE_FIELDS - local)}
         if kind in (runtime.World, BodyWorld, BotWorld, ControllerWorld, AssassinControllerWorld, BarrierWorld, DomeWorld, PhotonWorld, DeviceWorld, PullQuery,
                     PackWorld, ExperimentalBarrierWorld, SombraDeviceWorld, SupportWorld, StatusWorld, MineWorld,
                     enforcer_controller.TargetWorld, assassin_controller.TargetWorld,
