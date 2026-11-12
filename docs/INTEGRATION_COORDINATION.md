@@ -10,9 +10,9 @@ Workers start from `bf7fad86` in separate worktrees and indexes:
 
 | Worker | Branch | Delivery IDs | Resume record |
 | --- | --- | --- | --- |
-| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A, 0065 | `docs/INTEGRATION_WORKER_A.md` |
+| `/root/merge_a` | `integration/merge-worker-a` | 0002, 0003, 0004, 0005, 000A, 0020, 007A, 0065, 0200 | `docs/INTEGRATION_WORKER_A.md` |
 | `/root/merge_b` | `integration/merge-worker-b` | 0007, 0009, 0040, 0068, 012F, 01CA, 023B | `docs/INTEGRATION_WORKER_B.md` |
-| `/root/merge_c` | `integration/merge-worker-c` | 0006, 0008, 0015, 0016, 00DD, 012E, 0200 | `docs/INTEGRATION_WORKER_C.md` |
+| `/root/merge_c` | `integration/merge-worker-c` | 0006, 0008, 0015, 0016, 00DD, 012E | `docs/INTEGRATION_WORKER_C.md` |
 
 Each worktree is `verification/merge-worker-<letter>` beside this worktree.
 Frozen source refs are `refs/hero-deliveries/<ID>`, with readable source trees
@@ -667,3 +667,37 @@ isolated verification/npc-controller-storage-root on integration/
 npc-controller-storage-root at2c6fb142 to continue Phase2 storage work while
 intake source stayed frozen for25300. No data/runtime copies. It currently has
 no code changes and must be inspected before reuse, not duplicated or removed.
+
+
+## Reconciled root checkpoint after A47 / B37 / C35
+
+All earlier live-root statements are historical. Root has no running checks.
+Canonical was5e30895c and intake e4d8b2de before this documentation commit.
+The external coordination.json contains exact A35-A47/B29-B37/C29-C35 receipts.
+A46 Coach071c79ad and A47 strict mover loader22b5230e were received together
+at e4d8b2de; C35 actual lock history4f866474 at0e256f3c. All implementations
+remain committed regardless of incomplete original acceptance.
+
+Both exact NPC TargetWorld and Assassin Phase2World/SceneWorld causal storage
+are integrated. Actual four-controller tests2pass90.609s and actual Phase2
+tests2pass43.377s preserve callbacks, revision vars, possessions and strict
+unknown-field rejection. Root isolated npc-controller-storage-root1ca4283f
+is clean and already integrated at5e30895c. Do not redo it. Joint35run34pass
+one missing-input skip was followed by explicit v12 full37body charge input:
+original ChargeSnapshot1pass55.090s. Photon/Frost/Tire/Damage/runtime43pass.
+Trap status-order40run36pass3retainedfail1skip, with original assertions intact.
+
+Prepared profilev12 is recommended; v13 candidate has39 additive graphs and
+16entities including original Ashe data. Existing13B controller names are
+retained where the source differs only by name, with no controller association
+override. BOB original mover base/current base have different byte hashes;
+A verified all43 records identical and is deriving a strict current-bound
+extension without modifying either original input. Translocator and Sombra
+ultimate original input admission is next. A owns0200 and0065; C owns neither.
+
+A continues actual BOB, B Ball Grapple/Fireball and remaining tank audit,
+C Sombra replay/EMP/Portal device consumers. Root owns still-unmounted
+archives_thunderstorm34924 and full nonappearance original-language audit.
+The overall objective remains incomplete; batch counts are not a feature
+completion percentage. Existing lower-confidence estimate must be revised
+from remaining owner/source audit, not acceptance case counts.
