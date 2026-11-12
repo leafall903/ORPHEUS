@@ -13,6 +13,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   workers continue actual owner/fixture reconciliation. Full integration remains
   in progress, with appearance migration excluded.
 
+### Preserve chronological Roadhog healing in strict server storage
+
+- Same Vitals budget now retains dated damage and actual pool changes for source
+  body-command healing replay. Hog endpoint clocks stay local and restoreNone;
+  register the precise optional field in both strict exporters.
+- Original history/self-heal/runtime23 checks pass; real unequal-epoch raw input
+  prevents late-damage refill and proves causal server storage. Actual same-pool
+  resurrection clears the same budget/detail. Preserve original mitigation and
+  unrelated native cast timing failures; no client acceptance run.
 
 ### Persist original NPC and tank integration receipts
 
@@ -39,6 +48,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Original lifecycle/runtime16 checks now retain only three final fresh-respawn
   passive-charge differences; preceding cleanup and dead-source assertions pass.
   Original natural Hog charge remains next; no client acceptance run.
+### Exercise Ice Wall causal storage through its real owner
+
+- Existing causal storage check now selects Mei and casts five original pillars
+  through real input. Original health, expiry and digest assertions are preserved;
+  shared actor identity is checked without manufacturing a non-owner test pool.
+- Ana Sentry wall observations use the sole wall manager. Real causal check passes;
+  old Sentry-device interface errors remain visible with original assertions.
+
+### Bind Ice Wall geometry to its original graph actor
+
+- Geometry, collision support and real0932 pillars now use the same entity IDs,
+  Vitals and expiry fields. Retire the actor/geometry/child VM together, and debit
+  body/surface contacts once through the existing pools.
+- Actual Mei server produces5shared actors with strict causal storage; original
+  IceSentry2 checks pass. Original rotated/partial/lift confirmation4 checks pass;
+  remaining overlap, old-observer and shared geometry differences stay recorded.
+- Implementation checkpoint0dcad5d2 is accepted. Source checks and known failures
+  remain intact; native/client acceptance and remaining owner consumers are open.
+
 ### Restore retained ice-supported sentry damage
 
 - Original eligible ice-supported/airborne Sentries settle on each retained world

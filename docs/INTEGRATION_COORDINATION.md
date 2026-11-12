@@ -1134,3 +1134,29 @@ nonhero source reconciliation and full nonappearance completion remain open.
 Latest worker estimates A5-10/B14-27/C8-18 active hours plus root integration;
 remaining30-60 continuous parallel hours /3-5 calendar days is low confidence,
 not a completion guarantee or a percentage derived from test counts.
+
+
+## Follow-on storage and Pet callback checks
+
+B59 b57b6315 is accepted asbd3c8e50: strict whole-server BodyWorld explicitly
+allows only the optional Hog healing_tick field, and resurrection clears the
+same healing deficit/details through _cap_healing_deficit(0). Root actual raw
+epoch/storage plus shared runtime10 checks passed49.500s. C52 66a3cb56 is
+accepted as1999df16: the retained wall causal fixture uses real Mei commands and
+five existing pillar actors; root causal check passed36.818s. Ana ice observer
+paths now read walls, while old Sentry observations remain recorded for C.
+
+A80 review b8fcb004 is accepted as1d8dc055: preserve the same Pet through the
+Chase ending callback at its mapped deadline, clean actual caster/recipient
+ownership on death, and verify the legitimate one neutral timer gap without
+recreating BodyScript/Component or double-consuming energy. Root broader33
+checks finished36.496s: lifetime/energy/application/status/runtime passed; the
+native recovery module retains two obsolete zarya_recovery.bodies observations
+and one projectile-impact method's two timing assertions (1244/1262vs1245).
+A owns the real sparse projectile/collision-clock audit; source numbers remain.
+This run is not recorded as a passing whole combined suite.
+
+The five-NPC and actual encrypted-server Flux causal evidence is recorded in
+INTEGRATION_ROOT_FLUX.md. All32 original delivery source repositories were clean
+in the latest Git audit; this proves source submission state, not functional
+completion. Main/intake changes and remaining active worker WIP stay distinct.

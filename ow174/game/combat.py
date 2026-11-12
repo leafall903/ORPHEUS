@@ -2382,7 +2382,7 @@ class Combat:
         vitals.died_at = vitals.death_tick = vitals.killer = None
         vitals.invulnerable_until = self.now + immune_seconds
         vitals.clear_sleep()
-        vitals.ult_healing_deficit = 0.0
+        vitals._cap_healing_deficit(0.0)
         self.sombra_controls.retire(entity)
         self.knockbacks.retire(entity)
         self.support_effects.retire(entity)

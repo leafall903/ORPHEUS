@@ -39,10 +39,9 @@ two retained assertions and one incomplete wall fixture extraction. Restore the
 original parent's exact wall helper too; that original wall method then passes
 1/1 in5.480s. No numeric or gameplay assertion changes.
 
-The original Pulse-to-airborne-Sigma case deals the correct355 damage but credits
-Tracer355 ultimate points instead of original0. Worker A owns that Pulse charge
-consumer and has received the exact case; do not change Flux damage/charge to
-hide it.
+The earlier original Pulse-to-airborne-Sigma case dealt correct355 damage but
+credited Tracer355 instead of original0. A72 restored the actual Pulse charge
+consumer and this complete original case now passes; Flux damage was unchanged.
 
 The other original0003 case expects caster death always to cancel slam. Its
 _flux_source explicitly excludes dead casters. Original023B instead keeps source
@@ -74,3 +73,31 @@ the one NPC method (four old None checks plus dependent final count1vs5).
 The original post-None damage assertions have not yet executed in that method;
 do not claim they passed. Logs root-flux-original-five-npc-check and
 root-flux-npc-terminal-query-check record the before/after evidence.
+
+
+## Actual server and independent five-NPC settlement evidence
+
+On frozen2afc62c9, encrypted peer commands on RecordingServerSession actually
+activate Flux, select an enemy and deliver1DBC on that enemy's existing body VM.
+The receiver reaches150 HP and airborne state. Whole-server strict snapshots
+are stable, change when the actual lift counter or receiver pose changes, restore
+after restoration, and reject an unknown BodyWorld attribute. Capturing under a
+run_now rejection guard never runs the VM. External probe and log:
+../parallel-merge/root-flux-actual-server-storage-probe.py / matching .log.
+
+An independent five-NPC probe now reaches the post-landing damage checks that
+the retained source method's earlier None assertion prevented. Actual Vitals.damage
+returns original gross amounts Trooper150, Enforcer225, Sniper200, Assassin300,
+Heavy50. All four ordinary bodies reach10.6689453125 m peak, descend and land;
+Heavy stays grounded. Each effect retires. Enforcer and Assassin's existing
+0E62 NPC shield recovery restores8.37 each, so their final net HP loss is216.63
+and291.63. A separate observer of actual Vitals.restore_pool returns confirms
+net loss + actual restored equals original gross damage for all five bodies.
+No shield recovery or source numeric assertion was changed.
+
+The old source method also reads effect.vars12320 after effect destruction;
+the current shared VM clears retired instance variables, so the independent
+probe observes actual downward velocity instead. The original None, retired-var
+and net-loss assertions stay unchanged. This is additional functional evidence,
+not a claim that the old whole source method or complete NPC owner passes.
+Probe/log: ../parallel-merge/root-flux-npc-functional-settlement-probe.py / .log.

@@ -1513,3 +1513,52 @@ replay wrongly heals damage after the channel; source offset0 reduction differs
 20vs10. Keep original assertions; do not invent global frame anchors or advance
 input VM. Then original WholeHog damping/world-only and owned-DVa same-host epoch
 consumer, cross-owner victim credit and non-Flux Sigma. Root owns Flux, A Zarya.
+
+
+## B58 checkpoint and B59 — chronological healing, raw epochs and strict storage
+
+Root preserved B58 code as e33dd315 and received it in769b27b7 while this worker
+continued. Same Vitals.ult_healing_deficit remains the ONLY enemy-heal budget;
+healing_damage is its timestamp detail. One credit adds both, and one heal spends
+that budget then trims the detail once. health_changes stores actual permanent
+pool deltas for historical capacity. Ordinary heal defaults tickNone and keeps
+its existing pool order. No second health pool or budget. Original source methods
+use the equivalent combined base_total/base_maximum names.
+
+Hog-only actual command endpoint associates missing body callbacks with their
+world ticks; transient BodyWorld.healing_tick defaultsNone and restores in finally.
+Other owners' command replay remains unchanged. No world_frame_anchor, lease,
+birth-pair guess or extra VM advance. Original two chronological charge cases,
+eight self-heal and runtime13 pass23/23 in46.864s. Root full original charge and
+cross-owner run confirms the historical methods pass; only original mitigation
+offset0 (20vs10) remains, and its numeric assertions are preserved.
+
+B59 actual raw HeroPick/commands uses unequal world/body frames, freezes the body
+for150 real world ticks, takes actual rifle damage AFTER the channel, then
+recovers commands: health remains580, no healing statistic appears, the same
+20-point dated deficit remains, healing_tick restoresNone and no lease appears.
+Strict BodyVM passes. Whole-server export exposed missing healing_tick in the
+SECOND exporter's BodyWorld optional registry; register that exact field only.
+Both the damage-detail timestamp and actual pool-change map independently alter
+and restore the whole-server digest. Initial missing-field error is retained in
+worker-b-hog-heal-raw-epoch.log; actual restored raw probe passes.
+
+The one external reset (Mercy same-body resurrection) now calls the existing
+_cap_healing_deficit(0) so budget and dated detail clear together. Actual source
+caster/receiver instance and corpse consumer revives the SAME Vitals and clears
+both fields;1/1 pass1.335s (worker-b-hog-resurrection-consumer.log). This does not
+claim native cast timing acceptance: original Mercy19 plus raw1 run has14 failed
+cast/timing assertions, preserved. A diagnostic original failing cast reaches
+NEITHER resurrect_player nor the reset (tracked calls[]), so those failures
+cannot be attributed to this reset change. See worker-b-hog-resurrection-reset-probe.log
+and worker-b-hog-heal-raw-epoch-restored.log73.596s. No client acceptance run.
+
+Next exact action: actual WholeHog separate external damping/world-only motion
+through the sole Knockbacks/capsule host, then owned-DVa epoch/capsule consumer.
+Current769b27b7 Bot.apply_impulse has control_mover support but Knockbacks.apply/
+_start_npc still use the ordinary world impulse path; do not assume those clocks
+are equivalent or clone a mover. Honor actual movement_data and other owners'
+control priorities. Then cross-owner Hog victim credit and non-Flux Sigma.
+Remaining B effort approximately14–27 active hours, low confidence: Hog4–7,
+non-Flux Sigma6–12, other owned caller/storage closure4–8. Root Flux and A Zarya
+remain separate. Original failed assertions do not block delivered code batches.
