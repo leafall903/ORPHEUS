@@ -15,6 +15,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Observe barrier removals from final Torb turret attacks before beam settlement.
   Ice-support/projected-impact/phase/respawn history consumers remain partial.
 
+### Preserve original Flux receiver terminals and five-NPC source checks
+
+- Original1DBC terminal actions3/5/45/61 now destroy that exact receiver on its
+  non-strict Match host; generic stop-event behavior remains for other resources.
+  This repairs the Heavy6601 early-exit branch exposed by actual NPC input.
+- Restore original Flux placement/targets/actor-point modules and full Sigma
+  fixture, retaining985 original assertions after namespace/mover-name mapping.
+  Unrelated missing Symmetra imports stay in their original using methods.
+- Six actor-point checks pass. Original five-NPC test now reaches correct Heavy
+  early exit; four other bodies lift and land but retain their existing shared
+  impulse mover, conflicting with old dedicated-mover None assertions. Those
+  assertions and the dependent final count remain unchanged. No client run.
+
 ### Preserve Flux fixture geometry and explicit source contract differences
 
 - Extract the original parent wall helper with unchanged geometry into the

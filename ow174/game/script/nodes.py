@@ -6202,6 +6202,12 @@ def script_start_entry(instance: Instance, node, caller) -> bool:
 @handler("STU_22926252")
 def stop_instance(instance: Instance, node, caller) -> bool:
     """104319 1B6C8F0 queues event 7 before continuing the action."""
+    if (not instance.component.strict and instance.graph.index == 0x1DBC
+            and node.pos in (3, 5, 45, 61)
+            and getattr(instance.component.world, "match", None) is not None):
+        # Original023B's terminal receiver actions retire this exact resource.
+        instance.component.destroy(instance)
+        return True
     if not instance.component.strict and (instance.graph.index, node.pos) == (0x17F6, 3):
         instance.component.destroy(instance)
         return True
