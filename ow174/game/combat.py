@@ -2199,7 +2199,8 @@ class Combat:
             from ow174.game import assassin
 
             self.clear_pins(target.entity)
-        self._radial_impulse(target, mover.position, horizontal, vertical)
+        self._radial_impulse(target, mover.position, horizontal, vertical,
+                             replay_source=modify.instance.component.entity)
 
     def __init__(self, match) -> None:
         self.match = match
@@ -3669,6 +3670,11 @@ class Combat:
             self._cleanse_biotic_block(player, self.vitals.get(player.body))
             moira.transition(player)
             hero_torbjorn.hammer(self, player, command, script)
+            if (player.hero.guid == 0x02E000000000007A and player.hero.body == 0x0400000000000407
+                    and player.controlled_mech is None and player.body not in self.zarya_gravitons.pulled):
+                # Original native0407 uses the same contact consumer as the
+                # possessed Mech; the parked pilot has no duplicate contact host.
+                self._booster_contact(player, command, script)
             moira.grasp(self, player, command)
             moira.coalescence(self, player, command)
             if self.walls.command(player, command):
