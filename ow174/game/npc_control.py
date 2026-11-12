@@ -260,8 +260,7 @@ def update_input(fight, bot):
     value = button(bot)
     component = bot.body_script.component
     if bot.hero == assassin.HERO and enabled:
-        victim = next((entry for entry in fight._targets() if entry.owner is target), None)
-        enabled = victim is not None and not fight._control_immune(victim)
+        enabled = not fight._control_immune(target)
     if previous_target is not None and previous_target != bot.attack_target:
         _retire_target_input(bot, value)
     if bot.attack_mode == "primary" and heavy_assault.update(bot, component, enabled):

@@ -14,6 +14,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   Actual manual controller/context admission remains worker A work; v17 is still
   selected. Original inputs are unchanged and no client acceptance was run.
 
+### Admit actual manual Assassin targets in the existing input path
+
+- Fix the leftover Player-versus-Target identity comparison that rejected every
+  manual Assassin input after target_player began returning real combat Targets.
+  Retain the existing control-immunity predicate and sole control/pin hosts.
+- Real spawn/start/contact damage/stop plus shared NPC input/navigation63 checks
+  pass. Original explicit AI association/recipient coupling remains next; no
+  client acceptance or extra controller allocation added by this fix.
+
 ### Preserve controller Pin services in causal server storage
 
 - Exact original Pin/message storage and current scalar/vector modifier records
