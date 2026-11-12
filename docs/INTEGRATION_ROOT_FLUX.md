@@ -101,3 +101,25 @@ probe observes actual downward velocity instead. The original None, retired-var
 and net-loss assertions stay unchanged. This is additional functional evidence,
 not a claim that the old whole source method or complete NPC owner passes.
 Probe/log: ../parallel-merge/root-flux-npc-functional-settlement-probe.py / .log.
+
+## Original Volume kernel and caller audit
+
+Current script/target_volume.py and its full original11-test kernel file are
+AST-identical to delivery023B. The actual sigma_flux.flux_targets consumer
+imports this same Volume and applies it to the existing Match target capsules;
+no alternate target store, controller alias or backend is supplied. All11 kernel
+checks pass on canonical c3db794c. Source receipt is external
+parallel-merge/root-flux-volume-source-audit.json.
+
+The accompanying retained FluxTargets suite run41 tests in123.900s with4failure
+records,13errors and3optional-NPC skips. The13errors reference old mixed-owner
+attributes ACCRETION/GRASP/fortify/particle_barrier through sigma_flux; current
+actual owners are separate modules. These need actual caller adapters, not
+production facades. Existing original assertions remain. The four failures are
+descent sampling, horizontal impulse9.9880859 versus original3, and two Mei
+protection cases whose actual health recovers250 versus expected200. This audit
+does not classify the horizontal difference as fixed or proven baseline parity,
+nor remove real cryo healing to satisfy the old health observation. Complete
+log: parallel-merge/root-flux-volume-source-current-check.log. OwnerB is informed
+about the shared Sigma caller adapters. No production changes accompany this
+receipt and these source discrepancies do not block committing or merging code.
