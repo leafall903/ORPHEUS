@@ -620,6 +620,10 @@ def _init_health(fight, barrier):
         vitals = barrier.vitals = Vitals(barrier.entity, maximum)
         vitals.now[0] = max(0.0, min(maximum, current))
         component.set(253, vitals.total)
+        if bubble and vitals.total > 0 and _recipient_live(fight, barrier):
+            # Successful native Pet application cleanses an incoming Hook at
+            # this accepted attachment, before another world-clock update.
+            fight.hooks.release_target(protected_body)
         if barrier.recipient is not None and vitals.total > 0 and _recipient_live(fight, barrier):
             # Reconstructed sleep cleanse on successful projected protection, once per Pet.
             recipient = fight.vitals.get(protected_body)

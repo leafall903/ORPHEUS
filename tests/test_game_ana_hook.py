@@ -123,7 +123,7 @@ class AnaHookTests(unittest.TestCase):
         run.step({ally: (*direction, 16)})
         self.assertFalse(fight.is_stunned(ana))
         self.assertFalse(fight.hooks.flights)
-        self.assertEqual(fight.body_barriers[ana.body].health, 200)
+        self.assertEqual(fight.barriers.authored_for(ally.body).vitals.total, 200)
         before = tuple(ana.mover.position)
         for _ in range(15):
             run.step({})

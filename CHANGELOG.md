@@ -10389,6 +10389,7 @@ blocking delivery on these preserved old boundary assertions.
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
 
 
+
 ## A72 — Tracer authored damage-tag and charge entry reconciliation
 
 Restored original0003 damage credit through the existing sole `ultimate_charge`
@@ -10411,6 +10412,7 @@ Next exact action: clean sync explicit root `f715efdd`, then run unchanged origi
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
 
+
 ### Tank owner consumer convergence audit
 
 Persisted the seven-owner actual-call-site audit in docs/INTEGRATION_WORKER_B.md. Confirmed unmounted Roadhog Hooks, Sigma Flux and unproved Zarya timed/recovery consumers; identified current single-host equivalents and remaining source-context audits. Estimated25–52 remaining active B hours with low confidence. No runtime change, copied manager, new acceptance matrix or completion claim.
@@ -10423,3 +10425,28 @@ unchanged original airborne Flux/Pulse whole method passes6.827s with355 damage
 and0 Tracer charge. No additional production change, broad suite, source-assert
 edit, client session or publication. Next delegated owner is0068 Zarya after
 root confirms the handoff; existing single barrier/Graviton pools are required.
+
+
+## A74 — Zarya native-pet attachment releases incoming Hook
+
+Root transferred0068 source f5b7366d27c572125d1422618ec407d17794787d
+exclusively to A after A73; B has no Zarya WIP. Clean baseline b1680290 absorbs
+root4968d512, retaining original shared projected-history/native-pet pool changes.
+First actual consumer gap: successful0256 health initialization now releases the
+protected body from the existing sole Hooks manager immediately at accepted Pet
+attachment. It does not wait for the next world Hook update and does not cancel
+the protected player's own outgoing Hook or create a barrier/health/control pool.
+Current successful projected sleep cleanse and all native-pet validation remain.
+
+Original AnaHook projected-release whole method failed before this change at
+is_stunned=True, then passed3.471s. Its only observation adapter reads the actual
+single scripted pet's Vitals.total instead of obsolete body_barriers.health;
+all original numeric/control/movement assertions unchanged (pool200, body170).
+Logs worker-a-zarya-hook-attach-{baseline,after}.log. No full suite/client/network.
+
+Next exact action: audit original0068 antiheal-cleanse application/queued-start
+clock against actual pet constructor/application pair, then expiry/cooldown and
+world-energy consumers; integrate ShieldRecovery onto current Vitals recovery
+accounting rather than a second ledger, and source Graviton into existing field
+host. Original assertions and known failures remain. Remaining estimate stays
+6-12 active hours, low confidence until original temporal checks expose overlap.

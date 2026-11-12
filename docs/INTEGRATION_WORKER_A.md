@@ -1577,3 +1577,27 @@ sigma_accretion dependency; root reports its current fixture is already adapted.
 Next exact action: clean sync explicit root `f715efdd`, then run unchanged original
 TracerSigmaFlux airborne-caster Pulse method on actual combined Flux host.
 All original assertions/failures retained. No client session/network/publication.
+
+## A74 — Zarya native-pet attachment releases incoming Hook
+
+Root transferred0068 source f5b7366d27c572125d1422618ec407d17794787d
+exclusively to A after A73; B has no Zarya WIP. Clean baseline b1680290 absorbs
+root4968d512, retaining original shared projected-history/native-pet pool changes.
+First actual consumer gap: successful0256 health initialization now releases the
+protected body from the existing sole Hooks manager immediately at accepted Pet
+attachment. It does not wait for the next world Hook update and does not cancel
+the protected player's own outgoing Hook or create a barrier/health/control pool.
+Current successful projected sleep cleanse and all native-pet validation remain.
+
+Original AnaHook projected-release whole method failed before this change at
+is_stunned=True, then passed3.471s. Its only observation adapter reads the actual
+single scripted pet's Vitals.total instead of obsolete body_barriers.health;
+all original numeric/control/movement assertions unchanged (pool200, body170).
+Logs worker-a-zarya-hook-attach-{baseline,after}.log. No full suite/client/network.
+
+Next exact action: audit original0068 antiheal-cleanse application/queued-start
+clock against actual pet constructor/application pair, then expiry/cooldown and
+world-energy consumers; integrate ShieldRecovery onto current Vitals recovery
+accounting rather than a second ledger, and source Graviton into existing field
+host. Original assertions and known failures remain. Remaining estimate stays
+6-12 active hours, low confidence until original temporal checks expose overlap.
