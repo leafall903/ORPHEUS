@@ -1232,3 +1232,10 @@ runtime-base edits, full assets, client run or publication. Full original contro
 BOB fixture dependencies saved; BOB itself remains unmounted, not counted complete.
 Next exact action: source Coach recoil/pellet impulse and reload interlocks on the
 existing actual mover/velocity host, then BOB current NPC/Vitals/driver/gun/charge.
+
+## A45 - original Viper reload hard-control interlock
+
+- Mounted original `set_viper_reload_stunned` at both existing shared interruption entry points, with current stuns/sleep expiry restoring linked empty-magazine reload only after the actual hard-control predicate clears. No extra stack or control host.
+- Restored original `Stack.become_under` by factoring the identical existing inline branch; dependency_changed, priorities, top/under plugs and native stack bookkeeping remain unchanged.
+- Original two Flashbang reload methods plus 13 normal runtime checks: 15 passed using v11 plus the A44 Ashe graph union (`worker-a-ashe-reload-stun-third.log`). Both full shell/held-primary/ADS interlock methods also passed in the first run. Initial wiring errors and fails are retained in prior logs; assertions unchanged.
+- Next: actual Coach recoil and source pellet-aggregated shove on the current single Knockbacks/player/NPC movers, then BOB. No whole Ashe/ref reconciliation yet.

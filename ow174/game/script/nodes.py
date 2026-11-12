@@ -2112,7 +2112,11 @@ class Stack(State):
                 self.top, self.under = True, False
                 self.instance.exit_subgraph(self.node, "m_underSubgraphPlug")
                 self.instance.follow(self.node, "m_topSubgraphPlug", self)
-        elif not self.under:
+        else:
+            self.become_under()
+
+    def become_under(self) -> None:
+        if not self.under:
             self.top, self.under = False, True
             self.instance.exit_subgraph(self.node, "m_topSubgraphPlug")
             self.instance.follow(self.node, "m_underSubgraphPlug", self)
