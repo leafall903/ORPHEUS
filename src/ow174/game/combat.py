@@ -62,7 +62,7 @@ from ow174.game.mover import mover_data
 from ow174.game.props import ModelPose
 from ow174.game.script import expr, graph, nodes, runtime
 from ow174.game.script.bot import DIED, BotScript
-from ow174.game.script.driver import OWNER_HEALTH, Snapshot
+from ow174.game.script.driver import ABILITY_RAY_CATEGORIES, OWNER_HEALTH, Snapshot
 from ow174.game.statescript import InstanceWire, StateWire, remote_full_frame
 from ow174.game.world import ARMOUR_POOL, HEALTH_POOL, OP_DESTROY, POOLS, SHIELDS_POOL
 
@@ -757,7 +757,8 @@ class Combat:
 
     def _hit_effect(self, target: Target, effect: int | None, *, shooter=None) -> None:
         """Apply the reconstructed Flashbang interruption and the scoped Talon reaction."""
-        if effect != FLASHBANG_EFFECT or self.vitals_of(target).dead:
+        if (effect != FLASHBANG_EFFECT or isinstance(target.owner, projectiles.Mine)
+                or self.vitals_of(target).dead):
             return
         variables = graph.mode_variables(self.match.game_map.mode_guid) or {}
         duration = 1.7 if expr.truthy(variables.get(FLASHBANG_MODE_FLAG)) else 0.8
@@ -1008,7 +1009,7 @@ class Combat:
                 self.respawns.remove((when, who))
                 self._respawn(who)
         self.voice.expire(now)
-        current = {target.entity for target in self._targets()}
+        current = {target.entity for target in self._targets()} | self.projectiles.mines.keys()
         for entity, (deadline, _) in tuple(self.npc_hit_reactions.items()):
             if entity not in current or deadline <= tick:
                 self._end_npc_hit_reaction(entity)
@@ -1051,7 +1052,9 @@ class Combat:
     def body_vitals(self, entity: int, owner) -> Vitals:
         found = self.vitals.get(entity)
         if found is None:
-            if isinstance(owner, bots.Bot):
+            if isinstance(owner, projectiles.Mine):
+                found = Vitals(entity, projectiles.MINE_HEALTH)
+            elif isinstance(owner, bots.Bot):
                 found = Vitals(entity, owner.health)
             else:
                 found = Vitals(entity, *pools.body_pools(owner.hero.guid))
@@ -1209,11 +1212,11 @@ class Combat:
                 best, best_score = target.entity, score
         return best
 
-    def _enemies(self, shooter) -> list[Target]:
+    def _enemies(self, shooter, *, candidates=None) -> list[Target]:
         free_for_all = self.match.game_map.free_for_all
         source = _source_entity(shooter)
         found = []
-        for target in self._targets():
+        for target in self._targets() if candidates is None else candidates:
             if target.owner is shooter or target.entity == source:
                 continue
             if not free_for_all and target.team == shooter.team:
@@ -1226,8 +1229,20 @@ class Combat:
     def _ally(self, shooter, target: Target) -> bool:
         return not self.match.game_map.free_for_all and target.team == shooter.team
 
+    def _enemy_mines(self, shooter):
+        free_for_all = self.match.game_map.free_for_all
+        for mine in self.projectiles.mines.values():
+            if mine.armed_at is None or mine.owner is shooter:
+                continue
+            if free_for_all or mine.team != shooter.team:
+                yield Target(
+                    mine.entity, mine.team, mine.position, projectiles.MINE_HEIGHT,
+                    projectiles.MINE_HIT_RADIUS, projectiles.MINE_HEIGHT, mine,
+                )
+
     def _shot_targets(self, shooter, direct: HitDef | None) -> list[Target]:
         targets = self._enemies(shooter)
+        targets.extend(self._enemy_mines(shooter))
         if direct is None or direct.ally_heal <= 0.0 or self.match.game_map.free_for_all:
             return targets
         for target in self._targets():
@@ -1240,6 +1255,8 @@ class Combat:
 
     def seen(self, target: Target, view_tick: float) -> Target | None:
         """Interpolate retained poses or use the nearest sample for a body that already existed."""
+        if isinstance(target.owner, projectiles.Mine):
+            return target if view_tick >= target.owner.tick else None
         replaced_at = self.replacement_ticks.get(target.entity)
         if replaced_at is not None and view_tick < replaced_at:
             return None
@@ -1440,6 +1457,15 @@ class Combat:
             entity_def = (node.field("m_projectileEntity") or {}).get("m_entityDef")
             definition = state.evaluate(entity_def, watch=False) if entity_def is not None else None
             shot = None
+            if isinstance(definition, expr.Asset) and definition.guid == projectiles.MINE_ENTITY:
+                if not npc:
+                    x, y, z = shooter.mover.position
+                    launch = _along(
+                        (x, y + projectiles.MINE_MUZZLE_HEIGHT, z), aim(shooter.mover.yaw, 0),
+                        projectiles.MINE_MUZZLE_FORWARD,
+                    )
+                    self.projectiles.launch_mines(shooter, state, launch, speed, number, activation)
+                return
             if isinstance(definition, expr.Asset):
                 shot = self.projectiles.fired(
                     shooter, state, shot_frame, definition.guid, lifetime, origin, direction,
@@ -1508,6 +1534,8 @@ class Combat:
     def _hitscan(self, shooter, state, origin, direction, reach, targets, direct, shot_frame, world_tick):
         best = None
         for target, shown in targets:
+            if isinstance(target.owner, projectiles.Mine) and target.entity not in self.projectiles.mines:
+                continue  # an earlier pellet in the same volley destroyed it
             a, b = shown.segment()
             t = ray_capsule(origin, direction, a, b, shown.radius)
             if t is not None and t <= reach and (best is None or t < best[0]):
@@ -1527,7 +1555,8 @@ class Combat:
             self._heal(shooter, target, direct.ally_heal)
             return
         hit_y = origin[1] + direction[1] * t
-        critical = hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW
+        critical = (not isinstance(target.owner, projectiles.Mine)
+                    and hit_y >= shown.feet[1] + shown.eye - HEAD_BELOW)
         amount = direct.amount * direct.scale(t) * (direct.critical if critical else 1.0)
         self._damage(
             shooter, target, amount, critical and direct.critical > 1.0, direct.loadout, shot_frame,
@@ -1641,6 +1670,7 @@ class Combat:
                 self._heal(rocket.shooter, struck, direct.ally_heal)
             else:
                 critical = (direct.projectile_headshot and direct.critical > 1.0
+                            and not isinstance(struck.owner, projectiles.Mine)
                             and point[1] >= struck.feet[1] + struck.eye - HEAD_BELOW)
                 amount = direct.amount * (direct.critical if critical else 1.0)
                 if rocket.scale_direct:
@@ -1660,7 +1690,7 @@ class Combat:
         shields_present = impact_barrier is not None or getattr(
             getattr(self.match, 'scene_host', None), 'barriers', None,
         )
-        for target in self._enemies(rocket.shooter):
+        for target in [*self._enemies(rocket.shooter), *self._enemy_mines(rocket.shooter)]:
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
@@ -1692,6 +1722,29 @@ class Combat:
             self.rockets.remove(rocket)
         if rocket.shot is not None:
             self.projectiles.flown(rocket.shot, rocket.flown)
+
+    def trigger_mines(self, mines: list[projectiles.Mine]) -> None:
+        collision = self._collision()
+        rays = collision.ray_geometry or collision
+        category = ABILITY_RAY_CATEGORIES[projectiles.MINE_TRACK_FILTER]
+        candidates = self._targets()
+        for mine in mines:
+            x, y, z = mine.position
+            centre = (x, y + 0.1, z)  # 151A st27/st28 search origin offset
+            targets = []
+            for target in self._enemies(mine.owner, candidates=candidates):
+                a, b = target.segment()
+                if (segment_distance(centre, a, b) <= projectiles.MINE_RADIUS + target.radius
+                        and capsule_visible(rays, centre, a, b, target.radius, category,
+                                            target_entity=target.entity)):
+                    targets.append(target)
+            if targets:
+                self.projectiles.remove_mine(mine)
+                for target in targets:
+                    self._damage(
+                        mine.owner, target, projectiles.MINE_DAMAGE, False, projectiles.MINE_LOADOUT,
+                        self.tick, world_tick=self.tick,
+                    )
 
     def heal_area(self, healer, centre, radius: float, amount: float) -> None:
         """Heal the healer and his teammates (everyone's own team in a free-for-all is his alone) whose body
@@ -1770,6 +1823,9 @@ class Combat:
         hit_tags: tuple[int, ...] = (),
         armour_scalar: float | None = None,
     ) -> None:
+        mine = target.owner if isinstance(target.owner, projectiles.Mine) else None
+        if mine is not None and self.projectiles.mines.get(mine.entity) is not mine:
+            return
         vitals = self.vitals_of(target)
         if vitals.dead or amount <= 0.0:
             return
@@ -1779,6 +1835,9 @@ class Combat:
             amount = component.world.outgoing_combat_damage(shooter.entity, amount, hit_tags)
         dealt = vitals.damage(amount, armour_scalar=armour_scalar)
         if dealt <= 0.0:
+            return
+        if mine is not None:
+            self.projectiles.mine_damaged(mine, vitals)
             return
         killed = vitals.pool_current(HEALTH_POOL) <= EPSILON
         if killed:

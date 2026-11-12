@@ -108,7 +108,7 @@ FIELDS = {
         "entity most now temporary_shields ids wave_health wave_health_id changed died_at death_tick killer"
     ),
     combat.WaveHealthPool: _names("capacity current"),
-    projectiles.Projectiles: _names("combat match shots observed next_field next_seen"),
+    projectiles.Projectiles: _names("combat match shots observed next_field next_seen next_mine mines"),
     projectiles.FieldArrived: _names("shot viewer stream done"),
     observers.Observers: _names("match watches"),
     observers.Watch: _names("body arrived stream sent next_lazy"),
@@ -170,7 +170,8 @@ DATACLASSES = (
     play.Resource, play.InvocationContext, play.Request,
     GameMap, Hero, Spawn, Handoff, LoadState, correction.SendToken, MoverData,
     heroselect.Controller, notices.Switch, combat.HitDef, combat.Target, combat.Rocket, combat.SplitVolley,
-    projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
+    projectiles.Mine, projectiles.Shot, projectiles.ShotRecord,
+    projectiles._ObservedProjectile, projectiles._ProjectileArrival,
     driver.Snapshot, driver.OwnerReport, statescript.Graph,
     statescript.Bool, statescript.Int, statescript.Float, statescript.Asset, statescript.Entity,
     statescript.Instance, statescript.Binding, statescript.StateWire, statescript.EventWire,

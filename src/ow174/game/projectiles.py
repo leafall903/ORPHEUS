@@ -32,8 +32,9 @@ The release (reader chain: ch2 0x7FF789A4A490 -> state 0x7FF789A34600 -> record 
 import logging
 import math
 from dataclasses import dataclass, field
+from random import Random
 
-from ow174.game import bots, world
+from ow174.game import bots, weapon_spread, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
 from ow174.game.script import expr
@@ -135,6 +136,21 @@ CREATE_AT = (0.0, -1000.0, 0.0)  # an id the client did not shoot becomes an unf
 TALON_SNIPER_ROUND = 0x0400000000001E80
 FIELD_ENTITY = 0x04000000000003DC  # 03DC.003, the Biotic Field (0257 st1's m_projectileSpawn)
 FIELD_GRAPH = 0x0258  # its initial graph
+MINE_ENTITY = 0x0400000000002578
+MINE_FIRST, MINE_SPAN = 0xA0040000, 0x00040000
+MINE_RADIUS = 1.5  # 151A #11861
+MINE_DAMAGE = 130.0  # 151A #476
+MINE_LOADOUT = 0x0B900000000001ED  # 151A st5 ModifyHealth
+MINE_HEALTH = 50.0  # 151A st0
+MINE_HEIGHT, MINE_HIT_RADIUS = 0.1, 0.05  # 2578.003 STU_50BA775C, a proxy for the receiver
+MINE_ARM_TICKS = math.ceil(1500 / FRAME_MS)  # 151A #2277
+MINE_LIFETIME_SCALE = 13032  # 151A #6471 reads the owner's duration scale
+MINE_TRACK_FILTER = 0x069000000000002C  # 151A st28's secondary static cast
+# 1517 names 0283 on child 2801 (67DE), attached to 67DD's 0282.
+# These offsets compose the two reference poses without sampling launch animation.
+MINE_MUZZLE_HEIGHT = 0.7908548712730408
+MINE_MUZZLE_FORWARD = 0.6950820088386536
+MINE_FLIGHT_LIMIT = math.ceil(20000 / FRAME_MS)  # bound unlanded mines that leave the map
 FIELD_FIRST, FIELD_SPAN = 0xA0080000, 0x00040000  # the field entities' ids
 SEEN_FIRST, SEEN_SPAN = 0xA00C0000, 0x00040000  # the server projectiles the other clients see
 FIELD_DELAY = 12  # approximate deployment delay in world ticks after admitting the cast projectile
@@ -305,8 +321,24 @@ class Shot:
     arrivals: list = field(default_factory=list)  # the field entities whose create arrived
 
 
+@dataclass
+class Mine:
+    entity: int
+    owner: object
+    hero: int
+    team: int
+    position: tuple[float, float, float]
+    velocity: tuple[float, float, float]
+    gravity: float
+    tick: int  # last flight step, fixed at landing
+    expires: int
+    lifetime: int  # deployed ticks
+    armed_at: int | None = None
+    viewers: dict[int, object] = field(default_factory=dict)
+
+
 class Projectiles:
-    """Projectile leases, confirmations, observer delivery, and the Biotic Field."""
+    """Projectile leases, confirmations, observer delivery, and deployed entities."""
 
     def __init__(self, combat) -> None:
         self.combat = combat
@@ -315,6 +347,8 @@ class Projectiles:
         self.observed: list[_ObservedProjectile] = []
         self.next_field = 0
         self.next_seen = 0
+        self.next_mine = 0
+        self.mines: dict[int, Mine] = {}
 
     # --- the lease ------------------------------------------------------------------------------------
 
@@ -468,6 +502,9 @@ class Projectiles:
                 if shot in self.shots:
                     self.shots.remove(shot)
         self.observed = [delivery for delivery in self.observed if delivery.advance(tick)]
+        armed = [mine for mine in list(self.mines.values()) if self._step_mine(mine, tick)]
+        if armed:
+            self.combat.trigger_mines(armed)
 
     def _step(self, shot: Shot, tick: int, first_tick: int) -> None:
         player = shot.player
@@ -561,6 +598,113 @@ class Projectiles:
             updates.append(update)
         client.queue_entities(updates)
 
+    # --- Minefield -----------------------------------------------------------------------------------
+
+    def launch_mines(
+        self, player, state, origin, speed: float, shot: int, activation: tuple[int, int],
+    ) -> None:
+        launch = state.node.field("m_5EC1EB38") or {}
+        axis = state.evaluate(launch.get("m_E2FD6F04"), watch=False)
+        gravity = unconditional_gravity(state)
+        if (not isinstance(axis, expr.Vec3) or not all(math.isfinite(value) for value in axis)
+                or not math.isfinite(speed) or speed <= 0.0
+                or gravity is None or not math.isfinite(gravity) or gravity <= 0.0):
+            return
+        heading = weapon_spread.launch_direction(tuple(axis), 0.0)
+        seed = weapon_spread.seed_base(player.body, state.instance.id, state.node.pos, activation[0])
+        variable = state.instance.component.entity_var(MINE_LIFETIME_SCALE, create=False)
+        scale = variable.value() if variable is not None else None
+        if type(scale) not in (int, float) or not math.isfinite(scale) or scale < 0.0:
+            scale = 1.0
+        # Reuse the authored rings. The mine-specific native seed mapping still needs evidence.
+        for direction in weapon_spread.authored_ring_directions(state, heading, seed, shot):
+            entity = MINE_FIRST + self.next_mine % MINE_SPAN
+            self.next_mine += 1
+            if entity in self.mines:
+                continue
+            duration = expr.f32(Random(entity).uniform(18.0, 20.0)) * scale
+            lifetime = math.ceil(duration * 1000 / FRAME_MS)
+            velocity = tuple(expr.f32(speed * value) for value in direction)
+            tick = self.match.tick
+            self.mines[entity] = Mine(
+                entity, player, player.hero.guid, player.team, origin, velocity, gravity,
+                tick, tick + MINE_FLIGHT_LIMIT, lifetime,
+            )
+
+    def _step_mine(self, mine: Mine, tick: int) -> bool:
+        owner = mine.owner
+        if owner.gone or owner.hero.guid != mine.hero or owner.team != mine.team:
+            self.remove_mine(mine)
+            return False
+        if mine.armed_at is None:
+            # Reproduce every flight step in a skipped interval, bounded by the airborne deadline.
+            for at in range(mine.tick + 1, min(tick, mine.expires) + 1):
+                self._fly_mine(mine, at)
+                if mine.armed_at is not None:
+                    break
+        if tick >= mine.expires:
+            self.remove_mine(mine)
+        elif mine.armed_at is not None:
+            self._deliver_mine(mine)
+            return tick >= mine.armed_at
+        return False
+
+    def _fly_mine(self, mine: Mine, tick: int) -> None:
+        seconds = FRAME_MS / 1000
+        vx, vy, vz = mine.velocity
+        mine.velocity = vx, expr.f32(vy - mine.gravity * seconds), vz
+        offset = tuple(value * seconds for value in mine.velocity)
+        distance = math.hypot(*offset)
+        mine.tick = tick
+        if not distance:
+            return
+        direction = tuple(value / distance for value in offset)
+        hit = self.combat._collision().cast_ray(mine.position, direction, distance)
+        if hit is None:
+            mine.position = tuple(a + b for a, b in zip(mine.position, offset, strict=True))
+        elif offset[1] < 0.0 and hit.normal[1] >= 0.5:
+            mine.position = hit.point
+            mine.velocity = (0.0, 0.0, 0.0)
+            mine.armed_at = tick + MINE_ARM_TICKS
+            mine.expires = tick + mine.lifetime
+        else:
+            # Reconstruct non-floor contact as a drop instead of attaching to the surface.
+            mine.position = tuple(a - b * 0.001 for a, b in zip(hit.point, direction, strict=True))
+            mine.velocity = (0.0, min(0.0, mine.velocity[1]), 0.0)
+
+    def _deliver_mine(self, mine: Mine) -> None:
+        viewers = {
+            viewer.slot: viewer.client
+            for viewer in self.match.players if viewer.client is not None and viewer.spawned
+        }
+        if viewers == mine.viewers:
+            return
+        vitals = self.combat.vitals.get(mine.entity)
+        components = (world.health(MINE_HEALTH, MINE_HEALTH) if vitals is None
+                      else vitals.component(vitals.ids))
+        components[26] = [mine.owner.team_bit]
+        create = mine_create(mine.position, components)
+        for slot, client in viewers.items():
+            if mine.viewers.get(slot) is not client:
+                client.queue_entities([EntityUpdate(mine.entity, OP_CREATE, create)])
+        mine.viewers = viewers
+
+    def mine_damaged(self, mine: Mine, vitals) -> None:
+        if vitals.total <= 0.0:
+            self.remove_mine(mine)
+            return
+        components = vitals.component(vitals.ids)
+        for client in mine.viewers.values():
+            client.queue_body_health(mine.entity, components)
+        vitals.changed.clear()
+
+    def remove_mine(self, mine: Mine) -> None:
+        self.mines.pop(mine.entity)
+        self.combat.vitals.pop(mine.entity, None)
+        for client in mine.viewers.values():
+            client.queue_entities([EntityUpdate(mine.entity, OP_DESTROY)])
+        mine.viewers.clear()
+
     # --- the Biotic Field -----------------------------------------------------------------------------
 
     def _field(self, shot: Shot, tick: int, first_tick: int) -> None:
@@ -642,6 +786,13 @@ def confirm_record(definition: int):
 
     def build(origin: int):
         return world.create(origin, definition, {}, flags=WITH_TRANSFORM | WITH_SCALE, position=CREATE_AT)
+
+    return build
+
+
+def mine_create(where: tuple, components: dict):
+    def build(origin: int):
+        return world.create(origin, MINE_ENTITY, components, position=where)
 
     return build
 

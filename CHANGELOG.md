@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Wrecking Ball Minefield
+
+- Simulate the three authored launch volleys with 15 mines, reference-pose
+  muzzle offsets, launch speed and gravity. Publish landed entities with
+  50 health and synchronize damage and removal through the entity channel.
+- Arm deployed mines after 1.5 seconds and apply 130 damage to hostile bodies
+  in the trigger area with static sight checks. Expiry uses the 18–20 second
+  base duration and the owner's authored duration multiplier.
+- Passed 921 public Python tests, six dashboard tests, Ruff and 13
+  prepared-runtime checks for Minefield and both heroes' shields.
+- Flight contacts, mine hit geometry and spread seed mapping use server
+  reconstructions. Dynamic receivers, airborne replication, combat feedback
+  and original-client acceptance remain open.
+
 #### Rising Uppercut target reaction
 
 - Evaluate the authored target ranking and send the target reaction script

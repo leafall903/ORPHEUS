@@ -54,7 +54,7 @@ from ow174.game.match import (
     sends,
 )
 from ow174.game.npc_navigation import RIALTO_MAP
-from ow174.game.projectiles import MAX_LEASE_FRAME, _ObservedProjectile
+from ow174.game.projectiles import MAX_LEASE_FRAME, MINE_FIRST, MINE_SPAN, _ObservedProjectile
 from ow174.game.script.bot import practice_nameplate
 from ow174.game.script.driver import BodyStream, Snapshot, warm_up
 from ow174.jam.codec import DecodeError
@@ -619,6 +619,8 @@ class Client:
 
     def _hold_body_destroy(self, item: world.EntityUpdate) -> bool:
         entity = item.entity
+        if MINE_FIRST <= entity < MINE_FIRST + MINE_SPAN:
+            return False  # destroy supersedes any pending mine health update
         if entity in self._body_destroy_wait:
             return True
         if entity not in self._combat_notices or not self._body_destroy_pending(
@@ -771,6 +773,10 @@ class Client:
         self.entities.append(item)
 
     def _track_body_create(self, entity: int) -> None:
+        if MINE_FIRST <= entity < MINE_FIRST + MINE_SPAN:
+            # Mines use the create-ACK and health queue without player identity or body ID reuse.
+            self._combat_notices[entity] = deque(maxlen=MAX_PENDING_COMBAT_NOTICES)
+            return
         match = self.player.match
         bot = next((bot for bot in match.bots if bot.entity == entity), None)
         host = match.scene_host
