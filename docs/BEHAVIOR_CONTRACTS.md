@@ -4,6 +4,17 @@ Python behavior fixes should leave an executable contract that Rust can consume.
 
 Backfill older behavior as it is investigated or changed. When a behavior needs restricted data or an unavailable client observation, record the reproduction, missing prerequisite and follow-up instead of inventing a public fixture or a passing result. A focused fix can proceed with its available regression and an explicit evidence gap.
 
+## NPC Gallery preview policy
+
+`fixtures/behavior/gallery-preview-policy-v1.json` and
+`scripts/check_gallery_preview_policy.py` share the Rust Halloween `19abbb8c`
+C++ production policy. Run the script with a C++17 compiler (x64 MSVC on Windows,
+or `c++` on Linux). It compiles the real header against 18 resource-selection
+and six owned-builder-tree cases, including exact 14-NPC substitutions, playable/
+unmatched preservation and failed tree validation without mutation.
+The relay DLL must also compile; this synthetic policy test does not execute
+native hooking or prove original-client menus, animations or model rendering.
+
 ## First contract
 
 The [JAM framing fixture](../fixtures/behavior/jam-framing-v1.json) contains four synthetic payloads and their expected encrypted stream. Its key is the public byte sequence `00` through `1f`. The fixture comes from the pinned Python framing implementation and matches the pre-existing Rust framing vector. It establishes synthetic protocol agreement. Its original-client acceptance remains pending.

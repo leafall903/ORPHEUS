@@ -18,6 +18,7 @@
 #include <cstring>
 #include <string>
 #include "gallery_roster.h"
+#include "gallery_preview.h"
 #pragma comment(lib,"ws2_32.lib")
 typedef uint64_t u64; typedef uint32_t u32; typedef uint16_t u16; typedef uint8_t u8; typedef int64_t i64;
 
@@ -257,12 +258,24 @@ extern "C" __declspec(dllexport) DWORD WINAPI worker(LPVOID){
     g_bsVA=g_base+BS_VT;
     L("==== owwfd_relay (plaintext pipe -> 127.0.0.1:%u) base=%016llX bsVt=%016llX ====",SRV_PORT,(unsigned long long)g_base,(unsigned long long)g_bsVA);
     auto gallery = gallery_roster::Install::waiting;
-    for(int loop=0;;loop++){
-        if (gallery == gallery_roster::Install::waiting && loop % 20 == 0) {
-            gallery = gallery_roster::install(g_base, g_imgHi);
+    auto preview = gallery_roster::Install::waiting;
+    for (int loop = 0;; ++loop) {
+        if (preview == gallery_roster::Install::waiting && loop % 20 == 0) {
+            const auto result = gallery_preview::install(g_base, g_imgHi);
+            preview = result.state;
+            if (preview != gallery_roster::Install::waiting)
+                L("[gallery] NPC preview resources %s: stage=%s error=%lu",
+                  preview == gallery_roster::Install::installed ? "installed" : "failed",
+                  result.stage, result.error);
+        }
+        if (gallery == gallery_roster::Install::waiting &&
+            preview == gallery_roster::Install::installed && loop % 20 == 0) {
+            const auto result = gallery_roster::install(g_base, g_imgHi);
+            gallery = result.state;
             if (gallery != gallery_roster::Install::waiting)
-                L("[gallery] NPC roster extension %s",
-                  gallery == gallery_roster::Install::installed ? "installed" : "failed");
+                L("[gallery] NPC roster extension %s: stage=%s error=%lu",
+                  gallery == gallery_roster::Install::installed ? "installed" : "failed",
+                  result.stage, result.error);
         }
         scan();
         if((loop%80)==0)L("[poll] loop=%d swaps=%ld send=%ld recv=%ld stateCalls=%ld relays=%d err=%ld",loop,g_swaps,g_send,g_recv,g_stateCalls,g_nRelays,g_relayErr);

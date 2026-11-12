@@ -10,6 +10,16 @@ permissions:
   contents: read
 
 jobs:
+  gallery-preview-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - name: Check native preview policy contract
+        run: python3 -B scripts/check_gallery_preview_policy.py
+
   source-tests:
     runs-on: windows-latest
     timeout-minutes: 10

@@ -69,13 +69,15 @@ inline void write_code(uint8_t* output, uintptr_t base, uintptr_t code_address) 
     }
 }
 
-inline uint8_t* allocate_code(uintptr_t base, uintptr_t end) {
+inline uint8_t* allocate_code(uintptr_t base, uintptr_t end, DWORD& error) {
+    error = ERROR_NOT_ENOUGH_MEMORY;
     SYSTEM_INFO info = {};
     GetSystemInfo(&info);
     const uintptr_t mask = info.dwAllocationGranularity - 1;
     for (uintptr_t address = (end + mask) & ~mask; address < base + 0x70000000;) {
         MEMORY_BASIC_INFORMATION region = {};
         if (!VirtualQuery(reinterpret_cast<void*>(address), &region, sizeof(region))) {
+            error = GetLastError();
             break;
         }
         const auto next = reinterpret_cast<uintptr_t>(region.BaseAddress) + region.RegionSize;
@@ -85,6 +87,7 @@ inline uint8_t* allocate_code(uintptr_t base, uintptr_t end) {
             if (code) {
                 return static_cast<uint8_t*>(code);
             }
+            error = GetLastError();
         }
         address = (next + mask) & ~mask;
     }
@@ -92,6 +95,12 @@ inline uint8_t* allocate_code(uintptr_t base, uintptr_t end) {
 }
 
 enum class Install { waiting, installed, failed };
+
+struct InstallResult {
+    Install state;
+    const char* stage;
+    DWORD error;
+};
 
 template <size_t Size>
 bool matches(uintptr_t address, const uint8_t (&expected)[Size]) {
@@ -102,9 +111,9 @@ bool matches(uintptr_t address, const uint8_t (&expected)[Size]) {
            std::memcmp(actual, expected, Size) == 0;
 }
 
-inline Install install(uintptr_t base, uintptr_t end) {
-    if (end - base < 0x2F5E4B4) {
-        return Install::failed;
+inline InstallResult install(uintptr_t base, uintptr_t end) {
+    if (end < base || end - base < 0x2F5E4B4) {
+        return {Install::failed, "image bounds", ERROR_BAD_EXE_FORMAT};
     }
     constexpr uint8_t original[] = {0x0F, 0x84, 0x7C, 0, 0, 0, 0x48, 0x8B};
     constexpr uint8_t compare[] = {0x80, 0xB8, 0xBC, 0x01, 0, 0, 0};
@@ -114,20 +123,30 @@ inline Install install(uintptr_t base, uintptr_t end) {
     if (!matches(address - sizeof(compare), compare) || !matches(address, original) ||
         !matches(base + grid_call_rva, grid_call) || !matches(base + rows_call_rva, rows_call)) {
         // These pages are encrypted in the on-disk executable.
-        return Install::waiting;
+        return {Install::waiting, "decrypted signatures", ERROR_SUCCESS};
     }
     auto branch = reinterpret_cast<uint8_t*>(address);
-    auto code = allocate_code(base, end);
+    DWORD allocation_error = ERROR_SUCCESS;
+    auto code = allocate_code(base, end, allocation_error);
     if (!code) {
-        return Install::failed;
+        return {Install::failed, "near allocation", allocation_error};
     }
     write_code(code, base, reinterpret_cast<uintptr_t>(code));
     DWORD previous = 0;
-    if (!VirtualProtect(code, code_size, PAGE_EXECUTE_READ, &previous) ||
-        !FlushInstructionCache(GetCurrentProcess(), code, code_size) ||
-        !VirtualProtect(branch, sizeof(original), PAGE_EXECUTE_READWRITE, &previous)) {
+    const char* stage = "code protection";
+    bool prepared = VirtualProtect(code, code_size, PAGE_EXECUTE_READ, &previous) != FALSE;
+    if (prepared) {
+        stage = "code cache flush";
+        prepared = FlushInstructionCache(GetCurrentProcess(), code, code_size) != FALSE;
+    }
+    if (prepared) {
+        stage = "branch protection";
+        prepared = VirtualProtect(branch, sizeof(original), PAGE_EXECUTE_READWRITE, &previous) != FALSE;
+    }
+    if (!prepared) {
+        const DWORD error = GetLastError();
         VirtualFree(code, 0, MEM_RELEASE);
-        return Install::failed;
+        return {Install::failed, stage, error};
     }
     uint8_t patch[] = {0xE9, 0, 0, 0, 0, 0x90, original[6], original[7]};
     rel32(patch + 1, reinterpret_cast<uintptr_t>(branch + 1), reinterpret_cast<uintptr_t>(code));
@@ -141,9 +160,9 @@ inline Install install(uintptr_t base, uintptr_t end) {
     VirtualProtect(branch, sizeof(original), previous, &unused);
     if (!replaced) {
         VirtualFree(code, 0, MEM_RELEASE);
-        return Install::failed;
+        return {Install::failed, "branch changed before exchange", ERROR_RETRY};
     }
-    return Install::installed;
+    return {Install::installed, "complete", ERROR_SUCCESS};
 }
 
 }  // namespace gallery_roster

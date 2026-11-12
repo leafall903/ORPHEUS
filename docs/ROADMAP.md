@@ -1,5 +1,10 @@
 # Restoration roadmap
 
+- [ ] NPC Gallery preview client acceptance: the shared 14-root cosmetic-builder
+  correction is ported into the Python relay with the 18-resource/six-tree
+  synthetic contract and an x64 DLL build. The 23-NPC roster remains intact;
+  no DLL install, rendered model or native menu acceptance is claimed.
+
 - [x] Reconcile the full local Python delivery with public main package paths; preserve external data and existing implementation.
 - [ ] Close the preserved compatibility and original-client verification limits listed in [the integration record](PYTHON_UPSTREAM_INTEGRATION.md).
 

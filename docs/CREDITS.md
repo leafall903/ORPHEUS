@@ -136,6 +136,14 @@ enemy and nine-second duration.
 
 ## Python hero and PvE integration
 
+The NPC Gallery preview policy and native relay hooks are shared from the
+ORPHEUS Rust Halloween implementation `19abbb8c98a41ff2f3a4e0a0f3062c0ebed4867e`
+by leafall903 (Assisted-by: Codex). Original build 104319 expression 93CBF16B,
+builder layout and native component index table evidence distinguish the
+14 resource substitutions and retained model/idle components. Synthetic fixture
+and local C++ validation do not establish original-client preview acceptance.
+Native captures, probes and generated DLLs remain external to publication.
+
 [zichao-zhou](https://github.com/zichao-zhou) submitted the Rialto PvE and McCree
 foundation together with scoped Ana, Mei, Winston, Pharah and shared Genji work.
 The contribution was imported from [PR #16](https://github.com/leafall903/ORPHEUS/pull/16)

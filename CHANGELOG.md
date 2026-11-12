@@ -1,5 +1,26 @@
 # Changelog
 
+## Restore NPC Gallery preview resources in the Python relay
+
+Port the shared C++ preview implementation from Rust Halloween `19abbb8c`.
+The existing 23-NPC roster is retained. Fourteen exact non-playable Hero preview
+roots now select their authored body resource; owned cosmetic builders retain
+model/idle components through their validated child tree. Playable Heroes and
+unmatched definitions keep their authored preview resource. Install the display
+filter before preview substitution and expose the roster after both are ready;
+installation failures record the native stage/error without partial retry.
+
+The synthetic shared contract covers 18 resource selections and six builder
+trees, including rejected cycles/oversized trees without mutation. x64 MSVC
+policy and relay builds, new-script Ruff and six dashboard/NPC console tests
+pass. Full Python discovery runs 948 tests with the same six failures/four
+errors as clean integration ea472943; the full Ruff check retains exactly the
+same 1714 baseline findings. No new failures or lint findings are introduced;
+the full Python baseline is not green.
+No DLL has been installed or loaded; actual Gallery preview acceptance remains
+pending. This relay delta does not replace Python's existing PvE/combat/AI code
+or claim full Python/Rust parity or complete Normal client outcomes.
+
 ## Ball tank live omissions: shield feedback and grapple form
 
 Adaptive Shield reuses the HealthPool-created tagged record instead of creating
