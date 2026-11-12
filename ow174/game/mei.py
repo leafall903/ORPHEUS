@@ -6,6 +6,7 @@ the unchanged authored duration, cancel and cooldown branches can execute.
 Original-client timing/presentation and the native meaning remain unaccepted.
 """
 
+import math
 from dataclasses import dataclass, field
 
 from ow174.game.script import expr
@@ -147,6 +148,36 @@ def cryo_instance(actor):
     if body is None or getattr(body, "hero", None) != HERO:
         return None
     return next((i for i in body.component.instances.values() if i.graph.index == CRYO), None)
+
+
+def cryo_world_deadline(actor):
+    """Original05FE Chase6 lifetime, mapped from this actual body's birth pair."""
+    instance = cryo_instance(actor)
+    script = getattr(actor, "body_script", None)
+    born = getattr(script, "cryo_birth", None)
+    if (instance is None or script.retired or script.component.owner_dead
+            or script.component.entity != actor.body or born is None):
+        return None
+    chase = instance.states.get(6)
+    if chase is None or not chase.active:
+        return None
+    lifetime = expr.to_float(chase.evaluate(chase.node.field("m_EB0FC261"), watch=False))
+    if not math.isfinite(lifetime) or lifetime <= 0:
+        return None
+    # Keep the delivered floor in the source body domain before crossing clocks.
+    deadline = (chase.start + round(lifetime * 1000)) // script.frame_ms
+    from ow174.game.combat import TICK
+
+    world_ms = round(TICK * 1000)
+    world, body = born
+    delta = (deadline - body) * script.frame_ms
+    return world + -(-delta // world_ms)
+
+
+def cryo_world_expired(actor):
+    deadline = cryo_world_deadline(actor)
+    match = getattr(getattr(getattr(actor, "body_script", None), "world", None), "match", None)
+    return (deadline is not None and match is not None and match.combat.tick >= deadline)
 
 
 def protected(actor) -> bool:

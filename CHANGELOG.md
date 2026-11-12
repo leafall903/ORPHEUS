@@ -10093,3 +10093,47 @@ remaining Ball cross-control behaviors, followed by Hog/Zarya/Sigma owner code.
 Next exact action: clean sync parent canonical49531451 or newer explicit SHA,
 then original world-only phase/Cryo/Transcendence and Minefield control interruption
 consumers. Retain source input history and all existing native device/owner paths.
+
+
+### B50 — original Mei Cryo world expiry across actual body epochs
+
+- Parent authorized this narrow shared integration; C confirmed no Mei WIP.
+  Existing cryo_samples is the sole mutable healing integration ledger, not a
+  stable constructor world/body pair; it remains unchanged.
+- Added Mei-only immutable BodyScript.cryo_birth=(actual match.tick,start_frame)
+  at its real constructor, registered in both strict exporters. No input lease,
+  world_frame_anchor, second mover, second healing ledger or VM stepping added.
+- Read the original05FE Chase6 lifetime expression (default4000ms), preserve its
+  body-frame floor, then convert with the real constructor pair to world ticks.
+  Only the existing Mei05FE protection/invulnerability queries stop blocking
+  after that deadline; absent/unknown birth/domain retains prior active-state
+  handling. Existing Mine9588 filtering consumes the same protection query.
+- Added real raw network regression: observed HeroPick constructor pair
+  (1012,1044), actual raw cast body1085, independent original250tick expected
+  worlddeadline1303. Deadline-1 remains protected; deadline accepts actual130
+  damage while state35 and VM(frame1085,now17375) remain frozen. Strict BodyVM
+  and server exports detect pair mutation/restoration. Raw S76->Mei replacement
+  produces newpair(1303,1085); retired originalpair stays unchanged. All pass
+  in the persisted test (84.556s), with world_frame_anchor stillNone.
+- Original same-domain Mine Cryo250vs120 failure is fixed; its subsequent
+  velocity0vs>4 assertion remains (queued impulse with no recipient commands).
+  Restored full original4 Mine phase methods/helpers without weaker assertions.
+  Final phase+barrier7run has4 assertions failing across3phase methods; all3
+  barrier methods and mixedCryo/Transcendence pass. Reaper/Moira change VM/frame
+  during world-idle; direct outcomes are at the apparent body-floor+1. A notes
+  owner birth/lease mapping must be audited before calling this a world-clock
+  regression. No global phase/idle strategy was changed to satisfy old fixtures.
+- Shared original Cryo/Damage/runtime35run32pass with3 existing geometry/held-
+  secondary assertions. A separate diagnostic disabling only the new expiry
+  guard reproduces those same3 assertions; expectations were not changed.
+- Split Mine fixtures now import their source helper module without exporting
+  its TestCase class, so normal unittest discovery does not duplicate another
+  module's tests. Reported prior focused counts used explicit classes already.
+- Original-client acceptance and complete Ball delivery remain open. External
+  logs: worker-b-mei-cryo-raw-regression.log, worker-b-mei-cryo-shared.log,
+  worker-b-mei-cryo-legacy-guard-baseline.log, worker-b-ball-mine-phases-final.log.
+
+Next exact action: clean sync parent8fa1a320/newer explicit canonical; persist a
+concrete per-owner unmapped-consumer audit and remaining active-hour estimate,
+then advance the largest real missing source adapters (Sigma/Zarya/Hog) without
+blocking delivery on these preserved old boundary assertions.

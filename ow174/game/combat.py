@@ -4981,6 +4981,8 @@ class Combat:
             return False
         for instance in script.component.instances.values():
             if instance.graph.index == graph_index:
+                if graph_index == mei.CRYO and mei.cryo_world_expired(owner):
+                    return False
                 if graph_index == 0x017B:
                     service = getattr(getattr(getattr(script.world, "match", None), "combat", None), "zenyatta", None)
                     if service is not None and service.stale_ultimate_flag(owner):
@@ -8554,6 +8556,8 @@ class Combat:
         if phases is None and fight is not None and fight.meteors.protected(component.entity):
             return True
         for instance in component.instances.values():
+            if instance.graph.index == mei.CRYO and mei.cryo_world_expired(owner):
+                continue
             spec = PROTECTED_PHASES.get(instance.graph.index)
             if spec is None or (phases is not None and instance.graph.index not in phases):
                 continue
