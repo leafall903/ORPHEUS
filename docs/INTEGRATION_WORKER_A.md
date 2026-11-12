@@ -2867,3 +2867,37 @@ rows rather than changing thresholds or silently skipping; validate selected
 original flag execution and retain any new actual API failures for correction.
 No new scenario/matrix/feature or game runtime changes. Reports outside repo,
 original external runtime/input files untouched; no Internet/client/push/Rust.
+
+## A107 — finish original opt-in tool API mapping without new report behavior
+
+Root prohibited a unified catch/new report tolerance: none was added. Original
+uncaught assertions, CLI selectedflags, expectedvalues and exit1 behavior remain.
+Limited actual opt-in runs used an external probe only; it did not change tool
+control flow or runtime modes.
+
+Found one additional genuine tool API gap: sniper_retreat_search read/patched
+BotWorld.destination_search, which no longer exists. The actual node consumes
+BotWorld.search_position→current root Sniper primary_search/position service.
+Changed only the tool observer binding to that existing method and preserved its
+real return value. No runtime Sniper producer/strategy or new alias added.
+Original30 asserts/numeric criteria are unchanged from A106.
+
+Five original search modes executed:retry/ally/range/return_fire pass, los returns
+passedFalse under unchangedcriteria; no missingAPI exception. Logs
+worker-a-sigma-sniper-search-api-probe.log/json. Existing selected API probes
+also exercised FluxReturn/HeavyMelee successfully; TrooperBarrier and SniperGrasp
+pass fromA106. HeavyCharge/TrooperMelee/EnforcerVolley/AccretionRecovery return
+ordinary failed original results, no API exception, no startflag forcing.
+The first external probe captured the genuine old destination_search AttributeError;
+that precise gap is now closed. Full defaultA106 report remains71/90/Exit1,
+0missingAPI, unchanged30 assertions; no full opt-in acceptance claim or new matrix.
+
+Final tool signing: original verify_sigma_npc_static callable paths now map to
+actual absorption/sigma_flux/sigma_barrier, real tagged extra pools/nativeZarya,
+actual same mover/landing, source body protection and actual BotWorld search;
+all imported module API references and ordinary actual Bot/Combat/script field
+references audited defined. No known remaining unmounted tool API identified.
+Original behavior/numeric/assertion tails remain failures, not silently passed or
+converted by new production catches. Root owns runtime primary/automatic NPC
+policies and other verify_sigma_filter_inputs restoration. All sourceinputs
+read-only, reports external, no server/game/client/network/publication action.
