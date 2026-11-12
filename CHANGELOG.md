@@ -1,5 +1,23 @@
 # Changelog
 
+## Preserve match context through Halloween boss pursuit
+
+The shared navigation driver now requires a Match to apply authoritative
+movement modifiers. Halloween's ordinary bosses, Witch and Summoner still
+called its old six-argument interface, causing a TypeError as soon as pursuit
+needed a physical route. Thread the real scene Match through their shared
+BossPursuit path; retain the existing path search, collision and speed policy.
+Update the moving-NPC Roll regression's driver call to the same current API.
+
+The existing authored Reaper regression now advances its distant-target chase
+and verifies physical displacement; focused Summoner damage and Zombardier
+target regressions also pass (three checks). The corrected 131-test functional
+run completes without errors; 13 existing Roll/charge assertion failures remain.
+Both changed Python files pass Ruff. Local Python is 3.11.9; the supported 3.12
+lane and original client remain unverified. No new gameplay policy or native
+acceptance is inferred, and a public cross-language pursuit fixture remains
+pending; the authored graph/collision inputs stay in external runtime storage.
+
 ## Restore NPC Gallery preview resources in the Python relay
 
 Port the shared C++ preview implementation from Rust Halloween `19abbb8c`.

@@ -1,5 +1,10 @@
 # Restoration roadmap
 
+The Halloween movement-driver context mismatch is repaired in the ordinary
+Boss/Witch/Summoner pursuit path. Existing authored Reaper chase displacement
+checks cover the failing route; full Normal outcomes and client presentation
+remain required. Existing Cassidy Roll/charge failures are tracked separately.
+
 - [ ] NPC Gallery preview client acceptance: the shared 14-root cosmetic-builder
   correction is ported into the Python relay with the 18-resource/six-tree
   synthetic contract and an x64 DLL build. The 23-NPC roster remains intact;

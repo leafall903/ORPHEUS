@@ -378,7 +378,7 @@ class BossPursuit(npc_navigation.Navigator):
         ):
             self.drop_started = None
 
-    def pursue(self, actor, target, frame, seconds, reach, *, firing_position=None):
+    def pursue(self, match, actor, target, frame, seconds, reach, *, firing_position=None):
         if (
             actor.hero == REAPER
             and not self.drop_used
@@ -413,6 +413,7 @@ class BossPursuit(npc_navigation.Navigator):
             destination = self.path[0]
             if npc_navigation.edge(mover.world, actor.position, destination[0], destination[2], mover.data):
                 outcome = npc_navigation._drive(
+                    match,
                     actor,
                     self,
                     frame,
@@ -612,7 +613,8 @@ def update_boss_combat(host, actor, component):
             break
         if target_id is None and enemies and (not junkrat or aim_arc is not None):
             pursuit_reach = reach if enemies[0][0] <= weapon_reach else weapon_reach
-            nav.pursue(actor, enemies[0][2], host.frame, seconds, pursuit_reach, firing_position=aim_arc)
+            nav.pursue(host.match, actor, enemies[0][2], host.frame, seconds, pursuit_reach,
+                       firing_position=aim_arc)
         elif pursuing:
             npc_navigation.stop(actor)
     elif pursuing:
@@ -730,7 +732,7 @@ def update_witch_combat(host, actor, component):
         pitch = round(-math.atan2(y, math.hypot(x, z)) * bots.YAW_UNITS / math.tau)
         world.entities[actor.entity].aim_writer(yaw, pitch, host.frame)
     if target is not None and direction is None:
-        nav.pursue(actor, target, host.frame, host.frame_ms / 1000, reach)
+        nav.pursue(host.match, actor, target, host.frame, host.frame_ms / 1000, reach)
     elif actor.keys or nav.path or nav.search is not None:
         npc_navigation.stop(actor)
 
@@ -829,7 +831,9 @@ def update_symmetra_combat(host, actor, component):
             ):
                 chosen = 20 if primary else 29
         else:
-            actor.navigation.pursue(actor, target, host.frame, host.frame_ms / 1000, primary_range)
+            actor.navigation.pursue(
+                host.match, actor, target, host.frame, host.frame_ms / 1000, primary_range
+            )
     if (nearest is None or direction is not None) and (
         actor.keys or actor.navigation.path or actor.navigation.search is not None
     ):

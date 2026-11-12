@@ -133,7 +133,7 @@ class McCreeRollTests(unittest.TestCase):
                 run.frame += 1
                 match.update(run.frame * combat.TICK, run.frame)
                 bot.navigation = navigator
-                npc_navigation._drive(bot, navigator, run.frame, combat.TICK, (1.9, 0, 3), 3.0)
+                npc_navigation._drive(match, bot, navigator, run.frame, combat.TICK, (1.9, 0, 3), 3.0)
                 player.take_commands([Command(run.frame, forward=127)])
                 x, _, z = player.mover.position
                 px, _, pz = bot.position

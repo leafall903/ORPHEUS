@@ -15,6 +15,14 @@ unmatched preservation and failed tree validation without mutation.
 The relay DLL must also compile; this synthetic policy test does not execute
 native hooking or prove original-client menus, animations or model rendering.
 
+The Python Halloween pursuit repair retains the existing shared navigation
+policy and passes the missing Match through its three consumers. Its current
+reproduction is the prepared `test_game_scene_host` authored Reaper fixture,
+which requires real physical displacement toward a distant target. Restricted
+authored graph/collision inputs are not published. A source-only cross-language
+pursuit fixture and original-client observation remain pending; this scoped
+replay must not be reported as full NPC AI or Normal outcome parity.
+
 ## First contract
 
 The [JAM framing fixture](../fixtures/behavior/jam-framing-v1.json) contains four synthetic payloads and their expected encrypted stream. Its key is the public byte sequence `00` through `1f`. The fixture comes from the pinned Python framing implementation and matches the pre-existing Rust framing vector. It establishes synthetic protocol agreement. Its original-client acceptance remains pending.
