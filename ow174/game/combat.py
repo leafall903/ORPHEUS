@@ -4581,6 +4581,9 @@ class Combat:
         # accepted gap, using the existing actors and their actual clock pairs.
         sentry_damage_starts, cryo_expiries = {}, {}
         for player in self.match.players:
+            phase_end = immunity.phase_world_deadline(self, player)
+            if phase_end is not None and phase_end <= tick:
+                sentry_damage_starts[player.body] = now - (tick - phase_end + 1) * TICK
             deadline = mei.cryo_world_deadline(player)
             if deadline is not None and deadline <= tick:
                 ended = now - (tick - deadline + 1) * TICK
