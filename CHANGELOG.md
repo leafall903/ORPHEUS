@@ -57,6 +57,20 @@ This log records tested changes and their acceptance status. Entries are grouped
   reconciled. Original-client acceptance remains unexecuted; no whole-line
   completion or new acceptance matrix is claimed.
 
+### Preserve delivered projectile-family retirement boundaries
+
+- Keep detached reflected incoming rounds after their deflector body retires.
+  The shared cleanup previously deleted those server-hosted rounds despite
+  their released prediction lease and frozen source_body identity.
+- Preserve Genji0304's separate delivered Shuriken teardown, including reflected
+  Shuriken; preserve D.Va's own ordinary-round retirement. Original Ana hip/dart
+  replacement, Genji own/reflected, D.Va own and Echo sticky checks all pass6/6.
+- The unchanged broader13-check Ana file retains two grenade assertions for50
+  damage versus the prepared0C72 profile's60, and three subcase errors reading
+  the old healing_boost_until field. Current healing status is hosted by
+  HealingEffects. Keep those original observations/expectations and logs; they
+  neither block this code submission nor constitute full Ana acceptance.
+
 ### Reconcile reflected projectile ownership with original Echo behavior
 
 - Hand authoritative source_entity to every normal reflector alongside shooter,
@@ -336,6 +350,27 @@ This log records tested changes and their acceptance status. Entries are grouped
   fallback. Shared NPC/navigation checks continue separately.
 - C4 Pharah hover/Jump Jet is received asddbd475f; all62 combined movement,
   Roll/runtime and Slam checks passed after preserving both velocity adapters.
+### Mount delivered Winston Jump Pack and Primal strikes
+
+- Mount original JumpPack and PrimalPunches launch/landing, takeoff/impact,
+  windup/hit, additive impulse, interruption/death and retirement consumers.
+  Source sphere queries/damage use read-through views of existing WorldBubbles
+  actors. Preserve a single authoritative bubble/pool/impulse controller.
+- Keep authored flight movement modifiers under the source collision host's
+  lifetime. Strict/native elapsed handling remains unchanged. Mount source
+  idle reload and Winston-only accepted-input horizon; default command queues
+  and other heroes retain their admission policy.
+- Restore source Tesla bubble/ice-wall blocking/damage and .8 beam armor with
+  overflow. Existing other beam defaults remain unchanged. Retain the original
+  native bubble health observations in source fixtures without changing cases.
+- Delivered Tesla/Jump/health35+Primal18 and canonical Tesla12/runtime13: all78
+  pass. Command/epoch16 pass. Source charge27 has26 passes and the retained DVa
+  pilot/controlled-mech interlock failure. Active JumpPack getter-free enclosing
+  server snapshot repeatability and stored-controller causality pass.
+- Moira beam10 retains two subcase errors on its older cryo_actors observation;
+  other behavior assertions pass. Remaining source bubble idle/status/NPC
+  consumers and whole-line audit stay open; no original-client claim or push.
+
 ### Mount delivered Winston health and charge clocks
 
 - Retain complete0009 winston.py and mount the original Primal health/refill,

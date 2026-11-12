@@ -961,9 +961,13 @@ class Vitals:
             if left <= 0.0:
                 break
             if kind == ARMOUR_POOL and self.now[kind] + self.temporary_armour + self.over_armour.amount > 0.0:
-                beam_overflow = beam and armour_scalar is None
+                beam_overflow = beam
+                beam_factor = BEAM_ARMOR_FACTOR if armour_scalar is None else armour_scalar
                 if beam_overflow:
-                    left *= BEAM_ARMOR_FACTOR
+                    if beam_factor <= 0:
+                        left = 0.0
+                        continue
+                    left *= beam_factor
                 elif armour_scalar is None:
                     if not armour_reduced:
                         left = max(left - ARMOUR_BLOCK, left / 2)
@@ -985,7 +989,7 @@ class Vitals:
                         self.now[kind] -= take
                         self.changed.add(kind)
                         taken += take
-                    left = max(0.0, (left - take) / BEAM_ARMOR_FACTOR)
+                    left = max(0.0, (left - take) / beam_factor)
                     continue
             if kind == HEALTH_POOL and (bonus := self.wave_health) is not None:
                 take = min(left, bonus.current)
@@ -1952,6 +1956,8 @@ class Combat:
         self.slams = doomfist.Slams(self)
         self.meteors = meteor.Meteors(self)
         self.primal_bonus: dict[int, float] = {}
+        self.winston_jump = winston.JumpPack(self)
+        self.primal_punches = winston.PrimalPunches(self)
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -2118,6 +2124,8 @@ class Combat:
         self.slams.casts.pop(player.body, None)
         self.meteors.casts.pop(player.body, None)
         self.primal_bonus.pop(player.body, None)
+        self.winston_jump.retire(player.body)
+        self.primal_punches.retire(player.body)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2170,6 +2178,7 @@ class Combat:
         self.rockets[:] = [
             rocket for rocket in self.rockets
             if rocket.shooter is not player
+            or (rocket.reflected and rocket.shot is None)
             or (rocket.shot is None and not rocket.reflected and rocket.accretion_source is None
                 and rocket.deploy_body is None and not getattr(rocket, "pulse_bomb", False)
                 and not (rocket.source_graph == 0x024F and not rocket.charge_eligible))
@@ -2183,7 +2192,14 @@ class Combat:
             if not sources:
                 del self.genji_assists[victim]
         if player.hero.guid in (0x02E0000000000029, 0x02E000000000007A):
-            self.rockets[:] = [rocket for rocket in self.rockets if rocket.shooter is not player]
+            # Retain foreign reflected rounds and Genji's delivered0304 teardown.
+            self.rockets[:] = [
+                rocket for rocket in self.rockets
+                if rocket.shooter is not player or (
+                    rocket.reflected and rocket.source_graph is not None
+                    and not (player.hero.guid == 0x02E0000000000029 and rocket.source_graph == 0x0304)
+                )
+            ]
         self.respawns[:] = [(when, who) for when, who in self.respawns if who is not player]
 
     def record_replacement(self, body: int) -> None:
@@ -2395,6 +2411,8 @@ class Combat:
         self.walls.cancel_preview(target.owner)
         script = getattr(actor, "body_script", None)
         self.interrupt_controlled(script, actor=actor)
+        if script is not None and not isinstance(actor, bots.Bot):
+            self.primal_punches.interrupt(script)
         cast = self.meteors.casts.get(target.entity)
         if cast is not None and cast.impacted:
             cast.finished = True
@@ -2778,6 +2796,8 @@ class Combat:
         component.shots.clear()
 
         cast = self.meteors.casts.get(target.entity)
+        if not isinstance(target.owner, bots.Bot):
+            self.primal_punches.interrupt(script)
         if cast is not None and cast.impacted:
             cast.finished = True
 
@@ -2807,7 +2827,8 @@ class Combat:
         script = player.body_script
         if script is None:
             return
-        if (reaper.is_reaper(player) and command is not None and command.frame == script.frame
+        if ((reaper.is_reaper(player) or script.hero == winston.HERO)
+                and command is not None and command.frame == script.frame
                 and script.world_frame_anchor is not None):
             script.world_frame_anchor = self.tick, script.frame
         self.barriers.sync(player)
@@ -2815,6 +2836,7 @@ class Combat:
         self._shadow(player, command)
         self._winston_health(player, script)
         hero_torbjorn.overload(self, player, script)
+        self.winston_jump.command(player, command, dead=self.is_dead(player))
         shots, script.component.shots[:] = list(script.component.shots), []
         health_reports, script.component.health_reports[:] = list(script.component.health_reports), []
         motion_reports, script.component.motion_reports[:] = list(script.component.motion_reports), []
@@ -2862,6 +2884,7 @@ class Combat:
         self.meteors.command(player, command)
         if self.meteors.protected(player.body):
             return
+        self.primal_punches.command(player, command)
         if not defer_effects:
             self._blossom(player, register=command is not None)
         if command is not None:
@@ -3060,6 +3083,9 @@ class Combat:
                 continue
             origin, direction = self._eye(player), aim(*command.aim())
             view_tick = command.frame - command.view_delay(player.quanta) * 1e6 / player.quanta
+            bubble_queries = winston.HostedBarriers(self)
+            bubbles = bubble_queries.snapshot()
+            damaged_bubbles = set()
             for target in self._enemies(player):
                 shown = self.seen(target, view_tick)
                 if shown is None:
@@ -3081,8 +3107,22 @@ class Combat:
                     wall = ray_world(self._collision(), origin, ray, distance)
                     if wall is not None and wall < max(0.0, distance - shown.radius):
                         continue
+                    if self.walls.cast(origin, ray, max(0.0, distance - shown.radius)) is not None:
+                        continue
+                    obstruction = bubble_queries.first(
+                        player, origin, ray, max(0.0, distance - shown.radius), snapshot=bubbles,
+                    )
+                    if obstruction is not None:
+                        bubble = obstruction[1]
+                        if bubble.body not in damaged_bubbles:
+                            bubble.damage(definition.amount * player.quanta / 1e6 * winston._outgoing(self, player))
+                            damaged_bubbles.add(bubble.body)
+                        continue
                 self._damage(player, target, definition.amount * player.quanta / 1e6,
-                             False, definition.loadout, command.frame, armour_scalar=0.8)
+                             False, definition.loadout, command.frame, beam=True, armour_scalar=.8)
+            winston.tesla_walls(self, player, origin, direction, reach, angle,
+                                definition.amount * player.quanta / 1e6 * winston._outgoing(self, player),
+                                bubble_queries, bubbles)
 
     def _weapon_beam(self, player, command, script) -> None:
         """Select a beam target and evaluate its authored ModifyHealth.
@@ -3527,6 +3567,8 @@ class Combat:
                 if landed and contact.ring is not None and not self.orisa._immune(target.owner):
                     impulse = knockback.quick_melee_impulse(contact.ring, origin, shown, contact.direction)
                     self.knockbacks.apply(target, impulse, impact_frame=frame)
+                if landed and getattr(getattr(shooter, "hero", None), "guid", None) == winston.HERO:
+                    self.winston_jump.knockback(shooter, target, state, 1.0)
                 assassin.rescue_with_melee(self, shooter, target)
 
     def _echo_beam(self, player, command, script) -> None:
@@ -3638,6 +3680,15 @@ class Combat:
         from ow174.game.script.driver import MAX_GAP
 
         script = player.body_script
+        if (script is not None and script.hero == winston.HERO and script.world_frame_anchor is not None
+                and not script.retired and not script.component.owner_dead and player.spawned and player.has_body
+                and winston.reload_pending(script)):
+            anchor_tick, anchor_frame = script.world_frame_anchor
+            elapsed = max(0, self.tick - anchor_tick) * round(TICK * 1000)
+            target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed // script.frame_ms - 1)
+            if target > script.frame:
+                player._advance_body_gap(target + 1, world_idle=True)
+            return
         if (reaper.is_reaper(player) and script is not None and script.world_frame_anchor is not None
                 and not script.retired and not script.component.owner_dead and player.spawned and player.has_body):
             anchor_tick, anchor_frame = script.world_frame_anchor
@@ -8435,6 +8486,10 @@ class Combat:
         from ow174.game import body_entities
 
         self._interrupt_reaper(victim.body, victim)
+        self.winston_jump.cancel(victim.body)
+        if victim.body_script is not None:
+            self.primal_punches.interrupt(victim.body_script)
+            self._winston_health(victim, victim.body_script)
 
         self.punches.dashes.pop(victim.body, None)
         for casts in (self.slams.casts, self.meteors.casts):

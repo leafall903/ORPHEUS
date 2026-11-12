@@ -368,7 +368,97 @@ class Barriers:
                                             tuple(v / distance for v in sight), distance)
                     if wall is not None and wall < distance - combat.EPSILON:
                         continue
-            barrier.damage(amount * self.combat.outgoing_scale(player))
+            barrier.damage(amount * _outgoing(self.combat, player))
+
+
+class HostedBubble:
+    """Read-through view of an existing canonical world actor; no second pool."""
+
+    def __init__(self, fight, actor):
+        self.fight, self.actor = fight, actor
+
+    owner = property(lambda self: self.actor.owner)
+    body = property(lambda self: self.actor.body)
+    centre = property(lambda self: self.actor.point)
+    radius = property(lambda self: self.actor.radius)
+    health = property(lambda self: self.actor.health)
+    ray = Bubble.ray
+
+    def damage(self, amount):
+        return self.fight.barriers.world.damage(self.actor, amount)
+
+
+class HostedBarriers(Barriers):
+    """Use the delivered queries on already mounted canonical bubble actors."""
+
+    def snapshot(self):
+        manager = self.combat.barriers.world
+        return tuple(HostedBubble(self.combat, actor) for actor in manager.actors.values()
+                     if not actor.retired and actor.component is not None and actor.health > 0
+                     and manager.live_source(actor))
+
+
+def _outgoing(fight, player):
+    from ow174.game import nano
+
+    return nano.offense(fight, player.body)
+
+
+def _wall_blocks(fight, origin, point, radius):
+    delta = tuple(b - a for a, b in zip(origin, point, strict=True))
+    length = math.hypot(*delta)
+    if length <= radius:
+        return False
+    return fight.walls.cast(origin, tuple(v / length for v in delta), length - radius) is not None
+
+
+def _hit_walls(fight, player, origin, a, b, radius, amount, *, falloff=False):
+    from ow174.game import combat, mei_wall
+
+    centre = tuple((x + y) * .5 for x, y in zip(a, b, strict=True))
+    for piece in tuple(fight.walls.pieces.values()):
+        point = mei_wall.closest(piece, centre)
+        distance = combat.segment_distance(point, a, b)
+        if distance > radius:
+            continue
+        delta = combat._sub(point, origin)
+        length = math.hypot(*delta)
+        if length > combat.EPSILON:
+            ray = tuple(v / length for v in delta)
+            obstruction = combat.ray_world(fight._collision(), origin, ray, length)
+            if obstruction is not None and obstruction < length - combat.EPSILON:
+                continue
+        scalar = max(0., 1 - distance / radius) if falloff and radius > 0 else 1.
+        fight.walls.damage(piece, player, amount * scalar)
+
+
+def tesla_walls(fight, shooter, origin, direction, reach, angle, amount, barriers, snapshot):
+    from ow174.game import combat, mei_wall
+
+    admitted = []
+    slope = math.tan(math.radians(angle))
+    for piece in fight.walls.pieces.values():
+        offset = combat._sub(mei_wall.closest(piece, origin), origin)
+        length = math.hypot(*offset)
+        if length > reach:
+            continue
+        if length > combat.EPSILON:
+            forward = combat._dot(offset, direction)
+            lateral = math.sqrt(max(0., length**2 - forward**2))
+            if forward < 0 or lateral > forward * slope:
+                continue
+            ray = tuple(v / length for v in offset)
+            wall = combat.ray_world(fight._collision(), origin, ray, length)
+            if wall is not None and wall < length - combat.EPSILON:
+                continue
+            nearer = fight.walls.cast(origin, ray, max(0., length - combat.EPSILON))
+            if nearer is not None and nearer[1] is not piece:
+                continue
+            if barriers.first(shooter, origin, ray, length, snapshot=snapshot):
+                continue
+        admitted.append(piece)
+    for piece in admitted:
+        fight.walls.damage(piece, shooter, amount)
 
 
 class JumpPack:
@@ -472,7 +562,8 @@ class JumpPack:
         loadout = definition.evaluate(modify['m_loadout'], watch=False)
         centre = tuple(player.mover.position)
         origin = (centre[0], centre[1] + .1, centre[2])
-        barriers = self.combat.barriers.snapshot()
+        barriers = HostedBarriers(self.combat)
+        barrier_snapshot = barriers.snapshot()
         damaged_barriers = set()
         for target in self.combat._enemies(player):
             a, b = target.segment()
@@ -487,15 +578,15 @@ class JumpPack:
                 wall = combat.ray_world(self.combat._collision(), origin, ray, length)
                 if wall is not None and wall < max(0.0, length - target.radius):
                     continue
-                if self.combat.walls.blocks(origin, point, target.radius):
+                if _wall_blocks(self.combat, origin, point, target.radius):
                     continue
             scalar = max(0.0, 1.0 - distance / radius) if landing else 1.0
             if length > combat.EPSILON:
-                blocked = self.combat.barriers.first(player, origin, ray, length, snapshot=barriers)
+                blocked = barriers.first(player, origin, ray, length, snapshot=barrier_snapshot)
                 if blocked is not None:
                     _, barrier = blocked
                     if barrier.body not in damaged_barriers:
-                        barrier.damage(amount * scalar * self.combat.outgoing_scale(player))
+                        barrier.damage(amount * scalar * _outgoing(self.combat, player))
                         damaged_barriers.add(barrier.body)
                     continue
             reaction_direction = None
@@ -503,14 +594,26 @@ class JumpPack:
                 reaction_direction = delta if delta[0] or delta[2] else combat.aim(player.mover.yaw, 0)
             affected = self.combat._damage(player, target, amount * scalar, False,
                                           loadout.guid if isinstance(loadout, expr.Asset) else None, frame,
-                                          reaction_direction=reaction_direction)
+                                          hit_reaction=landing)
             if affected and not self.combat.vitals_of(target).dead:
                 self.knockback(player, target, definition, scalar)
-        self.combat.walls.hit_volume(player, origin, centre, centre, radius,
-                                     amount * self.combat.outgoing_scale(player), falloff=landing)
+        _hit_walls(self.combat, player, origin, centre, centre, radius,
+                   amount * _outgoing(self.combat, player), falloff=landing)
 
     def knockback(self, player, target, definition, scalar):
-        self.combat.impulses.radial_health(target, player.mover.position, definition, scalar)
+        from ow174.game import fortify
+
+        if fortify.control_immune(target.owner):
+            return
+        horizontal = expr.to_float(definition.evaluate(
+            definition.node.field('m_modifyHealth.m_E33EFEE1'), watch=False)) * scalar
+        vertical = expr.to_float(definition.evaluate(
+            definition.node.field('m_modifyHealth.m_583C208B'), watch=False)) * scalar
+        dx, dz = (target.feet[0] - player.mover.position[0],
+                  target.feet[2] - player.mover.position[2])
+        distance = math.hypot(dx, dz)
+        x, z = ((dx / distance, dz / distance) if distance else (0., 0.))
+        self.combat.knockbacks.apply(target, expr.Vec3(x * horizontal, vertical, z * horizontal))
 
 
 class PrimalPunches:
@@ -613,14 +716,18 @@ class PrimalPunches:
                 wall = combat.ray_world(self.combat._collision(), origin, ray, distance)
                 if wall is not None and wall < max(0, distance - target.radius):
                     continue
-                if self.combat.walls.blocks(origin, closest, target.radius):
+                if _wall_blocks(self.combat, origin, closest, target.radius):
                     continue
             # Reconstructed melee semantics: body strikes may pass barriers;
             # shield contact/damage is evaluated separately below.
+            from ow174.game import deflections
+
+            if deflections.blocks_melee(self.combat, player, target, health, health.node.field('m_modifyHealth')):
+                continue
             affected = self.combat._damage(player, target, definition.amount, False, definition.loadout,
-                                          command.frame, melee_direction=direction, reaction_direction=direction)
+                                          command.frame, hit_reaction=True)
             if affected and not self.combat.vitals_of(target).dead:
                 self.combat.winston_jump.knockback(player, target, health, 1.0)
-        self.combat.barriers.hit_capsule(player, a, b, radius, definition.amount, origin)
-        self.combat.walls.hit_volume(player, origin, a, b, radius,
-                                     definition.amount * self.combat.outgoing_scale(player))
+        HostedBarriers(self.combat).hit_capsule(player, a, b, radius, definition.amount, origin)
+        _hit_walls(self.combat, player, origin, a, b, radius,
+                   definition.amount * _outgoing(self.combat, player))

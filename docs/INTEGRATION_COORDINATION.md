@@ -273,3 +273,32 @@ the run; those three are not evidence of an implementation defect. Retain the
 rest for consumer audits, without treating this moving-tree run as full acceptance
 or blocking implementation commits. Root's focused immutable captures remain
 separate evidence; avoid rerunning the43-minute group on an actively edited tree.
+
+C11 `3e3aab4a` is received as `4ab2d0a0`;107 of108 original NPC impulse and
+shared bot/control/navigation checks passed. The sole error is the still-unmounted
+Combat.hooks consumer owned by0040. Keep the original hook reuse check and narrow
+future handoff adapter. A11 `a56f80cb` is received as `5f763939`; all48 original
+variable-transition/Shadow/button/runtime/held-fire/resource/Storm checks passed.
+The CHANGED path retains ending guards and CHECK button identity.
+
+C12 `d54f82bb` is received as `a65aee9d`; two original Grasp checks pass. The
+real Moira/Mei command probe includes Deployable targets and reduces the actual
+pillar400 to384 without a VM fault. Preserve the separate original barrier/ice
+suite's absent ORPHEUS_REINHARDT_COLLISION descriptor skip; do not fake a mesh.
+B9 `57e7dfe9` is received by the merge named `merge: receive worker B Winston
+Jump Pack and Primal strikes`; all78 original Winston/runtime checks and all19
+shared command/epoch/handoff checks passed after the generic transition merge.
+The source Jump/Primal controllers reuse existing collision, knockback and
+WorldBubble services; only Winston selects the source command horizon.
+
+Root's additional original Ana reflection audit found a second real cross-owner
+retirement conflict: generic cleanup deleted detached reflected rounds, and
+Genji/D.Va cleanup erased every current-shooter projectile. Preserve independent
+incoming reflected flights while retaining Genji0304's delivered own-family
+teardown and ordinary D.Va cleanup. Six unchanged Ana/Genji/D.Va/Echo lifecycle
+checks pass, including retired deflector killer identity. The broader original
+Ana13 run now retains two50-versus-prepared60 grenade failures and three old
+healing_boost_until observation errors; leave every assertion intact. Evidence:
+parallel-root-projectile-family-retirement-check.log and
+parallel-root-ana-retirement-final-audit.log. Prepared Spec.load reports60 damage,
+100 healing; do not overwrite original prepared graphs to force old50 values.

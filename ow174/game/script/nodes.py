@@ -5543,6 +5543,10 @@ def apply_script_pose(instance: Instance, node, caller) -> bool:
 @handler("STU_4E2BCAAB")
 def state_elapsed(instance: Instance, node, caller) -> bool:
     """104319 1B75730 compares state age and queues a timer when it is too early."""
+    if not instance.component.strict:
+        owned = instance.component.world.compatibility_elapsed_condition(instance, node)
+        if type(owned) is bool:
+            return branch(instance, node, caller, owned)
     seconds = instance.evaluate(node.field('m_AA6E611E'), caller, initial=-1.0)
     if not _finite_number(seconds) or not 0 <= seconds < 2_147_483:
         return branch(instance, node, caller, False)

@@ -117,6 +117,25 @@ alone is not evidence that a line's consumers are actually mounted.
   cadence causality pass (fixture charge setup, not natural-charge evidence).
   Register the active VoiceSetOverride class; retain all owner cadence fields
   in both body-VM and enclosing-server snapshots.
+- Winston clocks batch `e67d0d8a` submitted (canonical `bbd9d3da`). JumpPack and
+  PrimalPunches now mount launch/landing, hit, impulse, windup, control/death and
+  retirement consumers. Source bubble queries/damage read through existing
+  WorldBubbles actors; no second actor/pool controller is installed.
+- Retain authored flight movement modifiers under the delivered collision
+  host's lifetime rather than a competing compatibility elapsed timer. Native
+  strict/default routes stay unchanged. Source idle reload and accepted-frame
+  horizon are mounted; horizon is optional in CommandQueue and selected only
+  for Winston bodies. Future inputs cannot poison that queue's accepted state.
+- Source Tesla now blocks/damages current bubble shells and ice walls, and uses
+  its authored .8 beam armor factor with correct overflow. Other beam callers
+  keep their previous default factor. Quick melee uses the existing additive
+  impulse service, as do Primal strikes and Jump impacts.
+- Original delivered Tesla/Jump/health35+Primal18, canonical Tesla12/runtime13:
+  all78 pass. Original command/epoch16 also pass. Source charge27 now has26
+  successes and only the retained controlled-DVa-pilot interlock failure.
+  Active JumpPack enclosing-server getter-free repeatability/controller
+  causality passes. Moira beam10 retains two subcase errors reading the older
+  absent cryo_actors API; its other behavior assertions pass.
 - Synchronized accepted parallel batches from `a51925d5` in local merge
   `fe851616`, preserving Reaper shadows and Bastion's input suppression bridge.
 - All21 original Rocket Punch checks and all13 existing VM runtime checks pass.
@@ -128,9 +147,9 @@ alone is not evidence that a line's consumers are actually mounted.
 
 ## Exact next work
 
-1. Mount Winston JumpPack/PrimalPunches over current wall, impulse and barrier
-   services without installing duplicate bubble controllers. Reconcile source
-   Tesla barrier/volume checks, then retain the remaining original source suites.
+1. Audit source Winston bubble deployment/idle expiry and remaining cross-hero
+   barrier/status/volume suites against native WorldBubbles and current shared
+   services. Preserve original cases; no duplicate bubble/impulse controller.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

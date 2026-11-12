@@ -260,3 +260,8 @@ pool, with actual owner credit/geometry/snapshot/lifetime bridges. Its collectio
 is fight.turrets(owner.entity->source Turret); legacy prototype torbjorn_turret
 manager has not been a production consumer. Hammer repair and Steel Trap
 contact remain explicit pending owner consumers, not completed by empty maps.
+
+Clean C15 boundary synchronizes root7b6c99ac, including B9 Winston jump/primal
+and root reflected flight lifetime boundaries. Keep both Overload and Winston
+command consumers, source Overload armour and B9 beam-factor overflow, and all
+changelog entries. Functional C15 remains ea89b37d; do not replay this merge.
