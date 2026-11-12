@@ -1,5 +1,15 @@
 # Changelog
 
+## Exercise the real Rialto scope in Cassidy's charge regression
+
+The manual-NPC charge fixture patched only the Cassidy adapter's map constant,
+leaving the generic dispatcher on Practice Range and counting both policies.
+Give the isolated Match the actual Rialto map identity instead. Preserve the
+30-then-35 charge assertions, effective remaining health and no kill bonus;
+production charge policy is unchanged. The existing melee/gun/Flashbang/flight
+group passes all 18 tests on the v19 inputs (local Python 3.11.9). This does not
+establish Normal Halloween charge or native-client acceptance.
+
 ## Preserve match context through Halloween boss pursuit
 
 The shared navigation driver now requires a Match to apply authoritative

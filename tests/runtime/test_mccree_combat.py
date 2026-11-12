@@ -1,7 +1,7 @@
 """Actual McCree commands against player and training-NPC collision fixtures."""
 
 import unittest
-from unittest.mock import patch
+from dataclasses import replace
 
 from ow174.game import combat, mccree, world
 from ow174.game.collision import World, flat_world
@@ -93,6 +93,9 @@ class McCreeMeleeTests(unittest.TestCase):
 
     def test_rialto_manual_npc_damage_charges_once_with_no_extra_kill_bonus(self):
         run, attacker, victim = self.arena(npc=True)
+        # Exercise the real map policy in both the generic charge dispatcher
+        # and the Cassidy sandbox adapter, rather than patching only one ID.
+        run.match.game_map = replace(run.match.game_map, map_guid=mccree.RIALTO)
         victim.spawner = {**victim.spawner, "manual_spawn": True}
         fight = run.match.combat
         target = next(item for item in fight._targets() if item.owner is victim)
@@ -100,9 +103,8 @@ class McCreeMeleeTests(unittest.TestCase):
         script = attacker.body_script
         script.set_ult_charge(0.0)
         meter = script.component.entity_var(ULT_CHARGE)
-        with patch.object(mccree, "RIALTO", run.match.game_map.map_guid):
-            fight._damage(attacker, target, 30.0, False, None, run.frame)
-            self.assertEqual(meter.value(), 30.0)
-            fight._damage(attacker, target, 30.0, False, None, run.frame)
-            self.assertEqual(meter.value(), 35.0)
+        fight._damage(attacker, target, 30.0, False, None, run.frame)
+        self.assertEqual(meter.value(), 30.0)
+        fight._damage(attacker, target, 30.0, False, None, run.frame)
+        self.assertEqual(meter.value(), 35.0)
         self.assertTrue(victim.dead)
