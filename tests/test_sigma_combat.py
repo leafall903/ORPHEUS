@@ -327,12 +327,12 @@ class SigmaCombatTests(unittest.TestCase):
                 run.step({shooter: (0, 0, FIRE if frame == 0 else 0)})
                 for sphere in fight.rockets:
                     if sphere.definition not in launched:
-                        self.assertEqual(sphere.bounces, 100)
-                        sphere.bounces = 0
+                        self.assertEqual(sphere.terrain_bounce_limit, 100)
+                        sphere.terrain_bounce_limit = 0
                         launched[sphere.definition] = sphere
         self.assertEqual(len(launched), 2)
         for sphere in launched.values():
-            self.assertEqual(sphere.bounces, -1)
+            self.assertEqual(sphere.terrain_bounce_limit, -1)
             self.assertGreater(sphere.left, 0)
             self.assertLess(sphere.velocity[2], 0)
         explode.assert_not_called()
@@ -350,12 +350,14 @@ class SigmaCombatTests(unittest.TestCase):
         run.match.collision_world = World(floor + box(x - 4, x + 4, y, y + 4, z + 6, z + 7))
         fight = run.match.combat
         bounced = set()
-        sweep = fight._sweep_projectile
+        from ow174.game import sigma_projectiles
 
-        def observe(rocket, duration, velocity):
-            budget = rocket.bounces
-            remaining = sweep(rocket, duration, velocity)
-            if budget == 100 and rocket.bounces == 99:
+        sweep = sigma_projectiles.bounce
+
+        def observe(fight, rocket, direction, normal, distance, step, duration, velocity, reflected):
+            budget = rocket.terrain_bounce_limit
+            remaining = sweep(fight, rocket, direction, normal, distance, step, duration, velocity, reflected)
+            if budget == 100 and rocket.terrain_bounce_limit == 99:
                 self.assertGreater(remaining, 0)
                 self.assertLess(remaining, duration)
                 vx, vy, vz = velocity
@@ -365,11 +367,11 @@ class SigmaCombatTests(unittest.TestCase):
                 bounced.add(rocket.definition)
             return remaining
 
-        with patch.object(fight, "_sweep_projectile", side_effect=observe):
+        with patch.object(sigma_projectiles, "bounce", side_effect=observe):
             for frame in range(65):
                 run.step({shooter: (0, 0, FIRE if frame == 0 else 0)})
                 for rocket in fight.rockets:
-                    if rocket.bounces == 99:
+                    if rocket.terrain_bounce_limit == 99:
                         self.assertLess(rocket.velocity[2], 0)
                         self.assertLess(rocket.position[2], z + 5.95)
                         self.assertGreater(rocket.position[2], z + 5.4)

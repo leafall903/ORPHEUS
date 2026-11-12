@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore original Hypersphere wall response
+
+- Same Rocket consumes the original wall radius, fractional gravity, normalized
+  reflection and remaining bounce budget; final contact retires without airburst.
+  Existing other projectile flight and amplification accounting remain connected.
+- Original response/retirement and cross-projectile shared29 checks pass with
+  unchanged numeric assertions. Full interaction/storage audit continues; no
+  original-client acceptance run.
+
 ### Mount original Hypersphere airburst and impact consumers
 
 - Existing Rocket flight reads original Sigma profile gravity/expiry; missing
