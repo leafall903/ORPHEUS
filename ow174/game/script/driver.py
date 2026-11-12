@@ -761,6 +761,18 @@ class BodyWorld(runtime.World):
         barriers.track_projected_target(self, state)
         return barriers.track_transcendence(self, state)
 
+    def move_ended(self, state, finished):
+        if (self.match is not None and self.hero == 0x02E000000000000A
+                and state.instance.graph.index == 0x005A and state.index == 1):
+            # Delivered terminal reconstruction for the unhosted typed-request
+            # phase: run the graph's own stop action, preserving its cooldown.
+            state.instance.run_node(state.instance.graph.node(93), state)
+
+    def grapple_cast(self, state):
+        if self.match is not None:
+            return self.match.combat.grapple_cast(state)
+        return None
+
     def assignment_value(self, instance, node, value):
         from ow174.game.zenyatta import weapon_assignment
 
@@ -863,7 +875,12 @@ class BodyWorld(runtime.World):
             component.destroy(instance)
 
     def native(self, cfg: dict, instance):
-        from ow174.game import hero_torbjorn
+        from ow174.game import hero_torbjorn, torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO and instance is not None:
+            value = torbjorn_charge.native(self, cfg, instance)
+            if value is not NotImplemented:
+                return value
 
         result = hero_torbjorn.turret_native(self, cfg, instance)
         if result is not NotImplemented:
@@ -1634,8 +1651,12 @@ class BodyWorld(runtime.World):
             )
             return (target,) if target is not None else ()
 
-        from ow174.game import mccree
+        from ow174.game import mccree, widowmaker
 
+        if self.hero == widowmaker.HERO:
+            selected = widowmaker.tracked_targets(self, state)
+            if selected is not NotImplemented:
+                return selected
         return mccree.targets(self, state)
 
     def target_effects(self, state):
@@ -2164,6 +2185,10 @@ class BodyScript(ReplicatedBody):
         regeneration.prune_healing_scales(self)
 
     def _run(self, frame: int, edges: list) -> None:
+        from ow174.game import torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO:
+            torbjorn_charge.prepare(self)
         ultimate.sync_practice_timer(self)
         from ow174.game import lucio
 
@@ -2365,7 +2390,25 @@ class BodyScript(ReplicatedBody):
             runtime.send_instance_message(charge, 0x02400000000014F2, {0x0951: fraction}, controller)
             self.component.run_now()
 
+    def infra_window(self):
+        from ow174.game import widowmaker
+
+        return widowmaker.infra_window(self)
+
+    def ultimate_active(self, *, at_time=None):
+        from ow174.game import widowmaker
+
+        return (widowmaker.ultimate_active(self, at_time=at_time)
+                if self.hero == widowmaker.HERO else self.ultimate_running())
+
+    def award_damage_charge(self, damage):
+        return self.gain_ult_charge(damage)
+
     def ultimate_running(self) -> bool:
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.ultimate_active(self)
         if any(state.flags & nodes.Ability.RUNNING for state in self.ultimates):
             return True
         # Pharah's ultimate uses a LogicalButton and WeaponVolley instead of
@@ -2382,6 +2425,10 @@ class BodyScript(ReplicatedBody):
         The active ultimate generates no charge. Passive debug fill remains a
         separate configured policy; this does not establish native charge rates.
         """
+        if self.hero == 0x02E000000000000A:
+            from ow174.game import widowmaker
+
+            return widowmaker.award_damage_charge(self, points)
         if self.hero == 0x02E0000000000005:
             from ow174.game import hanzo_charge, hanzo_control
 
@@ -2437,6 +2484,16 @@ class BodyScript(ReplicatedBody):
                     state.end(False)
 
     def _charge_ult(self) -> None:
+        from ow174.game import torbjorn_charge
+
+        if self.hero == torbjorn_charge.HERO and torbjorn_charge.enabled(self):
+            if self.ult_seconds != torbjorn_charge.SANDBOX_SECONDS and self.ult_seconds > 0 and not self.ultimate_running():
+                cost = expr.to_float(self.component.entity_var(ULT_COST).value())
+                charge = expr.to_float(self.component.entity_var(ULT_CHARGE).value())
+                if cost > 0 and charge < cost:
+                    step = f32(cost * self.frame_ms / (1000.0 * self.ult_seconds))
+                    self.set_ult_charge(min(cost, f32(charge + step)))
+            return  # Original0B8B timer owns normal Torb charge; retain explicit sandbox override.
         if self.hero == 0x02E0000000000009:
             from ow174.game import winston
 

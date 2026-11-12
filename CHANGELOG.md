@@ -40,6 +40,54 @@ This log records tested changes and their acceptance status. Entries are grouped
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
 
+### Integrate delivered Widowmaker Venom Mine and poison consumers
+
+- Mount original venom.py Flight/Mine/Poison/Mines into actual volley throw,
+  world tick, body retirement, rifle/projectile contacts, melee and explosion.
+  Preserve authored arming/health/radius/75-point poison, fractional accumulator,
+  owner-only reveal, reflected ownership/lifetime, and Ice Wall attachment cleanup.
+- Adapt old shield/Genji/Matrix services to current combined barrier managers and
+  single _deflector host; freeze Matrix eligibility at launch. Explicit snapshot
+  layouts include flights/mines/poison, optional cached properties and the new
+  launch bit; replay configuration records Venom/Widow source constants.
+- Original Venom9 plus Ice Wall attachment1:9 pass, retained Helix test failure
+  only at shooter-health assertion (160.089 versus old200); the mine is destroyed.
+  Current native/shared explosion self-damage is preserved rather than replacing
+  the source's older enemy-only splash loop. Original reflected poison/flight
+  lifetime3, Matrix absorption/wall precedence2 and reflected state snapshot1 pass.
+  Shared Damage/ProjectileTiming/runtime28 checks pass. All original assertions
+  retained; full source Deflect/Matrix fixtures included with API-name adapters.
+
+### Mount delivered Widowmaker Grapple cast, pull and Ice Wall anchors
+
+- Restore source000A STU_4BBC5D09 cast state, authored005A range/speed and
+  hit/miss outputs. Adapt the original static/pillar contact and active ability
+  anchor into current Walls; pillar removal stops the original grapple graph.
+  Explicit zero entity/bone MoveTo fields now reach the existing swept mover.
+  Preserve delivered terminal node93 reconstruction and its cooldown, plus the
+  current DVa move completion consumer. No second movement/combat manager.
+- Record GrappleCast.cast/RaycastResult and Walls.anchors in getter-free VM/server
+  snapshot layouts. Active cast export is stable/read-only and changes with its
+  stored travel time. Original grapple6 and pillar selection/removal2 pass;
+  original wall storage/expiry1 passes; shared Damage/runtime21 pass.
+- Keep complete original Ice Wall test module with only current Mei identity
+  and snapshot constructor fixture adapters. Remaining Venom/cross-owner checks
+  are preserved for later consumers; no whole000A completion claimed yet.
+
+### Mount delivered Widowmaker rifle and Infra-Sight consumers
+
+- Preserve source000A primary/scoped authored critical defaults (2/2.5), effective
+  damage charge and stale ultimate-press expiration on the combined body host.
+  Derive committed0067 cast/effect windows from its retained Wait; expose live
+  reveal to the existing combat query and TrackTargets payload, refreshed by
+  server world time even without owner commands. Keep one script/combat manager.
+- Preserve the complete original test_widowmaker_combat.py, including pending
+  Grapple/Venom methods. Original rifle/Infra23 methods:22 pass, one retained
+  failure at0B8B/node83 Var16102 (native fold accumulator0.0 versus old expected
+  empty tuple). Keep the newer original fold.py implementation and old assertion.
+  Shared Damage/runtime/profile27 checks:25 pass,2 optional input skips.
+- Frozen source:hero-deliveries/000A at0bbf016a88d6272db5358c5e4f6a611d4db5b327.
+  Grapple and Venom consumers remain actual pending work, not whole-line complete.
 
 ### Restore Pulse Bomb current-source retirement boundary
 
@@ -78,6 +126,25 @@ This log records tested changes and their acceptance status. Entries are grouped
   and formal frozen-ref admission. Continue Tracer/Widowmaker owner audits.
 
 ### Mount delivered Molten Core projectiles, areas and status consumers
+### Restore delivered Rocket Punch collision completion
+
+- Apply source0007's actual-progress obstruction test to the existing Punch
+  collision host. A capsule still creeping along contact skin is reported as
+  blocked when progress is below half the requested step, without changing the
+  collision engine or its tolerances.
+- Feed arrival/obstruction into authored0D06 lifetime Wait5 as ordinary FINISH;
+  its existing branches retire movement/forced modifiers and retain recovery
+  and cooldown. The pose callback accepts an actual runtime State. Keep012F's
+  completed Dash history and expose active native drives in0007 fixtures.
+- All23 original Punch/wall/ordinary-hit checks pass, including four ordinary
+  hit scenarios, unchanged heading, inactive VM movement and an exactly stable
+  stopped pose ten ticks later. Original012F's21 history/cooldown checks remain.
+- Combined Cross17/Mutual10/shared98 run125: remaining8 subfailures and9 errors
+  all belong to existing Brigitte scenarios; no other failures occur. Preserve
+  all1399 original assertions and unchanged Constants; raw getter AST adapts to
+  actual current state. Logs remain external; client acceptance stays open.
+
+
 ### Mount delivered Charge and Rocket Punch cross counters
 
 - Evaluate original body inline224E profiles and delivered Punch tracker fallback
@@ -99,6 +166,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Mount delivered Reinhardt mutual Charge windup counters
+### Mount delivered Torbjorn original charge and owner gates
+
+- Connect original0B8B permission, native owner/classification queries, periodic
+  wait and012 damage/tag/pool-loss records to Torbjorn only. Preserve current
+  Genji and Orisa single owner hosts, their charge formulas/history and all
+  generic typed evaluators outside this explicit compatibility route.
+- Route turret damage through its real owner, deduct actual3EBB shield loss,
+  reject deployable/repair/self/ultimate damage and retain authored clamps and
+  modifiers. Transfer the normal passive deadline and unspent charge across
+  same-hero replacements; retain explicit sandbox timer overrides.
+- Adapt original tagged-shield grant/decay/read API to real existing extra pools
+  and unique wire IDs. Existing TTL/capsule/owner lifetimes stay authoritative;
+  there is no second pool or independent observed health counter.
+- Preserve original Torbjorn assembly ultimate gate and held/released input
+  policy without altering existing skill locks. Source charge/NPC/ultimate
+  checks are retained unchanged. Six owner core checks pass; three actual
+  shield/grant/cast checks pass; passive replacement/respawn cases pass. Seven
+  additional lifecycle/turret checks pass, and all three assembly cases pass.
+- Shared60-check run:55 pass/four skip/one existing Genji spawn-lifecycle fail.
+  Root reproduced the identical line206 failure on clean8dc396d6 before C19,
+  and is fixing its existing Genji host dispatch separately. No source
+  assertion was changed or existing check weakened to submit this batch.
+- Original shared Genji/Orisa/Ball helper declarations are retained; new C19
+  consumers are scoped to Torb. Canonical Ball1566 and the other two charge
+  hosts remain separate owners. Cross-owner3EBB record equivalence still needs
+  audit (Orisa currently emits empty detail arrays); whole0006 completion and
+  original-client acceptance are not claimed.
+
 ### Mount delivered Molten Core projectiles, areas and status consumers
 
 - Connect original16DA input/ten-globule resource lifetime, point ballistic
@@ -7971,3 +8066,76 @@ client operations performed. Whole nonappearance integration remains active.
   d546d8c6/ffe56d54. Broader original B cross-hero and old private-observer
   differences remain worker-owned and documented, not commit gates. No client
   acceptance or network publication performed.
+
+
+### Restore original owner-query guards
+
+- Preserve the existing Genji0B8B normal-player gate before the generic typed
+  owner lookup, scoped to its nonstrict owned-body/self query. This restores
+  original spawned/dead/ended lifecycle without changing passive awards or
+  replacing its charge host. Previously failing original spawn lifecycle now
+  passes; Genji passive plus runtime26 pass unchanged.
+- Preserve original body_owner unavailable-instance short-circuit before the
+  alternate controller-query provider evaluates a selector. This repairs the
+  original missing-instance/destination-preservation check; strict provider
+  and all other query dispatch remain unchanged.
+- Original Genji/runtime/body-owner/controller-query/Ana/fold67 run retains
+  two pre-existing Ana health-on-leave subcase failures: partial combined
+  Combat.body_health falls back to unknown/null for absent entities. Original
+  source013B has fuller read-only health lifetime lookup; root will restore
+  that consumer separately. No original assertion changed. Evidence:
+  parallel-root-genji-owner-gate-check.log,
+  parallel-root-owner-query-regression-check.log (40 run,1 error,18 optional
+  Orisa input skips before availability fix), and
+  parallel-root-owner-guards-final-check.log. No acceptance gate or publication.
+
+
+### Restore original read-only health-query lifetimes
+
+- Restore source013B Combat.body_health live player/NPC/controller/mode and
+  missing-entity behavior in place of the partial combined cache-only lookup.
+  Keep current Sigma and actual Deployable pools, preserve current maximum
+  aggregation, and do not allocate Vitals while reading missing cached state.
+  Departed/replaced bodies return native lookup failure instead of falling
+  through to compatibility null; active bodies without a client remain readable.
+- Original health/controller queries, Genji passive, owner query guards, fold
+  and runtime80 checks all pass. Both previously preserved Ana leave subcase
+  failures now pass unchanged. Evidence:
+  parallel-root-restored-health-query-check.log. No source assertion modified,
+  no second pool/manager or new game feature. Remaining batches continue.
+
+
+### Reconcile original temporary-shield APIs
+
+- C19 introduced two genuine same-name collisions: tagged decay replaced the
+  existing Doom clocked decay method, and a tagged dictionary property replaced
+  the existing numeric temporary_shields total. Preserve both implementations.
+  Dispatch one-clock and tag/amount decay to their original bodies; retain the
+  original numeric total and expose real existing extra pools as tagged_shields.
+  No additional pool, ID, TTL, fake numeric/dictionary view or combat manager.
+- Adapt source Torb consumers/fixtures only to the unambiguous tagged property;
+  every original literal expectation is AST-identical. Source Grasp fixture
+  constant maps directly to mounted absorption.SHIELD_TAG0x5847, removing the
+  missing obsolete-module import. Keep other source assertions unchanged.
+- Original Doom Punch/Mutual/epochs/handoff + Torb real attacks, adaptive loss,
+  passive timing/replacement/respawn55 checks all pass after repair. The initial
+  real damage/control TypeErrors and later six numeric-vs-dictionary subcase
+  failures were reproduced and resolved, not ignored. Evidence:
+  parallel-b17-c19-shield-consumers-check.log. No client/publication operations.
+
+
+### Preserve NPC foreign-variable consumers in one method
+
+- AST audit found the final non-property duplicate method: BotWorld.entity_var.
+  Merge the overwritten Heavy9161/Assassin foreign-variable consumers into the
+  active Song/manual-Assassin implementation. Preserve manual target's live
+  player checks and unknown fallback; no duplicate VM/controller or source alias.
+- Actual Heavy reads both live9161 values through the restored consumer. NPC
+  control/Lucio control27 run25 pass and2 optional input skips. Repository AST
+  audit now finds no duplicate definitions except intentional property setters.
+  Evidence: parallel-root-npc-foreign-var-probe.log and
+  parallel-root-npc-foreign-var-core-check.log.
+- Broader original NPC combat-state probe33 retains1 failure/1 error in the
+  separate CombatModFilter versus CombatDamageFilter registration/host contract,
+  with2 input skips; preserve original expectations for later provider merge.
+  It does not gate the completed actual foreign-variable code submission.

@@ -70,6 +70,7 @@ from ow174.game import (
     hero_torbjorn,
     molten_core,
     torbjorn_mark,
+    torbjorn_charge,
     ice_wall,
     reinhardt_charge,
     barriers,
@@ -739,7 +740,7 @@ class Vitals:
     def temporary_pool_used(self) -> bool:
         return self.temporary_shield is not None
 
-    def decay_temporary_shields(self, now: float) -> float:
+    def _decay_clocked_shields(self, now: float) -> float:
         """Advance the delivered tagged aggregate on the authoritative clock."""
         shield = self.temporary_shield
         if shield is None or now <= shield.decay_from:
@@ -819,6 +820,53 @@ class Vitals:
             self.next_pool += 1
         self.changed.add(ARMOUR_POOL)
         return True
+
+    @property
+    def tagged_shields(self):
+        """Delivered tagged-shield API view onto existing authoritative extra pools."""
+        return {pool.identifier: pool for pool in self.extra.values()
+                if pool.kind == SHIELDS_POOL and not pool.removed}
+
+    def grant_temporary_shields(self, tag: int, amount: float, limit: float) -> float:
+        if not math.isfinite(amount) or not math.isfinite(limit) or amount < 0 or limit < 0:
+            raise ValueError("temporary shields need finite nonnegative amount/cap")
+        if self.dead or amount == 0:
+            return 0.0
+        pool = self.tagged_shields.get(tag)
+        current = pool.now if pool is not None else 0.0
+        given = min(amount, max(0.0, limit - current))
+        if given > 0:
+            if pool is None:
+                key = ("adaptive", tag) if tag == moira.ADAPTIVE_SHIELD_TAG else ("tagged-shield", tag)
+                pool = self.add_temporary(key, tag, SHIELDS_POOL, given, -1)
+                if pool is None:
+                    raise ValueError("temporary shield slots exhausted")
+            else:
+                pool.now += given
+                pool.most = pool.now
+                self.changed.add(SHIELDS_POOL)
+        return given
+
+    def decay_temporary_shields(self, tag=None, amount=None, *, now=None) -> float:
+        """Retain clocked aggregate and explicit tagged-pool decay consumers."""
+        if amount is None:
+            if now is not None and tag is not None:
+                raise TypeError("select one shield decay clock")
+            return self._decay_clocked_shields(now if now is not None else tag)
+        if now is not None:
+            raise TypeError("tagged shield decay takes an amount, not a clock")
+        if not math.isfinite(amount) or amount < 0:
+            raise ValueError("temporary shield decay needs finite nonnegative amount")
+        pool = self.tagged_shields.get(tag)
+        if pool is None:
+            return 0.0
+        taken = min(amount, pool.now)
+        if taken > 0:
+            pool.now -= taken
+            if pool.now <= EPSILON:
+                pool.now = pool.most = 0.0
+            self.changed.add(SHIELDS_POOL)
+        return taken
 
     def add_temporary(self, key, identifier, kind, amount, tick):
         occupied = {pool.slot for pool in self.extra.values() if pool.kind == kind and not pool.removed}
@@ -1236,6 +1284,9 @@ def hit_def(state, cfg) -> HitDef | None:
     icicle = graph_index == 0x05E6 and node_index == 16
     tracer_pistol = graph_index == 0x0016 and node_index == 8
     critical_default = 2.0 if icicle or tracer_pistol or graph_index == 0x0164 else mccree.critical_default(state)
+    if (state.instance.component.world.hero == 0x02E000000000000A
+            and graph_index == 0x001B and node_index in (6, 9)):
+        critical_default = value("m_66D29548", 1.0) * max(1.0, value("m_BC54C84B", 0.0))
     if graph_index == 0x0D0A and node_index == 2 and cfg.get("$") == "STU_00D9C7E1":
         critical_default = -1.0
     if isinstance(loadout, expr.Asset) and loadout.guid == ECHO_TRI_SHOT_LOADOUT:
@@ -1956,6 +2007,9 @@ class Combat:
         from ow174.game.pulse_bomb import PulseBombs
 
         self.pulse_bombs = PulseBombs(self)
+        from ow174.game import venom
+
+        self.venom = venom.Mines(self)
         from ow174.game.zenyatta import Zenyatta
 
         self.zenyatta = Zenyatta(self)
@@ -2204,6 +2258,7 @@ class Combat:
         self.clear_pins(player.body)
         self.brigitte.retire(player.body)
         self.walls.retire(player.body)
+        self.venom.retire(player.body)
         self.deadeye_notices[:] = [entry for entry in self.deadeye_notices if entry[0] is not player]
         self.echo_beam_seen.pop(player.body, None)
         self.shatters.pop(player.body, None)
@@ -3662,6 +3717,7 @@ class Combat:
 
         world_amount = amount * nano.offense(self, _source_entity(shooter)) * self.orisa.superchargers.scale(shooter)
         self.barriers.world.melee(shooter, origin, centre, radius, world_amount)
+        self.venom.melee(shooter, origin, centre, radius, world_amount)
 
     def _echo_beam(self, player, command, script) -> None:
         """Reconstructed 1FBD/st17 health consumer, driven by the authored ability lifetime.
@@ -3976,6 +4032,7 @@ class Combat:
             self.sound_barriers.update()
             sigma_barrier.update_barriers(self)
             self.walls.update(at)
+            self.venom.update(at)
             for body, dome in tuple(self.winston_domes.items()):
                 if dome.health <= 0 or self.now >= dome.until:
                     del self.winston_domes[body]
@@ -4029,6 +4086,9 @@ class Combat:
                         except (runtime.ScriptBudgetError, runtime.UnsupportedScriptError):
                             log.exception("[game] %s: %s's world timers failed", self.match.label(), player.name)
                             self.match.stop_body_script(player, failed=True)
+            from ow174.game import widowmaker
+
+            widowmaker.update(self)
             self._advance_timed_hits()
             self.zenyatta.update()
             if self.lucio_auras.leases or self.lucio_auras.healing:
@@ -4740,13 +4800,27 @@ class Combat:
 
 
     def body_health(self, entity):
-        vitals = self.vitals.get(entity)
-        if vitals is not None:
-            return vitals.total, vitals.maximum
+        """Read delivered component51 lifetimes without allocating a pool."""
+        owner = next((player for player in self.match.players
+                      if not player.gone and player.has_body and player.body == entity), None)
+        if owner is None:
+            owner = next((bot for bot in self.match.bots if bot.entity == entity), None)
+        if owner is None:
+            owner = self.deployables.get(entity)
+        if owner is not None:
+            vitals = self.vitals.get(entity)
+            if vitals is not None:
+                return vitals.total, vitals.maximum
+            maximum = (owner.health if isinstance(owner, (bots.Bot, actors.Deployable))
+                       else sum(pools.active_pools(owner.hero.guid, owner.hero.body)))
+            return float(maximum), float(maximum)
+        if (entity == world.GAME_MODE_ENTITY
+                or any(not p.gone and p.entity == entity for p in self.match.players)):
+            return 0.0, 0.0
         for actor in self.sigma_barriers.values():
             if actor.entity == entity:
                 return actor.vitals.total, actor.vitals.maximum
-        return NotImplemented
+        return None
 
     def heal_target(self, healer, entity, amount, frame, *, allow_self=False, tags=None):
         if (amount <= 0 or (entity == healer.body and not allow_self)
@@ -5090,10 +5164,18 @@ class Combat:
             raise ValueError("Sonic profile must be mounted before active projectiles")
         self.sonic_profile = profile
 
+    def grapple_cast(self, state):
+        from ow174.game import widowmaker
+
+        return widowmaker.grapple_cast(self, state)
+
     def revealed_to(self, viewer, target) -> bool:
         """Read current team-scoped reconstructed reveal state."""
-        return any(sonic.visible(beacon, viewer, _source_entity(target), self.match.game_map.free_for_all)
-                   for beacon in self.sonars)
+        from ow174.game import widowmaker
+
+        entity = target if isinstance(target, int) else _source_entity(target)
+        return (any(sonic.visible(beacon, viewer, entity, self.match.game_map.free_for_all)
+                    for beacon in self.sonars) or widowmaker.revealed_to(self, viewer, entity))
 
     def _commit_attack(self, shooter, frame, payload, boost):
         scale = boost[1] if boost is not None else 1.0
@@ -5370,6 +5452,8 @@ class Combat:
                 if moira.orb_fired(self, shooter, state, definition, speed, lifetime,
                                    origin, direction, shot):
                     return
+            if not npc and self.venom.throw(shooter, state, origin, direction, shot):
+                return
             damaging = (direct is not None and direct.amount > 0.0) or (
                 blast is not None and blast.amount > 0.0
             )
@@ -5631,6 +5715,9 @@ class Combat:
             if t is not None and t <= reach and (best is None or t < best[0]):
                 best = (t, target, shown)
         limit = min(reach, best[0] if best else reach)
+        mine_hit = self.venom.intersect(shooter, origin, direction, limit)
+        if mine_hit is not None:
+            limit = mine_hit[0]
         redirect = None
         tagged = state.instance.graph.index == 0x1932 and self.projectile_tags.blob is not None
         tagged_contact = (self._deflector(shooter, definition, origin, direction, limit, view_tick=view_tick)
@@ -5768,6 +5855,10 @@ class Combat:
                     definition=definition, travelled=travelled + distance,
                     matrix_factor=matrix_factor, bounces=bounces + 1, reaper_shell=reaper_shell,
                 )
+            return
+        if mine_hit is not None and (wall is None or mine_hit[0] < wall):
+            distance, mine = mine_hit
+            self.venom.damage(mine, direct.amount * direct.scale(travelled + distance))
             return
         if best is None or (wall is not None and wall < best[0]):
             return
@@ -6477,6 +6568,9 @@ class Combat:
                 shield = echo_shield = deployed = absorption = defense = scripted_shield = scripted_absorption = None
 
         limit = best[0] if best else step
+        mine_hit = self.venom.intersect(rocket.shooter, rocket.position, heading, limit)
+        if mine_hit is not None:
+            limit = mine_hit[0]
         ability = self._orisa_deployable_hit(
             rocket.shooter, rocket.position, heading, limit, radius=padding,
         )
@@ -6494,6 +6588,20 @@ class Combat:
                 return 0.0
             self._landed(rocket, continuation_point=point)
             self._explode(rocket, point, orisa_impact=(actor, manager), incident_direction=heading)
+            return 0.0
+
+        if mine_hit is not None:
+            distance, mine = mine_hit
+            self._amplify_flight(rocket, heading, distance, self.tick - duration / TICK,
+                                 duration / (TICK * step) if step > EPSILON else 0.0)
+            rocket.travelled += distance
+            rocket.flown += duration * distance / step if step > EPSILON else 0.0
+            point = _along(rocket.position, heading, distance)
+            if rocket.direct is not None:
+                self.venom.damage(mine, rocket.direct.amount)
+            rocket.ended = "deployable"
+            self._landed(rocket, continuation_point=point)
+            self._explode(rocket, point, incident_direction=heading)
             return 0.0
 
         if (storm_normal is not None and best == (wall, None)
@@ -7103,6 +7211,7 @@ class Combat:
         )
         protected = set(protected)
         visible_from = _along(point, incident_direction, -0.0001)
+        self.venom.explode(rocket.shooter, point, blast, visible_from=visible_from)
         fixed = tuple(shield for shield in world_shields if isinstance(shield, world_bubbles.FixedBubble))
         raised = tuple(s for s in world_shields if isinstance(s, barriers.reinhardt_barrier.RaisedBarrier))
         protected.update(self.barriers.world.explosion(
@@ -8428,6 +8537,9 @@ class Combat:
             charge.boosted(caster, target.entity, dealt, extra, scale - 1.0,
                            valkyrie_frame=impact if historical else None)
         adaptive_loss = shield_before - (adaptive.now if adaptive is not None else 0.0)
+        charge_owner = self._credit_player(shooter)
+        if (award_ult and getattr(getattr(charge_owner, "hero", None), "guid", None) == hero_torbjorn.HERO):
+            torbjorn_charge.damage(self, charge_owner, target, dealt, loadout, adaptive_loss)
         if award_ult:
             self.baptiste.damage_charge(shooter, target, dealt, source_body=source_body)
         self.brigitte.damaged(shooter, loadout)
@@ -8495,7 +8607,7 @@ class Combat:
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
             if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
                     and not reflected_reaper_shell
-                    and hero not in (reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
+                    and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
                 points = dealt - adaptive_loss if hero == 0x02E000000000013B else dealt
                 if hero == doomfist.HERO:

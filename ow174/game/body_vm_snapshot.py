@@ -130,6 +130,7 @@ _STATE_LAYOUTS = {
         ("offset", "volleys", "per_shot", "ammo0", "rate", "spread0", "spread_ramp", "spread_decay", "links", "reported", "last_values"),
         ("max_shots", "min_shots", "shot_spread"),
     ),
+    nodes.GrappleCast: (("cast",), ()),
     nodes.MoveTo: (("movement",), ()),
     nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
@@ -183,6 +184,7 @@ _VALUE_LAYOUTS = {
                              "watch_possession", "retired", "lookup_linked", "lookup_participant"),
     expr.Asset: ("guid",), expr.Entity: ("id",), expr.Vec3: ("x", "y", "z"),
     expr.Handle: ("kind", "instance", "state", "extra"), expr.Map: ("items",), expr.PairArray: ("items",),
+    runtime.RaycastResult: ("hit", "entity", "point", "normal"),
     runtime.Link: ("state", "slot", "priority", "above", "stack", "dynamic", "frame_cached"),
     runtime.Event: ("time", "seq", "kind", "state", "op", "param", "node", "button", "pressed",
                     "message", "assignment", "transient"),
@@ -531,7 +533,7 @@ class _Export:
             fields = {"hero", "mode"}
             optional = ()
             if kind is BodyWorld:
-                optional = ("scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
+                optional = ("passive_charge_due", "scope_host", "pending_ult_credits", "historical_boost_award", "advancing_valkyrie_clock", "_spatial_query_context", "passive_healing_scales", "hanzo_climb")
                 fields.update(("body", "body_definition", "throttles", "match", "velocity_requests", "communication_wheel",
                                "wheel_callouts", "emote_aliases", "emote_blend_trees", "spray_unlocks", "voice_effects",
                                "_body_owner_context", "_entity_query_context", "zenyatta_charge_ammo"))

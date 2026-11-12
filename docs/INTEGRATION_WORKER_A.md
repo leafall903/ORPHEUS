@@ -556,3 +556,64 @@ and Grapple native state/runtime/driver/combat consumers, followed by original
 venom.py and its throw/tick/contact/damage/cleanup consumers. Current combined
 server has no Widow-specific module and no005A grapple callback, so this is
 real missing code; proceed without waiting for the sentinel observation.
+
+### A23 delivered Widowmaker rifle/Infra-Sight (this commit)
+
+Source000A0bbf016a88d6272db5358c5e4f6a611d4db5b327: rifle critical defaults,
+charge gates/stale Q expiration and committed Infra cast/effect/team reveal now
+consume actual graphs/current targets and server clock. Derived windows add no
+snapshot state; native Ability press buffer remains the sole input buffer.
+Original normal modules23:22pass/1 retained fold discrepancy; no checks weakened.
+Log ../worker-a-widow-rifle-infra-second.log. Exact failing method:
+WidowmakerInfraSightTests.test_infra_damage_message_replaces_stale_deduction_with_authored_empty_array.
+Node83 uses STU_A6B80C63; current original fold returns0.0, source old unknown
+native default returned(). Preserve current exact fold, not a Widow specialcase.
+Shared test_game_combat.DamageTests + test_script_runtime +
+test_game_hanzo_profiles:27 methods,25pass/2optional skips.
+Next exact action: native005A STU_4BBC5D09 GrappleCast plus BodyWorld/static/IceWall
+anchor consumers and snapshot layout. Then mount delivered venom.py into actual
+throw/tick/contact/damage/retirement consumers. Those features are still missing.
+
+### A24 delivered Widowmaker Grapple (this commit)
+
+A23 committed8be79f96. This batch mounts original STU_4BBC5D09 exactly,
+BodyWorld/Combat static+pillar service and terminal MoveTo graph node93.
+Source zero entity/bone conditions evaluate before admission to current swept
+mover; DVa current completion hook remains. Walls.contact/anchor methods ported
+without source oldmanager; anchors clean on retirement/ability stop/pillar remove.
+VM cast/RaycastResult and server Walls anchors have explicit stored layouts.
+Normal original Grapple6 pass (worker-a-widow-grapple-second.log); IceWall actual
+nearer pillar/removal before+after contact2 pass; old wall storage fixture mapped
+current required definition_digests parameter and expiry1 pass. SharedDamage+
+script_runtime21 pass (worker-a-widow-grapple-shared.log; its first two old import
+errors fixed by replacing only old mei_frost.HERO identity with mei_wall.MEI).
+Active cast manual export stable/read-only/sensitive, full source cast class
+retained. Native cast filtering/contact recheck/full typed-request phase remain
+original declared reconstruction limits, not new missing delivery functionality.
+Next exact action: source000A venom.py Flight/Mine/Poison/Mines, map current
+barrier/Deflect/absorption and transport APIs, mount throw/update/retire/hitscan/
+projectile/melee/explosion consumers and explicit snapshots. Do not fake old
+private pool views or replace newer native motion/deflection managers.
+
+### A25 delivered Widowmaker Venom (this commit)
+
+A24 committed2c112ec3. Source000A venom.py algorithms retained with current
+shield/deflection/absorption API adapters, frozen Matrix eligibility on Flight,
+current original transport _end API and invulnerability query name. No duplicate
+old Sigma/Matrix/barrier manager. All source Combat venom consumers now mounted:
+throw, tick, retire, owner reveal, hitscan/finite projectile/melee/splash damage;
+Wall removal also retires attached mines. Current Pulse Bomb uses shared explosion
+consumer, so its splash reaches the same source mine damage path.
+Normal original Venom9+wallattachment1 =>9pass/1 failure in Helix shooter-health
+expectation: mine destroyed and no poison, but current shared self-splash leaves
+160.0891428479803 vs old200. Keep newer native explosion behavior and original
+assertion. Log worker-a-widow-venom-fourth.log. Original reflected poison/flight
+retirement/transfer3 pass, shared Damage/ProjectileTiming/runtime28 pass (log
+worker-a-widow-venom-defense-shared.log; initial Matrix fixture old absorbable
+name changed only to actual catalog admitted). Matrix mine absorption and wall
+precedence2 + original full server snapshot transfer/remaining/poison1 all pass
+(worker-a-widow-venom-matrix-storage.log).
+Next exact action: inspect original Widow cross-owner control/defense/clock and
+replay consumers; audit remaining inline source000A body/weapon differences,
+keep original test modules/normal dependencies, and record owner reconcile.
+Do not mark whole ref admitted until root reconciles cross-owner content.
