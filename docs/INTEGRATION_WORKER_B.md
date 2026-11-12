@@ -699,6 +699,27 @@ alone is not evidence that a line's consumers are actually mounted.
   actual Sombra control-history adapter (old sombra_emp absent, do not duplicate
   controller). Then source Fireball, form/critical/spread and passive owner audit.
 
+## B37 — Ball Roll current/history form and Quad Cannon critical scalar
+
+- Actual Target.critical_allowed reads original ball.rolling(player). Source
+  pose samples append that flag AFTER existing head_offset/sentry_yaw positions;
+  viewed target reads retained flag rather than current form. Other heroes keep
+  existing history layouts and generic critical policies.
+- Original Quad Cannon1514/loadout189 absent-native-scalar reconstruction2x
+  restored within that exact scope; explicit graph value keeps precedence.
+- worker-b-ball-form-critical-first.log23/23: all6 original Roll/toggle/primary/
+  outgoingcritical/incomingform/rewind checks plus runtime17. Existing Bastion
+  core/head2 and replacement rewind1 pass in worker-b-ball-history-regression.log;
+  that invocation also used nonexistent TracerCombatTests loader name1error,
+  corrected real TracerPistolTests case passes worker-b-ball-tracer-history.log.
+- No tests/expectations changed. Actual original Roll17 assertions unchanged.
+- NEXT B38 source Grapple controller/update/death/retire/control on same mounted
+  motion. C35 owns sole SombraControls.first_lock_after and real lock_history;
+  old EMP controller not imported/duplicated. Current source caller passes
+  fight.tick; controlled server body1000+ vsworld50 lacks a Ball anchor, so retain
+  that explicit history-time-domain gap rather than guess offsets. DirectRun
+  source clocks are aligned; immediate applied-lock cancellation can be verified.
+
 ## Exact next work
 
 1. Commit B30, then clean-sync canonical after parent acceptance. Continue
