@@ -102,6 +102,31 @@ This log records tested changes and their acceptance status. Entries are grouped
   heavy_drives; a direct three-form probe also finds Sentry returning to Recon
   during capture, yielding295 versus expected235. Keep these owner interlocks
   open rather than weakening assertions or claiming complete NPC acceptance.
+### Restore delivered variable-driven transition rechecks
+
+- Preserve0005's generic CHANGED dispatch: run the state's dependency callback
+  and recheck authored completion for every still-active, nonending owner. Keep
+  the existing coalescing flags and A1 CHECK button identity. The earlier scoped
+  023A/0C8C behavior is included in the generic route.
+- Retain the original Hanzo combat check file unchanged. Storm's stock already
+  reached zero, but the missing146A transition recheck left its branch active and
+  emitted seven arrows; it now emits the original five and exits that branch.
+- All31 original Shadow/button/runtime checks and16 dynamic-magazine/charge
+  checks passed. The34-check Hanzo/shared run passed33; its remaining damage
+  expectation concerns the pending Hanzo critical consumer with newer native
+  view offsets (140 versus70), after the five-arrow assertion passed. Preserve
+  the expectation and the combined camera service rather than changing either
+  to hide the difference. Hanzo charge/control/bow wiring continues separately.
+
+### Synchronize worker A with the explicit merged input loader
+
+- Merge stable9c842c3e and retain shared NPC attack-mode/spatial fixes, Echo
+  motion changes and the original effect-binding supplement loader/preparer.
+  Keep all A9 chronology and A10 metadata/interfaces during reconciliation.
+- Load the root's existing runtime-inputs-v1 environment profile without editing
+  source packs. All32 mixed Mercy boost/effects, NPC recovery, cooldown and
+  runtime checks passed with no skips under the combined explicit inputs.
+
 ### Preserve delivered Zenyatta dependency interfaces
 
 - Retain the original barrier graph/hero and Flashbang hero constants used by
@@ -135,6 +160,24 @@ This log records tested changes and their acceptance status. Entries are grouped
   existing external inputs while preserving the original packs. No runtime data
   was changed by this worker and no original-client acceptance is claimed.
 
+### Restore delivered manual NPC melee and charge entry points
+
+- Restore the original mutually exclusive melee/charge/reposition selection
+  through current NPC input and Heavy Assault services. Preserve ordinary
+  primary/autonomous policy, explicit mode stop/reset, authored charge windup
+  and movement, and suppress ordinary pursuit for explicit stationary attacks.
+- Reuse the canonical one-shot melee consumer for the explicit melee mode.
+  An unsupported BotWorld spatial context now returns NotImplemented instead
+  of dereferencing the D.Va-only body field and retiring the Heavy script.
+- Existing62 NPC control/navigation checks pass. Actual close Trooper/Heavy
+  inputs produce25/75 armour-adjusted damage, stop cleanly and emit no primary
+  projectile. Actual Recon wall charge preserves49-tick windup and295 damage.
+- Preserve the unchanged original fixture failures: Trooper at2m is rejected
+  by the now-hosted authored1.5m feet-distance guard; Sentry Heavy melee has a
+  displacement difference. The legacy charge observation uses absent
+  heavy_drives; a direct three-form probe also finds Sentry returning to Recon
+  during capture, yielding295 versus expected235. Keep these owner interlocks
+  open rather than weakening assertions or claiming complete NPC acceptance.
 ### Mount delivered manual NPC difficulty and conditional health pools
 
 - Preserve0020's four-tier143A selector, conditional health/shield pool records,
