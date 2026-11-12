@@ -1344,3 +1344,10 @@ Absorbed committed intake440e6c0f at the clean A52 boundary, retaining all paral
 ## Clean synchronization after A57
 
 Absorb committed intake580ad408 including C38/C39/C40 real Sombra entry/silence/recipient-frame windows, root v17 input selection and all Ball/shared changes. Only changelog union conflict resolved by retaining both entries; production code merged automatically. Next actual BOB recipient-frame lock admission.
+
+## A58 - BOB reads the real recipient-frame silence window
+
+- After clean synchronization97463cfb/intake580ad408, both original EMP/BOB boundary cases reproduced unchanged: gun resumed one shot early (7vs6), charge case missed first expiry shot (0vs1). worker-a-bob-lock-boundary-baseline.log.
+- Actual clock probe: boundary frame1519..1522, real component1518..1521, authored Wait end1522.4375, but BotScript.frame remained1209 because this companion host directly calls component.run_frame(frame). Never feed that stale wrapper clock or guessed generic world epoch into Controls.locked_at. Existing Companions' explicit component driver frame is the actual recipient frame; the helper now passes that same frame and actual bot body_script into the sole Controls.locked_at. C confirmed this contract; no lock history/timer/manager modification, lifetime/phase deadlines unchanged.
+- Normal original EMP active gun pause/resume, charging pause/timeout/delayed gun and owner-only out-of-range BOB case all pass unchanged. Combined with original Bob14 and actual owned-mech Matrix regression:18/18 passed26.808s, worker-a-bob-lock-recipient.log. worker-a-bob-lock-clock.log preserves the causal component/wrapper evidence.
+- Next absorb C41 actual same-recipient refresh on a future clean boundary, continue remaining original Ashe defense/status and private fixture API admission without inventing compatibility managers/pools. No complete0200 acceptance claim; source observer differences remain in earlier checkpoints.

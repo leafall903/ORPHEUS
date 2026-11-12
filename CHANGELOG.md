@@ -4,6 +4,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Read BOB silence through its actual recipient clock
+
+- Existing companion pose/gun consumers query the sole Controls.locked_at with the frame used by their actual component driver. Preserve original Wait window, world locks and fixed BOB lifetime; avoid stale BotScript wrapper frames.
+- Original active-gun and charging EMP expiry boundaries now pass unchanged; owner-only pulse isolation, original BOB and actual Matrix regression jointly18/18 passed. Client acceptance not run; remaining original fixture observers retained.
+
 ### Restore Matrix authored absorption output on the actual mech
 
 - Existing Matrix contacts now emit original007A state fields/plug with actual payload/source, including tagged flight, Dynamite and Widow zero-payload mine. Current defense admission, ownership and Sigma consumers retained.

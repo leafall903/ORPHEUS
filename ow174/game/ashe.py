@@ -488,7 +488,7 @@ class Companions:
             if bot.dead:
                 self.retire(actor.owner_body)
                 continue
-            if (fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot.entity, tick)
+            if (fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot, tick)
                     or immunity.heavy_carry_active(bot, bot.entity)):
                 actor.target = None
                 bot.firing = False
@@ -561,7 +561,7 @@ class Companions:
         mover.use(world=fight._collision())
         carry = _carry_move(fight, bot)
         charging = actor.phase == "charge" and carry is None
-        stunned = fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot.entity, tick)
+        stunned = fight.is_stunned(bot, tick=tick) or _skill_locked(fight, bot, tick)
         rooted = fight.junkrat.rooted(bot.entity, tick)
         if carry is not None:
             # The actual Heavy host already owns the captured body/mover pose.
@@ -985,8 +985,11 @@ def coach_directions(state, direction) -> tuple:
     return tuple(found)
 
 
-def _skill_locked(fight, entity, tick):
-    return any(lock.until > tick * TICK for lock in fight.sombra_controls.locks.get(entity, ()))
+def _skill_locked(fight, bot, frame):
+    # Companions advances this recipient component with run_frame(frame) below.
+    # BotScript.frame is not advanced by that direct component driver; neither
+    # its stale wrapper clock nor world Lock.until represents the authored Wait.
+    return fight.sombra_controls.locked_at(bot.body_script, frame)
 
 
 def _carry_move(fight, bot):
