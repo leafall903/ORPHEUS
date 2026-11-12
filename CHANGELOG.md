@@ -9372,3 +9372,7 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A51 - preserve original assertions across integrated API bindings
 
 - Point original Viper ray spies, damage-tag spies and Coach helper check at actual combined signatures/locations; preserve every expected numeric/tag/hash value and comparison. Original spread/Dynamite/pattern24/24 passed.
+
+### Worker A52 - original Ashe FirstPerson fields
+
+- Restore251C standing1.445/crouched1.0115 while preserving current full shared lookup/catalog priority. Original eye/low-cover/history and movement checks passed; original exact Coach15m distance/count assertions now all pass, exposing only the existing obsolete add_impulse spy. No expectations changed.
