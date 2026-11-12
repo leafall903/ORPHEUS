@@ -1679,6 +1679,7 @@ class Combat:
         self.pins: dict[int, int] = {}  # manual Assassin source body -> controlled victim body
         self.punch_impacts: dict[int, PunchImpact] = {}
         self.punches = doomfist.Punches(self)
+        self.slams = doomfist.Slams(self)
         self.charge_contacts: dict[int, ChargeContact] = {}
         self.personal_barriers: dict[int, tuple[int, int, float]] = {}  # body -> instance, Pet activation, HP
         self.projected_barriers: dict[int, ProjectedBarrier] = {}
@@ -1836,6 +1837,7 @@ class Combat:
         self.booster_contacts.pop(player.body, None)
         self.reaper_blossoms.pop(player.body, None)
         self.punches.retire(player.body)
+        self.slams.casts.pop(player.body, None)
         self.zenyatta.retire(player.body)
         self.breathers.retire(player.body)
         self.orisa.retire(player.body)
@@ -2590,6 +2592,7 @@ class Combat:
             self._genji_strike(player, command, script)
             self._genji_blade(player, command, script)
             self.punches.command(player, command)
+            self.slams.command(player, command)
         except Exception:
             log.exception("[game] %s: %s's area attack failed", self.match.label(), player.name)
         if command is not None:

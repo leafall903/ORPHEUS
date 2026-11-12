@@ -3726,8 +3726,15 @@ class Switch(State):
         ):
             index = to_int(value)
             return f"m_05706D1C[{index}]" if 0 <= index < len(cases) else "m_A5EF385D"
-        for number, case in enumerate(cases):
-            if isinstance(case, dict) and equal(value, self.evaluate(case.get("m_value"), watch=False)):
+        indexed = _field(self, "m_F0F0720B") == 1
+        # 1B9B3C0: a missing config is the case index in mode1, zero
+        # otherwise. Retain the existing explicit weapon-combo adapter above.
+        for number, case in enumerate(cases[:64]):
+            if not isinstance(case, dict):
+                continue
+            cfg = case.get("m_value")
+            expected = self.evaluate(cfg, watch=False) if cfg is not None else number if indexed else 0
+            if equal(value, expected):
                 return f"m_05706D1C[{number}]"
         return "m_A5EF385D"
 

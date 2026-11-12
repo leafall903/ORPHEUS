@@ -1099,6 +1099,10 @@ class Mover:
             vx, vy, vz = self.velocity
             nx, ny, nz = ground.normal if ground is not None else (0.0, 0.0, 0.0)
             limit = intent(active, LAND_LIMIT_MOD, LAND_LIMIT) if active else LAND_LIMIT
+            # The delivered positive launch must clear its floor before an
+            # authored large landing limit may attach it again.
+            if self.external_impulse and vy > 0:
+                limit = min(limit, LAND_LIMIT)
             if ground is not None and vx * nx + vy * ny + vz * nz < limit:
                 if flags & (JUMPED | FELL):  # 0x7FF789AD0400
                     flags &= ~(JUMPED | FELL)

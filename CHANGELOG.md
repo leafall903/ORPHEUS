@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Doomfist Slam host
+
+- Route original ground-hop and aerial Slam targeting, posed movement, landing,
+  charged wave damage, survivor pull and passive awards through Slams. Retire
+  casts with their body and include their stored state in server snapshots.
+- Bridge the delivered Slam/Uppercut velocity actions through the existing
+  next-frame request queue. Preserve positive external launch lift until it
+  clears the floor, as the delivered mover did. Retain the original indexed
+  Switch null-case semantics alongside the existing weapon-combo adapter.
+- All22 original Slam checks,21 Punch checks and13 VM runtime checks pass.
+  All41 McCree Roll, numeric modifier and Lucio velocity regressions pass.
+  An active enclosing-server Slam capture is getter-free, repeatable and
+  sensitive to its stored cast damage.
+  Original assertions stay intact; the source persistent pool-used observation
+  is expressed using canonical retained shield-object presence.
+- Meteor and the remaining Doomfist shared-service consumers still need
+  integration. Original-client geometry/presentation acceptance remains open;
+  no game client, network access, publication or push was performed.
+
 ### Mount delivered Doomfist Rocket Punch host
 
 - Preserve the source Doomfist owner hosts and Meteor implementation. Route

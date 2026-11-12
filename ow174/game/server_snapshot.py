@@ -132,11 +132,12 @@ FIELDS = {
         "match vitals history replacement_ticks input_locks booster_contacts rockets pending_attacks timed_hits recalls breathers sombra_controls sound_barriers lucio_auras knockbacks soundwaves support_effects health_packs health_pack_digest moira_orbs moira_clocks moira_hots photon_barriers zarya_gravitons respawns next_bot now tick melee_seen tesla_frames "
         "model_pose_for wheel_actor_admits defender_damage_scale "
         "pulse_bombs zenyatta projectiles observers voice stuns npc_hit_reactions pins deadeye_notices brigitte personal_barriers "
-        "punch_impacts punches projected_barriers projected_casts sigma_barriers charge_contacts "
+        "punch_impacts punches slams projected_barriers projected_casts sigma_barriers charge_contacts "
         "reinhardt_geometry reinhardt_barriers winston_domes orisa_barriers walls echo_beam_seen reaper_blossoms echo_duplicates barriers "
         "genji_strikes genji_blades genji_assists frost_hits next_barrier assassin_victims ability_impacts orisa baptiste deployables healing projectile_tags absorption barrier shatters charges"
     ),
     doomfist.Punches: _names("combat dashes impacts controls"),
+    doomfist.Slams: _names("combat casts"),
     tracer_recall.Recalls: _names("fight history phases"),
     pulse_bomb.PulseBombs: _names("combat anchors poses context"),
     zenyatta.Zenyatta: _names("combat owners last_tick"),
@@ -262,7 +263,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
-    doomfist.Dash, doomfist.Impact,
+    doomfist.Dash, doomfist.Impact, doomfist.Slam,
     combat.InputLock,
     zenyatta.Owner, zenyatta.Orb,
     pulse_bomb.CommandPoseAnchor,
