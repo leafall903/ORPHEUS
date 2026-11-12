@@ -63,7 +63,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import scopes, support_effects
+from ow174.game.script import fold, scopes, support_effects
 from ow174.game import doomfist, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -263,6 +263,7 @@ OPTIONAL_FIELDS = {
     bots.Bot: _names("wall_mover pursuit assassin_controller enforcer_controller"),
 }
 DATACLASSES = (
+    fold.Scope,
     doomfist.Dash, doomfist.Impact,
     combat.InputLock,
     zenyatta.Owner, zenyatta.Orb,

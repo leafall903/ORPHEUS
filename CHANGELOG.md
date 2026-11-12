@@ -4,6 +4,25 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered Mercy fold evaluator and preserve distinct checks
+
+- Mount0004's original A6B80C63 module and native parameter provider through
+  expression/runtime scalar evaluation. Preserve destination values on child
+  failure, report the fold's successful scalar result, share operation/work
+  budgets and unwind temporary providers. Register live scope storage in both
+  body VM and server snapshots; retain the combined public play helpers.
+- Preserve the original fold checks unchanged; all49 fold/expression/runtime
+  checks passed, including actual0B8B metadata subtraction and passive capture.
+- Retain source Mercy Descent and both distinct pending Descent/Valkyrie files
+  under separate test names. Their21-check run passed19; the two historical
+  pending Valkyrie expectations require immediate passive gain where the source
+  and combined host restart the authored passive timer. Keep both versions.
+- Document the0002 owner reconciliation boundary. The D.Va96-check audit passed
+  with seven failures, two errors and one optional skip retained: blocked
+  placement fallback, entry immunity/control, old spread-call/storage interface,
+  missile extreme-angle quantization, lethal credit/landing and pilot projectile
+  retirement remain under reconciliation. No whole-line/client acceptance claim.
+
 ### Synchronize worker A with received parallel implementations
 
 - Merge stable canonical a51925d5 into worker A, retaining both changelog
