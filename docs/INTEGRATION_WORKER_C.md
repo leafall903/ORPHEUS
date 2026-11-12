@@ -2720,3 +2720,63 @@ player/respawn phase windows; Heavy capture still original source boundary.
 Remaining estimate4–10activeC hours, lowconfidence. Actor/service uniqueness and
 actual current no-fault/causal outcomes take precedence over ancestry/testcounts
 when recording integration completeness.
+
+
+## C63 original00DD body-size implementation and actual consumers
+
+Root's precise source-symbol audit exposed a REAL remaining production gap,
+not merely a missing private name. Original00DD Mover.BODY_SIZE_MOD12 and its
+modded size branch were absent: scale stand/crouch height/radius/pogo and ground
+circle by the source f32 formula, invalid/nonpositive size falls back1. Restore
+that branch while preserving current vectorSET/ADD handling and all other mods.
+Restore source body_scale=f32(values.stand_height/data.stand_height), a pure
+property with no new stored field. Original AND current _capsule use base data;
+do not change that physical policy based on a mistaken current-values claim.
+
+Connect all original consumers: Combat player_targets uses sameactualmover.values
+and scaled eye; _eye uses same scale; only Mei quick-melee reach/radius scales;
+BodyWorld FDBB nonstrict self-owner query returns same property, retaining its
+strict/default rules. Current Winston/Ball/critical/head/core/history tail logic
+stays in place. No alternate mover, geometry/health pool or scale cache.
+
+Original00DD MeiScale test_scaled_mei_melee_reaches_the_target_and_resets_to_unit_scale
+passes unchanged200/170/reset expectations2.332s. Restored tracked tests retain
+that complete method plus original scaledGenji real-icicle method; only old
+query genji_deflect.active(fight,actor) observation maps existing
+ defenses.deflect_state(actor). Both original methods/four scale subcases pass,
+plusMoverMod6+Damage8=16/16pass4.959s,
+../worker-c-c63-scale-shared-check.log. Original MatrixScale third method stays
+in frozen source with its old Player-mech/dva_matrix fixture API; this is not
+proof that current actual Matrix scale is missing and does not block this batch.
+
+Other source-name audit resolutions: source0016 Mover.body_at is already mapped
+by current symmetra_portals._body_at, which makes an independent TEMPORARY
+CharacterBody from the same _capsule/_lift/category/peer_mask/scene and probes
+fits/solid pillar placement. It does not allocate a persistent second mover.
+Source013B _wall_contacts is replaced by actualice_wall movement-world/mei_wall
+constrain; root owns that mapping. Do not resurrect duplicate physics providers.
+
+Heavy capture contract probe is preserved separately: actual1407 creation at
+contact changes original012F mode2→0 through its control stacks, then actual
+wall hit loses295 versus source0015 prototype235. 1407 writes33/2024/888/7539,
+not1216 directly; ordinary_interrupt alone preserves mode2. Both VMs faultNone.
+No missing consumer was established there; do not remove1407/stance or add a
+snapshot mitigation ledger for the old expectation. Log
+../worker-c-c63-bastion-capture-lifecycle-probe.log.
+
+Precise remaining production mapping versus validation: root now OWNS source0016
+Combat.replays_orb_routes/_step_route_poses/_fly_omitted_projectiles and Match's
+route-history consumer, comparing current _fly retention then reusing the same
+existing world/NPC loop. C will not edit that update/Match region concurrently.
+Also sent root original retained-respawn methods1855/1873/1890/1902 and update
+calls to compare against current ordinary_respawn/update endpoint: an existing
+per-frame loop may make them equivalent without another scheduler. That scope
+is not merely source-name absence; it needs actual time/identity mapping.
+
+All own core hero modules previously submitted remain mounted on their sole
+hosts. Old literal3.2vs3.84, Trooper2m fallback-vsreal1.5gate, Heavy235vs295,
+privateprototype/fixture names and unexecuted client groups are verification/
+contract differences, not newly invented host work or gates on code submission.
+Next C owner audit will report only a concrete still-unmounted source production
+consumer, or explicit equivalence, rather than indefinitely chasing old matrices.
+No client/network/publication action.
