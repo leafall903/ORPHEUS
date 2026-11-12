@@ -398,6 +398,12 @@ class InstanceContext(Context):
             if result is not NotImplemented:
                 self.poll_native(cfg)
                 return result
+        if (not component.strict and self.instance.graph.index in (0x0B1F, 0x0B32)
+                and getattr(component.world, 'match', None) is not None):
+            result = component.world.match.combat.sombra_controls.native(component.entity, cfg, self.instance)
+            if result is not NotImplemented:
+                self.poll_native(cfg)
+                return result
         if not component.strict and self.instance.graph.index in (0x0C19, 0x0C1A):
             from ow174.game import translocators
 

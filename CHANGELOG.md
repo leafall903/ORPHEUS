@@ -36,6 +36,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   eye value, geometry, source input or assertion was invented or rewritten.
 - Static original-source/current/catalog comparison passes. Existing original
   all32hero view/ray and shared checks follow; no acceptance gate blocks commit.
+### Start original Hack and EMP recipient graph entries
+
+- Route the existing Sombra receiver through original PlayScript requests and
+  exact authored body predicates. Real Hack/EMP now start their original 5-second
+  Wait state; original Ashe lock queries read that actual state directly.
+- Joint129:123casepass,5failedmethods with8subcase failure records and one missing
+  original test dependency. All15 charge and76shared VM/filter checks pass;
+  source constants/assertions retained. Recipient-clock/retirement and existing888
+  modifier gaps remain; no original-client acceptance performed.
 
 ### Replay original Sombra accepted owner reactions and charge deadlines
 

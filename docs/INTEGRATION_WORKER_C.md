@@ -1417,3 +1417,64 @@ Next C38 priority refined by A55 actual evidence: canonical Controls.play uses
 play_loaded_graph(contextKind0), so real0B1F has no Wait58 despite existing Lock.
 Audit original0200 sombra_hack.invoke Queue.submit(request) and restore real
 request start entries first, then incoming replay; no fake Wait/query alias.
+
+
+## C38: actual Hack/EMP request start entries and receiver predicate
+
+Parent-authorized narrow runtime.Context.native bridge; root confirms no overlap.
+A55 found actual0B1F application with no Wait58 despite outer Controls Lock.
+Both existing Controls body/device delivery sites now use original PlayScript
+Queue.submit(request) with already-loaded graph, native request params/context/
+wire flag/schema and existing policy. Ready transient request executor only;
+no second manager, resource provider, target acquisition or retained queue.
+Cross-component device value deepcopy is retained via immutable Request/Resource
+replacement, preserving original tags/source/pools.
+
+Queue alone restored actual BB4AC733 start events/parameter bindings but did not
+reach Wait58: generic typed filter returnedFalse for original0B1F node21. Mounted
+original0200 predicate semantics on exact cfg identity in sole Controls.native:
+0B1F node21 can_receive reads actual live recipient BodyScript/component and
+existing14679 reject var;0B32 node8 is body receiverFalse, attached shields use
+existing drain service. Context.native non-strict early forwarding only those
+graphs and recognized exactcfg; all other cfgs returnNotImplemented before the
+existing typed paths. Existing HACK owner native clauses now explicitly guarded
+by graph ID so EFFECT/PULSE cannot dereference absent HACK node204. Strict mode,
+existing typed body-owner unavailable guard and health/filter checks retained.
+
+Actual ordinaryHack65tick and paidEMP31tick both produce real0B1F Wait58 active,
+5000ms, faultNone; original parameters/source bindings now execute. First queue-
+only probe failed Wait58; first predicate draft hit absent HACK node204 and was
+fixed by exact graph guard before final checks. No fabricated Wait/state used.
+Actual Ashe recipient with both attacks also passes exact original0200
+instance_for/locked functions compiled unchanged AST: lockedTrue, start-inclusive,
+end-exclusive andfaultNone. worker-c-sombra-ashe-original-query-probe.log;
+worker-c-sombra-request-receiver-probe-corrected.log.
+
+Original SombraCombat fixture old .hacks reads adapted to actual
+.sombra_controls.locks; old until_tick queries use math.ceil(real until/TICK).
+Same rounding used by C37 charge fixture. All original literals Counter exactly
+matches frozen012E for both modules; expected values/assertions unchanged. No
+runtime until_tick alias or duplicate expiry timer created.
+
+v15 environment/test_environment; python -B -m unittest
+ test_game_sombra_combat.SombraCombatTests
+ test_game_sombra_charge.SombraChargeTests test_script_play_queue
+ test_script_play_loaded test_script_body_owner test_script_entity_filter
+ test_game_script_runtime -v:129run88.667s,123casepass,5failedmethods(8failure
+records due4initialize subcases),1importerror. All15 charge and all76shared queue/
+loaded/body-owner/filter/runtime cases pass. Combat32pass/5casefail/1error.
+Actual paid EMP pulse/expiry without recipient commands now passes normally.
+Remaining source assertions retained: Hack initialized start1270vs1271 normal
+and1050vs1271 idle(4subcases); three old888 flag/sprint/Helix release cases still
+None (C33 already had None flags); original lethalHelix death_tick Nonevs1053.
+Source replacement method imports missing original test_game_sombra_grenade;
+module not faked/skipped. Full log worker-c-sombra-request-start-check.log.
+
+No Python source edits during final129 group. Duplicate-method and diff checks
+clean. No client acceptance/network/publication. This is a functional delivery
+batch; not held for incoming clock/source-retirement or old888 modifier consumers.
+Next C39: actual recipient application/world clock association and original
+advance_applications/source-retirement waits; audit original888 modifier and
+restore raw original grenade/control helpers with real dependencies. Root owns
+C37 mapped pose tick/history-tail correction; sync its accepted boundary before
+editing replay further. Device Portal/Sentry/Torb original consumers remain.
