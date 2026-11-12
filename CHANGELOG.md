@@ -5,11 +5,18 @@ This log records tested changes and their acceptance status. Entries are grouped
 ## Unreleased
 
 ### Record worker A seven-owner reconciliation boundaries
+### Mount delivered Reinhardt authored charge admission and cadence
 
-- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
-  completed hero-core integration from root-owned cross-owner/history admission.
-  Preserve every known source/native observation and pending frozen replay result;
-  no production code, feature or check changed in this documentation batch.
+- Connect source0007's scoped resolved-damage admission to the actual0B8B graph,
+  and run the original01C7/node39 capability binding rather than forcing its
+ 2426 gate. Reinhardt's real Match body bypasses diagnostic cost/60 fill and
+  the generic direct damage-credit route; other heroes keep existing paths.
+- All43 original six economy, Charge movement and runtime checks pass: five
+  points per second, modifiers/suppression/cap, Hammer cap, Earthshatter spending
+  and authored post-channel lock. Full original Passive9 retains one respawn
+  charge-loss failure and two retained-charge/possessor interface errors for
+  the next source-consumer batch. Full Talon checks continue externally.
+- Original expectations remain intact; client acceptance remains open.
 
 ### Mount delivered Widowmaker weapon launch cone policy
 
@@ -93,6 +100,48 @@ This log records tested changes and their acceptance status. Entries are grouped
   all belong to existing Brigitte scenarios; no other failures occur. Preserve
   all1399 original assertions and unchanged Constants; raw getter AST adapts to
   actual current state. Logs remain external; client acceptance stays open.
+### Record worker A seven-owner reconciliation boundaries
+
+- Persist the seven frozen refs and actual consumer mapping after A27, distinguishing
+  completed hero-core integration from root-owned cross-owner/history admission.
+  Preserve every known source/native observation and pending frozen replay result;
+  no production code, feature or check changed in this documentation batch.
+
+### Mount delivered Widowmaker weapon launch cone policy
+
+- Connect source000A weapon_launch.directions at actual001B/node9/19 weapon
+  emission, scoped to Widowmaker. Retain current McCree and optional Enforcer
+  geometry consumers. Preserve recovered native emitted-index sampling instead
+  of the source's older post-count spread view; scoped zero cone stays exact.
+- Actual20-frame launch trace emits indexes0/1/2/3 with authored0/1/2/3-degree
+  cones and one ammo per ray. Original scoped-zero-angle test passes. Three
+  original spread checks retain first-shot/old eye-cover expectations and fail;
+  assertions preserved. Original rifle12 plus Damage/runtime21 all33 pass.
+- Preserve complete original spread and actual-NPC fixtures with only current
+  body/hero identity imports; no NPC acceptance claim or source asset copy.
+
+### Restore delivered world-clock guard queries and Widow reveal filtering
+
+- Port source000A pure countdown/state/world-active/Matrix-deadline queries.
+  Selected-player0407 Matrix now reads its retained native budget on world time,
+  including the existing absorption trace route; preserve owned-mech clock logic.
+  Gate Genji fallback body/trace/melee queries through the existing authored Wait
+  window, so future or stalled expired native states do not keep intercepting.
+- Preserve Infra's original living-target observation search across phase/Recall,
+  retaining current owned-pet exclusions instead of changing shared damage filters.
+- Original Infra clock/buffer12 pass. Original MatrixClock6 pass; DeflectClock2
+  pass and2 retain cadence expectations (current26 versus old13 damage after the
+  guard ends). Broader original edge23 audit preserves residual ammo and authored
+  eye-offset differences. Existing Genji/Blade/TracerMatrix/Damage/runtime56 has
+  6fail/2error; AnaDeflect/Damage/runtime34 has2fail/3error, including old health
+  field/catalog APIs and old damage expectations. No assertions changed.
+- Preserve original replay fixture. Its first run was invalidated by source edits
+  during manifest verification; rerun only at a frozen committed boundary.
+
+### Synchronize worker A after Venom integration
+
+- Absorb canonical d594849c at a clean committed boundary, preserving root
+  Sniper and shared native fixes together with the new Venom consumers.
 
 ### Restore delivered Symmetra shield recovery
 

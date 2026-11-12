@@ -325,6 +325,21 @@ alone is not evidence that a line's consumers are actually mounted.
   health differences via actual source consumers. Do not change tolerances or
   create a competing mover. Synchronize canonical after this clean commit.
 
+## B20 original Reinhardt0B8B economy
+
+- Port original ultimate_charge.py and mount its scoped admission on real
+  Combat damage. Bind actual01C7/node39 only when the source2426 slot is unset.
+  Keep current Genji path and other heroes untouched; avoid duplicate fallback
+  fill/direct damage credits for Reinhardt.
+- `worker-b-rein-economy-shared.log`:43/43 pass (original six economy cases,
+  ChargeMovement and runtime). `worker-b-rein-passive-first.log`: full9 retains
+  respawn reset0vs60 and missing retained_ult_charge/entity_possessor_context.
+  Full Talon run `worker-b-rein-charge-second.log` is still in progress.
+- Exact next action: audit source Match retained charge capture/consume paths
+  and canonical existing Torbjorn retention; extend the existing lifecycle,
+  preserve same-hero pending creation and hero-switch reset. Then original
+  possessor context read-through, source NPC health and Earthshatter consumers.
+
 ## Exact next work
 
 1. Submit B18 immovable batch, then synchronize latest canonical at

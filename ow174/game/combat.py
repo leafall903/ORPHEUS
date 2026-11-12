@@ -8662,9 +8662,14 @@ class Combat:
                 charge.damaged(script, target.entity, dealt, damage_charge, frame=frame,
                                extra=max(0.0, dealt - base) if boost_credit is not None else 0.0)
 
+            if award_ult and enemy and current_source and hero == 0x02E0000000000007:
+                from ow174.game import ultimate_charge
+
+                ultimate_charge.damage(shooter, target, dealt, hit_tags)
+
             sandbox_cassidy = (hero == 0x02E0000000000042 and isinstance(victim, bots.Bot)
                                and self.match.game_map.map_guid == RIALTO_RETRIBUTION)
-            if (award_ult and enemy and script is not None and current_source and hero != winston.HERO
+            if (award_ult and enemy and script is not None and current_source and hero not in (winston.HERO, 0x02E0000000000007)
                     and not reflected_reaper_shell
                     and hero not in (hero_torbjorn.HERO, reaper.HERO, regeneration.MERCY, 0x02E0000000000206, 0x02E0000000000195, 0x02E000000000013E, 0x02E0000000000020, baptiste.HERO, lucio.HERO, moira.MOIRA)
                     and not self.echo_duplicates.active(shooter) and not sandbox_cassidy):
