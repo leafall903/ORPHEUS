@@ -2020,6 +2020,15 @@ class InputLock:
     aim: tuple[int, int] | None = None
 
 
+def _tick_at_or_after(now, tick, deadline):
+    """Map a deadline to the first world tick whose reconstructed time reaches it."""
+    at = tick - math.floor((now - deadline) / TICK)
+    if now - (tick - at) * TICK < deadline:
+        return at + 1
+    if now - (tick - at + 1) * TICK >= deadline:
+        return at - 1
+    return at
+
 class Combat:
     """The match's health, hits, deaths and respawns."""
 
@@ -4599,6 +4608,15 @@ class Combat:
 
         # Original0016 beam integration consumes cover that ended inside the
         # accepted gap, using the existing actors and their actual clock pairs.
+        allocation_clock = None
+        if self.tick and tick > self.tick + 1 and (self.rockets or self.respawns):
+            allocation_clock = self.match.environment.monotonic(callsite="combat.respawn_clock")
+        # Original retained replacements keep live summoned sentries on their
+        # owner while the owner's actual body/charge clock changes at its deadline.
+        retained_owners = {sentry.owner for sentry in self.sentries.sentries
+                           if sentry.bot.moved_tick is not None}
+        retained_owners.intersection_update(who for _, who in self.respawns
+                                            if not isinstance(who, bots.Bot))
         sentry_damage_starts, cryo_expiries = {}, {}
         for player in self.match.players:
             phase_end = immunity.phase_world_deadline(self, player)
@@ -4664,6 +4682,8 @@ class Combat:
             or any(r.last_tick is not None and (r.gravity or r.fuse_left is not None) for r in self.rockets)
         ):
             first = retained
+        if self.tick and tick > self.tick + 1 and retained_owners:
+            first = retained
         if self.tick and (self.junkrat.tire.actors or self.junkrat.tire.recovery):
             first = retained
         for player in self.match.players:
@@ -4692,6 +4712,9 @@ class Combat:
             self.now, self.tick = now - (tick - first + 1) * TICK, first - 1
             self.zenyatta.update()
             self.now, self.tick = previous_time, previous_tick
+        if retained_owners and first > self.tick + 1:
+            self._respawn_owners_before_window(
+                retained_owners, now, tick, first, sentry_damage_starts, allocation_clock)
         # Replay the retained combat frames using the most recent poses. Player input
         # accepted just before the scheduler caught up joins only at the endpoint.
         self.junkrat.advance_before(first, now, tick)
@@ -4883,9 +4906,13 @@ class Combat:
                 # Match the normal tick: attacks resolve before Field protection refreshes.
                 self.baptiste.refresh_field_protection(at)
             observe_sentry_cover_ends()
-            if at < tick and replay_ice_sentries:
+            if at < tick and (replay_ice_sentries or retained_owners):
                 self.sentries.update(sentry_damage_starts, cryo_expiries, barrier_cover_ends,
-                                     replay_ice=True)
+                                     replay_ice=replay_ice_sentries, replay_owners=retained_owners)
+            # Same ordering as a contiguous tick: attacks precede replacement.
+            # Ordinary endpoint respawns remain in the existing final queue loop.
+            if at < tick and retained_owners:
+                self._respawn_retained_owners(retained_owners, sentry_damage_starts, allocation_clock)
             if at < tick:
                 sombra_replay.replay(self, at, TICK)
                 # A retained tick may send before a later tick retires its VM.
@@ -10926,7 +10953,42 @@ class Combat:
         self.brigitte.died(victim)
         self.respawns.append((self.now + respawn_seconds(self.match), victim))
 
-    def _respawn(self, who) -> None:
+    def _respawn_owners_before_window(self, owners, now, tick, first, damage_starts, allocation_clock):
+        """Apply due replacements without replaying attacks from the omitted ticks."""
+        previous_now, previous_tick = self.now, self.tick
+        try:
+            while pending := min(
+                (entry for entry in self.respawns if entry[1] in owners),
+                key=lambda entry: entry[0], default=None,
+            ):
+                when, player = pending
+                at = max(previous_tick + 1, _tick_at_or_after(now, tick, when))
+                if at >= first:
+                    break
+                self.now, self.tick = now - (tick - at) * TICK, at
+                # Allocation failure schedules another deadline relative to this attempt.
+                self._replace_retained_player(when, player, damage_starts, allocation_clock)
+        finally:
+            self.now, self.tick = previous_now, previous_tick
+
+    def _respawn_retained_owners(self, owners, damage_starts, allocation_clock):
+        for when, player in tuple(self.respawns):
+            if when <= self.now and player in owners:
+                self._replace_retained_player(when, player, damage_starts, allocation_clock)
+
+    def _replace_retained_player(self, when, player, damage_starts, allocation_clock):
+        old_body = player.body
+        self._send_health(body=old_body)
+        self.respawns.remove((when, player))
+        self._respawn(player, allocation_clock=allocation_clock)
+        if player.body == old_body:
+            return False
+        # Contiguous combat runs before respawn in the same tick.
+        self.replacement_ticks[player.body] = self.tick
+        damage_starts[player.body] = self.now
+        return True
+
+    def _respawn(self, who, *, allocation_clock=None) -> None:
         if isinstance(who, bots.Bot):
             self._respawn_bot(who)
             return
@@ -10948,8 +11010,13 @@ class Combat:
         if (old_script is not None and player.hero.guid == 0x02E000000000023B
                 and old_script.entity == player.body):
             points = max(0.0, expr.to_float(old_script.component.entity_var(ULT_CHARGE).value()))
-        switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True)
-                    if player.hero.guid == sombra_charge.SOMBRA else self.match.switch_hero(player, player.hero))
+        allocation_at = None
+        if allocation_clock is not None:
+            allocation_at = allocation_clock - max(0, self.match.tick - self.tick) * TICK
+        options = {} if allocation_at is None else {"body_id_at": allocation_at}
+        switched = (self.match.switch_hero(player, player.hero, preserve_ultimate=True, **options)
+                    if player.hero.guid == sombra_charge.SOMBRA
+                    else self.match.switch_hero(player, player.hero, **options))
         if not switched:
             self.respawns.append((self.now + RESPAWN_RETRY, player))
             return
@@ -10997,10 +11064,10 @@ class Combat:
 
     # --- what the clients get ----------------------------------------------------------------------
 
-    def _send_health(self) -> None:
+    def _send_health(self, *, body=None) -> None:
         """Send the latest complete pool snapshot for each body that changed."""
         for entity, vitals in list(self.vitals.items()):
-            if not vitals.changed:
+            if not vitals.changed or (body is not None and entity != body):
                 continue
             # A replacement covers prior unacknowledged changes in any pool.
             components = vitals.component(vitals.most)

@@ -2839,3 +2839,52 @@ contract differences, not newly invented host work or gates on code submission.
 Next C owner audit will report only a concrete still-unmounted source production
 consumer, or explicit equivalence, rather than indefinitely chasing old matrices.
 No client/network/publication action.
+
+
+## C65 — original retained Sentry-owner replacement and historical ID time
+
+Restored original0016 allocation_clock on the actual Combat._respawn ->
+Match.switch_hero(body_id_at) -> same _next_body_id ring -> Client.body_id_available(at)
+chain. Historical availability still checks the existing reservation and reliable
+notice tail; it does not query a second live monotonic time or allocate from a
+second ring. Default omitted-at callers keep their original call signatures and
+behavior. FakeClient fixtures accept the original optional at without changing
+any expected value. Sombra preserve_ultimate and all existing hero charge/birth
+branches remain intact.
+
+Actual moved Sentry owners with pending respawns now select the original bounded
+retained window. Original _respawn_owners_before_window/_replace_retained_player
+reuse the same respawns list and retry deadlines. During retained frames, existing
+Sentries.update(replay_owners=...) runs BEFORE replacement, then the same body
+switch supplies the new charge clock/replacement_ticks/damage_starts. Old-body
+dirty health is sent through _send_health(body=...) before retirement; the sole
+health writer preserves current complete-pool/vitals.most output. No second
+scheduler, persistent replay pool, health ledger or snapshot field.
+
+Actual summoned Sentry/real death/body VM tests: short-gap and contiguous complete
+outcomes match exactly, aura/owner identity persists, old VM retires. Prewindow
+failed allocation attempts occur at1093/1109/1125, both actual gap and contiguous;
+only the original64 retained attack ticks integrate in the long gap. Historical
+at values advance with those exact world retry intervals. A direct real Client
+method test also preserves the reliable-tail/pending reservation guard and rejects
+historically unavailable IDs without reading current time.
+
+Tests:3 new plus original DeathTests/DamageTests/SwitchTests =31/31pass11.118s,
+../worker-c-c65-retained-shared-check.log. Final narrowing to only the tested moved
+Sentry-owner scope (see next paragraph) reran3/3pass3.221s,
+../worker-c-c65-retained-final-check.log. Initial source-helper integration found
+missing _send_health(body=...), fixed by the exact original optional filter.
+The first new long-gap assertion wrongly compared64 retained ticks with102 full
+contiguous attack ticks; its failure log is preserved as
+../worker-c-c65-retained-prebounded-assert.log. New test now asserts original
+bounded damage and prewindow retry/charge deltas; no original assertion changed.
+
+Accurate remaining implementation: original Winston active-sphere owner selection
+and cover-end recording at retained respawn, plus original early-projectile death
+tracking across later calls, are NOT declared complete in C65. A provisional
+world_bubbles owner addition was removed before final commit: source sphere
+handling is deliberately distinct from prewindow Sentry owner replacement, and
+must preserve actual cover-end time. C66 will attach those consumers to the same
+source helpers/current world_bubbles, without a duplicate timer/ID pool. The full
+original source respawn fixture still remains to be imported/adapted as a separate
+verification tail;31 passing checks are not a claim of whole-source acceptance.

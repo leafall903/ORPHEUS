@@ -1,5 +1,15 @@
 # Changelog
 
+## C65 — retained Sentry owner respawn and historical body allocation
+
+Connected original0016 prewindow retries/retained Sentry-owner replacement to the
+existing respawn list, body switch and single ID ring. Restored optional historical
+allocation time through Client availability while preserving reliable-tail guards,
+all current hero charge branches and same pool health sends.31 actual/shared tests
+pass; final Sentry-only narrowing reran3/3pass. Original active-Winston-sphere and
+early-projectile respawn consumers remain explicitly for C66. No client/network
+action; all original numeric assertions retained.
+
 ## C64 — original owner consumer closeout
 
 Recorded the current Mei size/Matrix expression, Sombra beacon team/lifecycle,
