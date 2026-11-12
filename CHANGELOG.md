@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve the original Zen Sniper fixture's manual mode selection
+
+- Map its two old special_attack requests to the existing reposition mode;
+  retain every original assertion, numeric expectation and remaining observer.
+- Candidate v18 actual five-pair and shared manual-input27 methods pass in the
+  combined run. The retained Zen suite still references old state_of/sleeps/
+  special_mover observers and one original projected-shot boundary fails; these
+  are recorded without adding runtime aliases or blocking committed consumers.
+
 ### Mount the original automatic Sniper retreat consumer
 
 - Restore original013B opt-in retreat state/native/search/advance/interrupt on

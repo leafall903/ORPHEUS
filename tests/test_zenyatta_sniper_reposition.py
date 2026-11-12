@@ -33,7 +33,7 @@ class SniperReposition(unittest.TestCase):
             zarya.mover.body = None
         for _ in range(35):
             run.step({})
-        self.assertEqual(npc_control.start(run.match, zen, special_attack=True), bot.entity)
+        self.assertEqual(npc_control.start(run.match, zen, reposition=True), bot.entity)
         return run, zen, bot
 
     def test_actual_move_to_defers_shot_and_resumes_authored_fire(self):
@@ -216,7 +216,7 @@ class SniperReposition(unittest.TestCase):
         for _ in range(13):
             run.step({ana: (*direction, 0)})
         self.assertNotIn(bot.entity, fight.sleeps)
-        self.assertEqual(npc_control.start(run.match, zen, special_attack=True), bot.entity)
+        self.assertEqual(npc_control.start(run.match, zen, reposition=True), bot.entity)
         move = sniper_reposition.state_of(bot)
         moved_before_hit = False
         for _ in range(40):
