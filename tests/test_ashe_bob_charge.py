@@ -270,7 +270,7 @@ class BobChargeTests(unittest.TestCase):
                         self.assertEqual(actor.stopped_reason, "opposing_charge")
                         self.assertIsNone(actor.uppercut_target)
                         self.assertEqual(fight.vitals[actor.bot.entity].total, 1200)
-                        self.assertNotIn(actor.bot.entity, fight.impulses.pending)
+                        self.assertNotIn(actor.bot.entity, fight.knockbacks.active)
                         self.assertEqual(actor.owner.stats.value(stats.HERO_DAMAGE), 0)
                     self.assertEqual(front.ready, back.ready)
                     self.assertEqual(front.until, back.until)
@@ -533,7 +533,7 @@ class BobChargeTests(unittest.TestCase):
         self.assertTrue(run.match.combat.is_dead(enemy))
         self.assertEqual(owner.stats.value(stats.ELIMINATIONS), 1)
         self.assertEqual(owner.stats.value(stats.HERO_DAMAGE), 100)
-        self.assertNotIn(enemy.body, run.match.combat.impulses.pending)
+        self.assertNotIn(enemy.body, run.match.combat.knockbacks.active)
         for _ in range(90):
             run.step({})
         self.assertEqual(owner.stats.value(stats.ELIMINATIONS), 1)
