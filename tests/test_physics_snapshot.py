@@ -47,6 +47,23 @@ def class_nodes(document, name):
 
 
 class PhysicsSnapshotTests(unittest.TestCase):
+    def test_layered_world_captures_mover_contacts_and_current_pose(self):
+        base = collision.flat_world(-4.)
+        platform = World(FLOOR + wall(-4, 2, 4, 2))
+        merged = collision.LayeredWorld(base, platform)
+        mover = Mover((0., 1., 0.), world=merged)
+        for frame in range(1, 30):
+            mover.step(Command(frame, forward=127), .016, frame)
+        self.assertTrue(any(contact.shape in platform.engine.shapes for contact in mover.body.contacts))
+        first = snapshot_mover(mover)
+        self.assertEqual(first, snapshot_mover(mover))
+        self.assertEqual(first['world_descriptor'], world_fingerprint(merged))
+        self.assertNotEqual(first['world_descriptor'],
+                            world_fingerprint(collision.LayeredWorld(base, collision.flat_world(2.))))
+        self.assertNotEqual(first['world_descriptor'], world_fingerprint(collision.LayeredWorld(platform, base)))
+        self.assertEqual(dict(class_nodes(first, 'CharacterBody')[0]['fields'])['world'],
+                         {'static': 'engine'})
+
     def test_cold_mover_keeps_all_fields_and_does_not_create_its_body(self):
         mover = scene(False)
         document = snapshot_mover(mover)
