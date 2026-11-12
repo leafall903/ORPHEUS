@@ -1,5 +1,35 @@
 # Changelog
 
+## A91 — original earlier break rebase after an ahead body end
+
+Final source audit found a real missing0068 _intercept branch: when the body
+already ended its normal duration ahead of the world, an earlier breaking impact
+must move the existing Ability cooldown origin to that actual mapped contact.
+Restored that branch on same BarrierExpiry/duration/Ability and queue, preserving
+cur/rate/native arithmetic. Original Ability.set_cooldown_start is a real action
+consumer (clears its old param2 timer, schedules remaining positive delay); current
+restart/default timer arithmetic are untouched. No wrapper observer or new clock.
+Broken actual Pet no longer qualifies for normal ahead-end retention at health0,
+so it retires immediately instead of lingering as the positive-expiry actor.
+
+Kept source test_projection_cooldown_uses_break_tick_after_a_future_command as a
+normal focused module. Old service/pool observations map to sole Barriers and
+Pet.Vitals; original10HP controlled seeding uses actual Vitals.damage. All
+original health/energy2/generation/500tick deadline assertions and numeric values
+remain. Current native capsule acquisition requires current recipient-centre pitch
+rather than the old horizontal eye ray: initial source helper reject is logged,
+and actual pitch adapter is explicit for real casts. With that adapter before
+production change the original final reactivation assertion failed, proving a
+clock consumer gap beyond geometry. After rebase, original full method passes
+with existing lifetime2/nativeapplication2 and originalruntime13:18/18pass5.775s.
+Logs worker-a-zarya-early-break-current-receiver-baseline.log and
+worker-a-zarya-early-break-cooldown-runtime-check.log. No serializer changes.
+
+Next A92: source silent ACTIVE break contact/body-gap/cooldown path audit (distinct
+from this already-ended-ahead branch), then final0068 source mapping handoff.
+Root owns A90 exact cross-VM value boundary; all original strict errors remain.
+
+
 ## A90 — original projected NPC recipient on the sole native Pet
 
 Absorbed explicit stable3d7f9184 (worker merge45610881), preserving root Rocket
@@ -342,6 +372,21 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 
 ### Restore shared original Sentry geometry queries
+### Verify Grasp unequal epochs and causal decay storage
+
+- Actual raw producer and entered Wait independently verify original world
+  decay while body input/VM time stay frozen; strict state and causal hash pass.
+- Both raw checks pass. Remaining owner consumers and active-time estimate are
+  persisted; no runtime change or original-client acceptance run.
+
+### Restore Grasp world decay from actual grant receipt
+
+- Existing pool groups consume the original declared delay/rate even without
+  body input, using the actual producer frame/subframe and world receipt.
+  Positive grants alone refresh the clock; retirement/exhaustion cleans it.
+- Full original shield checks plus shared32 pass. Unequal-epoch strict proof
+  follows separately; no VM advancement, new health pool or client run.
+
 ### Preserve complete original Grasp shield consumers
 
 - Restore original shield checks over actual named pool groups, activation
@@ -11462,3 +11507,11 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+### Preserve actual NPC projection private storage boundaries
+
+- Copy each BotWorld button lookup and cross-component barrier Entity parameter
+  values while retaining actual actor/component/context identities. Strict
+  snapshot rejection remains unchanged.
+- Actual projected NPC causal storage, unknown-field rejection and shared
+  damage/runtime20 checks pass; original gameplay assertions are retained.

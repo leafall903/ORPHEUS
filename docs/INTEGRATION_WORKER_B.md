@@ -2005,3 +2005,82 @@ restore actual original decay deadline/rate on existing soleTemporaryPoolgroup,
 using precise grant receipt bodyms/worldtick association, with zero/capped
 grants unable to extend an existing delay. No global clock/VM advancement or
 input lease; prove raw unequal epoch and same-domain sparse fixtures.
+
+
+## B74 — original Grasp world decay from actual producer phase
+
+Actual same-domain source grant recorded component.now18015/frame1125 and
+worldtick1125; its Wait71 deadline21015. Mapping to worldreceipt+3s alone gave
+21000,15ms early, so source start-1 became435.96 instead of436. Preserve that
+failed mount log; DO NOT hardcode15. Record actual producer frame+componentms+
+receiptworldtick, then deadline=worldtick+(componentms-frame*frame_ms+delayms)/16.
+Original delay/rate come from the actual71/70 graph expressions.
+
+Append soleGrasp.decay_clocks, exact server_snapshot field registered. Values
+are(sourceinstanceid,absorptioncounter,bodyframe,bodyms,worldtick,delay,rate),
+not an input lease/birthpair/second host. Only a valid ready original34 action
+whose evaluated amount/cap can actually add to current named pool establishes
+a new clock; zero/capped grants cannot postpone existing decay. Existing
+converted identity still deduplicates each activation. Existing pool.last_tick
+settles the ONE named pool group, even while bodyVM28 is inactive and input
+is absent. Primitive no-producer fallback is retained. Body retirement/death/
+exhaustion clears the clock; no second health/charge budget or VM advancement.
+
+Original missing sparse/replay plus two realactivation tests4/4 pass12.459s;
+FULL original023BGrasp shield11 +Damage8/runtime13 =32/32 pass41.192s, all
+original numbers/assertions retained. Logs worker-b-sigma-grasp-decay-{mount,
+subframe,source-joint}.log. Raw unequal-epoch strict-server proof is the next
+independent batch; do not claim that unrun probe from same-domain success.
+No original-client acceptance run. B75 prepared untracked raw test will verify
+actual1000+body/50world, inputless3s cutoff, frozen VM and causal clock hash.
+
+
+## B75 — actual unequal-epoch Grasp receipt and strict causal storage
+
+Real two-peer ServerSession HeroPickSigma + actual1D02/FIRE creates positive
+1D03 health. Observe the real play_shield_script producer independently and
+compare stored(bodyframe,bodyms,worldtick) with that callback. Body/world epochs
+are unequal. Derive expected cutoff from the actual entered Wait71 start+ms,
+NOT the stored delay. World-only progression preserves the exact pre-cutoff
+pool, then consumes declared rate for only the post-cutoff interval. Both
+BodyScript.frame and component.now remain frozen: no hidden VM/input advance.
+
+StrictBodyVM and whole-server capture pass. Read-only capture forbids variable
+evaluation and run_now. Mutating only recorded producerbodyms changes stored
+hash; restoring it restores hash. Initial raw proof1/1 pass46.673s; independent
+producer/entered-Wait strengthened proof1/1 pass43.010s. Logs worker-b-sigma-
+grasp-decay-raw{,-independent}.log. No runtime changes/client acceptance.
+
+### Remaining actual owner consumer audit and active-time estimate
+
+Low-confidence remaining10–22 active B hours, not wall-time or a promise of
+original-client acceptance. Parallel Zarya/Flux work belongs to A/root.
+
+- Hog: full original NPC fixture/adapters still absent; cross-control/vector/
+  device/victim-credit and NPC navigation/wall handoff exact original callers
+  remain. Player/5factoryNPC/ownedDVa worldmotion and charge/heal/weapon core are
+  mounted and causally stored, but do not count the whole lane from those probes.
+- Sigma nonFlux: source barrier/owner/control/Deflect/Moira/Sentry callers, exact
+  typedfilter/query service equivalence and remaining original fixture/CLI
+  imports are the largest unreviewed area. Two primitive same-action repeated
+  grant expectations conflict with original023B dedup; Fieldgeometry5.210vs5
+  remains, rather than new shadow pools or adjusted numeric expectations.
+- Rein/Winston/Doom/Ball: final original consumer inventory and remaining actual
+  cross-hero/NPC/lifecycle/clock scopes; keep existing finished Dash history and
+  source strict boundaries, sourcefirstperson vs soleview_offsets API audit,
+  geometry and client-transport limitations. No whole-lane completion inferred
+  from narrow prototypes, passing subsets or delivered-ref ancestry.
+- Source023B filter_context/filter_pipeline/filter_tags and target_* path audit:
+  current entity_filter/entity_queries/entity_relation/entity_tags and actual
+  target_volume/visibility exist. SourceSDK states it needs explicit backend
+  bindings; do not blind-copy an unused second runtime or claim path absence
+  means absent gameplay. Actual sourceMoira filter_tags/Volume and FluxVolume
+  callers require explicit shared-host equivalence; root owns Flux and CMoira.
+- CLI correction: actual verify_sigma_filter_inputs imports
+  test_sigma_symmetra_sentry, not the previously described nonexistent
+  test_sigma_symmetra_beam filename. Verify actual immutable paths before
+  restoring adapters; no fake module alias or optional-network dependency install.
+
+Next exact action: clean sync root3be70f27, then concrete barrier/typedquery
+consumer audit and coordinate Moira/Sentry source contexts with C. Commit each
+real reusable batch without waiting for all original geometry/client checks.

@@ -96,6 +96,20 @@ def play_shield_script(world, instance, node):
     queue.submit(request)
     if queue.pending:
         raise ValueError("ready self-target Sigma script left pending work")
+    # Original023B starts/restarts decay only when this action can grant health.
+    fight = world.match.combat
+    params = dict(request.params)
+    amount = expr.to_float(params[0x0A4000000000002A])
+    limit = expr.to_float(params[0x0A400000000003D1])
+    vitals = fight.vitals.get(world.body)
+    current = sum(pool.now for pool in vitals.extra.values()
+                  if pool.identifier == 0x5847 and pool.kind == 2) if vitals is not None else 0.0
+    if vitals is not None and not vitals.dead and min(amount, limit - current) > 0:
+        delay = expr.to_float(instance.evaluate(instance.graph.node(71).field("m_timeout")))
+        rate = expr.to_float(instance.evaluate(instance.graph.node(70).field("m_modifyHealth.m_amount")))
+        fight.absorption.decay_clocks[world.body] = (
+            instance.id, absorption.counter, instance.component.frame, instance.component.now,
+            fight.tick, delay, rate)
     return True
 
 
@@ -168,20 +182,29 @@ def update_pools(fight, tick):
             last = max(pool.last_tick for pool in live)
             for pool in live:
                 pool.last_tick = max(pool.last_tick, tick)
-            for instance in script.component.instances.values():
-                decay = instance.states.get(28) if instance.graph.index == 0x1D02 else None
-                if decay is not None and decay.active:
-                    amount = expr.to_float(decay.evaluate(
-                        (decay.node.field("m_modifyHealth") or {}).get("m_amount"), watch=False))
-                    elapsed = max(0.0, tick - max(last, decay.start / script.frame_ms)) * 0.016
-                    remaining = max(0.0, amount) * elapsed
-                    for pool in live:
-                        lost = min(pool.now, remaining)
-                        if lost:
-                            pool.now -= lost
-                            remaining -= lost
-                            vitals.changed.add(2)
-                            changed = True
+            clock = fight.absorption.decay_clocks.get(target.entity)
+            source = script.component.instances.get(clock[0]) if clock is not None else None
+            if source is not None and source.graph.index == 0x1D02:
+                subframe = clock[3] - clock[2] * script.frame_ms
+                deadline = clock[4] + (subframe + clock[5] * 1000) / 16
+                remaining = max(0.0, clock[6]) * max(0.0, tick - max(last, deadline)) * .016
+            else:
+                # Preserve the primitive callee path when no actual source grant was recorded.
+                remaining = 0.0
+                for instance in script.component.instances.values():
+                    decay = instance.states.get(28) if instance.graph.index == 0x1D02 else None
+                    if decay is not None and decay.active:
+                        amount = expr.to_float(decay.evaluate(
+                            (decay.node.field("m_modifyHealth") or {}).get("m_amount"), watch=False))
+                        elapsed = max(0.0, tick - max(last, decay.start / script.frame_ms)) * .016
+                        remaining += max(0.0, amount) * elapsed
+            for pool in live:
+                lost = min(pool.now, remaining)
+                if lost:
+                    pool.now -= lost
+                    remaining -= lost
+                    vitals.changed.add(2)
+                    changed = True
         for key, state in active.items():
             pool = vitals.extra.get(key)
             if pool is None:
@@ -194,6 +217,9 @@ def update_pools(fight, tick):
                 # Retire this completed lease graph explicitly to bound lifetime.
                 state.instance.component.destroy(state.instance)
                 changed = True
+        if not any(pool.now > EPSILON and not pool.removed and pool.identifier == 0x5847 and pool.kind == 2
+                   for pool in vitals.extra.values()):
+            fight.absorption.decay_clocks.pop(target.entity, None)
         if changed:
             fight._sync_body_health(owner, vitals)
         for instance in empty:

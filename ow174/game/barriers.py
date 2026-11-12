@@ -7,7 +7,7 @@ Native pet/PlayScript hosting, bone pose, energy/credit/filter policy and wire
 replication remain open. This is a finite collision target, not body invulnerability.
 """
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ow174.game import barrier_geometry, bots, contacts, reinhardt_barrier, world_bubbles
 from ow174.game.reinhardt_barrier import Geometry, configured_geometry, frame, intersect, load_geometry, mesh
@@ -665,6 +665,7 @@ def retire(fight, entity):
                           and expiry.duration.counter == expiry.generation
                           and expiry.duration.now // barrier.source.frame_ms == expiry.frame)
     if (expiry is not None and fight.tick <= expiry.tick
+            and (barrier.vitals is None or barrier.vitals.total > 0)
             and (fight.barriers._duration_ended_on_deadline(expiry, barrier.source.frame_ms)
                  or ending_on_deadline)
             and not fight.is_dead(barrier.parent)
@@ -728,6 +729,11 @@ def play_script(world, instance, node):
         return
     component = barrier.component
     component.frame, component.now = instance.component.frame, instance.component.now
+    # Native parameter arrays carry Entity values into the separate component,
+    # rather than sharing the source variable's Python value-record storage.
+    request = replace(request, params=tuple(
+        (key, tuple(expr.Entity(value.id) if type(value) is expr.Entity else value
+                    for value in values)) for key, values in request.params))
     queue = play_queue.Queue(component, lambda guid: play_queue.Load("ready", definition))
     queue.submit(request)
     if queue.pending:
@@ -966,6 +972,14 @@ def damage(fight, barrier, amount, *, attacker=0):
             barrier.component.run_now()
             barrier.source.run_now()
         if remaining <= 0:
+            expiry = _expiry(fight, barrier)
+            if expiry is not None and expiry.ended_ahead and not expiry.duration.active:
+                projected = barrier.recipient is not None
+                ability = fight.barriers._ability(expiry.duration.instance, projected)
+                if ability is not None and ability.last >= expiry.duration.ended_at:
+                    hit_frame = expiry.frame + fight.tick - expiry.tick
+                    at = hit_frame * barrier.source.frame_ms + ability.last - expiry.duration.ended_at
+                    ability.set_cooldown_start(at)
             barrier.component.set(478, True)
             barrier.component.run_now()
             # Scoped break bridge. The child is not a player message sender.

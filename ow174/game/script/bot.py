@@ -354,7 +354,8 @@ class BotWorld(runtime.World):
     ) -> None:
         super().__init__(hero, mode)
         self.match = match
-        self.weapon_buttons = weapon_buttons
+        # Each VM owns its runtime lookup; the source body record stays immutable.
+        self.weapon_buttons = dict(weapon_buttons)
         self.owner_position = owner_position
         self.control_context = None
         self.controller_components = controller_components

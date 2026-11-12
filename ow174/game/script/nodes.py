@@ -3714,6 +3714,17 @@ class Ability(State):
         if self.cur > 0 and self.cooldown_rate > 0:
             self.timer_at(max(1, self.last - self.now + round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate))), 2)
 
+    def set_cooldown_start(self, at: int) -> None:
+        """Rebase a delivered world contact without rewriting its authored cooldown/rate."""
+        self.last = at
+        self.instance.queue = [event for event in self.instance.queue
+                               if not (event.state is self and event.param == 2)]
+        if self.cur > 0 and self.cooldown_rate > 0:
+            milliseconds = max(1, round_half_away(f32(f32(self.cur * 1000.0) / self.cooldown_rate)))
+            delay = at + milliseconds - self.now
+            if delay > 0:
+                self.timer_at(delay, 2)
+
     def remaining(self) -> float:
         return max(0.0, f32(f32(f32(f32(self.now - self.last) * -MS) * self.cooldown_rate) + self.cur))
 
