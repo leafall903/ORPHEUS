@@ -4,6 +4,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Restore delivered Fire Strike and shattered Winston shell consumers
+
+- Include actual WorldBubbles shells in existing Fire Strike ordered contacts,
+  damage their single native pool once and continue through the body. Read
+  captured rocket affiliation in these and actual native impact cover queries.
+- Retain a shell's actual centre/radius only when this Shatter wave breaks it.
+  Already blocked rays stay stopped; later rays distinguish natural expiry,
+  rifle destruction and destruction by this wave, without another actor.
+- All43 focused original Winston physical interactions, Shatter31 and causal
+  snapshot checks pass. Full original14 retains exact1.1 versus nativef32
+  1.10000002384 and two existing Brigitte host errors. Keep original49
+  assertions/expected values; only current query/getter fixture adapters change.
+- Original-client acceptance remains open.
+
 ### Restore native shield impact splash recipient handling
 
 - Keep the actual native mesh hit as this impact's cover before damaging its

@@ -509,9 +509,30 @@ alone is not evidence that a line's consumers are actually mounted.
   mount FireStrike other barrier/deployable contacts and retained source checks;
   continue source NPC/Brigitte cross-owner audit using complete v7 inputs.
 
+## B29 native Winston shell contacts and retained Shatter shadow
+
+- Existing FireStrike contact collection reads actual WorldBubbles.trace and
+  existing damage service, per-actor body key and rocket.team. Its native mesh
+  splash recipient cover now also uses the restored root explicit rocket.team.
+- Source Wave.dome_poses stores actual centre/radius when this wave breaks it;
+  existing captured trace uses the shell query. Do not retain naturally expired
+  or independently rifle-broken shells as new blockers. No duplicate actor/VM.
+- Source fixture controlled/ray observations use actual current control and
+  WorldBubbles.trace helpers. All49 original assertion calls/order and expected
+  arguments remain; earlierB12 deploy getter used added graph selector Constants
+  in its LHS, so raw complete assertion AST is not identical to frozen source.
+- `worker-b-rein-native-winston-focused.log`:43/43 (eleven original physical
+  cases +Shatter31 +causal wave snapshot). Full14 original remains1fail2errors:
+  exactdouble1.1 vsnativef32 point, and two Brigitte shield-bash host errors.
+  Logs keep all three original boundaries; no tolerance/expectation edits.
+- Next: clean sync latest root integration, retain protected_out/native_impact
+  union and actual source team contract. Mount original Orisa/Sigma/deployable
+  FireStrike consumers, reuse C29 Photon contact(actor,...) plane/mesh API when
+  merged. No metadata alias alone counts as complete owner integration.
+
 ## Exact next work
 
-1. Commit B28, then clean-sync canonical after parent acceptance. Continue
+1. Commit B29, then clean-sync canonical after parent acceptance. Continue
    source0007 actual shield retirement/death/control/break/recast consumers,
    real native pool fixture inputs, source frozen-team queries and remaining
    surface histories. Preserve original grenade incident-side occlusion and

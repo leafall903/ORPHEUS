@@ -3,7 +3,7 @@
 import math
 from dataclasses import dataclass, field
 
-from ow174.game import actors, barrier, reinhardt_barrier
+from ow174.game import actors, barrier, reinhardt_barrier, world_bubbles
 from ow174.game.collision import MOVER
 from ow174.game.script import expr, runtime
 
@@ -61,6 +61,7 @@ class Wave:
     travelled: float = 0.0
     blocked: set = field(default_factory=set)
     shield_poses: list = field(default_factory=list)
+    dome_poses: dict = field(default_factory=dict)
 
 
 def start(fight, player):
@@ -204,6 +205,9 @@ def _before_wall(point, clip):
 
 
 def _captured_trace(pose, origin, direction, length):
+    if len(pose) == 4 and pose[0] == "dome":
+        _, centre, radius, _ = pose
+        return world_bubbles.shell(origin, direction, centre, radius, length)
     geometry, feet, yaw, pitch, radius, height, _ = pose
     return reinhardt_barrier.intersect(geometry, feet, yaw, pitch, origin, direction, length,
                                       owner_radius=radius, owner_height=height)
@@ -214,6 +218,11 @@ def _shield_contact(fight, wave, origin, direction, length):
     # A shield broken by this wave retains its original blocking plane even
     # for the not-yet-visited rays in the current step. No live actor clone.
     for pose in wave.shield_poses:
+        distance = _captured_trace(pose, origin, direction, length)
+        if distance is not None and (contact is None or distance < contact[0]):
+            contact = distance, None, pose
+    for body, (centre, radius) in wave.dome_poses.items():
+        pose = ("dome", centre, radius, body)
         distance = _captured_trace(pose, origin, direction, length)
         if distance is not None and (contact is None or distance < contact[0]):
             contact = distance, None, pose
@@ -300,6 +309,8 @@ def advance(fight, wave):
                     wave.shields.add(key)
                     if pose is not None and actor.health <= 0 and pose not in wave.shield_poses:
                         wave.shield_poses.append(pose)
+                    if isinstance(actor, world_bubbles.FixedBubble) and actor.health <= 0:
+                        wave.dome_poses[actor.body] = tuple(actor.point), actor.radius
             current = tuple(start[k] + direction[k] * at - (.1 if k == 1 else 0) for k in range(3))
             wave.blocked.add(index)
         segments.append((previous, current, wall_clip, actor))

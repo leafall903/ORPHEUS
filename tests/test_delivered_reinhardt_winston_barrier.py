@@ -14,6 +14,13 @@ from ow174.game.content import SOLDIER, heroes
 WINSTON = 0x02E0000000000009
 
 
+def dome_ray(dome, origin, direction, radius=0.0):
+    hit = dome.owner.match.combat.barriers.world.trace(
+        dome.owner, origin, direction, math.inf, radius, bubbles=(dome,),
+    )
+    return None if hit is None else hit[0]
+
+
 class ReinhardtWinstonBarrierTests(unittest.TestCase):
     place = staticmethod(fixtures.HammerTests.place)
     health = fixtures.HammerTests.health
@@ -77,7 +84,7 @@ class ReinhardtWinstonBarrierTests(unittest.TestCase):
         self.assertEqual(dome.health, 0)
         self.assertTrue(dome.retired)
         self.assertEqual(self.health(self.enemy), 500)
-        self.assertFalse(self.fight.controlled(self.enemy.body))
+        self.assertFalse(fixtures.controlled(self.fight, self.enemy.body))
 
     def test_actual_earthshatter_inside_dome_reaches_body_without_crossing_shell(self):
         dome = self.deploy(8)
@@ -86,7 +93,7 @@ class ReinhardtWinstonBarrierTests(unittest.TestCase):
         self.advance(1, buttons=32)
         self.advance(55, buttons=0)
         self.assertEqual(self.health(self.enemy), 205)
-        self.assertTrue(self.fight.controlled(self.enemy.body))
+        self.assertTrue(fixtures.controlled(self.fight, self.enemy.body))
         self.assertEqual(dome.health, 650)  # The fronts reach the far shell after the body hit.
 
 
@@ -106,7 +113,7 @@ class ReinhardtWinstonBarrierTests(unittest.TestCase):
         angle = math.radians(25)
         dx, dz = math.sin(angle), math.cos(angle)
         self.place(self.other, (14 * dx, 1, 14 * dz))
-        late_contact = dome.ray((0, 1.1, 0), (dx, 0, dz))
+        late_contact = dome_ray(dome, (0, 1.1, 0), (dx, 0, dz))
         self.assertGreater(late_contact, 9)
         if removal == 'rifle':
             self.match.game_map = replace(self.match.game_map, free_for_all=False)
@@ -148,7 +155,7 @@ class ReinhardtWinstonBarrierTests(unittest.TestCase):
         self.assertEqual(100 in wave.blocked, removal == 'wave')
         self.assertEqual(self.health(self.enemy), 500)
         self.assertEqual(self.health(self.other), 200 if removal == 'wave' else 150)
-        self.assertEqual(self.fight.controlled(self.other.body), removal != 'wave')
+        self.assertEqual(fixtures.controlled(self.fight, self.other.body), removal != 'wave')
 
     def test_actual_charge_crosses_shell_pins_and_wall_impacts_without_shell_damage(self):
         dome = self.deploy(7)
@@ -189,7 +196,7 @@ class ReinhardtWinstonBarrierTests(unittest.TestCase):
         self.advance(65, buttons=0)
         self.assertEqual(dome.health, 700)
         self.assertEqual(self.health(self.enemy), 500)
-        self.assertFalse(self.fight.controlled(self.enemy.body))
+        self.assertFalse(fixtures.controlled(self.fight, self.enemy.body))
 
 
     def test_allied_dome_allows_fire_strike_to_hit_enemy_inside(self):
