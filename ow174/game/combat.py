@@ -126,6 +126,7 @@ MODE_UI = 0x0CB6  # the mode's client UI graph: the kill feed 0DEA and the notic
 EYE = 1.55  # m: STUFirstPersonComponent m_E29993A5, its default (OWLib) and Soldier's (DATA; unverified: eye)
 # 104319 FirstPerson standing and crouched fields. Unlisted bodies use the fallback.
 EYE_STANDING = {
+    0x0400000000000032: 1.35,
     0x0400000000000407: 1.74, 0x040000000000040A: 1.32,
     0x0400000000000001: 1.25,
     0x0400000000001424: 1.25,
@@ -136,6 +137,7 @@ EYE_STANDING = {
     0x0400000000002AB1: 2.1, 0x04000000000003BF: 1.6,
 }
 EYE_CROUCHED = {
+    0x0400000000000032: .945,
     0x0400000000000407: 1.74, 0x040000000000040A: .8,
     0x0400000000000001: 0.875,
     0x0400000000001424: 0.875,
@@ -4617,6 +4619,11 @@ class Combat:
             origin, direction = (x, y + EYE, z), aim(round(shooter.yaw), round(shooter.pitch))
         else:
             origin, direction = self._eye(shooter), aim(*command.aim())
+            if (shooter.hero.guid == 0x02E0000000000008
+                    and (state.instance.graph.index, state.index) in ((0x23, 6), (0x7B, 0), (0x2B, 1))):
+                x, y, z = shooter.mover.position
+                height = expr.f32(eye_height(shooter.hero.body, shooter.mover.crouched))
+                origin = (x, y + expr.f32(height + shooter.mover.spring), z)
             direction = self._copied_visor_direction(shooter, command, state, origin, direction)
             from ow174.game import mccree
 
@@ -5403,7 +5410,11 @@ class Combat:
                 if registered and rocket not in self.rockets:
                     break
                 rocket.last_tick = at
-                self._fly_slice(rocket, min(TICK, rocket.left), at)
+                continuation = self._fly_slice(rocket, min(TICK, rocket.left), at)
+                if isinstance(continuation, Rocket):
+                    rocket = continuation
+                elif rocket.ended is not None:
+                    break
             return
         if rocket.fuse_left is not None:
             if rocket.attached_entity is not None:
@@ -5566,7 +5577,7 @@ class Combat:
                 rocket.direction = tuple(value / rocket.speed for value in sweep)
         self._fly_slice(rocket, duration, self.tick)
 
-    def _fly_slice(self, rocket: Rocket, duration: float, tick: int) -> None:
+    def _fly_slice(self, rocket: Rocket, duration: float, tick: int) -> Rocket | None:
         if not rocket.collide_bodies or rocket.deploy_body is not None:
             step = rocket.speed * duration
             wall = ray_world(self._collision(), rocket.position, rocket.direction, step)
@@ -5589,7 +5600,10 @@ class Combat:
         # deflectors that could repeatedly collide at distance zero.
         reflected = set()
         for _ in range(8 + rocket.target_limit):
-            duration = self._sweep_rocket(rocket, duration, reflected)
+            continuation = self._sweep_rocket(rocket, duration, reflected)
+            if isinstance(continuation, Rocket):
+                return continuation
+            duration = continuation
             if duration <= EPSILON:
                 return
         rocket.flown += duration
@@ -5605,7 +5619,7 @@ class Combat:
                 nearest = hit[0], hit[1], manager
         return nearest
 
-    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float:
+    def _sweep_rocket(self, rocket: Rocket, duration: float, reflected: set[int]) -> float | Rocket:
         """Sweep without another gravity update. Only reflection returns unused time."""
         step = rocket.speed * duration
         heading = rocket.direction
@@ -5629,7 +5643,8 @@ class Combat:
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._shot_targets(rocket.shooter, rocket.direct)
         best = None
-        light_gun = rocket.definition == 0x0400000000001000
+        assisted_contact = (rocket.definition == 0x0400000000001000
+                            or rocket.source_graph in (0x23, 0x7B, 0x2B))
         assisted = None
         for target in candidates:
             if target.owner is rocket.shooter or (target.owner is not None and self.vitals_of(target).dead):
@@ -5640,10 +5655,10 @@ class Combat:
             if immunity.wraith_active(target.owner, target.entity):
                 continue
             a, b = target.segment()
-            t = ray_capsule(rocket.position, heading, a, b, target.radius + (0.0 if light_gun else padding))
+            t = ray_capsule(rocket.position, heading, a, b, target.radius + (0.0 if assisted_contact else padding))
             if t is not None and t <= step and (best is None or t < best[0]):
                 best = (t, target)
-            if light_gun and padding > 0:
+            if assisted_contact and padding > 0:
                 t = ray_capsule(rocket.position, heading, a, b, target.radius + padding)
                 if t is not None and t <= step and (assisted is None or t < assisted[0]):
                     assisted = (t, target)
@@ -5653,7 +5668,7 @@ class Combat:
         collision = self._collision()
         assisted_rank = assisted[0] + padding if assisted is not None else 0.0
         wall = ray_world(collision, rocket.position, heading, max(step, assisted_rank))
-        if padding > 0 and not light_gun and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
+        if padding > 0 and not assisted_contact and (rocket.direct is None or rocket.direct.loadout != SOLDIER_WEAPON_LOADOUT):
             swept = collision.sweep_sphere(rocket.position, heading, step, padding)
             if swept is not None and (wall is None or swept < wall):
                 wall = swept
@@ -5717,8 +5732,11 @@ class Combat:
         else:
             echo_shield = None
         limit = best[0] if best else step
-        defense = deflections.intercept(self, rocket, limit, reflected,
-                                       modes=('absorb',) if getattr(rocket, "pulse_bomb", False) else ('reflect', 'absorb'))
+        defense = deflections.intercept(
+            self, rocket, limit, reflected, direction=heading,
+            eye_of=self._barrage_defense_eye if rocket.motion else None,
+            modes=('absorb',) if getattr(rocket, "pulse_bomb", False) else ('reflect', 'absorb'),
+        )
         if defense is not None and (best is None or defense[0] < limit):
             distance, target, forward, state, mode = defense
             best = distance, target
@@ -5806,6 +5824,8 @@ class Combat:
                 self._absorbed(absorption[1], amount)
             return 0.0
         if redirect is not None:
+            if rocket.motion:
+                return self._reflect_barrage(rocket, struck, duration, contact_time)
             if rocket.shot is not None:
                 self.projectiles.flown(rocket.shot, rocket.flown)
                 rocket.shot = None
@@ -5937,6 +5957,57 @@ class Combat:
                       deployed=deployed, struck=struck, broken_particle_barriers=broken_particle_barriers,
                       damage_point=damage_point)
         return 0.0
+
+    def _barrage_defense_eye(self, owner):
+        heights = {0x0400000000000225: (1.2, .84), 0x0400000000002AB1: (2.1, 1.75)}
+        pair = heights.get(owner.hero.body)
+        if pair is None:
+            return self._eye(owner)
+        mover = owner.mover
+        x, y, z = mover.position
+        height = expr.f32(pair[mover.crouched])
+        return (x, expr.f32(y + expr.f32(height + mover.spring)), z)
+
+    def _reflect_barrage(self, rocket, target, duration, contact_time):
+        """Retain the delivered eye-origin, seed replay and restarted curve clock."""
+        self._landed(rocket)
+        if rocket.deflections >= deflection.MAX_DEFLECTIONS:
+            return 0.0
+        remaining = max(0.0, duration - contact_time)
+        direction = aim(target.owner.mover.yaw, target.owner.mover.pitch)
+        if rocket.barrage_source is not None:
+            owner, volley, shot = rocket.barrage_source
+            instance = volley.instance
+            script = owner.body_script
+            if (script is not None and script.component is instance.component
+                    and script.component.instances.get(instance.id) is instance):
+                seed = barrage_motion.seed_for_shot(0, instance.id, volley.index, volley.counter, shot)
+                direction = barrage_motion.shot_direction(volley, direction, seed)
+        origin = self._barrage_defense_eye(target.owner)
+        old_scale = rocket.boost_credit[1] if rocket.boost_credit is not None else 1.0
+        definitions = {}
+        for name in ("direct", "blast"):
+            definition = getattr(rocket, name)
+            if definition is not None:
+                definition = replace(definition, amount=definition.amount / old_scale, boost_credit=None)
+                definition = self._support_hit(target.owner, definition)
+            definitions[name] = definition
+        credit = (definitions["direct"].boost_credit if definitions["direct"] is not None else
+                  definitions["blast"].boost_credit if definitions["blast"] is not None else None)
+        redirected = replace(
+            rocket, shooter=target.owner, team=target.team, position=origin, direction=direction,
+            left=rocket.deflect_lifetime, shot=None, flown=0.0, travelled=0.0,
+            motion_phase_offset=TICK - remaining, last_tick=rocket.last_tick,
+            reflected=True, source_body=target.entity, source_entity=target.entity,
+            charge_eligible=True, damage_charge=None, boost_credit=credit,
+            hit_entities=set(), deflections=rocket.deflections + 1, ended=None, **definitions,
+        )
+        self.rockets.append(redirected)
+        if remaining > EPSILON:
+            continuation = self._fly_slice(redirected, remaining, redirected.last_tick)
+            if isinstance(continuation, Rocket):
+                return continuation
+        return redirected
 
     def _sweep(self, rocket: Rocket, duration: float, start_tick: float) -> None:
         direction = rocket.direction

@@ -103,6 +103,28 @@ This log records tested changes and their acceptance status. Entries are grouped
   follow-up reconciliation. Incomplete acceptance does not block this mounted
   implementation submission. Uppercut and other Doomfist shared consumers
   remain pending. Original-client acceptance remains open; no client or push.
+### Mount delivered Pharah curved reflection and launch contacts
+
+- Retain reflected Barrage eye origin, original-state seed replay,5s lifetime/
+  100m range restart and residual-tick curve phase. A live source state supplies
+  spread; replaced launch bodies fall back to defender raw aim. Continue a
+  redirected shell across subsequent catch-up ticks and keep the existing bounded
+  reflection policy. Shared support attribution remains in the combined route.
+- Feed actual curved chord direction and the scoped authored defense eye into
+  the existing interception service via optional inputs; other callers retain
+  their defaults. Preserve Pharah0032 standing/crouched offsets and the original
+  spring-aware volley origin. Its body-extent assistance compares contact plus
+  query radius; static walls retain point contact rather than an enlarged sphere.
+- All five original curve/reflection checks pass, including partial-tick and
+  delayed-copy equivalence. Original eye/Helix/channel run:18/19 pass, with the
+  retained McCree double-hit expectation still failing. The43-check Genji/Baptiste
+  run retains6 failures and2 errors: all6 failures plus the Mei bubble error
+  reproduce at the preceding commit; the other error requires explicit NPC data.
+  Keep these checks and no relaxed assertions.
+- C6's full server-snapshot regression still runs independently; root's focused
+  C6 curve/Helix/storage14 checks passed. Remaining Pharah splash/self-splash/
+  impulse and cross-hero control/charge reconciliation stay open.
+
 ### Mount delivered Pharah Barrage control interruption
 
 - Mount the original002B entity33 stack abort through combined combat-control
