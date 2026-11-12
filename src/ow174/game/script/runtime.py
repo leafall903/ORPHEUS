@@ -311,9 +311,11 @@ class InstanceContext(Context):
     def native(self, cfg: dict):
         """A native config's scalar +20 interface and compatibility polling."""
         cls = cfg.get("$")
-        if cls == "STU_A6B80C63":
+        if cls in ("STU_A6B80C63", "STU_951CAB4C"):
             from ow174.game.script import play
 
+            if cls == play.RANKED_ARRAY:
+                return play.rank_array(self.instance, cfg, watcher=self.watcher, scalar=True)
             return play.fold_array(self.instance, cfg, watcher=self.watcher)
         if cls in ("STU_7042F028", "STU_45B0D2B2"):
             from ow174.game.script import play

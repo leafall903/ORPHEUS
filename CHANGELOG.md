@@ -6,6 +6,20 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Rising Uppercut target reaction
+
+- Evaluate the authored target ranking and send the target reaction script
+  to the selected opposing player bodies. Retain source and recipient
+  identities until delivery so a hero switch cannot affect a replacement body.
+- Run the authored velocity reset and airborne movement input limits through
+  the existing mover. Release the limits at the authored exit and retire the
+  reaction instance so a later cast can apply it again.
+- Passed Ruff, 923 public Python tests, six dashboard tests, 33 movement and
+  shield regressions and 44 communication-wheel regressions. The movement
+  checks cover the receiving player's owner state, recasts and body replacement.
+- The launch impulse, training-bot movement and original-client reaction
+  presentation remain open. Larger ranked arrays use stable tie ordering.
+
 #### Doomfist temporary shields
 
 - Feed applied damage into Doomfist's authored The Best Defense listener.

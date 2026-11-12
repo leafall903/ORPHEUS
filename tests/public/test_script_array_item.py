@@ -5,6 +5,7 @@ import unittest
 from ow174.game.script import (
     expr,
     nodes,  # noqa: F401 -- register executable state handlers
+    play,
     runtime,
 )
 from tests.runtime.test_game_graph_analysis import make_graph, node, output
@@ -24,6 +25,20 @@ def select(container, index=None):
 
 def group(*values):
     return {"$": "STU_06610EBC", "m_configVars": list(values)}
+
+
+def parameter(identifier):
+    return {
+        "$": "STU_919FD47C",
+        "m_expression": {
+            "m_opcodes": [13, 0, 0],
+            "m_dynamicVars": [dynamic(identifier)],
+        },
+    }
+
+
+def rank(source, condition):
+    return {"$": "STU_951CAB4C", "m_814F8EC3": source, "m_condition": condition}
 
 
 class ArrayItemTests(unittest.TestCase):
@@ -88,3 +103,42 @@ class ArrayItemTests(unittest.TestCase):
         with self.assertRaises(runtime.UnsupportedScriptError):
             instance.evaluate(select({"$": "STU_UNKNOWN_ARRAY_SOURCE"}))
         self.assertIsInstance(instance.component.fault, runtime.UnsupportedScriptError)
+
+
+class ArrayRankingTests(unittest.TestCase):
+    def test_uppercut_rank_retains_every_target_and_uses_native_minimum_swap(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(make_graph(1), init=False)
+        first, second, old, older = (expr.Entity(identifier) for identifier in (101, 102, 103, 104))
+        component.set(375, (first, second, old, older))
+        component.set(7457, (old, older))
+        condition = {
+            "$": "STU_919FD47C",
+            "m_expression": {"m_opcodes": [14, 0, 30, 0]},
+            "m_configVars": [{
+                "$": "STU_45EDF12D",
+                "m_814F8EC3": dynamic(7457),
+                "m_value": parameter(142),
+            }],
+        }
+        cfg = rank(dynamic(375), condition)
+        self.assertEqual(play.evaluate_value(instance, cfg), (old, older, second, first))
+        self.assertEqual(instance.evaluate(cfg), old)
+        self.assertEqual(component.vars[375].value(), (first, second, old, older))
+
+    def test_ranking_preserves_keys_and_restores_outer_parameters(self):
+        component = runtime.Component(123, strict=True)
+        instance = component.create(make_graph(1), init=False)
+        source = expr.PairArray(((2, None), (1, expr.Asset(42)), (1, expr.Entity(12))))
+        component.set(600, source)
+        cfg = rank(dynamic(600), group(parameter(1451), parameter(12)))
+        with component.parameter_scope({12: 88, 142: 99, 1451: 77}):
+            self.assertEqual(play.evaluate_value(instance, cfg), expr.PairArray((
+                source.items[1], source.items[2], source.items[0],
+            )))
+            self.assertEqual(instance.evaluate(cfg), expr.Asset(42))
+            self.assertEqual([instance.evaluate(parameter(i)) for i in (12, 142, 1451)], [88, 99, 77])
+        self.assertEqual(component.parameter_scopes, [])
+        component.set(600, ())
+        self.assertEqual(play.evaluate_value(instance, cfg), ())
+        self.assertEqual(instance.evaluate(cfg, initial=51), 51)

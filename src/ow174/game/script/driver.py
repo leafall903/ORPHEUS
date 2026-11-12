@@ -67,6 +67,7 @@ from ow174.paths import (
 if TYPE_CHECKING:
     from ow174.game.match import Match
     from ow174.game.mover import VelocityChange
+    from ow174.game.script import play
     from ow174.game.world import EntityUpdate
 
 log = logging.getLogger("ow174.script")
@@ -198,6 +199,9 @@ WHEEL_TARGET_CATEGORIES = {0x0690000000000079: 0x1FDF, 0x0690000000000111: 0x1FD
 ABILITY_RAY_CATEGORIES = {0x069000000000002C: 0x1FDF}  # 104319 static cast profile
 DOOMFIST_PASSIVE_GRAPH = 0x0DDD
 DOOMFIST_SHIELD_GRAPH = 0x0DF3
+UPPERCUT_TARGET_GRAPH = 0x0E7D
+BODY_PLAY_GRAPHS = {(DOOMFIST_PASSIVE_GRAPH, 4): DOOMFIST_SHIELD_GRAPH}
+TARGET_PLAY_GRAPHS = {(0x0DD8, 22): UPPERCUT_TARGET_GRAPH}
 WHEEL_HEALING_TAG = 0x0D60000000000308
 WHEEL_GREETING_TAG = 0x0D60000000000661
 ASHE_BODY = 0x040000000000251C
@@ -548,10 +552,11 @@ class BodyWorld(runtime.World):
         return -1
 
     def play_script(self, instance: runtime.Instance, node: graph.Node) -> None:
-        from ow174.game.script import play, play_queue
+        from ow174.game.script import play
 
         key = (instance.graph.index, node.pos)
-        index = DOOMFIST_SHIELD_GRAPH if key == (DOOMFIST_PASSIVE_GRAPH, 4) else None
+        target_graph = TARGET_PLAY_GRAPHS.get(key)
+        index = target_graph if target_graph is not None else BODY_PLAY_GRAPHS.get(key)
         if index is None and self.communication_wheel:
             index = WHEEL_PLAY_GRAPHS.get(key)
         if index is None:
@@ -560,20 +565,30 @@ class BodyWorld(runtime.World):
         resource = play.resolve_resource(instance, node)
         if resource is None or resource.guid != ((graph.GRAPH_TYPE << 48) | index):
             return
-        definition = graph.graph(index)
-        if definition is None:
-            return
-        component = instance.component
         request = play.resolve_request(
             instance, node, resource,
             context_provider=lambda: play.InvocationContext(self.body, self.body, instance.source_entity()),
         )
-        if request is not None and request.targets == (self.body,):
-            # The bundle already holds the resource, so submission can flush synchronously.
-            play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
+        if request is None:
+            return
+        if target_graph is not None:
+            if self.match is not None:
+                self.match.queue_body_play(self.body, request)
+        elif request.targets == (self.body,):
+            self.submit_body_play(instance.component, request)
+
+    @staticmethod
+    def submit_body_play(component: runtime.Component, request: "play.Request") -> bool:
+        from ow174.game.script import play_queue
+
+        definition = graph.graph(request.resource.guid & 0xFFFFFFFFFFFF)
+        if definition is None:
+            return False
+        play_queue.Queue(component, lambda _: play_queue.Load("ready", definition)).submit(request)
+        return True
 
     def retires_stopped_play(self, instance: runtime.Instance) -> bool:
-        return instance.graph.index == DOOMFIST_SHIELD_GRAPH
+        return instance.graph.index in (DOOMFIST_SHIELD_GRAPH, UPPERCUT_TARGET_GRAPH)
 
     def _wheel_animation_key(self, instance: runtime.Instance, node: graph.Node) -> tuple | None:
         parent = instance.parent

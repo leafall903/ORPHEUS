@@ -66,7 +66,7 @@ from ow174.game.mover import (
     statescript_mover_data,
 )
 from ow174.game.projectiles import MAX_LEASE_FRAME
-from ow174.game.script import expr, graph, nodes, runtime, scene_host, spray_placement
+from ow174.game.script import expr, graph, nodes, play, runtime, scene_host, spray_placement
 from ow174.game.script.bot import BotScript
 from ow174.game.script.driver import (
     DOOMFIST_PASSIVE_GRAPH,
@@ -404,9 +404,12 @@ class Player:
         if self.body_script is not None:
             self.match.body_command(self, command, movement_end=movement_end)
             self.match.combat.command(self, command if posed else None)
+        self.track_body_modifiers(command.frame)
+
+    def track_body_modifiers(self, frame: int) -> None:
         # Modifier changes take effect on the next movement frame.
         script = self.body_script
-        self.mover.track_mods(statescript_mods(script.component) if script else {}, command.frame)
+        self.mover.track_mods(statescript_mods(script.component) if script else {}, frame)
 
     def new_body(self, entity: int) -> None:
         """Set up the allocated body at the spawn point."""
@@ -481,7 +484,9 @@ class Match:
         self.assemble_ends: float | None = None  # PvP: when "assemble your team" ends
         self.assembled = False
         self.players: list[Player] = []
-        self._body_messages: list[tuple[BodyScript, Player, BodyScript, int, dict, int | None]] = []
+        self._body_messages: list[
+            tuple[BodyScript, Player, BodyScript, int | play.Request, dict | None, int | None]
+        ] = []
         self.started = self.environment.wall_time(callsite="match.started")
         self.on_leave = on_leave  # called with each player who leaves
         self.ended = False
@@ -1258,6 +1263,16 @@ class Match:
     def queue_body_message(
         self, target: int, message: int, params: dict, sender: int, *, target_instance: int | None = None,
     ) -> bool:
+        return self._queue_body_delivery(target, sender, message, dict(params), target_instance)
+
+    def queue_body_play(self, sender: int, request: play.Request) -> None:
+        for entity in request.targets:
+            self._queue_body_delivery(entity, sender, request, None, None)
+
+    def _queue_body_delivery(
+        self, target: int, sender: int, message: int | play.Request, params: dict | None,
+        target_instance: int | None,
+    ) -> bool:
         """Capture the source and recipient scripts before either entity ID can be reused."""
         source, recipient = self._message_player(sender), self._message_player(target)
         if source is None or recipient is None:
@@ -1268,7 +1283,7 @@ class Match:
         if len(self._body_messages) >= MAX_BODY_MESSAGES:
             expr.warn_once("body-message-limit", "match body message queue reached %d", MAX_BODY_MESSAGES)
             return False
-        self._body_messages.append((source_script, recipient, script, message, dict(params), target_instance))
+        self._body_messages.append((source_script, recipient, script, message, params, target_instance))
         return True
 
     def deliver_body_messages(self) -> None:
@@ -1284,6 +1299,11 @@ class Match:
                 continue
             try:
                 component = script.component
+                if isinstance(message, play.Request):
+                    if not self.combat.is_dead(player) and script.world.submit_body_play(component, message):
+                        component.run_now()
+                        player.track_body_modifiers(script.frame)
+                    continue
                 # An earlier message can start or stop a later message's entry state.
                 if target_instance is None:
                     count = runtime.send_message(component, message, params, source.entity)

@@ -125,6 +125,11 @@ array update at RVA `CAE3B0`, capsule overlap at `C8E660` and sight query at
 cadence. The server reuses the sight query from the integrated communication
 wheel work and the existing ORPHEUS combat pipeline.
 
+The rank evaluator at RVA `1B77230` supplies the ordered target list.
+Graph `0E7D` supplies the target's velocity action, airborne movement modifiers
+and exit conditions. Delivery reuses the match's deferred body queue and the
+loaded PlayScript path.
+
 ## Ability ground queries
 
 The 104319 RayCast state binds its outputs at RVA `8EC210` and updates them at

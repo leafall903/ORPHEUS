@@ -6,6 +6,8 @@ extending the VM's legacy general-purpose Map mutation implementation.
 """
 
 from dataclasses import dataclass
+from functools import cmp_to_key
+from itertools import zip_longest
 
 from ow174.game.script import controller_heroes, expr
 from ow174.game.script.graph import GRAPH_TYPE
@@ -19,6 +21,7 @@ MODE_SCORE_THRESHOLDS = "STU_0C37A184"
 SESSION_ENTITIES = "STU_BD2D717B"
 AUTHORED_ARRAY = "STU_45B0D2B2"
 AUTHORED_PAIRS = "STU_7757D403"
+RANKED_ARRAY = "STU_951CAB4C"
 
 
 @dataclass(frozen=True)
@@ -67,6 +70,8 @@ def evaluate_value(instance, cfg, *, initial=0, watcher=None):
             return tuple(values)
         if isinstance(cfg, dict) and cfg.get("$") == AUTHORED_PAIRS:
             return _authored_pairs(instance, cfg, watcher=watcher)
+        if isinstance(cfg, dict) and cfg.get("$") == RANKED_ARRAY:
+            return rank_array(instance, cfg, watcher=watcher)
         result = controller_heroes.collect(instance.context(watcher), cfg)
         if result is not NotImplemented:
             return result
@@ -136,6 +141,52 @@ def fold_array(instance, cfg, *, watcher=None):
         if result is not None:
             return evaluate_scalar(instance, result, watcher=watcher)
     return params[1293]
+
+
+def rank_array(instance, cfg, *, watcher=None, scalar=False):
+    """104319 1B77230/1B78550: rank each row, retaining its typed key and value."""
+    component = instance.component
+    condition = cfg.get("m_condition")
+    source = cfg.get("m_814F8EC3")
+
+    def compare(left, right):
+        # 1B7B020 compares rank vectors lexicographically with implicit zeroes.
+        for a, b in zip_longest(left[0], right[0], fillvalue=0.0):
+            component.consume_work("array rank comparison")
+            if a < b:
+                return -1
+            if a > b:
+                return 1
+        return 0
+
+    with component.operation():
+        values = evaluate_value(instance, source, watcher=watcher) if source is not None else 0
+        keyed = isinstance(values, expr.PairArray)
+        if keyed:
+            rows = values.items
+        else:
+            rows = ((0, value) for value in values) if isinstance(values, tuple) else ((0, values),)
+        params = {}
+        ranked = []
+        with component.parameter_scope(params):
+            for index, (key, value) in enumerate(rows):
+                component.consume_work("array rank row")
+                params.update({12: index, 142: value, 1451: key})
+                keys = _iter_values(instance, condition, watcher=watcher)
+                rank = tuple(expr.to_float(item) for item in keys)
+                ranked.append((rank or (0.0,), (key, value)))
+
+        order = cmp_to_key(compare)
+        if 1 < len(ranked) <= 30:
+            # The native insertion sort swaps the first minimum into its sentinel position.
+            first = min(range(len(ranked)), key=lambda index: order(ranked[index]))
+            ranked[0], ranked[first] = ranked[first], ranked[0]
+        ranked.sort(key=order)
+        if scalar:
+            return ranked[0][1][1] if ranked else expr.EVALUATION_FAILED
+        if keyed:
+            return expr.PairArray(tuple(pair for _, pair in ranked))
+        return tuple(value for _, (_, value) in ranked)
 
 
 def _iter_pairs(instance, cfg, *, _depth=0, watcher=None):

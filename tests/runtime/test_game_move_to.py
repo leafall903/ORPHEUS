@@ -8,7 +8,7 @@ from unittest.mock import patch
 from ow174.game import bodytrace, bots, combat, movelog, replay_values, stats
 from ow174.game.body_vm_snapshot import export_body_vm
 from ow174.game.collision import StaticCollisionProvider, World, flat_world
-from ow174.game.commands import JUMP, Command
+from ow174.game.commands import CROUCH, JUMP, Command
 from ow174.game.content import PRACTICE_RANGE, SOLDIER, Spawn, heroes
 from ow174.game.match import Match
 from ow174.game.mover import STEP, WORLD_GRAVITY
@@ -22,6 +22,7 @@ from tests.runtime.test_game_notices import into_world
 START = 100
 DOOMFIST = 0x02E000000000012F
 UPPERCUT = 0x0DD8
+UPPERCUT_VICTIM = 0x0E7D
 SHIFT = 0x08
 DESTINATION = Vec3(0.0, 1.0, 3.0)
 SCENE = replace(PRACTICE_RANGE, spawns=(Spawn(None, (0.0, 1.0, 0.0), 0.0),))
@@ -264,18 +265,83 @@ class FixedTargetMoveToTests(unittest.TestCase):
         self.command(player, frame, buttons=buttons)
         player.match.update(frame * player.quanta / 1_000_000, frame, frames=False)
 
+    @staticmethod
+    def uppercut_victim_instances(player):
+        return [
+            instance for instance in player.body_script.component.instances.values()
+            if instance.graph.index == UPPERCUT_VICTIM
+        ]
+
+    def test_doomfist_uppercut_resets_airborne_victim_and_releases_input_on_landing(self):
+        player, _, target, vitals = self.uppercut_duel(flat_world(1.0), 1, (0.0, 1.0, 2.5))
+        opponent = target.owner
+        cast = START + 1
+        jumping = self.command(opponent, cast, buttons=JUMP)
+        self.assertTrue(opponent.mover.airborne)
+        self.assertGreater(jumping.velocity[1], 0.0)
+
+        self.uppercut_frame(player, cast, SHIFT)
+        self.assertEqual(vitals.total, 150.0)
+        helper, = self.uppercut_victim_instances(opponent)
+        self.assertEqual(self.uppercut_victim_instances(player), [])
+        self.assertFalse(helper.stopped)
+        self.assertEqual(opponent.body_script.snapshot().instances[helper.id], (UPPERCUT_VICTIM, None))
+        export_body_vm(opponent.body_script)
+
+        halted = self.command(opponent, cast + 1, forward=127, right=127, buttons=CROUCH)
+        self.assertEqual(halted.position, jumping.position)
+        self.assertEqual(halted.velocity, (0.0, 0.0, 0.0))
+        self.assertFalse(opponent.mover.crouched)
+        falling = self.command(opponent, cast + 2, forward=127, right=127, buttons=CROUCH)
+        self.assertEqual(falling.velocity[::2], (0.0, 0.0))
+        self.assertLess(falling.velocity[1], 0.0)
+
+        for frame in range(cast + 3, cast + 38):
+            self.command(opponent, frame)
+            if not opponent.mover.airborne:
+                break
+        else:
+            self.fail("Uppercut victim did not land")
+        self.assertEqual(self.uppercut_victim_instances(opponent), [])
+        self.assertNotIn(helper.id, opponent.body_script.snapshot().instances)
+        resumed = self.command(opponent, frame + 1, forward=127)
+        self.assertGreater(resumed.position[2], falling.position[2])
+
+    def test_doomfist_uppercut_discards_victim_request_after_body_replacement(self):
+        player, _, target, vitals = self.uppercut_duel(flat_world(1.0), 1, (0.0, 1.0, 2.5))
+        opponent = target.owner
+        old_body = opponent.body
+        cast = START + 1
+        match = player.match
+        self.command(opponent, cast)
+        with patch.object(match, "queue_body_play", wraps=match.queue_body_play) as queued:
+            self.command(player, cast, buttons=SHIFT)
+        self.assertEqual(vitals.total, 150.0)
+        queued.assert_called_once()
+        self.assertEqual(queued.call_args.args[1].targets, (old_body,))
+
+        self.assertTrue(match.switch_hero(opponent, opponent.hero))
+        self.assertNotEqual(opponent.body, old_body)
+        match.update(cast * player.quanta / 1_000_000, cast, frames=False)
+        self.assertEqual(self.uppercut_victim_instances(opponent), [])
+        jumping = self.command(opponent, cast + 1, buttons=JUMP)
+        self.assertGreater(jumping.velocity[1], 0.0)
+
     def test_doomfist_uppercut_damages_a_tracked_enemy_once_per_cast(self):
         feet = (0.0, 1.0, 2.5)
         player, uppercut, target, vitals = self.uppercut_duel(flat_world(1.0), 1, feet)
+        opponent = target.owner
         ability, tracker, modify_health = (uppercut.state(index) for index in (0, 9, 10))
         cast = START + 1
+        self.command(opponent, cast)
         self.uppercut_frame(player, cast, SHIFT)
+        first_helper, = self.uppercut_victim_instances(opponent)
         self.assertTrue(tracker.active and modify_health.active)
-        target.owner.mover.position[:] = (0.0, 1.0, 12.0)
+        opponent.mover.position[:] = (0.0, 1.0, 12.0)
         self.uppercut_frame(player, cast + 1)
         self.assertEqual(uppercut.vars[375].value(), (Entity(target.entity),))
         self.assertEqual(tracker.payload(), {"targets": ()})
-        target.owner.mover.position[:] = feet
+        opponent.mover.position[:] = feet
         vm = replay_values.decode(export_body_vm(player.body_script)["value"])
         self.assertIn(["state", uppercut.id, 9], [obj["ref"] for obj in vm["objects"]])
         settled = cast + 24
@@ -286,6 +352,11 @@ class FixedTargetMoveToTests(unittest.TestCase):
         self.assertEqual(player.stats.value(stats.HERO_DAMAGE), 50.0)
         hit = {"+0x0": {"+0x0": target.entity}, "+0x4": 50, "+0x8": 0}
         self.assertEqual([notice["+0x78"] for notice in player.client.messages(combat.HIT)], [hit])
+        # Grounded victims leave the helper through its three-second fallback timer.
+        self.command(opponent, cast + 187)
+        self.assertEqual(self.uppercut_victim_instances(opponent), [first_helper])
+        self.command(opponent, cast + 188)
+        self.assertEqual(self.uppercut_victim_instances(opponent), [])
 
         for frame in range(settled, cast + 480):
             self.uppercut_frame(player, frame)
@@ -295,9 +366,12 @@ class FixedTargetMoveToTests(unittest.TestCase):
             self.fail("Uppercut did not finish its cooldown")
         self.assertFalse(player.mover.airborne)
         x, y, z = player.mover.position
-        target.owner.mover.position[:] = (x, y, z + feet[2])
         ready = frame + 1
+        self.command(opponent, ready)
+        opponent.mover.position[:] = (x, y, z + feet[2])
         self.uppercut_frame(player, ready, SHIFT)
+        second_helper, = self.uppercut_victim_instances(opponent)
+        self.assertNotEqual(first_helper.id, second_helper.id)
         self.assertTrue(tracker.active and modify_health.active)
         for frame in range(ready + 1, ready + 24):
             self.uppercut_frame(player, frame)
