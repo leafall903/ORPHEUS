@@ -10423,3 +10423,41 @@ world-energy consumers; integrate ShieldRecovery onto current Vitals recovery
 accounting rather than a second ledger, and source Graviton into existing field
 host. Original assertions and known failures remain. Remaining estimate stays
 6-12 active hours, low confidence until original temporal checks expose overlap.
+
+## A75 — single native Pet application clock and real Ana cleanse
+
+Zarya's successful native Pet now records the actual constructor/application
+world tick independently of its body/component frame. The same Pet stores its
+one-time cleanse_applied flag; both exact fields are registered in causal server
+snapshot storage. No second barrier, health pool, pending-manager or regen ledger.
+The existing barrier advance applies at that tick only while actual source,
+recipient/team/body/health remain valid. It calls current clean_ana_effects via
+`Combat.cleanse_ana_effects` (same HealingEffects.anti host), retains the earlier
+fallback block interval, and keeps A74 sole Hook release plus existing projected
+sleep clear together at actual application. Old personal/legacy projected early
+cleanse paths yield to this event; all legacy/history pool data remains intact.
+
+Focused normal-module checks: original projected-allied queued cleanse method
+plus actual two-Pet application/pair methods and original Hook release =4/4 pass
+6.902s. Further explicit both-Pet future pair test3cases passes3.571s. This proves
+body source.frame differs from application_tick, actual original anti Modifier
+identity remains at application-1, recipient team change prevents clear, and
+successful application removes actual anti and releases Hook without pool loss.
+Logs worker-a-zarya-native-cleanse-final.log and
+worker-a-zarya-both-pet-future-cleanse.log. No full matrix/client/network run.
+
+Original0068 cleanse methods/helpers are preserved in normal runnable
+`test_zarya_native_cleanse`: observer adapters read existing Pet and actual
+HealingEffects.end (absolute ticks), and the absent old ANA_GRENADE symbol uses
+its identical original literal1426. Original source assert50 is unchanged:
+baseline4 cast variants see actual current013B native60 damage and fail before
+its cleanse assertions. Those conflicting source numbers remain, not changed
+to60 or claimed passing. Initial legacy healing_block_until access errors are
+saved in baseline log; final original queued ally method runs and passes using
+the actual single-host deadline adapter. No fake runtime alias/observer pool.
+
+Next exact action: source0068 expiry/start/cooldown/world-energy consumers and
+existing Vitals shield-recovery accounting, then existing Graviton host. Preserve
+C47/C49 projected history and current native Pet/Vitals identity. Scope remains
+6-12 active hours low confidence; partial original check failures do not block
+this independent actual consumer boundary.

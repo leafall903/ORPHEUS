@@ -225,7 +225,8 @@ FIELDS = {
     combat.TemporaryPool: _names("identifier kind slot pool_id most now last_tick removed"),
     barriers.Barrier: _names(
         "entity parent parent_body source instance state activation component "
-        "mesh geometry_digest vitals retired recipient recipient_body recipient_component"),
+        "mesh geometry_digest vitals retired recipient recipient_body recipient_component "
+        "application_tick cleanse_applied"),
     assassin_victim.Lease: _names(
         "source source_instance sender_state activation target source_component target_component instance"),
 

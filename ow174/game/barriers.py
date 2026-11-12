@@ -324,6 +324,8 @@ class Barrier:
     recipient: object = None
     recipient_body: int = 0
     recipient_component: runtime.Component | None = None
+    application_tick: int = 0
+    cleanse_applied: bool = False
 
 
 def track_projected_target(world, state):
@@ -493,7 +495,8 @@ def create(world, state):
     component = runtime.Component(entity, state.instance.component.frame_ms, child_world)
     component.frame, component.now = state.instance.component.frame, state.now
     barrier = Barrier(entity, owner, owner.body, state.instance.component,
-                      state.instance.id, state.index, state.counter, component)
+                      state.instance.id, state.index, state.counter, component,
+                      application_tick=world.match.tick)
     if recipient is not None:
         barrier.recipient = recipient
         barrier.recipient_body = recipient.body
@@ -598,6 +601,7 @@ def advance(fight, tick):
         else:
             component.run_now()
         _init_health(fight, barrier)
+        _apply_bubble_cleanse(fight, barrier)
 
 
 def _init_health(fight, barrier):
@@ -620,18 +624,30 @@ def _init_health(fight, barrier):
         vitals = barrier.vitals = Vitals(barrier.entity, maximum)
         vitals.now[0] = max(0.0, min(maximum, current))
         component.set(253, vitals.total)
-        if bubble and vitals.total > 0 and _recipient_live(fight, barrier):
-            # Successful native Pet application cleanses an incoming Hook at
-            # this accepted attachment, before another world-clock update.
-            fight.hooks.release_target(protected_body)
-        if barrier.recipient is not None and vitals.total > 0 and _recipient_live(fight, barrier):
-            # Reconstructed sleep cleanse on successful projected protection, once per Pet.
-            recipient = fight.vitals.get(protected_body)
-            if recipient is not None:
-                recipient.clear_sleep()
-                from ow174.game.combat import SLEEP_DART_EFFECT
+        _apply_bubble_cleanse(fight, barrier)
 
-                fight.close_input_lock(protected_body, SLEEP_DART_EFFECT)
+
+def _apply_bubble_cleanse(fight, barrier):
+    """Apply once at the native Pet's actual accepted world application."""
+    if (barrier.component.world.hero != ZARYA or barrier.cleanse_applied
+            or fight.tick < barrier.application_tick or barrier.vitals is None
+            or barrier.vitals.total <= 0 or not _live(fight, barrier)):
+        return
+    protected_body = barrier.recipient_body or barrier.parent_body
+    recipient = fight.vitals.get(protected_body)
+    if recipient is None or recipient.dead:
+        return
+    barrier.cleanse_applied = True
+    fight.cleanse_ana_effects(protected_body)
+    # Retain the real block interval for prior-time healing integration.
+    if recipient.healing_block[1] > fight.now:
+        recipient.healing_block = recipient.healing_block[0], fight.now
+    fight.hooks.release_target(protected_body)
+    if barrier.recipient is not None:
+        recipient.clear_sleep()
+        from ow174.game.combat import SLEEP_DART_EFFECT
+
+        fight.close_input_lock(protected_body, SLEEP_DART_EFFECT)
 
 
 def _recipient_live(fight, barrier):
