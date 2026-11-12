@@ -9,6 +9,60 @@ acceptance failures without weakening checks. This worker owns deliveries0002,
 0003,0004,0005,000A,0020,007A. No network, push, Rust runtime cutover, new feature,
 acceptance matrix, copied game archive or client session is authorized here.
 
+## Current shared000E and nine-owner handoff after A72
+
+A64-A72 now complete the specifically reassigned0200 shared000E consumers on
+existing original-language hosts. This supersedes the A63 next-actions below:
+owner-full optional dynamic/bound_vars and `_dynamic_owner_full` use the sole
+statescript encoder; Match/heroselect effects and delta-key refresh use existing
+reliable full wire; LinkedTarget strict1177/224E scopes preserve the four cinematic
+placements; exact Pin services/messages/numeric backends are causal storage;
+manual NPC associations use composed graph.npc_controller and one original
+NpcContext linking the distinct actual body/controller pair. Manual Assassin
+receivers use the actual Player ControllerVM Queue, target_filter_bits, source
+recipient/effect and original contact/delayed damage, with no duplicate body1177.
+Original automatic NPC/Phase2 hosts remain separate and unique. Original
+script/sleep_view.py has no duplicate host file: its two owner-angle queries,
+strict224E LinkedTarget sampling and authored Wait29 delay are mounted in the
+existing BodyWorld/Combat paths (A71). All source functionality is mapped.
+
+A72 fab067ab additionally closes a real0003 cross-owner omission: Tracer damage
+now delivers actual loss/recipient/tags into the sole existing012/0B8B host,
+not the generic points-only path. Common39 and passive-owner60/zero gates are
+restored without duplicate charge. Original focused six tests passed7.293s.
+Clean synchronization1bfd7ec2 absorbs root f715efdd with only CHANGELOG union;
+all source merges automatic. On that combined tree the unchanged original
+`TracerSigmaFluxTests.test_actual_pulse_released_during_flux_hits_the_airborne_caster`
+passed6.827s: Sigma355 damage, Tracer0 charge and original effect/slam assertions.
+Log `worker-a-pulse-flux-charge-final.log`. Root separately owns the conflicting
+023B lethal/post-commit slam policy; A did not alter it.
+
+Verification is deliberately bounded. Root independently ran A67/controller/
+linked/full/match/manual/Pin and shared group54/54,245.116s; v18 actual five
+associations/manual inputs27 passed; A70 original recipient core4 plus original
+Flux1 passed5/5 on combined root. No new acceptance matrix or full-suite rerun.
+Original failures remain: older Ana warmup Recall policy conflicts, old uniform
+DVa/Tracer geometry observations, source observer/API differences, and original
+Moira sleep-view fixture comparing seconds against tick sleep_until after its
+sampling assertions pass. These are preserved, not claimed green or removed.
+Root froze and successfully replayed original Widow independently.
+
+The nine source refs and owner reconciliation below remain valid; latest0003
+charge correction explicitly supersedes the previous no-known-omission wording.
+No known remaining consumer from the specifically assigned shared000E task is
+identified. Formal large cross-owner ref admission/global reconciliation remains
+root-owned. Client acceptance and publication were not performed. No internet,
+Rust, appearance, duplicate actor/Vitals/manager/encoder or input-package change.
+
+Next exact action: hand this boundary to root for confirmation, then take the
+already delegated0068 Zarya scope using the sole existing scripted Particle
+Barrier Vitals and Graviton host. B has no Zarya WIP; its Hook release_target
+interface is available after f715efdd. Inspect original barrier clocks/cleanse/
+energy/ShieldRecovery and Graviton source consumers before editing. B estimated
+that owner scope6-12 active hours with low confidence; no missing-name-only
+copies, second bubble pool or new features. Nine-owner residual audit remains
+recorded above and below; it does not gate source integration.
+
 ## Current nine-owner handoff after A63
 
 A owns the original seven hero cores plus reassigned0065 Junkrat and0200 Ashe.
