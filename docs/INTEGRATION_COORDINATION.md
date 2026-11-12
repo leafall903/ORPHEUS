@@ -530,3 +530,38 @@ source tree changed15 model files during that long run. It is orchestration
 invalidation, not proof of a missing Genji implementation. Preserve rejection;
 long replay checks must run on frozen canonical. Canonical nowbdee0a39; root
 actual Bap per-pool/charge diagnostic66122 is live, source assertions unchanged.
+
+
+## Source frozen-affiliation query restoration
+
+B27 adfa9309 is received as69f8fbf7 (actual original shield control/death/leave
+retirement), C27 ac284345 as67825a29 (Mei reload/Cryo entry/original charge and
+player pillar lift/history synchronization). Frozen root67825a29 v7 check73992
+ran76 in77.545s:74pass,1skip,1 source team keyword error. Every source assertion
+is retained. Root took that explicit query contract after B confirmed no WIP.
+
+Original0007 _barrier_contact/_enemies accept a separately captured affiliation.
+Root carries optional team through current native/legacy Rein, Particle/world,
+Orisa, Sigma and Photon queries and actual Fire Strike contact selection. Source
+owner/body identities and current barrier-owner affiliation remain authoritative;
+no surrogate actor or second host. Default calls continue current affiliation.
+The actual two-Rein input probe proves a source team change makes default query
+miss while explicit captured affiliation still hits the same real enemy owner;
+FFA still excludes the source owner's own shield. No stored snapshot fields.
+
+Root60704 normal original FireStrike/geometry/Orisa/runtime/Damage checks are
+terminal61 in7.486s:26pass,34 old optional Orisa-env skips,1 retained geometric
+order failure. The former keyword exception is fixed; the original lethal-body
+case now reaches unchanged body10.815728 vs shield10.796955 ordering expectation.
+Keep that1.9cm discrepancy for source pose/shape audit, without moving geometry
+to force green. The actual changed-team/FFA probe passed separately in
+root-frozen-team-probe.log. Source method expectations and constants untouched.
+
+Actual Bap NPC diagnostic66122 is terminal: anti-health gain/charge18.12 matches
+its formula; additional81.6 total is native shield regeneration. Friendly-body
+health80/shield100 and actual charge101.879959 reflect ordinary overheal after
+shield recovery; source total103.44 assumes no concurrent shield recovery.
+Logs retain both original failing assertions and exact per-pool evidence.
+All five NPC controller hosts also ran40ticks on original v7 input: each has
+one body and its expected graph, no fault. Assassin uses1158, the other four
+11E3/13E9/1138/1251. No controller association override was installed.

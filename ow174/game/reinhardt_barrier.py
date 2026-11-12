@@ -324,11 +324,12 @@ class ReinhardtBarriers:
             )
             self.next_id += 1
 
-    def enemies(self, shooter):
+    def enemies(self, shooter, *, team=None):
+        team = shooter.team if team is None else team
         for owner in self.fight.match.players:
             self.sync(owner)
         return [actor for actor in self.actors.values() if actor.active and actor.owner is not shooter
-                and (self.fight.match.game_map.free_for_all or actor.owner.team != shooter.team)]
+                and (self.fight.match.game_map.free_for_all or actor.owner.team != team)]
 
     def damage(self, actor, amount):
         if not actor.active or amount <= 0:
