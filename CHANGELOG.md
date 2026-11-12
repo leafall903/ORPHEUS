@@ -109,6 +109,14 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Integrate original phase expiry into Sentry history
+
+- Feed actual Wraith/Fade expiry from their existing clock pairs to the existing
+  Sentry damage-start integral, preserving their sole drivers and world deadlines.
+- Accepted gaps now match contiguous damage; 24 causal epoch/Sentry/damage checks
+  pass. The original older one-tick contiguous expectation remains recorded
+  unchanged, with full phase/retarget and client acceptance still open.
+
 ### Preserve projectile source scaling on the same Mei wall pools
 
 - Connect wall direct/splash damage to the existing source modifiers once,

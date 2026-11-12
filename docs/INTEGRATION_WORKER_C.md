@@ -2522,3 +2522,43 @@ retarget/projected actual windows (NPC target mount owned A), remaining0008
 cross-owner source force and0015 Heavy Sentry stance/displacement. No client,
 network/publication action. Remaining C estimate5–12 activehours, lowconfidence;
 shared geometry/phase timing is the largest unknown.
+
+
+## C58 original phase expiry feeds the existing Sentry integral
+
+Original phase_defenses.advance_idle reports the first vulnerable world tick to
+Combat's damage_starts. The combined owners already advance Reaper/Fade through
+their sole existing world_frame_anchor/moira_clocks drivers, but that report was
+missing from Sentry integration. Actual source helper showed Reaper gap1=3.84,
+gap16=10.24,gap64/80=40.96; Fade gap1=3.84,gap16=10.24,gap40=25.6. Mei existing
+reported expiry already kept all gaps at3.84. These are real accepted gaps, not
+private observer failures; log ../worker-c-c58-phase-gap-probe.log.
+
+Add only pure immunity.phase_world_deadline: read actual Wraith/Fade Wait3 start/
+ms and their existing current-component clock pair, map that deadline to world
+time, never run a VM or create a ledger/driver. Combat.update feeds it to the
+existing sentry_damage_starts max integral, alongside existing Mei expiry. It
+does not delay protection globally or change current Reaper/Moira/Mei clocks,
+input admission, phase health rules or B50 Mine/Cryo deadlines.
+
+After restoration all11 source helper hero/gap scenarios produce identical3.84,
+../worker-c-c58-phase-gap-restored.log. Original full selected method remains
+3literal failures3.825s: its contiguous expected3.2 versus existing3.84 (one tick)
+occurs before gaps are compared. Original source assertions are unchanged and
+that boundary difference is not countedpass. The old phase_defenses.active
+observation was mapped externally to actual immunity.phased_out; original helper
+setup/assertions are retained, no production fake phase manager or alias.
+
+New tracked causal regression copies the original setup/helper and compares its
+accepted gap against actual contiguous behavior; it does not change the original
+literal check. A second actual producer test supplies body command frame+1000,
+uses the recorded original owner pair, verifies readonly deadline under run_now/
+run_frame rejection and actual protection on each side of that deadline. Both
+heroes pass; no guessed epoch offset is used. New2 + original Sentry14/Damage8:
+24/24pass39.233s, ../worker-c-c58-phase-history-check.log.
+
+Next: source retarget/projected windows, remaining defense/respawn transitions,
+then Bastion Heavy Sentry capture stance and displacement. Original0016 projected
+NPC native recipient is A-owned pending actual mount; no second manager. Keep
+remaining Pharah/Torb/Sombra source-consumer audits explicit. Remaining estimate
+4–11 C activehours, low confidence. No client/network/publication action.
