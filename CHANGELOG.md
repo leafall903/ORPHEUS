@@ -11445,3 +11445,11 @@ new shared cover_ray once available for original field LOS, and reconcile source
 mobility-stop/idle-reload consumers. No second012/regen/field actor or mover. The
 193 point-vs-extent boundary, two old private-ledger observations, and older Ana50
 vs native60 assertions remain visible and do not block real code integration.
+
+### Preserve actual NPC projection private storage boundaries
+
+- Copy each BotWorld button lookup and cross-component barrier Entity parameter
+  values while retaining actual actor/component/context identities. Strict
+  snapshot rejection remains unchanged.
+- Actual projected NPC causal storage, unknown-field rejection and shared
+  damage/runtime20 checks pass; original gameplay assertions are retained.
