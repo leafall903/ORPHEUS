@@ -46,9 +46,15 @@ Fourth batch: `feat: integrate delivered Pharah hover and Jump Jet` mounts
 (Pharah movement12, McCree roll15, script runtime13) pass. Root receives the
 single functional SHA after the coordination merge; it already has its parents.
 
+Fourth batch SHA: `c46b41e3`.
+Fifth batch: `feat: integrate delivered Pharah Barrage channel` mounts the
+mode0 persistent world-velocity SET and LogicalButton/WeaponVolley ultimate
+query. Five original owner checks and37 shared physics/Tracer/Echo checks pass.
+This does not mount the oscillating projectile consumer yet.
+
 ## Exact next work
 
-1. Continue Pharah's original Barrage launch/motion and persistent velocity SET,
+1. Continue Pharah's original Barrage launch/motion (persistent velocity SET is now mounted),
    then splash/self-splash/impulse and charge/control consumers. Source modules
    include barrage_motion.py; do not replace the generic combined projectile host.
 2. Audit the remaining Bastion cross-hero helpers; compare owner features, not
