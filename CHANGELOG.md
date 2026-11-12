@@ -7728,3 +7728,19 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Evidence: parallel-c16-composed-turret-check.log and
   parallel-b14-integrated-check.log. All root test processes are terminal.
   No original-client acceptance or network publication performed.
+
+
+### Shared contact and ricochet intake checkpoint
+
+C17 source0790f14f is integrated as7b921893, B15 source57932359 as e331ce2a,
+and A19 sourcee799f60c as31f18682. Original Mutual10, Torb/native shell4 and
+Storm ricochet7 checks all21 pass on the frozen canonical batch. The actual
+Torb command probe independently confirms two55 hammer contacts reduce the
+single Winston bubble700->590 while body500 and HERO_DAMAGE0 remain unchanged.
+Evidence: parallel-a19-b15-c17-check.log and parallel-c17-actual-torb-shell-check.log.
+No original expectations changed. Two old Shatter controls-key observation
+errors remain documented; A20 launch-frozen admission, B cross-hero/object
+counters, C Molten/charge remain pending. All three workers continue separately.
+All root tests are terminal. Keep original languages, source packs and every
+implementation; incomplete acceptance is not a merge gate. No publication or
+client operations performed. Whole nonappearance integration remains active.
