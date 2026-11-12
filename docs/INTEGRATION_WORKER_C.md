@@ -3397,3 +3397,59 @@ No new tests/matrix/service/runtime changes or ancestry operations were made.
 Locally validated10 ID/fullSHA identities,32 comparison rows,12 whole-AST exact
 modules; all read-only audit handles terminal. A107 rootaccepted at snapshot;
 B99 endpoint pending separately and this is not an overall-goal completion claim.
+
+
+## C77 — original012E relocation retires the existing generic force
+
+Synced currentintake52f728cc before checking only the three requested original
+callers. Frozen012E orisa_halt.move, shadow_step.update and Translocators.recall
+retire accepted Impulses before actual relocation/control. Current Translocator
+already calls same Knockbacks.retire, Mover.retire_impulses and Orisa._drop.
+Current Shadow lives in Combat._shadow; its actual successful cast commit lacked
+the retirement. Current Halt lives in Orisa with player VM MoveTo and NPC update;
+both lacked the original retirement at the actual ready movement request.
+
+Added those exact same-host calls: Shadow after cast/landing validation, before
+its existing position assignment, clears Knockbacks and Halt and the existing
+Mover impulse mode. Halt player retirement occurs only for a valid MoveTo request
+without current Hook/Graviton/Pin ownership, preserving the existing VM movement
+and all positions; NPC retirement occurs before its existing ready MoveTo solver.
+No second host, solver factory, timer, position change or special teleport policy.
+Actual old accepted queued force remained in launches/source after Shadow and
+Halt in the pre-fix baseline: ../worker-c-c77-relocation-baseline.log. Translocator
+baseline's failed accepted assertion was fixture landing/observation, not a new
+production omission; the original clear airborne destination observes acceptance.
+
+Important scope correction from root: replayed_frames is a same-live-body
+completed physical-frame receipt, NOT force lifecycle. Body constructor/real pose
+anchors also survive force retirement. Ordinary Knockbacks.retire is completely
+unchanged. An actual foreign-force endpoint followed by real Translocator recall
+preserves its most recent completed receipt and original constructor pair and
+rejects old FIRE/pose without moving/firing. The receipt legitimately advances
+while remaining force finishes before recall; it is sampled immediately before
+recall rather than incorrectly requiring its earlier value forever.
+
+Checks: original Shadow/Halt/worldgap37 methods all passed in the40-method run
+71.815s; that command had one NEW Translocator fixture acceptance failure and
+was not called whole-green (../worker-c-c77-relocation-check.log). Corrected the
+new fixture to the original unobstructed airborne destination, confirmed actual
+recall+retire instead of injecting a far-future recipient replay that can rightly
+consume its input endpoint. Final new5/5pass5.030s in
+../worker-c-c77-relocation-extra-check.log: Shadow force/source cleanup, player
+Halt cleanup, actual NPC queued native force cleanup, existing Translocator
+retirement, and actual completed-receipt/epoch/late-fire preservation. No original
+assertions edited. All check handles terminal; do not block this source consumer.
+
+A separate diagnostic proved only that a retained manual NPC impulse_mover
+pointer can remain during Halt. An added assertion requiring pointerNone was
+withdrawn as unsupported: it is also the reusable physical solver, not the old
+independent Motion object. No gameplay failure of that retained pointer was
+proved here; parent received exact existing methods for a possible bounded
+release-pose probe. Do not clear shared solvers/epochs or call that observer a new
+confirmed missing host. A owns DVa Booster gap; B owns Heavy launch world entry.
+
+The previously recorded34 source parents now being reachable is provenance only.
+This new concrete retirement consumer was found AFTER the C76 bounded receipt;
+C77 closes its known code gap without using reachability/full acceptance as proof.
+Root must incorporate this batch and outstanding A/B consumers before refreshing
+its final completion statement. No overall goal completion is claimed by C77.

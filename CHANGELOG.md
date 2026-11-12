@@ -28,6 +28,14 @@ parallel-merge/worker-a-dva-booster-npc-force-joint-check.log.
 A105/A107 handoffs remain checkpoints: this concrete original consumer gap is
 now fixed; root final global reconciliation remains separate. No client session,
 full acceptance matrix, push or external runtime writes were performed.
+## C77 — retire original accepted force at Shadow/Halt relocation
+
+Restored original012E retirement in current Shadow successful commit and actual
+Halt player/NPC MoveTo entry. Existing Translocator already uses same cleanup.
+Preserved body epoch/completed-pose receipts; actual recall rejects late FIRE.
+Original37 Shadow/Halt/worldgap methods pass; corrected focused5 cases pass5.030s.
+Initial joint one new fixture failure is recorded, no original assertion changed.
+Source-parent ancestry remains provenance only; no overall completion claim.
 
 ## C76 — actual consumer receipt for ten root-baseline deliveries
 

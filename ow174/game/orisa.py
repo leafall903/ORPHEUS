@@ -270,6 +270,14 @@ class Orisa:
         if not self._valid(pull, self.fight.tick):
             self._drop(pull.entity)
             return None
+        # Retire the old independent force when this authored MoveTo takes over.
+        # Body epochs and completed-pose receipts belong to the live body.
+        if (self._request(pull)[1] is not None
+                and not self.fight.hooks.controlled(player.body)
+                and player.body not in self.fight.zarya_gravitons.pulled
+                and player.body not in self.fight.pins.values()):
+            self.fight.knockbacks.retire(player.body)
+            player.mover.retire_impulses()
         # The normal player MoveTo path consumes the actual0CCE state request
         # and reports arrival/abort to that same state. No forced50-speed path.
         return None
@@ -319,6 +327,7 @@ class Orisa:
             if request is None:
                 pull.last_tick = tick
                 continue
+            self.fight.knockbacks.retire(entity)
             if pull.mover is None:
                 pull.mover = Mover(bot.position, int(bot.yaw), self.fight._collision(), mover_data(bot.body))
             destination, speed = request
