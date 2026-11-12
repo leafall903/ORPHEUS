@@ -2070,6 +2070,7 @@ class Combat:
         self.shatters: dict[int, earthshatter.Wave] = {}
         self.charges: dict[int, reinhardt_charge.Charge] = {}
         self.ball_grapples = {}
+        self.grapple_seen = {}
         self.pile_air_locks = {}
         self.moira_orbs: list[moira.Orb] = []
         self.moira_clocks = {}
@@ -2263,6 +2264,8 @@ class Combat:
         """Discard body-local combat state when the player's current body retires."""
         from ow174.game import body_entities
 
+        ball.cancel_grapple(self, player)
+        self.grapple_seen.pop(player.body, None)
         self.pile_air_locks.pop(player.body, None)
         body_entities.retire_source(self.match, player.entity, player.body)
         if player.hero.guid == symmetra_turrets.HERO and next_hero != symmetra_turrets.HERO:
@@ -2651,6 +2654,8 @@ class Combat:
 
     def _interrupt(self, target: Target, *, preserve=()) -> None:
         actor = target.owner
+        if not isinstance(actor, bots.Bot) and actor.hero.guid == ball.HERO:
+            ball.interrupt_grapple(self, actor, self.tick)
         self._interrupt_reaper(target.entity, actor)
         mover = actor.control_mover if isinstance(actor, bots.Bot) else getattr(actor, "mover", None)
         if mover is not None and (last := mover.last_command) is not None:
@@ -3215,6 +3220,7 @@ class Combat:
         interception.update_pools(self, self.tick)
         barriers.advance(self, self.tick)
         if self.is_dead(player):
+            ball.cancel_grapple(self, player)
             self.genji_strikes.pop(player.body, None)
             self.genji_blades.pop(player.body, None)
         healing, script.self_healing = script.self_healing, 0.0
@@ -3253,7 +3259,10 @@ class Combat:
         self._sync_adaptive_shield(player)
         moira.track_clock(self, player, posed=command is not None)
         if self.is_stunned(player):
+            ball.cancel_grapple(self, player)
             return
+        if script.hero == ball.HERO and not defer_effects:
+            ball.update_grapple(self, player, command, aim(*command.aim()) if command is not None else None)
         self.meteors.command(player, command)
         if self.meteors.protected(player.body):
             return
@@ -9642,6 +9651,7 @@ class Combat:
                     viewer.client.queue_bot_death_update(bot.entity, event)
 
     def _died(self, killer, victim, critical: bool, loadout, *, source=None) -> None:
+        ball.cancel_grapple(self, victim)
         self.pile_air_locks.pop(victim.body, None)
         """Dispatch notices, authored death, and the respawn."""
         from ow174.game import body_entities

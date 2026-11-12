@@ -681,6 +681,9 @@ class Player:
                         script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
                 self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
+                if self.body_script is script and script.hero == 0x02E00000000001CA:
+                    from ow174.game import ball
+                    ball.settle_grapple_interrupt(self.match.combat, self, command.frame)
         script = self.body_script
         if script is not None and (pending := getattr(script.world, "pending_ult_credits", ())):
             from ow174.game.script import charge
