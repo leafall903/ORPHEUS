@@ -65,6 +65,7 @@ class BodyScriptUnavailable(ValueError):
 
 
 def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
+          current_health: float | None = None,
           autonomous: bool = False, acquire: bool = False, pursue: bool = False, specials: bool = False,
           authored_assassin: bool = False, authored_trooper: bool = False,
           difficulty_index: int | None = None) -> bots.Bot:
@@ -77,6 +78,9 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('invalid NPC team or yaw')
     if difficulty_index is not None and (type(difficulty_index) is not int or not 0 <= difficulty_index <= 3):
         raise ValueError('manual NPC difficulty must select one of four authored entries')
+    if current_health is not None and (type(current_health) not in (int, float)
+            or not math.isfinite(current_health) or not 0 < current_health <= definition.health):
+        raise ValueError('NPC initial health must be within its maximum')
     position = tuple(position)
     if type(autonomous) is not bool:
         raise ValueError('NPC autonomous mode must be boolean')
@@ -120,6 +124,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
     match.bots.append(bot)
     match.combat.vitals[entity] = combat.Vitals(
         entity, definition.health, definition.armour, definition.shields)
+    if current_health is not None:
+        match.combat.vitals[entity].now[combat.HEALTH_POOL] = float(current_health)
     match._prepare_bot_script(bot)
     if difficulty_index is not None and bot.body_script is None:
         match.bots.remove(bot)
@@ -190,11 +196,12 @@ def remove_body(match, bot) -> None:
             viewer.client.queue_entities([world.EntityUpdate(bot.entity, world.OP_DESTROY)])
 
 
-def remove_spawned(match) -> tuple[int, ...]:
+def remove_spawned(match, *, entities=None) -> tuple[int, ...]:
     """Explicitly remove only manual NPCs, including corpses and owned attacks."""
     removed = []
     for bot in tuple(match.bots):
-        if bot.spawner.get('manual_spawn') is True:
+        if ((entities is None and bot.spawner.get('manual_spawn') is True)
+                or (entities is not None and bot.entity in entities)):
             remove_body(match, bot)
             removed.append(bot.entity)
     return tuple(removed)
@@ -309,3 +316,21 @@ def update_acquisition(fight, bot):
         if charge is not None:
             inputs.append((35, charging))
     component.edges([(value, down) for value, down in inputs if (value in component.held) != down])
+
+
+def aim_at(match, bot: bots.Bot, point) -> tuple[int, int]:
+    """Explicit fixture/controller aim; autonomous acquisition is a separate service."""
+    if bot not in match.bots or bot.dead:
+        raise ValueError('aim needs a living NPC in this match')
+    point = tuple(point)
+    if len(point) != 3 or any(type(v) not in (int, float) or not math.isfinite(v) for v in point):
+        raise ValueError('NPC aim needs three finite coordinates')
+    x, y, z = bot.position
+    eye = bot.combat_geometry[2] if bot.combat_geometry else combat.EYE
+    dx, dy, dz = point[0] - x, point[1] - y - eye, point[2] - z
+    if dx * dx + dy * dy + dz * dz < combat.EPSILON:
+        raise ValueError('NPC aim target coincides with muzzle')
+    bot.yaw = bots.s16(round(math.atan2(dx, dz) * 65536 / (2 * math.pi)))
+    bot.pitch = bots.s16(round(-math.atan2(dy, math.hypot(dx, dz)) * 65536 / (2 * math.pi)))
+    bot.moved_tick = match.tick
+    return bot.yaw, bot.pitch

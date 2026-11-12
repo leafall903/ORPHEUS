@@ -4,6 +4,35 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Mount delivered actor-backed Torbjorn turrets and primary marks
+
+- Mount the original turret factory/build/target/fire/repair/dismantle and reuse
+  manager on existing NPC bodies, pools and cleanup. Add original optional
+  initial health and precise selected-actor removal; retain ordinary manual
+  NPC behavior, existing controller/navigation and DVa owner credit. The turret
+  manager alone advances its gun VM; its player credit and custom physical
+  geometry connect to actual combat targeting, damage and snapshot consumers.
+- Connect original throw spawn/gravity and point collision to actual landing,
+  owner/body replacement, death/disconnect retirement, current script foreign
+  variables and bound interaction messages. Connect030E/16FC primary marks to
+  impacts and live turret target priority/expiry. No second turret entity/pool
+  or prototype gun manager is created.
+- Extend prepared supplements with conflict-checked deployables metadata. Source
+  shared records match current combined inputs exactly; additions are five
+  graphs1688/1689/16DE/16FB/16FC, two entities28B7/2903 and the original
+  format_version/turret/molten_core/primary_mark metadata. Root owns the final
+  profile composer; original inputs remain immutable.
+- Eight owner/cooldown/retire/passive-snapshot cases plus15 existing NPC/damage
+  checks pass (the24-check run also records an unexecuted missing mark-fixture
+  import). All five throw/death/repair cases pass; all five original primary-
+  mark cases pass. The required original defense/phase test fixtures are now
+  retained unchanged; their broader suites have not been claimed as executed.
+- Original turret fixtures import still-unmounted Molten/phase/charge modules;
+  these checks explicitly use a test-only frozen source package fallback for
+  those imports, not production integration. Molten Core, source charge and
+  cross-owner control/defense parity remain work. No client run or whole-line
+  completion is claimed; all existing failed assertions remain unchanged.
+
 ### Mount delivered Torbjorn hammer contact windows
 
 - Mount the original168C animation-derived ordinary/Overload impact windows,

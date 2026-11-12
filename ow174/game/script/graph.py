@@ -304,8 +304,8 @@ def add_supplement(data: dict, extra: dict) -> dict:
     are errors rather than silent changes to already accepted mode/hero inputs.
     """
     if (not isinstance(extra, dict) or type(extra.get("version")) is not int or extra["version"] != 1
-            or set(extra) - {"version", "graphs", "entities", "effect_scripts"}):
-        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts")
+            or set(extra) - {"version", "graphs", "entities", "effect_scripts", "deployables"}):
+        raise ValueError("graph supplement requires version1 and only graphs/entities/effect_scripts/deployables")
     graphs = {record["index"]: record for record in data["graphs"]}
     supplied = set()
     for record in extra.get("graphs", []):
@@ -339,6 +339,20 @@ def add_supplement(data: dict, extra: dict) -> dict:
                 raise ValueError(f"supplement conflicts with effect {key}")
             effects[key] = record
         result["effect_scripts"] = effects
+    if "deployables" in extra:
+        supplied_deployables = extra["deployables"]
+        if not isinstance(supplied_deployables, dict):
+            raise ValueError("supplement deployables must be a mapping")
+        deployables = dict(data.get("deployables") or {})
+        for key, record in supplied_deployables.items():
+            if not isinstance(key, str) or (key == "format_version" and (type(record) is not int or record != 1)):
+                raise ValueError("invalid supplemental deployables metadata")
+            if key != "format_version" and not isinstance(record, dict):
+                raise ValueError("supplement deployable entries must be mappings")
+            if key in deployables and deployables[key] != record:
+                raise ValueError(f"supplement conflicts with deployable {key}")
+            deployables[key] = record
+        result["deployables"] = deployables
     return result
 
 

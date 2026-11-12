@@ -265,3 +265,45 @@ Clean C15 boundary synchronizes root7b6c99ac, including B9 Winston jump/primal
 and root reflected flight lifetime boundaries. Keep both Overload and Winston
 command consumers, source Overload armour and B9 beam-factor overflow, and all
 changelog entries. Functional C15 remains ea89b37d; do not replay this merge.
+
+## C16 actor-backed turret and marks checkpoint
+
+C15 SHAea89b37d has been received; root latest62dd2bf0 includes A/B/C batches,
+not yet synchronized because C16 WIP was active. C16 mounts the remaining
+source hero_torbjorn turret functions and torbjorn_mark actual impact/update/
+priority paths. Existing NPC bodies, vitals and single gun driver are used.
+NPC optional current_health/selected entities/aim_at are authorized by root;
+bots owner/geometry, combat target/credit/muzzle, driver bound query/message,
+body-switch reuse and snapshot fields connect production consumers. All
+existing control/navigation paths remain. Throw uses original point contact,
+not a carrier-radius hit hovering0.35m above its permitted landing surface.
+
+Evidence: first turret8 run5pass/1fail/2errors exposed missing throw spawn;
+source spawn/gravity then exposed collision-height. Final five throw/owner-death/
+repair checks pass22.933s. Owner8 + NPC/damage15 pass in45.651s (run24 also
+records one unexecuted mark fixture import); five mark core checks pass11.486s.
+After preserving original defense/phase fixtures unchanged, imports resolve.
+Last shared NPC/damage15 pass2.136s. Logs worker-c-torbjorn-turret-{first,throw,
+throw-final,owner}-check.log and worker-c-torbjorn-mark-first-check.log.
+Test fixtures import unmounted molten_core/phase_defenses/torbjorn_charge;
+explicit test-only ow174.game.__path__ appended frozen0006/source/ow174/game.
+No such fallback exists in production; no Molten or charge integration claimed.
+
+Input comparison: worker-c-torbjorn-input-differences.json. Current combined
+base/supplement shared graphs/entities/effect_scripts equal original0006 pack;
+no differing records. Add graphs1688,1689,16DE,16FB,16FC; entities28B7,2903;
+original deployables format_version1/turret/molten_core/primary_mark. Narrow
+loader accepts that mapping, idempotent equal keys, rejects unequal collisions,
+nonmapping entries and invalid version. For local checks only, external
+worker-c-torbjorn-supplement.json.gz adds these records to the existing profile.
+Root tools/prepare_hero_inputs.py owns final prepared profile composition.
+No original input or full asset collection was copied/modified.
+
+Exact next: submit C16 immediately, then synchronize root62dd2bf0 or its latest
+clean descendant and reuse B12 reinhardt_hammer.surfaces with Torb's sphere to
+reconcile native shield faces (do not duplicate manager/damage). Mount Molten
+Core actual launch/rebound/area/status/damage/lifetime and source charge next.
+Retain original hammer repeat differences53vs47/boosted33. Review remaining
+NPC/phase/defense/reflect/mark contexts against combined owners; no complete
+0006/0008 line or client acceptance is claimed. Other assigned owner families
+remain as previously recorded and must continue after this owner batch.
