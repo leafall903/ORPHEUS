@@ -215,7 +215,7 @@ def _advance_mech(pilot, bot, command, seconds, tick, *, posed=True, endpoint=Tr
         active = match.combat.movement_mods(bot, statescript_mods(script.component), tick=tick)
         mover.track_mods(active, command.frame, posed=posed)
         mover.script_data = statescript_mover_data(script.component, mover=mover, frame=command.frame + 1)
-        mover.flight_scale = statescript_flight(script.component)
+        mover.flight_scale = statescript_flight(script.component, mover=mover, frame=command.frame + 1)
 
 
 def accepts_initial_return(match, pilot, source):

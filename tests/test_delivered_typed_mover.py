@@ -87,3 +87,74 @@ class DeliveredTypedMoverTests(unittest.TestCase):
                              ("m_5C6B4602", 1.5)):
             with self.assertRaises(ValueError):
                 mover.component_data({**raw, field: value})
+
+    def test_recovered_command_gap_matches_explicit_poses_across_flight_scope_end(self):
+        data = replace(mover.MoverData(), accel_air=35)
+        def actor():
+            result = mover.Mover((0, 10, 0), data=data)
+            result.mods = {
+                (1, 0, 0): mover.Mod(mover.FLIGHT_ROLE, mover.SET, 0.0, 11, 14),
+                (1, 1, 0): mover.Mod(17, mover.SET, 1.0, 11, 14),
+            }
+            return result
+        explicit, recovered = actor(), actor()
+        for frame in range(10, 16):
+            explicit.step(Command(frame, pitch=-8192), .016, 20)
+        recovered.step(Command(10, pitch=-8192), .016, 20)
+        recovered.step(Command(15, pitch=-8192), .016, 20)
+        self.assertEqual(tuple(recovered.history), tuple(explicit.history))
+        self.assertGreater(explicit.position[1], 10)
+
+
+    def test_flight_parameter_and_retirement_are_causal_in_existing_mod_storage(self):
+        case = snapshot_tests.ServerSnapshotTests()
+        session, _, players = case.scene()
+        body = players[0].mover
+        key = (1, 36, 123)
+        body.track_mods({key: (mover.FLIGHT_ROLE, mover.SET, 0.0, 1.0)}, 100)
+        first = snapshot_digest(case.capture(session))
+        body.mods[key].value = .5
+        second = snapshot_digest(case.capture(session))
+        self.assertNotEqual(second, first)
+        body.track_mods({}, 101)
+        self.assertEqual(body.mods[key].end, 102)
+        self.assertNotEqual(snapshot_digest(case.capture(session)), second)
+
+    def test_actual_hooks_use_activation_records_and_do_not_confuse_world_mod_key(self):
+        world = runtime.World(hero=0x02E000000000007A)
+        component = runtime.Component(0xA0000100, world=world)
+        hooks = [node(i, "STU_C1BA7545", state=i, fields={
+            "m_2166C07A": {"$": "STUConfigVarFloat", "m_value": value},
+            "m_priority": {"$": "STUConfigVarFloat", "m_value": priority},
+        }) for i, (value, priority) in enumerate(((0, 0), (.5, 1)))]
+        instance = component.create(make_graph(0x47E, hooks, states=(0, 1)), init=False)
+        instance.state(0).begin()
+        instance.state(1).begin()
+        body = mover.Mover((0, 10, 0))
+        body.add_timed_mod(mover.SPEED, mover.MULTIPLY, .5, 100, 102)
+        timed_key, = body.mods
+        body.track_mods(mover.statescript_mods(component), 10)
+        self.assertIn(timed_key, body.mods)
+        self.assertEqual(timed_key[0], -2)
+        roles = [mod for key, mod in body.mods.items() if key[0] != -2]
+        self.assertEqual(len(roles), 2)
+        self.assertEqual({mod.index for mod in roles}, {mover.FLIGHT_ROLE})
+        self.assertEqual({mod.start for mod in roles}, {11})
+        self.assertIsNone(mover.statescript_flight(component, mover=body, frame=10))
+        self.assertEqual(mover.statescript_flight(component, mover=body, frame=11), .5)
+        instance.state(1).end(False)
+        body.track_mods(mover.statescript_mods(component), 12, posed=False)
+        self.assertEqual(mover.statescript_flight(component, mover=body, frame=12), .5)
+        self.assertEqual(mover.statescript_flight(component, mover=body, frame=13), 0)
+        body.step_pose(Command(13, forward=127), .016, 100)
+        self.assertAlmostEqual(body.values.run_forward, body.data.run_forward * .5)
+        self.assertIn(timed_key, body.mods)
+        body.step_pose(Command(14, forward=127), .016, 102)
+        self.assertNotIn(timed_key, body.mods)
+        self.assertEqual(body.values.run_forward, body.data.run_forward)
+        instance.state(0).end(False)
+        instance.state(0).begin()
+        body.track_mods(mover.statescript_mods(component), 14, posed=False)
+        self.assertIn((instance.id, 0, 2), body.mods)
+        self.assertEqual(body.mods[(instance.id, 0, 2)].start, 15)
+        self.assertEqual(body.mods[(instance.id, 0, 1)].end, 15)
