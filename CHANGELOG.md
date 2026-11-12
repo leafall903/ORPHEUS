@@ -4,6 +4,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect delivered actor-backed Symmetra sentry core
+
+- Launch actual2658 NPCs through existing spawn/health/replication/retirement;
+  original157F boot and1590 beam read their authored rate/range/slow graph01E7.
+  One owner manager drives flight and beam; the generic bot gun path skips these
+  same actors. Existing combat geometry supplies the source1m/0.2m capsule.
+- Preserve owner death, owner credit, charge limit, exact cleanup and independent
+  slow aura teardown. Connect actual Mei supporting-pillar removal; keep the
+  existing prototype module and other owner cleanup intact.
+- All14 original sentry core checks pass17.417s with actual source3graphs/4actors
+  added to base+v4 in memory through add_supplement; source assertions unchanged.
+  Shared Damage/NPC/Symmetra36 pass15.682s. Explicit root composed input profile
+  rerun is still pending. Original frozen/ice-support/phase/barrier expiry replay
+  functions remain preserved but their source service/caller protocols still
+  need mounting; no whole0016 or client acceptance claimed.
+
 ### Mount delivered Symmetra ultimate charge owner
 
 - Connect original0B8B ownership/tag/relation native queries, actual012 resolved
