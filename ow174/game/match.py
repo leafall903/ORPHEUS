@@ -459,6 +459,11 @@ class Player:
             self.mover.step_pose(command, seconds, tick, move_to=forced)
             self._advance_body_frame(command)
             return
+        if (not stunned and not pulled and not fight.is_asleep(self, tick=tick)
+                and self.body not in fight.sombra_controls.locks):
+            from ow174.game.mover import pharah_thrust
+
+            pharah_thrust(self, seconds)
         requests = []
         if script is not None and not stunned and not pulled and not self.mover.external_impulse:
             requests = [

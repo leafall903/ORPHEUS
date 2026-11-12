@@ -577,6 +577,39 @@ def statescript_mods(component) -> dict:
     return found
 
 
+def pharah_thrust(player, seconds: float) -> None:
+    """Reconstructed thrust integration from Pharah's active authored hover state.
+
+    Fuel/start/stop are owned by graph0025. Thrust only accelerates toward the
+    authored cap; it must not erase a faster Jump Jet impulse. Normal movement
+    still performs gravity, collision and landing after this force step.
+    """
+    script = player.body_script
+    if (script is None or player.hero.guid != 0x02E0000000000008
+            or script.component.owner_dead):
+        return
+    for instance in script.component.instances.values():
+        if instance.graph.index != 0x25:
+            continue
+        for state in instance.states.values():
+            if not state.active or state.node.cls != "STU_A9C4FF83":
+                continue
+            force = state.evaluate(state.node.field("m_16882D22"), watch=False)
+            limit = state.evaluate(state.node.field("m_B74245E8"), watch=False)
+            # This adapter deliberately accepts only the authored vertical force.
+            if (not hasattr(force, "y") or force.x != 0 or force.z != 0
+                    or type(limit) not in (int, float) or force.y <= 0 or limit < 0):
+                continue
+            mover = player.mover
+            vx, vy, vz = mover.velocity
+            if vy < limit:
+                vy = min(limit, f32(vy + f32(force.y * seconds)))
+            mover.velocity = (vx, vy, vz)
+            if vy > 0:
+                mover.flags_word |= FELL
+                mover.fall = 0.0
+
+
 @dataclass(frozen=True)
 class Snapshot:
     """The body's movement state after the tick of a command frame, as the owner's client predicts it."""
