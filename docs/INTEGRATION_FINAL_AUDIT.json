@@ -1,0 +1,227 @@
+{
+  "at": "2026-11-12T15:42:34.858876+00:00",
+  "runtime_audit_head": "2189381aea6a9b57c2a204869a3da5cd9fb5bfac",
+  "original_deliveries_clean": [
+    {
+      "id": "0002",
+      "head": "4babd03311d49f89b9a819522fe23f72a5b2306a",
+      "clean": true
+    },
+    {
+      "id": "0003",
+      "head": "8a3ece2db99405a6c14e3e36c0492fc71d4bb48c",
+      "clean": true
+    },
+    {
+      "id": "0004",
+      "head": "14a69f134b36767ca7bfd2978a1468a7b6c37cb7",
+      "clean": true
+    },
+    {
+      "id": "0005",
+      "head": "2b67b154a11b7e930ee431182d8e3a70cb90b8bb",
+      "clean": true
+    },
+    {
+      "id": "0006",
+      "head": "3d4d42993cfcd78a954e20c1d273ce8b5e0905f5",
+      "clean": true
+    },
+    {
+      "id": "0007",
+      "head": "84d5169caba76cc4e5656fa22a95a8ad268a9eb1",
+      "clean": true
+    },
+    {
+      "id": "0008",
+      "head": "49c079c48b8ef0b72b770c17f8ad943e2adbe615",
+      "clean": true
+    },
+    {
+      "id": "0009",
+      "head": "a16208f070c96f76e235000dd8bd314e08a852a3",
+      "clean": true
+    },
+    {
+      "id": "000A",
+      "head": "0bbf016a88d6272db5358c5e4f6a611d4db5b327",
+      "clean": true
+    },
+    {
+      "id": "0015",
+      "head": "034e5ffbc1b31761a669a520710f2e47c5f863e8",
+      "clean": true
+    },
+    {
+      "id": "0016",
+      "head": "82c3883eb64697290ba75c7ed47af906e093eab6",
+      "clean": true
+    },
+    {
+      "id": "0020",
+      "head": "c81057dc27c9a6aee1fc277b7266396f112d0ef9",
+      "clean": true
+    },
+    {
+      "id": "0029",
+      "head": "e7e1706797c49055c0a34f5b4482892450718697",
+      "clean": true
+    },
+    {
+      "id": "0040",
+      "head": "989ebf7c600f832dd0be2bf3efb0d20151b4be4e",
+      "clean": true
+    },
+    {
+      "id": "0042",
+      "head": "5f8423c014f0ebcfaabe8135a4ce2c0428f190f3",
+      "clean": true
+    },
+    {
+      "id": "0065",
+      "head": "c31d926214d74bbb6d5f308cabce92c65d8a48fc",
+      "clean": true
+    },
+    {
+      "id": "0068",
+      "head": "104b8057ae8ccbb24393af230d43129eab965c32",
+      "clean": true
+    },
+    {
+      "id": "006E",
+      "head": "c5607bc4ee3b49e9af04f56949aa13f100143391",
+      "clean": true
+    },
+    {
+      "id": "0079",
+      "head": "17da4f0fd916759b4ad1df4546d10a7f9bd9ba7e",
+      "clean": true
+    },
+    {
+      "id": "007A",
+      "head": "a2353c6036c270bb1359b8e3ba3e203437ad6264",
+      "clean": true
+    },
+    {
+      "id": "00DD",
+      "head": "9d876544dda6426b89ad750f907ba6c6dd083baa",
+      "clean": true
+    },
+    {
+      "id": "012E",
+      "head": "f7e26ff68e979c9cf999124848f0e69a5ef1d3de",
+      "clean": true
+    },
+    {
+      "id": "012F",
+      "head": "b6d0581c7e493c80873ec5ea203e6951cdfc6f2c",
+      "clean": true
+    },
+    {
+      "id": "013B",
+      "head": "14f691f6eea6d70e9623ef1061ca7e8ff0471d58",
+      "clean": true
+    },
+    {
+      "id": "013E",
+      "head": "5b38741c097433b04e977d7e499d176ccc816d44",
+      "clean": true
+    },
+    {
+      "id": "0195",
+      "head": "a3004ec6c35139e80a39e2153cecd70c9687811b",
+      "clean": true
+    },
+    {
+      "id": "01A2",
+      "head": "df51065e8163f569f75f1f1596d626210ffea119",
+      "clean": true
+    },
+    {
+      "id": "01CA",
+      "head": "9911dfc1cf6a4d1b55ecf826bf77721805043181",
+      "clean": true
+    },
+    {
+      "id": "0200",
+      "head": "8b991768223a98ff97f2618a53f0947dc6477c4b",
+      "clean": true
+    },
+    {
+      "id": "0206",
+      "head": "fe7877307a3a10ac53df86d8eebb171b53254fe5",
+      "clean": true
+    },
+    {
+      "id": "0221",
+      "head": "6f0bdcc4d146c30e5dc812efd07229e025119503",
+      "clean": true
+    },
+    {
+      "id": "023B",
+      "head": "3f8a48f1d3ee8ee46fce1dc3e91b451dd8c0ed7f",
+      "clean": true
+    }
+  ],
+  "source_commits_preserved_as_parents": 34,
+  "worker_integrations": [
+    {
+      "worker": "A",
+      "head": "ec9b1ab526b356136071edd6b72ba63cb348c3b9",
+      "clean": true,
+      "all_commits_integrated": true
+    },
+    {
+      "worker": "B",
+      "head": "b93b1d3fb0d085b3f0ca841ce9a6e802691d5e69",
+      "clean": true,
+      "all_commits_integrated": true
+    },
+    {
+      "worker": "C",
+      "head": "194d9a47a67d67edf3591657c9c500c1d770ed13",
+      "clean": true,
+      "all_commits_integrated": true
+    },
+    {
+      "worker": "root",
+      "head": "b5ebb8b5f38dd616aa8b098b8d8fd6399cb7dd9b",
+      "clean": true,
+      "all_commits_integrated": true
+    },
+    {
+      "worker": "intake",
+      "head": "2189381aea6a9b57c2a204869a3da5cd9fb5bfac",
+      "clean": true,
+      "all_commits_integrated": true
+    }
+  ],
+  "profile": "D:\\overwatch 1.7.4\\verification\\parallel-merge\\runtime-inputs-v19\\environment.json",
+  "verified_input_hashes": 32,
+  "workspace_entry_sha256": "2398686c5bf05d0de67fce51d722376cd8371ebbea90eca6485ff6064787bf4b",
+  "original_language_preserved": true,
+  "canonical_clean": true,
+  "active_implementation_gaps": [],
+  "final_runtime_test": {
+    "head": "2189381aea6a9b57c2a204869a3da5cd9fb5bfac",
+    "result": "24/24 pass",
+    "seconds": 19.292,
+    "log": "root-final-halt-release-joint.log",
+    "terminal": true
+  },
+  "historical_source_parent_tree": "efc94230675da157b6c588c34fc93d6b9737c733",
+  "post_recording_followup_commits": [
+    "b93b1d3f",
+    "ec9b1ab5",
+    "253b863e",
+    "194d9a47"
+  ],
+  "source_parent_count_is_not_used_as_runtime_evidence": true,
+  "all_force_callers_joint": {
+    "head": "12eb98a6",
+    "result": "47/47 pass",
+    "seconds": 85.629,
+    "log": "root-all-force-callers-joint.log"
+  },
+  "implementation_completion_verified": true
+}
