@@ -1116,3 +1116,229 @@ Sombra replay. Original Controls owner/list/application lifecycle and actual
 Portal endpoint/EMP services need reconciliation; no second manager/name alias.
 Source018? retain exact ref012E. Remaining C own active-work rough8-16hours after
 Ashe/Junkrat formal transfer, low confidence; shared reception/client not included.
+
+C33 SHA8e7b300f delivered.
+
+C34: original Translocator actor-backed host
+-------------------------------------------
+Actual0C19 non-predicted volley now consumed before projectiles.fired, so no owner
+lease/second Rocket. Original translocators.py authority now runs world ticks,
+finite-radius seven-sample cast, gravity20/bounce/settle, recalled checked capsule,
+original source graph/recycle message, health5/lifetime and body/death retirement.
+Use existing Combat.allocate_combat_entity; each entry is the same actual
+actors.Deployable object in fight.deployables and ordinary _targets, sharing
+one Vitals/entity. Source sphere target centre preserved by narrow Target mapping.
+Original until_tick operational API proxies the existing expires_tick field, one
+actual TTL, including setters used by original checks. Generic actor team is
+captured at creation consistently with current server policy; source raw property
+read owner.team dynamically. Runtime team mutation parity is not established.
+
+Original entity record file is exactly012E/translocator-entity-research.json,
+SHA256 e5781249ad864e4265abb609a41bbcf05cdbcc8b41ec336dc363bc36381aad43.
+Set ORPHEUS_TRANSLOCATOR_DATA to that immutable original path; do not fabricate a
+translocator_174.json or copy full assets. Its entity1575/extra_graphs are read by
+original data() and supplied to the existing BotScript VM. Generic BotScript now
+accepts original optional record/world/resolve_graph/source_entity; default NPC
+world/controller/difficulty/pool paths retained. create_body_graphs and initial
+helper use optional resolver, defaults global graph lookup. External BodyWorld
+gets actual definition1575 and existing component registration, not NPC-only
+controller fields; source association attached before instance init. Record has
+no controller; no extra controller created. Source new recall classes preserve
+strict unsupported guards. Nonstrict0C1A health hook on existing HealthPool state,
+original narrow context queries precede unrelated typed interfaces only for
+C19/C1A and recognized configs. B33 native early gate must remain on reception.
+
+Same BodyWorld forwards actual owner messages to live beacon component; this was
+a true missing consumer, not a fixture expectation adjustment. Checked recall
+uses existing knockback retirement/Orisa recipient release, original mover
+teleport reset and current shared body/movement driver. Source recall_poses is
+cleared at first settled real pose. Ice Wall gets original cast_ray adapter over
+current real pillar contact and immutable map, not another geometry manager.
+Actor removal clears exact output, owner message/cooldown, controls, component
+registry/foreign watches/instances, viewer destroy, Vitals/history/replacement.
+New state/manager/actor causal storage registered in both existing serializers.
+
+Verification v9 environment+test_environment plus explicit original
+ORPHEUS_TRANSLOCATOR_DATA path above. Full raw test_game_sombra_translocator.py
+copied byte-identical. Its top imports still depend on old pharah/shot_guards,
+control and NPC fixture protocols; do NOT claim full normal-module execution.
+Ten original TranslocatorTests methods compiled as untouched class AST with real
+globals: math/os/unittest/Path/mock/replace, fixture=test_game_sombra_combat,
+stored=test_server_snapshot, actual combat/npc/npc_control/reinhardt_barrier/
+stats/translocators/world/FIRE/Command/expr/OWNER_HEALTH/send_instance_message.
+No fake fixtures, health or assertion values. Exact suffixes (prefix test_):
+actual_volley_binds_server_identity_and_original_health_pool_without_lease;
+reconstructed_arc_lands_without_damage_or_endless_energy_gain;
+gap_and_continuous_entity_motion_agree;
+second_press_consumes_beacon_and_relocates_then_lands_at_destination;
+manual_recycle_routes_original_message_and_enforces_original_cooldown;
+owner_and_ally_actual_fire_do_not_destroy_the_entity;
+hero_replacement_retires_old_entity_and_does_not_transfer_it;
+actual_owner_death_retires_the_owned_entity;
+active_entity_is_captured_with_cross_component_watchers;
+enemy_actual_rifle_destroys_five_hp_entity_without_hero_kill_or_respawn.
+10allpass38.961s, worker-c-translocator-core-second-check.log. Initial9 had5pass/
+4subfail all due missing beacon message relay; retained first log. Real separate
+actual throw/300tick probe:5HP, identity registered, sameactor in deployables,
+settled y0.20001; real cross-wall recall z14.5166015625 vsdevice14.5165007043269,
+owner component faultNone. After ten-case run, tiny precise foreign-watch
+cleanup and settled-pose recall_poses consumer added; broad default-path check:
+python -B -m unittest test_game_npc test_npc_navigation test_script_runtime
+ test_script_runtime_budget test_game_script_runtime test_game_combat.DamageTests
+ -v :90allpass9.279s,worker-c-translocator-shared-check.log. No full journal gate.
+AST duplicate-method audit clean (property setters excluded); raw fixture hash
+unchanged. Do not count selected class execution as all source translocator checks.
+
+Next C35: original accepted owner replay (sombra_replay, translocator recall-pose
+world-only physics and release/expiry boundaries), actual Controls list/application
+protocol and healthpack service; then actual Photon/Sentry/Torb/Portal device EMP
+and Hack endpoints. Root flagged actualfight.portals/symmetra_portals mapping;
+no old-name manager alias. Source Control.locks already holds lists after current
+root intake: audit against original BodyHack consumers instead of assuming a
+new second hack manager. Raw old fight.hacks observer is not an actual consumer
+absence by itself. Preserve missing unmounted consumer boundaries and failures.
+
+C34 SHA9b124b82 delivered. Clean sync root intake nowc81876df; sole conflict
+server_snapshot dataclass line resolved preserving both Translocator and Ball.
+Ashe and Ball existing implementation all retained, no worker-tree edits.
+
+C35: original skill-lock history query required by B38 Grapple
+------------------------------------------------------------
+B source01CA/sombra_emp.first_lock_after(script,frame,tick) reads original
+emp_previous_windows+emp_window, starts//script.frame_ms, first frame<start<=tick.
+Actual sole SombraControls already has entity->list[Lock(application,until,pulse)],
+which expired effects remove; no historical windows existed. Add lock_history
+inside that same manager: entity->(actual recipient component, component-ms
+windows). Record both real Lock append sites (body and device), directly from
+application.start and evaluated duration. Overlap merges as original; only
+unconsumed older windows survive, latest remains after active effect expires,
+recipient death/body retirement removes its record. No second EMP manager,
+application, pool, generic full-control window or fake old-name alias.
+
+Controls.first_lock_after(script,frame,tick) public API: bounds are actual
+recipient BODY frames, not world ticks. Stored timestamp is application.start
+on its real recipient component; identity check prevents another VM generation
+inheriting the record. The API does not infer1000+ bodyframe vs50worldtick offset.
+B explicitly knows original caller's fight.tick gap and is retaining it until a
+real anchor/caller mapping is available. Generic control/sleep/frost windows must
+not be used as Hack locks because Hack preserves ordinary primary/movement.
+No argument semantics guessed to make that mismatch disappear.
+
+In existing Controls.interrupt, nonhack_only for actual Ball calls existing
+ball.cancel_grapple(fight,player) before stopping blocked Ability states. This
+releases current tether now through its sole motion host. B38 owns actual
+ball._grapple_interrupt_after call to this API and full command/retire/death/settle
+consumers; do not edit Ball or install a fakeNone stub. B source suppress-button
+latch is being adapted to existing Controls.held, not a second EMP field.
+Stored Controls field registration includes actual lock_history tuple/component
+and windows, no new generic BodyScript field or timer.
+
+Actual source SombraCombatTests real scene and press(2,55) installed a real
+0B1F Lock on target component. start=application.start//script.frame_ms=1090;
+first_lock_after(start-1,start)==start and first_lock_after(start,start+1)==None.
+Actual effect world expiry via Controls.update removes active locks, but original
+query still returns1090. This tests production record/query, no fakeapplication.
+Exact v9 command: python -B -m unittest test_game_ana_sombra_control
+ test_game_script_runtime test_game_combat.DamageTests -v :40run56.723s,
+39pass1originalskip (requires all five pinned external barrier meshes),
+worker-c-sombra-lock-history-check.log. Existing skip/asserts unchanged.
+
+Next C36: original Sombra charge host and replay (source ultimate_charge class
+must be scoped Sombra and adapted beside existing canonical ultimate_charge
+functions for Rein/Genji; never replace/double other owner charge). Original
+012E/ultimate-context-research.json is its explicit input. This supplies actual
+next_passive_frame prerequisite to original sombra_replay accepted-reaction
+consumer. Then world-only Translocator throw/recall/lifetime, orphaned incoming
+applications and actual Portals/Sentry/Torb device consumers. Pending original
+Sombra generic .hacks fixture names must adapt to actual Controls.locks if only
+observers; no alias manager and no claim absence solely from old import/attr.
+
+C35 SHA4f866474 delivered; B38/root accepted. Continue C36 without waiting for
+C37 world replay or full acceptance. Root owns missing original tools CLI; C has
+no tools WIP. Candidate v14 selects immutable original ultimate/translocator data.
+
+C36: original Sombra0B8B charge service
+--------------------------------------
+Relevant original012E ultimate_charge.UltimateCharge methods are mounted as
+sombra_charge.Charge / fight.sombra_charge: enabled/_owner/initialize/sync/
+next_passive_frame/prepare_retirement/retire_body/_target/_tags/native/damage.
+Source Sombra formulas/cadence/admission stay in actual0B8B graph. Copy scoped to
+Sombra; canonical ultimate_charge.py functions/context admission for Rein/Genji
+unchanged, Roadhog and other delivered hosts remain sole existing owners. Do not
+copy source RETAINED_HEROES/roadhog host across them. Unused source hosted_catalog
+state is not added. Generic cost/60 and damage gain excluded only when this
+original selected Sombra host is enabled, not for other heroes.
+
+Native adapter is narrow nonstrictSombra0B8B before generic typed interception;
+only source-recognized configs handled, NotImplemented falls through. Input is
+loaded during real owned warmup (world.hero is actualSombra), and source native
+resolves actual controller entity, not fake/aliased body. Source natural wait,
+2426/config-change event,12918 debug pause,842 actual ultimate Ability suppression,
+DAMAGE_DEALT params/tags and cap run through the existing VM. Before/after body
+frame sync prevents a generic second clock. Actual resolved net pool loss passed
+once; noncharacter device row remains ineligible. Static classification depends
+on supplied source body/tag context; no invented missing tags or broad filters.
+
+Original same-hero retention uses current controller/body lifetime: optional
+Match.switch_hero preserve_ultimate=False added alongside preserve_pose/start_frame;
+only Sombra automatic respawn suppliesTrue, other owners keep prior call and
+retention paths. Explicit switch defaultsFalse/reset. Real leave clears pending
+retention; body retirement clears pause key. Actual old/new graph cost clamps
+saved points. Original active/paused/context/retained causal state registered.
+
+v14 input path D:/overwatch1.7.4/verification/hero-lanes/012E/
+ ultimate-context-research.json (actual directory includes space after overwatch),
+SHA256 c7be92f1e83720d722a8e82cd1019e0178ad8a5c980862fc89f00a1a9106eee4.
+Use v14 environment.json.environment/test_environment, including
+ORPHEUS_ULTIMATE_DATA and ORPHEUS_TRANSLOCATOR_DATA; no source input bytes changed.
+Raw source Charge fixture copied with only actual service API/import adaptation:
+fight.ultimate_charge -> fight.sombra_charge, old .hacks -> actual
+.sombra_controls.locks, source tags keyword -> hit_tags, lazy NPC import in its
+own class setUpClass. AST literal Counter exactly matches source; expectations
+unchanged. No legacy manager alias or fake fixtures introduced.
+
+Initial normal module command python -B -m unittest test_game_sombra_charge -v:
+15player methods52.434s; first run8pass5fail2error plusNPCsetup error (reported
+failures5/errors3). Two fixture API errors corrected, real retention missing
+consumer fixed; same-hero/excluded-tags/actual EMP-spend3 allpass4.222s. An initial
+signature patch had missed current multi-line switch_hero definition; fixed
+actual kw declaration before final checks, never weakened the original check.
+
+Exact final core: normal import SombraChargeTests, unittest.getTestCaseNames,
+exclude exactly these4 pending world-only replay methods (all original asserts
+remain in the module):
+ test_lethal_rifle_before_natural_deadline_preserves_only_earned_charge;
+ test_natural_pause_restores_the_existing_profile_multiplier;
+ test_world_only_emp_recovery_keeps_natural_charge_deadlines;
+ test_world_only_natural_charge_caps_and_admits_a_fresh_emp.
+Other11 allpass42.025s,worker-c-sombra-charge-core-check.log. Includes exact5/s,
+cap/scalar,actualpistol/melee netloss, armour/shields/fataloverkill, no-credit miss/
+wall/ally/receiveddamage/noncharacter beacon, ultimate suppression/tag exclusions,
+paid EMP spend, retention/reset and actual full context/pause/deferred-retention
+snapshot. Core excludes world-only subcase method wholly, not just its failing
+subcase. The untouched full module and first failed log are retained.
+
+Shared exact python -B -m unittest test_genji_passive_charge test_symmetra_charge
+ test_game_torbjorn_charge test_orisa_charge test_game_script_runtime -v:
+97run14.538s,39pass58skip (Torb/Orisa fixture env markers absent), no failures.
+worker-c-sombra-charge-shared-check.log. Do NOT claim97activechecks. To exercise
+actual other owners, same v14 plus ORPHEUS_TORBJORN_GRAPH_BUNDLE pointing at the
+existing canonical base game_graphs_174.json.gz (supplement stays selected) and
+ORPHEUS_ORISA_CHARGE pointing at existing canonical data/orisa_charge_174.json:
+python -B -m unittest test_orisa_charge
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_passive_timer_adds_five_per_one_second_wait
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_combat_and_passive_modifiers_are_not_bypassed
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_permission_and_enabled_links_reject_charge
+ test_game_torbjorn_charge.TorbjornChargeTests.test_native_cap_then_actual_damage_completes_charge_and_ultimate_starts
+ -v :22run11.405s,17pass5originalNPCdataset skips,
+worker-c-sombra-charge-owner-check.log. No test skip conditions modified.
+
+Next C37: mount original sombra_replay to consume actual next_passive_frame and
+accepted EMP/Translocator releases, same physical Mover for world-only recall
+poses, source retirement/application clocks. Avoid duplicate C33 Camo consumer
+and preserve genuine owner/world frame anchor instead of assuming equal epochs.
+Then Sombra actual Portal/Sentry/Torb device consumers and remaining source wall/
+retained sentry/Pharah impulse cover/Bastion NPC boundary audits. Current remaining
+rough14-28 active C hours (low confidence, overlapping categories), not a calendar
+promise; largest unreviewed surface is shared consumer equivalence, not raw old
+observer names. Do not hold functional batch for these unmounted replay checks.

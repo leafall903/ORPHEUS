@@ -851,6 +851,17 @@ class Mover:
             self.on_map = True
             self.body = None
 
+    def teleport_grounded(self, point) -> None:
+        """Move to a checked destination and rebuild the collision proxy there."""
+        self.position[:] = list(point)
+        self.velocity = (0.0, 0.0, 0.0)
+        self.body = None
+        self.flags_word = self.flags_word & ~IN_AIR | FELL
+        self.air_ticks = 0
+        self.fall = self.spring = self.spring2 = self.spring_speed = 0.0
+        self.spring_steps = (0, 0)
+        self.landed = False
+
     def track_mods(self, active: dict, frame: int, *, posed: bool = True) -> None:
         """Follow the statescript's movement mods after it ran command frame `frame` (`statescript_mods`):
         a mod that came on acts from the next frame on, one that went off acts up to this frame. The

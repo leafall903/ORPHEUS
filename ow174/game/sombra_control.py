@@ -75,6 +75,38 @@ class Controls:
         self.locks = {}
         self.held = {}
         self.device_receivers = {}
+        self.lock_history = {}  # body -> (actual recipient component, component-ms windows)
+
+    def remember_lock(self, application, duration):
+        """Retain the original skill-lock window on its actual recipient clock."""
+        component = application.component
+        existing = self.lock_history.get(component.entity)
+        windows = [] if existing is None or existing[0] is not component else existing[1]
+        # As in the original EMP host, only unconsumed older windows survive.
+        windows[:] = [window for window in windows if component.frame*component.frame_ms < window[1]]
+        start = application.start // component.frame_ms * component.frame_ms
+        end = application.start + math.ceil(duration*1000)
+        if windows and start <= windows[-1][1]:
+            start, end = windows[-1][0], max(end, windows[-1][1])
+            windows.pop()
+        windows.append((start,end))
+        self.lock_history[component.entity] = component, windows
+
+    def first_lock_after(self, script, frame, tick):
+        """Original first-lock query; both bounds are recipient body frames.
+
+        Application.start is recipient component milliseconds. World ticks are
+        deliberately not guessed into that domain when an owner has another epoch.
+        """
+        component = getattr(script, 'component', None)
+        row = self.lock_history.get(getattr(component, 'entity', None))
+        if row is None or row[0] is not component:
+            return None
+        for start, _ in row[1]:
+            impact_frame = start // script.frame_ms
+            if frame < impact_frame <= tick:
+                return impact_frame
+        return None
 
     def input(self, player, command):
         """Latch held skills until a received command releases them."""
@@ -101,6 +133,10 @@ class Controls:
             return
         if not hack_only and getattr(script, "hero", None) == 0x02E0000000000008:
             script.interrupt_control()
+        if not hack_only and getattr(script, "hero", None) == 0x02E00000000001CA:
+            from ow174.game import ball
+
+            ball.cancel_grapple(self.fight, player)
         for instance in tuple(script.component.instances.values()):
             if hack_only and instance.graph.index != HACK:
                 continue
@@ -112,6 +148,7 @@ class Controls:
                     state.stop()
 
     def retire(self, entity):
+        self.lock_history.pop(entity, None)
         self.held.pop(entity, None)
         self.device_receivers.pop(entity, None)
         for lock in self.locks.pop(entity, ()):
@@ -127,6 +164,12 @@ class Controls:
                 component.destroy(application)
 
     def update(self):
+        for entity, (component, windows) in tuple(self.lock_history.items()):
+            if component.owner_dead:
+                self.lock_history.pop(entity, None)
+            elif windows:
+                windows[:] = [window for window in windows[:-1]
+                              if component.frame*component.frame_ms < window[1]] + windows[-1:]
         for component in tuple(self.device_receivers.values()):
             if type(component.world) is DeviceWorld and component.frame < self.fight.tick:
                 component.run_frame(self.fight.tick)
@@ -231,6 +274,7 @@ class Controls:
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
                     locks.append(Lock(application, self.fight.now + duration, pulse))
+                    self.remember_lock(application, duration)
                     if isinstance(target.owner, symmetra_sentry.Sentry):
                         self.fight.symmetra_sentries.set_target(target.owner, None)
             elif component is not instance.component:
@@ -408,6 +452,7 @@ class Controls:
                     locks[:] = [lock for lock in locks if lock.application is not application]
                     pulse = instance if instance.graph.index == PULSE else None
                     locks.append(Lock(application, fight.now + duration, pulse))
+                    self.remember_lock(application, duration)
                     held = getattr(script, "buttons", 0) & SKILL_INPUT
                     if held:
                         self.held[target.entity] = self.held.get(target.entity, 0) | held

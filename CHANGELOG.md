@@ -4,6 +4,166 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Connect prepared integration inputs to the existing local server entry
+
+- Existing START_SERVER_LOCAL.cmd can select the composed original runtime
+  manifest and existing Python through explicit environment paths, applying
+  runtime environment and original CLI profile arguments before server imports.
+  Prepared startup reuses Python without creating a venv or installing packages.
+- Keep the original no-profile path, local port guard and no-client-launch CLI.
+  Test-only manifest selectors are excluded. A tracked workspace launcher template
+  selects the combined worktree; all gameplay remains in the existing server.
+- Entry/CLI29 checks pass0.081s with external runtime configured. Actual prepared
+  Python CLI--help passes; native CMD entry correctly refuses an occupied local
+  port without starting services. Original unconfigured CLI test import lacked
+  external descriptors, fixed by selecting existing inputs rather than copying.
+
+
+### Preserve Mercy scope execution during Sombra charge integration
+
+- Keep original Sombra charge sync inside the ordinary component-run branch;
+  Mercy retains its existing sole scope host runner. Root caught and corrected
+  the delivered indentation error before receiving this implementation batch.
+- Selected original Sombra natural/damage/respawn/stored-state checks plus Mercy
+  regeneration, Genji passive and runtime all32 pass62.098s. Original Sombra
+  world-gap replay consumers remain pending, without blocking this code merge.
+
+### Preserve original Assassin movement samples in strict stored snapshots
+
+- Register original immutable movement Sample flags/axis in the two existing
+  exporters, retaining the actual Phase2 override instead of rejecting that
+  supported stored value. Runtime movement and callback semantics stay intact.
+- Actual authored Assassin40tick scene produces the sample. Changing its stored
+  flags changes both exports; restoration reproduces both, export executes no
+  movement getter, and unknown sample fields are rejected. One check passes
+  in19.514s with original prepared inputs.
+
+### Restore original source preparation and native comparison tools
+
+- Preserve32 existing Python/PowerShell tools from the delivered lanes,
+  covering selective extraction, actor declarations, additive graph preparation,
+  original Hanzo/Junkrat/Ashe/NPC inputs and native placement/Sigma comparisons.
+  Duplicate source variants are byte-identical; no game archives are copied.
+- Restore original pure declaration schema lookup/dependency closure and the
+  graph-shard conflict validator used by these actual tools. Current runtime
+  supplement loading and its stricter effect/deployable validation stay intact.
+-31 Python tools parse,18 start with--help, and the PowerShell script parses.
+  Eleven original declaration/dependency/shard checks pass. Nine native tools
+  require the original optional Unicorn dependency absent from this environment;
+  four Sigma tools await original fixture integration owned by worker B.
+  Existing tool implementations are committed despite these explicit boundaries.
+
+
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
+### Restore Ball world-only shield expiry with the actual body clock origin
+
+- Record Ball's real constructor(world tick,body frame) pair and explicitly map
+  body-frame deadlines to16ms world ticks. Do not enable/rewrite input leases.
+  Grapple history upper bounds use the same actual pair and body frame quantum.
+- Keep the existing tagged Adaptive Shield pool; expire it on world ticks even
+  while the owner VM is frozen, and retain source stale-activation admission.
+- Original same-domain expiry/replacement/Grapple launch and runtime20 pass.
+  Actual raw unequal birth(1012,1044), world1053/body1085 expires175 shields at
+  world1615 with source VM unchanged; raw replacement owns fresh pair/Vitals.
+  Active strict exports and real deadline causal mutation/restoration pass.
+- Original stale first-command activationNone and a new Sombra/Ball lock-probe
+  acquisition gap remain recorded. No original expectation or FIRST_TICK changed;
+  full control/history and Ball/client acceptance remain open.
+
+### Mount delivered Ball Fireball contacts on the same motion and impulse hosts
+
+- Consume original1203 high-speed search, capsule/cone/LOS,50 damage, pull/lift
+  and outer-proximity rehit ledger from the actual Roll/Grapple swing. Retire
+  contacts with death/body/control and reuse the existing Knockbacks host.
+- Full Fireball10/runtime17 retains only original half-push11.0 not<11 and one
+  old snapshot ctor error; corrected exact ctor makes original storage case pass.
+  Preserve all44 original assertion AST nodes and the strict numerical boundary.
+- Raw controlled server actual swing deals50 and creates a nonempty contact
+  ledger. Active BodyVM/server captures pass; removing/restoring actual contact
+  changes/restores server digest. No second actor/mover/pool is introduced.
+- Native geometry/filter acceptance and complete Ball line remain open.
+
+### Mount original Archives Thunderstorm per-target damage
+
+- Restore original graph2535 flag34924 target search and74/77/76/68 live ray
+  damage on the existing NPC body VM, shields and health pools. Current target
+  storage uses body IDs; mode sphere/eye anchors/range/DPS remain original.
+- Retain individual combat frames while the original tracker is active and
+  advance once per actual NPC script frame, preserving existing actors/drivers.
+- Original seven live clear/wall/range/ally/reacquire/disable/re-enable cases
+  pass with6.4 damage per16frames where authored, zero in blocked cases.
+  No original numeric expectation or shield geometry was changed.
+
+### Mount delivered Ball Grapple lifecycle on the existing motion host
+
+- Route original launch/anchor travel/attachment, release/cooldown, body death/
+  retirement, hard-control interruption and deferred settlement to the same Ball
+  motion host. Reuse Controls.held for received-button latching and C35's actual
+  Sombra lock history; no second EMP/Grapple controller or guessed clock offset.
+- All12 original Grapple cases and runtime17 pass across full/targeted runs.
+  Only obsolete interception/snapshot fixture APIs were adapted; all99 original
+  assertion AST nodes remain unchanged.
+- Real controlled server raw input creates flight1325->1329 and attaches the
+  same Grapple. Active-flight strict BodyVM/server causal counter mutation and
+  restore pass; attached capture and real rope server-state mutation/restore pass.
+- Depends on C35 original4f866474; worker-local duplicate1ba85a31 is not another
+  delivery. Body/world historical clock mapping remains explicit pending work.
+  Fireball/Minefield and full Ball/client acceptance remain open.
+### Mount original Sombra authored charge on its existing shared graph
+
+- Connect original012E natural0B8B cadence, resolved damage/tag admission,
+  multipliers/cap, active-EMP suppression, debug pause and same-hero respawn
+  retention in a Sombra-only host. Preserve current Reinhardt/Genji/Roadhog and
+  other owner charge hosts; prevent generic Sombra double credit when selected.
+- Select original ultimate-context data through the explicit prepared profile;
+  reuse real player controller/body records. Keep original optional
+  preserve_ultimate=False API alongside current pose/frame options, supplying
+  True only for Sombra automatic respawn.
+- Original Sombra core11 pass42.025s; first full player15 retained four missing
+  world-replay cases for the following batch. Shared Genji/Symmetra/runtime39
+  active checks pass; additional Orisa/Torb17 pass5original NPC-data skips.
+  Original constants/expectations remain unchanged; full NPC fixture imports
+  and accepted world-only replay remain open, not a submission gate.
+
+### Retain actual Sombra skill-lock history for original Grapple queries
+
+- Record original lock windows from the same applied Hack/EMP instances in
+  Controls, retaining expired windows until the recipient consumes them. Expose
+  original first-lock query over actual recipient component frames and verify
+  component identity; keep current active locks, hold latches and graph ownership.
+- Release an existing Ball tether through its existing cancel callback when a
+  real non-hack-only control interrupt occurs. No second EMP host or guessed
+  client/world clock offset is introduced.
+- Real Hack probe verifies first-lock bounds and history after effect expiry.
+  Existing Ana/Sombra control, runtime and Damage40 run39pass1original mesh skip
+  in56.723s. Ball caller hookup remains worker B's independent batch.
+
+### Mount original Sombra Translocator actor and recall consumers
+
+- Connect original non-leased1575 throw,0C1A graph/source association,5HP,
+  finite-radius arc/bounce/settle, checked recall, recycle, expiry and exact
+  body/death cleanup. Use the existing combat entity allocator and Deployable
+  target/Vitals pool; original until_tick uses the same operational expiry field.
+- Merge original optional BotScript record/world/graph resolver/source inputs,
+  scoped recall states and native queries, retaining default NPC controller and
+  strict runtime behavior. Register actual actor and recall causal storage.
+- Ten selected untouched original Translocator methods pass38.961s (actual throw,
+  pool/identity, physics, recall, recycle, owner/ally protection, retirement,
+  hostile damage and stored cross-component watchers). Shared NPC/navigation/
+  runtime/budget/Damage90 pass9.279s. Full original fixture remains byte-identical.
+- Select original012E translocator-entity-research.json via explicit
+  ORPHEUS_TRANSLOCATOR_DATA. World-gap replay, extended controls/EMP and full
+  legacy fixture imports remain pending; no whole-line/client acceptance claim.
+
 ### Mount original Sombra pistol spread and Camo damage timing
 
 - Connect original cone/ramp/seed policy to real pistol shots. Mount original
@@ -32,6 +192,34 @@ This log records tested changes and their acceptance status. Entries are grouped
 - Existing Cryo status-immunity cleanup differs from original Mei/Ana antiheal
   expectations; preserve that cross-owner gap and the known NPC shield-total,
   held-secondary and flight observer differences without changing assertions.
+
+### Restore delivered Ball form and critical-hit history
+
+- Current targets read the original active Roll form to reject head criticals;
+  capture that same flag in history and restore it at the actual viewed tick.
+  Append after existing head-offset/sentry-yaw positions to retain other layouts.
+- Restore original Quad Cannon189 omitted-scalar reconstruction2x, restricted
+  to1514; explicit authored critical operands still win.
+- All six original Roll cases plus runtime17 pass23/23. Existing Bastion core/
+  head2, replacement rewind1 and Tracer viewed-stance1 pass. Original assertion
+  AST unchanged. This does not claim native sphere collision/client acceptance.
+
+### Mount delivered Piledriver damage, impulse and steering lock consumers
+
+- Consume the original160A landing-search activation, actual origin/distance
+  damage and pull/lift operands once. Route impulses through the existing
+  Knockbacks host; retain actual barrier pool protection and Cryo exclusion.
+- Mount original0.5s steering-only window without suppressing weapon input,
+  preserve delayed input windows, and clear locks on death/body retirement.
+- Six original control/retirement/team/cover/cooldown/death cases plus runtime
+  pass23/23. Full29 retains10 numerical subfail, no errors: high landing-scope
+  origin yields38.47 versus100, pull values and deadline steering remain open.
+- Real raw-server activeRoll and active160A windup export strict BodyVM and
+  server snapshots. Changing active counter/start changes both causal digests;
+  restoring restores both. Full source Pile76/Fireball44 assertion AST unchanged.
+- Fireball fixture dependency retained; its gameplay controller is still pending.
+  Original-client acceptance and full Ball completion remain open.
+
 ### Mount delivered Ball movement and Piledriver feedback
 
 - Restore original ball.py and mount its feedback and motion through the same
@@ -9376,3 +9564,7 @@ Absorb committed intake afcec3b8 at a clean boundary before BOB integration; ret
 ### Worker A52 - original Ashe FirstPerson fields
 
 - Restore251C standing1.445/crouched1.0115 while preserving current full shared lookup/catalog priority. Original eye/low-cover/history and movement checks passed; original exact Coach15m distance/count assertions now all pass, exposing only the existing obsolete add_impulse spy. No expectations changed.
+
+### Worker A synchronization after A52
+
+Absorb intake440e6c0f before remaining Ashe fixture/input reconciliation; retain all parallel source and local launcher commits.

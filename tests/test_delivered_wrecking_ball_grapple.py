@@ -11,10 +11,27 @@ import test_delivered_wrecking_ball_combat as ball_tests
 from test_game_combat import aim
 from test_delivered_wrecking_ball_piledriver import lift
 
-from ow174.game import ball, combat, deflection, mover, server_snapshot
+from ow174.game import ball, combat, deflection, absorption, mover, server_snapshot
 from ow174.game.collision import StaticCollisionProvider, World
 from ow174.game.content import heroes
 from ow174.game.script.driver import ULT_CHARGE
+
+
+def guard_contact(fight, shooter, origin, direction, reach):
+    """Observe the actual mounted Deflect/Grasp state using its current query API."""
+    hits = []
+    for target in fight._enemies(shooter):
+        owner = target.owner
+        hero = getattr(getattr(owner, "hero", None), "guid", None)
+        spec = {deflection.GENJI: (0x03A3, 10), absorption.SIGMA: (absorption.GRASP, 1)}.get(hero)
+        if spec is None:
+            continue
+        for state in deflection._active_states(owner.body_script, *spec):
+            hit = deflection.intercept(state, fight._eye(owner), owner.mover.yaw, owner.mover.pitch,
+                                       origin, direction, reach)
+            if hit is not None:
+                hits.append((hit[0], owner, hit[1], state if hero == absorption.SIGMA else None))
+    return min(hits, key=lambda hit: hit[0], default=None)
 
 
 def scene(distance=12, *, airborne=0):
@@ -69,7 +86,7 @@ class GrappleTests(unittest.TestCase):
         self.assertAlmostEqual(ball.instance(player, ball.GRAPPLE).states[25].remaining(), 5, delta=0.02)
 
     def test_hook_passes_active_deflect_and_grasp_and_requires_static_anchor(self):
-        for hero, button in ((deflection.GENJI, 16), (deflection.SIGMA, 8)):
+        for hero, button in ((deflection.GENJI, 16), (absorption.SIGMA, 8)):
             for wall in (12, None):
                 with self.subTest(hero=hero, wall=wall):
                     run, player, defender, _, own = scene(wall)
@@ -90,7 +107,7 @@ class GrappleTests(unittest.TestCase):
 
                     run.step({player: (0, 0, 2), defender: (-32768, 0, 0)})
                     launch = fight.ball_grapples[player.body]
-                    intercept = deflection.intercept(fight, player, fight._eye(player), combat.aim(0, 0),
+                    intercept = guard_contact(fight, player, fight._eye(player), combat.aim(0, 0),
                                                      launch.reach)
                     self.assertIsNotNone(intercept)
                     self.assertIs(intercept[1], defender)
@@ -110,7 +127,7 @@ class GrappleTests(unittest.TestCase):
                     self.assertEqual(own.total, 600)
                     self.assertEqual(player.body_script.component.entity_var(ULT_CHARGE).value(), 0)
                     self.assertFalse(defender.client.messages(combat.HIT))
-                    if hero == deflection.SIGMA:
+                    if hero == absorption.SIGMA:
                         self.assertEqual(intercept[3].instance.vars[21312].value(), 0)
 
     def test_empty_space_and_out_of_range_wall_cannot_attach(self):
@@ -300,7 +317,7 @@ class GrappleTests(unittest.TestCase):
         run, player, _, _, _ = scene()
 
         def digest():
-            graph = server_snapshot._Graph({}, None)
+            graph = server_snapshot._Graph({}, None, None)
             root = graph.value(run.match.combat.ball_grapples)
             return server_snapshot.snapshot_digest({
                 'schema': server_snapshot.SCHEMA, 'scope': server_snapshot.SCOPE, 'restorable': False,

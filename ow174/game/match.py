@@ -487,6 +487,8 @@ class Player:
               and self.body_script.world.wheel_replaces_horizontal_velocity(self.body_script.component)):
             # The mover models static supports. Selector 1 preserves vertical velocity.
             self.mover.velocity = (0.0, self.mover.velocity[1], 0.0)
+        if not stunned and not pulled and fight.air_steering_locked(self, command.frame):
+            command = replace(command, forward=0, right=0)
         from ow174.game import mccree, wall_ride
 
         mccree.apply_velocity(self, command.frame, controlled=stunned)
@@ -610,6 +612,8 @@ class Player:
             command, posed=not input_suppressed, movement_end=movement_end,
             charge_start=charge_start, seconds=seconds,
         )
+        if not self.mover.airborne and not self.mover.landed:
+            fight.translocators.recall_poses.discard(self.body)
 
     def _move_pose(self, command, seconds, tick, *, move_to=None, flight_profile=None):
         fight = self.match.combat
@@ -682,6 +686,9 @@ class Player:
                         script.orisa_pose_anchor = (self.match.tick, script.frame)
                 wraith.advance(self)
                 self.match.combat.command(self, command if posed else None, defer_effects=defer_effects)
+                if self.body_script is script and script.hero == 0x02E00000000001CA:
+                    from ow174.game import ball
+                    ball.settle_grapple_interrupt(self.match.combat, self, command.frame)
         script = self.body_script
         if script is not None and (pending := getattr(script.world, "pending_ult_credits", ())):
             from ow174.game.script import charge
@@ -1984,7 +1991,8 @@ class Match:
         return None
 
     def switch_hero(
-        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None
+        self, player: Player, hero: Hero, *, preserve_pose: bool = False, start_frame: int | None = None,
+        preserve_ultimate: bool = False,
     ) -> bool:
         """The body of a picked hero. The first one just comes. A switch creates the new body under a
         new id at the spawn point, moves the player's components 44 and 75 to it and destroys the old
@@ -2046,6 +2054,9 @@ class Match:
             elif hero.guid == hero_torbjorn.HERO:
                 overload_cooldown = max(0.0, player.overload_cooldown_until - self.combat.now)
                 turret_cooldown = max(0.0, player.turret_cooldown_until - self.combat.now)
+            if player.hero.guid == 0x02E000000000012E:
+                self.combat.sombra_charge.prepare_retirement(
+                    player, preserve_ultimate and player.hero.guid == hero.guid)
             self.combat.retire_player_body(player, next_hero=hero.guid)
             if old_hero == 0x02E0000000000007:
                 self.stop_body_script(player)

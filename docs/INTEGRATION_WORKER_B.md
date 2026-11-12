@@ -666,15 +666,165 @@ alone is not evidence that a line's consumers are actually mounted.
   Rein/Win/Orisa/Sigma only. Do not infer new Brig/Photon Shatter behavior or
   delete existing other-owner Photon implementation; parent owns that boundary.
 
+## B36 — Piledriver damage/impulse/air steering and active storage
+
+- Mount original _piledriver once-per-instance/state counter and authored-frame
+  gate, actual1175 origin, radius6252, distance680 damage expression, original
+  node12 pull and ModifyHealth vertical operands. Same real target Vitals and
+  active shield protection; source Cryo-state35 and Mine exclusions retained.
+- Existing Knockbacks.apply owns actual player/Bot impulses; preserve original
+  maximum-upward velocity via positive vertical delta and same planar operands.
+  No second NPC mover. Original0.5s32tick steering-only locks preserve rifle,
+  delayed command admission and cleanup on recovery/death/body retirement.
+- worker-b-ball-landing-focused.log23/23:6 complete original late-command lock,
+  retirement, ally/world cover, repeat cooldown, clearance and death cases plus
+  runtime17. Full worker-b-ball-landing-full.log29:10subfail,0errors. Actual
+  high landing origin produces38.474 damage versus100 and20.373versus55,
+  original pull/deadline-steer failures retained. Do not change original values
+  or force body to ground. These are unresolved gameplay consumers/boundaries.
+- Pile fixture references actual absorption.SIGMA and complete original Fireball
+  relocate fixture dependency. Pile76/Fireball44 assertion AST exactly unchanged.
+  Fireball/Grapple control are not mounted yet, no completion claim for copies.
+- Actual controlled server starts with Ball and original40 empty input warmup;
+  initial8-frame-only connected setup was too early for authored ability entry,
+  not a missing lease service. worker-b-ball-active-storage-probe.log confirms
+  raw Shift enters activeRoll; strict BodyVM+server capture, counter mutation
+  and exact restoration change/restore both digests. Later same script's pile
+  attempt using only oldMover.position failed and is retained in that log.
+- worker-b-ball-pile-active-storage-probe.log uses exact original lift fixture
+  replacementMover and raw crouch128: real160A Wait18 active atY7.97265/frame1047;
+  strict BodyVM+server causal start mutation16ms and restore both pass. No extra
+  whitelist/unknown-field suppression, fabricated controller or forced state.
+- NEXT B37: source Grapple update/retire/interrupt lifecycle on existing motion,
+  actual Sombra control-history adapter (old sombra_emp absent, do not duplicate
+  controller). Then source Fireball, form/critical/spread and passive owner audit.
+
+## B37 — Ball Roll current/history form and Quad Cannon critical scalar
+
+- Actual Target.critical_allowed reads original ball.rolling(player). Source
+  pose samples append that flag AFTER existing head_offset/sentry_yaw positions;
+  viewed target reads retained flag rather than current form. Other heroes keep
+  existing history layouts and generic critical policies.
+- Original Quad Cannon1514/loadout189 absent-native-scalar reconstruction2x
+  restored within that exact scope; explicit graph value keeps precedence.
+- worker-b-ball-form-critical-first.log23/23: all6 original Roll/toggle/primary/
+  outgoingcritical/incomingform/rewind checks plus runtime17. Existing Bastion
+  core/head2 and replacement rewind1 pass in worker-b-ball-history-regression.log;
+  that invocation also used nonexistent TracerCombatTests loader name1error,
+  corrected real TracerPistolTests case passes worker-b-ball-tracer-history.log.
+- No tests/expectations changed. Actual original Roll17 assertions unchanged.
+- NEXT B38 source Grapple controller/update/death/retire/control on same mounted
+  motion. C35 owns sole SombraControls.first_lock_after and real lock_history;
+  old EMP controller not imported/duplicated. Current source caller passes
+  fight.tick; controlled server body1000+ vsworld50 lacks a Ball anchor, so retain
+  that explicit history-time-domain gap rather than guess offsets. DirectRun
+  source clocks are aligned; immediate applied-lock cancellation can be verified.
+
+## B38 — Actual Grapple lifecycle, lock history and strict stored state
+
+- Source Ball.update_grapple now consumes posed commands after existing death/
+  hard-control admission. Retire/death release same tether; Combat._interrupt
+  retains original deferred frame behavior, settlement follows script advance.
+  Store real grapple_seen and optional grapple_interrupt_frame explicitly in
+  server/strictBodyVM schemas. Existing same Mover supplies attached pendulum.
+- Source _grapple_interrupt_after calls C35 sole Controls.first_lock_after;
+  generic source hard-control windows read current control/sleep/frost lists,
+  never treated as Hack locks. Original repeated-press suppression uses existing
+  Controls.held, no unmounted emp_suppressed_buttons or second EMP manager.
+- Dependency: original C35 SHA4f866474, locally cherry-picked as1ba85a31 only to
+  test actual production API. Parent must receive originalC35 once, not duplicate.
+  Kept both owner docs/changelog entries when importing dependency. No fakeNone.
+- worker-b-ball-grapple-first.log29:10 original Grapple+runtime17 pass,5suberrors
+  in2 methods from old interceptor signature and _Graph constructor. Exact
+  fixtures now observe actual active native Deflect/Grasp with current query
+  signature/tuple and current snapshot ctor. Snapshot case passes adapters.log;
+  guard four source subcases pass guard-second.log. Thus all12 original cases
+  passed across these runs; original99 assertion AST exactly unchanged.
+- worker-b-ball-grapple-active-storage.log: actual controlled raw receiver,
+  original320 empty bootstrap, secondary launch frame1325 arrives1329 with real
+  wall anchor(0,1.55,12). Active-flight strict export_body_vm/export_server_state
+  counter change changes both digests; restoration restores both. Raw four more
+  inputs attach same object. Both strict captures change across transition;
+  actual rope mutation/restoration changes/restores server digest. No state
+  forced into activation, extra whitelist or unknown-field suppression.
+- Retain precise limitation: source latest-bound argument is world fight.tick,
+  controlled server body1000+ versusworld50 lacks a Ball anchor. Do not guess
+  conversion or claim historical control equivalence from aligned Run cases.
+- NEXT B39 Fireball actual damage/impulse and contact lifecycle; then full
+  original source control/Hack/EMP, spread/passive/charge and Minefield. Ball
+  owner combat26 audit retains6fail4errors in earlier log, no whole-line claim.
+
+## B39 — Original Fireball search/damage/impulse/contact lifecycle
+
+- Mount original source _fireball on the same actual1203 Roll/Grapple velocity
+  tiers, original search35/damage39/proximity57 operands. Capsule midpoint cone,
+  LOS, outer sphere latch, once-per-entry damage50, loadout and original target
+  shield/Cryo/Mine exclusions remain source policies. Existing Knockbacks host
+  receives combined original planar and max-upward delta, no NPC impulse copy.
+- Store actual Combat.ball_contacts and clear with owner death/body/control;
+  leave-proximity removes retained recipient key, low-speed form cannot hit.
+- worker-b-ball-fireball-first.log27:8 full original gameplay tests+runtime17
+  pass, one half-push original11.0 not<11 numerical subfail and one old_Graph
+  ctor error. Correct fixture ctor passes snapshot.log1/1. Original44 assertion
+  AST fully identical; do not weaken strict half-push boundary for quantization.
+- worker-b-ball-fireball-active-storage.log: actual controlled raw receiver,
+  original320 bootstrap/lift/Grapple swing physically produces50 damage and a
+  nonempty same-owner contact ledger. Strict export_body_vm succeeds; full
+  export_server_state succeeds. Removing/restoring actual recipient contact
+  changes/restores exact server digest. No fake player/actor/activated state.
+- NEXT clean-sync accepted canonical at this saved boundary; source Adaptive
+  Shield already has an actual tagged extra pool, but original world-only expiry
+  and stale activation admission are missing. Preserve that pool instead of
+  installing old numeric-only Vitals alongside it. Then owner spread/passive/
+  charge and actual Minefield (ball_mines module currently lacks live manager).
+
+## B40 — Actual Ball epoch pair and world-only Adaptive expiry
+
+- Original source expiry floor(state.start+duration_ms)/frame_ms now maps with
+  actual constructor Ball.ball_birth=(match.tick,start_frame). Tuple never
+  rewrites on live input; new BodyScript gets its own actual pair. No generic
+  world_frame_anchor/lease enablement, guessed offset or protocol epoch reset.
+  Helpers use exact integer frame_ms/16ms arithmetic, first world tick reaching
+  the native body deadline. Grapple source upper limit maps into body domain.
+- Keep current actual tagged extra shield pool. Register adaptive_until on real
+  Vitals; clear only that same pool/tombstone at world expiry without advancing
+  body VM. Active source counter identity remains latched after expiry; source
+  stale admission is retained when an activation actually materializes.
+- Both strict exporter schemas register Ball-only ball_birth explicitly;
+  server schema registers adaptive_until. No unknown-field suppression.
+- worker-b-ball-clock-focused.log20/20: original same-domain world expiry,
+  replacement, actual Grapple launch and runtime17. Original stale first-command
+  fixture still sees adaptive_activationNone before state6 materializes; its
+  assertion remains unchanged. Followup probe also stayedNone/0shields/600HP,
+  so do not claim the stale activation branch fully verified.
+- Initial raw probe's unequal assertion failed because actual server FIRST_TICK
+  is1000 and normal birth(1004,1004); no patch/fake epoch used. Real raw commands
+  followed by raw HeroPick creates actual unequal pair(1012,1044). In
+  worker-b-ball-birth-shield-raw-storage-second.log actual world1053/body1085
+  grants175, expiresWorld1615. Actual server.tick(missed) plus UDP keepalives,
+  no body commands:175 before expiry,0/HUD600 at expiry, source frame/now frozen.
+  Active strict BodyVM/server exports pass; real adaptive_until mutation/restoral
+  changes/restores server digest. Real raw replacement creates(1615,1085) and
+  fresh Vitals; old retired pair unchanged; both strict exports still pass.
+- worker-b-ball-grapple-birth-bounds.log attempted real Sombra->new Ball applied
+  lock, but no lock acquired(KeyError); no fakeLock/window installed. Full
+  original aligned Grapple mechanics still pass focused case; actual cross-hero
+  lock acquisition/bounds remains next source integration work, not merely an
+  observer label. Do not wait for this entire boundary before saving expiry.
+- NEXT clean-sync latest root after this boundary. Then Ball source shield API/
+  passive/spread/charge and actual Minefield manager, and exact control/Hack/EMP
+  fixture consumers. Root owns original tools CLI intake; do not touch tools.
+
 ## Exact next work
 
-1. Commit B30, then clean-sync canonical after parent acceptance. Continue
-   source0007 actual shield retirement/death/control/break/recast consumers,
-   real native pool fixture inputs, source frozen-team queries and remaining
-   surface histories. Preserve original grenade incident-side occlusion and
-   projectile world-position/lifetime metadata; do not add another controller.
-   Audit Fire Strike phase/contact inputs and retained original tests before
-   formally calling0007 complete. Then advance remaining tank owners.
+1. Commit B40 actual expiry/birth-pair saved boundary, then clean-sync latest
+   canonical. Continue source Ball shield API/passive/spread/charge and actual
+   Minefield manager. Cross-hero Hack/EMP lock acquisition and body-domain
+   historical bounds still need original consumer evidence; no fake windows.
+   Keep source stale first-command activationNone, Piledriver high-origin/pull/
+   steering and Fireball half-push11.0 expectations unchanged. No full-line claim.
+   Root owns original tools CLI; preserve tools and remaining Sigma original
+   fixtures for its actual CLI dependency audit.
 2. Continue Doomfist barrier/NPC equivalence audit using9cad40e8 or later NPC
    controls. Track Sigma native extra-pool/pending-grant differences for023B.
 3. Reconcile native body-forward, ray/ground and velocity-action adapters and

@@ -356,6 +356,35 @@ def add_supplement(data: dict, extra: dict) -> dict:
     return result
 
 
+def merge_extra_bundle(base: dict, extra: dict) -> dict:
+    """Read-only graph/entity shards may add missing records, never replace known ones."""
+    if not isinstance(extra, dict) or extra.get("version", 1) != 1:
+        raise ValueError("unsupported supplementary graph bundle")
+    if any(extra.get(key) for key in ("bodies", "mode_scripts", "mode_variables", "map_scripts")):
+        raise ValueError("supplementary bundles may add only graphs and entity definitions")
+    if not isinstance(extra.get("graphs", []), list) or not isinstance(extra.get("entities", {}), dict):
+        raise ValueError("supplementary graph/entity sections have invalid types")
+    records = {row["index"]: row for row in base["graphs"]}
+    seen = set()
+    for row in extra.get("graphs", []):
+        index = row.get("index") if isinstance(row, dict) else None
+        if type(index) is not int or not 0 <= index <= 0xFFFF or index in seen:
+            raise ValueError("invalid or duplicate supplementary graph identity")
+        seen.add(index)
+        if index in records and records[index] != row:
+            raise ValueError(f"supplementary graph conflicts with canonical graph {index:04X}")
+        records[index] = row
+    entities = dict(base.get("entities", {}))
+    for key, row in extra.get("entities", {}).items():
+        if not re.fullmatch(r"0x0400[0-9A-F]{12}", key) or not isinstance(row, dict):
+            raise ValueError("invalid supplementary entity definition")
+        known = entities.get(key, base.get("bodies", {}).get(key))
+        if known is not None and known != row:
+            raise ValueError(f"supplementary entity conflicts with canonical entity {key}")
+        entities[key] = row
+    return {**base, "graphs": list(records.values()), "entities": entities}
+
+
 @cache
 def _records() -> dict[int, dict]:
     return {record["index"]: record for record in _data()["graphs"]}

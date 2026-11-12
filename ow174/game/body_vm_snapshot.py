@@ -15,7 +15,7 @@ import uuid
 
 from ow174.game import assassin_controller, enforcer_controller, hanzo_movement, replay_values
 from ow174.game import npc_controller_storage
-from ow174.game.script import scene
+from ow174.game.script import assassin_movement, scene
 from ow174.game.script.support_effects import EffectWorld as SupportWorld
 from ow174.game.health_packs import PackWorld
 from ow174.game.sombra_control import DeviceWorld as SombraDeviceWorld
@@ -77,7 +77,7 @@ _SCRIPT = frozenset((
     "self_repairs", "control_windows", "sleep_windows", "frost_windows",
 ))
 _SCRIPT_OPTIONAL = ("charge_clock", "passive_ult_deadline", "passive_ult_last_command_tick",
-                    "orisa_pose_anchor", "orisa_fortify_pending")
+                    "orisa_pose_anchor", "orisa_fortify_pending", "grapple_interrupt_frame", "ball_birth")
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
@@ -85,6 +85,8 @@ _GRAPH = frozenset((
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 _STATE_LAYOUTS = {
+    nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
+    nodes.BodyRecallMove: (("accepted", "destination"), ()),
     nodes.AuthoredBodyHealthPool: (("remove_wave_health",), ()),
     nodes.AIControlOverride: (("remove_record",), ()),
     nodes.BodyPlacement: ((), ()),
@@ -172,6 +174,7 @@ _STATE_LAYOUTS = {
 }
 
 _VALUE_LAYOUTS = {
+    assassin_movement.Sample: ("flags", "axis"),
     scene.SceneEntity: npc_controller_storage.SCENE_ENTITY_FIELDS,
     scene.Placement: npc_controller_storage.PLACEMENT_FIELDS,
     entity_queries.Target: ("entity", "possession", "possessor", "body_field"),

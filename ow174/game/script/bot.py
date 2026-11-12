@@ -766,8 +766,29 @@ class BotWorld(runtime.World):
             return True
         return controls is not None and not state.instance.component.strict and controls.blocked(state)
 
+    def thunderstorm_targets(self, state):
+        source = next((bot for bot in self.match.bots
+                       if bot.entity == state.instance.component.entity), None)
+        if source is None or source.dead:
+            return ()
+        radius = expr.to_float(state.evaluate(state.node.field("m_radius"), watch=False))
+        offset = state.evaluate(state.node.field("m_05BE62DD"), watch=False)
+        if not math.isfinite(radius) or radius <= 0 or not isinstance(offset, expr.Vec3):
+            return ()
+        center = tuple(axis + delta for axis, delta in zip(source.position, offset))
+        # Reconstructed search: hostile living player mover origins in the authored sphere.
+        # Obstruction belongs to the graph's later ray.
+        players = {player.body: player for player in self.match.players}
+        return tuple(expr.Entity(target.entity) for target in self.match.combat._enemies(source)
+                     if target.entity in players
+                     and math.dist(center, players[target.entity].mover.position) <= radius)
+
     def tracked_targets(self, state):
         from ow174.game import heavy_assault, npc
+
+        if (self.match is not None and state.instance.graph.index == DEATH_VOLLEY_GRAPH
+                and state.node.pos == 70):
+            return tuple(target.id for target in self.thunderstorm_targets(state))
 
         if (self.match is not None and self.hero == npc.TROOPER_HERO
                 and (state.instance.graph.index, state.node.pos) == (0x1034, 16)):
@@ -868,18 +889,22 @@ class BotScript(ReplicatedBody):
         nameplate_name: str | None = None,
         manual_rialto_spawn: bool = False,
         difficulty_index: int | None = None,
+        record: dict | None = None, world: runtime.World | None = None,
+        resolve_graph=None, source_entity: int | None = None,
     ) -> None:
         from ow174.game import heavy_assault
 
-        record = graph.entity_body(body)
+        record = graph.entity_body(body) if record is None else record
         if record is None:
             raise ValueError(f"no statescript data for entity body {body:016X}")
         self.frame = frame
         buttons = record.get("ai_weapon_buttons") or {}
         firing = graph.graph(FIRING_GRAPH) if buttons and firing_position is not None else None
         position = expr.Vec3(*firing_position) if firing_position is not None else None
-        world = BotWorld(hero, mode, buttons, position, controller_components=controller_components,
-                         manual_nameplate=manual_nameplate)
+        external_world = world is not None
+        world = world if external_world else BotWorld(
+            hero, mode, buttons, position, controller_components=controller_components,
+            manual_nameplate=manual_nameplate)
         world.match = match
         if difficulty_index is not None:
             world.pool_profile = body, difficulty_index
@@ -920,15 +945,18 @@ class BotScript(ReplicatedBody):
         elif controller_entity is not None:
             raise ValueError('controller identity supplied without an explicit definition association')
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
-        world.component = component
+        if not external_world:
+            world.component = component
         component.frame = frame
         component.now = frame * component.frame_ms
-        registered = match is not None and hero == 0x02E000000000007A
+        registered = match is not None and (hero == 0x02E000000000007A or external_world)
         if registered:
             match.register_body_component(component)
         try:
             self.set_health(health, health)
-            for instance in create_body_graphs(component, record):
+            for instance in create_body_graphs(component, record, resolve_graph=resolve_graph):
+                if source_entity is not None:
+                    instance.set_source_entity(source_entity)
                 instance.init()
                 if manual_rialto_spawn and hero == heavy_assault.HERO:
                     heavy_assault.skip_sandbox_intro(instance)
@@ -996,7 +1024,7 @@ class BotScript(ReplicatedBody):
 
     def replicated_vars(self, instance=None):
         hidden = ({0x10000 + key for key in self.component.world.controller_inputs}
-                  if instance is None else set())
+                  if instance is None and isinstance(self.component.world, BotWorld) else set())
         return ((key, value) for key, value in super().replicated_vars(instance) if key not in hidden)
 
     @property

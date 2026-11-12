@@ -413,6 +413,15 @@ class Walls:
                 best = hit[0], piece, hit[1]
         return best
 
+    def cast_ray(self, origin, direction, length, category=collision.MOVER):
+        static = self.combat.match.collision_world.cast_ray(origin, direction, length, category)
+        hit = self.cast(origin, direction, length if static is None else static.distance)
+        if hit is None or (static is not None and static.distance <= hit[0]):
+            return static
+        at, _, normal = hit
+        point = tuple(p+d*at for p,d in zip(origin,direction,strict=True))
+        return collision.RayHit(at,point,normal,category,0)
+
     def blocked(self, origin, destination):
         delta = tuple(b - a for a, b in zip(origin, destination, strict=True))
         length = math.sqrt(sum(axis * axis for axis in delta))

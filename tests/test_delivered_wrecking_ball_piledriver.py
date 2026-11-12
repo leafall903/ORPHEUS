@@ -9,7 +9,7 @@ import unittest
 import test_delivered_wrecking_ball_combat as ball_tests
 from test_game_combat import aim
 
-from ow174.game import combat, deflection, mover
+from ow174.game import combat, deflection, absorption, mover
 from ow174.game.collision import StaticCollisionProvider, World
 from ow174.game.commands import Command
 from ow174.game.content import heroes
@@ -75,7 +75,7 @@ class PiledriverTests(unittest.TestCase):
     def test_active_deflect_and_grasp_leave_piledriver_damage_and_lift(self):
         for hero, graph, state, button in (
             (deflection.GENJI, 0x03A3, 10, 16),
-            (deflection.SIGMA, 0x1D02, 1, 8),
+            (absorption.SIGMA, 0x1D02, 1, 8),
         ):
             with self.subTest(hero=hero):
                 run, player, enemy, _, own = ball_tests.BallCombatTests().scenario(distance=1.5)
@@ -110,7 +110,7 @@ class PiledriverTests(unittest.TestCase):
                 self.assertEqual(player.body_script.component.entity_var(ULT_CHARGE).value(), 100)
                 self.assertEqual(own.total, 600)
                 self.assertFalse(enemy.client.messages(combat.HIT))
-                if hero == deflection.SIGMA:
+                if hero == absorption.SIGMA:
                     self.assertEqual(defense.vars[21312].value(), 0)
 
     def test_distance_falloff_and_outside_radius(self):
@@ -259,7 +259,7 @@ class PiledriverTests(unittest.TestCase):
 
 
     def test_actual_rifle_kill_before_landing_and_fresh_piledriver_after_respawn(self):
-        from test_wrecking_ball_fireball import relocate
+        from test_delivered_wrecking_ball_fireball import relocate
 
         for phase in (18, 3):
             with self.subTest(phase=phase):
