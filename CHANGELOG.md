@@ -6,6 +6,11 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-12
 
+#### Independent protocol crate
+
+- Extracted bits, commands, JAM cipher/codecs/framing and the game datagram codec into `orpheus-wire`, preserving existing server import paths and sharing the array-count limit with its collection caller.
+- Passed formatting, both Clippy lanes, 354 default / 357 inspector public tests and all 66 prepared baseline checks using their recorded base or enriched pack. The new crate runs 23 public and two prepared tests independently. Original-client acceptance remains open.
+
 #### Rust foundation review baseline
 
 - Recorded the maintainer-supplied review as a scoped task tracker, including typed IR, unavailable World queries, room retirement, reference fixtures and diagnostic boundaries.
