@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from ow174.game import actors, bots
-from ow174.game.script import expr, graph, runtime
+from ow174.game.script import expr, graph, healing_status, runtime
 
 GRENADE = 0x04A0000000000267
 TICK = 0.016
@@ -63,8 +63,9 @@ class Modifier:
     end: int
 
 
-class HealingEffects:
+class HealingEffects(healing_status.Statuses):
     def __init__(self, combat):
+        super().__init__(combat.match)
         self.combat = combat
         self.spec = None
         self.anti = {}
@@ -72,6 +73,7 @@ class HealingEffects:
 
     def retire(self, entity):
         self.combat.record_cryo_status(entity)
+        super().retire(entity)
         self.anti.pop(entity, None)
         self.amp.pop(entity, None)
         self.combat.record_cryo_status(entity)
@@ -112,6 +114,7 @@ class HealingEffects:
 
     def prepare(self):
         """Clean dead/retired recipients, retaining expired intervals for current HOT integration."""
+        self.update(self.combat.tick)
         targets = {t.entity: t for t in self.combat._targets()}
         for entity in set(self.anti) | set(self.amp):
             self.record_regeneration(entity)
@@ -125,6 +128,11 @@ class HealingEffects:
                 self.combat.record_cryo_status(entity)
 
     def prune(self):
+        # Settle the existing shield ledger while authored filter transitions
+        # still cover this sparse interval, before discarding old VM history.
+        for entity in tuple(self.filter_history):
+            self.record_regeneration(entity)
+        self.prune_filters(self.combat.tick)
         for entity in set(self.anti) | set(self.amp):
             self.record_regeneration(entity)
             self.combat.record_cryo_status(entity)
@@ -135,21 +143,25 @@ class HealingEffects:
 
     def factor(self, target, *, tags=(), seconds=0.0, end_tick=None):
         anti, amp = self.anti.get(target.entity), self.amp.get(target.entity)
-        if self.spec is None or (anti is None and amp is None):
+        dynamic = target.entity in self.filter_history or any(
+            item.target == target.entity for item in self.applied.values())
+        if not dynamic and (self.spec is None or (anti is None and amp is None)):
             return 1.0
         if anti is not None and (self.immune(target) or set(tags).intersection(self.spec.excluded)):
             anti = None
 
         def at(tick):
-            if anti is not None and anti.start <= tick < anti.end:
-                return self.spec.anti
-            return self.spec.amp if amp is not None and amp.start <= tick < amp.end else 1.0
+            ordinary = (self.spec.anti if anti is not None and anti.start <= tick < anti.end else
+                        self.spec.amp if amp is not None and amp.start <= tick < amp.end else 1.0)
+            authored = self.scale(target.entity, tags, frame=tick) if dynamic else 1.0
+            return 0.0 if min(ordinary, authored) <= 0.0 else max(ordinary, authored)
 
         end = self.combat.tick if end_tick is None else end_tick
         if seconds <= 0:
             return at(end)
         start = end - seconds / TICK
         points = {start, float(end)}
+        points.update(tick for tick, _ in self.filter_history.get(target.entity, ()) if start < tick < end)
         for effect in (anti, amp):
             if effect is not None:
                 points.update(v for v in (effect.start, effect.end) if start < v < end)

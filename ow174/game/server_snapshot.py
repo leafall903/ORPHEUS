@@ -84,7 +84,7 @@ from ow174.game import (
     world,
     zarya_barriers,
 )
-from ow174.game.script import entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
+from ow174.game.script import healing_status, entity_hostility, entity_relation, entity_tags, fold, scopes, support_effects
 from ow174.game import doomfist, meteor, winston, knockback, lucio, sombra_control, sound_barrier
 from ow174.game.bits import BitWriter
 from ow174.game.collision import LoadState, World
@@ -245,7 +245,8 @@ FIELDS = {
     baptiste.BaptisteEffects: _names(
         "combat seen regeneration protection_seen fields field_bindings matrices"
     ),
-    healing.HealingEffects: _names("combat spec anti amp"),
+    healing.HealingEffects: _names("match applied filter_history combat spec anti amp"),
+    healing_status.StatusWorld: _names("hero mode match source owner"),
     absorption.Grasp: _names("combat converted decay_clocks last_tick"),
     barrier.BarrierField: _names("combat health children model_sha256"),
     graviton.Gravitons: _names("fight fields pulled npc_movers"),
@@ -365,7 +366,7 @@ DATACLASSES = (
     genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
     earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
     actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
-    healing.Spec, healing.Modifier,
+    healing.Spec, healing.Modifier, healing_status.Applied,
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, photon_barrier.Shield,
     projectiles.Shot, projectiles.ShotRecord, projectiles._ObservedProjectile, projectiles._ProjectileArrival,
