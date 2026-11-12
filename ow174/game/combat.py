@@ -954,6 +954,32 @@ class Vitals:
             self.changed.add(SHIELDS_POOL)
         return taken
 
+    def drain_shields(self, amount: float) -> float:
+        """Consume only existing shield-kind records for the authored EMP drain."""
+        left = max(0.0, amount)
+        taken = self.spend_temporary_shield(left)
+        left -= taken
+        for pool in self.extra.values():
+            if pool.kind == SHIELDS_POOL and not pool.removed and left > 0:
+                used = min(left, pool.now)
+                pool.now -= used
+                left -= used
+                taken += used
+                self.changed.add(SHIELDS_POOL)
+        conditional = self.conditional_pools.get(SHIELDS_POOL)
+        if conditional is not None and left > 0:
+            used = min(left, conditional.now)
+            conditional.now -= used
+            left -= used
+            taken += used
+            self.changed.add(SHIELDS_POOL)
+        used = min(left, self.now[SHIELDS_POOL])
+        if used > 0:
+            self.now[SHIELDS_POOL] -= used
+            taken += used
+            self.changed.add(SHIELDS_POOL)
+        return taken
+
     def add_wave_health(self, amount: float):
         """Add one state-owned health record without modifying the body's base pools."""
         if self.dead or self.wave_health is not None or not math.isfinite(amount) or amount <= 0:
@@ -9365,6 +9391,7 @@ class Combat:
         source_body: int | None = None, beam: bool = False, maximum_damage: float | None = None,
         source_scaled: bool = False, damage_charge=None, boost_credit=None,
         reflected_reaper_shell: bool = False, source_entity: int | None = None, armour_reduction: bool = True,
+        shield_drain: bool = False,
     ) -> bool:
         """Apply damage and report whether a body hit can carry an attached effect."""
         if source_entity is not None:
@@ -9376,8 +9403,8 @@ class Combat:
             if self.ball_mines.devices.get(mine.body) is not mine or mine.removing or amount <= 0:
                 return False
             vitals = self.vitals_of(target)
-            if vitals.dead:
-                return False
+            if vitals.dead or shield_drain:
+                return False  # Original Mine EMP disables its controller without health damage.
             if not source_scaled:
                 from ow174.game import nano
                 amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
@@ -9409,11 +9436,11 @@ class Combat:
         from ow174.game import nano
 
         attacker = _source_entity(shooter) if source_body is None else source_body
-        if not source_scaled:
+        if not source_scaled and not shield_drain:
             amount = self._team_damage(shooter, amount) * self.orisa.superchargers.scale(shooter)
             amount *= nano.offense(self, attacker)
         component = self._scene_component(shooter) if isinstance(shooter, bots.Bot) else None
-        if component is not None and not source_scaled:
+        if component is not None and not source_scaled and not shield_drain:
             amount = component.world.outgoing_combat_damage(shooter.entity, amount, hit_tags)
         if maximum_damage is not None:
             amount = min(amount, maximum_damage)
@@ -9431,24 +9458,29 @@ class Combat:
             self.barriers.damage(bubble, amount, shooter)
             return False
         self.zenyatta.regenerate_before_damage(target, vitals)
-        amount *= self.zenyatta.boost(target)
+        if not shield_drain:
+            amount *= self.zenyatta.boost(target)
         self._recover_shields(target.owner, vitals, self.now - TICK)
         base_before = vitals.base_total
         temporary_before = vitals.temporary_shields
         if getattr(getattr(target.owner, "hero", None), "guid", None) == lucio.HERO:
             lucio.advance_passive_charge(target.owner, self.tick - 1, due_only=True)
-        if self.now < vitals.nano_until:
+        if self.now < vitals.nano_until and not shield_drain:
             amount *= 0.5
         adaptive = vitals.extra.get(("adaptive", moira.ADAPTIVE_SHIELD_TAG))
         shield_before = adaptive.now if adaptive is not None else 0.0
         sound_pool = vitals.extra.get(sound_barrier.POOL_KEY)
         sound_before = sound_pool.now if sound_pool is not None else 0.0
         minimum = self._minimum_health(target, vitals)
-        base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1], tick=world_tick if world_tick is not None else self.tick), minimum,
-                                    armour_scalar=armour_scalar, beam=beam)
-                if boost_credit is not None else 0.0)
-        dealt = vitals.damage(self._incoming_damage(target, amount, tick=world_tick if world_tick is not None else self.tick), minimum,
-                              armour_scalar=armour_scalar, beam=beam)
+        if shield_drain:
+            base = 0.0
+            dealt = vitals.drain_shields(amount)
+        else:
+            base = (vitals.capped_damage(self._incoming_damage(target, amount / boost_credit[1], tick=world_tick if world_tick is not None else self.tick), minimum,
+                                        armour_scalar=armour_scalar, beam=beam)
+                    if boost_credit is not None else 0.0)
+            dealt = vitals.damage(self._incoming_damage(target, amount, tick=world_tick if world_tick is not None else self.tick), minimum,
+                                  armour_scalar=armour_scalar, beam=beam)
         if dealt <= 0.0:
             return False
         if symmetra.owns_shield_recovery(target.owner):
@@ -9469,7 +9501,7 @@ class Combat:
             elif self.junkrat.lookup(target.entity) is target.owner and not isinstance(shooter, bots.Bot):
                 self._tell_hit(shooter, target, dealt, 0, frame)
             return True
-        if (target.owner is not shooter
+        if (not shield_drain and target.owner is not shooter
                 and (self.match.game_map.free_for_all or target.team != getattr(shooter, "team", None))):
             vitals.ult_healing_deficit = min(
                 vitals.base_maximum - vitals.base_total,

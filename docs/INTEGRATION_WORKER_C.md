@@ -1910,3 +1910,58 @@ cryo_expiries/barrier_cover_ends pipeline andmissingretainedsupport helpercalls
 rootidentified cover_ray/trace_barrier/_splash_targets/_splash_barriers/
 visible_target; bridgecurrenthelpers, nevercopywholelegacyCombat.
 No client/journal/fullacceptance claim; previousperownerinventorystillapplies.
+
+
+## C46: restore shield-only EMP through the existing damage consumer
+
+Original012E apply_emp_health called _damage(shield_drain=True); narrowcanonical
+Controls.drain directpoolwrites skipped existingrecovery/receiveddamage/hitstats.
+Restored that optionalkw(defaultFalse) on the same Combat._damage. Source mode
+bypasses outgoing/incoming/Nano/Discord/armour scaling and uses Vitals.drain_shields
+on existingtemporary/extra/conditional/intrinsicSHIELD records only. Basehealth,
+armour/Overload/wavehealth andpool IDs/TTLs remain. Existingbarrier/protection and
+single authoritative postdamage callbacks/stats/wake/HPsync nowconsume actual
+shieldloss; no seconddamage manager/pool/healing service. Mine EMP remainsits
+originalcontrollerdisable withouthealthdamage, preservingB44/45 fastpath.
+
+Sole actual0B32 receiver calls that path with actualsourcecomponent.frame when
+available, explicitworldtick/healthtags, source_scaledTrue andaward_ultFalse.
+No missingcaster is invented. Only shieldloss reaches ordinarydamage observers;
+no loss remainsno damage/charge/hit. PermanentHPhealingdeficit not increased by
+shield-only drain, asoriginalsourcepolicy. Ordinary_damage defaults/path retained.
+Rootconfirmed no_damageWIP; sourceSniper _bot_weapons/_interrupt separate.
+
+v17 exact class-based unittest suite (normalimports, unchanged originalasserts):
+ SombraEmpTests(all11), SombraChargeTests(all15),DamageTests(all8),
+ runtime ExecutionTests/ValueTests/RealGraphTests(all17), plusoriginalAsheEMP
+ refresh/expiry/projectedbarrier3. 54run171.396s,52pass2retainedfail.
+worker-c-sombra-shield-damage-check.log. Customresult formatter onlytruncates
+individualfailureloglines to600chars toavoidprior6MBinlineVMJSON, nottestresults.
+Firstold50.72aftersecondEMP assertion nowpasses; lateroriginalHP50 expectation
+atfirstexpiry is110.72 becauseexistingZenyatta30/s intrinsicregenerationafter
+actual3-second damagefreeinterval. Do notdisablethatotherownerfeature. Other
+failure isoriginalModifyBodyHealth classname string absent; actualstrictVM export
+stillworks, nofakeclassrename. All15charge/no-EMP-credit,8ordinarydamage,
+17VM andAshe3 pass. No fixtures/asserts rewritten, no sourceedits duringgroup.
+
+Actualproducerprobe: normaloriginalSombraEmpTests.make(Zenyatta), paidEMP30 =>
+HP50/SHIELD0, sourceHERO_DAMAGE150, ultcharge0; existingZen.last_damage17.952,
+currentnow18.08. Beforeobserved+3secs shield0; twofurtherframes shield0.72,
+provingknownrecoveryhost resumesratherthanbeinggloballydisabled. Actualpool
+probe withsingleVitals existing APIs: HP200/armor100/Overload100/wavehealth75,
+baseSHIELD150+temporary50+extra30+conditional20 =>drain250; allHP/armour/wave
+unchanged andsamepoolID/slot records. No clonedpool introduced.
+worker-c-sombra-shield-damage-consumers-probe.log. Initialreviewcaught source-
+scaled replacement had hit rootMine fastpath first; fixedboth intendedbranches
+beforetests, preservingMine disable-only behavior. Parse/diff audit clean.
+No client/journal/fullacceptance claim.
+
+Next C47 priority: actualSymm historyconsumer. Source0016 Combat
+_advance_phase_clocks(761),update946/1032 definesinputs; currentactualTurrets
+alreadyretains rate*max(start,ready,cryo_expiry,barrier_start,damage_starts)
+algorithm butCombat stillpasses{}, {}, (). RootB50 actual Mei constructor pair
+via mei.cryo_world_deadline/expired suppliesknownworlddomain, reuse thatsingle
+phasehost. Retainedsource methods call missing cover_ray/trace_barrier/
+_splash_targets/_splash_barriers/visible_target; map actualcurrenthelpers per
+consumer, notcopy wholelegacyCombat orcreate phase/health ledgers. Sync root
+cleanboundary afterC46 to getB50 and latestsharedSniper/controller source.

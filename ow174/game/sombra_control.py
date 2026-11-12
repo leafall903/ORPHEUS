@@ -697,13 +697,13 @@ class Controls:
         if barrier is not None:
             barrier.health = max(0.0, barrier.health - amount)
             return
-        amount -= vitals.spend_temporary_shield(amount)
-        for pool in vitals.extra.values():
-            if pool.kind == SHIELDS_POOL and not pool.removed:
-                taken = min(amount, pool.now)
-                pool.now -= taken
-                amount -= taken
-                vitals.changed.add(SHIELDS_POOL)
-        vitals.now[SHIELDS_POOL] = max(0.0, vitals.now[SHIELDS_POOL] - amount)
-        vitals.changed.add(SHIELDS_POOL)
-        fight._sync_body_health(target.owner, vitals)
+        from ow174.game.combat import health_tags
+
+        caster = self.player(state.instance.source_entity())
+        if caster is None:
+            return
+        script = caster.body_script
+        frame = script.component.frame if script is not None else fight.tick
+        fight._damage(caster, target, amount, False, None, frame, world_tick=fight.tick,
+                      source_scaled=True, shield_drain=True, award_ult=False,
+                      hit_tags=health_tags(state, state.node.field("m_modifyHealth")))

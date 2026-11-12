@@ -101,6 +101,16 @@ This log records tested changes and their acceptance status. Entries are grouped
   pass. Original explicit AI association/recipient coupling remains next; no
   client acceptance or extra controller allocation added by this fix.
 
+### Restore original shield-only EMP damage notifications
+
+- Existing damage pipeline now consumes original shield_drain mode, touching only
+  existing shield records and preserving health/armour, receiver protections,
+  stats/recovery/received-damage callbacks and no-ultimate-credit policy.
+- ActualEMP reports150shield damage/nocharge and existing3-second recovery;
+  mixedshield250 drains withHP/armour/wavehealth/IDs unchanged. Original54:
+ 52pass and retained oldsnapshot-class/natural-regeneration expectations.
+  No assertion changes or duplicate pools; Symm history consumers follow.
+
 ### Keep incoming EMP replay on each actual receiver component clock
 
 - Portal overlap can reference the near pulse from a remote endpoint effect.
