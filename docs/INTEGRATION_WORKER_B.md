@@ -2863,3 +2863,16 @@ confirmedforceendpointphysical/input boundary. B96epochmetadata code delivered;
 rootreceived673c5607 androotjoint underway. No other knownpublicSDK consumer gap
 in currentBboundedowner inventory; oldnumeric/client/source-conflict tails remain
 explicitlyseparate from code-preservation delivery.
+
+
+## B97 follow-up — preserve BotWorld same-name census data
+
+C flagged exactsame-name legacyBotWorld.controller_components instanceattribute
+(None/dict/tuple), which shadows the restoredWorldmethod. Guard the B96D fallback
+withcallable beforeinvoking sourceSDK; noncallablecensus payload is NOT a selected
+resolvedbackend and must retain existingrecord-first/nativeunknown behavior.
+Do not rename/delete BotWorlddata or infer manualAssassincontext from presence.
+ActualBotWorld None/dict/tuple strictquery smoke preserves fallback without a
+TypeError; tooloutputrecorded. Queryguard readsresolver onlyfor B96D. No runtime
+state, protocol, sourceassertions or strongerRecord path changes. NextB98tool
+fixtureintegration remains, sourceCLI classhelpers will bindcurrentactualhost.
