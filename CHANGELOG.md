@@ -4,6 +4,15 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve controller Pin services in causal server storage
+
+- Exact original Pin/message storage and current scalar/vector modifier records
+  use the existing enclosing-domain VM bridge. Validate controller ownership and
+  retain strict rejection of unknown fields and foreign component services.
+- Real1177 whole-server sequence/registry/cache/backend changes alter and restore
+  stored digests; original controller and Match checks pass. Manual NPC recipient
+  coupling remains subsequent work; no client acceptance run.
+
 ### Send actual controller effects through the existing Match wire
 
 - Existing controller frames include original live effects and bound flags;
