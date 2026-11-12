@@ -109,6 +109,16 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ## Unreleased
 
+### Preserve projectile source scaling on the same Mei wall pools
+
+- Connect wall direct/splash damage to the existing source modifiers once,
+  preserving Zarya's original launch Nano snapshot and current live projectile
+  policy. Keep readonly geometry predictions raw and existing callers compatible.
+- Actual live Nano and expired-in-flight launch Nano interact correctly with the
+  same native wall pools; 19 wall/cover/projectile/damage checks pass. Restore the
+  retained retarget guard's actual raised-barrier service; full phase/retarget
+  acceptance and client checks remain open.
+
 ### Preserve Pharah force cover through the same impact
 
 - Read original Pharah impulse exposure before the blast breaks its cover, then

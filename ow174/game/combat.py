@@ -8415,6 +8415,8 @@ class Combat:
             heading=incident_direction, normal=surface_normal, defer=True,
         ) if pharah else ())
         boost = self.orisa.superchargers.scale(rocket.shooter)
+        wall_source_scaled = rocket.offense_scale is not None
+        wall_scale = self._team_damage(rocket.shooter, 1.0) * boost if wall_source_scaled else 1.0
         source = _along(point, incident_direction, -0.0001)
         # Sample the original solid-wall exposure before any impact can remove
         # cover. Bound native pillars share these geometry objects and pools.
@@ -8460,7 +8462,8 @@ class Combat:
             if pharah:
                 self._apply_pharah_impulses(pharah_impulses, protected=set(protected) | set(broken_particle_barriers or ()))
             if ice is not None:
-                self.walls.damage(ice[1], rocket.shooter, ice_damage, team=rocket.team)
+                self.walls.damage(ice[1], rocket.shooter, ice_damage * wall_scale, team=rocket.team,
+                                  source_scaled=wall_source_scaled, source_body=rocket.source_body)
             for barrier, amount in shield_damage:
                 self.brigitte.damage_barrier(barrier, amount)
             if deployed is not None:
@@ -8552,10 +8555,11 @@ class Combat:
                     continue
             victims.append((target, blast.amount * scalar))
         if ice is not None:
-            self.walls.damage(ice[1], rocket.shooter, ice_damage + blast.amount * blast.splash(0.0),
-                              team=rocket.team)
+            self.walls.damage(ice[1], rocket.shooter, (ice_damage + blast.amount * blast.splash(0.0)) * wall_scale,
+                              team=rocket.team, source_scaled=wall_source_scaled, source_body=rocket.source_body)
         for piece, amount in ice_splash:
-            self.walls.damage(piece, rocket.shooter, amount, team=rocket.team)
+            self.walls.damage(piece, rocket.shooter, amount * wall_scale, team=rocket.team,
+                              source_scaled=wall_source_scaled, source_body=rocket.source_body)
         for barrier, amount in shield_damage:
             self.brigitte.damage_barrier(barrier, amount)
         for barrier, amount in deployed_splash:

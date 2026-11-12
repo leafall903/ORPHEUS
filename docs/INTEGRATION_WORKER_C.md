@@ -2484,3 +2484,41 @@ recipient admission (current _recipient_live onlyplayers); no alias manager.
 Mei/Symm phase/retarget, Pharah remaining cover interlocks and Bastion Heavy
 stance/push audit stayopen. Estimated5–12active C hours, lowconfidence; no client,
 network or publication performed.
+
+
+## C57 projectile wall source scaling and raised-barrier proof guard
+
+Synchronized root96ec3824 afterC56, retaining B64 Accretion caster damage/force,
+A86 launchNano/offense_scale and its optional field positional compatibility.
+Walls.damage keeps its original source_scaled=True default for already-scaled
+cross-owner callers; adds optional source_scaled/source_body forwarding into the
+same Combat._damage. Only three existing _explode wall direct/splash consumers
+opt into current source rules. offense_scale=None routes raw amount through the
+existing live team/supercharger/Nano host once. NonNone amounts already contain
+original03DB/03E2 launchNano; multiply only current team/supercharger then pass
+source_scaled=True, preserving frozenNano without double multiplication.
+Readonly splash prediction still returns raw authored amounts, no boost/query side
+effects or second source provider. Other Walls.damage callers retain defaults;
+their individual pre-scaling contracts require separate owner audit.
+
+Actual producer evidence: Ana casts Nano on Pharah, command-deployed five native
+Mei pillars share their actual Vitals; original center120 becomes180 and all four
+adjacent face splash amounts are exactly1.5 times unboosted amounts. Pre-fix real
+probe confirmed current liveNanoTrue but center remained280HP (raw120 loss).
+Actual Zarya launches secondary underNano1.5 with blast70.5, Nano expires during
+flight, and same real wall receives70.5 once (400→329.5), retaining launch snapshot.
+New live/frozen wall2 + sameimpact2 + originalDamage8/ProjectileTiming7:
+19/19pass8.053s, ../worker-c-c57-frozen-source-check.log. Earlier live-only18pass
+6.144s is superseded by this broader original-launch-aware scope.
+
+_support_retarget_isolated no longer reads nonexistent oldmanager.states; it
+conservatively checks existing fight.barriers.reinhardt.actors without syncing or
+creating a shield. Root requested this actual service mapping. Complex retarget/
+projected admission remains unaccepted until its original scenarios execute;
+this guard correction does not claim that wholefamily complete.
+
+Next: original phase damage-start transitions through already-owned idle clocks,
+retarget/projected actual windows (NPC target mount owned A), remaining0008
+cross-owner source force and0015 Heavy Sentry stance/displacement. No client,
+network/publication action. Remaining C estimate5–12 activehours, lowconfidence;
+shared geometry/phase timing is the largest unknown.

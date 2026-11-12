@@ -442,7 +442,7 @@ class Turrets:
         from ow174.game.combat import ray_capsule
 
         fight = self.combat
-        if rocket.team != self.sentries[0].owner.team or fight.reinhardt_barriers.states:
+        if rocket.team != self.sentries[0].owner.team or fight.barriers.reinhardt.actors:
             return False
         targets = _unit_targets(fight, rocket.shooter)
         if any(isinstance(target.owner, bots.Bot) and not target.owner.retain_corpse for target in targets):
