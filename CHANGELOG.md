@@ -101,6 +101,15 @@ This log records tested changes and their acceptance status. Entries are grouped
   tool, retaining stance metadata and the original34 physical fields.
 - Actual extraction/loader checks preserve base records and bytes, reject base
   overwrite and missing explicit NPC movers. Selected runtime inputs are unchanged.
+### Restore Accretion caster blast and original impulse guards
+
+- Existing Accretion explosions settle the caster's original self damage and
+  declared recoil, including zero-damage blasts, through existing pools/movers.
+  Fortify/protected targets reject impulse; original224E remains the sole host.
+- Six source cases plus Damage/runtime27 checks pass. Original2.65m attenuation
+  difference and legacy observer/helper errors remain recorded unchanged.
+  No original-client acceptance run.
+
 ### Preserve Roadhog's original inclusive reduction deadline
 
 - The existing Breather channel uses original integer-frame ceil and actual body

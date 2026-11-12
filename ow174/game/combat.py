@@ -1467,7 +1467,10 @@ def hit_def(state, cfg) -> HitDef | None:
             else "m_583C208B" if modify.get("m_583C208B") is not None else "m_10399AE7"),
         impulse_rings=tuple(sorted(impulse_rings)),
         vertical_impulse_minimum=(force("m_583C208B") if modify.get("m_583C208B") is not None else None),
-        source_impulse_scale=value("m_2FE97560", 0.0) if cfg.get("m_49F60FB8") else 0.0,
+        source_impulse_scale=value("m_2FE97560", 1.0 if (
+            cfg.get("$") == "STU_4AA6CA44" and isinstance(loadout, expr.Asset)
+            and loadout.guid in (0x0B9000000000028A, 0x0B9000000000028C)
+        ) else 0.0) if cfg.get("m_49F60FB8") else 0.0,
         source_impulse_ignores_los=bool(cfg.get("m_2A970629")),
         deflectable=any(
             (tag.get("m_EE3055BD") or {}).get("m_identifier") == "0x0D800000000003BF"
@@ -8401,20 +8404,24 @@ class Combat:
                     manager.splash(actor, blast, distance, multiplier=boost)
         biotic = blast is not None and blast.effect == BIOTIC_GRENADE_EFFECT
         candidates = self._targets() if biotic else self._enemies(rocket.shooter)
+        accretion = rocket.accretion_source is not None
+        if accretion and blast is not None and blast.amount <= 0:
+            candidates = []
         tank = (rocket.source_graph == 0x024F and not rocket.charge_eligible)
         pharah = blast is not None and blast.loadout in (0x0B9000000000000F, 0x0B9000000000000E, 0x0B9000000000000B)
         if (blast is not None and (pharah or blast.loadout == SOLDIER_WEAPON_LOADOUT
                 or getattr(rocket, "pulse_bomb", False)
                 or blast.loadout == 0x0B9000000000020B
+                or accretion
                 or (tank and getattr(getattr(rocket.shooter, "hero", None), "guid", None) == BASTION))
-                and blast.self_scale > 0
+                and (blast.self_scale > 0 or (accretion and blast.source_impulse_scale > 0))
                 and rocket.source_entity == _source_entity(rocket.shooter)):
             candidates = list(candidates)
             candidates.extend(t for t in self._targets() if t.entity == rocket.source_entity)
         ice_damage = rocket.direct.amount if ice is not None and rocket.direct is not None else 0.0
         shield_damage = [(shield[1], rocket.direct.amount)] if shield and rocket.direct else []
         deployed_damage = rocket.direct.amount if deployed is not None and rocket.direct is not None else 0.0
-        if blast is None or blast.amount <= 0.0:
+        if blast is None or (blast.amount <= 0.0 and not (accretion and blast.source_impulse_scale)):
             if pharah:
                 self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
             if ice is not None:
@@ -8475,10 +8482,12 @@ class Combat:
             centre_distance = math.sqrt(_dot(delta, delta))
             distance = max(0.0, centre_distance - target.radius)
             scalar = blast.splash(distance)
-            if target.entity == rocket.source_entity:
-                scalar *= blast.self_scale
             if scalar <= 0.0:
                 continue
+            if target.entity == rocket.source_entity:
+                scalar *= blast.self_scale
+                if scalar <= 0.0 and not (accretion and blast.source_impulse_scale):
+                    continue
             centre = (a[0], min(b[1], max(a[1], point[1])), a[2])
             delta = _sub(centre, point)
             length = math.sqrt(_dot(delta, delta))
@@ -8525,7 +8534,7 @@ class Combat:
                 self._biotic_impact(rocket.shooter, blast, victims, broken_particle_barriers)
         else:
             for target, amount in victims:
-                landed = self._damage(
+                landed = (not accretion or amount > 0) and self._damage(
                     rocket.shooter, target, amount, False, blast.loadout, self.tick, world_tick=self.tick,
                     broken_particle_barriers=broken_particle_barriers, hit_tags=blast.tags,
                     source_body=rocket.source_body, boost_credit=rocket.boost_credit,
@@ -8545,10 +8554,14 @@ class Combat:
                     if victims_out is not None:
                         victims_out.add(target.entity)
                     self._hit_effect(target, blast.effect, shooter=rocket.shooter)
-                    if rocket.accretion_source is not None and (
-                        target is not struck or rocket.direct is None or rocket.direct.knockback is None
-                    ):
-                        self._apply_accretion_impulse(rocket, target, blast, point=point)
+                own_accretion = accretion and target.entity == rocket.source_entity
+                if (landed or (own_accretion and blast.source_impulse_scale)) and accretion and (
+                    target is not struck or rocket.direct is None or rocket.direct.knockback is None
+                ):
+                    self._apply_accretion_impulse(
+                        rocket, target, blast, point=point,
+                        strength=blast.source_impulse_scale if own_accretion else 1.0,
+                    )
 
         if pharah:
             self._pharah_impulses(rocket, damage_point, point, protected=protected, heading=incident_direction, normal=surface_normal)
@@ -8672,12 +8685,14 @@ class Combat:
         }, body)
         component.run_now()
 
-    def _apply_accretion_impulse(self, rocket: Rocket, target: Target, hit: HitDef, *, point=None) -> None:
-        strength = hit.knockback
-        if strength is None or self.vitals_of(target).dead:
+    def _apply_accretion_impulse(self, rocket: Rocket, target: Target, hit: HitDef,
+                                 *, point=None, strength=1.0) -> None:
+        profile = hit.knockback
+        if (not strength or profile is None or self.vitals_of(target).dead
+                or defenses.invulnerable(target.owner) or self._control_immune(target)):
             return
         owner = target.owner
-        horizontal, vertical, rings = strength
+        horizontal, vertical, rings = profile
         dx, _, dz = rocket.direction
         distance = 0.0
         if point is not None:
@@ -8699,7 +8714,7 @@ class Combat:
             return
         length = math.hypot(dx, dz)
         scale = horizontal / length if length > EPSILON else 0.0
-        impulse = dx * scale, vertical, dz * scale
+        impulse = dx * scale * strength, vertical * strength, dz * scale * strength
         if isinstance(owner, bots.Bot):
             owner.impulse(
                 impulse, self.tick, self._collision(), free_for_all=self.match.game_map.free_for_all,
