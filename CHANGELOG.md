@@ -1172,6 +1172,13 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Keep acknowledged Soldier input live across packet-delay changes
+
+- Preserve the confirmed client's 16-frame input prediction window when advancing Soldier's idle body clock. Previously a sustained delay increase made all following movement and fire commands stale, freezing the server pose and releasing continuous fire.
+- One focused production-input regression reproduces the old freeze and passes with the fix, covering a delay increase from three to seven frames, sustained movement, jump/fire inputs and release. No correction, weapon or cooldown assertions were removed.
+
+### 2026-11-13
+
 #### Publish D.Va's actual mech control and camera handoff
 
 - Component 44 now names the live controlled mech as its current/view body and retains the pilot as primary. Freeze the initial hero-switch write after the body script creates the mech; the old ordering still sent the parked pilot in all three fields.

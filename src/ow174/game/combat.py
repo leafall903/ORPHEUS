@@ -4628,7 +4628,13 @@ class Combat:
             return
         anchor_tick, anchor_frame = script.world_frame_anchor
         elapsed_ms = max(0, self.tick - anchor_tick) * round(TICK * 1000)
-        target = min(projectiles.MAX_LEASE_FRAME - 1, anchor_frame + elapsed_ms // script.frame_ms - 1)
+        # The acknowledged client predicts ahead and retains input for replay.
+        # Do not spend that input window on neutral world ticks: a small increase
+        # in packet delay would otherwise make every subsequent live command
+        # older than script.frame, freezing movement and releasing held fire.
+        input_window = 16 if script.create_arrived else 0
+        target = min(projectiles.MAX_LEASE_FRAME - 1,
+                     anchor_frame + elapsed_ms // script.frame_ms - 1 - input_window)
         while target > script.frame:
             player._advance_body_gap(min(target, script.frame + MAX_GAP) + 1)
             if player.body_script is not script:
