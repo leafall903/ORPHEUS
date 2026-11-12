@@ -390,6 +390,14 @@ class InstanceContext(Context):
         cls = cfg.get("$")
         from ow174.game.script import spatial_queries
 
+        component = self.instance.component
+        if (not component.strict and self.instance.graph.index == 0x15F5
+                and getattr(component.world, "body_definition", None) is not None):
+            from ow174.game import symmetra
+
+            result = symmetra.transit_position_query(component.world, cfg, self.instance)
+            if result is not NotImplemented:
+                return result
         if cls in spatial_queries.INTERFACES:
             result = spatial_queries.evaluate(self, cfg)
             if result is not NotImplemented:
@@ -1133,6 +1141,10 @@ class World:
         return NotImplemented
 
     def confirm_portal(self, state):
+        return NotImplemented
+
+    def teleport_body(self, instance, node):
+        """Original body relocation protocol; a concrete world must supply it."""
         return NotImplemented
 
     def relocate_through_portal(self, instance, node):

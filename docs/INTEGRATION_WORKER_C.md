@@ -580,3 +580,26 @@ Do not infer them from core14 pass. Source supporting-ice basic retire is mounte
 Next: explicit profile rerun, storage probe if useful, then mount these retained
 consumers against existing defense/clock owners or proceed portal placement in
 an independent actual batch. Keep all original checks and no acceptance matrix.
+
+
+C23 SHA c31524d4 delivered, explicit0016 input composer profile still pending.
+
+## C24 actual15F5/1647 transit checkpoint
+
+Original symmetra.play_transit_script and teleport_body mounted through existing
+compatibility_play_script/relocate_through_portal handlers. Existing legacy
+portal fallback preserved. Only owned15F5/nonstrict BodyWorld position query
+runs before typed spatial dispatch; unknown IDs remain None, other graphs and
+strict paths retain their current services. Original World.teleport_body default
+NotImplemented protocol restored, no pretend relocation for generic worlds.
+
+Original test_symmetra_teleport_action.py byte-identical, first9:7pass/onefail/
+oneerror (knownbody position missing; base protocol absent). Corrected source
+consumers, final9pass1.836s, worker-c-symmetra-transit-final-check.log.
+Original test_script_body_owner+DamageTests15pass2.027s,
+worker-c-symmetra-transit-shared-check.log. Actual mover physics instance remains
+same, position/history updates; old hit traces cannot interpolate teleport.
+No client execution, no pair/placement/admission implementation claimed.
+Next: original stateless placement_geometry/clock helpers and sourcePortalPair
+actor factory/confirm/interaction against existing NPC/actor pool; preserve
+canonical Photon barrier and DVa CallMech placement. No generic service overwrite.
