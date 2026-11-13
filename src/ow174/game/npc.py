@@ -97,7 +97,7 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
           authored_assassin: bool = False, authored_trooper: bool = False,
           difficulty_index: int | None = None, born_tick: int | None = None,
           source_entity: int | None = None, hero_target: bool = False,
-          pet_owner: int | None = None) -> bots.Bot:
+          pet_owner: int | None = None, source_filter_bits: int | None = None) -> bots.Bot:
     """Allocate a fresh body, join combat, and queue actual creates for live viewers."""
     if match.ended:
         raise ValueError('cannot create NPCs in an ended match')
@@ -109,6 +109,9 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC script source needs a nonzero 32-bit entity')
     if pet_owner is not None and (type(pet_owner) is not int or not 0 <= pet_owner <= 0xFFFFFFFF):
         raise ValueError('NPC Pet relationship needs a 32-bit entity')
+    if source_filter_bits is not None and (
+            type(source_filter_bits) is not int or not 0 <= source_filter_bits <= 0xFFFFFFFFFFFFFFFF):
+        raise ValueError('NPC source filter bits need an explicit uint64')
     if type(hero_target) is not bool:
         raise ValueError('Hero target mode must be boolean')
     if type(team) is not int or team not in (0, 1) or type(yaw) is not int:
@@ -141,6 +144,8 @@ def spawn(match, definition: Definition, position, *, team: int, yaw: int = 0,
         raise ValueError('NPC entity allocator exhausted or collided')
     data = {'hero': f'0x{definition.hero:016X}', 'team': team, 'position': position,
             'rotation': (0.0, 0.0, 0.0, 1.0), 'graphs': [], 'vars': {}, 'manual_spawn': True}
+    if source_filter_bits is not None:
+        data['source_filter_bits'] = source_filter_bits
     if hero_target:
         data['manual_hero_target'] = True
     if definition.controller is not None:

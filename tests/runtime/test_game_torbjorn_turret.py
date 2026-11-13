@@ -318,7 +318,11 @@ class TorbjornTurretTests(unittest.TestCase):
                 self.assertEqual(ability.remaining(), 0.0)
                 self.assertFalse(ability.flags & ability.RUNNING)
     def test_respawn_rebinds_the_surviving_turret_to_new_owner_body(self):
+        from test_mei_ice_presentation import decode_ice_components
+
         run, owner, enemy, turret = self.arena(100.0)
+        captured_bits = owner.team_bit
+        self.assertEqual(turret.actor.spawner['source_filter_bits'], captured_bits)
         self.advance(run, 200)
         fight = run.match.combat
         old_body = owner.body
@@ -329,6 +333,10 @@ class TorbjornTurretTests(unittest.TestCase):
         self.assertNotEqual(owner.body, old_body)
         self.assertFalse(fight.is_dead(owner))
         self.assertIs(fight.turrets[owner.entity], turret)
+        self.assertEqual(turret.actor.spawner['source_filter_bits'], captured_bits)
+        for viewer in (owner, enemy):
+            created = run.match._bot_create_update(turret.actor, viewer)
+            self.assertEqual(decode_ice_components(created.build(0), create=True)[26][0], captured_bits)
         run.step({owner: (0, 0, 4)})
         self.assertNotIn(owner.entity, fight.turrets)
 

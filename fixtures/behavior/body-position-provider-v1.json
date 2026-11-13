@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_id": "body-position-provider-v1",
+  "target_build": "104319",
+  "source": {
+    "position_getter": "71A87E92/CCC750 -> world+F0/D1C9F0",
+    "eye_getter": "21A13145/CE47D0 -> D1A410",
+    "host_service": "Match.script_body_position; own upright Combat._eye"
+  },
+  "evidence": "synthetic live-body positions with original getter/type provenance",
+  "client_acceptance": "pending",
+  "input": {
+    "selected_body_position": [4, 2, -3],
+    "valid_origin": [0, 0, 0],
+    "unknown_entity": 3735928559
+  },
+  "expected": {
+    "selected_body_position": [4, 2, -3],
+    "valid_origin": [0, 0, 0],
+    "unknown_entity": null,
+    "untyped_integer": null,
+    "guardian_forward_offset": 0.7,
+    "melee_forward_offset": 1.5
+  },
+  "limits": "Current known body pose only. No native snapshot timing, parent/controller chain, full eye attachment rule, node64 activation or force receiver acceptance."
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "reaper-preview-byte-v1",
+  "context": [242, 3, 0, 0],
+  "typedInputClass": "STU_A1AAB8C4",
+  "sequence": [0, 1, 0],
+  "field": "m_B4802CE3",
+  "payloadBits": 8,
+  "provenance": "Original104319 graph00F2 node3/state0/remote0 typed input; native priority2 ctor8F78A0, begin8E886C..8E888D and typedA1AAB8C4 handler8E8AC0. Reuse original e7 image native evidence from Sym lane; no geometry/color acceptance implied.",
+  "nativeVisualAccepted": false
+}

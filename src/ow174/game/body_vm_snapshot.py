@@ -30,6 +30,7 @@ from ow174.game.accretion import RockWorld
 from ow174.game.orisa_barrier import BarrierWorld
 from ow174.game.orisa_halt import HaltPhysicsExplosion, PullQuery
 from ow174.game.orisa_supercharger import DeviceWorld
+from ow174.game.mei_placement import MeiPlacementPreview
 from ow174.game.script import (
     body_owner,
     entity_link,
@@ -99,7 +100,7 @@ _STATE_LAYOUTS = {
     nodes.Component86VectorState: (("registry",), ()),
     nodes.Component86NumericPairState: (("registry", "request_registration"), ()),
     nodes.AIControlOverride: (("remove_record", "request_registration", "component86_mode", "registry"), ()),
-    nodes.BodyPlacement: ((), ()),
+    nodes.BodyPlacement: ((), ("symmetra_placement_byte",)),
     nodes.JunkensteinControllerState: ((), ()),
     nodes.JunkensteinBehaviorBranch: ((), ()),
     nodes.FilterArray: ((), ()),
@@ -158,7 +159,9 @@ _STATE_LAYOUTS = {
     nodes.MoveTo: (("movement",), ()),
     nodes.PositionSearch: ((), ()),
     nodes.MovementFlagProjection: (("value", "vars"), ()),
-    nodes.PlacementPreview: (("last_frame", "latest_frame"), ()),
+    nodes.PlacementPreview: (("last_frame", "latest_frame"), ("reaper_placement_byte", "symmetra_placement_byte")),
+    MeiPlacementPreview: (("last_frame", "latest_frame", "confirmation_byte"), ()),
+    nodes.BaptisteMatrixPreview: (("last_frame", "latest_frame", "confirm_byte"), ()),
     nodes.SummonerPlacement: (("confirmed",), ()),
     nodes.Anim: ((), ("scalar_value",)),
     nodes.Ability: (
@@ -372,7 +375,9 @@ class _Export:
         if (type(fields["node"]) is not graph.Node or not 0 <= index < len(owner.graph.states)
                 or owner.graph.states[index] is not fields["node"]):
             raise BodyVMSnapshotError("state node does not match its graph slot")
-        if kind is not runtime.state_type(fields["node"].cls, owner.component.strict, owner.graph.index, fields["node"].pos):
+        model = runtime.state_type(fields["node"].cls, owner.component.strict, owner.graph.index,
+                                   fields["node"].pos, hero=getattr(owner.component.world, 'hero', None))
+        if kind is not model:
             raise BodyVMSnapshotError("state class does not match its registered node model")
         key = (owner.id, index)
         if key not in self.states:

@@ -57,7 +57,7 @@ class Turrets:
                              crouch_height=1.0, crouch_radius=.2,
                              run_forward=0, run_backward=0, run_strafe=0)
         bot = npc.spawn(self.combat.match, definition, self.combat._eye(player), team=player.team,
-                        source_entity=player.body)
+                        source_entity=player.body, source_filter_bits=player.team_bit)
         bot.spawner.update(manual_spawn=False, summoned=True)
         bot.combat_owner = player
         bot.combat_geometry = (movement.stand_height, movement.stand_radius, .75, False)

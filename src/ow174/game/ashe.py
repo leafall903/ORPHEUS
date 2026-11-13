@@ -418,7 +418,7 @@ class Companions:
             position = (x, y - 0.5, z)
         charge_yaw = owner.mover.yaw if charge_yaw is None else charge_yaw
         bot = npc.spawn(fight.match, definition, tuple(position), team=owner.team, yaw=charge_yaw,
-                        pet_owner=pet_owner)
+                        pet_owner=pet_owner, source_filter_bits=owner.team_bit)
         bot.spawner["manual_spawn"] = False
         bot.spawner["combat_companion"] = True
         bot.combat_owner = owner

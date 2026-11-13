@@ -1158,7 +1158,7 @@ class Match:
         # Freeze its initial pools here so retransmitting the create keeps the same baseline.
         vitals = self.combat.vitals.get(bot.entity)
         components = world.health(bot.health, bot.health) if vitals is None else vitals.component(vitals.most)
-        components[26] = [TEAM_BIT << bot.team]
+        components[26] = [bot.spawner.get("source_filter_bits", TEAM_BIT << bot.team)]
         if bot.pet_owner is not None:
             components[72] = [bot.pet_owner]
         if bot.spawner.get('manual_hero_target') is True:

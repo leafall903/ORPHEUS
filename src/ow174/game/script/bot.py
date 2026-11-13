@@ -398,6 +398,9 @@ class BotWorld(runtime.World):
     def send_message(self, target: int, message: int, params: dict, sender: int) -> None:
         if self.control_context is not None and self.control_context.send(target, message, params, sender):
             return
+        if (self.match is not None
+                and self.match.combat.hooks.victim_message(self, target, message, params, sender)):
+            return
         controller = self.controller
         if (self.hero == 0x02E000000000007A and self.match is not None
                 and sender == getattr(self, "body", None)

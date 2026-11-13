@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "case_id": "roadhog-hook-origin-carrier-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "d85970147a2b422926c5dd90c8e699b0a043dad7",
+    "original_nodes": ["01C8/190", "01C8/134", "01C8/136", "01C8/35", "01C9/0"],
+    "origin_rule": "190 writes10534=eye+captured_forward*.5*body_scale;136 uses10534 as its initial value and1179 as its endpoint",
+    "hook_model_definition": "0x04000000000003F7",
+    "carrier_kind": "original client-only CosmeticEntity35 on caster01C8; no substitute server projectile"
+  },
+  "evidence": "synthetic-reference; real encrypted command/create/ACK/body chunks, original VM/resources",
+  "client_acceptance": "pending; packet decode is not native model rendering",
+  "input": {"hook_button": 8, "primary_button_after_release": 1, "body_scale": 1, "packet_loss": "none"},
+  "expected": {
+    "forward_origin_offset": 0.5,
+    "actor_create_count_per_viewer": 1,
+    "contact_damage": 30,
+    "source_launch_state": 8,
+    "victim_graph": 457,
+    "source_origin_received_and_acknowledged": true,
+    "victim_vm_received_acknowledged_and_retired": true,
+    "same_pulled_body_takes_primary_damage": true
+  }
+}

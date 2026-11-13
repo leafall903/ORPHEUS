@@ -1112,10 +1112,6 @@ class BodyWorld(runtime.World):
 
         cls = cfg.get("$")
         if (self.hero == regeneration.MERCY and self.match is not None and instance is not None
-                and instance.graph.index == 0x006E and cls == "STU_71A87E92"
-                and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
-            return self.position(self.body)
-        if (self.hero == regeneration.MERCY and self.match is not None and instance is not None
                 and instance.graph.index == 0x006E and cls == "STU_309B0570"
                 and cfg.get("m_5B94EDB8") is None
                 and instance.evaluate(cfg.get("m_entity")) == Entity(self.body)):
@@ -1692,7 +1688,10 @@ class BodyWorld(runtime.World):
                 return result
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
-        return super().native(cfg, instance)
+        from ow174.game.script import body_positions
+
+        value = body_positions.native(self, cfg, instance)
+        return super().native(cfg, instance) if value is NotImplemented else value
 
     def nearby_enemy_count(self, owner: int, radius: float) -> int:
         if self.match is None or owner != self.body:

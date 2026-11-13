@@ -157,3 +157,7 @@ An already credited copied Soldier heal must receive only that bonus; zero
 effective healing and a retired copied-body source must add no charge. The
 actual command-driven copied-field regression retains its6.5 total expectation.
 This contract does not accept native effect colours or copy animation timing.
+
+## Player-owned Torbjorn turret filter
+
+`fixtures/behavior/torbjorn-owned-filter-v1.json` pins team and FFA birth-filter expectations. `tests/runtime/test_torbjorn_owned_filter.py` uses the real throw command, native-authored carrier definition, existing landing factory and encrypted self/peer/delayed creates, then replaces the owner body and verifies old retirement and new actor publication. FFA same-slot-team viewers remain opponents; no blue/ally rendering assertion is made. The retained respawn scenario verifies that a surviving turret keeps its captured filter after its owner receives a new body. The only caller opt-in is the original player-owned turret. Pet and VM source remain unchanged; the dependency owns serialization and ordinary-NPC fallback. Native colors remain pending.

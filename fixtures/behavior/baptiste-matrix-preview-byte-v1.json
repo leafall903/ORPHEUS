@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "reference": "Overwatch 1.74.0.0.104319",
+  "graph": 6402,
+  "node": 16,
+  "state": 9,
+  "class": "STU_4C96470A",
+  "remote_slot": 6,
+  "field": "m_B4802CE3",
+  "input": "Q preview; release; primary typed STU_A1AAB8C4 confirm; next charged Q",
+  "expected_bytes": [0, 1, 0],
+  "wire": "H0 and H1 raw uint8, strict none+u8 codec retained",
+  "provenance": "Original1902 node16 metadata; original class ctor8F78A0 default0, onBegin8E886C reset0, typedConfirm8E8AC0 writes1; shared native payload1B72060/1B71930.",
+  "scope": "State lifecycle, owner/observer encoding and stored body/full-server byte causality; no client visual acceptance",
+  "original_client_acceptance": false
+}

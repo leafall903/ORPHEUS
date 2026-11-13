@@ -134,6 +134,11 @@ class Barrier:
     health: float = HEALTH
     component: runtime.Component | None = None
     script: runtime.Instance | None = None
+    filter_bits: int | None = None
+
+    def __post_init__(self):
+        if self.filter_bits is None:
+            self.filter_bits = getattr(self.owner, "team_bit", 0x800000 << self.team)
 
     @property
     def body(self):
@@ -227,10 +232,12 @@ class Barriers:
                 if barrier.owner is rocket.shooter:
                     self.remove(old)
             direction = rocket.launch_direction or rocket.direction
+            filter_bits = getattr(getattr(rocket, "shot", None), "filter_bits", None)
             self.active[entity] = Barrier(entity, rocket.shooter, rocket.deploy_body,
                                           rocket.team, rocket.position,
                                           math.atan2(direction[0], direction[2]), until,
-                                          health, component, script)
+                                          health, component, script,
+                                          filter_bits=filter_bits)
             if tick > due:
                 component.run_frame(tick)
 

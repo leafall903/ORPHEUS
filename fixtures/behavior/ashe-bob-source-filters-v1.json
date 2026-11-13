@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-bob-owned-birth-source-filters-v1",
+  "target_build": 104319,
+  "source": "Actual1536/11 owned25C3 factory and existing Player.team_bit; canonical0042 API2fc005a4 capture before VM/publication",
+  "input": {"modes": ["team", "ffa"], "ultimate_button": 32, "births": ["initial", "replacement body"], "viewers": ["owner", "same roster team", "enemy", "late"]},
+  "expected": {"team_body_and_bob_filter_bits": 8388608, "ffa_body_and_bob_filter_bits": 134217728, "pet": "original evaluated controller", "instigator": "current source body", "capture": "immutable birth spawner value"},
+  "limits": ["Same roster team is not allied in FFA", "No native color acceptance", "Only evidenced Ashe companion caller opts in; shared API remains0042 owned"]
+}

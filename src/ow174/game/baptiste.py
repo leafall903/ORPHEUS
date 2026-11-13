@@ -299,9 +299,11 @@ class BaptisteEffects:
         definition = instance.evaluate(node.field("m_entityDefinition"))
         point = instance.evaluate(node.field("m_position"))
         direction = instance.evaluate(node.field("m_AD8E614B"))
+        pet_source = instance.evaluate(node.field("m_D749D7D8"))
         duration = self._number(instance, 567)
         if (not isinstance(definition, expr.Asset) or definition.guid != 0x0400000000002B50
                 or not isinstance(point, expr.Vec3) or not isinstance(direction, expr.Vec3)
+                or not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id)
                 or not all(math.isfinite(v) for v in (*point, *direction))
                 or duration is None or duration <= 0 or math.hypot(direction.x, direction.z) == 0):
             return NotImplemented
@@ -309,6 +311,7 @@ class BaptisteEffects:
         actor = self.combat.create_deployable(
             owner, definition.guid, "Amplification Matrix", tuple(point), health=0, radius=0,
             height=0, seconds=duration, rotation=(0.0, math.sin(angle / 2), 0.0, math.cos(angle / 2)),
+            pet_owner=pet_source.id,
         )
         self.matrices[actor.entity] = actor
         return expr.Entity(actor.entity)
@@ -463,6 +466,7 @@ class BaptisteEffects:
             source, 0x04000000000029A9, "Immortality Field", position,
             health=150.0, radius=0.46099997, height=1.01799993, seconds=spec.duration,
             capsule=((-1.04519895e-17, 0.18003005, 0.0), (1.7166137e-8, 0.08403006, 0.0)),
+            pet_owner=spec.source_body,
         )
         self.fields[actor.entity] = _Field(actor, spec, actor.created_tick + math.ceil(spec.arming / TICK))
 

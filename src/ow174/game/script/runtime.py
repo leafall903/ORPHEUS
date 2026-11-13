@@ -124,7 +124,16 @@ def state_class(*names: str, strict_only: bool = False):
     return register
 
 
-def state_type(name: str, strict: bool, graph_index=None, position=None):
+def state_type(name: str, strict: bool, graph_index=None, position=None, *, hero=None):
+    if (not strict and hero == 0x02E00000000000DD
+            and (name, graph_index, position) == ('STU_4C96470A', 0x0622, 3)):
+        from ow174.game.mei_placement import MeiPlacementPreview
+
+        return MeiPlacementPreview
+    if not strict and (name, graph_index, position) == ("STU_4C96470A", 0x1902, 16):
+        from ow174.game.script.nodes import BaptisteMatrixPreview
+
+        return BaptisteMatrixPreview
     if not strict and (name, graph_index, position) == ("STU_96F1DBCF", 0x1983, 12):
         # Exo Boots has an authored edge plug; the ordinary owner sampler
         # rejects it. Retain the existing scoped crouch-projection host.
@@ -2014,7 +2023,8 @@ class Instance:
                 if self.component.strict:
                     self.component.unsupported(self, "state reference", str(index))
                 return None
-            model = state_type(node.cls, self.component.strict, self.graph.index, node.pos)
+            model = state_type(node.cls, self.component.strict, self.graph.index, node.pos,
+                               hero=getattr(self.component.world, 'hero', None))
             registered_base = (STATE_CLASSES.get(node.cls) is State or STRICT_STATE_CLASSES.get(node.cls) is State)
             if self.component.strict and node.cls != "STUStatescriptState" and model is State and not registered_base:
                 if self.component.world.native_state_factory_miss(node.cls):

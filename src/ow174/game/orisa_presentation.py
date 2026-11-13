@@ -72,9 +72,9 @@ def sync(manager):
             if entity not in viewer.seen:
                 half = barrier.yaw / 2
                 rotation = (0.0, math.sin(half), 0.0, math.cos(half))
-                owner = next((p for p in fight.match.players if p.body == barrier.source_body), None)
-                team_bit = owner.team_bit if owner is not None else 0x800000 << barrier.team
-                components = {26: [team_bit]}
+                # Retain the emitted body's filter context, including the FFA
+                # policy, when its source body has retired before a late join.
+                components = {26: [barrier.filter_bits]}
                 components.update(barrier_health(barrier))
                 definition = SUPERCHARGER if entity in devices else DEFINITION
                 viewer.seen[entity] = False

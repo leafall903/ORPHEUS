@@ -361,7 +361,8 @@ def deploy_turret(fight, owner, position, *, born_tick=None):
     destroy_turret(fight, owner)
     config = dict(config)
     actor = npc.spawn(fight.match, npc.Definition(HERO, TURRET, "Torbjorn Turret", config["maximum_health"]),
-                      position, team=owner.team, current_health=config["initial_health"], born_tick=born_tick)
+                      position, team=owner.team, current_health=config["initial_health"], born_tick=born_tick,
+                      source_filter_bits=owner.team_bit)
     actor.spawner["manual_spawn"] = False
     actor.combat_owner = owner
     if actor.body_script is not None:

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn.owned-turret-filter.v1",
+  "target_build": 104319,
+  "source": {
+    "dependency": "2fc005a4ae0d8deaae95fcb232031bb8919359ff",
+    "caller_base": "a3a5dd5d",
+    "path": "src/ow174/game/hero_torbjorn.py"
+  },
+  "evidence": "synthetic ownership/filter contract with external actual authored throw and encrypted transport",
+  "client_acceptance": "pending; metadata consistency does not prove rendered colors",
+  "input": {
+    "cases": [
+      {
+        "free_for_all": false,
+        "owner_team": 0,
+        "filter_bits": 8388608
+      },
+      {
+        "free_for_all": true,
+        "owner_team": 0,
+        "filter_bits": 134217728
+      }
+    ],
+    "viewers": [
+      "self",
+      "same-slot-team viewer",
+      "other-team viewer",
+      "late same-slot-team viewer",
+      "late other-team viewer"
+    ],
+    "events": [
+      "actual turret throw",
+      "late join",
+      "owner hero/body replacement",
+      "new actual owned NPC factory spawn"
+    ]
+  },
+  "expected": {
+    "spawn": "original16C5/3 carrier2931 lands and deploys28B7 through player-owned factory",
+    "create_component26": "captured source player team_bit",
+    "storage": "existing spawner.source_filter_bits before VM/publication",
+    "replacement": "old actor retires; new actor captures replacement body owner team context",
+    "pet": "unchanged, not inferred from filter bits",
+    "vm_source": "unchanged",
+    "ordinary_npc": "shared default TEAM_BIT << team unchanged",
+    "ffa_relation": "same-slot-team observers remain FFA opponents; no ally color is asserted"
+  }
+}

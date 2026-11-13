@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "reference": "Overwatch 1.74.0.0.104319; baseline a3a5dd5d",
+  "scope": "Relationship data for observer-relative affiliation; no fixed RGB values",
+  "teams": [0, 1],
+  "cases": [
+    {
+      "ability": "Amplification Matrix",
+      "definition": "2B50",
+      "input": "1902 node54 m_D749D7D8 = body-owner(self)",
+      "pet72": "evaluated controller entity",
+      "combat_source": "casting body",
+      "filter26": "source team_bit"
+    },
+    {
+      "ability": "Immortality Field",
+      "definition": "29A9",
+      "input": "1761 node21 projectile deployment with captured FieldSpec source_body",
+      "pet72": "captured launch body",
+      "combat_source": "captured launch body",
+      "filter26": "source team_bit"
+    }
+  ],
+  "observers": ["self", "ally", "enemy", "loading-screen replay"],
+  "provenance": "Original definitions declare STUPetComponent. Matrix explicitly supplies the relationship expression. Field body binding follows the existing projectile-deployment source model; native spawn-binding equivalence remains pending.",
+  "original_client_acceptance": false
+}

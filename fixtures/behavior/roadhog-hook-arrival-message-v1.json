@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "kind": "synthetic encrypted input using original 104319 resources",
+  "target_definition": "0x0400000000001403",
+  "provenance": {
+    "target": "Original Practice enemy body1403; keep all15 original bots",
+    "arrival": "01C9 MoveTo0 -> SendGameMessage3 C6 to caster variable40",
+    "caster_release": "01C8 Entry16 -> Wait116 (.2s)",
+    "victim_recovery": "01C9 SendGameMessage3 -> Wait30 (.4s)"
+  },
+  "input": "Encrypted Shift8, ACK original caster/victim frames, primary1 on first command after host control releases",
+  "expected": "Same victim loses more than the30 Hook damage; owner HIT and both encrypted health streams identify that same body",
+  "before": "C6 from unowned Practice NPC was dropped; host resent it after recovery; first primary did not shoot and victim stayed at170HP",
+  "scope": "Code and protocol proof only. Native rendering, Clamp and batched victim invocation clock remain unverified."
+}

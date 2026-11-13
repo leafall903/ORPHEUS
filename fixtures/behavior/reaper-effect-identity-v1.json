@@ -1,0 +1,9 @@
+{
+  "schema": "reaper-effect-identity-v1",
+  "provenance": "Synthetic three-peer protocol scenario using compiled 104319 Reaper graph00F2 state4/out38; original graph inventory and native render acceptance remain separate local evidence.",
+  "viewerTeams": [0, 1, 0],
+  "viewerRoles": ["self", "enemy", "ally"],
+  "sourceTeamFilterBits": 8388608,
+  "lateScope": "existing remote_body_create/current full-frame path; no additional connection case",
+  "nativeColorAccepted": false
+}

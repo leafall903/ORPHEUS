@@ -122,7 +122,8 @@ class Portals:
                                             values.get(pools.ARMOUR_VAR, 0),
                                             values.get(pools.SHIELDS_VAR, 0))
                 bot = npc.spawn(self.combat.match, definition, tuple(point), team=owner.team,
-                                source_entity=owner.body, pet_owner=pet_source.id)
+                                source_entity=owner.body, pet_owner=pet_source.id,
+                                source_filter_bits=owner.team_bit)
                 bot.spawner.update(manual_spawn=False, summoned=True)
                 bot.combat_owner = owner
                 bot.combat_geometry = (1.5, .5, 1.125, False)

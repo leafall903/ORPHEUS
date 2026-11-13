@@ -267,3 +267,36 @@ def reaping_ratio(actor) -> float:
     return REAPING_RATIO if any(
         instance.graph.index == REAPING_GRAPH for instance in script.component.instances.values()
     ) else 0.0
+
+
+def owns_shadow_placement(state):
+    """Only the original00F2/3/state0 typed-confirm placement context."""
+    node, instance = state.node, state.instance
+    typed = node.field('m_6647ED22')
+    return (not instance.component.strict
+            and instance.component.world.hero == HERO
+            and (instance.graph.index, node.pos, state.index, node.remote) == (SHADOW_GRAPH, 3, 0, 0)
+            and node.cls == 'STU_4C96470A'
+            and isinstance(typed, dict) and typed.get('$') == 'STU_A1AAB8C4')
+
+
+def shadow_placement_begin(state):
+    if owns_shadow_placement(state):
+        # Original priority2 ctor8F78A0 and OnBegin8E886C..8E888D.
+        state.reaper_placement_byte = 0
+
+
+def shadow_placement_confirm(state):
+    if not owns_shadow_placement(state):
+        return False
+    if state.active and not state.ending and not state.instance.component.owner_dead:
+        # Original typed A1AAB8C4 handler8E8AC0 writes1; it does not rebegin.
+        state.reaper_placement_byte = 1
+    return True
+
+
+def shadow_placement_payload(state):
+    if not owns_shadow_placement(state):
+        return None
+    value = getattr(state, 'reaper_placement_byte', None)
+    return {'m_B4802CE3': value} if type(value) is int and 0 <= value <= 255 else {}

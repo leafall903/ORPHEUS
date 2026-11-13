@@ -148,20 +148,28 @@ class Hooks:
                 continue
             launched = event_tick(player.body_script, launch.start)
             launched = self.combat.tick if launched is None else launched
+            origin = instance.find_var(0, 10534, create=False)
+            endpoint = instance.find_var(0, 1179, create=False)
+            origin = origin.value() if origin is not None else None
+            endpoint = endpoint.value() if endpoint is not None else None
+            if not isinstance(origin, expr.Vec3) or not isinstance(endpoint, expr.Vec3):
+                continue
+            # Original190 captures eye + forward * .5 * scale. Chase136 starts
+            # there and ends at134's endpoint; do not overwrite its inputs with
+            # the host eye or extend the authored endpoint by another .5m.
+            travel = math.dist(origin, endpoint)
+            if travel <= 1e-9 or not all(map(math.isfinite, (*origin, *endpoint))):
+                continue
+            direction = tuple((b - a) / travel for a, b in zip(origin, endpoint, strict=True))
             self.flights[player.body] = Flight(
-                player, player.body, instance, self.combat._eye(player), combat.aim(*command.aim()),
-                reach, speed, radius, direct, pull, separation, gap, recovery, limit,
+                player, player.body, instance, tuple(origin), direction,
+                travel, speed, radius, direct, pull, separation, gap, recovery, limit,
                 launched, launched,
                 latch_delay=latch_delay,
             )
             flight = self.flights[player.body]
-            endpoint = combat._along(flight.origin, flight.direction, flight.reach)
             # 01C8's client-only CosmeticEntity35 (03F7) and chain consume
-            # these synchronized world positions. The missing native ray/hardpoint
-            # queries otherwise leave 431 as scalar zero and terminate ChaseVar.
-            instance.write((0, 1179), expr.Vec3(*endpoint))
-            instance.write((0, 10534), expr.Vec3(*flight.origin))
-            instance.write((0, 433), expr.Vec3(*flight.direction))
+            # the original synchronized inputs and the live ChaseVar binding.
             self.present(flight, flight.origin)
             for at in range(launched + 1, self.combat.tick + 1):
                 if player.body not in self.flights:
@@ -237,6 +245,29 @@ class Hooks:
         if actor is None:
             return NotImplemented
         return expr.Vec3(*(actor.position if isinstance(actor, bots.Bot) else actor.mover.position))
+
+    def victim_message(self, world, target, message, params, sender):
+        """Relay original01C9's arrival notification from its actual NPC victim."""
+        if message != 0x02400000000000C6 or params:
+            return False
+        flight = self.flights.get(target)
+        victim = flight.victim_instance if flight is not None else None
+        if (victim is None or victim.component.world is not world
+                or victim.component.entity != sender
+                or victim.component.instances.get(victim.id) is not victim
+                or flight.target.entity != sender):
+            return False
+        caster = flight.instance.component
+        if (flight.owner.body != target or caster.owner_dead or caster.fault is not None
+                or caster.instances.get(flight.instance.id) is not flight.instance):
+            return False
+        from ow174.game.script import runtime
+
+        # The shared body-message queue deliberately excludes unowned Practice
+        # NPCs. Keep this transport restricted to this exact live victim/caster.
+        runtime.send_instance_message(flight.instance, message, params, sender)
+        caster.run_now()
+        return True
 
     def victim_native(self, instance, cfg):
         if instance.graph.index != 0x01C9:
@@ -358,11 +389,12 @@ class Hooks:
         flight = self.flights.pop(entity, None)
         if flight is not None:
             flight.instance.write((0, 375), ())
-            if flight.contact_published:
+            if flight.contact_published and (flight.arrived_at is None or flight.victim_instance is None):
                 from ow174.game.script import runtime
 
-                # 01C9's MoveTo completion sends C6 to release the caster's
-                # impact phase. The reconstructed mover owns that completion.
+                # Interrupted pulls still release the caster's impact phase.
+                # Normal arrival already sends original01C9/3's C6; repeating
+                # it after recovery restarts the caster's authored .2s wait.
                 runtime.send_instance_message(flight.instance, 0x02400000000000C6,
                                               {}, flight.target.entity)
         if flight is not None and flight.victim_instance is not None:

@@ -45,6 +45,11 @@ class Device:
     health: float
     component: runtime.Component
     script: runtime.Instance
+    filter_bits: int | None = None
+
+    def __post_init__(self):
+        if self.filter_bits is None:
+            self.filter_bits = getattr(self.owner, "team_bit", 0x800000 << self.team)
 
 
 class Superchargers(Barriers):
@@ -90,9 +95,11 @@ class Superchargers(Barriers):
             raise ValueError("authored Supercharger initialization did not set health/lifetime")
         component.set(253, health)
         direction = rocket.launch_direction or rocket.direction
+        filter_bits = getattr(getattr(rocket, "shot", None), "filter_bits", None)
         self.active[entity] = Device(entity, rocket.shooter, rocket.source_body, rocket.team,
                                      rocket.position, math.atan2(direction[0], direction[2]),
-                                     tick + math.ceil(seconds / TICK), health, component, script)
+                                     tick + math.ceil(seconds / TICK), health, component, script,
+                                     filter_bits=filter_bits)
         source = rocket.source_state.instance
         if not source.stopped and source.component.entity == rocket.source_body:
             # Original0CF5/entry32 binds caller to#40; its existence switch
