@@ -320,7 +320,18 @@ class Controls:
     def hackable(self, player, *, emp=False):
         from ow174.game.combat import Target
 
-        yield from self.enemies(player)
+        for target in self.enemies(player):
+            if not emp:
+                script = target.owner.body_script
+                if (not script.retired and script.component.entity == target.entity
+                        and not script.component.owner_dead):
+                    # 0B1B's acquisition/recheck and node204 read the same
+                    # recipient14679 rejection as the 0B1F receiver. Reject
+                    # before starting a paid channel, not only on delivery.
+                    reject = script.component.entity_var(14679, create=False)
+                    if reject is not None and expr.truthy(reject.value()):
+                        continue
+            yield target
         yield from (target for target, _ in self.device_targets(player, emp=emp))
         for pack in self.fight.health_packs.values():
             if health_packs.available_to(self.fight, pack, player):

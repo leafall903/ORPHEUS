@@ -881,3 +881,28 @@ included. No new20/profile is run for this correctness-only57; prior56 core
 133.8397/177.8003ms RED is not inherited as57 performance acceptance.
 Selected total331=310new+21maintained. Runtime49 remains unchanged; all original
 whole-hero/presentation/Halloween full-wave/native and16ms goals remain OPEN.
+
+## Apply original Hack recipient rejection before acquisition/recheck (batch58)
+
+Original-ownerba81d7a2 changes only Controls.hackable's enemy-player iteration.
+For ordinary Hack, a matching live, nonretired recipient body reads existing
+entity variable14679 with create=False; a truthy value rejects that target before
+acquisition or channel continuation. No new variable/status default is invented.
+EMP bypasses this new rejection; downstream device and health-pack paths retain
+their exact original sequence. Missing rejection data retains prior behavior.
+
+Two composed actual-command methods verify original0B1B/node204 condition false
+with14679True: no acquired375 target, no0B1F application, no paid cooldown. Making
+the recipient rejected during an active channel cancels it without cooldown.
+Clearing only the actual flag permits the same real target/input to produce the
+original application/source body and paid cooldown. No physical or wire rule
+is changed. Owner handoff gives textual test results only; runtime acceptance
+here relies on recorded composed2 and exact-formal2 checks, not owner prose.
+
+Two first-included methods bring selected333=312new+21maintained. This is a
+bounded omitted predicate fix, not Camo, Hack angle/sort/aim semantics, teleport,
+EMP or whole-hero/native acceptance. No new20/profile/client/backend run.
+Source58 timing remains UNMEASURED; last56 measured133.8397/177.8003ms RED is
+separate and not inherited. Source57 cache correctness and all prior fixes remain.
+Runtime49/profile/shortcuts/client/lease remain unchanged; full original-client
+presentation,16ms and Halloween whole-wave/Boss/success/failure stay OPEN.

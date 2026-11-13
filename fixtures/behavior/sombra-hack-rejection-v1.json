@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hero": "012E",
+  "scope": "Existing SombraControls body candidate path for Hack only",
+  "original": {
+    "graph": "0B1B",
+    "nodes": [50, 52, 68, 204],
+    "recipientEntityVariable": 14679,
+    "receiverGraph": "0B1F",
+    "receiverNode": 21
+  },
+  "behavior": "A live current body whose actual recipient14679 is true cannot acquire or retain a Hack channel. Reject before application and cooldown; clearing the flag permits the same actual cast.",
+  "confirmation": "tests/runtime/test_sombra_hack_rejection.py",
+  "limits": "No new EMP policy, target geometry/ranking, general native filter implementation, Camo target producer, or original-client acceptance. Absent/unknown recipient storage retains the existing path."
+}
