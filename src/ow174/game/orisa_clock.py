@@ -1,12 +1,24 @@
 """Orisa body birth epochs, independent of input replay admission anchors."""
 
 import math
+from dataclasses import replace
 
 from ow174.game import projectile_clock
 
 HERO = 0x02E000000000013E
 GRAPHS = (0x0BD4, 0x0CCB, 0x0BD7, 0x0CF5)
 FRAME_MS = 16
+
+
+def primary_targets(fight, rocket, targets):
+    """Use retained poses for the same primary's delayed physical sweep."""
+    if ((rocket.source_graph, rocket.definition) != (0x0BD4, 0x04000000000017EF)
+            or rocket.shot is None or rocket.shot.clock_origin is None
+            or rocket.started_tick is None or rocket.last_tick is None
+            or fight.tick >= fight.match.tick):
+        return targets
+    return [replace(shown, construct=target.construct) for target in targets
+            if (shown := fight.seen(target, fight.tick)) is not None]
 
 
 def view_world_tick(script, command, quanta):

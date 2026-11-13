@@ -237,6 +237,9 @@ def remove_body(match, bot) -> None:
         component.shots.clear()
         for instance in list(component.instances.values()):
             component.destroy(instance)
+        context = getattr(component.world, 'sentry_data_flow', None)
+        if context is not None:
+            context.retire()
         if hasattr(component.world, 'match'):
             component.world.match = None
             component.world.manual_target = None

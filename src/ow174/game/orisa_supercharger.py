@@ -84,7 +84,7 @@ class Superchargers(Barriers):
         component = runtime.Component(entity, world=DeviceWorld(self.fight, entity, rocket.position))
         component.now, component.frame = tick * 16, tick
         script = component.create(self.graphs[0xD00], init=False)
-        script.set_source_entity(rocket.source_entity or rocket.source_body)
+        script.set_source_entity(rocket.source_entity or rocket.source_body, publish_source=True)
         script.init()
         script.start_entries((), rocket.source_body)
         component.create(self.graphs[0x25B4])
@@ -230,6 +230,7 @@ class Superchargers(Barriers):
                     instance = component.create(self.graphs[0xD01], values={
                         (graph.INSTANCE, 27): expr.Entity(device.source_body),
                     })
+                    instance.set_source_entity(instance.source_entity(), publish_source=True)
                     message_receive.receive(instance, message_receive.Packet(
                         APPLY, device.entity, device.source_body))
                     component.run_now()  # original message sets#174 and starts CombatModFilter

@@ -7,7 +7,7 @@ from 19A5; 1B2D doubles the amount when source equals recipient.
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ow174.game import actors, projectile_clock, weapon_spread
 from ow174.game.script import expr, graph, runtime
@@ -37,6 +37,17 @@ def advance_projectile(combat, rocket):
         return False
     projectile_clock.advance_accepted(combat, rocket)
     return True
+
+
+def projectile_targets(fight, rocket, candidates):
+    """29AD contacts and healing area share the accepted physical flight tick."""
+    if ((rocket.source_graph, rocket.definition) != (0x1932, 0x04000000000029AD)
+            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) != HERO
+            or rocket.shot is None or rocket.shot.clock_origin is None
+            or fight.tick >= fight.match.tick):
+        return candidates
+    return [replace(shown, construct=target.construct) for target in candidates
+            if (shown := fight.seen(target, fight.tick)) is not None]
 
 
 def view_world_tick(script, command, quanta):
@@ -165,6 +176,40 @@ class _Regeneration:
     duration: float
     total: float
     elapsed: float = 0.0
+
+
+@dataclass
+class FieldScript:
+    component: runtime.Component
+
+    def set_health(self, health, maximum):
+        from ow174.game.script.driver import OWNER_HEALTH
+
+        self.component.set(OWNER_HEALTH, float(health))
+        self.component.maximum_health = maximum
+
+
+def start_field_component(fight, actor):
+    """Load the actual entity defaults before the explicit1762 deployment."""
+    from ow174.game.script import startup
+    from ow174.game.script.driver import BodyWorld
+
+    definition = graph.entity_script_component(actor.definition)
+    if definition is None or definition is NotImplemented:
+        return  # Older catalogs do not establish this entity's component startup.
+    world = BodyWorld(HERO, fight.match.game_map.mode_guid, actor.entity, actor.definition)
+    world.match = fight.match
+    component = runtime.Component(actor.entity, world=world)
+    startup.ComponentStartup(component, definition).start()
+    component.run_frame(fight.tick)
+    script = FieldScript(component)
+    actor.body_script = script
+    script.set_health(actor.health, actor.health)
+    instance = component.play_loaded_graph(graph.graph(0x1762), source=actor.source_body,
+                                           instigator=actor.source_body, policy=0)
+    instance.set_source_entity(actor.source_body, publish_source=True)
+    component.run_now()
+    fight.match.register_body_component(component)
 
 
 @dataclass(frozen=True)
@@ -463,12 +508,22 @@ class BaptisteEffects:
         # filter equivalence and the rising curve remain unverified.
         position = (point[0], point[1] + spec.hover, point[2])
         actor = self.combat.create_deployable(
-            source, 0x04000000000029A9, "Immortality Field", position,
+            source, 0x04000000000029A9, "Immortality Field", tuple(point),
             health=150.0, radius=0.46099997, height=1.01799993, seconds=spec.duration,
             capsule=((-1.04519895e-17, 0.18003005, 0.0), (1.7166137e-8, 0.08403006, 0.0)),
             pet_owner=spec.source_body,
+            publish=False,
         )
+        start_field_component(self.combat, actor)
+        #1762 captures its birth point and derives the hover target from it.
+        # Retain the existing final-pose host without adding that offset twice
+        # to the graph's synchronized source/target positions.
+        actor.position = position
         self.fields[actor.entity] = _Field(actor, spec, actor.created_tick + math.ceil(spec.arming / TICK))
+        for viewer in self.combat.match.players:
+            if viewer.spawned and viewer.client is not None:
+                viewer.client.queue_entities([self.combat.deployable_create(actor)])
+        self._sync_fields()
 
     def _eligible(self, ward, target):
         fight, actor = self.combat, ward.actor
@@ -510,6 +565,33 @@ class BaptisteEffects:
         if ward is not None:
             for target in list(ward.protections):
                 self._remove_protection(ward, target)
+            script = ward.actor.body_script
+            if isinstance(script, FieldScript):
+                component = script.component
+                self.combat.match.unregister_body_component(component)
+                component.disconnect_foreign_watchers()
+                for instance in tuple(component.instances.values()):
+                    component.destroy(instance)
+                component.world.match = None
+
+    def _sync_fields(self):
+        from ow174.game import observers
+
+        for ward in self.fields.values():
+            script = ward.actor.body_script
+            if not isinstance(script, FieldScript):
+                continue
+            script.component.run_frame(self.combat.tick)
+            projection = observers.SceneBody(script.component)
+            for viewer in self.combat.match.players:
+                client = viewer.client
+                if (not viewer.spawned or viewer.gone or client is None
+                        or not callable(getattr(client, "bind_actor_component", None))):
+                    continue
+                generation = client.actor_generation(ward.actor.entity)
+                if generation is not None and client.bind_actor_component(
+                        ward.actor.entity, projection, generation=generation):
+                    client.queue_bot_live(ward.actor.entity, projection.latest_live)
 
     def _update_fields(self, targets, frame):
         fight = self.combat
@@ -577,6 +659,7 @@ class BaptisteEffects:
                 fight.destroy_deployable(actor.entity)
         targets = {target.entity: target for target in fight._targets()}
         self.refresh_field_protection(frame, targets)
+        self._sync_fields()
         for item in list(self.regeneration):
             target = targets.get(item.entity)
             if (target is None or target.owner is not item.recipient

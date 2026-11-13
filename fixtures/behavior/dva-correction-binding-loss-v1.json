@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "provenance": {
+    "kind": "synthetic actual command/mover/encrypted loss schedule",
+    "build": "1.74.0.0.104319",
+    "rule": "Native44 synchronously establishes body43; a ch3 local correction must follow the matching binding in its actual packet prefix or an ACK of that binding.",
+    "limits": "Prior create/controller ACKs are fixture inputs. Return uses the existing release helper. This does not establish native blackscreen/rewind causality or original ejection placement."
+  },
+  "input": ["enter mech", "return pilot", "lost44 packet", "later unbound command", "reported loss", "failed retry send", "binding+ch3 retry", "binding ACK", "next command"],
+  "expected": {
+    "before_binding": "No local ch3 correction may bypass an in-flight binding; do not commit its mover send token.",
+    "retry": "Matching44 precedes local ch3 in the same candidate prefix; failed sends do not commit.",
+    "after_ack": "Normal latest command correction progresses without repeating44."
+  }
+}

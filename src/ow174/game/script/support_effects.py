@@ -8,7 +8,7 @@ filter flags, status modifiers, replication or client-presentation acceptance.
 
 from dataclasses import dataclass
 
-from ow174.game.script import expr, graph, message_receive, runtime, support
+from ow174.game.script import expr, graph, message_receive, regeneration, runtime, support
 
 HEAL, BOOST = 0x04A0000000000019, 0x04A0000000000016
 CHAIN_HEAL, CHAIN_BOOST = 0x04A00000000002CC, 0x04A00000000002CD
@@ -336,12 +336,18 @@ class Effects:
             # Late commands evaluate the original child without retaining it in the world.
             for key in temporary:
                 self._remove(key)
-        if valkyrie and frame >= self._first_boost_frame():
-            self.boost_frames.setdefault(source, {})[frame] = bonuses
+        # Attack lookup and history pruning use world ticks, while the attached
+        # VMs above must keep the caster's owner frame. Freeze the source event's
+        # immutable birth mapping rather than its latest input-arrival pose.
+        world_frame = regeneration.healing_world_tick(script, frame)
+        if world_frame is None:
+            world_frame = frame
+        if valkyrie and world_frame >= self._first_boost_frame():
+            self.boost_frames.setdefault(source, {})[world_frame] = bonuses
         elif not valkyrie and source in self.boost_frames:
             frames = self.boost_frames[source]
             if frames[max(frames)] is not None:
-                frames[frame] = None
+                frames[world_frame] = None
         for key, item in list(self.attachments.items()):
             if item.source == source and key not in active:
                 self._remove(key)

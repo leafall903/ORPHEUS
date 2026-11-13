@@ -369,6 +369,14 @@ class Mines:
             if (target is None or poison.owner.body != poison.body or fight.vitals_of(target).dead):
                 self.poison.remove(poison)
                 continue
+            script = getattr(target.owner, "body_script", None)
+            # Original0073/node7 ends this poison on entity6604 OR8440.
+            # Retire the recipient effect before accumulating another pulse.
+            if script is not None and any(
+                    (value := script.component.entity_var(flag, create=False)) is not None
+                    and expr.truthy(value.value()) for flag in (6604, 8440)):
+                self.poison.remove(poison)
+                continue
             duration = min(FRAME_SECONDS, poison.remaining)
             poison.pending += poison.rate * duration
             poison.remaining -= duration

@@ -610,3 +610,36 @@ Echo history, other Combat methods, native spread policy and all visual open ite
 
 Four composed related methods pass: two new plus retained Echo/Torb primary. These
 checks do not establish native model, animation, audio or full hero correctness.
+
+## Reviewed original lane consolidation cutoff (batch49)
+
+This cutoff includes eleven original focused packages: Tracer Recall poison
+retirement; Mercy boost physical history; DVa pending-binding correction; Orisa
+deployed descriptors and delayed primary history; Brigitte horizontal Clamp;
+Moira existing live-orb observers; Baptiste original Field component plus healing
+history; Genji primary history with its mandatory construct-preserving child;
+and Symmetra original Sentry numeric dataflow. No owner parent is silently lost.
+Only context was adapted in shared projectile hooks. Original trajectory/damage
+and prior Echo/Torb behavior remain. Narrow source/fixture receipts preserve all
+other existing methods and reverse to their exact composition preimages.
+
+Field component requires the extracted original29A9.script_component catalog
+delta. Final local input composition adds only that entity field to the current
+supplement; all existing49 inputs and canonical profile are immutable. Runtime
+inputs remain external to source publication. A fallback without that definition
+cannot pass the Field component tests. The final server freezes its derived
+profile and the exact source together. It must not reuse the canonical profile's
+hash or older client acceptance as proof of its own behavior.
+
+Symmetra DataFlow supplies original numeric10D/F7 answers, existing Chase clock
+and normal context cleanup. It does not provide controller43, model Handle,
+current ModelPose/hardpoints or full ABT/native rendering. Conditional ray pose
+tests remain conditional; injected-ModelPose full capture is still rejected.
+Default-production active numeric dataflow full capture is a separate check.
+
+Twenty-nine selected method executions cover27 distinct methods,18 new and9
+retained. Preserve original reports including one legacy marker skip; validate
+actual summon prerequisites before rerunning that retained method. Source and
+data checks do not establish all-hero models, colors, hit/idle animation, audio,
+health bar or hit-UI correctness. Current-cut natural Halloween scene/story and
+the unchanged16ms wall budget require separate exact-cut verification.

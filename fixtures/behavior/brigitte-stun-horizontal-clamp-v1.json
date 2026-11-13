@@ -1,0 +1,13 @@
+{
+  "build": 104319,
+  "site": "224E/node31 STU_FF3471E9 -> STU_20E18047 selector1 bounds0..3",
+  "native_record": {"property": 33, "operation": 5, "lower": 0, "upper": 3, "duration_frames": 1},
+  "cases": [
+    {"input": [6, 4, 8], "expected": [1.8, 4, 2.4]},
+    {"input": [-6, -4, -8], "expected": [-1.8, -4, -2.4]},
+    {"input": [1, 2, 1], "expected": [1, 2, 1]},
+    {"input": [0, 9, 0], "expected": [0, 9, 0]}
+  ],
+  "provenance": "Original104319 typed20E18047 dispatch D2BAC5..D2BB55/D35310 enqueues property33 op5 lower0 upper3; C32860/C31870 original scalar consumer cases match. Existing native evidence reused; no new native or original-client run.",
+  "boundary": "The tuple lower/upper is one scalar record in the existing Mod store, not vector mode4 or a second force. Actual Bash host supplies the recipient script frame; native cross-owner phase and collision/adoption remain unaccepted."
+}

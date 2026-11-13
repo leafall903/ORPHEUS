@@ -446,3 +446,19 @@ Compose Echo a125 after its unique242 dependency and Torbjorn c5 after the uniqu
 
 - `echo-sticky-retained-contact-history`: original focused owner commit(s) `a125323915fca9b4b4ce1c709382c1eba7826e4d`.
 - `torbjorn-secondary-retained-target-history`: original focused owner commit(s) `c5a90ca0c32c49eeb2c140967add5f21e73d7db3`.
+
+## Consolidate reviewed original hero lane outcomes into one cutoff
+
+Compose eleven reviewed original lane packages on formal48 without replaying parent implementations: Tracer004, Mercycf6, DVa858, Orisa b49+3a, Brig29a, Moira2e0, Baptiste737+e250, Genji584+mandatory13 construct child and Sym06 context48 adapter. Forty unique non-Markdown files have focused receipts with reverse byte preservation and retained-method checks. Twenty-nine composed method executions pass (27 distinct;18 new and9 retained), with zero accepted errors/failures/skips/ERROR logs. Preserve the separate original legacy-marker skip report; after actual catalog validation its retained test passes1.179s. Additional cumulative selected checks are298 (277 new,21 maintained compatibility), not a hero completion percentage. Field737 requires exact external29A9.script_component delta; only that entity is added to the current supplement in the local derived profile, preserving the canonical profile and49 prior input bytes. No external runtime assets are published. Genji history keeps original construct metadata; Orisa/Genji projectile hook contexts retain Pharah/Echo/Torb and other Combat methods. Sym numeric10D/F7 providers and cleanup are qualified, but normal model/controller43/currentpose/ABT/native rendering remain open. Native colors/models/FX/animations/audio/UI, full hero behavior and16ms wall budget remain separately unverified. This commit freezes a precise source cutoff; a single server and natural Halloween acceptance are verified outside source publication.
+
+- `tracer-recall-poison-retirement`: original focused owner commit(s) `004cb12a933ac63c1cd60e244d1373d1f5188f20`.
+- `mercy-physical-boost-history`: original focused owner commit(s) `cf6fcdc1eaeac5d9c48105ef0d3e5c0409603448`.
+- `dva-pending-binding-correction`: original focused owner commit(s) `85866de02cfbdc5260863b7d8ffc28c41da689f1`.
+- `orisa-deployed-descriptor-sources`: original focused owner commit(s) `b49b0dc7059de3091bd3ef0e8bc0eb71f9abd67e`.
+- `orisa-moving-target-current48`: original focused owner commit(s) `3a442ad7bcf83ddaa28841d04f659edde68f3d46`.
+- `brigitte-original-horizontal-clamp`: original focused owner commit(s) `29a92550e09f2b83dba48fac0deb29a3311682e6`.
+- `moira-existing-live-orb-observers`: original focused owner commit(s) `2e0909fdba485e0ca21fb363094a653f6916949e`.
+- `baptiste-registered-field-component`: original focused owner commit(s) `737ac327d90d753253014bff3ef483f6ba31272c`.
+- `baptiste-physical-healing-history`: original focused owner commit(s) `e250a270eb96f2f17760cd7823c22d3539e8704d`.
+- `genji-retained-construct-target-history`: original focused owner commit(s) `13f635fbcf8aba37323bc9d1b789f36d430f3f2a`.
+- `symmetra-original-sentry-numeric-dataflow`: original focused owner commit(s) `06b62e494b182f8c7d1a2739a5b692f7e8b91185`.

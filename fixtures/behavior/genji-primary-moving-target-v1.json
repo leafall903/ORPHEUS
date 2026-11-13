@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "genji-primary-moving-target-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "0c186f2ece816c0600672f3bfc46be787892090f",
+    "paths": ["src/ow174/game/genji.py", "src/ow174/game/combat.py", "tests/runtime/test_genji_primary_moving_target.py"],
+    "provenance": "Synthetic actual0304 primary and actual enemy strafe commands. Separate Genji reproduction: sourcepacket1 gives29 damage/1HIT, packet32 gives0/0 before the fix. No original-client acceptance."
+  },
+  "evidence": "actual-command-runtime-regression",
+  "client_acceptance": "pending",
+  "input": {
+    "distance": 5,
+    "warmup_frames": 30,
+    "source_packet_sizes": [1, 32],
+    "target_right": 127,
+    "sample_frames": 96,
+    "source_button": 1,
+    "packet_loss": []
+  },
+  "expected": {"damage": 29, "hit_notices": 1, "live_projectiles": 0, "full_hit_payloads": "identical between both source packet schedules"},
+  "construct_history": {
+    "reference_revision": "584d21236a412d05766f8e020bc7b71ea891cafe",
+    "entity": 123,
+    "physical_tick": 41,
+    "world_tick": 50,
+    "latest_feet": [9, 1, 3],
+    "retained_feet": [1, 1, 3],
+    "expected_construct": "same original construct routing object",
+    "provenance": "Synthetic recipient with retained history through real Combat.seen; reproduces construct loss before the focused child."
+  },
+  "limits": "One discriminating actual primary encounter plus one synthetic real-history construct routing check. Same07CA helper applies at delayed physical ticks only. Does not establish native fan distribution, target effect history, reflection, original client feel or general projectile history."
+}

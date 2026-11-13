@@ -1,0 +1,21 @@
+{
+  "case_id": "moira-live-orb-viewer-v1",
+  "target_build": 104319,
+  "provenance": "Actual Moira10E4 ability selection/volley input and actual encrypted GameServer peer admission; original1E60/1E61 Pet source context uses the already qualified shared shot-delivery API.",
+  "input": {
+    "definitions": ["0400000000001E60", "0400000000001E61"],
+    "offline_roles": ["existing caster", "existing observer", "late ally", "late enemy", "after-expiry observer"],
+    "encrypted_late_join_offset": 35,
+    "encrypted_energy_retirement_offset": 75
+  },
+  "expected": {
+    "delivery_per_live_new_viewer": 1,
+    "launch_event": "original source/frame/activation/volley/origin/direction",
+    "pet72": "original cast body",
+    "deadline": "original deadline, never refreshed by admission",
+    "health_replay_or_recast": false,
+    "destroy_per_viewer": 1,
+    "after_expiry_delivery": 0
+  },
+  "native_acceptance": "Pending: original-client visible position/color; no renderer claim from encrypted peer ACKs. Reflected-orb visual rebinding is separate and unchanged."
+}

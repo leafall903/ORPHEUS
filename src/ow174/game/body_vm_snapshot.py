@@ -96,9 +96,10 @@ _GRAPH = frozenset((
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
-from ow174.game import reaper_shadow_actor
+from ow174.game import reaper_shadow_actor, symmetra_sentry_dataflow
 
 _STATE_LAYOUTS = {
+    symmetra_sentry_dataflow.SentryDataFlowMapping: (("mapping", "mapping_target", "mapping_self"), ()),
     symmetra_sentry_ray.SentryRay: (("result", "outputs"), ()),
     reaper_shadow_actor.ShadowActor: (("actor_entity", "actor_point"), ()),
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
@@ -238,6 +239,8 @@ _VALUE_LAYOUTS = {
     scopes.Edge: ("frame", "active"),
     data_flow.Snapshot: ("mapping", "value"),
     data_flow.SnapshotRegistry: ("entries",),
+    data_flow.Context: ("owner", "component_present", "namespace_present", "register", "unregister",
+                        "special_changed", "position", "retired", "component", "_providers", "snapshots"),
     health_queries.StateCounter: ("value",),
     WheelCallout: ("serial", "instance", "start", "node", "time", "choice", "values"),
     WheelSprayEvent: ("serial", "instance", "start", "node", "time", "choice", "values", "placement"),
@@ -691,6 +694,7 @@ class _Export:
                 optional = ("body", "_body_owner_context", "_entity_query_context", "_spatial_query_context", "_entity_link_context", "pool_profile")
                 fields.update(("weapon_buttons", "owner_position", "controller_components", "match",
                                "manual_target", "manual_nameplate", "controller", "component",
+                               "sentry_data_flow",
                                "controller_inputs", "heavy_counter_stuns", "control_context", "sniper_target", "sniper_retry_at"))
             if kind is BarrierWorld:
                 fields.update(("match", "entity", "location"))
@@ -751,6 +755,13 @@ class _Export:
             code = obj.__code__.replace(co_filename="ow174/game/assassin_controller.py")
             return {"class": "scene.observer", "identity": self.identity(obj),
                     "code_sha256": hashlib.sha256(marshal.dumps(code)).hexdigest()}
+        if (kind is types.MethodType and type(obj.__self__) is data_flow.Context
+                and obj.__self__ is getattr(self.component.world, 'sentry_data_flow', None)
+                and obj.__self__.component is self.component
+                and obj.__func__ in (data_flow.Context._register_provider,
+                                     data_flow.Context._unregister_provider)):
+            return {"class": "builtins.method", "identity": self.identity(obj),
+                    "owner": self.value(obj.__self__), "function": _name(obj.__func__)}
         if (kind is types.MethodType and obj.__self__ is self.component.world
                 and type(obj.__self__) in (BodyWorld, BotWorld)
                 and obj.__func__ in (BodyWorld._lookup_body_owner, BodyWorld._lookup_entity_query,
@@ -786,6 +797,7 @@ class _Export:
             result = {"class": _name(kind), "fields_identity": self.identity(fields, scope)}
             identity = id(obj)
             if kind in (runtime.Link, runtime.Event, body_owner.Context, entity_queries.Context,
+                        data_flow.Context,
                         entity_queries.Possession, entity_queries.BodyField, spatial_queries.Context, entity_link.Context):
                 reference = self.identity(obj, scope)
                 if identity in self.ancestors:

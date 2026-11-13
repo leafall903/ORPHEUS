@@ -214,7 +214,8 @@ class Barriers:
                 component.create(definition)
             component.run_frame(due)  # consume0252's already elapsed placement delay once
             script = component.create(graph.graph(0xBD8), init=False)
-            script.set_source_entity(getattr(rocket, "source_entity", rocket.deploy_body))
+            script.set_source_entity(getattr(rocket, "source_entity", rocket.deploy_body),
+                                     publish_source=True)
             script.init()
             script.start_entries((), rocket.deploy_body)
             component.run_now()  # original start entry owns600 health and20-second initial value

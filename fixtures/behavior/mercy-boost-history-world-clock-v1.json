@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "provenance": "Synthetic independent owner epochs applied to actual extracted Mercy006B/006C/10DA input and Soldier rifle damage consumers. Existing reconstructed 30% effect multiplier; no new native clock/colour acceptance claim.",
+  "birthWorldTick": 1000,
+  "ownerBirthFrames": [1000, 9000],
+  "ultimateWorldTick": 1001,
+  "boostUntilExclusive": 1050,
+  "lateAttackWorldTick": 1040,
+  "receiveWorldTick": 1060,
+  "casterDeathWorldTick": 1055,
+  "expectedDamage": 26,
+  "expectedHitCount": 1,
+  "expectedDuplicateDamage": 0,
+  "unfixedIndependentEpochDamage": 20,
+  "limits": "Only committed boost-history storage and death cutoff are qualified here. Independent-epoch idle Valkyrie expiry, awaited unprocessed caster frames and native presentation remain separate prerequisites."
+}

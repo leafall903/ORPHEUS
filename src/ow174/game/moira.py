@@ -489,6 +489,35 @@ def orb_history_tick(match, frame):
     return oldest
 
 
+def observe_live_orb(fight, orb):
+    """Admit a new viewer to this live cast through the existing shot delivery.
+
+    Keep its source clock, activation and original deadline; joining is neither
+    a new cast nor a new physical/health simulation.
+    """
+    shot = orb.shot
+    if shot is None or not shot.authoritative or not shot.observers or orb.body != shot.body:
+        return
+    script = shot.player.body_script
+    if script is None or script.retired or shot.player.body != shot.body:
+        return
+    instance = script.component.instances.get(shot.instance)
+    state = instance.states.get(shot.state) if instance is not None and instance.graph.index == 0x10E4 else None
+    if state is None:
+        return
+    viewers = [viewer for viewer in fight.match.players
+               if viewer.client is not None and viewer.spawned and not viewer.gone
+               and not any(d.viewer is viewer and d.client is viewer.client for d in shot.observers)]
+    if not viewers:
+        return
+    original = shot.observers[0].record
+    deadline = min(d.deadline for d in shot.observers)
+    if fight.tick < deadline:
+        fight.projectiles._show_others(
+            shot, state, original.origin, original.direction, None,
+            viewers=viewers, original_record=original, deadline=deadline)
+
+
 def advance_orbs(fight):
     """World-clock orbs survive their caster's death and stop at energy/lifetime.
 
@@ -545,6 +574,8 @@ def advance_orbs(fight):
             fight.moira_orbs.remove(orb)
             if orb.shot is not None:
                 fight.projectiles.flown(orb.shot, orb.flown)
+        else:
+            observe_live_orb(fight, orb)
 
 
 def fade_physics_explosion(state):

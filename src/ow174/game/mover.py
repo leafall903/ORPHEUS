@@ -209,7 +209,7 @@ THROTTLE_FORWARD, THROTTLE_BACKWARD, THROTTLE_LATERAL = 17, 18, 19
 VELOCITY_MAGNITUDE, VELOCITY_HORIZONTAL, VELOCITY_Y, VELOCITY_JUMP_RATIO = range(32, 36)
 VELOCITY_WORLD_DELTA = -1
 VELOCITY_DELTA_MOD = -3  # Distinct from the full integration typed-profile discriminator.
-VelocityChange = tuple[int, int, int, float | tuple[float, float, float], float]
+VelocityChange = tuple[int, int, int, float | tuple[float, float] | tuple[float, float, float], float]
 JUMP_INTENT, CROUCH_INTENT, COLLISION_MOD, LAND_LIMIT_MOD, STEP_DOWN_MOD = 20, 21, 22, 36, 38
 HORIZONTAL_SPEED_MOD = 33
 FLT_MAX, FLT_MIN = 3.4028234663852886e38, 1.1754943508222875e-38
@@ -569,7 +569,7 @@ class Mod:
 
     index: int
     op: int
-    value: float | tuple[float, float, float] | MoverData
+    value: float | tuple[float, float] | tuple[float, float, float] | MoverData
     start: int
     end: int | None = None
     priority: float = 0.0
@@ -692,7 +692,14 @@ def intent(mods: list[Mod], index: int, value: float) -> float:
     """A value the transitions read through the mods of its index (0x7FF789B42FB0): the jump and crouch
     intents (1 with the button, 0 without) and the landing's speed limit."""
     for mod in mods:
-        if mod.index == index and not isinstance(mod.value, tuple):
+        if mod.index != index:
+            continue
+        if mod.op == CLAMP and isinstance(mod.value, tuple) and len(mod.value) == 2:
+            from ow174.game.script.modifiers import apply
+
+            # Preserve one atomic numeric row and the original SSE min/max order.
+            value = apply(CLAMP, value, mod.value[0], mod.value[1])
+        elif not isinstance(mod.value, tuple):
             value = apply_op(mod.op, value, mod.value)
     return value
 
@@ -1094,6 +1101,13 @@ class Mover:
                     if not all(map(math.isfinite, delta)):
                         return
                     pending[key] = Mod(VELOCITY_DELTA_MOD, ADD, delta, start, start + 1, f32(priority), key)
+                elif 0 <= channel <= 3 and op == CLAMP:
+                    if (not isinstance(operand, tuple) or len(operand) != 2
+                            or not all(math.isfinite(bound) for bound in operand)):
+                        return
+                    bounds = tuple(f32(bound) for bound in operand)
+                    pending[key] = Mod(VELOCITY_MAGNITUDE + channel, CLAMP, bounds,
+                                       start, start + 1, f32(priority), key)
                 elif 0 <= channel <= 3 and not isinstance(operand, tuple):
                     index = VELOCITY_MAGNITUDE + channel
                     if not math.isfinite(operand):

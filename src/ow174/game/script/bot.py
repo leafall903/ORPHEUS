@@ -370,10 +370,17 @@ class BotWorld(runtime.World):
         self.manual_target = None
         self.sniper_target = None
         self.sniper_retry_at = 0
+        self.sentry_data_flow = None
         self.controller: runtime.Component | None = None
         self.component: runtime.Component | None = None
         self.controller_inputs: dict[int, int] = {}
         self.heavy_counter_stuns: list[tuple[int, float]] = []
+
+    def data_flow_context(self, entity):
+        context = self.sentry_data_flow
+        if context is not None and self.component is not None and entity == self.component.entity:
+            return context
+        return super().data_flow_context(entity)
 
     def constant_native(self, cfg, instance):
         # These inputs are fixed by this stock Practice host's construction.
@@ -1093,6 +1100,13 @@ class BotScript(ReplicatedBody):
         component = self.component = runtime.Component(entity, world=world, seed=entity if firing else 1)
         if not external_world:
             world.component = component
+            if (hero == 0x02E0000000000016 and body == 0x0400000000002658
+                    and (record.get('script_component') or {}).get('$') == 'STUStatescriptComponent'):
+                from ow174.game.script import data_flow
+
+                # Known component47 from the actual actor record, before graph
+                # initialization. No vector/position or model Handle is supplied.
+                world.sentry_data_flow = data_flow.Context.managed(component, NotImplemented)
         component.frame = frame
         component.now = frame * component.frame_ms
         self.control_context = None
@@ -1229,6 +1243,9 @@ class BotScript(ReplicatedBody):
             world.match.combat.clear_pins(self.component.entity)
             world.match.unregister_body_component(self.component)
         self.component.disconnect_foreign_watchers()
+        context = getattr(world, 'sentry_data_flow', None)
+        if context is not None:
+            context.retire()
         world.match = None
         world.manual_target = None
 

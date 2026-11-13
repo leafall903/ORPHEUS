@@ -6,7 +6,7 @@ claim restored native custom-State codecs or original-client prediction.
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ow174.game.commands import JUMP
 from ow174.game.mover import (
@@ -21,6 +21,20 @@ from ow174.game.mover import (
 )
 
 GENJI = 0x02E0000000000029
+
+
+def projectile_targets(fight, rocket, targets):
+    """Use retained recipient poses during original shuriken physical catch-up.
+
+    The existing launch mapper already gave0304/07CA an immutable world tick.
+    Preserve current-tick identity and all collision/construct metadata by using
+    the shared history reader only when that physical flight is behind world time.
+    """
+    if (rocket.source_graph != 0x0304 or rocket.definition != 0x04000000000007CA
+            or rocket.last_tick is None or fight.tick >= fight.match.tick):
+        return targets
+    return tuple(replace(shown, construct=target.construct) for target in targets
+                 if (shown := fight.seen(target, fight.tick)) is not None)
 
 
 def view_world_tick(script, command, quanta):

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "reference": "Overwatch1.74.0.0.104319; formal44 456837f6",
+  "definition": 288230376151722409,
+  "graphs": [51, 3364, 8710, 9652, 5986],
+  "input": "Actual E deployment; actor create ACK; loading connection replay; existing lifetime destroy",
+  "expected": "One registered component47 on actual29A9 entity, defaults before1762 instance5, captured source body, H0 waits for create ACK; destroy retires same VM",
+  "provenance": "Original29A9 declares four default graphs;1761/node21 m_49CBA3BC explicitly selects1762. Restricted XML/startup data remains external.",
+  "scope": "Definition-backed allocation/registration, pose lookup, H0 delivery and cleanup; existing ballistic/protection producer retained",
+  "original_client_acceptance": false
+}

@@ -969,6 +969,12 @@ class Client:
                          if not self._repeats_idle_pose(item)]
             if movements and movements[-1].correction is not None:
                 own = movements[-1]
+                pending = self._pending_possessions.get(self.player.entity)
+                if pending is not None and (pending[0] != own.entity or pending[1] not in queued):
+                    # Native44 must establish this body's43 before ch3 can feed
+                    # its local input owner. Budgeting only removes suffixes.
+                    movements.pop()
+                    own = None
             entities = (queued + movements)[:MAX_ENTITY_RECORDS]
         reliable = self.reliable[: messages.MAX_PER_KIND]
         entity_cache = {}

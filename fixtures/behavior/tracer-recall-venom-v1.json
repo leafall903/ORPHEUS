@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "tracer-recall-venom-v1",
+  "build": 104319,
+  "provenance": "Original graph0073 node7 ends its poison script on entity6604 OR8440; original Recall001A node65 stacks entity8440 true. Actual command fixture covers the reconstructed poison host, not native client acceptance.",
+  "poison_end_flags": [6604, 8440],
+  "recall_end_flag": 8440,
+  "inputs": ["Widow mine button16 contacts and arms, actual poison starts", "Tracer Recall button16 sets its original8440", "normal world tick consumes existing poison", "Recall completes then normal rifle damage"],
+  "expected": "Poison/reveal ends before Recall exit and never resumes; no damage/HIT pulses from the retired poison. Source mine/projectile and other targets are not retired by a global caster cleanup.",
+  "restored_health": 150,
+  "native_acceptance": "pending"
+}

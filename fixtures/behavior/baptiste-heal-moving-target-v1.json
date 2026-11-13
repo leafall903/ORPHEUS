@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "reference": "Overwatch1.74.0.0.104319, Baptiste1932/node58 projectile29AD",
+  "input": {"initial_damage": 100, "target_right": 127, "frames": 64, "source_packet_sizes": [1, 32]},
+  "expected": {"ally_health": 170, "enemy_health": 200},
+  "provenance": "Actual healing input and actual ally movement at the same world ticks. Before repair: packet1 ally170, packet32 ally100; both identical final pose and no live projectile. Native29AD healing70 metadata remains unchanged.",
+  "scope": "Old physical-tick contacts and healing area query retained target history; same collision construct, radius, source and owner event labels",
+  "original_client_acceptance": false
+}

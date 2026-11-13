@@ -99,7 +99,7 @@ from ow174.game.match import Match, Player, RetainedFlight, ShownController
 from ow174.game.mover import Mover, MoverData, loaded_mover_table
 from ow174.game.script import body_owner, driver, entity_link, entity_queries, entity_team, expr, play, runtime, spatial_queries
 from ow174.game import venom_presentation, volskaya
-from ow174.game.script import scene_host, startup
+from ow174.game.script import data_flow, scene_host, startup
 from ow174.game.script import graph as script_graph
 from ow174.game.script.bot import AssassinControllerWorld, BotScript, BotWorld
 from ow174.game.server import Client, GameServer, Handoff, _BotScriptDelivery
@@ -307,8 +307,11 @@ FIELDS = {
     ),
     BotWorld: _names(
         "hero mode weapon_buttons owner_position controller component controller_inputs "
-        "heavy_counter_stuns match controller_components manual_target manual_nameplate control_context sniper_target sniper_retry_at"
+        "heavy_counter_stuns match controller_components manual_target manual_nameplate "
+        "control_context sniper_target sniper_retry_at sentry_data_flow"
     ),
+    data_flow.Context: _names("owner component_present namespace_present register unregister special_changed "
+                              "position retired component _providers snapshots"),
     AssassinControllerWorld: _names(
         "hero mode mover body_entity match button_edges button_holders movement_bits candidates "
         "recovery_pending recovery_started"
@@ -398,7 +401,7 @@ DATACLASSES = (
     reinhardt_barrier.RaisedBarrier,
     genji.Mobility, combat.Frost, combat.mei.CryoHealing, mei_blizzard.Flight, mei_blizzard.Area, translocators.Translocator,
     earthshatter.Wave, reinhardt_charge.Charge, ball.Grapple,
-    actors.Deployable, actors.PillarScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
+    actors.Deployable, actors.PillarScript, baptiste.FieldScript, baptiste.FieldSpec, baptiste._Field, baptiste._Regeneration,
     healing.Spec, healing.Modifier, healing_status.Applied,
     deflection.ProjectileTags,
     moira.Orb, moira.SprayHeal, moira.SprayTrace, graviton.Field, graviton.FieldScript, photon_barrier.Shield,

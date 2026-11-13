@@ -126,6 +126,12 @@ def state_class(*names: str, strict_only: bool = False):
 
 def state_type(name: str, strict: bool, graph_index=None, position=None, *, hero=None):
     if (not strict and hero == 0x02E0000000000016
+            and name == 'STUStatescriptStateDataFlowMapping'
+            and (graph_index, position) in ((0x157F, 15), (0x157F, 16), (0x1590, 14))):
+        from ow174.game.symmetra_sentry_dataflow import SentryDataFlowMapping
+
+        return SentryDataFlowMapping
+    if (not strict and hero == 0x02E0000000000016
             and (name, graph_index, position) == ('STUStatescriptStateTrackRay', 0x1590, 9)):
         from ow174.game.symmetra_sentry_ray import SentryRay
 

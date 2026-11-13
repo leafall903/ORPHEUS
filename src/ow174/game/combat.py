@@ -8461,6 +8461,10 @@ class Combat:
         candidates = (() if rocket.mine is not None else self._targets() if biotic else
                       self._shot_targets(rocket.shooter, rocket.direct, team=team))
         candidates = pharah.primary_targets(self, rocket, candidates)
+        candidates = orisa_clock.primary_targets(self, rocket, candidates)
+        from ow174.game import genji
+
+        candidates = genji.projectile_targets(self, rocket, candidates)
         from ow174.game import echo_projectile_history
 
         candidates = echo_projectile_history.targets(self, rocket, candidates)
@@ -9021,6 +9025,7 @@ class Combat:
         if self.healing.accepts(rocket):
             targets = (t for t in self._targets() if t.owner is not rocket.shooter
                        and not self.vitals_of(t).dead)
+        targets = baptiste.projectile_targets(self, rocket, targets)
         for target in targets:
             a, b = target.segment()
             t = ray_capsule(rocket.position, direction, a, b, target.radius)
@@ -9212,7 +9217,8 @@ class Combat:
         def mesh_blocks(origin, direction, reach):
             return self.barrier.intersect(rocket.shooter, origin, direction, reach) is not None
 
-        for target in self._hit_targets(rocket.shooter, blast):
+        candidates = baptiste.projectile_targets(self, rocket, self._hit_targets(rocket.shooter, blast))
+        for target in candidates:
             a, b = target.segment()
             distance = max(0.0, segment_distance(point, a, b) - target.radius)
             scalar = blast.splash(distance)
@@ -11771,7 +11777,10 @@ class Combat:
         script = victim.body_script
         pools = self.vitals.get(victim.body)
         death_tick = pools.death_tick if pools is not None and pools.death_tick is not None else self.tick
-        boost_end = min(death_tick, script.frame + 1) if script is not None else None
+        boost_end = None
+        if script is not None:
+            boost_frame = regeneration.healing_world_tick(script, script.frame + 1)
+            boost_end = min(death_tick, boost_frame if boost_frame is not None else script.frame + 1)
         self.support_effects.retire(victim.body, boost_end_frame=boost_end)
         self.lucio_auras.retire(victim.body)
         self.knockbacks.retire(victim.body)

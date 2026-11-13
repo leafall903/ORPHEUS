@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-sentry-numeric-dataflow-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "0c186f2ece816c0600672f3bfc46be787892090f",
+    "provenance": "Original actor2658 component47; graph157F Wait20 to Chase7/entity639 and DataFlow15/10D, DataFlow16/10C constant1 with tag7 Handle selector; graph1590 DataFlow14/F7 entity1769 numeric10. Existing shared native-qualified DataFlow semantics are reused. Restricted assets and native probes remain external."
+  },
+  "evidence": "synthetic-actual-command-host-contract",
+  "client_acceptance": "pending",
+  "input": {"launch_button": 8, "launch_frames": 40, "additional_build_frames": 20, "finish_frames": 80},
+  "expected": {
+    "initial_10d_providers": 0,
+    "during_build_10d_providers": 1,
+    "build_answer_status": 1,
+    "build_answer_range": [0, 1],
+    "completed_639": 1,
+    "completed_10d_providers": 0,
+    "f7_float_answer": [1, 10],
+    "f4_providers": 0,
+    "retired_providers": 0,
+    "model_pose": null,
+    "controller": null,
+    "pet_owner": null,
+    "extra_damage_producers": 0
+  },
+  "limits": "10C shares exact mapping semantics but its original model-Handle path was not naturally activated in this scenario.10D preserves mapping_self=false and target=null; F7 preserves self scope. F4 BOOL is unchanged. No model Handle, controller43, current animation sampler, high-bit parameter dispatch, hardpoint, ray result or native visual acceptance is supplied. Existing40DPS remains the sole health authority. Full-server capture is structural storage, not restoration roundtrip or native wire qualification."
+}

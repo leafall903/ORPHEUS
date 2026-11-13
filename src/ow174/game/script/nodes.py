@@ -15,7 +15,7 @@ from types import NotImplementedType
 from typing import TYPE_CHECKING, ClassVar
 
 from ow174.game.content import JUNKENSTEIN_MODES
-from ow174.game.mover import (ADD, FLT_MAX, MAXIMUM, MINIMUM, MULTIPLY, SET,
+from ow174.game.mover import (ADD, CLAMP, FLT_MAX, MAXIMUM, MINIMUM, MULTIPLY, SET,
     VELOCITY_WORLD_DELTA, movement_sample_flags)
 from ow174.game.mover import CROUCHED, IN_AIR, JUMPED, NOT_GROUND_UNDER, STEP, Snapshot
 from ow174.game.script import (
@@ -6015,7 +6015,17 @@ def velocity_action(instance: Instance, node, caller) -> bool | NotImplementedTy
         if not _finite_number(priority) or abs(priority) > FLT_MAX:
             return NotImplemented
         value = instance.evaluate(modifier.get("m_9B7A63EA"))
-        if kind in _SCALAR_VELOCITY_OPS:
+        if kind == "STU_20E18047":
+            channel = modifier.get("m_A9561CA0")
+            upper = instance.evaluate(modifier.get("m_8213EB22"))
+            lower = instance.evaluate(modifier.get("m_8AD739CE"))
+            if (type(channel) is not int or not 0 <= channel <= 3
+                    or not all(_finite_number(bound) and abs(bound) <= FLT_MAX for bound in (lower, upper))):
+                return NotImplemented
+            # D2BAC5..D2BB55 preserves both operands in one property32+channel
+            # record, operation5. This is unrelated to authored vector enum4.
+            changes.append((slot, channel, CLAMP, (f32(lower), f32(upper)), f32(priority)))
+        elif kind in _SCALAR_VELOCITY_OPS:
             channel = modifier.get("m_A9561CA0")
             if type(channel) is not int or not 0 <= channel <= 3:
                 return NotImplemented

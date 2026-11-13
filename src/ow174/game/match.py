@@ -1807,6 +1807,9 @@ class Match:
         point = managed_projectiles.position(self, entity)
         if point is not None:
             return point
+        deployable = self.combat.deployables.get(entity)
+        if deployable is not None:
+            return expr.Vec3(*deployable.position)
         actor = self.combat.barriers.world.actors.get(entity)
         if actor is not None:
             return expr.Vec3(*actor.point)
