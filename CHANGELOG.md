@@ -1,5 +1,21 @@
 # Changelog
 
+## Scoped Uppercut victim-script consumer
+
+Route original0DD8/node22 through the shared PlayScript resource/request resolver
+and existing component queue into the actual living player recipient VM. Preserve
+caller/instigator and original0E7D numericSET0 before the single canonical ADD;
+execute its original airborne control and timers instead of adding a stun. Retire
+only this managed helper before body detach, preserving other frozen VM state.
+
+Two actual-command methods pass: nonzero victim velocity, original control exit,
+shifted victim9000 epoch and body replacement/no further old frames or forces.
+The synthetic contract is uppercut-body-script-consumer-v1.json; original graphs
+remain external. Native adoption, ordinary NPCs, full immunity/body arbitration
+and activeMoveTo remain open. Actual aerialSlam still takes50damage but its force
+is rejected; the new consumer explicitly declines that unsupported half-sequence.
+No correction transport, native force kernel or MoveTo-guard removal is added.
+
 ## Fourth focused hero follow-ups
 
 Preserve Soldier first fire/jump edges in a delayed32-command packet using an explicit64-frame host retention policy, not a native server-time claim. Capture Zarya field Pet source before viewer creation. Resolve Sigma Flux victim health origin and submit the supported ordinary-body entry impulse once; original response/custom-body rules remain incomplete. Map Ball melee target history in world time while preserving the Widow mapping. Restore Doomfist Uppercut original filtered target production; actual victim0E7D script/control consumption remains unfinished. Seven new related methods passed; cumulative26 selected follow-up methods passed (23 new,3 modified compatibility). Full client force/prediction/UI/model/effect adoption and shared Physics/MoveTo/minimum-Y/control remain open. No default-server change.

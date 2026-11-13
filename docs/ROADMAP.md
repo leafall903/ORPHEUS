@@ -513,3 +513,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Fourth focused hero follow-ups with7 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Route the original Uppercut0E7D helper into qualified actual player recipient VMs; two focused command/lifecycle methods pass.
+- [ ] Complete Uppercut activeMoveTo/NPC/native receiver arbitration and retained native effects.

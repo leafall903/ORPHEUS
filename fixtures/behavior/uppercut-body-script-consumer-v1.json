@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "uppercut-original-victim-script-v1",
+  "target_build": 104319,
+  "source": {
+    "reference": "038c814e91d1760d38da5416a5066af0710b70f2",
+    "caller": "0DD8/node22 after original filtered-target assignment",
+    "receiver": "0E7D original entry/velocity reset/airborne control/waits",
+    "transport": "Existing PlayScript request resolver and component queue"
+  },
+  "evidence": "actual Uppercut commands on live recipient body VM; synthetic initial velocities and shifted owner epoch",
+  "client_acceptance": "pending",
+  "input": {"distance": 1.5, "pre_velocity": [9, 2, 0], "button": 8, "neutral_steps": 2, "victim_owner_start": 9000},
+  "expected": {"damage": 50, "force_entries": 1, "vertical_add": 14, "horizontal_add": 7, "reset_magnitude": 0, "control_seconds": 0.6, "old_body_frames_after_retire": 0},
+  "support": "Ordinary living player body with valid non-strict current component; active MoveTo, ordinary NPCs and full native immunity/arbitration remain unsupported. No added timer-only stun or second force.",
+  "runtime_prerequisites": "External prepared104319 original graph bundle; no extracted game resource embedded"
+}

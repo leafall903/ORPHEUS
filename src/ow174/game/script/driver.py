@@ -2093,7 +2093,11 @@ class BodyWorld(runtime.World):
         return None
 
     def play_script_host(self, instance, node):
-        from ow174.game import photon_barrier
+        from ow174.game import body_script_requests, photon_barrier
+
+        routed = body_script_requests.play(self, instance, node)
+        if routed is not NotImplemented:
+            return routed is True
 
         if (self.match is not None and self.hero == 0x02E0000000000200
                 and not instance.component.strict and instance.graph.index == 0x1536 and node.pos == 3
@@ -3544,6 +3548,9 @@ class BodyScript(ReplicatedBody):
     def retire(self) -> None:
         """The body is gone (a hero switch, the player left): no more frames, and a lost full frame is not
         sent again."""
+        from ow174.game import body_script_requests
+
+        body_script_requests.retire(self.component)
         self.retired = True
         if self.hero == 0x02E00000000001CA and self.world.match is not None:
             self.world.match.combat.clear_temporary_shields(self.entity)
