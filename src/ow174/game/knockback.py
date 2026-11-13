@@ -140,6 +140,10 @@ class Knockbacks:
             if not controlled:
                 self.record_launch(target, source_entity=source_entity)
         self.serial += 1
+        if isinstance(owner, bots.Bot):
+            from ow174.game import body_script_requests
+
+            body_script_requests.activate_npc(match, owner)
         return True
 
     def _controlled_receiver(self, bot):

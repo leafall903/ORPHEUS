@@ -57,6 +57,20 @@ class _Projection:
         return snapshot
 
 
+def _retire_owner(client, stream):
+    """A changed native43 owner makes older owner chunks obsolete, even unacked."""
+    records = list(client.entities)
+    for _, sent in client.in_flight.values():
+        records.extend(sent)
+    for update in records:
+        if update.stream is stream:
+            client.cancel_entity_record(update)
+    if stream.initial_owner is not None:
+        client.cancel_entity_record(stream.initial_owner)
+        stream.initial_owner = None
+    stream.cmfd = 0
+
+
 def flush(client, delivery):
     """Return true when this delivery needs the controlled-body owner path."""
     source, stream = delivery.source, delivery.stream
@@ -66,7 +80,7 @@ def flush(client, delivery):
     controlled = bot is not None and bot.body_script is source and bot.entity == stream.entity
     if not controlled and not stream.cmfd:
         return False
-    if stream.base is None or stream.pending:
+    if stream.base is None or (controlled and stream.pending):
         return True
     if controlled and stream.entity in client._body_destroy_wait:
         return False  # let the existing terminal stream drain before the held destroy
@@ -76,8 +90,8 @@ def flush(client, delivery):
         snapshot = (delivery.death_frames[0] if delivery.death_frames else
                     delivery.death_snapshot or delivery.live or source.latest_live)
         snapshot = client._project_bot_snapshot(snapshot, known=stream.base)
+        _retire_owner(client, stream)
         update = stream.full(observers.full_frame(source, snapshot), snapshot)
-        stream.cmfd = 0
         delivery.live = None
         client.queue_entities([update])
         return True
@@ -107,23 +121,22 @@ def park_pilot(player, client):
     if not hasattr(script, "dva_birth"):
         return False
     stream = script.stream
-    if not stream.last:
+    if stream.cmfd:
+        # Do not wait for an old pilot owner packet to arrive after Call Mech
+        # has already transferred native43 ownership to the replacement body.
+        snapshot = observers.snapshot(script)
+        _retire_owner(client, stream)
+        client.queue_entities([stream.full(observers.full_frame(script, snapshot), snapshot)])
+        script.first_owner_frame = None
+    elif not stream.last:
         if script.create_arrived:
             snapshot = observers.snapshot(script)
             client.queue_entities([stream.full(observers.full_frame(script, snapshot), snapshot)])
     elif stream.base is not None and not stream.pending:
         snapshot = observers.snapshot(script)
-        # A Call Mech handoff can park a pilot which already had owner states.
-        # Clear only the owner projection; retain its authored remote states.
-        if stream.cmfd:
-            client.queue_entities([stream.full(observers.full_frame(script, snapshot), snapshot)])
-            stream.cmfd = 0
-            stream.initial_owner = None
-            script.first_owner_frame = None
-        else:
-            frame, keys = observers.delta(script, stream, snapshot)
-            if frame is not None:
-                update = stream.delta(frame, snapshot, keys, 0)
-                update.resend = True
-                client.queue_entities([update])
+        frame, keys = observers.delta(script, stream, snapshot)
+        if frame is not None:
+            update = stream.delta(frame, snapshot, keys, 0)
+            update.resend = True
+            client.queue_entities([update])
     return True

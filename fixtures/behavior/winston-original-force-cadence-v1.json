@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_id": "winston.original-landing-ring-primal-cadence.v1",
+  "build": "1.74.0.0.104319",
+  "base_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+  "provenance": "Original010A state3 horizontal10/minY2 and flat radius30 unit ring; original00FE alternating states35/36 with40 damage,25/minY7, Wait15/16 period0.65s and windup0.25s. Reuses prior native104319 D6D97A/D6DADE arithmetic evidence.",
+  "landing_offsets": [[0.6, 0.8], [2.1, 2.8]],
+  "expected_landing_horizontal": 10,
+  "held_punch_frames": 170,
+  "expected_punch_period_frames": [40, 42],
+  "native_acceptance": "pending; controlled targets isolate producer rules, not native rendering or force adoption"
+}

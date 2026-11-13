@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "DVa owner packet loss across possession transfer",
+  "provenance": {
+    "build": "1.74.0.0.104319",
+    "kind": "Synthetic packet schedule with production command/body/UDP/ACK codecs",
+    "original_consumer": "Component44 callback clears old body's43 owner at809D61 and detaches viaBA2CF0 at809DAB, then sets new body's43 owner at809F98 and attaches viaBA2CF0 at809FD0.",
+    "scope": "Transport retirement only. Does not establish native black-screen or visibility causality."
+  },
+  "inputs": [
+    "Drop controlled mech H1; deliver and acknowledge44 return to pilot; report old H1 packet lost",
+    "Send pilot H1 without ACK; rebind authored initial mech scope; later ACK old H1; drop then retry H0 reset"
+  ],
+  "expected": {
+    "old_owner_retries_after_transfer": 0,
+    "parked_cmfd": 0,
+    "plain_reset_retried_exactly": true,
+    "late_old_ack_rewinds_reset": false
+  },
+  "native_acceptance": "Pending; existing Q black, premature pilot and movement rewind remain open"
+}

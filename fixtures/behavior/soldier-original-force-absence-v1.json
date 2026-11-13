@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "soldier-original-force-absence-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "3dd55725c706c405cb989b5cc9d6f5d655b8cbc8",
+    "working_source_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "provenance": "Original0254/node25 rifle ModifyHealth has null force providers; native104319 compiler defaults both to zero.0257 canister has no character blast,0258/025F healing ModifyHealth has null force providers.0259 has target/pose mappings rather than a separate character impulse. Synthetic actual input sequence retains15stockPracticeNPCs."
+  },
+  "evidence": "original-definition-and-synthetic-normal-input-regression",
+  "client_acceptance": "pending; no native presentation or full geometry claim",
+  "rifle": {"damage": 20, "horizontal_force": 0, "vertical_force": 0},
+  "field": {"input": 16, "aim_pitch": 12000, "expected": "real Field deployment and own healing; no character impulse"},
+  "visor": {"input": 32, "expected": "authored ultimate running; no separate character impulse"},
+  "expected_public_force_events": 0,
+  "excluded": ["Authored0043quick-melee force", "Helix enemy/self force", "camera or weapon cosmetic recoil", "ordinary jump locomotion"]
+}

@@ -647,6 +647,15 @@ class BotWorld(runtime.World):
             return True
         return super().velocity_action(instance, node)
 
+    def queue_velocity_changes(self, frame, source, changes):
+        from ow174.game import body_script_requests
+
+        component = getattr(self, 'component', None)
+        instance = component.instances.get(source[0]) if component is not None else None
+        if (self.match is not None and instance is not None
+                and instance.graph.index == body_script_requests.UPPERCUT_HELPER):
+            body_script_requests.queue_npc_velocity_changes(self.match, component, frame, source, changes)
+
     def ai_weapon_button(self, slot: int) -> int | None:
         if (self.hero == assassin.HERO and self.controller_components is not None and slot == 0
                 and self.control_context is None):
@@ -1183,6 +1192,9 @@ class BotScript(ReplicatedBody):
 
     def retire(self) -> None:
         """Disconnect a retired namespace while retaining its stored history."""
+        from ow174.game import body_script_requests
+
+        body_script_requests.retire(self.component)
         world = self.component.world
         if world.match is not None:
             world.match.combat.clear_pins(self.component.entity)
@@ -1193,6 +1205,9 @@ class BotScript(ReplicatedBody):
 
     def advance_live(self, frame: int, position: tuple | None = None, *, edges=(), publish=True) -> Snapshot | None:
         """Advance a live weapon body and freeze its latest observer baseline."""
+        from ow174.game import body_script_requests
+
+        body_script_requests.discard_unaccepted_npc(self.component)
         if frame <= self.frame or self.component.owner_dead:
             return None
         self.frame = frame

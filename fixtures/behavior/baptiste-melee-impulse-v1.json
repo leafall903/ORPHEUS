@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "case_id": "baptiste-melee-impulse-v1",
+  "target_build": "104319",
+  "source": {
+    "revision": "ea47294324376ff0317780d7f6df12d28672b647",
+    "paths": ["src/ow174/game/combat.py", "src/ow174/game/knockback.py"],
+    "provenance": "Synthetic collinear target and one original0043 ring. Node10/state4 uses1257=1 and1258=0; radius100 and ring weights1/1 are explicit. The short melee hit query remains separate from this force radius.",
+    "reference_source_digest": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5"
+  },
+  "evidence": "synthetic-reference; original graph operands checked separately with prepared104319 data",
+  "client_acceptance": "pending; canonical world-tick/source producer compatibility is checked separately from native recipient adoption",
+  "input": {
+    "ring": [100, 1, 0],
+    "source": [0, 2.35, 0],
+    "target_feet": [0, 1, 1.5],
+    "direction": [0, 0, 1],
+    "input_order": "One quick-melee press followed by39 idle frames",
+    "seed": null
+  },
+  "expected": {"impulse": [0, 0, 1], "applications": 1, "enemy_damage": 30, "ally_damage": 0}
+}

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "reference": "Regression against 038c814e91d1760d38da5416a5066af0710b70f2; synthetic constructor setup plus actual encrypted input/output and ACK processing",
+  "input": {"owner_birth": 9000, "warm_commands": 20, "charge_button": 8, "neutral_commands_after_charge": 65},
+  "expected": {"minimum_server_displacement": 7.0, "minimum_owner_records": 1, "body_create_ack_required": true},
+  "boundary": "Owner record frames must remain in the owner epoch even when ahead of packet world time. No native camera/model/client-adoption acceptance."
+}

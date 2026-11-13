@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-original-self-impulse-v1",
+  "target_build": 104319,
+  "source": {
+    "requires_snapshot": "73521b5037f1243f1e35bdb4921ce580d98ffbb8abd1b476ea6c93ec717506c5",
+    "provenance": "022B/31 authored self damage0, source impulse enabled with scale0.5. Real FIRE contact in a synthetic flat scene with the15 original NPC identities retained. Fixed vector records the existing reconstructed source geometry; it is not native geometry acceptance."
+  },
+  "evidence": "synthetic-actual-primary-contact",
+  "client_acceptance": "pending",
+  "input": {
+    "world_birth": 1000,
+    "source_owner_birth": 9000,
+    "source_position": [1000, 0, 1000],
+    "enemy_position": [1000, 0, 1001.5],
+    "aim_position": [1000, 0.9, 1001.5]
+  },
+  "expected": {
+    "source_velocity_delta": [0, 1.264911069722031, -2.5],
+    "impact_world_tick": 1033,
+    "source_health": 200,
+    "source_force_calls": 1
+  }
+}

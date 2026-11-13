@@ -9,11 +9,72 @@ UPPERCUT_CALL = (0x02E000000000012F, 0x0DD8, 22)
 UPPERCUT_HELPER = 0x0E7D
 
 
+def npc_mover(match, bot):
+    """Existing authoritative impulse/control mover, never a factory fallback."""
+    mover = bot.control_mover if bot.control_mover is not None else bot.impulse_mover
+    if mover is None or match.combat.knockbacks.active.get(bot.entity) is not mover:
+        return None
+    if bot.control_mover is not None and match.combat.knockbacks._controlled_receiver(bot) is None:
+        return None
+    return mover
+
+
 def retire(component):
     """Retire the scoped externally played helper before its body is detached."""
     for instance in list(component.instances.values()):
         if instance.graph.index == UPPERCUT_HELPER:
             component.destroy(instance)
+
+
+def queue_npc_velocity_changes(match, component, frame, source, changes):
+    """Original helper scalars precede the bound launch in the existing queue."""
+    from dataclasses import replace
+    from ow174.game import velocity
+
+    instance = component.instances.get(source[0])
+    bot = next((b for b in match.bots if b.entity == component.entity and not b.dead
+                and b.body_script is not None and b.body_script.component is component), None)
+    mover = npc_mover(match, bot) if bot is not None else None
+    if instance is None or instance.graph.index != UPPERCUT_HELPER or mover is None:
+        return
+    launches = [row for row in mover.velocity_changes if row.frame == frame + 1 and row.index == -1]
+    if len(launches) != 1:
+        return
+    # Like the existing B.O.B. victim reset, use the accepted launch's key.
+    # Numeric and vector requests occupy distinct subarrays of this one queue.
+    for _slot, channel, op, operand, priority in changes:
+        if 0 <= channel <= 3 and not isinstance(operand, tuple):
+            change = velocity.numeric(frame + 1, channel, op, operand)
+            velocity.enqueue(mover.velocity_changes, replace(change, key=launches[0].key, priority=priority))
+
+
+def _pending_helpers(component):
+    from ow174.game.script import runtime
+
+    return [i for i in component.instances.values() if i.graph.index == UPPERCUT_HELPER
+            and any(event.kind == runtime.ENTRY for event in i.queue)]
+
+
+def activate_npc(match, bot):
+    """Flush an already queued request only after canonical force bound its mover."""
+    script = bot.body_script
+    component = getattr(script, 'component', None)
+    if (component is not None and npc_mover(match, bot) is not None
+            and getattr(component.world, 'match', None) is match
+            and component.fault is None and not component.owner_dead
+            and _pending_helpers(component)):
+        from ow174.game import bob_victim
+
+        # Initialize the same authoritative pose inputs that advance_live
+        # already samples. The helper watches actual airborne transitions.
+        bob_victim.sample(bot, component, initialize=True)
+        component.run_now()
+
+
+def discard_unaccepted_npc(component):
+    """A request left pending after its caller phase had no accepted force."""
+    for instance in _pending_helpers(component):
+        component.destroy(instance)
 
 
 def play(world, instance, node):
@@ -40,9 +101,14 @@ def play(world, instance, node):
     if request is None:
         return True
     for entity in request.targets:
+        npc = False
         owner = next((p for p in match.players if p.body == entity and p.has_body
                       and not p.gone and p.body_script is not None
                       and not p.body_script.retired), None)
+        if owner is None:
+            owner = next((bot for bot in match.bots if bot.entity == entity and not bot.dead
+                          and bot.body_script is not None), None)
+            npc = owner is not None
         if owner is None or match.combat.is_dead(owner):
             continue
         target = next((t for t in match.combat._targets() if t.owner is owner), None)
@@ -52,6 +118,9 @@ def play(world, instance, node):
         if (world._body_component(entity) is not component or component.fault is not None
                 or component.owner_dead or component.strict
                 or getattr(component.world, 'match', None) is not match):
+            continue
+        if npc and (getattr(component.world, 'component', None) is not component
+                    or match.combat.junkrat.rooted(entity, match.tick)):
             continue
         if any(isinstance(state, nodes.MoveTo) and state.active
                for active in component.instances.values() for state in active.states.values()):
@@ -63,5 +132,9 @@ def play(world, instance, node):
         queue.submit(request)
         if queue.pending:
             raise ValueError('Loaded body helper left pending PlayScript work')
-        component.run_now()
+        if not npc:
+            component.run_now()
+        # NPC target collection precedes the damage/force callback. Its actual
+        # VM queues these entries; accepted canonical admission flushes them
+        # after binding the one physical mover, before its next pose.
     return True

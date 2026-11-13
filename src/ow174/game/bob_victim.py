@@ -18,10 +18,10 @@ def _pose(component, airborne):
     component.set(GROUNDED, not airborne)
 
 
-def sample(owner, component):
+def sample(owner, component, *, initialize=False):
     """Keep the pose inputs current after the victim bridge initializes them."""
     grounded = component.entity_var(GROUNDED, create=False)
-    if not component.strict and grounded is not None and type(grounded.base) is bool:
+    if not component.strict and (initialize or grounded is not None and type(grounded.base) is bool):
         _pose(component, _airborne(owner))
 
 

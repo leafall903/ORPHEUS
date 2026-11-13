@@ -106,3 +106,16 @@ Apply original live recipient response once to Sigma Flux entry and projectile f
 - `sigma-projectile-live-response`: original focused owner commit(s) `2b7e0e7226b9004a105491822950a8c39632954a`.
 - `ball-target-response`: original focused owner commit(s) `c00a0d65ae9281f445282fe13c00a0833ca7170f`.
 - `mei-cryo-source-pose`: original focused owner commit(s) `16ba56aa9b866e6d9b830747eeedfff865ad62aa`.
+
+## Sixth focused recipient and owner-stream follow-ups
+
+Run the original Uppercut helper on the existing ordinary NPC component and sole canonical mover; numeric reset precedes one launch. Initialize the existing pose sampler from authoritative movement flags so actual airborne417/grounded545 drive original input-modifier entry and exit. The earlier false-branch interpretation was a missing input binding, not a native NPC exemption. Preserve actual15 NPC identities,50damage, one force,14 vertical and7 horizontal launch, original control exit and helper retirement. Route Reinhardt Charge owner records through the recipient command epoch without changing server displacement; cancel obsolete D.Va owner retries on form changes through existing cancellation/reset transport. Add four focused owner regression deliveries for Winston, Junkrat, Soldier and Baptiste without replaying existing runtime fixes. Eleven related methods pass, including nine new and two retained player lifecycle checks; cumulative44 distinct selected follow-up methods pass (41 new,3 modified compatibility). Native hero presentation, delayed NPC admission, activeMoveTo, general Physics/eligibility/minimum-Y, Doom Punch mode4, and all previous native FAIL/UNVERIFIED items remain open. D.Va black screen, duplicate pilot and rewind symptoms are not claimed fixed. Frozen735 and old prepared038/e1da remain unchanged. A new consolidated cut must independently accept Halloween entry and story.
+
+- `uppercut-npc-consumer`: original focused owner commit(s) `9d110bc662927e017f80973a3c24c9b6e3295786`.
+- `uppercut-npc-pose`: original focused owner commit(s) `12e755067f280a3c423c9d1913426989c3c1db0c`.
+- `reinhardt-charge-owner-epoch`: original focused owner commit(s) `ce38766b8b6ebee82fc669b365109a606c7849c9`.
+- `dva-owner-retirement`: original focused owner commit(s) `304c7b90c82d50767e63474c7c4d717cad94cc36`.
+- `winston-original-rules`: original focused owner commit(s) `a8644384bfbb3d8df29bfeddf7514c2a7875d5ba`.
+- `junkrat-original-self-contact`: original focused owner commit(s) `903be76d32610fefa38eef8f69dc2ac5766f185e`.
+- `soldier-original-force-absence`: original focused owner commit(s) `aeaa9c6cf1a6ea2f3e18291e3eaa3c74f77f01c8`.
+- `baptiste-original-melee`: original focused owner commit(s) `807b4690e50aa164c2f81deec023079971011525`.

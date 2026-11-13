@@ -54,7 +54,7 @@ def drive(fight, player, command, seconds):
     if speed > 0:
         from ow174.game import correction
 
-        correction.force_charge(player, first_frame=command.frame)
+        correction.request_motion(player, first_frame=command.frame, body=player.body)
     return (math.sin(charge.heading) * speed, math.cos(charge.heading) * speed) if speed > 0 else None
 
 

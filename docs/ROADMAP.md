@@ -519,3 +519,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Fifth focused response and pose follow-ups with7 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Sixth focused recipient and owner-stream follow-ups with11 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.
