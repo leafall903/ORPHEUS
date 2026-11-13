@@ -125,6 +125,11 @@ def state_class(*names: str, strict_only: bool = False):
 
 
 def state_type(name: str, strict: bool, graph_index=None, position=None, *, hero=None):
+    if (not strict and hero == 0x02E0000000000016
+            and (name, graph_index, position) == ('STUStatescriptStateTrackRay', 0x1590, 9)):
+        from ow174.game.symmetra_sentry_ray import SentryRay
+
+        return SentryRay
     if (not strict and hero == 0x02E0000000000002
             and (name, graph_index, position) == ('STUStatescriptStateCreateEntity', 0x00F2, 74)):
         from ow174.game.reaper_shadow_actor import ShadowActor
@@ -1503,6 +1508,8 @@ class Component:
         self.strict = strict
         self.code_states: list[State] = []
         self.code_pending: list[list[int]] = [[], []]
+        # Defer mode1: driver+330, transferred after ordinary instance updates.
+        self.driver_deferred: list[tuple[float, int, State]] = []
         # A token identifies one backend callback/context pair; None matches any identifier.
         self.code_observers: list[tuple[int, int | None]] = []
         # 1B8D5E0: per authored type, in native linked-state registration order.
@@ -1558,6 +1565,7 @@ class Component:
             self.motion_reports.clear()
             self.held.clear()
             self.code_states.clear()
+            self.driver_deferred.clear()
             self.startup_entity_values.clear()
             self.state_registries.clear()
             for pending in self.code_pending:
@@ -1963,9 +1971,27 @@ class Component:
 
     def _update_instances(self) -> None:
         self.consume_work("component update")
-        for instance in list(self.instances.values()):
-            if instance.id in self.instances:
-                instance.update()
+        for _ in range(MAX_COMPONENT_UPDATES):
+            for instance in list(self.instances.values()):
+                if instance.id in self.instances:
+                    instance.update()
+            if not self._transfer_driver_deferred():
+                return
+        self.budget_exceeded("component driver defer update budget exhausted")
+
+    def _transfer_driver_deferred(self) -> int:
+        """1B8CC60: pop driver rows into their still-live namespace timer queues."""
+        work = self.driver_deferred[:]
+        self.driver_deferred.clear()
+        count = 0
+        for _, due, state in reversed(work):
+            self.consume_work("driver deferred timer transfer")
+            instance = state.instance
+            if (self.instances.get(instance.id) is instance and not instance.stopped
+                    and not instance.teardown and state.active and not state.ending):
+                instance.post(Event(due, 0, TIMER, state=state, param=1))
+                count += 1
+        return count
 
 
 class Instance:
@@ -2376,8 +2402,8 @@ class Instance:
         # A logical-button condition is not itself a State. Its compiled owner
         # list identifies transition States that need a completion check when
         # this input changes (e.g. Reaper00F2/st1 waiting for Shadow Step).
-        for node in self.graph.nodes:
-            if node.cls != "STU_7DEB522D" or not self.accepts(node):
+        for node in self.graph.logical_button_conditions():
+            if not self.accepts(node):
                 continue
             cfg = node.field("m_logicalButton")
             if expr.to_int(self.evaluate(cfg)) != button:
@@ -2390,7 +2416,7 @@ class Instance:
         component.button = NO_BUTTON
         if pressed and self.graph.index == 0x023A:
             # 023A's held-button transition conditions name the states to recheck.
-            for condition in self.graph.nodes:
+            for condition in self.graph.logical_button_conditions():
                 if (
                     condition is None
                     or condition.cls != "STU_7DEB522D"
@@ -2835,7 +2861,7 @@ for _name in ENTRY_CLASSES:
 def message_entries(instance: Instance, message: int) -> list[Node]:
     """The EntryGameMessage nodes and active GameMessageEntry states of an instance for a message."""
     found = []
-    for node in instance.graph.nodes:
+    for node in instance.graph.message_nodes():
         if node.client_only:
             continue
         cfg = node.field("m_gameMessage")

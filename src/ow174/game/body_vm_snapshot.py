@@ -16,7 +16,7 @@ import uuid
 from ow174.game import (
     assassin_controller, doomfist_helper_health, enforcer_controller, hanzo_movement, replay_values,
 )
-from ow174.game import npc_controller_storage, volskaya
+from ow174.game import npc_controller_storage, symmetra_sentry_ray, volskaya
 from ow174.game.script.player_controller import ControllerVM, ControllerWorld
 from ow174.game.script.controller_filter import ControllerFilterInputs
 from ow174.game.script import assassin_movement, scene
@@ -66,7 +66,7 @@ _COMPONENT = frozenset((
     "entity", "frame_ms", "world", "rng", "frame", "now", "instances", "vars", "held", "button",
     "disabled", "seq", "next_id", "destroyed", "shots", "damage_reports", "health_reports", "motion_reports", "owner_dead", "input_suppressed", "fault", "_operation_depth",
     "_follow_depth", "_work_left", "strict", "code_states", "code_pending", "code_observers",
-    "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health",
+    "state_registries", "parameter_scopes", "startup_entity_values", "maximum_health", "driver_deferred",
 ))
 _INSTANCE = frozenset((
     "component", "id", "graph", "parent", "parent_state", "vars", "states", "queue", "ticking",
@@ -92,12 +92,14 @@ _SCRIPT_OPTIONAL = ('moira_birth', 'moira_neutral_window', 'charge_clock', 'pass
 _GRAPH = frozenset((
     "index", "header", "fields", "items", "containers", "nodes", "unknown_rids", "_by_pos", "_by_rid",
     "states", "entries", "remote_nodes", "sync_vars", "_owner", "_remote", "_presence",
+    "_message_nodes", "_button_conditions",
 ))
 _NODE = frozenset(("pos", "cls", "uid", "rid", "remote", "state", "client_only", "server_only", "fields"))
 _VAR = ("base", "key", "links", "partial", "resolving", "watchers")
 from ow174.game import reaper_shadow_actor
 
 _STATE_LAYOUTS = {
+    symmetra_sentry_ray.SentryRay: (("result", "outputs"), ()),
     reaper_shadow_actor.ShadowActor: (("actor_entity", "actor_point"), ()),
     nodes.BodyRecallTarget: (("result", "outputs", "ever_valid"), ()),
     nodes.BodyRecallMove: (("accepted", "destination"), ()),
@@ -303,6 +305,7 @@ class _Export:
         _containers(fields, ("held", "destroyed", "shots", "code_states", "code_pending", "code_observers"),
                     list, "component")
         _containers(fields, ("parameter_scopes", "startup_entity_values"), list, "component")
+        _containers(fields, ("driver_deferred",), list, "component")
         _containers(fields, ("damage_reports",), list, "component")
         _integer(fields["entity"], "component")
         self.component = component
@@ -469,6 +472,7 @@ class _Export:
         _containers(fields, ("header", "fields", "containers", "_by_pos", "_by_rid"), dict, "graph")
         _containers(fields, ("nodes", "unknown_rids", "states", "entries", "remote_nodes", "sync_vars",
                             "_owner", "_remote", "_presence"), list, "graph")
+        _containers(fields, ("_message_nodes", "_button_conditions"), tuple, "graph")
         index = _integer(fields["index"], "graph")
         if index in self.graphs and self.graphs[index] is not obj:
             raise BodyVMSnapshotError("distinct graph objects reuse a graph identity")
@@ -502,7 +506,8 @@ class _Export:
                             or self.node_refs.get(id(node), (None,))[0] != index
                             or getattr(node, attribute) != key):
                         raise BodyVMSnapshotError("graph lookup does not match node identity")
-            for name in ("states", "entries", "remote_nodes", "_owner", "_remote"):
+            for name in ("states", "entries", "remote_nodes", "_owner", "_remote",
+                         "_message_nodes", "_button_conditions"):
                 for node in fields[name]:
                     if node is not None and self.node_refs.get(id(node), (None,))[0] != index:
                         raise BodyVMSnapshotError("graph list refers to a foreign node")
@@ -529,7 +534,11 @@ class _Export:
                 if values["var"] is not None and values["scope"] == graph.INSTANCE:
                     expected_presence.append(item)
             for name, expected in (("_owner", expected_owner), ("_remote", expected_remote),
-                                   ("_presence", expected_presence)):
+                                   ("_presence", expected_presence),
+                                   ("_message_nodes", [node for node in fields["nodes"]
+                                                       if "m_gameMessage" in node.fields]),
+                                   ("_button_conditions", [node for node in fields["nodes"]
+                                                           if node.cls == "STU_7DEB522D"])):
                 if (len(fields[name]) != len(expected)
                         or any(a is not b for a, b in zip(fields[name], expected, strict=True))):
                     raise BodyVMSnapshotError("graph derived cache differs from its source sequence")

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn-primary-moving-target-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic identical world timeline with actual Torbjorn1683/2A66 primary and enemy right127 movement commands. Source packet delay must preserve physical-world recipient sampling.",
+  "input": {"distance": 5, "target_right": 127, "source_packet_sizes": [1, 32], "sample_frames": 160, "owner_epochs": ["ordinary", "separate9000"]},
+  "expected": {"damage": 70, "hit_notices": 1, "live_projectiles": 0, "equal_full_hit_payload_per_epoch": true, "equal_final_recipient_position": true},
+  "scope": "Only captured-clock delayed1683/2A66 primary sweeps. Preserve existing retained geometry and construct metadata; no live mover mutation or new damage producer.",
+  "limits": "Secondary pellets, molten globules, thrown turret, historical defenses/attachment, native spread/model/renderer acceptance remain separate. No collision extent or report window change."
+}

@@ -4238,6 +4238,18 @@ class Defer(State):
 
     def on_begin(self) -> None:
         priority = to_float(self.evaluate(_field(self, "m_priority"), watch=False))
+        if self.node.field('m_4BA4C058') == 1:
+            # D4595C -> CC6E00: driver queue, not mode0's namespace queue.
+            queue = self.instance.component.driver_deferred
+            queue.append((priority, self.now, self))
+            def order(item):
+                state = item[2]
+                namespace = ((state.instance.id + 0x8000) & 0xFFFF) - 0x8000
+                # D59DD0: ascending priority, descending signed namespace and
+                # unsigned node keys; the native driver then pops the tail.
+                return item[0], -namespace, -(state.node.pos & 0xFFFF)
+            queue.sort(key=order)
+            return
         self.instance.deferred.append((priority, self.counter, self))
         self.instance.deferred.sort(key=lambda item: item[0])
 
@@ -4249,6 +4261,8 @@ class Defer(State):
 
     def on_end(self, finished: bool) -> None:
         self.instance.deferred = [item for item in self.instance.deferred if item[2] is not self]
+        component = self.instance.component
+        component.driver_deferred[:] = [item for item in component.driver_deferred if item[2] is not self]
         self.instance.exit_subgraph(self.node, "m_8E484B2E")
 
 

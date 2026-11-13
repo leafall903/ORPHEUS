@@ -1,6 +1,6 @@
 """Owned D.Va mech creation and reconstructed input routing."""
 
-from ow174.game import bots, combat, deflection, dva, npc, pools
+from ow174.game import bots, combat, deflection, dva, npc, pools, world
 from ow174.game.commands import SECONDARY, Command
 from ow174.game.mover import REPEAT, Mover, defined_mover_data, mover_data, statescript_mods, statescript_flight, statescript_mover_data
 from ow174.game.script import expr, graph, nodes
@@ -57,8 +57,6 @@ def _publish_possession(pilot):
     if (client is None or not pilot.spawned or script is None
             or not script.create_arrived):
         return  # Initial creation/switch publishes it after the pilot create.
-    from ow174.game import world
-
     components = pilot.match._possession(pilot)
     update = world.EntityUpdate(
         pilot.entity, world.OP_UPDATE, lambda origin: world.update(origin, components),

@@ -26,6 +26,7 @@
     "filter_component": 26,
     "filter_bits": "caster team bits, identical for every viewer",
     "barrier_vm_source": "casting body, not controller",
+    "barrier_descriptor_factory_source": "same casting body for both25B4 and0096 before initialization",
     "projectile_definition": 490,
     "shot_source": "casting body",
     "activation": 1,

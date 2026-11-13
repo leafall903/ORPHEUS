@@ -5,6 +5,7 @@ import unittest
 
 import test_game_repeated_lifecycles as wire
 import test_server_journal as journal
+
 from ow174.game import barriers, world
 from ow174.game.script import expr
 from ow174.game.script.decode import ClientBody
@@ -20,7 +21,7 @@ class BarrierCarrierTests(unittest.TestCase):
         peer, = peers
         now, entity = 100.944, None
         decoded_body = ClientBody()
-        creates, pools = [], []
+        creates, pools, first_sources = [], [], {}
         for offset in range(65):
             now += .016
             peer.commands(player.body_script.frame + 1, 1,
@@ -51,6 +52,8 @@ class BarrierCarrierTests(unittest.TestCase):
                         pools.append(struct.unpack_from("<Iff", fields[51][0]))
                     if item.chunk is not None:
                         decoded_body.apply(item)
+                        for instance in decoded_body.instances:
+                            first_sources.setdefault(instance, decoded_body.sources.get(instance))
             peer.drain()
             peer.send(now=now)
 
@@ -61,4 +64,7 @@ class BarrierCarrierTests(unittest.TestCase):
         self.assertEqual(set(decoded_body.instances.values()), {0x25B4, 0x96})
         for instance in decoded_body.instances:
             self.assertEqual(decoded_body.vars[(instance, 0x1B)], expr.Entity(player.body))
+            self.assertEqual(decoded_body.sources.get(instance), player.body,
+                             "factory source must precede the later builtin27 value")
+            self.assertEqual(first_sources[instance], player.body)
         self.assertNotIn((0, 253), decoded_body.vars)  # the client derives health from component51

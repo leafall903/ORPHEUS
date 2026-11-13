@@ -261,7 +261,8 @@ FIELDS = {
     orisa_supercharger.Superchargers: _names("fight active buffs graphs geometry"),
     orisa_supercharger.DeviceWorld: _names("hero mode fight entity location"),
     script_graph.Graph: _names("index header fields items containers nodes unknown_rids _by_pos _by_rid "
-                               "states entries remote_nodes sync_vars _owner _remote _presence"),
+                               "states entries remote_nodes sync_vars _owner _remote _presence "
+                               "_message_nodes _button_conditions"),
     script_graph.Node: _names("pos cls uid rid remote state client_only server_only fields"),
 
     baptiste.BaptisteEffects: _names(
@@ -638,6 +639,16 @@ class _Graph:
         elif kind is random.Random:
             data = {"fields": self._fields(obj, frozenset(("gauss_next",))),
                     "rng_state": replay_values.encode(random.Random.getstate(obj))}
+        elif kind is script_graph.Graph:
+            for name, expected in (
+                ("_message_nodes", tuple(node for node in obj.nodes if "m_gameMessage" in node.fields)),
+                ("_button_conditions", tuple(node for node in obj.nodes if node.cls == "STU_7DEB522D")),
+            ):
+                stored = vars(obj).get(name)
+                if (type(stored) is not tuple or len(stored) != len(expected)
+                        or any(a is not b for a, b in zip(stored, expected, strict=True))):
+                    _fail("graph derived cache differs from its source sequence")
+            data = self._fields(obj, FIELDS[kind])
         elif kind in FIELDS:
             data = self._fields(obj, FIELDS[kind], OPTIONAL_FIELDS.get(kind, frozenset()))
         elif kind in DATACLASSES:

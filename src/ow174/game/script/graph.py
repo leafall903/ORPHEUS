@@ -157,6 +157,8 @@ class Node:
         return not self.client_only and not self.server_only
 
     def field(self, path: str):
+        if type(path) is str and path.isascii() and path.isidentifier():
+            return self.fields.get(path) if isinstance(self.fields, dict) else None
         return field_at(self.fields, path)
 
     def plugs(self) -> dict[str, dict]:
@@ -193,6 +195,10 @@ class Graph:
             node for node in self.remote_nodes if node is not None and node.is_state and node.is_networked
         ]
         self._presence = [entry for entry in self.sync_vars if entry.has_presence_bit]
+        # Like the compiled owner/remote lists, these index immutable graph
+        # structure only. Runtime flags, message values and active states stay live.
+        self._message_nodes = tuple(node for node in self.nodes if "m_gameMessage" in node.fields)
+        self._button_conditions = tuple(node for node in self.nodes if node.cls == "STU_7DEB522D")
 
     def __repr__(self) -> str:
         return f"<Graph {self.index:04X}: {len(self.nodes)} nodes>"
@@ -250,6 +256,12 @@ class Graph:
     def presence_vars(self) -> list[SyncVar]:
         """The m_syncVars entries that have a presence bit in a full frame's per-instance list, in order."""
         return self._presence
+
+    def message_nodes(self) -> tuple[Node, ...]:
+        return self._message_nodes
+
+    def logical_button_conditions(self) -> tuple[Node, ...]:
+        return self._button_conditions
 
     def owner_slot(self, state: int) -> int | None:
         """The bit position of an m_states index in an owner frame, None when it has none."""

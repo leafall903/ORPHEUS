@@ -43,6 +43,10 @@ class _Projection:
         self.stream = stream
         self.frame_ms = source.component.frame_ms
 
+    @property
+    def hero(self):
+        return self.source.component.world.hero
+
     def __getattr__(self, name):
         return getattr(self.source, name)
 

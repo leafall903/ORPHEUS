@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "provenance": {
+    "kind": "synthetic real-command/encrypted-ACK regression",
+    "build": "1.74.0.0.104319",
+    "rule": "The controlled mech owner codec reads its actual BodyWorld hero; BotScript intentionally has no player-driver hero attribute. A pending real return binding is stored without a module object in its builder closure.",
+    "limits": "Normal Q charging includes the existing reconstructed60s passive curve. No original-client camera, rendered identity, damage amount or original charging acceptance. No final state is injected."
+  },
+  "input": {
+    "neutral_frames": 100,
+    "commands": [[8, 1], [0, 1], [1, 16], [0, 1], [0, 1]]
+  },
+  "expected": {
+    "owner_delta_ack_error": false,
+    "hero_source": "actual mech component.world.hero",
+    "owner_and_source": "creating controller and pilot runtime body retained"
+  }
+}

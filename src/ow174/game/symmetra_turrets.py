@@ -123,6 +123,60 @@ class Turrets:
             return True
         return NotImplemented
 
+    def ray(self, state):
+        """Cast the original hardpoint segment only with supplied current poses.
+
+        Capsule/cover/barrier selection reuses the existing world-host policy;
+        native physics filter categories and prediction remain separate gates.
+        """
+        from ow174.game.combat import ray_capsule
+        from ow174.game.props import ModelPose
+        from ow174.game.script.runtime import RaycastResult
+
+        sentry = self._script_sentry(state.instance)
+        if sentry is None or state.node.pos != 9:
+            return NotImplemented
+        node = state.node
+        segment = node.field('m_F5732403') or {}
+        source = state.evaluate(node.field('m_56B8547E'), watch=False)
+        target = state.evaluate(segment.get('m_entity'), watch=False)
+        source_key = expr.guid_of((node.field('m_F745334E') or {}).get('m_hardPoint'))
+        target_key = expr.guid_of((segment.get('m_hardPoint') or {}).get('m_hardPoint'))
+        if (source != expr.Entity(sentry.bot.entity) or not isinstance(target, expr.Entity)
+                or target.id != sentry.target or segment.get('$') != 'STU_E5D454BA'
+                or source_key != 0x0DC0000000000006 or target_key != 0x0DC0000000000001
+                or any(node.field(field) is not None for field in
+                       ('m_3BC31C57', 'm_57DAE1B5', 'm_ignoreEntities', 'm_3B0AD973'))):
+            return NotImplemented
+        source_pose = self.combat.model_pose_for(source.id)
+        target_pose = self.combat.model_pose_for(target.id)
+        if self._script_sentry(state.instance) is not sentry or sentry.target != target.id:
+            return NotImplemented
+        if not isinstance(source_pose, ModelPose) or not isinstance(target_pose, ModelPose):
+            return NotImplemented
+        origin = source_pose.hardpoint_position(source_key)
+        endpoint = target_pose.hardpoint_position(target_key)
+        if origin is None or endpoint is None:
+            return NotImplemented
+        length = math.dist(origin, endpoint)
+        if not math.isfinite(length) or length <= expr.EPSILON:
+            return NotImplemented
+        direction = tuple((b - a) / length for a, b in zip(origin, endpoint, strict=True))
+        limit = self.combat.cover_ray(origin, direction, length, exclude=sentry.owner)
+        hit = limit is not None
+        limit = length if limit is None else limit
+        entity = None
+        barrier = self.combat.trace_barrier(sentry.owner, origin, direction, limit)
+        if barrier is not None:
+            limit = barrier[0]
+            hit = True
+        for candidate in _unit_targets(self.combat, sentry.owner):
+            distance = ray_capsule(origin, direction, *candidate.segment(), candidate.radius)
+            if distance is not None and distance <= limit:
+                limit, entity, hit = distance, expr.Entity(candidate.entity), True
+        point = expr.Vec3(*(a + b * limit for a, b in zip(origin, direction, strict=True)))
+        return RaycastResult(hit, entity, point, None)
+
     def _clear_slow(self, sentry, *, clear_target=True):
         if sentry.slow is not None:
             component, instance = sentry.slow

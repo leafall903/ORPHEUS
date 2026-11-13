@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-primary-moving-target-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic identical world/input timeline: actual19E5 primary and live enemy strafe commands. A32-frame source packet delay must not resample past collisions from current target poses.",
+  "input": {"distance": 5, "source_packet_sizes": [1, 32], "target_right": 127, "sample_frames": 96},
+  "expected": {"damage": 51, "hit_notices": 3, "live_projectiles": 0},
+  "limits": "Uses retained body history only for delayed physical Tri-Shot ticks. No native seed/pose or Sticky historical attachment acceptance."
+}

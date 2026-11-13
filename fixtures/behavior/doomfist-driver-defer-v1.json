@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "graph": "0580000000000D06",
+  "nodes": {"160": {"mode": 0, "queue": "instance"}, "166": {"mode": 1, "queue": "driver"}},
+  "mode1_phase": ["ordinary-instance-updates", "driver-to-namespace-transfer", "timed-consumer"],
+  "native_equal_priority_namespace_order": [2, 1],
+  "owner_mapping": "namespace+10 -> recipient receiver+0xD0 driver; D24C10/D0D9B0 decode its single +528 owner handle; one Component holds that owner's graph namespaces, not unrelated body Components",
+  "native_ranges": ["D45890", "D4595C", "CC6E00", "1B8CB06", "1B8CC60", "1B92990", "1B921F0", "D45B10"],
+  "scope": "Original zero-priority160/166 queue selection and outer-loop ordering. Callback-boundary tests do not qualify live161 filter, paired23530, recipient phase, normal16 routing or health14 completion. Existing mode0 and modes2/3 compatibility policies are retained."
+}

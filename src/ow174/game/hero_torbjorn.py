@@ -6,13 +6,24 @@ is reconciled separately rather than treated as complete from ancestry.
 
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ow174.game.script import expr
 
 HERO = 0x02E0000000000006
 TURRET = 0x04000000000028B7
 log = logging.getLogger("ow174.game")
+
+
+def rivet_targets(fight, rocket, targets):
+    """Use retained physical poses for a delayed, clocked primary rivet."""
+    if ((rocket.source_graph, rocket.definition) != (0x1683, 0x0400000000002A66)
+            or getattr(getattr(rocket.shooter, "hero", None), "guid", None) != HERO
+            or rocket.launch_tick is None or rocket.shot is None or rocket.shot.clock_origin is None
+            or fight.tick >= fight.match.tick):
+        return targets
+    return [replace(shown, construct=target.construct) for target in targets
+            if (shown := fight.seen(target, fight.tick)) is not None]
 
 
 def view_world_tick(script, command, quanta):

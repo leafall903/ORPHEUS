@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "case_id": "symmetra-sentry-current-ray-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "056c9e7ba7195d0ba5b78aa01a20e792af22f958",
+    "provenance": "Original1590/node9 source hardpoint6 and Stack536 target hardpoint1; native C83A70/8FE6F0 vector caches and C88530/C88700 output-link lifetime. Exact nonstrict consumer uses existing combat capsule/cover policy with declared synthetic current matrices."
+  },
+  "evidence": "synthetic-current-pose-inputs-and-real-collision",
+  "client_acceptance": "pending",
+  "input": {
+    "source_hardpoint": "0x0DC0000000000006",
+    "target_hardpoint": "0x0DC0000000000001",
+    "source_point": [0, 2.5, 0.5],
+    "target_point": [2, 2, 1],
+    "miss_endpoint": [2, 6, 1],
+    "obstructed_source": [0, 2.5, 4]
+  },
+  "expected": {
+    "damage_per_second": 40,
+    "extra_damage_producers": 0,
+    "vector_variables": [431, 432],
+    "unavailable_entity": null,
+    "completed_no_entity": "0x00000000",
+    "body_retirement_reacquisition_keeps_previous_target": false
+  },
+  "limits": "Foundation only. Default production Sentry/ordinary-target pose dispatch still returns None. No current pose/controller producer is invented. No reference bones/feet fallback or injected ray hit. The host publishes one cast point for both vectors, not original independent authority/prediction caches. Native filter/category fidelity, animation-tree blend/phase/aim, prediction, controller identity, source transforms and renderer/model/camera/color acceptance remain open."
+}

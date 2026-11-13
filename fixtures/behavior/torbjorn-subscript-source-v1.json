@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn.subscript-parent-source.v1",
+  "target_build": 104319,
+  "source": {
+    "formal_base": "456837f6",
+    "shared_dependency": "32f1966c5d47fb3e62cd949dcd67228f0f2e2bae",
+    "native": "37D754C8 slot1B8 D53D00 passes parent source through facade90/98 before child initialization"
+  },
+  "evidence": "synthetic state/source contract using actual declared Torbjorn command path",
+  "client_acceptance": "pending; source/cache agreement does not prove native weapon models or colors",
+  "input": {
+    "hero": 207165582859042822,
+    "initial": "fresh Torbjorn body, victim at1.5m",
+    "commands": [
+      "primary one command then25 neutral",
+      "action2 then45 neutral",
+      "primary held21 commands then neutral",
+      "action1 then45 neutral",
+      "Overload button16 one command"
+    ]
+  },
+  "expected": {
+    "weapon_graphs": [
+      5763,
+      5772,
+      5763
+    ],
+    "source_before_child_init": "parent instigator for actual004B/01CF descendants; equals body here",
+    "builtin001B": "typed Entity(body)",
+    "descriptor_source": null,
+    "victim_health_after_rivet": 130,
+    "victim_health_after_hammer": 75,
+    "owner_HIT_count": 2,
+    "weapon_roots": "1683/168C already use body source; remain roots with unchanged cosmetic activation",
+    "overload": "1721 remains body root; st3 active and temporary armour100",
+    "child_scope": "actual004B/01CF presentation descendants including01CF->0E8F/0D24; weapon/ability roots unchanged"
+  },
+  "scope": "Torb-only acceptance child; no duplicate shared implementation or inferred Pet/source descriptor"
+}

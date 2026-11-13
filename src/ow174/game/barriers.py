@@ -683,7 +683,7 @@ def create(world, state):
     #011A's actual initial script, recovered from the external entity XML.
     if definition is not None:
         initial = component.create(definition, init=False)
-        initial.set_source_entity(owner.body)
+        initial.set_source_entity(owner.body, publish_source=True)
         initial.init()
         component.run_now()
     return entity
@@ -773,9 +773,9 @@ def play_script(world, instance, node):
     queue.submit(request)
     if queue.pending:
         raise ValueError("ready barrier call left pending work")
-    if signature == (MEI, 0x05FE, 22):
-        # 0623's client-local color/attachment consumers need the original
-        # allocation source before init, not just the later var27 update.
+    if signature in ((MEI, 0x05FE, 22), (REINHARDT, 0x95, 6)):
+        # The original client factory needs this source before initialization,
+        # independently of its later typed builtin27 update.
         child = next((i for i in component.instances.values() if i.graph is definition), None)
         if child is not None:
             child.set_source_entity(child.source_entity(), publish_source=True)

@@ -145,6 +145,7 @@ class EntityAffiliationTests(unittest.TestCase):
             self.assertEqual(set(models[index].instances.values()), {0x25B4, 0x96})
             for instance in models[index].instances:
                 self.assertEqual(models[index].vars[(instance, 0x1B)], expr.Entity(source_body))
+                self.assertEqual(models[index].sources.get(instance), source_body)
             self.assertEqual(len(shots[index]), 1)
             entity, launch = shots[index][0]
             self.assertEqual(entity, source_body)

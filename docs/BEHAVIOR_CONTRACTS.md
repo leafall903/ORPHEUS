@@ -565,3 +565,30 @@ pitch regression. Twenty unique code/test/fixture postimages match the independe
 six-package composition. Exact latest twenty-hero performance is separate, with
 calling-thread CPU only diagnostic and the original16ms wall budget unchanged.
 No running35 change, client startup or Halloween/native acceptance is included.
+
+## Shared VM delivery and focused hero corrections (batch47)
+
+Eight reviewed original packages are composed in serial order, with exact
+non-Markdown postimages independently compared to the root composition. The
+additional integration seam registers only the two derived Graph tuples in
+the enclosing server snapshot, requires source-node identity/order, and keeps
+unknown fields rejected. Initial composed snapshot failures remain recorded.
+
+Echo and Torbjorn use existing retained recipient history only for exact qualified
+projectiles and delayed physical launches. Preserve original Shot records, clocks,
+trajectory, damage and independent delivery. Reinhardt publishes the original
+barrier source before Entry; DVa preserves actual mech identity and storable return
+closures. Doom mode1 Defer uses a distinct driver queue and native namespace order;
+mode0 remains compatible. Native normal16/health14 and component64 are still open.
+VM indexes contain structure only: selectors, state, flags and messages remain live.
+
+Symmetra current-ray behavior is CONDITIONAL on an injected current pose service.
+Production's default provider remains unavailable. Original40DPS remains sole
+damage authority. Unavailable contact clears result/535 to None and2413False;
+completed no-entity uses Entity0. A full injected-ModelPose server capture remains
+REJECTED; the default-provider capture passes. Do not claim a production pose
+producer, complete animation path, native presentation or full hero acceptance.
+
+All original native color/model/FX, health bar, hit UI, idle/hit animation and audio
+items retain their existing scope. Latest20-hero16ms acceptance is separate from
+functional regressions. No running-server or client acceptance is implied here.

@@ -1000,6 +1000,11 @@ class BotWorld(runtime.World):
             value = self.match.combat._npc_melee(state, health=True)
         return assassin.modify_health(self, state, elapsed_ms) if value is NotImplemented else value
 
+    def tracked_ray(self, state):
+        if self.match is not None and state.instance.graph.index == 0x1590:
+            return self.match.combat.sentries.ray(state)
+        return super().tracked_ray(state)
+
     def end_health(self, state):
         from ow174.game import assassin
 

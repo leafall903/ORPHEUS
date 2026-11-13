@@ -7255,7 +7255,11 @@ class Combat:
                       and source_graph in (0x1683, 0x16C5, 0x16DA)):
                     from ow174.game.sombra_replay import world_frame
 
-                    projectile_tick = world_frame(shooter.body_script, shot_frame, round(TICK * 1000))
+                    if (source_graph == 0x1683 and definition == 0x0400000000002A66
+                            and shot is not None and shot.clock_origin is not None):
+                        projectile_tick = projectiles.owner_to_world(shot.clock_origin, shot_frame)
+                    else:
+                        projectile_tick = world_frame(shooter.body_script, shot_frame, round(TICK * 1000))
                 elif (shooter.hero.guid == 0x02E000000000013B
                       and state.instance.graph.index in (0x0B94, 0x0BDD, 0x0B97)):
                     birth = getattr(shooter.body_script, "ana_birth", None)
@@ -8453,6 +8457,10 @@ class Combat:
         candidates = (() if rocket.mine is not None else self._targets() if biotic else
                       self._shot_targets(rocket.shooter, rocket.direct, team=team))
         candidates = pharah.primary_targets(self, rocket, candidates)
+        from ow174.game import echo_projectile_history
+
+        candidates = echo_projectile_history.targets(self, rocket, candidates)
+        candidates = hero_torbjorn.rivet_targets(self, rocket, candidates)
         best = None
         assisted_contact = (rocket.definition == 0x0400000000001000
                             or rocket.source_graph in (0x23, 0x7B, 0x2B))

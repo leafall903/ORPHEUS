@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceParent": "0c186f2ece816c0600672f3bfc46be787892090f",
+  "scope": "Derived graph structure indexes and equivalent flat field access",
+  "provenance": "Synthetic graph fields/messages and existing real authored button, voice and directed-callout scenarios; source46 separately marked profiler",
+  "contracts": [
+    "Only ASCII single-segment identifier paths use direct field lookup; nested, array and non-ASCII paths keep the existing parser",
+    "Graph constructor indexes only structural message-field presence and logical-button condition class, in original node order",
+    "Message selector values, client-only flags, active states and existing inactive-state lookup allocation remain live",
+    "Both derived tuples contain exact original same-graph Node identities in source order",
+    "Strict export rejects unknown fields and altered/foreign derived indexes; no arbitrary schema expansion",
+    "No new Component/Instance state, skipped input, altered callback order or changed work budget"
+  ],
+  "checks": {
+    "newFieldMessageAndStorageMethods": 3,
+    "retainedButtonMethods": 5,
+    "retainedNestedFieldAndCalloutMethods": 3,
+    "candidatePerformance": "Separately recorded by exact source HEAD",
+    "sixteenMsAccepted": false,
+    "nativeAccepted": false
+  }
+}

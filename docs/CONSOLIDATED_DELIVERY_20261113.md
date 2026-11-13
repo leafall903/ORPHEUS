@@ -425,3 +425,17 @@ Compose six focused original packages on formal45 in independently reviewed orde
 - `subscript-parent-typed-source-before-init`: original focused owner commit(s) `32f1966c5d47fb3e62cd949dcd67228f0f2e2bae`.
 - `widowmaker-qualified-body-pitch-query`: original focused owner commit(s) `274a44da69654f5f734586f2b836e4493780befd`.
 - `echo-original-live-launch-late-viewers`: original focused owner commit(s) `1301ee66a258511cc425a76eeeb41326b9c95c11`.
+
+## Compose focused hero delivery and VM driver metadata corrections
+
+Compose eight independently reviewed original-owner increments and one integration seam on formal46. Original30 code/test/fixture postimages match root serial composition; enclosing server snapshot additionally admits and validates only the two derived Graph tuples. Retain the initial25-method RED (two snapshot errors), the fixture correction and 25 successful original methods plus the separately corrected1-method fixture PASS (26 distinct methods) with zero failures/errors/skips/ERROR logs. Echo242 and Torbjorn eadb preserve physical recipient history; Torbjorn83 is test-only source coverage. Reinhardt e8 strengthens three existing methods; DVa72 fixes mech identity and storable return closure. Doom29 models native driver Defer mode1, retaining mode0; VM1f9 indexes structure without caching live values. Sym056+8f remains conditional on an injected current pose: default provider unavailable, injected-ModelPose full-server capture rejected, no production animation producer claim. Count17 new distinct methods including one integration seam, one new maintained mode0 compatibility method; do not count strengthened Reinhardt or retained button checks as new. Current frozen35 runtime has not been changed by this commit. Native visuals/audio/colors and complete hero behavior remain open; final consolidated cut requires its own Halloween acceptance and exact20-hero16ms check.
+
+- `torbjorn-nested-presentation-source`: original focused owner commit(s) `83a9cd93be3184f1cc1f5b012f086b4c10cac99a`.
+- `echo-moving-target-history`: original focused owner commit(s) `242bafc1d3d075fe605ef90bd03248fdf773a49c`.
+- `symmetra-conditional-current-ray`: original focused owner commit(s) `8f54587ffe7264435f5d107555f1d5b3595d9c50`.
+- `reinhardt-barrier-initial-descriptor`: original focused owner commit(s) `e8d67493cbb1abc68cdf2ee5040850c3d2841df4`.
+- `dva-owner-identity-return-closure`: original focused owner commit(s) `72d530f8c5e4bcc73383adac047cb4525db8fd89`.
+- `doomfist-native-driver-defer`: original focused owner commit(s) `29a29f03a0b3395c872e168b1fbd9a6fb85e451e`.
+- `vm-structural-metadata-index`: original focused owner commit(s) `1f9cc3e4d66a12cfedf7a2811bd1bf19c0bc9d85`.
+- `torbjorn-moving-target-after-echo`: original focused owner commit(s) `eadb533b4e1cb608ffebf16d43e7bdbf215dbb9c`.
+- `full-server-graph-metadata-seam`: original focused owner commit(s) `0042-integration-seam-after-1f9cc3e4`.
