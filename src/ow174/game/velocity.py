@@ -107,10 +107,10 @@ SET2 instead raises the requested projection using this consumption velocity.
             vertical = f32(adjusted * jump_speed) if index == 3 else adjusted
             value = value[0], vertical, value[2]
     vectors = [change for change in active if change.index == -1]
-    if any(change.mode == 0 for change in vectors):
-        # Native C31BD0/C31CD8/C31F57 consume delta, world SET, then
-        # projection in separate passes. Preserve within-pass queue ordering.
-        vectors.sort(key=lambda change: {1: 0, 0: 1, 4: 2}[change.mode])
+    # Native C31BD0/C31CD8/C31F57 always use separate delta, world SET,
+    # projection passes, including when the world SET pass has no records.
+    # Stable sorting preserves the native queue's priority/key order per pass.
+    vectors.sort(key=lambda change: {1: 0, 0: 1, 4: 2}[change.mode])
     for change in vectors:
         if change.index == -1:
             if change.mode == 4:

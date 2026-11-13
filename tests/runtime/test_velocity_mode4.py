@@ -14,6 +14,29 @@ from ow174.game.script import expr
 
 
 class ProjectedVelocityTests(unittest.TestCase):
+    def test_native_no0_pass_order_consumes_delta_before_lower_priority_projection(self):
+        spec = json.loads((Path(__file__).resolve().parents[2] /
+                           'fixtures/behavior/velocity-no0-native-passes-v1.json').read_text())
+        queue = []
+        projection, delta = spec['queue']
+        velocity.enqueue(queue, replace(velocity.projected(spec['frame'], projection['requested']),
+                                       key=projection['key'], priority=projection['priority']))
+        velocity.enqueue(queue, replace(velocity.vector(spec['frame'], ADD, delta['delta'], spec['current']),
+                                       key=delta['key'], priority=delta['priority']))
+        self.assertEqual([row.mode for row in queue], [4, 1])
+        result = velocity.consume(tuple(spec['current']), 6, queue, spec['frame'])
+        for actual, expected in zip(result, spec['native_result'], strict=True):
+            self.assertAlmostEqual(actual, expected, delta=2e-5)
+        actor = movement_fixture.LucioVelocityTests().mover()
+        actor.data = replace(actor.data, gravity_scale=0.)
+        actor.velocity_changes[:] = queue
+        actor.velocity = tuple(spec['current'])
+        actor.step(Command(1), .016)
+        actor.step(Command(spec['frame']), .016)
+        for actual, expected in zip(actor.velocity, spec['native_result'], strict=True):
+            self.assertAlmostEqual(actual, expected, delta=2e-5)
+        self.assertFalse(actor.velocity_changes)
+
     def test_eight_original_native_arithmetic_results_and_squared_tiny_guard(self):
         oracle = json.loads((Path(__file__).resolve().parents[2] /
                              'fixtures/behavior/velocity-mode4-native-arithmetic-v1.json').read_text())

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "build": 104319,
+  "current": [0, 0, 0],
+  "frame": 2,
+  "queue": [
+    {"internal_mode": 4, "priority": -10, "requested": [0, 0, 10], "key": 1},
+    {"internal_mode": 1, "priority": 10, "delta": [0, 0, 5], "key": 2}
+  ],
+  "native_result": [0, 0, 9.999999046325684],
+  "incorrect_single_priority_pass": [0, 0, 15],
+  "native_path": ["C2ED10", "C31B35-C32074"],
+  "native_writes": [[0, 0, 5], [0, 0, 9.999999046325684]],
+  "boundary": "Native queue insertion and contiguous vector consumer loops execute. Internal typed rows, storage, eligible role and live velocity getters/setter are adapters; no scalar/mode3/body discovery/native client qualification."
+}

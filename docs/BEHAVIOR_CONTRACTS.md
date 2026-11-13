@@ -347,3 +347,15 @@ existing directional behavior. No global enumeration remapping is applied to
 other heroes. Original source16, health completion, NPC world SET and the full
 helper remain unqualified. The original native probe adapts typed child values,
 backend getters and sinks; it is not live actor discovery or client acceptance.
+
+## Native vector consumption pass order
+
+`fixtures/behavior/velocity-no0-native-passes-v1.json` discriminates separate
+delta, world SET and projection passes even when no world SET is present. A
+native queue with projectionZ10 at priority-10 before deltaZ5 at priority10
+writesZ5 then approximately10 from rest; a single priority pass incorrectly
+produces15. The shared consumer and actual mover follow the native order while
+preserving priority/key ordering within each pass. Internal4 mathematics and
+the scalar prefix remain unchanged. Typed queue rows, storage, eligible role
+and native getters/setter are explicit probe adapters. Mode3, scalar/vector
+interaction, body discovery and original-client acceptance remain unqualified.
