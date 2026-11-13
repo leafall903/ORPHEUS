@@ -57,27 +57,6 @@ def advance(fight, rocket):
 
 def observe_live(fight, shot):
     """Register a newly joined viewer against the same still-live Fire Strike."""
-    owner = shot.player
-    script = owner.body_script
-    if (owner.body != shot.body or script is None or script.retired or not shot.observers
-            or not shot.authoritative or shot.definition != 0x04000000000001EA):
+    if not shot.authoritative or shot.definition != 0x04000000000001EA:
         return
-    instance = script.component.instances.get(shot.instance)
-    state = (instance.states.get(shot.state)
-             if instance is not None and instance.graph.index == 0x00E2 else None)
-    if state is None:
-        return
-    viewers = [viewer for viewer in fight.match.players if viewer.client is not None and viewer.spawned
-               and not viewer.gone and not any(
-                   delivery.viewer is viewer and delivery.client is viewer.client
-                   for delivery in shot.observers)]
-    if not viewers:
-        return
-    original = shot.observers[0].record
-    deadline = min(delivery.deadline for delivery in shot.observers)
-    if fight.tick >= deadline:
-        return
-    fight.projectiles._show_others(
-        shot, state, original.origin, original.direction, None,
-        viewers=viewers, original_record=original, deadline=deadline,
-    )
+    fight.projectiles.observe_live(shot, 0x00E2)

@@ -499,3 +499,11 @@ Restore four reviewed original-owner packages on actual53: Zen45855c9a, Hanzo9ea
 - `hanzo-retained-impact-current53`: original focused owner commit(s) `9eaff19173911624947b414018690bd022826d39`.
 - `ana-retained-rifle-impact-current53`: original focused owner commit(s) `8641bfa225bb23e309aaaa3c983fc3202e68123f`.
 - `winston-authored-jump-clamp-current53`: original focused owner commit(s) `1422474ad82f616c5e45248d742887d9a279c3d5`.
+
+## Restore omitted strict volley and late-flight observer fixes
+
+Restore three omitted owner packages: Bastion51954a87(original3cc9), Ana c7f3d01e(original9e00), Hanzo2efed0a6(originala9f681), serially on54. Retain exact player volley activations through ACK backlog with explicit Watch.volleys strict schema; qualify actual getter-free full-server cycles, cache identities and release. Extract original live-flight registration into one shared method and retain Ana captured epoch/Fire Strike guards. Capture qualified solo Hanzo launch and original deadline in two optional strict registered Shot fields, preserving Echo metadata and current54 Hanzo/Ana history functions. Thirteen planned non-Markdown paths use focused original deltas and reverse preservation; no whole-module copy. Eleven composed selected methods cover9 first-included checks and2 existing Rein/Zen shared-receiver checks; count325selected (304new,21maintained), not whole-hero completion. Strict stored subgraph is not server restore; metadata reflection guards are not native deflection. Empty/old/superseded observer and broader Physics/status/native scopes remain OPEN. No20/profile/native or49 runtime change;55 performance UNMEASURED and last52 16msRED retained. Zarya side-effect candidate stays pending independently.
+
+- `bastion-volley-ack-strict-schema53`: original focused owner commit(s) `51954a87122a96adf5091f4e97dc9f64d9cd11e3`.
+- `ana-original-live-flight-admission53`: original focused owner commit(s) `c7f3d01e0a5c5866191f9d886a1f9ba9127eedc7`.
+- `hanzo-original-solo-arrow-admission53`: original focused owner commit(s) `2efed0a6fc66fa2b3a96850be5f6a05348a503db`.

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_id": "ana-live-flight-viewer-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "456837f6e344b6e5c24cf1b29c3c9041a318fae7",
+    "evidence": "Synthetic immediate-ACK connection joins after actual grenade or Sleep Dart release; existing Fire Strike live-flight delivery policy reused"
+  },
+  "input": {"buttons": [16, 8], "target_distance": 30},
+  "expected": {"late_deliveries": 1, "target_health": {"16": 140, "8": 195}, "create_destroy_counts": [1, 1]},
+  "client_acceptance": "pending; model delivery does not establish native rendering or full effect replication"
+}

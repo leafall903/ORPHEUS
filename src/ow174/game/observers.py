@@ -19,6 +19,7 @@ shows no weapon.
 """
 
 import logging
+from dataclasses import replace
 from functools import lru_cache
 
 from ow174.game.script import expr, graph, spray_placement
@@ -303,6 +304,7 @@ class Watch:
         self.stream = BodyStream(body)
         self.sent: tuple | None = None  # _activity of the last snapshot sent
         self.next_lazy = 0  # the tick from which a values-only delta may go
+        self.volleys: list = []  # exact projectile activations awaiting their launch ACK
 
 
 class _CreateArrived:
@@ -347,6 +349,20 @@ class Observers:
         watch = self.watches.get((viewer.slot, body))
         return watch.stream if watch is not None and body in viewer.seen else None
 
+    def retain_volley(self, delivery, state) -> None:
+        watch = self.watches.get((delivery.viewer.slot, delivery.launch.entity))
+        if watch is None or watch.stream is not delivery.stream:
+            return
+        if not any(index == state.index for index, *_ in _remote_snapshot_states(state.instance.graph)):
+            return
+        delivery.activation = state.node.cls, state.active, tuple(sorted(state.payload().items()))
+        watch.volleys.append(delivery)
+
+    def release_volley(self, delivery) -> None:
+        watch = self.watches.get((delivery.viewer.slot, delivery.launch.entity))
+        if watch is not None and watch.stream is delivery.stream:
+            watch.volleys.remove(delivery)
+
     def update(self) -> None:
         match = self.match
         snaps: dict[int, Snapshot] = {}  # body -> its snapshot this tick, shared by every viewer
@@ -388,6 +404,20 @@ class Observers:
         if self.match.combat.is_dead(other):
             allowed = self.match.combat.kill_feed_allowed(viewer, other.body)
             snap = stream.kill_feed_snapshot(snap, allowed=allowed)
+        if watch.volleys:
+            delivery = watch.volleys[0]
+            if tick < delivery.deadline and delivery.record.instance in snap.instances:
+                # Install one exact firing state until its launch arrives. Other
+                # live state still advances; removed instances are never recreated.
+                states = dict(snap.states)
+                for later in watch.volleys:
+                    key = later.volley_key
+                    if stream.base is not None and key in stream.base.states:
+                        states[key] = stream.base.states[key]
+                    else:
+                        states.pop(key, None)
+                states[delivery.volley_key] = delivery.activation
+                snap = replace(snap, states=states)
         if not stream.last:
             update = stream.full(full_frame(script, snap), snap)
             viewer.client.queue_entities([update])

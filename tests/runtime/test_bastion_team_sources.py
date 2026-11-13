@@ -20,8 +20,14 @@ from tests.runtime.test_game_repeated_lifecycles import wire_frame
 
 class BastionTeamSourceTests(unittest.TestCase):
     def test_actual_tank_source_team_and_launch_survive_observer_introduction(self):
+        self._tank_sources('bastion-team-source-v1.json')
+
+    def test_actual_tank_retains_both_volleys_across_delayed_observer_ack(self):
+        self._tank_sources('bastion-delayed-volley-v1.json')
+
+    def _tank_sources(self, fixture):
         contract = json.loads((Path(__file__).resolve().parents[2] / 'fixtures/behavior'
-                               / 'bastion-team-source-v1.json').read_text(encoding='utf-8'))
+                               / fixture).read_text(encoding='utf-8'))
         run = Run(names=('Bastion', 'Ally', 'Enemy', 'DelayedAlly'))
         caster, ally, enemy, delayed = run.players
         match = run.match
@@ -54,8 +60,10 @@ class BastionTeamSourceTests(unittest.TestCase):
             actor.client = client
             client.open = True
             peers.append((client, LinkCipher(outgoing, incoming), ReceiveWindow(), [], []))
-        shot = None
-        for step in range(150):
+        fire_steps = contract['input'].get('fire_steps', [15])
+        delayed_ack = contract['input'].get('delayed_ack_step', 0)
+        shots = []
+        for step in range(220 if len(fire_steps) > 1 else 150):
             for client, _, _, _, _ in peers:
                 actor = client.player
                 if step == (5 if actor is delayed else 0):
@@ -67,21 +75,35 @@ class BastionTeamSourceTests(unittest.TestCase):
                             if actor is caster else match.remote_body_create(actor, caster))
                     client._track_body_create(source_body)
                     client.queue_entities([controller, body])
-            run.step({caster: (0, 0, 1 if step == 15 else 0)})
-            if step == 15:
-                rocket, = [rocket for rocket in match.combat.rockets if rocket.shooter is caster]
-                shot = rocket.shot
+            run.step({caster: (0, 0, 1 if step in fire_steps else 0)})
+            if step in fire_steps:
+                rocket = max((rocket for rocket in match.combat.rockets if rocket.shooter is caster),
+                             key=lambda rocket: rocket.shot.frame)
+                shots.append(rocket.shot)
             for client, cipher, window, wire, records in peers:
                 now = run.frame * combat.TICK
                 client.send_frame(run.frame, now)
                 packet, _, _, _, _, _ = decoded(self, cipher, server.sock.sent[-1][0])
                 wire.extend(wire_frame(packet)[1])
-                records.extend(client.in_flight.get(packet.seq, (None, []))[1])
+                sent = client.in_flight.get(packet.seq, (None, []))[1]
+                records.extend(sent)
+                for record in sent:
+                    if record.entity != source_body or record.ch2 is None or client.player is caster:
+                        continue
+                    reader = BitReader(record.ch2.getvalue())
+                    self.assertEqual((reader.bit(), reader.bit()), (1, 1))
+                    reader.var_b()
+                    launch = read_shot(reader)
+                    stream = match.combat.observers.projectile_stream(client.player, source_body, npc=False)
+                    installed = stream.base.states[(launch['instance'], launch['state'])]
+                    self.assertEqual(dict(installed[2])['counter'], launch['activation'])
                 self.assertTrue(window.accept(packet.seq))
                 ack = Packet(client.conn, KIND_CONTROL, step, window.expected, window.bits, ACK)
-                server._datagram(cipher.seal(ack), client.address, now)
-        self.assertIsNotNone(shot)
-        self.assertEqual((shot.body, shot.filter_bits), (source_body, source_team))
+                if client.player is not delayed or step >= delayed_ack:
+                    server._datagram(cipher.seal(ack), client.address, now)
+        self.assertEqual(len(shots), len(fire_steps))
+        for shot in shots:
+            self.assertEqual((shot.body, shot.filter_bits), (source_body, source_team))
         for client, _, _, wire, records in peers:
             body_creates = [fields for update, fields in wire
                             if update.entity == source_body and update.op == world.OP_CREATE]
@@ -95,15 +117,18 @@ class BastionTeamSourceTests(unittest.TestCase):
                 continue  # The owner launches under its native prediction lease.
             launches = [record for record in records
                         if record.entity == source_body and record.ch2 is not None]
-            self.assertEqual(len(launches), 1)
-            reader = BitReader(launches[0].ch2.getvalue())
-            self.assertEqual((reader.bit(), reader.bit(), reader.var_b()), (1, 1, shot.frame))
-            launch = read_shot(reader)
-            self.assertEqual((launch['instance'], launch['state'], launch['activation']),
-                             (shot.instance, shot.state, shot.activation[0]))
-            self.assertTrue(any(update.entity in launch['ids'] and update.op == world.OP_CREATE
-                                for update, _ in wire))
+            self.assertEqual(len(launches), len(shots), client.player.name)
+            for record, shot in zip(launches, shots, strict=True):
+                reader = BitReader(record.ch2.getvalue())
+                self.assertEqual((reader.bit(), reader.bit(), reader.var_b()), (1, 1, shot.frame))
+                launch = read_shot(reader)
+                self.assertEqual((launch['instance'], launch['state'], launch['activation']),
+                                 (shot.instance, shot.state, shot.activation[0]))
+                self.assertTrue(any(update.entity in launch['ids'] and update.op == world.OP_CREATE
+                                    for update, _ in wire))
         self.assertNotEqual(enemy.team_bit, source_team)
         self.assertEqual(ally.team_bit, source_team)
-        self.assertNotIn(shot, match.combat.projectiles.shots)
+        for shot in shots:
+            self.assertNotIn(shot, match.combat.projectiles.shots)
+        self.assertTrue(all(not watch.volleys for watch in match.combat.observers.watches.values()))
         self.assertFalse(match.combat.projectiles.observed)

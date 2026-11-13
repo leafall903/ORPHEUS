@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "case_id": "bastion-delayed-volley-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "456837f6e344b6e5c24cf1b29c3c9041a318fae7",
+    "paths": [
+      "src/ow174/game/match.py",
+      "src/ow174/game/projectiles.py",
+      "src/ow174/game/observers.py"
+    ],
+    "provenance": "Synthetic real Tank commands and encrypted Client/ACK path. DelayedAlly body introduced at step5; ACK withheld through step84, across actual shots at15 and80. Parent formal44 delivers only one of two launches to DelayedAlly."
+  },
+  "evidence": "synthetic-production-protocol-source-team",
+  "client_acceptance": "pending; neither native effect selector nor visible colors are accepted",
+  "input": {
+    "source_hero": "02E0000000000015",
+    "source_projectile": "04000000000003CE",
+    "viewer_teams": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "source_body_introduction_steps": [
+      0,
+      0,
+      0,
+      5
+    ],
+    "packet_loss": [],
+    "fire_steps": [
+      15,
+      80
+    ],
+    "delayed_ack_step": 85
+  },
+  "expected": {
+    "source_team_filter": 8388608,
+    "enemy_team_filter": 16777216,
+    "all_viewers_receive_source_body_team": true,
+    "observer_launch_entity": "captured shooter body",
+    "observer_launch_labels": "original shooter instance/state/activation/frame",
+    "projectiles_retire": true,
+    "fixed_blue_or_red_override": false,
+    "ordered_launches_per_observer": 2,
+    "retained_activations_retire": true
+  },
+  "limits": [
+    "This tests a registered source lifetime with delayed ACK; new mid-flight observer enrollment is not established.",
+    "Do not infer component72/26 additions for03CE from Soldier Field or Mei ice.",
+    "Original effect parameters, native inherited affiliation and visible color remain a separate native-consumer requirement."
+  ],
+  "strict_capture": {
+    "base_revision": "95ccb0f0e416781f8545184c2325debb7c4d3bba",
+    "source": "actual connected RecordingServerSession Tank source; body already introduced and acknowledged before backlog",
+    "fire_steps": [
+      15,
+      80
+    ],
+    "delayed_ack_step": 85,
+    "capture_step": 80,
+    "expected": {
+      "registered_watch_field": "volleys",
+      "pending_activations": 2,
+      "preserve_alias_cycle": "Watch.volleys -> delivery -> viewer -> match -> combat -> observers.watches -> Watch; delivery.stream is Watch.stream",
+      "getter_free_full_export": true,
+      "activity_cache": "distinct replaced Snapshot identities independently classified",
+      "ack_releases_activation": true,
+      "unknown_watch_fields_rejected": true
+    },
+    "scope": "stored graph export only; not a restorable checkpoint or native rendering acceptance"
+  }
+}

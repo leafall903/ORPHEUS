@@ -789,3 +789,40 @@ is introduced in54. Latest52 timing remains16ms RED;53/54 are unmeasured.
 Running49 native Halloween evidence remains limited to scene/opening and is not
 inherited. Bastion volley schema/lifetime work and additional Hanzo/Ana late-flight
 packages remain pending separately; a latest child is not an entire lane merge.
+
+## Restore strict volley storage and late-flight owner packages (batch55)
+
+Bastion51954 adapts original3cc9. Player Watch retains exact queued activation
+until original launch ACK/deadline/lifetime cleanup, without creating another VM
+or physical projectile. Register the new Watch.volleys field explicitly in the
+strict full-server exporter. Actual two-shot encrypted backlog capture forbids
+getters/payload/VM/state/mover serialization hooks and sends; it verifies ordered
+delivery references, viewer/client/stream cycles, queue-order digest sensitivity,
+unknown-field rejection, per-effective-snapshot activity cache classification,
+two launch ACKs, released activation/list and successful post-release export.
+
+Anac7f3 adapts original9e00: extract original caller-qualified live-flight viewer
+registration into Projectiles.observe_live, preserve Fire Strike guards, and add
+only the captured-epoch Ana call after actual accepted physical advancement.
+Reuse original immutable event/deadline/alias and shared ACK/retirement. Keep54
+Ana.targets intact. Existing event required; empty initial observers remain OPEN.
+Owner encrypted upward-aim probe demonstrates one natural live-flight late copy
+and strict full capture without changing projectile physical parameters.
+
+Hanzo2efed adapts originala9f681: retain admitted solo-cast event before viewers,
+then enroll qualified matching live source activations before original deadline.
+Two optional stored Shot fields observer_record/observer_deadline use the already
+explicitly registered strict dataclass mechanism; echo_launch stays intact.
+Strict stored Shot subgraph checks shared frozen-record identity, deadline/digest
+sensitivity, equal-record alias splitting and unknown-field rejection. This is
+not a restored full server. Actual Genji reflection/native acceptance is not
+inferred from a reflected metadata guard fixture. Keep54 targets_at_impact intact.
+
+Three owner packages compose serially: Bastion then Ana then Hanzo. Nine methods
+are confirmed absent from formal54 and newly included; two related existing
+Rein/Zen late-viewer methods are compatibility checks. Count325 selected =304new
++21maintained. Existing schema remains strict: no unknown-field fallback.
+No new20-hero/profile/native run;55 timing is unmeasured, last52 remains16ms RED.
+Running49 is unchanged and its limited Halloween evidence is not inherited.
+Superseded/multi-activation coverage, native render/colors, complete force/status
+policies, Zarya side-effect qualification and full hero goals remain OPEN.

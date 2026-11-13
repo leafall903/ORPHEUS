@@ -37,6 +37,8 @@ def advance(fight, rocket):
     if (rocket.source_graph, rocket.definition) not in FLIGHTS or rocket.last_tick is None:
         return False
     projectile_clock.advance_accepted(fight, rocket)
+    if rocket in fight.rockets:
+        observe_live(fight, rocket)
     return True
 
 
@@ -47,3 +49,44 @@ def confirmation_components(shot):
     if shot.filter_bits is None:
         return {}  # no declared player filter snapshot; do not invent NPC affiliation
     return {72: [shot.body], 26: [shot.filter_bits]}
+
+
+def remember_launch(shot, state, origin, direction, deadline):
+    """Retain the emitted record even when no remote source body exists yet."""
+    if (state.instance.graph.index, shot.definition) not in FLIGHTS or shot.clock_origin is None:
+        return
+    from ow174.game.projectiles import ShotRecord
+
+    shot.observer_record = ShotRecord(
+        shot.frame, shot.instance, shot.state, shot.activation[0],
+        tuple(origin), tuple(direction), (), shot=shot.shot_index, volleys=state.volleys & 0xFF,
+    )
+    shot.observer_deadline = deadline
+
+
+def observe_live(fight, rocket):
+    """Add new connections to this physical arrow using its original source event."""
+    shot = rocket.shot
+    if (shot is None or shot.observer_record is None or shot not in fight.projectiles.shots
+            or rocket.reflected or rocket.source_entity != shot.body):
+        return
+    owner, original, deadline = shot.player, shot.observer_record, shot.observer_deadline
+    script = owner.body_script
+    if (owner.gone or owner.body != shot.body or script is None or script.retired
+            or deadline is None or fight.tick >= deadline):
+        return
+    instance = script.component.instances.get(shot.instance)
+    state = (instance.states.get(shot.state)
+             if instance is not None and (instance.graph.index, shot.definition) in FLIGHTS else None)
+    if (state is None or state.counter != shot.activation[0]
+            or state.volleys & 0xFF != original.volleys):
+        return  # do not create an unlaunchable alias against a superseding source activation
+    viewers = [viewer for viewer in fight.match.players
+               if viewer is not owner and viewer.client is not None and viewer.spawned and not viewer.gone
+               and not any(delivery.viewer is viewer and delivery.client is viewer.client
+                           for delivery in shot.observers)]
+    if viewers:
+        fight.projectiles._show_others(
+            shot, state, original.origin, original.direction, None,
+            viewers=viewers, original_record=original, deadline=deadline,
+        )

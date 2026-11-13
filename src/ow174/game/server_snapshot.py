@@ -284,7 +284,7 @@ FIELDS = {
     observers.Observers: _names("match watches"),
     observers.SceneBody: _names("component actions server_only latest_live terminal_snapshot"),
     sigma_presentation.BarrierBody: _names("component actions server_only latest_live terminal_snapshot"),
-    observers.Watch: _names("body arrived stream sent next_lazy"),
+    observers.Watch: _names("body arrived stream sent next_lazy volleys"),
     observers._CreateArrived: _names("watch"),
     voicelines.VoiceLines: _names("match pending"),
     notices.Notices: _names("match entered waiting notice_chunk sent_at sending"),

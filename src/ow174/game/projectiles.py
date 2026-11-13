@@ -344,6 +344,8 @@ class Shot:
     entity: int | None = None  # shared identity for Sigma's authored projectile output
     source_script: object | None = None  # launch VM retained only for turret alias retirement
     echo_launch: 'ShotRecord | None' = None  # original Echo event, before any observer baseline ACK
+    observer_record: "ShotRecord | None" = None  # admitted Hanzo event, including solo casts
+    observer_deadline: int | None = None  # original absolute deadline, never refreshed by joining
 
 
 @dataclass
@@ -564,6 +566,9 @@ class Projectiles:
                                 and state.instance.graph.index == 0x0CF5
                                 and definition == 0x0400000000001CCB
                                 and shot.spawn == 0x040000000000174E)
+        if origin is not None and direction is not None:
+            hanzo_projectiles.remember_launch(
+                shot, state, origin, direction, self.match.tick + shot.bound + DELIVERY_GRACE_TICKS)
         if (origin is not None and direction is not None
                 and (state.instance.graph.index, definition) in (
                     (0x19E5, 0x0400000000002CBF), (0x1C36, 0x0400000000002CBA))):
@@ -645,6 +650,8 @@ class Projectiles:
                     cls, active, payload = activation
                     delivery.activation = cls, active, tuple(sorted(dict(payload).items()))
                     viewer.client.retain_bot_volley(delivery)
+                elif not npc and viewer is not shot.player:
+                    observers.retain_volley(delivery, state)
                 components = dict(hanzo_projectiles.confirmation_components(member) or {})
                 # Original1E60/1E61 Pet source is the captured cast body. Keep
                 # the existing generic confirmation-components API shared.
@@ -662,6 +669,37 @@ class Projectiles:
                     delivery.pending_create = create
                 else:
                     viewer.client.queue_entities([create])
+
+    def observe_live(self, shot: Shot, graph_index: int) -> None:
+        """Catch up a connection to a caller-qualified, still-live single flight.
+
+        The caller owns physical lifetime eligibility. Reuse the original volley
+        and deadline rather than starting another flight or extending delivery.
+        """
+        owner = shot.player
+        script = owner.body_script
+        if (owner.body != shot.body or script is None or script.retired or not shot.observers
+                or not (shot.authoritative or shot.observer_only)):
+            return
+        instance = script.component.instances.get(shot.instance)
+        state = (instance.states.get(shot.state)
+                 if instance is not None and instance.graph.index == graph_index else None)
+        if state is None:
+            return
+        viewers = [viewer for viewer in self.match.players if viewer.client is not None and viewer.spawned
+                   and not viewer.gone and not any(
+                       delivery.viewer is viewer and delivery.client is viewer.client
+                       for delivery in shot.observers)]
+        if not viewers:
+            return
+        original = shot.observers[0].record
+        deadline = min(delivery.deadline for delivery in shot.observers)
+        if self.match.tick >= deadline:
+            return
+        self._show_others(
+            shot, state, original.origin, original.direction, None,
+            viewers=viewers, original_record=original, deadline=deadline,
+        )
 
     def observe_existing_volley(self, viewer, source: int, record: "ShotRecord"):
         """Launch existing actor IDs; their factory retains create/flight/retire authority."""
@@ -1291,7 +1329,10 @@ class _ObservedProjectile:
 
     def _release_volley(self) -> None:
         if self.activation is not None:
-            self.client.release_bot_volley(self)
+            if self.npc:
+                self.client.release_bot_volley(self)
+            else:
+                self.viewer.match.combat.observers.release_volley(self)
             self.activation = None
 
 

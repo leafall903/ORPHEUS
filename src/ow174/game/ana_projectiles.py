@@ -25,6 +25,12 @@ def advance(fight, rocket):
     if (rocket.source_graph, rocket.definition) not in FLIGHTS or rocket.last_tick is None:
         return False
     projectile_clock.advance_accepted(fight, rocket)
+    shot = rocket.shot
+    if rocket in fight.rockets and shot is not None:
+        script = getattr(shot.player, "body_script", None)
+        birth = getattr(script, "ana_birth", None)
+        if birth is not None and shot.clock_origin == (*birth, script.frame_ms):
+            fight.projectiles.observe_live(shot, rocket.source_graph)
     return True
 
 

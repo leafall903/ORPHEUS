@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-late-arrow-v1",
+  "target_build": "104319",
+  "source": {"provenance": "Synthetic real-command Hanzo scenario. Reuses the existing source-body ch2 volley, projectile create/ACK and retirement protocol; native late-flight render acceptance pending."},
+  "input": {"owner_world_epoch": 1000, "owner_command_epoch": 9000, "initial_observers": 0, "order": ["release an arrow", "advance physical flight", "join an observer", "deliver source baseline then projectile create ACK", "advance past retirement"]},
+  "expected": {"deliveries_per_connection": 1, "origin": "original emitted origin, never current projectile position", "source": "original caster body", "clock": "original owner-frame label", "deadline": "original absolute deadline, not extended by joining", "source_replacement": "no old-arrow admission under new body"},
+  "client_acceptance": "pending"
+}
