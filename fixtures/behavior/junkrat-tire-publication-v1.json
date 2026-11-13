@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-tire-publication-v1",
+  "target_build": "104319",
+  "evidence": "authored-definition-and-actual-command-runtime",
+  "client_acceptance": "pending",
+  "source": {
+    "reference_revision": "ed6d079b",
+    "actor": "Original039C definition; formal0232/30 retained factory-source argument and existing single Tire damage receiver",
+    "consumer": "tests/runtime/test_junkrat_tire_publication.py",
+    "boundary": "Native model visibility, possession/camera, complete original actor VM/effects and final native Pet72 writer remain unproved"
+  },
+  "input": {
+    "button": 32,
+    "step_ms": 16,
+    "sequence": [
+      "actual Q",
+      "drive forward",
+      "late viewer spawn_updates",
+      "enemy rifle hit and destruction",
+      "actual detonation or owner replacement"
+    ]
+  },
+  "expected": {
+    "creates_per_connection": 1,
+    "identity": "same existing Q-created Tire actor and damage receiver",
+    "team": "captured actor.filter_bits in26",
+    "pet": "existing retained actor.pet_owner in72",
+    "health": "same authoritative component51 pool; delayed until CREATE ACK",
+    "hit": "existing combat notice gate waits for CREATE ACK",
+    "movement": "current server Tire mover position/yaw/velocity",
+    "destroys_per_connection": 1,
+    "late_join": "same live actor baseline",
+    "retirement": "existing notice drain/grace before final body-channel cleanup",
+    "stored_export": "registered viewer connection references; no getters"
+  }
+}

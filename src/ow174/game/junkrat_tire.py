@@ -2,16 +2,17 @@
 
 The creator's0232 supplies readiness/cost and recovery.039C's prepared external
 mover supplies physical dimensions/speeds.0233 supplies arming and explosion.
-Wall-climb contact is reconstructed from 0234. Full actor VM hosting and original-client acceptance remain open.
+Wall-climb contact is reconstructed from0234. The same039C actor now publishes
+its identity, pose and pools; full actor VM/possession and client acceptance remain open.
 """
 
 import json
 import math
 import os
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, field, fields, replace
 from pathlib import Path
 
-from ow174.game import actors, sombra_replay
+from ow174.game import actors, sombra_replay, world
 from ow174.game.collision import NOT_GROUND
 from ow174.game.commands import JUMP, Command
 from ow174.game.mover import REPEAT, WORLD_GRAVITY, Mover, MoverData, statescript_mods
@@ -115,6 +116,7 @@ class Tire(actors.Deployable):
     climbing: bool = False
     retreat: tuple[tuple[float, float, float], float, int] | None = None
     last_retreat_tick: int = 0
+    viewers: dict = field(default_factory=dict)
 
     @property
     def creator(self):
@@ -278,6 +280,7 @@ class TireSystem:
                     tire.last_retreat_tick = born
         self.actors[entity] = tire
         self.combat.vitals[entity] = tire.vitals
+        self.publish()
         player.mover.velocity = (0.0, 0.0, 0.0)
         player.mover.throttles = (0, 0)
         script.set_ult_charge(0.0)
@@ -289,6 +292,32 @@ class TireSystem:
         placement.request(runtime.ABORT)
         script.component.run_now()
         self.last_error = None
+
+    def create_updates(self, viewer):
+        """Publish each existing039C identity once per viewer connection, including late joins."""
+        if viewer.client is None or viewer.gone:
+            return []
+        updates = []
+        for tire in self.actors.values():
+            if tire.viewers.get(viewer.slot) is viewer.client:
+                continue
+            tire.viewers[viewer.slot] = viewer.client
+            updates.append(self.combat.deployable_create(tire))
+        return updates
+
+    def publish(self, *, movement=False):
+        for viewer in self.combat.match.players:
+            if viewer.client is None or not viewer.spawned or viewer.gone:
+                continue
+            viewer.client.queue_entities(self.create_updates(viewer))
+            if movement:
+                for tire in self.actors.values():
+                    viewer.client.queue_entities([world.EntityUpdate(
+                        tire.entity, movement=world.Movement(
+                            tire.mover.position, yaw=tire.mover.yaw, velocity=tire.mover.velocity,
+                            frame=self.combat.tick,
+                        ),
+                    )])
 
     def command(self, player, command, tick):
         tire = self.for_player(player)
@@ -434,6 +463,8 @@ class TireSystem:
                 tire.last_move_tick = tick
                 tire.position = tuple(tire.mover.position)
                 tire.instance.write((0, 1735), 2)
+        if not deadlines_only:
+            self.publish(movement=True)
         for entity, (player, script, _, _, end) in list(self.recovery.items()):
             if self.combat.tick < end and player.body == entity and not script.retired:
                 continue
@@ -465,6 +496,10 @@ class TireSystem:
     def finish(self, tire, reason, *, explode=False, recover=True):
         if self.actors.pop(tire.entity, None) is not tire:
             return
+        for viewer in self.combat.match.players:
+            if viewer.client is not None and tire.viewers.get(viewer.slot) is viewer.client:
+                viewer.client.queue_entities([world.EntityUpdate(tire.entity, world.OP_DESTROY)])
+        tire.viewers.clear()
         from ow174.game.combat import TICK, Rocket
 
         self.last_result = reason

@@ -1091,6 +1091,7 @@ class Match:
                 viewer.seen[actor.entity] = False
             updates.append(self.combat.deployable_create(actor))
         updates.extend(self.combat.junkrat.trap_creates())
+        updates.extend(self.combat.junkrat.tire.create_updates(viewer))
         if self.bots:
             self.bots_shown[viewer.slot] = self.tick
         for other in self.players:

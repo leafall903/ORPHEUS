@@ -1,5 +1,18 @@
 # Shared behavior contracts
 
+## Authoritative RIP-Tire publication and receiver delivery
+
+`junkrat-tire-publication-v1.json` exercises the same original-Q-created039C
+actor through create, drive poses, late connection baseline, enemy damage,
+explosion and owner-replacement retirement. Publication is deduplicated by
+viewer slot and exact Client identity; no second visual entity, body VM or
+damage receiver is allocated. The retained filter/Pet arguments and authoritative
+pool snapshot use the existing deployable channel. The real Client body/NPC
+CREATE-ACK gate delays pool/HIT notices and retains notice-drain retirement.
+Stopped-server export with real Client references must not call getters.
+Native model visibility, final Pet72 birth writer, possession/camera and the
+complete original actor VM/effects remain unaccepted.
+
 ## Original Reaper ring arithmetic and Zarya accepted projectile output
 
 `reaper-native-ring-v1.json` compares all20 directions from one actual primary

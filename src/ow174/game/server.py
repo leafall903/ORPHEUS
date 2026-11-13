@@ -842,10 +842,13 @@ class Client:
         if script is None and host is not None:
             script = host.spawn_projection(entity) if bot is None else host.combatant_projection(bot)
         if bot is None and script is None:
-            if not any(player.has_body and player.body == entity for player in match.players):
+            player_body = any(player.has_body and player.body == entity for player in match.players)
+            tire = match.combat.junkrat.tire.actors.get(entity) if match.combat is not None else None
+            if not player_body and tire is None:
                 return
-            self._player_body_reuse_after[entity] = None
-            self._combat_notice_tail.pop(entity, None)
+            if player_body:
+                self._player_body_reuse_after[entity] = None
+                self._combat_notice_tail.pop(entity, None)
         self._combat_notices[entity] = deque(maxlen=MAX_PENDING_COMBAT_NOTICES)
         if script is not None:
             stream = BodyStream(entity)
