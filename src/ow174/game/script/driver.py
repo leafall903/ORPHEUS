@@ -140,6 +140,7 @@ TARGET_SENSITIVITY = (9582, 9583, 9584)
 # variable on for a body whose search asks.
 ABILITY_GATE = 2426
 FILTER_MASKS = ("m_84065FD1", "m_1E14CCA8", "m_4EA686DB", "m_27CF71D5", "m_66747E7D", "m_89831602")
+HOSTILE_MASKS = (0, 0, 0, 2, 0, 0)  # the six masks with only "any relation: hostile" (combat.filter_admits)
 FILTER_TAGS = (
     "m_93FA1642", "m_9C7BD8B8", "m_B486603E", "m_8B2A4DF3", "m_C1903771", "m_F61726FE", "m_B40362FC",
 )
@@ -226,14 +227,15 @@ WHEEL_PLAY_GRAPHS = {
 }
 MAX_WHEEL_CALLOUTS = 32
 WHEEL_CALLOUT_MS = 2000
-# The ultimate: its charge #342e is server data (no graph adds to it; the ultimate's graph sets it to 0 when
-# it starts), its cost #338e comes from the Entries. Combat credits it (combat.py through ult_charge.py);
-# the passive adds ULT_PASSIVE points a second, and nothing charges while the ultimate runs. The rate is
-# the game's own: graph 0B8B (run by 004B, server-only nodes) adds 5.0 after each Wait of 1 s (nodes 3, 4),
-# times two ruleset scales. That graph's loop does not start here (why is not established), so this code
-# stands in for it without its conditions (docs/research/ultimate-charge.md).
+# The ultimate: its charge #342e, its cost #338e from the Entries. Graph 0B8B (run by 004B, server-only
+# nodes) charges it: combat feeds it damage dealt (0012) and healing done (0044), BodyScript.feed_ult. Its
+# passive adds 5.0 after each Wait of 1 s (nodes 3, 4), times two ruleset scales. That loop starts here only
+# on some bodies (D.Va's), so the server's own passive adds ULT_PASSIVE points a second without its
+# conditions, and stands down while the loop's Wait runs (docs/research/ultimate-charge.md).
 ULT_CHARGE, ULT_COST = 342, 338
 ULT_PASSIVE = 5.0
+CHARGE_GRAPH, CHARGE_WAIT = 0x0B8B, 1  # the graph and its passive's 1 s Wait (state 1, node 3)
+DAMAGE_DEALT, HEALING_DONE = 0x0240000000000012, 0x0240000000000044
 VOLLEY = "STUStatescriptStateWeaponVolley"
 _VOLLEY_INTRODUCTION = "volley_introduction"  # report metadata, not a cumulative wire key
 THROTTLE_UNIT = f32(1 / 127)  # GetThrottle: x = right, y = forward (W is +y)
@@ -466,14 +468,21 @@ class BodyWorld(runtime.World):
                         return Entity(0)
         if cls == "STU_AC829876":  # does an entity pass a filter (CF4340, the search's own D0DA20)
             config = cfg.get("m_filter") or {}
-            # Answered for Hack's graph alone so far, and for bodies: a tag is a kind of entity the
-            # server does not keep, so a filter that asks for one finds none.
-            if self.match is not None and instance is not None and instance.graph.index == 0x0B1B:
+            # Answered for Hack's graph and the charge graph so far, and for bodies: a tag is a kind of
+            # entity the server does not keep, so a filter that asks for one finds none.
+            # reconstruction: 0B8B node 53 answered as Hack's graph is (docs/research/ultimate-charge.md).
+            if self.match is not None and instance is not None and instance.graph.index in (0x0B1B, 0x0B8B):
                 entity = expr.to_entity(instance.evaluate(cfg.get("m_entity")))
                 return (all(config.get(name) is None for name in FILTER_TAGS)
                         and self.filter_admits(instance, config, entity))
             expr.warn_once(cls, "entity filters (STU_AC829876) answer false")
             return False
+        if (cls == "STU_A58C1E63" and self.match is not None and instance is not None
+                and instance.graph.index == 0x0B8B
+                and cfg is instance.graph.node(28).field("m_condition")["m_configVars"][0]):
+            # reconstruction: the body hit is hostile to the owner and not him (research/ultimate-charge.md).
+            entity = expr.to_entity(instance.evaluate(cfg.get("m_target")))
+            return self.match.combat.filter_admits_body(self.body, entity, HOSTILE_MASKS)
         return super().native(cfg, instance)
 
     def nearby_enemy_count(self, owner: int, radius: float) -> int:
@@ -1188,8 +1197,33 @@ class BodyScript(ReplicatedBody):
         if cost > 0 and charge < cost:
             self.set_ult_charge(min(cost, charge + points))
 
+    def _charge_graph(self):
+        return next((instance for instance in self.component.instances.values() if instance.graph.index
+                     == CHARGE_GRAPH and instance.initialized and not instance.stopped), None)
+
+    def feed_ult(self, target: int, amount: float, tags: tuple[int, ...] = (), *, healing=False) -> None:
+        """Damage this body dealt to `target` (0012: amount, body hit, the hit's tags) or healing it did
+        (0044: amount, body healed, kind), sent to its 0B8B, which decides the charge."""
+        component = self.component
+        # Set only when unset, as aimed_targets does: a False a graph wrote stays, and 0B8B drops the event.
+        gate = component.entity_var(ABILITY_GATE, create=False)
+        if gate is None or gate.value() is None:
+            component.set(ABILITY_GATE, True)
+        charge = self._charge_graph()
+        if charge is None:
+            return
+        if healing:  # shortcut: no kind is known for a heal; 0B8B's kind test passes an empty one
+            message, params = HEALING_DONE, {0x40: amount, 0x3F: Entity(target), 0x41: (), 0x3E: ()}
+        else:
+            message = DAMAGE_DEALT
+            params = {0x13: amount, 0x15: Entity(target), 0x3D: tuple(Asset(tag) for tag in tags), 0x624: ()}
+        runtime.send_instance_message(charge, message, params, component.entity)
+
     def _charge_ult(self) -> None:
-        blocked = self.ult_seconds <= 0 or any(
+        charge = self._charge_graph()
+        wait = charge.states.get(CHARGE_WAIT) if charge is not None else None
+        # One source: the graph's own passive, once its loop runs (D.Va's bodies), stands for this one.
+        blocked = self.ult_seconds <= 0 or (wait is not None and wait.active) or any(
             state.flags & nodes.Ability.RUNNING for state in self.ultimates
         )
         if blocked != getattr(self, "_ult_passive_blocked", None):

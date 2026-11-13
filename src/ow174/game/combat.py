@@ -32,8 +32,8 @@ What the server decides here:
 - Quick melee: 0043 st4 (ModifyHealth) on what its st5 TrackTargets would find (MELEE). The Biotic Field
   heals through heal_area (projectiles.py). A dead body's statescript takes no presses (the VM's
   owner_dead, as the client's LogicalButton 0x7FF78AAAC570), so the dead do not shoot.
-- The attacker's ultimate: its body script credits the meter for the damage dealt and the healing done,
-  and once more per elimination (ult_charge.py; the rates are data, the client's meter only shows the var).
+- The attacker's ultimate: its body script feeds the damage dealt and the healing done to its graph 0B8B,
+  which charges the meter (BodyScript.feed_ult). An elimination adds nothing of its own.
 - Bodies are capsules from the feet to the mover's height (radius the mover's, DATA; unverified as a hitbox),
   a hit at or above the eye height less HEAD_BELOW is critical (unverified). Shots stop at the map's collision
   (the mover's part of it, which the server keeps). Allies are not hit.
@@ -61,7 +61,6 @@ from ow174.game import (
     pools,
     projectiles,
     stats,
-    ult_charge,
     voicelines,
     world,
 )
@@ -1785,7 +1784,8 @@ class Combat:
         if given > 0.0:
             if not isinstance(healer, bots.Bot):
                 healer.stats.add(stats.HEALING, given)
-                self._credit_ult(healer, ult_charge.HEALING, given)
+                if target.owner is not healer:  # the server's rule, not the graph's: 0B8B would charge it
+                    self._feed_ult(healer, target, given, healing=True)
             self._sync_body_health(target.owner, vitals)
         return given
 
@@ -1803,12 +1803,12 @@ class Combat:
             script.set_health(vitals.total, vitals.capacity)
 
     @staticmethod
-    def _credit_ult(actor, kind: str, amount: float) -> None:
-        """The actor's own body charges its ultimate from the event (ult_charge.py); a bot has no
-        chargeable body script yet, so for now bots deal damage without feeding a meter."""
+    def _feed_ult(actor, target: Target, amount: float, tags: tuple[int, ...] = (), *, healing=False) -> None:
+        """The actor's own body feeds the event to its charge graph; a bot has no chargeable body script
+        yet, so for now bots deal damage without feeding a meter."""
         script = getattr(actor, "body_script", None)
         if script is not None:
-            script.credit_ult(kind, amount)
+            script.feed_ult(target.entity, amount, tags, healing=healing)
 
     def _barrier_hit(self, shooter, origin, direction, length):
         trace = getattr(getattr(self.match, 'scene_host', None), 'trace_barrier', None)
@@ -1869,7 +1869,7 @@ class Combat:
 
                     sandbox_charge = mccree.award_sandbox_charge(self.match, shooter, target.owner, dealt)
                 if not sandbox_charge:
-                    self._credit_ult(shooter, ult_charge.DAMAGE, dealt)
+                    self._feed_ult(shooter, target, dealt, hit_tags)
         elif award_ult and component is not None and target.team == 0:
             from ow174.game import junkenstein_ai
 
@@ -1983,8 +1983,6 @@ class Combat:
             self.respawns.append((self.now + BOT_RESPAWN, bot))
         if not isinstance(killer, bots.Bot):
             killer.stats.add(stats.ELIMINATIONS)
-            if award_ult:
-                self._credit_ult(killer, ult_charge.KILL, 0.0)
             if not deadeye or not self._defer_deadeye_notice(killer, bot):
                 self._kill_notice(killer, bot)
         log.info("[game] %s: %s killed %s", self.match.label(), killer.name, bot.name)
@@ -2044,7 +2042,6 @@ class Combat:
         source = _source_entity(killer)
         if killer is not victim and not bot_killer:
             killer.stats.add(stats.ELIMINATIONS)
-            self._credit_ult(killer, ult_charge.KILL, 0.0)
             self._kill_notice(killer, victim)
         if victim.client is not None:
             how = KILLED_BY if killer is not victim else 0
