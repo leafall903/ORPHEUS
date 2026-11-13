@@ -16,11 +16,16 @@ log = logging.getLogger("ow174.game")
 
 
 def rivet_targets(fight, rocket, targets):
-    """Use retained physical poses for a delayed, clocked primary rivet."""
-    if ((rocket.source_graph, rocket.definition) != (0x1683, 0x0400000000002A66)
+    """Use retained physical poses for delayed, clocked primary/secondary rivets."""
+    primary = (rocket.source_graph, rocket.definition) == (0x1683, 0x0400000000002A66)
+    secondary = ((rocket.source_graph, rocket.definition) == (0x1683, 0x04000000000013ED)
+                 and rocket.shot is None)
+    if (not (primary or secondary)
             or getattr(getattr(rocket.shooter, "hero", None), "guid", None) != HERO
-            or rocket.launch_tick is None or rocket.shot is None or rocket.shot.clock_origin is None
+            or rocket.launch_tick is None
             or fight.tick >= fight.match.tick):
+        return targets
+    if primary and (rocket.shot is None or rocket.shot.clock_origin is None):
         return targets
     return [replace(shown, construct=target.construct) for target in targets
             if (shown := fight.seen(target, fight.tick)) is not None]

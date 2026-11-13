@@ -645,3 +645,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Compose focused hero delivery and VM driver metadata corrections with26 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Preserve delayed sticky and secondary projectile contacts with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

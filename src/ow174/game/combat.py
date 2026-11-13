@@ -7258,6 +7258,10 @@ class Combat:
                     if (source_graph == 0x1683 and definition == 0x0400000000002A66
                             and shot is not None and shot.clock_origin is not None):
                         projectile_tick = projectiles.owner_to_world(shot.clock_origin, shot_frame)
+                    elif (source_graph == 0x1683 and definition == 0x04000000000013ED
+                          and shot is None and hasattr(shooter.body_script, "torbjorn_birth")):
+                        projectile_tick = projectiles.owner_to_world(
+                            shooter.body_script.torbjorn_birth, shot_frame)
                     else:
                         projectile_tick = world_frame(shooter.body_script, shot_frame, round(TICK * 1000))
                 elif (shooter.hero.guid == 0x02E000000000013B

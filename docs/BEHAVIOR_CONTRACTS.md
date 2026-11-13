@@ -592,3 +592,21 @@ producer, complete animation path, native presentation or full hero acceptance.
 All original native color/model/FX, health bar, hit UI, idle/hit animation and audio
 items retain their existing scope. Latest20-hero16ms acceptance is separate from
 functional regressions. No running-server or client acceptance is implied here.
+
+## Retained-history Echo Sticky and Torbjorn secondary contacts (batch48)
+
+Echo a125 qualifies exact1C36/2CBA against retained physical body history: ordinary
+and independent owner epochs,1/64 input schedules,180 effective damage,12 complete
+HIT payloads,6 blast times/points/attached entities and final retirement agree.
+Every delayed query is inside retained history. Evicted128-frame poses still fail;
+no future-pose replacement or broad anchor/blast policy was introduced.
+
+Torbjorn c5 follows the unique Echo242 then eadb primary adapter. Exact1683/13ED
+secondary has no ShotRecord and uses its already-existing immutable birth clock;
+all other shots retain existing guards. The ten original distinct trajectories,
+125 damage/10 full HIT payloads,2 ammo consumption and final retirement agree for
+1/32 input schedules and both owner epochs. Preserve primary1683/2A66 clock guards,
+Echo history, other Combat methods, native spread policy and all visual open items.
+
+Four composed related methods pass: two new plus retained Echo/Torb primary. These
+checks do not establish native model, animation, audio or full hero correctness.

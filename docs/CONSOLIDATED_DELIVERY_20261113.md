@@ -439,3 +439,10 @@ Compose eight independently reviewed original-owner increments and one integrati
 - `vm-structural-metadata-index`: original focused owner commit(s) `1f9cc3e4d66a12cfedf7a2811bd1bf19c0bc9d85`.
 - `torbjorn-moving-target-after-echo`: original focused owner commit(s) `eadb533b4e1cb608ffebf16d43e7bdbf215dbb9c`.
 - `full-server-graph-metadata-seam`: original focused owner commit(s) `0042-integration-seam-after-1f9cc3e4`.
+
+## Preserve delayed sticky and secondary projectile contacts
+
+Compose Echo a125 after its unique242 dependency and Torbjorn c5 after the unique eadb adapter. Four related methods pass21.384s with zero failures/errors/skips/ERROR logs: two new contact cases plus retained primary tests. Echo retained64-frame history preserves180 damage/12 full HIT payloads and six blast records; evicted128-frame history remains failing and open. Exact Torbjorn secondary1683/13ED has no ShotRecord and uses its existing immutable birth mapping, preserving ten distinct original trajectories,125 damage/10 complete HIT payloads, two ammo consumption and final retirement across1/32 input schedules and ordinary/separate epochs. No original spread, collision extent, damage, lifetime, observer or general clock policy change. Keep Echo/primary guards and other Combat methods. All model/colors/idle/hit animations/audio/UI and full hero acceptance remain separate. Source-only commit does not yet activate the final server or certify Halloween.
+
+- `echo-sticky-retained-contact-history`: original focused owner commit(s) `a125323915fca9b4b4ce1c709382c1eba7826e4d`.
+- `torbjorn-secondary-retained-target-history`: original focused owner commit(s) `c5a90ca0c32c49eeb2c140967add5f21e73d7db3`.

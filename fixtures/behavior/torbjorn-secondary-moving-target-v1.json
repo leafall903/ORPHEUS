@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "torbjorn-secondary-moving-target-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic identical live timeline; actual1683/13ED secondary press with all ten original directions, enemy right127 movement, ordinary and independent9000 owner epochs. Observational submit wrapper calls original unmodified.",
+  "input": {"distance": 1.5, "target_right": 127, "source_packet_sizes": [1, 32], "sample_frames": 96, "owner_epochs": ["ordinary", "separate9000"]},
+  "expected": {"damage": 125, "pellets": 10, "hit_notices": 10, "ammo_used": 2, "equal_all_birth_rays_per_epoch": true, "equal_full_hit_payload_per_epoch": true, "equal_final_recipient_position": true, "live_projectiles": 0},
+  "scope": "Only actual Torb1683/13ED SHOTS_ONLY secondary uses its captured torbjorn_birth for physical launch. Delayed sweeps reuse existing retained poses and preserve construct metadata. No Shot object is fabricated.",
+  "limits": "No ray/spread, extent, lifetime, damage or falloff change. No direct assertion about original spread seeds/models, molten/globule/carrier histories, historical defenses/attachments or reflected policy."
+}

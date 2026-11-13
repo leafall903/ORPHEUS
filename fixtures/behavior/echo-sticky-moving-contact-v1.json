@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "echo-sticky-moving-contact-v1",
+  "target_build": 104319,
+  "provenance": "Synthetic identical actual1C36 input and enemy commands: stand40ticks then strafe. Source1/64-frame schedules query retained physical body poses without replaying damage.",
+  "input": {"distance": 5, "stand_ticks": 40, "packet_sizes": [1, 64], "sample_ticks": 192},
+  "expected": {"damage": 180, "hits": 12, "blasts": 6, "live": 0},
+  "limits": "Collision history is checked present. Does not recover evicted poses, certify128-frame delay, historical blast/attachment policies or native model visibility."
+}
