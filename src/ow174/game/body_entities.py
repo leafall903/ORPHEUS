@@ -78,7 +78,20 @@ def release_control(pilot):
         bot.firing = not bot.dead
         fight = pilot.match.combat
         fight.expose_body(pilot.body, fight.tick or pilot.match.tick)
+        _end_boarding_blackout(pilot)
         _publish_possession(pilot)
+
+
+def _end_boarding_blackout(pilot):
+    """Clear 026A's #6828 as she leaves her mech, by the graph's own node 115.
+
+    In the data she is stowed while in her mech: no player drives her, and that branch of node 2 clears
+    the blackout the Entry and each boarding set. Here her player stays hers, so the branch never runs
+    and her own view was black once she was on foot. Reconstruction: the write is made as she leaves."""
+    script = pilot.body_script
+    for instance in script.component.instances.values() if script is not None else ():
+        if instance.graph.index == 0x26A:
+            nodes.set_var(instance, instance.graph.node(115), None)
 
 
 def queue_demech_return(match, bot):

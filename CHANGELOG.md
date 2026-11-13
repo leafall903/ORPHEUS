@@ -1,5 +1,21 @@
 # Changelog
 
+## D.Va's view after she leaves her mech
+
+- Her own screen was black once she was on foot: after Self-Destruct and after her mech was
+  wrecked. Her body, her pistol and her health were right; only her view was dark.
+- Cause, read from data: the pilot graph `026A` sets `#6828` at its Entry (node 110) and again at
+  each boarding (node 116), and its presenter (node 193) draws the screen black while it is on.
+  Node 115 clears it on the branch of node 2 where no player drives the pilot, which is her state
+  while she is stowed in her mech. On this server her player stays hers, so that branch never ran.
+- Fix: as she leaves her mech, `release_control` runs node 115's own write on her graph.
+- Reconstructed: the moment of the write. The data makes it while she is stowed; this server makes
+  it as she leaves.
+- Tests: `tests/runtime/test_dva_boarding_blackout.py` covers Self-Destruct, a wrecked mech, and a
+  called mech that is wrecked. All three fail without the fix.
+- Seen in the original client in the Practice Range: her pilot view with the pistol at 150 health
+  after Self-Destruct, and the cockpit at 600 health after Call Mech.
+
 ## Client research notes from the kjs branch
 
 - Added `docs/research/`: twelve notes on what the 1.74 client does and expects, written on the
