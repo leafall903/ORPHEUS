@@ -369,3 +369,9 @@ This closes that particular research path, not the production category gap.
 Rust's actual Hero creation remains intact. Static component requirement lists
 and existing cross-ASLR crash dumps do not establish final Boss category flags;
 creation/replication inputs and original-client verification remain open.
+
+PR #33 now separates the public source-only candidate from the retained local
+research history. Its first hosted run exposed Rust 1.85 syntax incompatibility;
+the repair preserves the declared minimum compiler and existing behavior
+contracts. Hosted confirmation of the repaired candidate remains required,
+alongside the open production category and original-client acceptance work.

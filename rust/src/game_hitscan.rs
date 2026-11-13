@@ -106,10 +106,10 @@ impl HitDefinition {
                 return Ok(None);
             };
             for row in rows.iter().filter(|row| row.is_object()) {
-                if let Some(Value::Asset(guid)) = field(row, "m_EE3055BD")?
-                    && !tags.push(guid)
-                {
-                    return Ok(None);
+                if let Some(Value::Asset(guid)) = field(row, "m_EE3055BD")? {
+                    if !tags.push(guid) {
+                        return Ok(None);
+                    }
                 }
             }
         }

@@ -358,19 +358,21 @@ impl EnemyState {
                     entity: target.entity,
                     secondary: use_secondary,
                 });
-                if !use_secondary && let Some(reach) = self.scripts.summoner_beam_reach() {
-                    let pose = bot.movement(tick);
-                    let forward = crate::game_hitscan::aim_direction(&Command {
-                        yaw: pose.yaw,
-                        pitch: pose.pitch,
-                        ..Command::default()
-                    });
-                    beam_rays = queries.summoner_beam_contacts(
-                        [x, y + eye_height(SUMMONER, false), z],
-                        forward,
-                        reach,
-                        targets,
-                    );
+                if !use_secondary {
+                    if let Some(reach) = self.scripts.summoner_beam_reach() {
+                        let pose = bot.movement(tick);
+                        let forward = crate::game_hitscan::aim_direction(&Command {
+                            yaw: pose.yaw,
+                            pitch: pose.pitch,
+                            ..Command::default()
+                        });
+                        beam_rays = queries.summoner_beam_contacts(
+                            [x, y + eye_height(SUMMONER, false), z],
+                            forward,
+                            reach,
+                            targets,
+                        );
+                    }
                 }
             } else {
                 if !self.objective_mover_attached {
@@ -1123,16 +1125,18 @@ impl RoomSimulation {
                     .instances
                     .values()
                     .any(|instance| instance.graph == 0x0cbc)
-            }) && let Err(error) = body.queue_entity_message_from(
-                crate::world::GAME_MODE_ENTITY,
-                crate::junkenstein_messages::ENCOUNTER_RESULT,
-                parameters.clone(),
-            ) {
-                eprintln!(
-                    "enemy {} result delivery failed: {error}",
-                    enemy.binding.body
-                );
-                enemy.fault = Some(error.to_string());
+            }) {
+                if let Err(error) = body.queue_entity_message_from(
+                    crate::world::GAME_MODE_ENTITY,
+                    crate::junkenstein_messages::ENCOUNTER_RESULT,
+                    parameters.clone(),
+                ) {
+                    eprintln!(
+                        "enemy {} result delivery failed: {error}",
+                        enemy.binding.body
+                    );
+                    enemy.fault = Some(error.to_string());
+                }
             }
         }
     }
@@ -1356,29 +1360,33 @@ impl RoomSimulation {
                             if let Some(stun) = stun {
                                 if let Some(state) = self.state_mut(impact.entity)? {
                                     let mut control_allowed = true;
-                                    if !state.bot.dead
-                                        && let Some(caller) = hit_effect
-                                        && let Some(enemy) = state
-                                            .enemy
-                                            .as_mut()
-                                            .filter(|enemy| enemy.fault.is_none())
-                                        && crate::game_content::is_junkenstein_mode(
-                                            enemy.binding.mode,
-                                        )
-                                    {
-                                        match enemy.scripts.flashbang_control_allowed(
-                                            &enemy.graphs,
-                                            &enemy.binding,
-                                        ) {
-                                            Ok(allowed) => control_allowed = allowed,
-                                            Err(error) => {
-                                                control_allowed = false;
-                                                enemy.fault = Some(error);
+                                    if !state.bot.dead {
+                                        if let Some(caller) = hit_effect {
+                                            if let Some(enemy) = state
+                                                .enemy
+                                                .as_mut()
+                                                .filter(|enemy| enemy.fault.is_none())
+                                            {
+                                                if crate::game_content::is_junkenstein_mode(
+                                                    enemy.binding.mode,
+                                                ) {
+                                                    match enemy.scripts.flashbang_control_allowed(
+                                                        &enemy.graphs,
+                                                        &enemy.binding,
+                                                    ) {
+                                                        Ok(allowed) => control_allowed = allowed,
+                                                        Err(error) => {
+                                                            control_allowed = false;
+                                                            enemy.fault = Some(error);
+                                                        }
+                                                    }
+                                                    enemy.scripts.queue_flashbang_effect(
+                                                        &enemy.binding,
+                                                        caller,
+                                                    );
+                                                }
                                             }
                                         }
-                                        enemy
-                                            .scripts
-                                            .queue_flashbang_effect(&enemy.binding, caller);
                                     }
                                     if control_allowed {
                                         state.bot.stun_for(context.tick, stun.ticks);
@@ -1516,10 +1524,10 @@ impl RoomSimulation {
         let result = state.vitals.damage(amount, source);
         if result.killed {
             state.bot.died(source.frame);
-            if let Some(enemy) = &mut state.enemy
-                && let Err(error) = enemy.scripts.queue_death(source, critical, loadout)
-            {
-                enemy.fault = Some(format!("enemy death input: {error}"));
+            if let Some(enemy) = &mut state.enemy {
+                if let Err(error) = enemy.scripts.queue_death(source, critical, loadout) {
+                    enemy.fault = Some(format!("enemy death input: {error}"));
+                }
             }
             state.respawn_at = state
                 .enemy
@@ -1707,10 +1715,10 @@ impl RoomSimulation {
                     enemy.fault = Some(error);
                 } else if let Some(aim) = enemy.scripts.cinematic_aim() {
                     bot.apply_encounter_aim(aim, tick);
-                } else if crate::npc_catalog::is_junkenstein_boss(enemy.binding.hero)
-                    && let Some(direction) = enemy.scripts.facing_direction()
-                {
-                    bot.apply_encounter_facing(direction, tick);
+                } else if crate::npc_catalog::is_junkenstein_boss(enemy.binding.hero) {
+                    if let Some(direction) = enemy.scripts.facing_direction() {
+                        bot.apply_encounter_facing(direction, tick);
+                    }
                 }
                 if enemy.fault.is_none()
                     && matches!(
@@ -1762,13 +1770,14 @@ impl RoomSimulation {
                     });
                     vitals.clear_changed();
                 }
-                if enemy.fault.is_none()
-                    && let Err(error) =
+                if enemy.fault.is_none() {
+                    if let Err(error) =
                         enemy
                             .scripts
                             .queue_common_corpse_retirement(&enemy.binding, vitals, tick)
-                {
-                    enemy.fault = Some(error);
+                    {
+                        enemy.fault = Some(error);
+                    }
                 }
                 if enemy.fault.is_none() && enemy.scripts.retirement_requested {
                     if let Err(error) =
@@ -1791,11 +1800,10 @@ impl RoomSimulation {
             self.states()
                 .try_fold(Vec::new(), |mut bodies, state| -> Result<_, CombatError> {
                     let state = state?;
-                    if let Some(enemy) = state.enemy.as_ref()
-                        && enemy.fault.is_none()
-                        && enemy.scripts.has_polled_voice()
-                    {
-                        bodies.push(state.bot.entity);
+                    if let Some(enemy) = state.enemy.as_ref() {
+                        if enemy.fault.is_none() && enemy.scripts.has_polled_voice() {
+                            bodies.push(state.bot.entity);
+                        }
                     }
                     Ok(bodies)
                 })?;
@@ -1803,13 +1811,14 @@ impl RoomSimulation {
             let BotState {
                 bot, vitals, enemy, ..
             } = self.state_mut(body)?.expect("checked voiced body");
-            if let Some(enemy) = enemy.as_mut().filter(|enemy| enemy.fault.is_none())
-                && let Err(error) = enemy
+            if let Some(enemy) = enemy.as_mut().filter(|enemy| enemy.fault.is_none()) {
+                if let Err(error) = enemy
                     .scripts
                     .poll_voice(&enemy.graphs, &enemy.binding, vitals)
-            {
-                bot.stop_objective(tick);
-                enemy.fault = Some(error);
+                {
+                    bot.stop_objective(tick);
+                    enemy.fault = Some(error);
+                }
             }
         }
         self.advance_enemy_projectiles(
@@ -1901,40 +1910,41 @@ impl RoomSimulation {
             })
             .collect::<Vec<_>>();
         for (source, (target, instance)) in stale {
-            if let Some(state) = self.state_mut(target)?
-                && let Some(enemy) = state.enemy.as_mut().filter(|enemy| enemy.fault.is_none())
-                && let Err(error) = enemy.scripts.sync_witch_staff(
-                    &enemy.graphs,
-                    &enemy.binding,
-                    &mut state.vitals,
-                    Some((source, instance)),
-                    None,
-                )
-            {
-                enemy.fault = Some(error);
+            if let Some(state) = self.state_mut(target)? {
+                if let Some(enemy) = state.enemy.as_mut().filter(|enemy| enemy.fault.is_none()) {
+                    if let Err(error) = enemy.scripts.sync_witch_staff(
+                        &enemy.graphs,
+                        &enemy.binding,
+                        &mut state.vitals,
+                        Some((source, instance)),
+                        None,
+                    ) {
+                        enemy.fault = Some(error);
+                    }
+                }
             }
         }
         for (source, (target, caster, amount)) in desired {
-            if let Some(state) = self.state_mut(target)?.filter(|state| !state.bot.dead)
-                && let Some(enemy) = state.enemy.as_mut().filter(|enemy| enemy.fault.is_none())
-            {
-                enemy.scripts.record_witch_staff_source(source, caster);
-                if links.contains_key(&source) {
-                    continue;
-                }
-                match enemy.scripts.sync_witch_staff(
-                    &enemy.graphs,
-                    &enemy.binding,
-                    &mut state.vitals,
-                    None,
-                    Some((source, amount)),
-                ) {
-                    Ok(Some(instance)) => {
-                        links.insert(source, (target, instance));
+            if let Some(state) = self.state_mut(target)?.filter(|state| !state.bot.dead) {
+                if let Some(enemy) = state.enemy.as_mut().filter(|enemy| enemy.fault.is_none()) {
+                    enemy.scripts.record_witch_staff_source(source, caster);
+                    if links.contains_key(&source) {
+                        continue;
                     }
-                    Ok(None) => (),
-                    Err(error) => {
-                        enemy.fault = Some(error);
+                    match enemy.scripts.sync_witch_staff(
+                        &enemy.graphs,
+                        &enemy.binding,
+                        &mut state.vitals,
+                        None,
+                        Some((source, amount)),
+                    ) {
+                        Ok(Some(instance)) => {
+                            links.insert(source, (target, instance));
+                        }
+                        Ok(None) => (),
+                        Err(error) => {
+                            enemy.fault = Some(error);
+                        }
                     }
                 }
             }
@@ -1975,10 +1985,10 @@ impl RoomSimulation {
                 Ok(Some(end)) => {
                     let source = projectile.source;
                     let team = projectile.team;
-                    if end.expired
-                        && let Some(split) = projectile.split.take()
-                    {
-                        children.extend(split.launch(source, team, end.point, tick));
+                    if end.expired {
+                        if let Some(split) = projectile.split.take() {
+                            children.extend(split.launch(source, team, end.point, tick));
+                        }
                     }
                     let tags = projectile.damage_tags.clone();
                     let shooter = self
@@ -2286,24 +2296,24 @@ mod tests {
                 );
                 eprintln!("final hits: {deadeye_hits:X?}");
             }
-            if let Some(outcome) = outcome_at
-                && tick == outcome + 4000
-            {
-                let snapshot = scene.encounter_snapshot().unwrap();
-                let mode = &snapshot.instances[&2];
-                assert!(
-                    scene.encounter_match_result().is_some()
-                        && scene.encounter_post_match_wire().unwrap().is_some(),
-                    "outcome did not settle: winner={:?}, success={:?}, challenge={:?}, active={:?}",
-                    mode.variables.get(&7525),
-                    mode.variables.get(&8617),
-                    mode.variables.get(&11776),
-                    mode.states
-                        .iter()
-                        .filter(|(_, state)| state.active)
-                        .map(|(&raw, state)| (raw, &state.kind))
-                        .collect::<Vec<_>>()
-                );
+            if let Some(outcome) = outcome_at {
+                if tick == outcome + 4000 {
+                    let snapshot = scene.encounter_snapshot().unwrap();
+                    let mode = &snapshot.instances[&2];
+                    assert!(
+                        scene.encounter_match_result().is_some()
+                            && scene.encounter_post_match_wire().unwrap().is_some(),
+                        "outcome did not settle: winner={:?}, success={:?}, challenge={:?}, active={:?}",
+                        mode.variables.get(&7525),
+                        mode.variables.get(&8617),
+                        mode.variables.get(&11776),
+                        mode.states
+                            .iter()
+                            .filter(|(_, state)| state.active)
+                            .map(|(&raw, state)| (raw, &state.kind))
+                            .collect::<Vec<_>>()
+                    );
+                }
             }
             owner
                 .set_encounter_active(scene.encounter_active())
@@ -2401,10 +2411,10 @@ mod tests {
                     command.pitch = 0;
                     command.forward = i8::MAX;
                 }
-                if let Some(start) = deadeye_started
-                    && (tick == start || tick == start + 350)
-                {
-                    command.buttons = 0x20;
+                if let Some(start) = deadeye_started {
+                    if tick == start || tick == start + 350 {
+                        command.buttons = 0x20;
+                    }
                 }
                 mover
                     .step(scene.movement_index(), command, 0.016, |_, _| {})
@@ -2594,24 +2604,23 @@ mod tests {
                 "owner at {tick}: {:?}",
                 owner.snapshot().unwrap().diagnostics
             );
-            if let Some(start) = deadeye_started
-                && deadeye_casts == 4
-                && tick == start + 1500
-            {
-                let remaining = scene
-                    .bots()
-                    .unwrap()
-                    .filter(|bot| {
-                        !bot.dead && crate::npc_catalog::is_junkenstein_boss(bot.spawn.hero)
-                    })
-                    .map(|bot| (bot.entity, bot.spawn.hero, bot.position))
-                    .collect::<Vec<_>>();
-                assert!(
-                    remaining.is_empty(),
-                    "Deadeye did not clear all Bosses: remaining={remaining:X?}, hits={deadeye_hits:X?}, targets={:?}, visible={:?}",
-                    owner.snapshot().unwrap().variables.get(&2551),
-                    owner.snapshot().unwrap().variables.get(&5874)
-                );
+            if let Some(start) = deadeye_started {
+                if deadeye_casts == 4 && tick == start + 1500 {
+                    let remaining = scene
+                        .bots()
+                        .unwrap()
+                        .filter(|bot| {
+                            !bot.dead && crate::npc_catalog::is_junkenstein_boss(bot.spawn.hero)
+                        })
+                        .map(|bot| (bot.entity, bot.spawn.hero, bot.position))
+                        .collect::<Vec<_>>();
+                    assert!(
+                        remaining.is_empty(),
+                        "Deadeye did not clear all Bosses: remaining={remaining:X?}, hits={deadeye_hits:X?}, targets={:?}, visible={:?}",
+                        owner.snapshot().unwrap().variables.get(&2551),
+                        owner.snapshot().unwrap().variables.get(&5874)
+                    );
+                }
             }
             if late
                 && crate::script_expr::to_float(&scene.gate_snapshot().unwrap().variables[&8571])
@@ -2825,25 +2834,28 @@ mod tests {
                         assert!(payload.bit_len() > 0);
                         live_score_verified = true;
                     }
-                    if let Some(result) = scene.encounter_match_result()
-                        && scene.encounter_post_match_wire().unwrap().is_some()
-                    {
-                        assert_eq!(result.fields[7], Some(crate::world::ComponentValue::I32(1)));
-                        assert_eq!(
-                            snapshot
-                                .variables
-                                .get(&8525)
-                                .map(crate::script_expr::to_float),
-                            Some(0.0)
-                        );
-                        assert!(scene.encounter_result_wire().unwrap().is_some());
-                        let (projected, _) =
-                            scene.encounter_notification_delta(None).unwrap().unwrap();
-                        assert_eq!(
-                            projected.entity_variables().get(&2499),
-                            Some(&crate::script_wire::Value::Float(12.0))
-                        );
-                        return;
+                    if let Some(result) = scene.encounter_match_result() {
+                        if scene.encounter_post_match_wire().unwrap().is_some() {
+                            assert_eq!(
+                                result.fields[7],
+                                Some(crate::world::ComponentValue::I32(1))
+                            );
+                            assert_eq!(
+                                snapshot
+                                    .variables
+                                    .get(&8525)
+                                    .map(crate::script_expr::to_float),
+                                Some(0.0)
+                            );
+                            assert!(scene.encounter_result_wire().unwrap().is_some());
+                            let (projected, _) =
+                                scene.encounter_notification_delta(None).unwrap().unwrap();
+                            assert_eq!(
+                                projected.entity_variables().get(&2499),
+                                Some(&crate::script_wire::Value::Float(12.0))
+                            );
+                            return;
+                        }
                     }
                 }
             } else {
@@ -2858,21 +2870,21 @@ mod tests {
                     .map(Result::unwrap)
                     .find(|state| !state.bot.dead && state.bot.spawn.hero == 0x02e0_0000_0000_0175)
                     .map(|state| state.bot.entity);
-                if let Some(entity) = common
-                    && tick > *first_seen.get_or_insert(tick) + 20
-                {
-                    let now = Duration::from_millis(u64::from(tick - FIRST_TICK) * 16);
-                    RoomSimulation::damage_bot(
-                        room.state_mut(entity).unwrap().unwrap(),
-                        10000.0,
-                        Death {
-                            time: now.as_secs_f64(),
-                            frame: tick,
-                            killer: defender.entity,
-                        },
-                        now,
-                    );
-                    killed_at = Some(tick);
+                if let Some(entity) = common {
+                    if tick > *first_seen.get_or_insert(tick) + 20 {
+                        let now = Duration::from_millis(u64::from(tick - FIRST_TICK) * 16);
+                        RoomSimulation::damage_bot(
+                            room.state_mut(entity).unwrap().unwrap(),
+                            10000.0,
+                            Death {
+                                time: now.as_secs_f64(),
+                                frame: tick,
+                                killer: defender.entity,
+                            },
+                            now,
+                        );
+                        killed_at = Some(tick);
+                    }
                 }
             }
             room.finish_tick(
@@ -5079,25 +5091,28 @@ mod tests {
                 assert!(state.respawn_at.is_none());
             }
             let body = enemy.scripts.body.snapshot().unwrap();
-            if !checked_contacts
-                && let Some((&id, explosion)) = body.instances.iter().find(|(_, instance)| {
+            if !checked_contacts {
+                if let Some((&id, explosion)) = body.instances.iter().find(|(_, instance)| {
                     instance.graph == 0x0c89
                         && instance.states.get(&17).is_some_and(|state| state.active)
-                })
-            {
-                let crate::script_wire::Value::Array(contacts) = &explosion.variables[&375] else {
-                    panic!("expected the authored contact array")
-                };
-                assert!(contacts.starts_with(&DEFENDERS.map(crate::script_wire::Value::Entity)));
-                let encoder = SnapshotEncoder::new(&enemy.graphs, &enemy.codecs);
-                let projected = encoder.project(body, View::Observer).unwrap();
-                assert!(projected.instance_states(id).unwrap().contains(&17));
-                assert_eq!(
-                    projected.instance_variables(id).unwrap().get(&375),
-                    explosion.variables.get(&375)
-                );
-                encoder.full(&projected).unwrap();
-                checked_contacts = true;
+                }) {
+                    let crate::script_wire::Value::Array(contacts) = &explosion.variables[&375]
+                    else {
+                        panic!("expected the authored contact array")
+                    };
+                    assert!(
+                        contacts.starts_with(&DEFENDERS.map(crate::script_wire::Value::Entity))
+                    );
+                    let encoder = SnapshotEncoder::new(&enemy.graphs, &enemy.codecs);
+                    let projected = encoder.project(body, View::Observer).unwrap();
+                    assert!(projected.instance_states(id).unwrap().contains(&17));
+                    assert_eq!(
+                        projected.instance_variables(id).unwrap().get(&375),
+                        explosion.variables.get(&375)
+                    );
+                    encoder.full(&projected).unwrap();
+                    checked_contacts = true;
+                }
             }
             if checked_setup {
                 continue;

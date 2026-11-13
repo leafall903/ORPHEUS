@@ -6,6 +6,22 @@ This log records tested changes and their acceptance status. Entries are grouped
 
 ### 2026-11-13
 
+#### Keep Halloween restoration compatible with Rust 1.85
+
+- PR #33 exposed unsupported let-chain syntax in the runtime metadata reader,
+  encounter combat/replication, voice routing and StateScript services, plus an
+  if-let match guard in Boss pursuit. Replace these with ordered nested branches
+  and an ordinary tuple match without raising the declared Rust version.
+- Existing short-circuit order, fallback evaluation, messages, damage and state
+  lifetimes are retained. Behavior fixtures and production actor flags are
+  unchanged; no new client acceptance is claimed.
+- Verification: Rust 1.85 locked workspace/all-target inspector check passes;
+  default 405 / inspector 409 library tests and both full workspace/Clippy lanes
+  pass. Eight prepared-runtime regressions pass: encrypted three-card entry,
+  first Reaper pursuit, all-Boss Flashbang pairs, observer/Witch behavior,
+  Zombardier targeting/flight, early and all-intro late gate losses, and natural
+  Deadeye allied victory. These remain headless results, not client acceptance.
+
 #### Separate the PC creation stub from authoritative server spawning
 
 - Native registry inspection resolves CreateEntity72C9C62F to its sole exact

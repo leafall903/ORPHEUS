@@ -192,16 +192,17 @@ impl Vitals {
         let mut left = amount;
         let mut dealt = 0.0;
         'damage: for kind in DAMAGE_ORDER {
-            if kind == PoolKind::Health
-                && let Some(id) = self.wave_health
-                && let Some(bonus) = self.pools.iter_mut().find(|pool| pool.id == id)
-            {
-                let taken = left.min(bonus.current);
-                if taken > 0.0 {
-                    bonus.current -= taken;
-                    self.changed |= 1 << bonus.field;
-                    left -= taken;
-                    dealt += taken;
+            if kind == PoolKind::Health {
+                if let Some(id) = self.wave_health {
+                    if let Some(bonus) = self.pools.iter_mut().find(|pool| pool.id == id) {
+                        let taken = left.min(bonus.current);
+                        if taken > 0.0 {
+                            bonus.current -= taken;
+                            self.changed |= 1 << bonus.field;
+                            left -= taken;
+                            dealt += taken;
+                        }
+                    }
                 }
             }
             let mut reduce_armour = kind == PoolKind::Armour;

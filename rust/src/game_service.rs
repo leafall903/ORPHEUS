@@ -528,10 +528,10 @@ impl Peer {
                 .notices
                 .pop_front()
                 .ok_or(RoomError::Invariant("pending combat notice disappeared"))?;
-            if let CombatNotice::Voice { listener, .. } = notice
-                && self.world.spawned_body() != Some(listener)
-            {
-                continue;
+            if let CombatNotice::Voice { listener, .. } = notice {
+                if self.world.spawned_body() != Some(listener) {
+                    continue;
+                }
             }
             let entity = notice.required_identity();
             if entity.is_some_and(|entity| !self.world.identity_ready(entity))

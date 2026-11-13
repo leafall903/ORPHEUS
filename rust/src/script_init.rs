@@ -3653,13 +3653,13 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                     );
                     continue;
                 };
-                if key != 0
-                    && let Some(value) = self.evaluate_at(site, config, None)
-                {
-                    self.post(
-                        id,
-                        Event::Assign(VarKey::Instance(id, u32::from(key as u16)), value),
-                    )?;
+                if key != 0 {
+                    if let Some(value) = self.evaluate_at(site, config, None) {
+                        self.post(
+                            id,
+                            Event::Assign(VarKey::Instance(id, u32::from(key as u16)), value),
+                        )?;
+                    }
                 }
             }
         }
@@ -4517,14 +4517,14 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                         )
                         .map(|value| script_expr::to_int(&value, -1))
                         .unwrap_or(-1);
-                    if let Ok(index) = usize::try_from(index)
-                        && index < values.len()
-                    {
-                        for _ in index..values.len() {
-                            self.spend("ordered array removal")?;
+                    if let Ok(index) = usize::try_from(index) {
+                        if index < values.len() {
+                            for _ in index..values.len() {
+                                self.spend("ordered array removal")?;
+                            }
+                            values.remove(index);
+                            self.write(target, Value::Array(values))?;
                         }
-                        values.remove(index);
-                        self.write(target, Value::Array(values))?;
                     }
                 }
                 self.follow(id, node, "m_outPlug", None, depth)?;
@@ -4957,17 +4957,22 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 let condition = if node.class == "STU_7DEB522D" {
                     self.logical_button_id(id, node)
                         .is_some_and(|button| self.effective_button_held(button))
-                } else if (self.graph(id).index, node.pos) == (0x0c87, 21)
-                    && let Some(active) = self.world.objective_route_active(self.site(id, node))
-                {
-                    active
                 } else {
-                    let Some(value) =
-                        self.evaluate(id, node, field(&node.fields, "m_condition"), caller)
-                    else {
-                        return Ok(false);
+                    let active = if (self.graph(id).index, node.pos) == (0x0c87, 21) {
+                        self.world.objective_route_active(self.site(id, node))
+                    } else {
+                        None
                     };
-                    truthy(&value)
+                    if let Some(active) = active {
+                        active
+                    } else {
+                        let Some(value) =
+                            self.evaluate(id, node, field(&node.fields, "m_condition"), caller)
+                        else {
+                            return Ok(false);
+                        };
+                        truthy(&value)
+                    }
                 };
                 if !condition {
                     return self.follow(id, node, "m_falsePlug", caller, depth);
@@ -6165,11 +6170,10 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
             }
             return Ok(false);
         }
-        if let Ok(Some(variable)) = script_expr::dynamic(config)
-            && source_key(id, variable) == insertion.target
-            && !insertion.items.is_empty()
-        {
-            return Ok(true); // Native iterator has reached its own destination start.
+        if let Ok(Some(variable)) = script_expr::dynamic(config) {
+            if source_key(id, variable) == insertion.target && !insertion.items.is_empty() {
+                return Ok(true); // Native iterator has reached its own destination start.
+            }
         }
         let Some(value) = self.evaluate(id, node, config, caller) else {
             return Ok(true);
@@ -6191,11 +6195,13 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         if depth >= MAX_PLUG_DEPTH {
             return Err(InitFault::PlugDepth);
         }
-        if flatten && let Value::Array(items) = value {
-            for value in items {
-                self.insert_array_value(insertion, value, true, depth + 1)?;
+        if flatten {
+            if let Value::Array(items) = value {
+                for value in items {
+                    self.insert_array_value(insertion, value, true, depth + 1)?;
+                }
+                return Ok(());
             }
-            return Ok(());
         }
         if insertion.unique {
             for item in &insertion.items {
@@ -9107,14 +9113,14 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         if kind == StateKind::Anim && parameter == 1 {
             self.follow(key.instance, node, "m_A3B86BB0", Some(key), 0)?;
         }
-        if let StateKind::BossIntroVoice(cue) = kind
-            && parameter == 1
-        {
-            let site = self.site(key.instance, node);
-            if let Some(duration_ms) = self.world.play_boss_intro_voice(site, cue) {
-                self.post_after(key.instance, duration_ms, Event::Finish(key.raw))?;
-            } else {
-                self.report(site, Issue::UnsupportedField("Boss intro voice service"));
+        if let StateKind::BossIntroVoice(cue) = kind {
+            if parameter == 1 {
+                let site = self.site(key.instance, node);
+                if let Some(duration_ms) = self.world.play_boss_intro_voice(site, cue) {
+                    self.post_after(key.instance, duration_ms, Event::Finish(key.raw))?;
+                } else {
+                    self.report(site, Issue::UnsupportedField("Boss intro voice service"));
+                }
             }
         }
         if kind == StateKind::VictoryVoice && parameter == 1 {
@@ -9129,23 +9135,23 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
                 }
             }
         }
-        if let StateKind::GateVoice(stimulus) = kind
-            && parameter == 1
-        {
-            let attacker = field(&node.fields, "m_8C8C5285");
-            let attacker = if attacker.is_null() {
-                None
-            } else {
-                match self.evaluate(key.instance, node, attacker, None) {
-                    Some(Value::Entity(entity)) => Some(entity),
-                    _ => None,
+        if let StateKind::GateVoice(stimulus) = kind {
+            if parameter == 1 {
+                let attacker = field(&node.fields, "m_8C8C5285");
+                let attacker = if attacker.is_null() {
+                    None
+                } else {
+                    match self.evaluate(key.instance, node, attacker, None) {
+                        Some(Value::Entity(entity)) => Some(entity),
+                        _ => None,
+                    }
+                };
+                let site = self.site(key.instance, node);
+                if let Some(duration_ms) = self.world.play_gate_voice(site, stimulus, attacker) {
+                    self.post_after(key.instance, duration_ms, Event::Finish(key.raw))?;
+                } else {
+                    self.report(site, Issue::UnsupportedField("gate voice service"));
                 }
-            };
-            let site = self.site(key.instance, node);
-            if let Some(duration_ms) = self.world.play_gate_voice(site, stimulus, attacker) {
-                self.post_after(key.instance, duration_ms, Event::Finish(key.raw))?;
-            } else {
-                self.report(site, Issue::UnsupportedField("gate voice service"));
             }
         }
         if let StateKind::DelayedSwitch { current, undecided } = kind {
@@ -9336,11 +9342,12 @@ impl<'graph, 'world, 'machine, W: World> Vm<'graph, 'world, 'machine, W> {
         }
         if self.state(key).is_some_and(|state| state.active) {
             let graph = self.graph(key.instance);
-            if graph.index == 0x0c8c
-                && let Some(node) = graph.state(usize::from(key.raw))
-                && matches!(node.pos, 33 | 275)
-            {
-                self.try_complete(key, node, 0)?;
+            if graph.index == 0x0c8c {
+                if let Some(node) = graph.state(usize::from(key.raw)) {
+                    if matches!(node.pos, 33 | 275) {
+                        self.try_complete(key, node, 0)?;
+                    }
+                }
             }
         }
         Ok(())
@@ -10996,11 +11003,10 @@ impl<W: World> crate::script_voice::Host for VoiceHost<'_, '_, '_, '_, W> {
             self.vm
                 .spend("voice target candidate")
                 .map_err(VoiceFault::Init)?;
-            if let Value::Entity(entity) = value
-                && script_expr::valid_entity(entity)
-                && !targets.contains(&entity)
-            {
-                targets.push(entity);
+            if let Value::Entity(entity) = value {
+                if script_expr::valid_entity(entity) && !targets.contains(&entity) {
+                    targets.push(entity);
+                }
             }
         }
         Ok(targets)

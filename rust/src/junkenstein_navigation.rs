@@ -384,10 +384,10 @@ impl BossPursuit {
         defenders: &[crate::script_enemy::EnemyTarget],
         clear: impl Fn(Point, Point, f64) -> bool,
     ) -> Option<BossTarget> {
-        let firing_range = match bot.spawn.hero {
-            REAPER => 20.0,
-            ROADHOG => ROADHOG_SECONDARY_MAX,
-            JUNKRAT if let Some(arc) = arc => arc.range,
+        let firing_range = match (bot.spawn.hero, arc) {
+            (REAPER, _) => 20.0,
+            (ROADHOG, _) => ROADHOG_SECONDARY_MAX,
+            (JUNKRAT, Some(arc)) => arc.range,
             _ => {
                 self.stop(bot, tick);
                 return None;

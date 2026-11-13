@@ -119,9 +119,11 @@ fn read_metadata(path: &Path) -> io::Result<Option<EntityMetadata>> {
     if map.is_some_and(|map| !map.has_tag_name((DRAGONML, "map"))) {
         return Err(invalid("expected a DragonML component map"));
     }
-    let component92_present = if let Some(map) = map
-        && let Some(entry) = only_child(map, |node| node.has_tag_name("STU_76AF64F0"))?
-    {
+    let component92 = map
+        .map(|map| only_child(map, |node| node.has_tag_name("STU_76AF64F0")))
+        .transpose()?
+        .flatten();
+    let component92_present = if let Some(entry) = component92 {
         named_field(entry, "dragon:value")?
             .filter(|node| node.has_tag_name("STU_76AF64F0"))
             .ok_or_else(|| invalid("expected a component 92 value"))?;

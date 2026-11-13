@@ -2174,3 +2174,12 @@ create the Hero/body/controller requested by the encounter graph. Do not port
 the PC no-op as server behavior or use it to infer runtime NPC category flags.
 The partial raw component/requirement view also does not prove the final flags;
 additional creation/replication inputs remain a separate evidence gap.
+
+## Halloween source compatibility on Rust 1.85
+
+The initial source-only PR #33 candidate (19855431) passed its current-stable
+Windows lanes, Linux portable crates and Gallery policy, but failed the declared
+1.85 compiler lane. Ordered nested conditionals replace let-chains and a tuple
+match replaces the Boss pursuit if-let guard. This is a source compatibility
+repair; existing Python comparison pins and behavior fixtures remain unchanged.
+It does not establish production NPC category provenance or client acceptance.

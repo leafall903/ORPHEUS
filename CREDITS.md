@@ -654,3 +654,8 @@ Original copyright and attribution notices are retained. References to related p
   Graph/cache/admission fixtures are explicit; authored payload90..140(hex) is
   unread. This is PC implementation evidence, not server creation/category
   evidence. Native bytes, research code and replay logs remain external.
+
+- Rust compatibility: PR #33 Windows Rust 1.85 compiler diagnostics and local
+  1.85.0 checks identified unsupported let-chain and if-let guard syntax. The
+  source-only rewrite preserves branch ordering and existing shared contracts;
+  native captures and runtime inputs remain external.

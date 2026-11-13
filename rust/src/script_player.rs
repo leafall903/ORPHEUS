@@ -878,10 +878,10 @@ impl World for BodyWorld {
     }
 
     fn entity_variable(&mut self, entity: u32, id: u32) -> Option<Value> {
-        if let Some(damage) = &self.damage_credit
-            && damage.target == entity
-        {
-            return damage.target_state.read(id);
+        if let Some(damage) = &self.damage_credit {
+            if damage.target == entity {
+                return damage.target_state.read(id);
+            }
         }
         if entity != GAME_MODE_ENTITY {
             return self
@@ -1102,10 +1102,10 @@ impl World for BodyWorld {
             return None;
         }
         if entity != self.entity {
-            if let Some(damage) = &self.damage_credit
-                && damage.target == entity
-            {
-                return damage.target_tags.presence(tag);
+            if let Some(damage) = &self.damage_credit {
+                if damage.target == entity {
+                    return damage.target_tags.presence(tag);
+                }
             }
             return self
                 .sighting_source
@@ -1141,10 +1141,10 @@ impl World for BodyWorld {
         if entity == self.entity {
             Some(self.own_filter_flags())
         } else {
-            if let Some(damage) = &self.damage_credit
-                && damage.target == entity
-            {
-                return damage.target_flags;
+            if let Some(damage) = &self.damage_credit {
+                if damage.target == entity {
+                    return damage.target_flags;
+                }
             }
             self.sighting_source
                 .filter(|source| source.entity == entity)?

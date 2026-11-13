@@ -789,13 +789,13 @@ impl WorldDelivery {
         if self.junkenstein_defender(team) != Some(message.target) {
             return;
         }
-        if let Some(script) = &mut self.body_script
-            && let Err(error) = script.runtime.receive_sighting(message)
-        {
-            eprintln!(
-                "Junkenstein defender message failed for {:08x}: {error}",
-                script.id.entity
-            );
+        if let Some(script) = &mut self.body_script {
+            if let Err(error) = script.runtime.receive_sighting(message) {
+                eprintln!(
+                    "Junkenstein defender message failed for {:08x}: {error}",
+                    script.id.entity
+                );
+            }
         }
     }
 
@@ -804,15 +804,17 @@ impl WorldDelivery {
     }
 
     pub(crate) fn deliver_applied_damage(&mut self, damage: crate::game_combat::AppliedDamage) {
-        if self.spawned_body() == Some(damage.source)
-            && let Some(script) = &mut self.body_script
-            && script.id.entity == damage.source
-            && let Err(error) = script.runtime.receive_applied_damage(damage)
-        {
-            eprintln!(
-                "Owner damage event failed for {:08x}: {error}",
-                script.id.entity
-            );
+        if self.spawned_body() == Some(damage.source) {
+            if let Some(script) = &mut self.body_script {
+                if script.id.entity == damage.source {
+                    if let Err(error) = script.runtime.receive_applied_damage(damage) {
+                        eprintln!(
+                            "Owner damage event failed for {:08x}: {error}",
+                            script.id.entity
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -822,22 +824,23 @@ impl WorldDelivery {
         body: u32,
         message: crate::junkenstein_messages::DefenderMessage,
     ) {
-        if self.spawned_body() == Some(body)
-            && let Some(script) = &mut self.body_script
-            && script.id.entity == body
-        {
-            if let Err(error) = script.runtime.set_deadeye_scene(scene, 0) {
-                eprintln!("Junkenstein view facts failed for {body:08x}: {error}");
-                return;
-            }
-            match script.runtime.receive_defender_message(message) {
-                Ok(_) => {
-                    if let Some(mover) = &mut self.mover {
-                        mover.set_cinematic_aim(script.runtime.cinematic_aim());
+        if self.spawned_body() == Some(body) {
+            if let Some(script) = &mut self.body_script {
+                if script.id.entity == body {
+                    if let Err(error) = script.runtime.set_deadeye_scene(scene, 0) {
+                        eprintln!("Junkenstein view facts failed for {body:08x}: {error}");
+                        return;
                     }
-                }
-                Err(error) => {
-                    eprintln!("Junkenstein defender message failed for {body:08x}: {error}")
+                    match script.runtime.receive_defender_message(message) {
+                        Ok(_) => {
+                            if let Some(mover) = &mut self.mover {
+                                mover.set_cinematic_aim(script.runtime.cinematic_aim());
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("Junkenstein defender message failed for {body:08x}: {error}")
+                        }
+                    }
                 }
             }
         }
@@ -1433,19 +1436,21 @@ impl WorldDelivery {
     }
 
     pub(crate) fn set_encounter_active(&mut self, active: bool) {
-        if let Some(script) = &mut self.body_script
-            && script
+        if let Some(script) = &mut self.body_script {
+            if script
                 .runtime
                 .snapshot()
                 .is_some_and(Snapshot::initialization_complete)
-            && let Err(error) = script.runtime.set_encounter_active(active)
-        {
-            // Preserve the existing owner-local VM fault policy. The next input
-            // observes the unavailable runtime; this does not retire other seats.
-            eprintln!(
-                "Owner encounter admission failed for {:08x}: {error}",
-                script.id.entity
-            );
+            {
+                if let Err(error) = script.runtime.set_encounter_active(active) {
+                    // Preserve the existing owner-local VM fault policy. The next input
+                    // observes the unavailable runtime; this does not retire other seats.
+                    eprintln!(
+                        "Owner encounter admission failed for {:08x}: {error}",
+                        script.id.entity
+                    );
+                }
+            }
         }
     }
 
@@ -1511,54 +1516,57 @@ impl WorldDelivery {
         if !self.mode_ready() || self.mode.data_in_flight() {
             return Ok(());
         }
-        if !self.encounter_post_match_queued
-            && let Some(payload) = scene.encounter_post_match_wire()?
-        {
-            let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            self.push(Record::script(chunk, false));
-            self.encounter_post_match_queued = true;
-            return Ok(());
-        }
-        if !self.encounter_result_queued
-            && let Some(payload) = scene.encounter_result_wire()?
-        {
-            let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            self.push(Record::script(chunk, false));
-            self.encounter_result_queued = true;
-            return Ok(());
-        }
-        if !self.encounter_outcome_queued
-            && let Some(stamp) = self.mode.latest_data().checked_add(1)
-            && let Some(payload) = scene.encounter_outcome_wire(stamp)?
-        {
-            let mut chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            if let Some(result) = scene.encounter_match_result() {
-                chunk.update.operation = Some(Operation::Update(vec![result]));
+        if !self.encounter_post_match_queued {
+            if let Some(payload) = scene.encounter_post_match_wire()? {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_post_match_queued = true;
+                return Ok(());
             }
-            self.push(Record::script(chunk, false));
-            self.encounter_outcome_queued = true;
-            return Ok(());
         }
-        if self.encounter_post_match_queued
-            && let Some((snapshot, payload)) =
+        if !self.encounter_result_queued {
+            if let Some(payload) = scene.encounter_result_wire()? {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_result_queued = true;
+                return Ok(());
+            }
+        }
+        if !self.encounter_outcome_queued {
+            if let Some(stamp) = self.mode.latest_data().checked_add(1) {
+                if let Some(payload) = scene.encounter_outcome_wire(stamp)? {
+                    let mut chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                    if let Some(result) = scene.encounter_match_result() {
+                        chunk.update.operation = Some(Operation::Update(vec![result]));
+                    }
+                    self.push(Record::script(chunk, false));
+                    self.encounter_outcome_queued = true;
+                    return Ok(());
+                }
+            }
+        }
+        if self.encounter_post_match_queued {
+            if let Some((snapshot, payload)) =
                 scene.encounter_screen_delta(self.encounter_screens.as_ref())?
-        {
-            let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            self.push(Record::script(chunk, false));
-            self.encounter_screens = Some(snapshot);
-            return Ok(());
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_screens = Some(snapshot);
+                return Ok(());
+            }
         }
         if self.encounter_result_queued || self.encounter_outcome_queued {
             return Ok(());
         }
-        if self.encounter_notifications.is_some()
-            && let Some((raw, activation, payload)) =
+        if self.encounter_notifications.is_some() {
+            if let Some((raw, activation, payload)) =
                 scene.encounter_phase_wire(&self.encounter_phases)?
-        {
-            let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            self.push(Record::script(chunk, false));
-            self.encounter_phases.insert(raw, activation);
-            return Ok(());
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_phases.insert(raw, activation);
+                return Ok(());
+            }
         }
         let countdown = scene
             .encounter_countdown()
@@ -1567,14 +1575,16 @@ impl WorldDelivery {
         // Alternate when both are pending so either leaves room for the other.
         if !self.encounter_post_match_queued
             && (self.encounter_notification_turn || countdown.is_none())
-            && let Some((snapshot, payload)) =
-                scene.encounter_notification_delta(self.encounter_notifications.as_ref())?
         {
-            let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
-            self.push(Record::script(chunk, false));
-            self.encounter_notifications = Some(snapshot);
-            self.encounter_notification_turn = false;
-            return Ok(());
+            if let Some((snapshot, payload)) =
+                scene.encounter_notification_delta(self.encounter_notifications.as_ref())?
+            {
+                let chunk = self.mode.reliable_delta(&payload).map_err(invalid)?;
+                self.push(Record::script(chunk, false));
+                self.encounter_notifications = Some(snapshot);
+                self.encounter_notification_turn = false;
+                return Ok(());
+            }
         }
         if let Some(countdown) = countdown {
             if let Some(payload) = scene.encounter_countdown_wire(&countdown)? {

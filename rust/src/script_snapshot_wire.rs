@@ -917,12 +917,12 @@ impl<'a> SnapshotEncoder<'a> {
                     variables.values.insert(key, value.clone());
                 }
             }
-            if graph.index == 0x027f
-                && let Some(winner) = screen_manager.variables.get(&7525)
-            {
-                // The banner starts its client-only 0695 listener after the
-                // phase handoff. Seed the same resolved parameter at creation.
-                variables.values.insert(7525, winner.clone());
+            if graph.index == 0x027f {
+                if let Some(winner) = screen_manager.variables.get(&7525) {
+                    // The banner starts its client-only 0695 listener after the
+                    // phase handoff. Seed the same resolved parameter at creation.
+                    variables.values.insert(7525, winner.clone());
+                }
             }
             instances.insert(
                 id,
