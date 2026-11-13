@@ -229,6 +229,13 @@ class TireSystem:
                        for key in ("m_579D7CFF", "m_10399AE7")))
             for radius, row in zip((inner, outer), modify["m_knockbackRings"], strict=True)
         )
+        # Original0232/30 passes the body's component43 owner to the factory.
+        # Keep this separate from the retained combat source body.
+        pet_source = ability.evaluate(instance.graph.node(30).field("m_D749D7D8"), watch=False)
+        if not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id):
+            self.last_error = "RIP-Tire authored Pet source is unavailable"
+            ability.stop()
+            return
         drive_tick = born + math.ceil(windup / TICK)
         arm_tick = born + math.ceil((windup + arm_delay) / TICK)
         entity, self.next_entity = self.next_entity, self.next_entity + 1
@@ -244,6 +251,7 @@ class TireSystem:
             entity=entity, definition=BODY, kind="junkrat-tire", team=player.team,
             position=tuple(mover.position), health=health, radius=data.stand_radius,
             height=data.stand_height, owner=player, source_body=player.body,
+            pet_owner=pet_source.id, filter_bits=player.team_bit,
             created_tick=born, expires_tick=arm_tick + math.ceil(duration / TICK),
             script=script, instance=instance, ability=ability, mover=mover, vitals=Vitals(entity, health),
             drive_tick=drive_tick, arm_tick=arm_tick, end_tick=arm_tick + math.ceil(duration / TICK),

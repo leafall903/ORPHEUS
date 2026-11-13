@@ -1,0 +1,27 @@
+{
+  "targetBuild": "104319",
+  "provenance": "Synthetic actual Q commands with original selected 2578/151A/261E graphs. No game assets included.",
+  "input": {
+    "teamModes": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        0
+      ]
+    ],
+    "mineCount": 15,
+    "lateViewer": "existing client-replacement delivery path",
+    "ffa": "existing canonical owner.team_bit policy"
+  },
+  "expected": {
+    "petSource": "casting body, distinct from player entity and viewer identity",
+    "filterBits": "captured owner.team_bit for all viewers, including FFA",
+    "reconnect": "same source/filter bits; one create per device for the replacement client"
+  },
+  "nativeAcceptance": "Pending. These fields establish identity transport, not proof of rendered team colours or mine models."
+}

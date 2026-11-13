@@ -226,6 +226,8 @@ class Translocators:
         actor = Translocator(entity, owner, owner.body, state.instance, output, activation,
                              tuple(origin), tuple(speed * axis for axis in direction), gravity,
                              launch_tick + math.ceil(seconds / 0.016), launch_tick, digest, health=health)
+        actor.filter_bits = owner.team_bit
+        actor.pet_owner = actor.source_body
         self.entries[entity] = actor
         self.combat.deployables[entity] = actor
         script = actor.body_script = BotScript.__new__(BotScript)
@@ -237,16 +239,9 @@ class Translocators:
                                resolve_graph=lambda index: definitions.get(index) or graph.graph(index),
                                source_entity=owner.body, match=match)
             state.instance.write(output, expr.Entity(entity))
-            vitals = self.combat.vitals[entity]
-            components = vitals.component(vitals.ids)
             for viewer in match.players:
                 if viewer.spawned and viewer.client is not None:
-                    viewer.client.queue_entities([world.EntityUpdate(
-                        entity, world.OP_CREATE,
-                        lambda offset, components=components, position=tuple(origin): world.create(
-                            offset, DEFINITION, components, position=position,
-                        ),
-                    )])
+                    viewer.client.queue_entities([self.combat.deployable_create(actor)])
         except Exception:
             self.destroy(entity)
             raise

@@ -558,3 +558,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Captured deployment factions and copied healing charge with17 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Nine authored affiliation producers and one confirmation API with23 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

@@ -21,6 +21,7 @@ class FixedBubble:
     owner: object
     source_component: object
     source_body: int
+    pet_source: int
     team: int
     point: tuple
     born_tick: int
@@ -75,8 +76,13 @@ class WorldBubbles:
         if owner is None or self.fight.is_dead(owner) or graph.graph(0xFC) is None:
             return True
         point = instance.evaluate(node.field('m_position'))
+        # 00FA/26 asks component43 for the caster's controller. Pet72 owns
+        # this identity; the hosted 00FC instigator remains the caster body.
+        pet_source = instance.evaluate(node.field('m_D749D7D8'))
         target = expr.dynamic(node.field('m_B3019338'))
-        if not isinstance(point,expr.Vec3) or target is None or not all(math.isfinite(x) for x in point):
+        if (not isinstance(pet_source, expr.Entity) or pet_source.id != owner.entity
+                or not isinstance(point,expr.Vec3) or target is None
+                or not all(math.isfinite(x) for x in point)):
             return NotImplemented
         for _ in range(SPAN):
             entity = FIRST+self.next_id % SPAN
@@ -86,7 +92,8 @@ class WorldBubbles:
         else:
             raise RuntimeError('static Winston actor identity range exhausted')
         born = winston.world_tick_at_body(owner.body_script, instance.component.frame)
-        self.actors[entity] = FixedBubble(entity,owner,instance.component,world.body,owner.team,
+        self.actors[entity] = FixedBubble(entity,owner,instance.component,world.body,
+                                          expr.to_entity(pet_source),owner.team,
                                           tuple(point),born,instance.component.frame,
                                           instance.component.now)
         instance.write(target,expr.Entity(entity))

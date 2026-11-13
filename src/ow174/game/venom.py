@@ -44,6 +44,7 @@ class Mine:
     wall: int | None = None
     normal: tuple = (0.0, 1.0, 0.0)
     last_tick: int | None = None
+    filter_bits: int | None = None  # Captured source faction, independent of the viewer.
 
 
 @dataclass
@@ -105,6 +106,7 @@ class Mines:
             rotation = (tuple(axis / length for axis in quaternion) if length > 1e-9
                         else (1.0, 0.0, 0.0, 0.0))
             position = mine.position
+            components = {26: [mine.owner.team_bit if mine.filter_bits is None else mine.filter_bits]}
             theme, _ = mine.owner.skin
             for viewer in self.combat.match.players:
                 if not viewer.spawned or viewer.client is None:
@@ -113,8 +115,9 @@ class Mines:
                     viewers[viewer.slot] = viewer.client
                     viewer.client.queue_entities([world.EntityUpdate(
                         entity, world.OP_CREATE,
-                        lambda origin, position=position, rotation=rotation, theme=theme: world.create(
-                            origin, MINE_DEFINITION, {},
+                        lambda origin, position=position, rotation=rotation,
+                        theme=theme, c=components: world.create(
+                            origin, MINE_DEFINITION, c,
                             flags=world.WITH_TRANSFORM | world.WITH_SCALE,
                             position=position, rotation=rotation, skin=(theme, False),
                         ),
@@ -296,12 +299,14 @@ class Mines:
                     position = tuple(
                         x + normal * 0.02 for x, normal in zip(hit.point, hit.normal, strict=True)
                     )
+                    filters = getattr(flight.shot, "filter_bits", None)
                     mine = Mine(
                         self.next_number, flight.owner, flight.body, position,
                         tick + self.properties["arm"], self.properties["health"],
                         wall.entity if wall is not None else None,
                         tuple(hit.normal),
                         tick,
+                        flight.owner.team_bit if filters is None else filters,
                     )
                     self.next_number += 1
                     self.mines[:] = [old for old in self.mines if old.body != flight.body]

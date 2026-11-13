@@ -632,7 +632,7 @@ def create(world, state):
             or owner.body_script.component is not state.instance.component or fight.is_dead(owner)):
         return 0
     pet_owner = None
-    if signature == (MEI, 0x05FE, 11):
+    if signature in ((MEI, 0x05FE, 11), (REINHARDT, 0x0095, 17)):
         pet_source = state.evaluate(state.node.field('m_D749D7D8'), watch=False)
         if not isinstance(pet_source, expr.Entity) or not expr.valid_entity(pet_source.id):
             return 0

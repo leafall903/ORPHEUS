@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "case_id": "reinhardt-entity-affiliation-v1",
+  "target_build": 104319,
+  "source": {
+    "reference_revision": "a3a5dd5d989a9c8b18de9c612a1fe21ee6f446ec",
+    "original_rule": "0095 StatePet17 m_D749D7D8 is primary possessor of the casting body; combat and VM source remain the body. 011A has STUPetComponent. 01EA has projectile visual component and no Pet component."
+  },
+  "evidence": "synthetic-reference; prepared original graphs required by runtime consumer",
+  "client_acceptance": "pending; protocol ownership does not establish rendered colors",
+  "input": {
+    "hero": "02E0000000000007",
+    "viewers": ["self", "enemy", "ally"],
+    "start_time": 100.944,
+    "ticks": 450,
+    "tick_seconds": 0.016,
+    "barrier_start": 30,
+    "barrier_end": 100,
+    "late_observer_connect": 45,
+    "fire_offset": 130
+  },
+  "expected": {
+    "barrier_definition": 282,
+    "pet_owner_component": 72,
+    "pet_owner": "caster controller entity captured at creation",
+    "filter_component": 26,
+    "filter_bits": "caster team bits, identical for every viewer",
+    "barrier_vm_source": "casting body, not controller",
+    "projectile_definition": 490,
+    "shot_source": "casting body",
+    "activation": 1,
+    "no_viewer_dependent_palette_or_material_override": true
+  }
+}

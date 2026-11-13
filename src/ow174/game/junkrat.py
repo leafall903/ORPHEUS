@@ -146,6 +146,7 @@ class Junkrat:
             entity=entity, definition=MINE, kind="junkrat-mine", team=creator.team,
             position=(origin[0], origin[1] - MINE_RADIUS, origin[2]), health=MINE_HEALTH,
             radius=MINE_RADIUS, height=MINE_RADIUS * 2, owner=creator, source_body=creator.body,
+            filter_bits=creator.team_bit,
             created_tick=launch_tick, expires_tick=math.ceil((born + lifetime) / .016),
             script=creator.body_script, instance=state.instance,
             output=expr.lvalue(state.node.field("m_505472EF")), flight=flight,
@@ -185,6 +186,7 @@ class Junkrat:
             entity=entity, definition=TRAP_BODY, kind="junkrat-trap", team=creator.team,
             position=origin, health=TRAP_HEALTH, radius=TRAP_HIT_RADIUS,
             height=TRAP_HIT_RADIUS * 2, owner=creator, source_body=creator.body,
+            filter_bits=creator.team_bit,
             created_tick=launch_tick, expires_tick=math.ceil((born + lifetime) / .016),
             script=creator.body_script, instance=state.instance,
             output=expr.lvalue(state.node.field("m_505472EF")), flight=flight,
@@ -261,9 +263,6 @@ class Junkrat:
                     rocket.shot = None
                 self.sync_pose(trap)
                 junkrat_actor.landed(self, trap)
-                from ow174.game.match import TEAM_BIT
-
-                trap.filter_bits = getattr(trap.creator, "team_bit", TEAM_BIT << trap.team)
                 for viewer in self.combat.match.players:
                     if viewer.spawned and viewer.client is not None:
                         viewer.client.queue_entities([self.combat.deployable_create(trap)])

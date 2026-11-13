@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "case_id": "junkrat-affiliation-inputs-v1",
+  "target_build": "104319",
+  "evidence": "authored-input-and-runtime-wire-reconstruction",
+  "client_acceptance": "pending",
+  "source": {
+    "reference_revision": "6ae928126b9df11ffc5db6921d690a2b6dc65b9c",
+    "tire": "0232/30 m_D749D7D8=F7262B36(SELF), distinct from combat source body",
+    "trap": "09BB/77 m_teamColor=377B7AAB(65ABFCCC(SELF)); native5D9570 decodes component26 team flags",
+    "consumer": "tests/runtime/test_junkrat_affiliation.py"
+  },
+  "input": {
+    "caster_controller": "0xA0000100",
+    "caster_body": "0xA0000102",
+    "caster_team": 1,
+    "viewers": [
+      "self",
+      "ally-team1",
+      "enemy-team0",
+      "late-ally-team1"
+    ]
+  },
+  "expected": {
+    "tire_pet_owner": "evaluated authored factory source",
+    "combat_source": "original caster body",
+    "team_filter": 16777216,
+    "viewer_component26": "same captured source filter for all viewers",
+    "late_join_instance27_and40": "original caster body",
+    "unknown_tire_source": "reject before actor allocation",
+    "rgb_override": null
+  },
+  "boundaries": [
+    "Tire actor network publication remains absent in existing host",
+    "Native377B7AAB resource selection and rendered color not accepted",
+    "Mine/trap implicit factory component72 identity remains unproved; not guessed"
+  ]
+}

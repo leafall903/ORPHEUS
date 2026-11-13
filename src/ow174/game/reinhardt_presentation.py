@@ -43,6 +43,8 @@ def sync(fight):
                         -math.sin(y) * math.sin(p), math.cos(y) * math.cos(p))
             movement = world.Movement(position, mover.yaw, mover.pitch)
             components = {26: [owner.team_bit]}
+            if barrier.pet_owner is not None:
+                components[72] = [barrier.pet_owner]
             if barrier.vitals is not None:
                 components.update(barrier.vitals.component(barrier.vitals.most))
             if entity not in viewer.seen:

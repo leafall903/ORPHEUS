@@ -171,3 +171,8 @@ coverage and the work still pending.
   The synthetic `pharah-force-producer-174-v1` contract drives real attacks through
   the provisional shared receiver; it does not establish native prediction adoption,
   complete resistance services or projectile HIT clock acceptance.
+
+- **Local Hanzo104319 affiliation research** — original0149/020D Sonic Pet
+  definitions and010E viewer/team-color expressions, plus the existing native
+  component72 source encoding. Restricted XML/assets remain external. Synthetic
+  encrypted protocol checks establish source/filter inputs, not final colors.

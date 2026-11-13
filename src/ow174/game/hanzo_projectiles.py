@@ -25,3 +25,12 @@ def advance(fight, rocket):
         return False
     projectile_clock.advance_accepted(fight, rocket)
     return True
+
+
+def confirmation_components(shot):
+    """0149/020D own a native Pet; bind aliases before their launch event arrives."""
+    if shot.definition not in (0x0400000000000149, 0x040000000000020D):
+        return {}
+    if shot.filter_bits is None:
+        return {}  # no declared player filter snapshot; do not invent NPC affiliation
+    return {72: [shot.body], 26: [shot.filter_bits]}

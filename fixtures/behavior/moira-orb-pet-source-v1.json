@@ -1,0 +1,18 @@
+{
+  "case_id": "moira-orb-pet-source-v1",
+  "target_build": 104319,
+  "source": "Original1E60/1E61 entity definitions each include STUPetComponent; network MECPet72 is the existing native source-body field.",
+  "inputs": {
+    "volleys": [[4324, 20, "0400000000001E60"], [4324, 21, "0400000000001E61"]],
+    "viewers": ["self", "ally", "enemy"],
+    "source_baseline": "self delayed until after cast",
+    "retained_create": "rebuilt after source body replacement"
+  },
+  "expected": {
+    "orb_components": {"72": ["cast_source_body"]},
+    "launch_entity": "cast_source_body",
+    "body_component26": "actual caster team bits on self/ally/enemy/late body creates",
+    "constant_rgb_or_material_override": false
+  },
+  "limits": "Protocol source-context check only. Original effect viewer-relative color predicate and live1.74 color presentation remain native pending; existing live-orb late-join replay and reflected visuals are not added by this change."
+}

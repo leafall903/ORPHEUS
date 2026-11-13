@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "case_id": "sombra-affiliation-v1",
+  "target_build": "1.74.0.0.104319",
+  "source": {
+    "provenance": "Original0C1A nodes5/12/41 use STU_2B2E2F6D mode0 Pet-owner query. Native FilterBits team query consumes replicated component26; existing MECPet component72 carries actual source-body relation. Synthetic ordinary two-team cast; no native palette claim."
+  },
+  "input": {"source_team": 1, "throw_button": 16},
+  "expected": {"spawn_and_late_join": "actual source team filter and source body; same identity for self/ally/enemy"},
+  "client_acceptance": "pending"
+}

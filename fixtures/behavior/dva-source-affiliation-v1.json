@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "provenance": {
+    "build": "1.74.0.0.104319",
+    "kind": "Synthetic team/FFA scene with authored026A owned0407 creation and independently decoded native create fields",
+    "rules": "Preserve the creating body's team/FFA filter bit on its retained mech. Component72 owner and123 character identity remain independent; viewer choice does not replace source affiliation.",
+    "limits": "Protocol metadata contract only. Native component25 affiliation, effect color conditions and rendered owner/ally/enemy colors are not accepted by this fixture."
+  },
+  "inputs": ["Team0 source", "Team1 source", "FFA source", "Existing owner/ally/enemy create paths", "Existing spawn_updates late join", "Retained detached body after source retirement"],
+  "expected": {
+    "component26": "Captured source player.team_bit",
+    "component72": "Original direct controller owner",
+    "component123": "DVa hero identity",
+    "retain_after_source_retirement": true
+  },
+  "native_acceptance": "Pending; no fixed blue/red color or replacement material"
+}

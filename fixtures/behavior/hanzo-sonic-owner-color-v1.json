@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "hanzo-sonic-owner-color-v1",
+  "target_build": "104319",
+  "source": {"provenance": "Synthetic real-input Sonic scenario; original0149/020D Pet definitions and component72 source encoding reviewed externally; game assets excluded."},
+  "input": {"viewers": ["owner", "same-team ally", "enemy"], "order": ["short Sonic release", "capture actual observer create", "replace caster body and change team", "delayed old-shot owner confirmation"]},
+  "expected": {"pet_component": 72, "filter_component": 26, "pet_value": "body captured at original shot", "filter_value": "filter bits captured at original shot", "colors": "original client evaluates relation; no RGB override"},
+  "evidence": "encrypted-protocol",
+  "client_acceptance": "pending"
+}

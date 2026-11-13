@@ -298,7 +298,8 @@ def create_mech(match, instance, node):
     entity = match.combat.next_bot
     if not bots.BOT_ENTITY <= entity < 0xD0000000 or any(b.entity == entity for b in match.bots):
         return expr.Entity(0)
-    data = {"hero": f"0x{DVA:016X}", "team": player.team, "position": tuple(point),
+    data = {"hero": f"0x{DVA:016X}", "team": player.team,
+            "dva_source_filter_bits": player.team_bit, "position": tuple(point),
             "rotation": (0, 0, 0, 1), "graphs": [], "vars": {}}
     bot = bots.Bot(entity, data, {"name": "D.Va mech", "body": f"0x{MECH:016X}", "health": health}, {})
     bot.owner, bot.source_body = owner.id, player.body

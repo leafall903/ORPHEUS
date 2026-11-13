@@ -110,7 +110,7 @@ def sync(manager):
         for entity, actor in live.items():
             # #253 is derived from component 51 on the native client and is
             # excluded from VM snapshots. The collision pool must travel too.
-            components = {26: [actor.owner.team_bit]}
+            components = {26: [actor.owner.team_bit], 72: [actor.pet_source]}
             components.update(world.health(actor.health, actor.maximum))
             if entity not in viewer.seen:
                 viewer.seen[entity] = False

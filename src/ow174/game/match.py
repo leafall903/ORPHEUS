@@ -1164,6 +1164,9 @@ class Match:
         if bot.spawner.get('manual_hero_target') is True:
             components[123] = [bot.hero]
         if bot.hero == dva.HERO and bot.body == dva.MECH and bot.owner is not None:
+            # The retained mech/bomb belongs to its creating body's affiliation.
+            # In FFA the body's filter bit differs from its logical team number.
+            components[26] = [bot.spawner.get("dva_source_filter_bits", TEAM_BIT << bot.team)]
             # Native0407 inherits CharacterBody123. Leaving its hero null breaks
             # the possessed body's character context; ordinary NPCs lack123.
             components[123] = [dva.HERO]

@@ -94,6 +94,7 @@ class Mine:
     triggered: bool = False
     removing: bool = False
 
+    filter_bits: int = 0
     born_tick: int = 0
     reported_frame: int = 0
     body_script: object = None
@@ -357,6 +358,7 @@ class Mines:
             fight.next_bot += 1
             mine = Mine(owner, source, owner.team, body, position, velocity, gravity, lifetime,
                         reach, health, fight.tick)
+            mine.filter_bits = owner.team_bit
             mine.born_tick = born_tick
             mine.last_tick = mine.born_tick
             mine.reported_frame = reported_frame
@@ -377,7 +379,8 @@ class Mines:
             # Freeze the create baseline; retransmission cannot change its pose/pools.
             position = mine.position
             components = world.health(mine.health, 50)
-            components[26] = [0x800000 << mine.team]
+            components[26] = [mine.filter_bits]
+            components[72] = [mine.source]
             viewer.client.queue_entities([world.EntityUpdate(
                 mine.entity, world.OP_CREATE,
                 lambda origin, position=position, components=components: world.create(

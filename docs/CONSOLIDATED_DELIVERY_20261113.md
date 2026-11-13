@@ -212,3 +212,18 @@ Compose four original focused deliveries: Torbjorn1b49 pool birth filter capture
 - `echo-copied-native-heal-charge`: original focused owner commit(s) `a7d91d702dd2c9e203b38784cd8c6fee88344c5a`.
 - `symmetra-photon-birth-filter`: original focused owner commit(s) `963f16cc8c49262b4a4ed01db0d336b27aecfc9d`.
 - `zarya-field-captured-filter`: original focused owner commit(s) `1d1229638a142fda2e0a5a81aba5fea09e900592`.
+
+## Nine authored affiliation producers and one confirmation API
+
+Integrate original focused Hanzo801f, Reinhardte384, Winston61ef, Widow0b00, Junkrat8b04, DVa960d, Sombra2a47, Moiraf3b8 and Ball131f source/team producer repairs with their explicit actor/graph/definition guards. Native Pet relationships are evaluated or captured independently of combat source body and team bits; no material or fixed blue/red override is added. Deduplicate the Hanzo/Moira confirmation conflict into the already selected optional components API: preserve Sonic metadata and supply captured Moira cast-body72 only at original10E4/20 or21 for1E60/1E61. Original Moira fixture/test/nonshared hunks remain unchanged; reversible adapted patch records preserve every previous shared method. Eighteen new composed methods pass, followed by5 repeated checks after test-only import ordering and loop-lambda binding maintenance. Cumulative134 selected follow-up methods pass (120 new,14 maintained compatibility); the23 executions are not23 additional distinct methods. Preserve normal/late ACK, body replacement, expiry and retirement gates and independent VM descriptor source. Widow reflected-mine faction ownership is separately open pending its focused child; normal team creates do not establish reflection parity. Common owned-player NPC FFA capture, native Pet network acceptance, final palette classification, Soldier76 Field/Mei Cryo reports and all retained force/control/Physics issues remain open. Baptiste preview and Reaper/Mei strict-byte lifecycle fixes are excluded until compatible producer/snapshot children are composed. No running immutablea3a server or native Halloween acceptance is changed.
+
+- `hanzo-sonic-authored-owner`: original focused owner commit(s) `801fb7426dfc09f90258bf0fab1c2b7b174a2222`.
+- `reinhardt-shield-authored-owner`: original focused owner commit(s) `e3843706860a217d1fc4d39529cb27c94230e89f`.
+- `winston-dome-authored-owner`: original focused owner commit(s) `61efdf0757047ff4ad96cde8a338887f362b56bf`.
+- `widowmaker-mine-faction`: original focused owner commit(s) `0b0036270799eece952d992c2eca6f51a5cd6fbb`.
+- `junkrat-tire-authored-owner`: original focused owner commit(s) `8b043dc244174b782418e8759e1aff7ca250b624`.
+- `dva-mech-actual-filter`: original focused owner commit(s) `960de962a9545a5cc7920876302a1e94d5fbf155`.
+- `sombra-translocator-birth-affiliation`: original focused owner commit(s) `2a470da3425059fcdb479c0258cd2aa171d6d36d`.
+- `moira-orb-captured-source`: original focused owner commit(s) `f3b8403f7bb5466d3d7a0ba4550e74786d2e3684`.
+- `ball-mine-birth-affiliation`: original focused owner commit(s) `131fbe7b979c3a55cfb9256ff0475cf8505a8083`.
+- `nineteenth-lint-maintenance`: original focused owner commit(s) `0042 scoped integration lint maintenance over Winston61efdf07 and Ball131fbe7b`.

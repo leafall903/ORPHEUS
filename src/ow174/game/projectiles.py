@@ -34,7 +34,7 @@ import math
 from dataclasses import dataclass, field
 from functools import cache
 
-from ow174.game import bots, pharah, world
+from ow174.game import bots, hanzo_projectiles, pharah, world
 from ow174.game.bits import BitWriter
 from ow174.game.commands import FRAME_MASK
 from ow174.game.script import expr, nodes
@@ -627,7 +627,15 @@ class Projectiles:
                     cls, active, payload = activation
                     delivery.activation = cls, active, tuple(sorted(dict(payload).items()))
                     viewer.client.retain_bot_volley(delivery)
-                create = EntityUpdate(entity, OP_CREATE, confirm_record(member.definition))
+                components = dict(hanzo_projectiles.confirmation_components(member) or {})
+                # Original1E60/1E61 Pet source is the captured cast body. Keep
+                # the existing generic confirmation-components API shared.
+                if (state.instance.graph.index, state.node.pos, member.definition) in (
+                        (0x10E4, 20, 0x0400000000001E60),
+                        (0x10E4, 21, 0x0400000000001E61)):
+                    components[72] = [member.body]
+                create = EntityUpdate(entity, OP_CREATE, confirm_record(
+                    member.definition, components=components))
                 create.stream = delivery.creation
                 launch.stream = delivery.launch_arrival
                 member.observers.append(delivery)
@@ -798,7 +806,7 @@ class Projectiles:
             return
         if shot.created_tick is None:
             shot.created_tick = tick
-        build = confirm_record(shot.definition)
+        build = confirm_record(shot.definition, components=hanzo_projectiles.confirmation_components(shot))
         updates = []
         for entity in new:
             arrival = shot.created[entity] = _ProjectileArrival()
@@ -975,11 +983,12 @@ class FieldArrived:
             self.viewer.client.queue_entities([self.stream.full_frame(field_frame(self.shot.faded))])
 
 
-def confirm_record(definition: int):
+def confirm_record(definition: int, *, components=None):
     """A plain create of the projectile's definition: for an id the client shot it only confirms it."""
 
     def build(origin: int):
-        return world.create(origin, definition, {}, flags=WITH_TRANSFORM | WITH_SCALE, position=CREATE_AT)
+        return world.create(
+            origin, definition, components or {}, flags=WITH_TRANSFORM | WITH_SCALE, position=CREATE_AT)
 
     return build
 

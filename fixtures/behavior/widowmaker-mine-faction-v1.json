@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_id": "widowmaker-mine-faction-v1",
+  "target_build": 104319,
+  "source": {
+    "revision": "5d4f8134099fe099df63aa2c6963ba860b33a3d6",
+    "provenance": "Synthetic actualminebutton16 byopposingWidows; self,ally,enemy andlatejoinexistingmatch; encryptedcomponent26 plusnative5D9570teamdecoder. NoassertionofRGB orunknownPetfactorysource."
+  },
+  "client_acceptance": "pending",
+  "create_observations": 8,
+  "expected": "Each00AEcreate containscapturedsourceShotfilterbits; samefactionmetadataforeachviewer,notforcedcolors."
+}
