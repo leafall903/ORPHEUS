@@ -1,5 +1,21 @@
 # Shared behavior contracts
 
+## Independent observed frame labels
+
+`observed-component-cursor-v1.json` records the original explicit-setter case
+frame900072 with millisecond cursor17423. Preserve that actual pair; the native
+explicit setter does not impose the separate derived frame-times-period rule.
+Single-instance advancement requires the recorded frame as an explicit argument
+and never derives it by dividing event milliseconds. Keep past-time/range/live
+identity/work-budget validation, sibling isolation and finally clock restoration.
+
+Native C6 instruction probes use the receiver VM cursor for ordinary Entry,
+fall back to it for negative explicit Entry time and clamp queued times against
+receiverNow. A source/receiver label difference alone is not a failed consumer
+and does not justify guessed sender-to-world projection. Authoritative transport
+and upstream scheduler frame selection, native Clamp and complete Hook behavior
+remain unqualified within the stated synthetic storage/event adapter boundary.
+
 ## Authoritative RIP-Tire publication and receiver delivery
 
 `junkrat-tire-publication-v1.json` exercises the same original-Q-created039C
@@ -40,7 +56,8 @@ live admitted instance; sibling queues, owner inputs and component end phases
 are not replayed. History is script-identity-bound and limited to64 ticks;
 missing observations keep current-time admission. The original victim Wait,
 MoveTo, recovery, sole physical mover, damage and carrier identities remain.
-Separate source C6 queue-clock projection and native Clamp/speed are still open.
+C6 keeps the native receiver cursor; upstream scheduler ownership and native
+Clamp/speed remain open, without a guessed source/world-clock projection.
 
 `doomfist-uppercut-self-launch-v1.json` records the original directional caster
 launch and next-frame queue boundary. The maintained test observes the pending

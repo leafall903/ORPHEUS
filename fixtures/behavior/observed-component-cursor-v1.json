@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "synthetic observed cursor contract",
+  "native_reference": "104319 explicit setter1B8E6B0 stores separate frame and millisecond arguments; ordinary C6 consumer1B91D70 reads receiverVM+1E0 and queue1B92990 clamps against that cursor",
+  "frame_ms": 16,
+  "current": [900080, 18000],
+  "observed": [900072, 17423],
+  "expected": "Scoped entry executes with the exact observed pair, then restores current pair. Never convert the observed millisecond cursor to a frame label by division.",
+  "scope": "Original instruction evidence uses synthetic VM storage. Native transport/scheduler frame selection and client acceptance are not established."
+}

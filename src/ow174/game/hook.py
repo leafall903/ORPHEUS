@@ -120,7 +120,7 @@ class Hooks:
                 from ow174.game.script import runtime
 
                 move.request(runtime.ABORT)
-        component.advance_instance_until(victim, clock[1], clock[1])
+        component.advance_instance_until(victim, clock[1], clock[1], frame=clock[0])
 
     def observe_input(self, player, commands):
         actor = player.controlled_mech or player
@@ -279,7 +279,7 @@ class Hooks:
                 graph.graph(0x01C9), source=request.context.caller, instigator=request.context.instigator,
                 params=request.params, overrides=resource.overrides, policy=request.policy)
         if flight.victim_instance is not None:
-            component.advance_instance_until(flight.victim_instance, clock[1], clock[1])
+            component.advance_instance_until(flight.victim_instance, clock[1], clock[1], frame=clock[0])
             flight.victim_clock = clock
         return True
 
@@ -630,7 +630,8 @@ class Hooks:
                 if (clock is not None and flight.victim_clock is not None
                         and clock[1] >= flight.victim_clock[1]
                         and victim.component.instances.get(victim.id) is victim):
-                    victim.component.advance_instance_until(victim, flight.victim_clock[1], clock[1])
+                    victim.component.advance_instance_until(victim, flight.victim_clock[1], clock[1],
+                                                            frame=clock[0])
                     flight.victim_clock = clock
                 request = self.victim_move(flight)
                 if request is None:

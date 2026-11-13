@@ -1832,9 +1832,10 @@ class Component:
         This does not update other instances, inject edges or run a component
         end phase. The ordinary frame/cursor are restored even on failure.
         """
-        if (type(frame) is not int or type(now) is not int or frame < 0
-                or not frame * self.frame_ms <= now < (frame + 1) * self.frame_ms
-                or now > self.now):
+        # Native1B8E6B0 accepts an explicit time independently of its frame
+        # label. Do not impose the derived1B8C910 frame*period relationship.
+        if (type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF
+                or type(now) is not int or not 0 <= now <= self.now):
             raise ValueError("historical invocation requires an observed past component cursor")
         saved = self.frame, self.now
         with self.operation():
@@ -1844,9 +1845,10 @@ class Component:
             finally:
                 self.frame, self.now = saved
 
-    def advance_instance_until(self, instance: "Instance", start: int, end: int) -> None:
+    def advance_instance_until(self, instance: "Instance", start: int, end: int, *, frame: int) -> None:
         """Replay only one live instance's due events through an observed cursor."""
         if (instance.component is not self or self.instances.get(instance.id) is not instance
+                or type(frame) is not int or not 0 <= frame <= 0xFFFFFFFF
                 or type(start) is not int or type(end) is not int
                 or not instance.start <= start <= end <= self.now):
             raise ValueError("instance replay requires its live identity and ordered observed cursors")
@@ -1854,7 +1856,7 @@ class Component:
             for _ in range(MAX_COMPONENT_UPDATES):
                 due = instance.queue[0].time if instance.queue else None
                 at = end if due is None or due > end else max(start, due)
-                with self.observed_clock(at // self.frame_ms, at):
+                with self.observed_clock(frame, at):
                     instance.update()
                 if instance.stopped or self.instances.get(instance.id) is not instance:
                     return
