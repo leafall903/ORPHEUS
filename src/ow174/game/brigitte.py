@@ -944,7 +944,7 @@ class BrigitteCombat:
     def _fly_whips(self, player_filter=None, *, through=None) -> None:
         if not self.whips:
             return
-        from ow174.game.combat import TICK, _along, _number, ray_capsule, ray_world
+        from ow174.game.combat import TICK, _along, ray_capsule, ray_world
 
         combat = self.combat
         now = combat.now if through is None else min(combat.now, through)
@@ -1042,22 +1042,31 @@ class BrigitteCombat:
                            world_tick=contact_tick)
             if (combat.vitals_of(target).total < before and not combat.vitals_of(target).dead
                     and not self._fortify_blocks_whip(target.owner)):
-                # Read the authored25/3 terms and live ruleset14131 at contact.
-                # Force direction, native target417/vector433 and resistance remain unproved.
-                settings = flight.instance.graph.node(32).field("m_modifyHealth") or {}
-                horizontal_speed = _number(flight.instance.evaluate(settings.get("m_E33EFEE1")), 0.0)
-                vertical_speed = _number(flight.instance.evaluate(settings.get("m_583C208B")), 0.0)
-                dx, _, dz = flight.direction
-                horizontal = math.hypot(dx, dz)
-                if horizontal > 1e-9 and (horizontal_speed or vertical_speed):
-                    velocity = (dx / horizontal * horizontal_speed, vertical_speed,
-                                dz / horizontal * horizontal_speed)
-                    mover = getattr(target.owner, "mover", None)
-                    if mover is not None:
-                        mover.impulse(velocity)
-                    else:
-                        target.owner.impulse(velocity, combat.tick, combat._collision(),
-                                             free_for_all=combat.match.game_map.free_for_all)
+                from ow174.game import brigitte_force, defenses
+                from ow174.game.mover import IN_AIR
+
+                flags = combat.match.script_movement_flags(target.entity, player.body)
+                if type(flags) is not int:
+                    continue
+                spec = brigitte_force.evaluate_whip(flight.instance, target.entity, bool(flags & IN_AIR))
+                if spec is None:
+                    continue
+                owner = target.owner
+                mover = combat.knockbacks.active.get(target.entity)
+                if mover is None:
+                    mover = (getattr(owner, "control_mover", None)
+                             or getattr(owner, "impulse_mover", None)
+                             or getattr(owner, "mover", None))
+                incoming = tuple(mover.velocity if mover is not None else owner.velocity)
+                # Host impact snapshot, matching the existing shared producer policy.
+                # Native argument9 actor/capture phase and D73830 remain unaccepted.
+                impulse = spec.impulse(incoming)
+                # Reuse the shared impact-time response policy once after forming
+                # the delta; this does not identify native CC or D73830 ordering.
+                response = defenses.knockback_scale(owner)
+                impulse = expr.Vec3(*(axis * response for axis in impulse))
+                combat.knockbacks.apply(target, impulse, impact_tick=contact_tick,
+                                        source_entity=flight.body)
 
     def passive_command(self, player, script) -> None:
         """Consume an issued aura's graph pulses even while active input is controlled."""

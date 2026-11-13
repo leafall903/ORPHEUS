@@ -1,0 +1,11 @@
+{
+  "build": 104319,
+  "graph": "1259/node32/state17",
+  "native_image_sha256": "b06c3fb0ff82ba6521740b64e2b6d1394f3e692793b61df2d888e627f4bca9b2",
+  "native_ranges": ["D6DC70..D6DEA7", "D6D9AE..D6DB01", "D3D7EA..D3D808"],
+  "air_mask": 8388620,
+  "ground": {"impact_tick": 1019, "pre_profile_delta": [0, 3, 25]},
+  "elevated": {"impact_tick": 1021, "pre_profile_delta": [0, 14.067365646362305, 20.763324737548828]},
+  "reinhardt_host_response": 0.7,
+  "phase_boundary": "Incoming argument9 is supplied before the minimum; native actor capture phase remains unproven. Current host binds impact-time velocity once. Response-after-formed-delta is existing shared host policy, not recovered D73830 ordering."
+}

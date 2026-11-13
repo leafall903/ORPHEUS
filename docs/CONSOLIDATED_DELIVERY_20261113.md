@@ -150,3 +150,9 @@ Correct the previously published finite-launch clock boundary: canonical braking
 - `recipient-launch-clock`: original focused owner commit(s) `973734b9a931a21ca8925ed51332276b47ab3ba3`.
 - `reaper-ended-shell`: original focused owner commit(s) `a9d09129e1d0d0fe407a9bd65cd567ba47a4ec6e`.
 - `orisa-supercharger-carrier`: original focused owner commit(s) `603cea84ce20280bd8c6518fe4bd39ad2b2ee92f`.
+
+## Brigitte authored Whip canonical submission
+
+Integrate only Brigitte ba96270c Whip provider and canonical submission. Evaluate original1259/node32 bytecode with the retained433 direction and actual recipient movement flags, preserving explicit vector, flat999 ring and minimum-Y arithmetic as separate fields. Read and apply the existing live recipient response once, then submit once to the existing receiver using physical contact tick and captured source body; remove the old direct mover.impulse/owner.impulse bypass. Preserve previously integrated captured direction and all other Brigitte methods, including Bash. Four new methods and three retained direction/HIT/batching methods pass on the composed source; cumulative70 selected follow-up methods pass (64 new,6 modified compatibility). New helper and test full Ruff pass. Incoming-argument9 actor/velocity capture phase, D73830 conversion and response placement remain explicitly unaccepted native boundaries; impact-time capture and response-after-formed-delta are host policies. No deferred partial, new mover/receiver/queue, Physics implementation or original-client adoption is claimed. Existing native failures and activeMoveTo/zero-request/control gaps remain open; running735 and prepared611 source are unchanged.
+
+- `brigitte-whip-canonical-provider`: original focused owner commit(s) `ba96270c6fc770a69447a74f7cd3fc78995ce216`.
