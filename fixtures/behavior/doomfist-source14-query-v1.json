@@ -9,7 +9,7 @@
   },
   "output": {"scope": 0, "identifier": 375, "type": "entity-array"},
   "paired_output": {"identifier": 23530, "qualified": false},
-  "normal_host_enabled": false,
+  "normal_host_enabled": true,
   "native_rvas": ["C9B9AB", "C9BBE6", "C8E660", "CAA6C0", "CAFC9C"],
-  "scope": "Registered ordinary Match player/NPC capsules and current caller clock; explicit query binding only. Original state owns typed publication; original transition is unqualified. Native arbitrary tag/parented-shape enumeration, paired producer, recipient scheduling and health completion remain open."
+  "scope": "Normal host query for registered ordinary Match player/NPC capsules and current caller clock. Original state owns typed publication; original transition is unqualified. Native arbitrary tag/parented-shape enumeration, paired producer, recipient scheduling and health completion remain open."
 }

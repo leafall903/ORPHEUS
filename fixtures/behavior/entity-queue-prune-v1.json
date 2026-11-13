@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sourceParent": "456837f6e344b6e5c24cf1b29c3c9041a318fae7",
+  "scope": "Prune only locally changed lifetimes and validate actual controller closes",
+  "provenance": "Existing reliable generation/ACK/loss fixtures and synthetic actual Client queue sequences",
+  "contracts": [
+    "New record admission still checks its exact registered lifetime",
+    "Create/destroy transitions prune all obsolete records of the changed entities",
+    "Unrelated live entity generations and FIFO order remain unchanged",
+    "An externally replaced controller full frame removes every obsolete close on the next queue operation",
+    "Every queue operation preserves the original fresh-list identity boundary",
+    "No persistent cache field or causal state is introduced"
+  ],
+  "checks": {
+    "newDirectedQueueMethods": 2,
+    "retainedActualGenerationMethods": 8,
+    "twentyHeroBudgetPassed": false,
+    "nativeAccepted": false
+  }
+}

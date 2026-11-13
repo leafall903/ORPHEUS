@@ -1,8 +1,10 @@
 """Actual Zenyatta 0164 volleys against the hosted 104319 Tracer."""
 
+import json
 import math
 import unittest
 from dataclasses import replace
+from pathlib import Path
 
 import test_game_tracer as tracer_tests
 import test_game_tracer_pulse_deflect as support_tests
@@ -10,7 +12,7 @@ import test_game_tracer_winston_barrier as bubble_tests
 from test_game_combat import aim
 from test_game_mover import box, wall
 
-from ow174.game import combat, deflection, sigma_grasp, tracer, zenyatta_orbs
+from ow174.game import combat, deflection, sigma, tracer, zenyatta
 from ow174.game.collision import World
 from ow174.game.commands import CROUCH, FIRE, SECONDARY, Command
 from ow174.game.content import heroes
@@ -58,6 +60,17 @@ class TracerZenyattaTests(unittest.TestCase):
         return [(notice["+0x78"]["+0x4"], notice["+0x78"]["+0x8"])
                 for notice in self.zen.client.messages(combat.HIT)]
 
+    def orb(self, name):
+        owner = self.fight.zenyatta.owners.get(self.zen.body)
+        return getattr(owner, name) if owner is not None else None
+
+    def orb_instance(self, graph):
+        return next(instance for instance in self.zen.body_script.component.instances.values()
+                    if instance.graph.index == graph)
+
+    def orb_expiry_tick(self, orb):
+        return math.ceil((orb.last_visible + zenyatta.LOS_GRACE) / combat.TICK)
+
     def begin_transcendence(self, *, earned=False):
         script = self.zen.body_script
         script.ult_seconds = 0
@@ -68,21 +81,22 @@ class TracerZenyattaTests(unittest.TestCase):
         self.assertEqual(meter.value(), cost)
         self.step(zen=32)
         self.assertEqual(meter.value(), 0)
-        self.assertTrue(self.fight.zenyatta_orbs.protects(self.zen))
-        return self.fight.zenyatta_orbs.transcendence[self.zen.body]
+        self.assertTrue(self.fight.zenyatta.ultimate(self.zen))
+        return (self.fight.zenyatta.ultimate_state(self.zen),
+                self.fight.zenyatta.ultimate_last_world_tick(self.zen))
 
     def test_transcendence_protects_zen_from_tracer_pistols_melee_and_pulse_until_expiry(self):
         script = self.zen.body_script
         script.ult_seconds = 0
         self.step(zen=32)
-        self.assertFalse(self.fight.zenyatta_orbs.protects(self.zen))
+        self.assertFalse(self.fight.zenyatta.ultimate(self.zen))
         self.zen_health.damage(100)
         x, y, z = self.tracer.mover.position
         self.zen.mover.position[:] = (x, y, z - 2.4)
         self.zen.mover.body = None
         self.step()
-        effect = self.begin_transcendence()
-        self.assertEqual(effect.last - effect.start, 374)
+        effect, end_tick = self.begin_transcendence()
+        self.assertEqual(end_tick - effect.start // script.frame_ms, 374)
         self.assertEqual(self.zen_health.total, 200)
         self.step(zen=FIRE, tracer_buttons=FIRE)
         self.assertFalse(self.fight.rockets)
@@ -90,7 +104,7 @@ class TracerZenyattaTests(unittest.TestCase):
         self.assertEqual(self.zen_health.total, 200)
         self.assertFalse(self.tracer.client.messages(combat.HIT))
         self.step(zen=32)
-        self.assertIs(self.fight.zenyatta_orbs.transcendence[self.zen.body], effect)
+        self.assertIs(self.fight.zenyatta.ultimate_state(self.zen), effect)
 
         script = self.tracer.body_script
         script.set_ult_charge(script.component.entity_var(ULT_COST).value())
@@ -110,14 +124,14 @@ class TracerZenyattaTests(unittest.TestCase):
 
         zen_frame = self.zen.body_script.frame
         yaw, pitch = aim(self.fight._eye(self.tracer), (x, y + 1, z - 2.4))
-        for frame in range(self.run.frame + 1, effect.last + 2):
+        for frame in range(self.run.frame + 1, end_tick + 2):
             self.match.update(frame * combat.TICK, frame)
             self.tracer.client.queue_entities(self.match.remote_movements(self.tracer))
-            buttons = FIRE if frame == effect.last + 1 else 0
+            buttons = FIRE if frame == end_tick + 1 else 0
             self.tracer.take_commands([Command(frame, yaw=yaw, pitch=pitch, buttons=buttons)])
-        self.run.frame = effect.last + 1
+        self.run.frame = end_tick + 1
         self.assertEqual(self.zen.body_script.frame, zen_frame)
-        self.assertFalse(self.fight.zenyatta_orbs.protects(self.zen))
+        self.assertFalse(self.fight.zenyatta.ultimate(self.zen))
         self.assertEqual(self.zen_health.total, 188)
 
     def test_transcendence_expiry_orders_pulse_blasts_before_retained_frames(self):
@@ -128,7 +142,7 @@ class TracerZenyattaTests(unittest.TestCase):
                 x, y, z = self.tracer.mover.position
                 self.zen.mover.position[:] = (x, y, z - 3.5)
                 self.zen.mover.body = None
-                effect = self.begin_transcendence()
+                _effect, end_tick = self.begin_transcendence()
                 self.step(275 if early else 315)
                 script = self.tracer.body_script
                 script.set_ult_charge(script.component.entity_var(ULT_COST).value())
@@ -141,21 +155,21 @@ class TracerZenyattaTests(unittest.TestCase):
                 self.assertEqual(bomb.attached, None if in_flight else self.zen.body)
                 self.assertEqual(self.zen_health.total, 200)
                 self.step(tracer_buttons=8, fixed_yaw=0)
-                self.assertTrue(self.fight.zenyatta_orbs.protects(self.zen))
+                self.assertTrue(self.fight.zenyatta.ultimate(self.zen))
 
                 if in_flight:
                     self.assertFalse(bomb.stuck)
                 else:
                     blast_frames[early] = self.run.frame + math.ceil(bomb.fuse_left / combat.TICK)
                 blast = blast_frames[early]
-                end = effect.last + combat.COMBAT_CATCH_UP + 50
-                self.assertEqual(blast <= effect.last, early)
+                end = end_tick + combat.COMBAT_CATCH_UP + 50
+                self.assertEqual(blast <= end_tick, early)
                 self.assertLess(blast, end - combat.COMBAT_CATCH_UP + 1)
                 self.match.update(end * combat.TICK, end)
 
                 self.assertFalse(self.fight.pulse_bombs.bombs)
                 self.assertEqual(bomb.attached, self.zen.body)
-                self.assertFalse(self.fight.zenyatta_orbs.protects(self.zen))
+                self.assertFalse(self.fight.zenyatta.ultimate(self.zen))
                 self.assertEqual(self.health.total, 150)
                 self.assertEqual(self.zen_health.total, 200 if early else 0)
                 self.assertEqual(len(self.tracer.client.messages(combat.HIT)), 0 if early else 1)
@@ -195,7 +209,7 @@ class TracerZenyattaTests(unittest.TestCase):
         enemy_health = self.fight.vitals_of(self.target(enemy))
         enemy_health.damage(100)
         self.health.damage(100)
-        effect = self.begin_transcendence()
+        _effect, end_tick = self.begin_transcendence()
         self.step(10)
         self.assertAlmostEqual(self.health.total, 98)
         self.assertEqual(enemy_health.total, 100)
@@ -213,7 +227,7 @@ class TracerZenyattaTests(unittest.TestCase):
         self.step(tracer_buttons=8, fixed_yaw=-32768)
         self.step(5)
         self.assertAlmostEqual(self.health.total, outside + 24)
-        self.step(effect.last - self.run.frame - 1)
+        self.step(end_tick - self.run.frame - 1)
         self.health.damage(100)
         self.step()
         self.assertAlmostEqual(self.health.total, 54.8)
@@ -248,7 +262,7 @@ class TracerZenyattaTests(unittest.TestCase):
                 )
                 ana.team = self.tracer.team
                 self.tracer.team = self.zen.team
-                effect = self.begin_transcendence()
+                _effect, end_tick = self.begin_transcendence()
                 self.step(96)
                 self.health.damage(90)
                 self.step(support={ana: (*facing, 16)})
@@ -258,12 +272,12 @@ class TracerZenyattaTests(unittest.TestCase):
                     self.step()
                 deadline = self.health.healing_block_until
                 self.assertLess(self.fight.tick + combat.COMBAT_CATCH_UP, deadline)
-                self.assertLess(deadline, effect.last)
+                self.assertLess(deadline, end_tick)
                 wounded = self.health.total
                 self.assertLess(wounded, 50)
-                expected = min(self.health.maximum, wounded + (effect.last - deadline + 1) * 4.8)
+                expected = min(self.health.maximum, wounded + (end_tick - deadline + 1) * 4.8)
                 zen_frame = self.zen.body_script.frame
-                end = effect.last + combat.COMBAT_CATCH_UP + 2
+                end = end_tick + combat.COMBAT_CATCH_UP + 2
 
                 first = deadline - 1 if sparse else self.run.frame + 1
                 for frame in range(first, deadline):
@@ -275,7 +289,7 @@ class TracerZenyattaTests(unittest.TestCase):
                     self.match.update(frame * combat.TICK, frame)
                 self.assertAlmostEqual(self.health.total, expected, places=4)
                 self.assertEqual(self.zen.body_script.frame, zen_frame)
-                self.assertNotIn(self.zen.body, self.fight.zenyatta_orbs.transcendence)
+                self.assertFalse(self.fight.zenyatta.ultimate(self.zen))
 
                 self.tracer.team = ana.team
                 x, y, z = self.zen.mover.position
@@ -294,17 +308,17 @@ class TracerZenyattaTests(unittest.TestCase):
             expiry += 1
         self.step(expiry - self.fight.tick - 355)
         self.health.damage(120)
-        effect = self.begin_transcendence()
+        _effect, end_tick = self.begin_transcendence()
         self.step()
         self.assertEqual(self.health.total, 30)
         self.assertIn(winston.body, self.fight.winston_barriers.actors)
-        self.assertEqual(effect.last - expiry, 20)
+        self.assertEqual(end_tick - expiry, 20)
 
-        end = effect.last + combat.COMBAT_CATCH_UP + 2
+        end = end_tick + combat.COMBAT_CATCH_UP + 2
         self.match.update(end * combat.TICK, end)
 
         self.assertNotIn(winston.body, self.fight.winston_barriers.actors)
-        self.assertNotIn(self.zen.body, self.fight.zenyatta_orbs.transcendence)
+        self.assertFalse(self.fight.zenyatta.ultimate(self.zen))
         self.assertAlmostEqual(self.health.total, 30 + 21 * 4.8, places=4)
 
     def test_transcendence_resumes_after_actual_ice_wall_expires_in_discarded_frames(self):
@@ -314,7 +328,7 @@ class TracerZenyattaTests(unittest.TestCase):
         x, y, z = self.tracer.mover.position
         mei.mover.position[:] = (x, y, z - 2.5)
         mei.mover.body = None
-        effect = self.begin_transcendence()
+        _effect, end_tick = self.begin_transcendence()
         self.step(30)
         yaw, pitch = aim(self.fight._eye(mei), (x, y, z - 4))
         self.step(support={mei: (yaw, pitch, 16)})
@@ -325,16 +339,16 @@ class TracerZenyattaTests(unittest.TestCase):
         pieces = self.fight.walls.pieces.values()
         self.assertEqual(len(pieces), 5)
         expires, = {piece.expires for piece in pieces}
-        self.assertLess(expires, effect.last)
+        self.assertLess(expires, end_tick)
         self.health.damage(120)
         self.step()
         self.assertEqual(self.health.total, 30)
 
-        end = effect.last + combat.COMBAT_CATCH_UP + 2
+        end = end_tick + combat.COMBAT_CATCH_UP + 2
         self.match.update(end * combat.TICK, end)
 
         self.assertFalse(self.fight.walls.pieces)
-        self.assertAlmostEqual(self.health.total, min(150, 30 + (effect.last - expires) * 4.8), places=4)
+        self.assertAlmostEqual(self.health.total, min(150, 30 + (end_tick - expires) * 4.8), places=4)
 
     def test_primary_orb_body_and_head_damage_then_tracer_returns_fire(self):
         for head, damage, flags in ((False, 48, 0), (True, 96, combat.CRITICAL)):
@@ -427,7 +441,7 @@ class TracerZenyattaTests(unittest.TestCase):
     def test_actual_deflect_and_grasp_protect_tracer_from_both_orb_types(self):
         if not all(map(deflection.absorbable, combat.ZENYATTA_ORBS)):
             self.skipTest("requires extracted Zenyatta projectile tags")
-        for hero, button, attack in ((0x02E0000000000029, 16, FIRE), (sigma_grasp.HERO, 8, SECONDARY)):
+        for hero, button, attack in ((0x02E0000000000029, 16, FIRE), (0x02E000000000023B, 8, SECONDARY)):
             with self.subTest(hero=hero, attack=attack):
                 self.setUp()
                 defender, _ = support_tests.PulseDeflectTests().support(self.run, self.tracer, hero)
@@ -448,9 +462,9 @@ class TracerZenyattaTests(unittest.TestCase):
                 self.assertFalse(self.fight.rockets)
                 self.assertEqual(self.health.total, 150)
                 self.assertFalse(self.hits())
-                if hero == sigma_grasp.HERO:
+                if hero == 0x02E000000000023B:
                     grasp = next(i for i in defender.body_script.component.instances.values()
-                                 if i.graph.index == sigma_grasp.GRASP)
+                                 if i.graph.index == sigma.GRAPH)
                     self.assertEqual(grasp.vars[21312].value(), 48)
                     self.assertEqual(self.zen_health.total, 200)
                 else:
@@ -494,11 +508,10 @@ class TracerZenyattaTests(unittest.TestCase):
         self.step(8)
         self.assertEqual(self.health.total, 50)
         self.step(zen=16)
-        key = self.zen.body, zenyatta_orbs.HARMONY
-        orbs = self.fight.zenyatta_orbs
-        self.assertEqual(orbs.links[key].target, self.tracer.body)
-        harmony = orbs._instance(self.zen, zenyatta_orbs.HARMONY)
-        slot = harmony.vars[zenyatta_orbs.ORB_TARGET]
+        name = 'harmony'
+        self.assertEqual(self.orb(name).target, self.tracer.body)
+        harmony = self.orb_instance(0x02F3)
+        slot = harmony.vars[1606]
         self.assertEqual(slot.value(), expr.Entity(self.tracer.body))
         self.step(10)
         self.assertAlmostEqual(self.health.total, 50 + 30 * combat.TICK * 10)
@@ -508,56 +521,55 @@ class TracerZenyattaTests(unittest.TestCase):
         before = self.health.total
         self.step(30)
         self.assertAlmostEqual(self.health.total - before, 30 * combat.TICK * 30)
-        link = orbs.links[key]
-        self.step(link.last_visible + link.grace - self.run.frame - 1)
-        self.assertIn(key, orbs.links)
+        link = self.orb(name)
+        self.step(self.orb_expiry_tick(link) - self.run.frame - 1)
+        self.assertIsNotNone(self.orb(name))
         before = self.health.total
         self.step()
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.assertEqual(slot.value(), 0)
         self.step(20, zen=16)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.assertEqual(self.health.total, before)
 
     def test_harmony_keeps_pre_expiry_healing_and_charge_across_long_occlusion(self):
         self.tracer.team = self.zen.team
         self.health.damage(100)
         self.step(zen=16)
-        orbs = self.fight.zenyatta_orbs
-        key = self.zen.body, zenyatta_orbs.HARMONY
-        link = orbs.links[key]
+        name = 'harmony'
+        link = self.orb(name)
         meter = self.zen.body_script.component.entity_var(ULT_CHARGE)
         self.zen.body_script.set_ult_charge(0)
         x, y, z = self.tracer.mover.position
         floor = box(x - 12, x + 12, y - 1, y, z - 12, z + 12)
         self.match.collision_world = World(floor + wall(x - 5, z - 4, x + 5, z - 4, y, y + 5))
-        end = link.last_visible + link.grace + combat.COMBAT_CATCH_UP
+        end = self.orb_expiry_tick(link) + combat.COMBAT_CATCH_UP
         self.match.update(end * combat.TICK, end)
-        expected = (link.grace - 1) * 0.48
+        expected = (math.ceil(zenyatta.LOS_GRACE / combat.TICK) - 1) * 0.48
         self.assertAlmostEqual(self.health.total, 50 + expected, places=4)
         self.assertAlmostEqual(meter.value(), expected, places=3)
-        self.assertNotIn(key, orbs.links)
-        harmony = orbs._instance(self.zen, zenyatta_orbs.HARMONY)
-        self.assertEqual(harmony.vars[zenyatta_orbs.ORB_TARGET].value(), 0)
+        self.assertIsNone(self.orb(name))
+        harmony = self.orb_instance(0x02F3)
+        self.assertEqual(harmony.vars[1606].value(), 0)
 
     def test_full_health_harmony_keeps_visibility_through_a_long_open_gap(self):
         self.tracer.team = self.zen.team
         self.step(zen=16)
-        orbs = self.fight.zenyatta_orbs
-        key = self.zen.body, zenyatta_orbs.HARMONY
-        link = orbs.links[key]
-        end = self.run.frame + 10 * link.grace
+        name = 'harmony'
+        link = self.orb(name)
+        end = self.run.frame + 10 * math.ceil(zenyatta.LOS_GRACE / combat.TICK)
         self.match.update(end * combat.TICK, end)
-        self.assertEqual(link.last_visible, end)
+        self.assertEqual(link.last_visible, end * combat.TICK)
         self.assertEqual(self.health.total, 150)
         self.tracer.mover.position[2] += 45
         self.health.damage(100)
-        last = end + link.grace - 1
+        last = end + math.ceil(zenyatta.LOS_GRACE / combat.TICK) - 1
         self.match.update(last * combat.TICK, last)
-        self.assertIs(orbs.links[key], link)
-        self.assertAlmostEqual(self.health.total, 50 + (link.grace - 1) * 0.48, places=4)
+        self.assertIs(self.orb(name), link)
+        expected = 50 + (math.ceil(zenyatta.LOS_GRACE / combat.TICK) - 1) * 0.48
+        self.assertAlmostEqual(self.health.total, expected, places=4)
         self.match.update((last + 1) * combat.TICK, last + 1)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
 
     def test_harmony_resumes_at_actual_antigrenade_expiry_inside_a_long_gap(self):
         ana, facing = support_tests.PulseDeflectTests().support(
@@ -573,8 +585,8 @@ class TracerZenyattaTests(unittest.TestCase):
         deadline = self.health.healing_block_until
         self.assertEqual(self.health.total, 100)
         self.step(zen=16)
-        key = self.zen.body, zenyatta_orbs.HARMONY
-        self.assertEqual(self.fight.zenyatta_orbs.links[key].target, self.tracer.body)
+        name = 'harmony'
+        self.assertEqual(self.orb(name).target, self.tracer.body)
         self.zen.body_script.set_ult_charge(0)
         meter = self.zen.body_script.component.entity_var(ULT_CHARGE)
         end = deadline + combat.COMBAT_CATCH_UP + 1
@@ -582,54 +594,55 @@ class TracerZenyattaTests(unittest.TestCase):
         expected = (end - deadline + 1) * 0.48
         self.assertAlmostEqual(self.health.total, 100 + expected, places=4)
         self.assertAlmostEqual(meter.value(), expected, places=3)
-        self.assertEqual(self.fight.zenyatta_orbs.links[key].last_visible, end)
+        self.assertEqual(self.orb(name).last_visible, end * combat.TICK)
 
     def test_harmony_rejects_enemy_long_range_and_off_axis_presses(self):
-        orbs = self.fight.zenyatta_orbs
-        key = self.zen.body, zenyatta_orbs.HARMONY
+        name = 'harmony'
         self.step(zen=16)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.tracer.team = self.zen.team
         origin = tuple(self.tracer.mover.position)
         self.tracer.mover.position[2] += 40
         self.tracer.mover.body = None
         self.step(3)
         self.step(zen=16)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.tracer.mover.position[:] = origin
         self.tracer.mover.body = None
         self.step()
         self.run.step({self.zen: (16384, 0, 16)})
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.step()
         self.step(zen=16)
-        self.assertEqual(orbs.links[key].target, self.tracer.body)
+        self.assertEqual(self.orb(name).target, self.tracer.body)
 
     def test_discord_amplifies_actual_orb_damage_then_recall_cleanses_and_allows_recast(self):
-        self.step(200)
-        key = self.zen.body, zenyatta_orbs.DISCORD
-        orbs = self.fight.zenyatta_orbs
+        fixture = json.loads((Path(__file__).parents[2] / 'fixtures/behavior'
+                              / 'zenyatta-recall-discord-v1.json').read_text(encoding='utf-8'))
+        expected = fixture['expected']
+        self.step(fixture['input']['history_frames'])
+        name = 'discord'
         self.step(zen=8)
-        self.assertEqual(orbs.links[key].target, self.tracer.body)
+        self.assertEqual(self.orb(name).target, self.tracer.body)
         self.step(zen=FIRE)
         self.step(18)
-        self.assertEqual(self.health.total, 90)
+        self.assertEqual(self.health.total, expected['after_discord_hit'])
         self.step(tracer_buttons=16)
         self.step(30)
         self.assertTrue(tracer.recalling(self.tracer))
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.step(zen=8)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
         self.step(90)
-        self.assertEqual(self.health.total, 150)
+        self.assertEqual(self.health.total, expected['after_recall'])
         self.step(zen=FIRE)
         self.step(18)
-        self.assertEqual(self.health.total, 102)
+        self.assertEqual(self.health.total, expected['after_unamplified_hit'])
         self.step(zen=8)
-        self.assertEqual(orbs.links[key].target, self.tracer.body)
+        self.assertEqual(self.orb(name).target, self.tracer.body)
         self.step(zen=FIRE)
         self.step(18)
-        self.assertEqual(self.health.total, 42)
+        self.assertEqual(self.health.total, expected['after_recast_hit'])
 
     def test_discord_expiry_orders_actual_pulse_blasts_during_sparse_updates(self):
         cases = ((True, False, False), (False, False, False), (True, True, False),
@@ -647,11 +660,10 @@ class TracerZenyattaTests(unittest.TestCase):
                 self.zen.mover.body = None
                 yaw, pitch = aim(self.fight._eye(self.zen), (x, y + self.target(enemy).eye, z))
                 self.run.step({self.zen: (yaw, pitch, 8)})
-                orbs = self.fight.zenyatta_orbs
-                key = self.zen.body, zenyatta_orbs.DISCORD
-                link = orbs.links[key]
+                name = 'discord'
+                link = self.orb(name)
                 self.assertEqual(link.target, enemy.body)
-                deadline = link.last_visible + link.grace
+                deadline = self.orb_expiry_tick(link)
                 self.zen.mover.position[0] -= 50
                 self.zen.mover.body = None
                 self.step(95 if early else 125)
@@ -679,28 +691,27 @@ class TracerZenyattaTests(unittest.TestCase):
                     self.assertLessEqual(blast, end)
                 self.match.update(end * combat.TICK, end)
 
-                self.assertNotIn(key, orbs.links)
+                self.assertIsNone(self.orb(name))
                 self.assertFalse(self.fight.pulse_bombs.bombs)
                 self.assertEqual(bomb.attached, enemy.body)
                 self.assertEqual(health.total, health.maximum - 6.25 - (437.5 if early else 350))
 
     def test_discord_cooldown_rejects_retarget_until_a_fresh_press(self):
-        orbs = self.fight.zenyatta_orbs
         self.step(zen=8)
-        key = self.zen.body, zenyatta_orbs.DISCORD
-        original = orbs.links[key]
+        name = 'discord'
+        original = self.orb(name)
         self.step()
         self.step(zen=8)
-        self.assertIs(orbs.links[key], original)
+        self.assertIs(self.orb(name), original)
         self.step(55, zen=8)
-        self.assertIs(orbs.links[key], original)
+        self.assertIs(self.orb(name), original)
         self.step()
         self.step(zen=8)
-        self.assertIsNot(orbs.links[key], original)
+        self.assertIsNot(self.orb(name), original)
         self.zen_health.damage(195)
         self.step(tracer_buttons=FIRE)
         self.assertTrue(self.zen_health.dead)
-        self.assertNotIn(key, orbs.links)
+        self.assertIsNone(self.orb(name))
 
     def test_discord_blocks_acquisition_through_enemy_dome_and_amplifies_allied_rifle(self):
         support = support_tests.PulseDeflectTests()
@@ -714,9 +725,8 @@ class TracerZenyattaTests(unittest.TestCase):
         self.step(8)
         dome = self.fight.winston_barriers.actors[winston.body]
         self.step(zen=8)
-        orbs = self.fight.zenyatta_orbs
-        key = self.zen.body, zenyatta_orbs.DISCORD
-        self.assertNotIn(key, orbs.links)
+        name = 'discord'
+        self.assertIsNone(self.orb(name))
         self.assertEqual(dome.health, 700)
 
         # Use the same third player for the other side after the dome retires.
@@ -726,7 +736,7 @@ class TracerZenyattaTests(unittest.TestCase):
         winston.mover.body = None
         self.step(20)
         self.step(zen=8)
-        self.assertEqual(orbs.links[key].target, self.tracer.body)
+        self.assertEqual(self.orb(name).target, self.tracer.body)
         yaw, pitch = aim(self.fight._eye(winston), (x, y + 1, z))
         self.step(support={winston: (yaw, pitch, FIRE)})
         self.assertEqual(self.health.total, 125)

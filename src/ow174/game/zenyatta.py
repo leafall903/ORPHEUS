@@ -174,6 +174,8 @@ class Zenyatta:
                 continue
             if self.combat.vitals_of(target).dead:
                 continue
+            if not healing and self.combat.recalls.active(target.owner):
+                continue  # Recall cleanses Discord and cannot receive a new hostile orb during its phase.
             if not healing and self.combat.barriers.for_target(target.owner) is not None:
                 continue
             delta = _sub((target.feet[0], target.feet[1] + target.eye, target.feet[2]), origin)

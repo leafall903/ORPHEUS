@@ -1,7 +1,7 @@
-"""Explicit source14 query over registered Match body capsules.
+"""Source14 query over registered Match body capsules.
 
-Not installed on the normal host until paired output and helper ownership are
-qualified. The original TrackTargets state owns publication and transitions.
+The normal host supplies this query; original TrackTargets owns publication.
+Paired output, normal16 helper routing and health completion remain separate.
 No accepted legacy contact, damage result, copied force or recipient clock is
 an input. This adapter covers ordinary live player/NPC bodies; native factories,
 arbitrary tags, parented shapes and deployables require their own bindings.

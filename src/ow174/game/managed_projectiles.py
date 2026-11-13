@@ -115,7 +115,10 @@ def register(fight, manager, flight, *, definition, born_world_tick):
     flight.managed_source = source
     fight.match.register_body_component(component)
     try:
-        startup.ComponentStartup(component, config).start()
+        for instance in startup.ComponentStartup(component, config).start():
+            # Native977F20 zero-source roots use their allocating component,
+            # before pending schema initialization and Entry execution.
+            instance.set_source_entity(component.entity)
     except Exception:
         source.retire()
         raise

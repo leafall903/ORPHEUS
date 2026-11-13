@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "graphs": [51, 5378],
+  "input": "Actual Ashe E command allocates the existing managed 2533 flight component",
+  "expected": "Pending roots have typed builtin 001B and cache equal to their own component entity; descriptor remains implicit SELF",
+  "provenance": "Target-build 977F20 zero-source allocation fallback and 1B94B10 typed source setter, already qualified by body-root-source-v1 and statescript-descriptor-source-v1",
+  "boundary": "No Entry, clock, health, Physics, +AC association, native factory or rendered effect acceptance"
+}

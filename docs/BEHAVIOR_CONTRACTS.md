@@ -505,3 +505,29 @@ changed movement and loss-retry equivalence against uncached control. Six retain
 budget/transport methods also pass. Exact source43 twenty-hero action/status
 rows passed20/20 but exceeded16ms at159.9488/252.2294ms; candidate performance is
 recorded separately against its exact source HEAD. No native acceptance claimed.
+
+## Queue lifetime pruning and original-owner correctness follow-ups
+
+The entity-queue-prune fixture preserves FIFO, exact generation checks, stale
+controller-close removal and a fresh queue-list identity on every call. Only
+entities whose create/destroy changed can invalidate prior generations; no close
+predicate is needed when no close exists. No persistent cache field is added.
+
+The Zenyatta Recall fixture rejects hostile Discord selection while actual
+Recall is active. Three maintained scenarios use current real Zen/Sigma managers
+for Discord/cleanse/recast, Transcendence protection and Harmony short-cover
+expiry; other22 migrated methods were not run and are not declared passed.
+
+Normal Doomfist D06/source14 now routes through BodyWorld.tracked_targets to
+the existing registered capsule query. Real player and NPC commands publish typed
+375 without fixture query/target/damage returns. Each actual legacy contact keeps
+one50HP/HIT/force producer. Recipient lag1,23530,normal16 and health14 completion
+remain open. All other root-source initialization remains unchanged.
+
+The actual managed2533 ComponentStartup roots0033/1502 now seed typed001B/cache
+from their own managed component before pending initialization. They remain
+pending, with implicit descriptor, no Entry/clock execution and unknown+AC; this
+is neither the caster nor a Shot transport alias. Same-flight and strict shared
+identity export are retained. Full factory, Physics receivers and rendered fire
+remain open. Exact latest-source twenty-hero timing is recorded separately;
+no16ms or current-cut Halloween/native acceptance is implied.

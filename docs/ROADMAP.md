@@ -636,3 +636,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Reuse origin-independent entity bits within send budget trials with8 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Compose current hero correctness and bounded queue pruning with9 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

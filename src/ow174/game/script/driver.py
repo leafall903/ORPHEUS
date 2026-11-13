@@ -2031,7 +2031,11 @@ class BodyWorld(runtime.World):
         return result
 
     def tracked_targets(self, state):
-        from ow174.game import sigma_flux
+        from ow174.game import doomfist_targets, sigma_flux
+
+        selected = doomfist_targets.tracked_targets(self, state)
+        if selected is not NotImplemented:
+            return selected
         selected = sigma_flux.flux_targets(self, state)
         if selected is not NotImplemented:
             return selected

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "kind": "synthetic",
+    "target_build": "1.74.0.0.104319",
+    "description": "Retained Tracer/Zenyatta scene: actual Discord, orb, Recall cleanse, active-phase acquisition rejection and fresh recast.",
+    "native_client_acceptance": "pending"
+  },
+  "input": {
+    "history_frames": 200,
+    "tracer_health": 150,
+    "orb_damage": 48,
+    "discord_scale": 1.25
+  },
+  "expected": {
+    "after_discord_hit": 90,
+    "after_recall": 150,
+    "after_unamplified_hit": 102,
+    "after_recast_hit": 42
+  }
+}
