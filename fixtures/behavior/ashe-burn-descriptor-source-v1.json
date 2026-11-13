@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "ashe-original150f-allocation-source-on-wire-v1",
+  "target_build": 104319,
+  "source": "Original1502/21 PlayScript150F has null instigator override, policy3, wire_flag1. Native source setter1B94B10 and descriptor allocation input preserve the current instance source before initialization; source cache1B92E50 is distinct from later typed var27 writes.",
+  "input": {"cases": ["actual E then owner Viper shot during unmodified flight", "actual downward E natural fuse affecting self and enemy"], "views": ["receiver owner frame", "caster observer", "live ally/enemy observer", "existing late ally"], "allied_target": "excluded from burn"},
+  "expected": {"150F_descriptor_source": "existing server instance.source_entity, without changing allocation or damage attribution", "policy": 3, "source_override": null, "enemy_blast": 50, "enemy_burn": 100, "burn_pulses": 20, "enemy_hit_notices": 21, "self_damage_scale": 0.5, "original_effect_action": "150F/10 ->27B8", "scope": "150F/24"},
+  "limits": ["Authenticated encrypted packet decoding is not native rendered-fire acceptance", "The source change publishes the existing producer allocation context; the complete projectile native factory/Physics association remains separately unaccepted", "No extra burn, damage, childFX entity, client launch, force or Physics dispatch"]
+}

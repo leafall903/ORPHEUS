@@ -998,6 +998,7 @@ class Dynamite:
                     (0x0A400000000004A2, expr.Entity(burn.source))),
         )
         if instance is not None:
+            instance.set_source_entity(instance.source_entity(), publish_source=True)
             burn.script, burn.instance = script, instance.id
             script.component.run_now()
 

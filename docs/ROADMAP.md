@@ -630,3 +630,6 @@ WIP10 integration checkpoint (2026-11-13):31 original-owner handoffs collected;8
 
 - [x] Integrate Reuse identical observer deltas within one synchronous update with2 selected related checks.
 - [ ] Complete its retained native acceptance and shared receiver/control gaps.
+
+- [x] Integrate Publish the existing Ashe burn instance source before Entry with4 selected related checks.
+- [ ] Complete its retained native acceptance and shared receiver/control gaps.

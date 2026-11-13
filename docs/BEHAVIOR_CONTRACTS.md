@@ -475,3 +475,18 @@ converge after one loses its first delta. Actual voice retry and directed callou
 scenarios preserve each stream's stamps. Exact later performance receipts remain
 separate: source41 passed20 action/status rows but was RED at227.8343/436.2401ms.
 No16ms or native acceptance is claimed by these two selected regression methods.
+
+## Existing Ashe burn descriptor source
+
+`fixtures/behavior/ashe-burn-descriptor-source-v1.json` covers actual owner-shot
+and natural-fuse burn delivery to caster, receiver and late ally. Publish the
+existing150F instance source before queued Entry; preserve allocation identity,
+caller/instigator selection, policy3, original flag1, null override and parameters.
+Nine omitted descriptors become zero omissions; six cross-body cases had a
+different native SELF fallback, while the three self-target cases already had
+the same identity. Retain one blast,20 burn pulses, HIT timing, half self damage,
+ally exclusion, late delivery and decoded expiry. The two actual source scenarios
+and two observer reuse scenarios pass on the composed source. This establishes
+source transport only: missing visible fire, native factory/Physics/marked
+receiver and whole-Ashe acceptance remain open. Twenty-hero next-tick performance
+is separately recorded on the exact latest source; no16ms pass is implied.
